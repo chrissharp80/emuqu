@@ -197,6 +197,12 @@ while IFS= read -r file; do
     if ! current="$(read_number "$(cat "$file")")"; then
         report_loosened "$file" "${previous} -> (not a number)"; continue
     fi
+    # Debt ceilings are counts, and the gates that read them accept only a
+    # whole number. `83` -> `83.0` compares equal here but is a value those
+    # gates refuse, so a ceiling that stops being whole is a change to justify.
+    if ! is_floor "$file" && [[ "$previous" =~ ^[0-9]+$ && ! "$current" =~ ^[0-9]+$ ]]; then
+        report_loosened "$file" "${previous} -> ${current} (no longer a whole number)"; continue
+    fi
 
     if loosens "$file" "$previous" "$current"; then
         report_loosened "$file" "${previous} -> ${current}"

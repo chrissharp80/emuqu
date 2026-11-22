@@ -33,7 +33,8 @@
 # Scope: Swift comments in the app, watch app and both test targets, and every
 # tracked Markdown file in the repository.
 #
-# Exit 0 clean, 1 on a broken citation, 2 when the Markdown list cannot be read.
+# Exit 0 clean, 1 on a broken citation, 2 when a source root holds no Swift or
+# the Markdown list cannot be read.
 
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -50,6 +51,14 @@ import subprocess
 import sys
 
 roots = sys.argv[1:]
+
+# Fail closed: a root that is missing or holds no Swift (a renamed target, a
+# typo in an argument) would otherwise be read as a tree with no broken
+# citations.
+for root in roots:
+    if not pathlib.Path(root).is_dir() or not any(pathlib.Path(root).rglob("*.swift")):
+        print(f"check_comment_citations: no Swift files under {root!r}; refusing to report it clean.", file=sys.stderr)
+        sys.exit(2)
 
 # Line count of every Swift file in the tree, by path. A bare basename is only
 # broken if it exceeds EVERY file of that name that could be the target.

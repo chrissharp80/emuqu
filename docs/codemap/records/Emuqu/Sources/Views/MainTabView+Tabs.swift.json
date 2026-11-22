@@ -183,13 +183,14 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.setDashboard(_:)": "0b9725c2babe06dd",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.uiStateCache": "1734474b85a93236",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "04778df48b6e9a44",
     "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.signalDashboardReady()": "290a13c88aa08d02",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.buildDashboardSnapshot(from:)": "c6fa126e9c2b9582",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.buildDashboardSnapshot(from:)": "23876ecb5be5fc02",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.logDashboardTiming(_:timing:)": "bd31f8933002a573",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()": "3a75cb3e91994b3f"
    }
@@ -221,8 +222,8 @@
   },
   {
    "key": "func MainTabView.buildDashboardSnapshot(from:)",
-   "hash": "5a33a44a78d395a1",
-   "does": "Builds UIStateCache.DashboardSnapshot using DashboardSessionPolicy selectors: hero score (latest complete overnight recoveryScore×10 via safeDisplayScore), rounded RMSSD, sleep minutes (overnight's snapshot or latest with sleep), recent-days strip, latest vitals.",
+   "hash": "f7371be4c81b21b3",
+   "does": "Builds UIStateCache.DashboardSnapshot using DashboardSessionPolicy selectors: hero score (latest complete overnight recoveryScore, else readinessScore for a night saved before scores were persisted, ×10 via safeDisplayScore), rounded RMSSD, sleep minutes (overnight's snapshot or latest with sleep), recent-days strip, latest vitals.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
@@ -254,7 +255,7 @@
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithSleep(in:)": "25f489a0b3f6784c",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithVitals(in:)": "f6421674557240f3",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(from:today:calendar:)": "6b030a7ece11d3c5",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "0296267ddd882a15",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "b70c38d229828097"
    }
   },

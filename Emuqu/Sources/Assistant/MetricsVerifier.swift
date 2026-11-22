@@ -162,7 +162,7 @@ enum MetricsVerifier {
     /// each range back to `text`. Ranges index `text`, which is what the
     /// voice pipeline splices into.
     private static func verifyLive(_ text: String, values: LiveValues) -> [Discrepancy] {
-        let normalized = normalizeWithRewrites(text)
+        let normalized = SpelledNumberNormalizer.normalizeWithRewrites(text)
         let found = heartRateDiscrepancies(in: normalized.text, actual: values.heartRate)
             + powerDiscrepancies(in: normalized.text, actual: values.powerWatts)
             + alpha1Discrepancies(in: normalized.text, actual: values.alpha1)
@@ -211,7 +211,7 @@ enum MetricsVerifier {
     @MainActor
     static func verifyAppStateClaims(_ text: String) -> AppStateVerifyResult {
         acknowledgeDeliveredCorrections()
-        let normalized = normalizeWithRewrites(text)
+        let normalized = SpelledNumberNormalizer.normalizeWithRewrites(text)
         let found = trainingLoadDiscrepancies(in: normalized.text) + overnightDiscrepancies(in: normalized.text)
             + lastNightSleepDiscrepancies(in: normalized.text)
         let mapped = found.compactMap {
@@ -647,7 +647,8 @@ enum MetricsVerifier {
     // delivered ones. A single fabrication still produces one reminder
     // per reply, not a perpetual one.
     //
-    // Process-local; cleared on app launch. Lock-guarded since
+    // Process-local; cleared on app launch and when the conversation is
+    // cleared (`clearCorrections`). Lock-guarded since
     // both the speaker thread (writes) and the AssistantViewModel
     // dispatch path (reads) hit it.
 
@@ -704,6 +705,14 @@ enum MetricsVerifier {
         return correctionsBlock(drained)
     }
 
+    /// Drop every correction, delivered or not. Called when the conversation
+    /// is cleared: the replies they correct are gone, and the first prompt of
+    /// the next conversation must not tell the model it said something it
+    /// never said there.
+    static func clearCorrections() {
+        corrections.withLock { $0 = CorrectionBuffer() }
+    }
+
     /// A reply has come back, so the model has seen every delivered
     /// reminder: retire them. Pending ones (recorded after the prompt was
     /// composed) wait for the next prompt.
@@ -732,65 +741,15 @@ enum MetricsVerifier {
     //
     // The verifier's main regexes look for digit characters
     // (`\d+(?:\.\d+)?`). In voice mode the AI replies conversationally
-    // — "TSB negative thirty-one point seven" — and zero digits appear.
-    // Every wrong metric in voice mode was invisible to the verifier.
-    // This normaliser converts the common patterns the AI emits into
-    // digit form BEFORE the regexes scan the text: 0–999 ("one hundred
-    // and sixty", "a hundred five"), the spoken "one-sixty" form of a heart
-    // rate (one or two, a hyphen, a tens word), and any number of decimal
-    // digits after "point" ("point seven five" is .75).
-    //
-    // Every spelled number in the reply is rewritten, "this one" included.
-    // That only affects matching: corrections are mapped back and applied
-    // to the original text, and a rewritten word is a claim only where a
-    // metric's claim shape surrounds it.
-
-    private static let onesAndTeens: [String: Int] = [
-        "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4,
-        "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
-        "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
-        "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19
-    ]
-
-    private static let tens: [String: Int] = [
-        "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
-        "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90
-    ]
+    // — "TSB negative thirty-one point seven" — and zero digits appear, so
+    // the checks run on `SpelledNumberNormalizer`'s digit-form copy of the
+    // reply and each correction is mapped back to the original text.
 
     /// Returns `text` with sequences like "negative thirty-one point
-    /// seven" rewritten to "-31.7". Idempotent: digit-form text passes
-    /// through unchanged. Case-insensitive.
+    /// seven" rewritten to "-31.7" (`SpelledNumberNormalizer`). Idempotent:
+    /// digit-form text passes through unchanged. Case-insensitive.
     static func normalizeSpelledNumbers(_ text: String) -> String {
-        normalizeWithRewrites(text).text
-    }
-
-    /// One spelled-number rewrite: the words it replaced in the original and
-    /// the digits it became in the normalized text.
-    private struct SpelledRewrite {
-        let original: NSRange
-        let normalized: NSRange
-    }
-
-    /// The normalized text plus every rewrite, in order, so a range found in
-    /// the normalized text can be mapped back to the original.
-    private static func normalizeWithRewrites(_ text: String) -> (text: String, rewrites: [SpelledRewrite]) {
-        guard let regex = DebugLogger.compiledPattern(spelledNumberPattern) else {
-            return (text, [])
-        }
-        let ns = text as NSString
-        let output = NSMutableString()
-        var rewrites: [SpelledRewrite] = []
-        var cursor = 0
-        for match in regex.matches(in: text, options: [], range: NSRange(location: 0, length: ns.length)) {
-            guard let rep = spelledNumberReplacement(ns.substring(with: match.range)) else { continue }
-            output.append(ns.substring(with: NSRange(location: cursor, length: match.range.location - cursor)))
-            let digits = NSRange(location: output.length, length: (rep as NSString).length)
-            rewrites.append(SpelledRewrite(original: match.range, normalized: digits))
-            output.append(rep)
-            cursor = NSMaxRange(match.range)
-        }
-        output.append(ns.substring(from: cursor))
-        return (output as String, rewrites)
+        SpelledNumberNormalizer.normalizeWithRewrites(text).text
     }
 
     /// `discrepancy` with its range moved from the normalized text to the
@@ -801,11 +760,11 @@ enum MetricsVerifier {
         _ discrepancy: Discrepancy,
         from normalized: String,
         to original: String,
-        rewrites: [SpelledRewrite]
+        rewrites: [SpelledNumberNormalizer.Rewrite]
     ) -> Discrepancy? {
         let inNormalized = NSRange(discrepancy.range, in: normalized)
-        let start = originalOffset(of: inNormalized.location, rewrites: rewrites, snapToEnd: false)
-        let end = originalOffset(of: NSMaxRange(inNormalized), rewrites: rewrites, snapToEnd: true)
+        let start = SpelledNumberNormalizer.originalOffset(of: inNormalized.location, rewrites: rewrites, snapToEnd: false)
+        let end = SpelledNumberNormalizer.originalOffset(of: NSMaxRange(inNormalized), rewrites: rewrites, snapToEnd: true)
         guard let range = Range(NSRange(location: start, length: end - start), in: original) else {
             debugLog("[MetricsVerifier] dropped a \(discrepancy.metric) correction: its range did not map back to the reply", level: .warning)
             return nil
@@ -814,90 +773,5 @@ enum MetricsVerifier {
             metric: discrepancy.metric, claimed: discrepancy.claimed, actual: discrepancy.actual,
             absoluteDelta: discrepancy.absoluteDelta, range: range
         )
-    }
-
-    /// Where a normalized-text offset falls in the original. Text outside any
-    /// rewrite is identical in both, shifted by the rewrites before it; an
-    /// offset inside a rewrite snaps to that rewrite's original start or end.
-    private static func originalOffset(of offset: Int, rewrites: [SpelledRewrite], snapToEnd: Bool) -> Int {
-        var shift = 0
-        for rewrite in rewrites {
-            if offset >= NSMaxRange(rewrite.normalized) {
-                shift = NSMaxRange(rewrite.original) - NSMaxRange(rewrite.normalized)
-                continue
-            }
-            if offset > rewrite.normalized.location {
-                return snapToEnd ? NSMaxRange(rewrite.original) : rewrite.original.location
-            }
-            break
-        }
-        return offset + shift
-    }
-
-    /// One spelled number, in this order of alternatives so the longest
-    /// reading wins: a hundreds form ("a hundred", "one hundred and sixty"),
-    /// the hyphenated "one-sixty" form, a tens word with an optional ones
-    /// word ("thirty-one"), a ones or teens word. Optional leading
-    /// "negative", optional "point" followed by digit words. The value is
-    /// read from the matched words by `spelledNumberReplacement`.
-    ///
-    /// Alternations are sorted longest-first so "ten" can't match the start
-    /// of "tenth".
-    ///
-    /// A normal `"..."` string with standard interpolation, NOT a
-    /// raw-string + concat (the `\#"#` delimiter dance). The raw-string
-    /// form silently produces an unused-variable warning because `\#"#`
-    /// is parsed as literal characters rather than exit-raw-string +
-    /// re-enter, so the `onesAlts` / `tensAlts` / `digits`
-    /// interpolations are never actually inserted. The resulting regex
-    /// has empty alternation groups and never matches anything — the
-    /// normaliser becomes a silent no-op and voice-mode hallucinations
-    /// slip past the verifier.
-    private static var spelledNumberPattern: String {
-        let onesAlts = onesAndTeens.keys.sorted { $0.count > $1.count }.joined(separator: "|")
-        let tensAlts = tens.keys.joined(separator: "|")
-        let digits = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
-            .joined(separator: "|")
-        let belowHundred = "(?:(?:\(tensAlts))(?:[-\\s]+(?:\(digits)))?|(?:\(onesAlts)))"
-        let hundreds = "(?:a|\(digits))[-\\s]+hundred(?:(?:\\s+and)?[-\\s]+\(belowHundred))?"
-        let colloquial = "(?:one|two)-(?:\(tensAlts))(?:-(?:\(digits)))?"
-        return "(?i)\\b(?:negative\\s+)?(?:\(hundreds)|\(colloquial)|\(belowHundred))(?:\\s+point(?:\\s+(?:\(digits)))+)?\\b"
-    }
-
-    /// The digit string a matched phrase stands for: "negative thirty-one
-    /// point seven" is "-31.7". Nil when a word is not a number word
-    /// (shouldn't happen given the pattern).
-    private static func spelledNumberReplacement(_ phrase: String) -> String? {
-        let words = phrase.lowercased().split { $0.isWhitespace || $0 == "-" }.map(String.init)
-        let body = words.filter { $0 != "negative" && $0 != "and" }
-        let point = body.firstIndex(of: "point") ?? body.endIndex
-        guard let integer = spelledInteger(body[..<point]) else { return nil }
-        let fraction = body[point...].dropFirst().compactMap { onesAndTeens[$0] }.map(String.init).joined()
-        let digits = fraction.isEmpty ? String(integer) : "\(integer).\(fraction)"
-        return words.first == "negative" ? "-" + digits : digits
-    }
-
-    /// The integer part. "hundred" multiplies what came before it ("a" is
-    /// one); a tens word after a lone ones word is the "one-sixty" form and
-    /// makes it the hundreds digit; everything else adds.
-    private static func spelledInteger(_ words: ArraySlice<String>) -> Int? {
-        guard !words.isEmpty else { return nil }
-        var value = 0
-        var sawHundred = false
-        for word in words {
-            if word == "hundred" {
-                value = max(value, 1) * 100
-                sawHundred = true
-            } else if word == "a" {
-                value = 1
-            } else if let ten = tens[word] {
-                value = !sawHundred && (1...9).contains(value) ? value * 100 + ten : value + ten
-            } else if let one = onesAndTeens[word] {
-                value += one
-            } else {
-                return nil
-            }
-        }
-        return value
     }
 }

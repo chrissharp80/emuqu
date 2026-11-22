@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchKit
 
 // Watch target entry point.
 @main
@@ -9,11 +10,14 @@ struct WatchApp: App {
     // tree observes; `@StateObject` gives SwiftUI ownership of the lifetime
     // of that one object.
     @StateObject private var sessionManager = WatchDependencies.current.sessionManager
-    @StateObject private var workoutManager = WatchWorkoutManager()
+    /// Owns the workout manager (see `WatchAppDelegate`).
+    @WKApplicationDelegateAdaptor(WatchAppDelegate.self) private var appDelegate
     /// The direct-BLE strap connector, handed to the view tree through the
     /// environment.
     @StateObject private var strapConnector = WatchDependencies.current.strapConnector
     @Environment(\.scenePhase) private var scenePhase
+
+    private var workoutManager: WatchWorkoutManager { appDelegate.workoutManager }
 
     init() {
         // The connector publishes direct-strap heart rate into the session
@@ -62,11 +66,46 @@ struct WatchApp: App {
     /// where WCSession activated before this view appeared.
     ///
     /// The workout manager follows the iPhone's messages so it can end its
-    /// session when the iPhone app goes silent mid-workout.
+    /// session when the iPhone app goes silent mid-workout
+    /// (`WatchAppDelegate.wire`, which a background recovery relaunch runs
+    /// before any view appears).
     private func wireUp() {
-        sessionManager.attach(workoutManager: workoutManager)
-        workoutManager.followPhoneMessages(of: sessionManager)
+        appDelegate.wire(to: sessionManager)
         Task { await workoutManager.requestAuthorizationIfNeeded() }
         sessionManager.requestCurrentStateFromPhone()
+    }
+}
+
+/// The app delegate, for the one thing only a delegate is told: watchOS
+/// relaunched the app to hand back a workout session that was running when
+/// the app was ended (a crash, memory pressure).
+///
+/// It owns the workout manager rather than `WatchApp` because that relaunch
+/// can happen in the background, before any view exists, and the recovered
+/// session has to reach the same manager the views and the session manager
+/// use afterwards.
+final class WatchAppDelegate: NSObject, WKApplicationDelegate {
+    let workoutManager = WatchWorkoutManager()
+
+    /// The recovery is begun before the managers are wired, so a recording
+    /// state the session manager already holds starts nothing beside the
+    /// session being handed back (a start waits for the recovery). Then the
+    /// workout manager is wired at once rather than when the root view
+    /// appears, which a background relaunch may never do: unwired, it heard
+    /// nothing from the iPhone, so the phone-silence check ended a recovered
+    /// workout the iPhone was still recording, and a not-recording report
+    /// never let go of one it was not.
+    func handleActiveWorkoutRecovery() {
+        workoutManager.recoverActiveSession()
+        wire(to: WatchDependencies.current.sessionManager)
+    }
+
+    /// Attaches the workout manager to `sessionManager` (which starts it when
+    /// the iPhone is already recording) and has it follow the iPhone's
+    /// messages. Both steps keep only their first call, so the recovery
+    /// relaunch and the root view's appearance can each run it.
+    func wire(to sessionManager: WatchSessionManager) {
+        sessionManager.attach(workoutManager: workoutManager)
+        workoutManager.followPhoneMessages(of: sessionManager)
     }
 }

@@ -81,12 +81,12 @@
   },
   {
    "key": "func RoadGeocodingService.reverseGeocodeQueued(_:)",
-   "hash": "c514496f9010072d",
-   "does": "Queued 5 s-capped reverse geocode (failure backoff honoured); nil or an empty placemark list records a failure and returns nil, as the ambient path counts them; a placemark clears failures/backoff and is returned.",
+   "hash": "14a53c42a72f715c",
+   "does": "Queued reverse geocode capped at 5 s (geocoderRequest, which cancels a request still running when given up on; failure backoff honoured); nil or an empty placemark list records a failure and returns nil, as the ambient path counts them; a placemark clears failures/backoff and is returned.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocoderRequest(_:)",
     "ext:CLGeocoder.reverseGeocodeLocation",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)"
    ],
@@ -104,19 +104,19 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocoderRequest(_:)": "afbe5e7469fc014c",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)": "c763d92a09df7b90",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)": "5fc216f77922d8f8",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "3ebe96c57aa110d7"
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)": "5fc216f77922d8f8"
    }
   },
   {
    "key": "func RoadGeocodingService.forwardGeocodeQueued(_:)",
-   "hash": "1f3e5bdd7fcb2e9f",
-   "does": "Queued 5 s-capped forward geocode of a query string that waits for the 1 s floor but not the failure backoff (the user is asking now); nil records a failure, non-nil clears failures/backoff; returns the placemarks.",
+   "hash": "4281699e2239ae3b",
+   "does": "Queued forward geocode of a query string capped at 5 s (geocoderRequest, which cancels a request still running when given up on) that waits for the 1 s floor but not the failure backoff (the user is asking now); nil records a failure, non-nil clears failures/backoff; returns the placemarks.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocoderRequest(_:)",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)",
     "ext:CLGeocoder.geocodeAddressString"
    ],
@@ -134,8 +134,36 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocoderRequest(_:)": "afbe5e7469fc014c",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)": "c763d92a09df7b90",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)": "5fc216f77922d8f8",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)": "5fc216f77922d8f8"
+   }
+  },
+  {
+   "key": "func RoadGeocodingService.geocoderRequest(_:)",
+   "hash": "09fad85d900bc9a7",
+   "does": "Runs one CLGeocoder request through runWithTimeout (5 s); when it gave nothing back and the geocoder is still working on a request (isGeocoding), cancels that request so the queue's next call does not fail against it. Returns the result, nil on a timeout or an error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)",
+    "ext:CLGeocoder.isGeocoding",
+    "ext:CLGeocoder.cancelGeocode",
+    "closure:request (the caller's CLGeocoder call)"
+   ],
+   "reads": [
+    "mem:RoadGeocodingService.geocoder"
+   ],
+   "writes": [
+    "net:Apple geocoder"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "nil result and a request still running",
+     "effect": "cancelGeocode"
+    }
+   ],
+   "deps": {
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "3ebe96c57aa110d7"
    }
   },
@@ -538,6 +566,28 @@
    "deps": {}
   },
   {
+   "key": "func RoadGeocodingService.forgetAfterPurge()",
+   "hash": "22cb20edbd90ac0e",
+   "does": "Delete All My Data: reset() (cancels the lookup in flight and clears the failure state), then clears the road context, the coordinate and time it was looked up for, and the last no-cross-street road, so cachedIfCloseTo has nothing to hand out.",
+   "entry": "Called from DataPurgeService.forgetInMemoryStores.",
+   "calls": [
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reset()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RoadGeocodingService.current",
+    "mem:RoadGeocodingService.lastLookupCoord",
+    "mem:RoadGeocodingService.lastLookupAt",
+    "mem:RoadGeocodingService.lastNoCrossStreetRoad",
+    "mem:RoadGeocodingService.consecutiveFailures",
+    "mem:RoadGeocodingService.backoffStartedAt"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reset()": "d97da7600acc1a2f"
+   }
+  },
+  {
    "key": "func RoadGeocodingService.resolveRoadName(at:)",
    "hash": "d9c4fdb768091b14",
    "does": "Static one-shot: reverse-geocodes a coordinate through the app's RoadGeocodingService queue on the MainActor and returns its thoroughfare.",
@@ -552,7 +602,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reverseGeocodeQueued(_:)": "f073a7d5a3297d38",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reverseGeocodeQueued(_:)": "554165478236818d",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "a0b74e1dad19f7ab"
@@ -583,7 +633,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.context(from:at:)": "22ab4769837321f0",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.forwardGeocodeQueued(_:)": "ad2cafb354468e99",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.forwardGeocodeQueued(_:)": "3d7a1faa48d82fe6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
   },

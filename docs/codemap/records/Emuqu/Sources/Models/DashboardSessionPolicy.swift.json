@@ -66,7 +66,7 @@
    "calls": [
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
    ],
    "reads": [],
    "writes": [],
@@ -76,7 +76,7 @@
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)": "56a93496adff6b14",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)": "3b1791ac9b8ef920",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a"
    }
   },
   {
@@ -159,7 +159,7 @@
    "calls": [
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
    ],
    "reads": [],
    "writes": [],
@@ -175,7 +175,7 @@
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)": "56a93496adff6b14",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)": "3b1791ac9b8ef920",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a"
    }
   },
   {
@@ -234,7 +234,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "fc7b40c8ba4c99c6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "5e659817dff279d9",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "9202ea99d230a550",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "1f169ca3f7045de3"
    }
@@ -299,6 +299,50 @@
    }
   },
   {
+   "key": "func DashboardSessionPolicy.oneOvernightPerNight(_:calendar:)",
+   "hash": "59cec28a89981e7f",
+   "does": "Keeps, of the overnights that land on the same day (nightDay), only the longest (duration; the first of equals), and every non-overnight session, in input order.",
+   "entry": "Called by TrendAnalyzer.filteredDataPoints and MetricBasedCauseDetector.detectIllnessPattern.",
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.nightDay(of:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each overnight",
+     "effect": "kept for its night unless one kept there is at least as long"
+    },
+    {
+     "at": "+8",
+     "cond": "non-overnight or the kept overnight of its night",
+     "effect": "kept; else dropped"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "9202ea99d230a550",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.nightDay(of:calendar:)": "7259294a51f79088"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.nightDay(of:calendar:)",
+   "hash": "a6d7aac7b5dee032",
+   "does": "Start of the calendar day a session counts on: dayOf (an overnight's sleep end or wake time, else endDate ?? startDate).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "5e659817dff279d9"
+   }
+  },
+  {
    "key": "func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)",
    "hash": "7c6bfd10627b5b21",
    "does": "True for a non-workout session with an analysisResult or recoveryScore, reliable for HRV aggregates, whose dayOf falls on the date.",
@@ -313,14 +357,14 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "fc7b40c8ba4c99c6",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "5e659817dff279d9",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "1f169ca3f7045de3"
    }
   },
   {
    "key": "func DashboardSessionPolicy.dayOf(_:)",
-   "hash": "1e95f78a31403dc9",
-   "does": "Wake day of a session: for overnights the snapshot sleepEnd, else startDate + sleepEndMs; otherwise endDate ?? startDate.",
+   "hash": "9f28427dbeb879b7",
+   "does": "Wake day of a session: for overnights the snapshot sleepEnd, else startDate + sleepEndMs when that is positive (a zero offset is no sleep end, as the index mirror reads it); otherwise endDate ?? startDate.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -337,20 +381,19 @@
      "effect": "return it"
     },
     {
-     "at": "+5",
-     "cond": "sleepEndMs present",
+     "at": "+8",
+     "cond": "sleepEndMs present and > 0",
      "effect": "return startDate + sleepEndMs"
     },
     {
-     "at": "+9",
+     "at": "+12",
      "cond": "endDate nil (??)",
      "effect": "fallback startDate"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "3161593fbc6e5971"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb"
    }
   },
   {

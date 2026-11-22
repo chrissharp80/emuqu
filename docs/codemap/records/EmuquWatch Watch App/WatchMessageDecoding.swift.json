@@ -1,13 +1,13 @@
 {
  "file": "EmuquWatch Watch App/WatchMessageDecoding.swift",
- "hash": "a7425c16614fe797",
- "role": "Pure, nonisolated decoding of iPhone→Watch WCSession payloads into typed StateUpdate/Command values, plus the transition rules (recording start/stop, completion banner, request clearing), refusal wording, sport/band/pace labels, phone-silence rules, message send-time ordering, queued-End displacement, heart-rate zone buckets and strap 2A37 packet decoding. Compiled into both the Watch target and EmuquTests (project.pbxproj:4517).",
+ "hash": "d584eb00c7b620e6",
+ "role": "Pure, nonisolated decoding of iPhone→Watch WCSession payloads into typed StateUpdate/Command values, plus the transition rules (recording start/stop, completion banner, request clearing), refusal wording, sport/band/pace labels, phone-silence rules, coach-alert freshness, message send-time ordering, queued-End displacement, heart-rate zone buckets and strap 2A37 packet decoding. Compiled into both the Watch target and EmuquTests (project.pbxproj:4517).",
  "types": [
   "WatchMessageDecoding: enum (namespace, nonisolated)",
   "WatchMessageDecoding.StateUpdate: struct — optional fields, nil = absent; isLiveSnapshot marks a liveState tick",
   "WatchMessageDecoding.Bounds: enum — plausible ranges for each numeric field",
   "WatchMessageDecoding.RecordingTransition: enum — none/started/stopped",
-  "WatchMessageDecoding.Command: enum — startWorkout/stopWorkout/strapState/liveState/voiceChatState/unknown",
+  "WatchMessageDecoding.Command: enum — startWorkout/stopWorkout/strapState/liveState/voiceChatState/coachAlert/unknown",
   "WatchMessageDecoding.StrapMeasurement: struct — heartRate (nil when no real beat), rrMillis in whole ms"
  ],
  "state": [
@@ -23,11 +23,12 @@
   "mem:WatchMessageDecoding.needsUnlockCode = \"needsUnlock\"",
   "mem:WatchMessageDecoding.phoneSilenceLimit = 1800 s",
   "mem:WatchMessageDecoding.phoneSilenceCheckInterval = 60 s",
-  "wc keys read: heartRate, hrPercentOfMax, peakHR, elapsedSec, distanceMeters, paceSecPerKm, paceDisplay, units, alpha1, alpha1Status, bandCode, band, sport, cadenceSpm, elevationGainMeters, targetZone, displayOnlyMode, isPaused, autoPaused, isRecording, voiceChatState, ts, type, strapConnected, strapDeviceName, ok, errorCode, error",
+  "wc keys read: heartRate, hrPercentOfMax, peakHR, elapsedSec, distanceMeters, paceSecPerKm, paceDisplay, units, alpha1, alpha1Status, bandCode, band, sport, cadenceSpm, elevationGainMeters, targetZone, displayOnlyMode, isPaused, autoPaused, isRecording, voiceChatState, ts, type, strapConnected, strapDeviceName, urgent, firedAt, ok, errorCode, error",
   "mem:WatchMessageDecoding.maxSendTimeLead = 60 s",
-  "mem:WatchMessageDecoding.stopIntentType = \"stopWorkoutFromWatch\""
+  "mem:WatchMessageDecoding.stopIntentType = \"stopWorkoutFromWatch\"",
+  "mem:WatchMessageDecoding.coachAlertMaxAge = 15 s"
  ],
- "toplevel": "StateUpdate.isLiveSnapshot defaults false; Bounds, maxSendTimeLead and stopIntentType are static lets. No other top-level code.",
+ "toplevel": "StateUpdate.isLiveSnapshot defaults false; Bounds, maxSendTimeLead, stopIntentType and coachAlertMaxAge are static lets. No other top-level code.",
  "units": [
   {
    "key": "func WatchMessageDecoding.decode(_:)",
@@ -255,7 +256,7 @@
   },
   {
    "key": "func WatchMessageDecoding.refusalText(code:sport:)",
-   "hash": "ca2f9daf7ac8dae9",
+   "hash": "0170c99b68fec886",
    "does": "Watch-localized text for a phone refusal errorCode; nil for an unknown code so the phone's own error text is used.",
    "entry": null,
    "calls": [],
@@ -294,6 +295,11 @@
     },
     {
      "at": "+7",
+     "cond": "code == workoutInProgress",
+     "effect": "\"A workout is already recording on your iPhone.\""
+    },
+    {
+     "at": "+8",
      "cond": "default",
      "effect": "nil"
     }
@@ -333,7 +339,7 @@
     }
    ],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "c7f5d6de15beeb94"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "57e5c2b8096f75ac"
    }
   },
   {
@@ -513,12 +519,16 @@
   },
   {
    "key": "func WatchMessageDecoding.command(_:)",
-   "hash": "61854a0816ccae61",
-   "does": "Parses the type key into a Command; nil when there is no String type.",
+   "hash": "4b8435373ceb126a",
+   "does": "Parses the type key into a Command; nil when there is no String type. A coachAlert carries `urgent` (false when absent or not a Bool) and an optional `firedAt` Double.",
    "entry": null,
    "calls": [],
    "reads": [
-    "wc:type"
+    "wc:type",
+    "wc:strapConnected",
+    "wc:strapDeviceName",
+    "wc:urgent",
+    "wc:firedAt"
    ],
    "writes": [],
    "branches": [
@@ -549,11 +559,16 @@
     },
     {
      "at": "+7",
+     "cond": "coachAlert",
+     "effect": ".coachAlert(urgent: urgent as? Bool ?? false, firedAt: firedAt as? Double)"
+    },
+    {
+     "at": "+9",
      "cond": "strapState",
      "effect": ".strapState(connected: strapConnected as? Bool, deviceName: strapDeviceName as? String)"
     },
     {
-     "at": "+12",
+     "at": "+14",
      "cond": "default",
      "effect": ".unknown(raw)"
     }
@@ -570,8 +585,30 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "5ad3af0db7c0faae"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.command(_:)": "126717e7d12a5b04"
    }
+  },
+  {
+   "key": "func WatchMessageDecoding.playsCoachAlert(firedAt:now:)",
+   "hash": "d54f1f36e0fad9c4",
+   "does": "Whether a coach alert the iPhone fired at `firedAt` (seconds since 1970) still plays its wrist haptic at `now`: true only when firedAt is present and within coachAlertMaxAge (15 s) of now either side; a missing time or one further off (a late queued delivery, or clocks that disagree that much) → false.",
+   "entry": "Called by WatchSessionManager.playCoachAlert(urgent:firedAt:); unit-tested in WatchMessageDecodingTests.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "firedAt nil",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "|now - firedAt| <= coachAlertMaxAge",
+     "effect": "true; else false"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func WatchMessageDecoding.isCurrent(sentAt:newestApplied:now:)",

@@ -205,16 +205,23 @@ enum DataPurgeService {
         }
     }
 
-    /// Why a purge did not start.
+    /// Why a purge did not run, or stopped before the local wipe.
     enum Refusal: Error, LocalizedError {
         /// A recording is under way, or a reading is waiting to be accepted
-        /// (see `isRecordingInProgress`).
+        /// (see `isRecordingInProgress`). Nothing was deleted.
         case recordingInProgress
+        /// A recording started while the iCloud copy was being deleted. iCloud
+        /// sync was already off and the remote deletion had run, but nothing on
+        /// this device was deleted: the recording would have written its beats
+        /// back into the emptied backups.
+        case recordingStartedDuringDelete
 
         var errorDescription: String? {
             switch self {
             case .recordingInProgress:
                 String(localized: "Stop the recording in progress, or accept or discard the reading that is waiting for review, first. Otherwise its data would be saved again after the delete.", bundle: LanguageManager.appBundle)
+            case .recordingStartedDuringDelete:
+                String(localized: "A recording started while your data was being deleted, so nothing on this device was deleted. iCloud sync is now off. Stop the recording, then run Delete All My Data again.", bundle: LanguageManager.appBundle)
             }
         }
     }
@@ -267,7 +274,18 @@ enum DataPurgeService {
     /// a recording is under way. `recordingInProgress` answers that: nil
     /// asks `isRecordingInProgress` about the running collector
     /// (`RRCollector.current`) and the app's workout recorder
-    /// (`appIsRecording`); tests pass their own answer.
+    /// (`appIsRecording`); tests pass their own answer. It is asked again
+    /// once the remote deletion has returned: a recording started during that
+    /// wait throws `Refusal.recordingStartedDuringDelete` and the device is
+    /// not wiped.
+    ///
+    /// The whole purge holds `PurgeGate`: it first waits for the archive
+    /// writes already under way to finish, and from then on every archive
+    /// write (a rescore, an acceptance, a CloudKit pull, a migration) and
+    /// every CloudKit upload or full sync is refused until it returns. iCloud
+    /// sync is switched off before the remote deletion starts, so a sync
+    /// queued behind that deletion finds it off and does not upload the
+    /// archive back into the emptied iCloud.
     ///
     /// `stores` are the services every step beyond the named ones clears or
     /// reads back; production passes the composition root's
@@ -297,9 +315,14 @@ enum DataPurgeService {
         deleteRemote: (() async -> Bool)? = nil,
         scope: PurgeScope = .device
     ) async throws(Refusal) -> Report {
-        guard !(recordingInProgress?() ?? appIsRecording(recorderBox: stores.recorderBox)) else { throw Refusal.recordingInProgress }
+        let isRecording: @MainActor () -> Bool = { recordingInProgress?() ?? appIsRecording(recorderBox: stores.recorderBox) }
+        guard !isRecording() else { throw Refusal.recordingInProgress }
+        await PurgeGate.beginPurge()
+        defer { PurgeGate.endPurge() }
+        settingsManager.settings.iCloudSyncEnabled = false
         var errors: [String] = []
         let remoteDeleted = await purgeRemote(cloudSync: cloudSync, deleteRemote: deleteRemote, errors: &errors)
+        guard !isRecording() else { throw Refusal.recordingStartedDuringDelete }
         let sweptFiles = sweepAndForget(archive: archive, rawBackup: rawBackup, scope: scope, liveSettingsFile: settingsManager.settingsURL, errors: &errors)
         let sweptDefaults = sweepAllDefaults(scope: scope, errors: &errors)
         let directories = purgeDirectories(settingsManager: settingsManager, cloudSync: cloudSync, stores: stores, scope: scope, errors: &errors)
@@ -307,15 +330,28 @@ enum DataPurgeService {
         let fallible = purgeFallibleStores(stores.device, errors: &errors)
         let profileReset = readBackProfile(settingsManager: settingsManager, errors: &errors)
         let left = readBackClearedStores(settingsManager: settingsManager, cloudSync: cloudSync, stores: stores)
+        return report(
+            remoteDeleted: remoteDeleted, swept: (sweptFiles, sweptDefaults), directories: directories,
+            steps: (fallible, profileReset, left), errors: errors
+        )
+    }
+
+    /// The page's report from what each step returned.
+    private static func report(
+        remoteDeleted: Bool, swept: (files: Int, defaults: Int),
+        directories: (archive: Bool, backups: Bool, keychainCleared: Bool),
+        steps: (fallible: FallibleSteps, profileReset: Bool, left: ReadBack), errors: [String]
+    ) -> Report {
+        let left = steps.left
         return Report(
             remoteDeleted: remoteDeleted, archiveDeleted: directories.archive,
             backupsDeleted: directories.backups, cloudSyncStateReset: left.cloudSyncStateReset,
             keychainCleared: directories.keychainCleared, conversationsCleared: left.conversationsCleared,
             userFactsCleared: left.userFactsCleared, disclaimerReset: left.disclaimerReset,
-            profileReset: profileReset, assistantDisclaimerReset: left.assistantDisclaimerReset,
-            debugLogCleared: fallible.debugLogCleared, crashLogsCleared: fallible.crashLogsCleared,
+            profileReset: steps.profileReset, assistantDisclaimerReset: left.assistantDisclaimerReset,
+            debugLogCleared: steps.fallible.debugLogCleared, crashLogsCleared: steps.fallible.crashLogsCleared,
             unitsPreferenceReset: left.unitsPreferenceReset, breadcrumbsCleared: left.breadcrumbsCleared,
-            residualFilesRemoved: sweptFiles, residualDefaultsRemoved: sweptDefaults, errors: errors
+            residualFilesRemoved: swept.files, residualDefaultsRemoved: swept.defaults, errors: errors
         )
     }
 
@@ -462,158 +498,6 @@ enum DataPurgeService {
         return [liveSettingsFile.lastPathComponent]
     }
 
-    // MARK: - Preferences sweep
-
-    /// `UserDefaults` keys a full wipe must leave alone.
-    ///
-    /// ## Why this exists
-    ///
-    /// The container sweep above inverted the file purge from "list what to
-    /// delete" to "delete what is not kept", and the doc comment for it says a
-    /// future store is covered on the day it is written. That was true of
-    /// files and false of preferences: the named steps removed nine specific
-    /// `UserDefaults` keys and nothing swept the rest. 105 distinct keys are
-    /// written across the app target. Surviving a "delete all my data" were,
-    /// among others, `hasAcceptedHealthDisclaimer`, the CloudKit change token
-    /// and last-sync date, `reviewedRecoveredWorkoutIds`,
-    /// `hkBackfillExportedWatermark`, and every cached baseline
-    /// (`RespiratoryBaselineCache`, `WristTemperatureBaselineCache`,
-    /// `SleepDataCache`) — derived physiology, which is health data however it
-    /// was derived.
-    ///
-    /// ## Why this list is not empty
-    ///
-    /// Four groups, and each one is here because sweeping it would break
-    /// something a user would notice:
-    ///
-    ///   * `storekit.lastKnownPurchased` / `storekit.lastKnownTestFlight` are
-    ///     read SYNCHRONOUSLY on the launch path — `StoreKitManager.isPurchased`
-    ///     resolves from the cache before StoreKit has re-verified anything.
-    ///     Deleting them would show a paying customer the paywall after they
-    ///     erased their data, and offline it would not resolve at all.
-    ///   * `storekit.verifiedProductionInstall` / `storekit.verifiedXcodeInstall`
-    ///     record which environment signed this install (App Store / Xcode),
-    ///     not user data. `boot()` writes them once per process, so sweeping
-    ///     them would drop the beta-tester and Xcode-install grants until the
-    ///     next launch.
-    ///   * `entitlement.anchor.v1` is the same argument one layer down. Erasing
-    ///     someone's data is not a refund; the anchor is deliberately
-    ///     device-transferable, which is why it also lives in the iCloud
-    ///     Keychain.
-    ///   * The migration flags are bookkeeping, not user data. The purge has
-    ///     never cleared them, and clearing them now would re-run four
-    ///     migrations against a freshly emptied archive for no benefit.
-    ///
-    /// Deliberately NOT kept: `FeatureFlags`, which lives in the App Group
-    /// suite. Every flag defaults to `true` — medical guard on, every provider
-    /// enabled — so sweeping them resets toward the safe end, and a wipe
-    /// resetting the user's settings is what `resetToDefaults()` already does
-    /// for `UserSettings`. The in-process `FeatureFlags` cache is not
-    /// invalidated, so the reset shows on next launch rather than immediately.
-    ///
-    /// `AppleLanguages` is covered by `systemOwnedPrefixes` rather than named
-    /// here, but the reasoning is the same: the in-app language picker writes
-    /// it (`SettingsView+Appearance`), so sweeping it would silently change the
-    /// UI language as a side effect of a data wipe.
-    private static let defaultsKeepList: Set<String> = [
-        "entitlement.anchor.v1",
-        "storekit.lastKnownPurchased",
-        "storekit.lastKnownTestFlight",
-        "storekit.verifiedProductionInstall",
-        "storekit.verifiedXcodeInstall"
-    ]
-
-    /// Prefixes iOS itself writes into an app's persistent domain.
-    ///
-    /// Deleting one is mostly harmless — the frameworks rewrite them — but
-    /// "mostly" is not a good enough reason to touch state this app does not
-    /// own, and `AppleLanguages` is a case where it is not harmless at all.
-    /// Checked against every `UserDefaults` key string in the app target: none
-    /// of them begins with any of these, so nothing of ours hides behind one.
-    private static let systemOwnedPrefixes = [
-        "Apple", "NS", "com.apple.", "WebKit", "AK", "PK", "MSV", "INNext",
-        "CarCapabilities", "ADPrivacy", "METAL", "GEO", "TVRemote", "SU"
-    ]
-
-    /// The migration bookkeeping described above is kept by its two
-    /// spellings — `FlowRecovery.migration.*` in `Archive+Migrations` and
-    /// `didRun…_v<n>` in the `RRCollector+*Migration` files. A `didRun` key
-    /// is kept only when it also carries a `_v` version marker, so an
-    /// ordinary key that merely starts with "didRun" is still swept.
-    private static func isPurgeable(defaultsKey key: String) -> Bool {
-        if defaultsKeepList.contains(key) { return false }
-        if key.hasPrefix("FlowRecovery.migration.") { return false }
-        if key.hasPrefix("didRun"), key.contains("_v") { return false }
-        return !systemOwnedPrefixes.contains { isSystemKey(key, prefix: $0) }
-    }
-
-    /// Apple's keys continue a prefix with a capital, digit or underscore
-    /// ("NSLanguages", "SUEnableAutomaticChecks"); a key that continues it
-    /// with a lowercase letter ("SUmmary…") is not the system's and is swept.
-    private static func isSystemKey(_ key: String, prefix: String) -> Bool {
-        guard key.hasPrefix(prefix) else { return false }
-        guard !prefix.hasSuffix("."), let next = key.dropFirst(prefix.count).first else { return true }
-        return next.isUppercase || next.isNumber || next == "_"
-    }
-
-    /// Suites the app persists preferences into: its own domain and the App
-    /// Group shared with the watch app.
-    private static func deviceDefaultsDomains(errors: inout [String]) -> [(name: String, store: UserDefaults)] {
-        var domains: [(String, UserDefaults)] = []
-        if let bundleID = Bundle.main.bundleIdentifier {
-            domains.append((bundleID, .standard))
-        } else {
-            // Cannot happen in a shipped app, but a silently skipped domain
-            // here would mean a purge that reported success and swept nothing.
-            errors.append(String(localized: "Preferences sweep: no bundle identifier; app suite not swept", bundle: LanguageManager.appBundle))
-        }
-        let group = AppConfig.appGroupIdentifier
-        if let groupStore = UserDefaults(suiteName: group) {
-            domains.append((group, groupStore))
-        } else {
-            errors.append(String(localized: "Preferences sweep: app group suite unavailable", bundle: LanguageManager.appBundle))
-        }
-        return domains
-    }
-
-    /// Remove every non-kept key from every suite. Returns the count so the
-    /// report can say what the named steps had missed. This also removes the
-    /// legacy `widget.*` keys an earlier build wrote into the App Group suite
-    /// (health-derived scores for a widget that never shipped): none is kept.
-    private static func sweepAllDefaults(scope: PurgeScope, errors: inout [String]) -> Int {
-        var removed = 0
-        for domain in scope.defaultsDomains(&errors) {
-            for key in storedKeys(in: domain) where isPurgeable(defaultsKey: key) {
-                domain.store.removeObject(forKey: key)
-                removed += 1
-            }
-        }
-        return removed
-    }
-
-    /// The keys a suite itself stores.
-    ///
-    /// `persistentDomain(forName:)` first: `dictionaryRepresentation()` also
-    /// surfaces the global, argument and registration domains, preferences
-    /// this app has no business enumerating, let alone deleting. iOS returns
-    /// no persistent domain for an App Group suite, so for that one the keys
-    /// are what the suite resolves minus what those shared domains supply.
-    private static func storedKeys(in domain: (name: String, store: UserDefaults)) -> [String] {
-        if let contents = domain.store.persistentDomain(forName: domain.name) {
-            return Array(contents.keys)
-        }
-        let inherited = inheritedDefaultsKeys()
-        return domain.store.dictionaryRepresentation().keys.filter { !inherited.contains($0) }
-    }
-
-    private static func inheritedDefaultsKeys() -> Set<String> {
-        let defaults = UserDefaults.standard
-        let global = defaults.persistentDomain(forName: UserDefaults.globalDomain) ?? [:]
-        let arguments = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
-        let registration = defaults.volatileDomain(forName: UserDefaults.registrationDomain)
-        return Set(global.keys).union(arguments.keys).union(registration.keys)
-    }
-
     /// Roots a full wipe is responsible for, each with the entries it keeps
     /// (`keptEntries(in:liveSettingsFile:)`). The App Group container also keeps its
     /// `Library/`: iOS keeps the group suite's preferences plist (swept key by
@@ -705,7 +589,9 @@ enum DataPurgeService {
     /// Step 0, deliberately FIRST. `deleteAllRemoteData` runs through the sync
     /// serializer, so awaiting it here drains any in-flight push/pull before
     /// the local wipe (otherwise a mid-flight pull could re-archive remote
-    /// sessions into the freshly cleared archive directory). On success it
+    /// sessions into the freshly cleared archive directory). A sync queued
+    /// behind it runs after it with iCloud sync already off and `PurgeGate`
+    /// closed (`purgeAllUserData`), so it uploads nothing. On success it
     /// also resets local sync state and clears the sanitize-drip bookkeeping.
     /// On failure the local wipe proceeds regardless — the user asked for
     /// deletion — and the report tells them to retry with connectivity.
@@ -758,7 +644,9 @@ enum DataPurgeService {
     /// user has just asked for their iCloud copy to be deleted; defaulting sync
     /// back on would start rebuilding it as soon as they finished onboarding
     /// again, unless they noticed the pre-set toggle. Onboarding's backup page
-    /// shows the switch off, and turning it on there is their choice.
+    /// shows the switch off, and turning it on there is their choice. (The
+    /// purge already turned it off before the remote deletion; the reset to
+    /// defaults would turn it back on.)
     private static func purgeLocalStores(cloudSync: CloudKitSyncManager, settingsManager: SettingsManager, stores: Stores) -> Bool {
         stores.device.workoutTrackBackup().purgeAll()
         cloudSync.resetLocalSyncState()
@@ -794,7 +682,10 @@ enum DataPurgeService {
     /// to-dos, the Get Me Back trail, the prefetched facts (last HRV, sleep,
     /// workout, location) and the cached location stayed in memory, readable
     /// by the assistant and written back to disk by the next add, rename or
-    /// fix. The engaged turn-by-turn route (destination name and coordinate)
+    /// fix. The road context (street and postcode), the weather snapshot and
+    /// the nearby-places cache hold the precise location too, each with the
+    /// coordinate it was looked up for, and are memory-only; they are dropped
+    /// with it. The engaged turn-by-turn route (destination name and coordinate)
     /// is memory-only and is dropped too, so the voice coach stops using it.
     /// The display cache (dashboard and fitness snapshots) and the training
     /// load cache (current metrics and the 400-day series) go the same way:
@@ -805,6 +696,9 @@ enum DataPurgeService {
         location.savedRouteStore().forgetAfterPurge()
         location.breadcrumbRecorder().forgetAfterPurge()
         location.ambientLocationService().forgetAfterPurge()
+        location.roadGeocodingService().forgetAfterPurge()
+        location.weatherService().forgetAfterPurge()
+        location.surroundingsPOIService().forgetAfterPurge()
         stores.device.emailContactStore().forgetAfterPurge()
         stores.assistant.assistantArtifactStore().forgetAfterPurge()
         stores.device.uiStateCache().forgetAfterPurge()
@@ -927,6 +821,9 @@ extension DataPurgeService {
             let activeRouteSession: @MainActor () -> ActiveRouteSession
             let savedRouteStore: @MainActor () -> SavedRouteStore
             let ambientLocationService: @MainActor () -> AmbientLocationService
+            let roadGeocodingService: @MainActor () -> RoadGeocodingService
+            let weatherService: @MainActor () -> WeatherService
+            let surroundingsPOIService: @MainActor () -> SurroundingsPOIService
         }
 
         /// Everything else on the device: backups, caches, logs and the

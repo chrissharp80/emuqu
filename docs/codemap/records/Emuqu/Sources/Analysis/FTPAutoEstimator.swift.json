@@ -90,7 +90,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.needsRecompute(archive:now:)": "7a7c27d37cb8f9d6",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "35ad10888cd2579e"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "fc22efdf4e3990fe"
    }
   },
   {
@@ -120,7 +120,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.needsRecompute(archive:now:)": "7a7c27d37cb8f9d6",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "35ad10888cd2579e"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recompute(archive:now:)": "fc22efdf4e3990fe"
    }
   },
   {
@@ -168,12 +168,13 @@
   },
   {
    "key": "func FTPAutoEstimator.recompute(archive:now:)",
-   "hash": "18e4ee8b8ef7557e",
-   "does": "Synchronously selects recent running-family workouts, finds the best qualifying 20-min effort and persists (or clears) the estimate.",
+   "hash": "bd854565dcb23dc9",
+   "does": "Synchronously selects recent running-family workouts and finds the best qualifying 20-min effort. A complete scan (every workout read, or unreadable for good) persists (or clears) the estimate and stamps the scan; a scan with a workout unreadable for now goes to keepUnlessBetter (never clears or lowers, not stamped).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recentRunningWorkouts(archive:now:)",
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestEffort(in:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.keepUnlessBetter(_:)",
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.persist(_:at:)"
    ],
    "reads": [
@@ -182,11 +183,72 @@
    "writes": [
     "ud:FlowRecovery.ftpAutoEstimate.*"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "scan incomplete",
+     "effect": "keepUnlessBetter; else persist"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.bestEffort(in:)": "e2ed365e1c33b305",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.keepUnlessBetter(_:)": "55d745f1c4b0163c",
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.persist(_:at:)": "91feb3171a54d5b2",
-    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recentRunningWorkouts(archive:now:)": "ae79ca6fa33b9bda"
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.recentRunningWorkouts(archive:now:)": "7cc28978f6b18f89"
+   }
+  },
+  {
+   "key": "func FTPAutoEstimator.incompleteScanStores(_:cachedFTP:)",
+   "hash": "c2869189e1ecfdd0",
+   "does": "Pure rule for an incomplete scan: store the found effort only when its FTP is above the cached FTP (or none is cached); never with no effort.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.ftp(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no effort",
+     "effect": "false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.ftp(for:)": "e6bf37c5db76b858"
+   }
+  },
+  {
+   "key": "func FTPAutoEstimator.keepUnlessBetter(_:)",
+   "hash": "7f794bda23a84b35",
+   "does": "Incomplete scan: when incompleteScanStores allows it, stores the effort's FTP and source session (without stamping the scan time) and logs; otherwise keeps the cached estimate and logs that the scan will be retried.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.incompleteScanStores(_:cachedFTP:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.cachedRunningFTP",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.ftp(for:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:FlowRecovery.ftpAutoEstimate.runningFTP"
+   ],
+   "writes": [
+    "ud:FlowRecovery.ftpAutoEstimate.runningFTP",
+    "ud:FlowRecovery.ftpAutoEstimate.sourceSessionId"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not a better effort",
+     "effect": "logs and keeps the estimate"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.ftp(for:)": "e6bf37c5db76b858",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.incompleteScanStores(_:cachedFTP:)": "3d108f34c9b65e86",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::var FTPAutoEstimator.cachedRunningFTP": "1158aa9760c5cc8a",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -349,12 +411,12 @@
   },
   {
    "key": "func FTPAutoEstimator.recentRunningWorkouts(archive:now:)",
-   "hash": "98a0445d8b682689",
-   "does": "Archive entries of type workout dated within [now-90 d, now], decoded via retrieveLightweightOrLog, filtered to running-family sports.",
+   "hash": "b8b4f856b29b2b41",
+   "does": "Archive entries of type workout dated within [now-90 d, now], each read with readSession and kept when running-family; complete is false when a read failed for a reason that may clear (a workout that can never be read leaves it true).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.readSession(_:archive:)",
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.isRunningFamily(_:)"
    ],
    "reads": [
@@ -362,12 +424,51 @@
     "archive:retrieveLightweight"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each entry",
+     "effect": "readSession; a read that failed for now clears complete"
+    },
+    {
+     "at": "+8",
+     "cond": "decoded running-family session",
+     "effect": "kept"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.isRunningFamily(_:)": "2c9e75586bf6cfca",
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.readSession(_:archive:)": "73d47d03657bdc00",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
+   }
+  },
+  {
+   "key": "func FTPAutoEstimator.readSession(_:archive:)",
+   "hash": "b3558c0d44844e17",
+   "does": "One entry's session, decoded lightweight, and whether the read gave a lasting answer; a read that throws is logged as a warning and returns nil, with `read` false only when the failure may clear (ArchiveAccessFailure.mayClear) and true for one that cannot.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight (workouts)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "read threw",
+     "effect": "logged; (nil, false) when it may clear, else (nil, true)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)": "178d40e8393fff4f",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "917ec504a26a996e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {

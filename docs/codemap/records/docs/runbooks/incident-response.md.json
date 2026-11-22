@@ -42,19 +42,23 @@
   },
   {
    "key": "§ Runbook: Incident Response > B. CloudKit sync failure (zone-wide)",
-   "hash": "ef16d4e3f26a19f4",
-   "does": "CloudKit outage triage: check CloudKit Dashboard for container iCloud.com.chrissharp.flowrecovery, deploy schema to production if only this container fails, never mass-reset user state. Container id matches Constants.swift:12 and Emuqu.entitlements:23; schema-not-deployed failure mode is the one CloudKitSessionFreshness.noteSaveFailure logs (\"not in the production schema\").",
+   "hash": "628fd2b643b43d51",
+   "does": "CloudKit outage triage: check CloudKit Dashboard for container iCloud.com.chrissharp.flowrecovery, deploy schema to production if only this container fails (the failure CloudKitSessionFreshness.noteSaveFailure logs as 'not in the production schema'), never mass-reset user state. A single user's stopped sync is usually CloudAccountGuard.stopSync: a different Apple ID from the recorded one, or the app's iCloud data deleted, turns sync off with CloudAccountIdentity.StopReason's notice under the switch, keeping local data; turning sync on again records the signed-in account (CloudAccountIdentity.adopt) and uploads.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.pullRemoteChanges()"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.pullRemoteChanges()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "4d2df9370d22b5f6",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)": "c5421cd0577c4303",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)": "30dfbfb7c5fe0baf",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.pullRemoteChanges()": "8c5a6bd5df5606b2"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.pullRemoteChanges()": "3b87ee2b3948addd"
    }
   },
   {
@@ -70,7 +74,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)": "9d9f61a1de8a5dfe",
+    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)": "9751b419e6246cb2",
     "Makefile::target sendable-guard": "c009f552884c46bc"
    }
   },
@@ -97,7 +101,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)": "fb7ea0a650ecd090",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)": "5669d2a4971d777e",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "07a8c15768d32cfc",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.keys(from:)": "166c1ebf54a125d2",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
@@ -106,8 +110,8 @@
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "598d3b1447a1ad8b",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "e2135a76562a08f7",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "25a975a4420f8455",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.reEncryptIfNeeded(_:)": "163b9699a2fa48c3",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "bbcd769501f1bbb8",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.reEncryptIfNeeded(_:)": "86074777a33480f4",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "1f0e630b88682e7d",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches": "82e1882c3d480239"
    }
   },
@@ -125,7 +129,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "6b22c8efc9ae5167",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "472051ae5134cf89"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "f7a81f796918ddbb"
    }
   },
   {
@@ -135,7 +139,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:regenerating:)",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)",
@@ -152,13 +156,13 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.record(provider:model:systemPrompt:messagesJSON:toolsJSON:)": "54b70891909d3d9d",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)": "71ef29af1a6b5d05",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:regenerating:)": "0be9ab3d11ee551b",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)": "e3466403d0f0a9a9",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "5026cc5eddd06cce",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFileAsync()": "387ef887798c24ed",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "68f645e05bacaaed",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "7bf0551ca86415fb",
     "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareToolbarItem": "8af8c911949ab2cb",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "4253edeec26ecd94",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "2752bc3b61037cf3",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.aiPromptAuditSection": "d948574110a75d40",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.developerSections": "bf2a9db669279a3d"
    }

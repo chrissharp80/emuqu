@@ -10,10 +10,12 @@ extension BaselineTracker {
     /// One reading per night, keyed by the night's wake date
     /// (`SleepSchedule.nightKey`), not the calendar day: a night started at
     /// 23:30 and its 00:30 continuation share a slot, and two different
-    /// nights never do. A morning reading always beats a non-morning one;
-    /// otherwise the newcomer has to have earned the slot outright. Static,
-    /// over the `nights` it is given, so the stored baseline and
-    /// `baselineRMSSDs` apply the one rule.
+    /// nights never do. A newer reading of the session already in the slot
+    /// takes it outright (`isSameSession`): it is that session's current
+    /// analysis, not a rival. Otherwise a morning reading always beats a
+    /// non-morning one, and the newcomer has to have earned the slot
+    /// outright. Static, over the `nights` it is given, so the stored
+    /// baseline and `baselineRMSSDs` apply the one rule.
     static func mergeIntoNight(
         _ dataPoint: BaselineDataPoint, into nights: inout [BaselineDataPoint], sleepSchedule: SleepSchedule
     ) {
@@ -24,9 +26,19 @@ extension BaselineTracker {
             nights.append(dataPoint)
             return
         }
-        if shouldReplace(nights[existingIndex], with: dataPoint, sleepSchedule: sleepSchedule) {
+        if isSameSession(nights[existingIndex], dataPoint)
+            || shouldReplace(nights[existingIndex], with: dataPoint, sleepSchedule: sleepSchedule) {
             nights[existingIndex] = dataPoint
         }
+    }
+
+    /// Whether two points are readings of one session: the same session id,
+    /// or the same start when either was saved before ids were recorded.
+    private static func isSameSession(_ stored: BaselineDataPoint, _ incoming: BaselineDataPoint) -> Bool {
+        guard let storedId = stored.sessionId, let incomingId = incoming.sessionId else {
+            return stored.date == incoming.date
+        }
+        return storedId == incomingId
     }
 
     private static func shouldReplace(

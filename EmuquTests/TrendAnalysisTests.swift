@@ -444,6 +444,28 @@ final class TrendAnalysisTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(result?.dataPoints.count), 5, "Sessions without results should be excluded")
     }
 
+    /// Before, the two recordings of a night split by a strap restart were
+    /// two readings, so one night counted twice in every trend. Only the
+    /// longer half is a reading now.
+    func testASplitNightIsOneReading() throws {
+        var sessions = (0 ..< 4).map { createMockSession(daysAgo: $0, rmssd: 50) }
+        let longer = sessions[0]
+        let half = createMockSession(daysAgo: 0, rmssd: 20)
+        let end = try XCTUnwrap(longer.endDate)
+        let shorter = HRVSession(
+            id: UUID(), startDate: end.addingTimeInterval(-2 * 3_600), endDate: end,
+            state: .complete, sessionType: .overnight, rrSeries: nil,
+            analysisResult: half.analysisResult, artifactFlags: nil
+        )
+        sessions.append(shorter)
+
+        let result = try XCTUnwrap(TrendAnalyzer.analyze(sessions: sessions, period: .all))
+
+        XCTAssertEqual(result.dataPoints.count, 4)
+        XCTAssertFalse(result.dataPoints.contains { $0.id == shorter.id }, "The shorter half of the night reached the trend")
+        XCTAssertTrue(result.dataPoints.contains { $0.id == longer.id })
+    }
+
     func testEstimatedSDNNStaysOutOfTheSDNNTrendButRMSSDStays() throws {
         var sessions = (0 ..< 4).map { createMockSession(daysAgo: $0, rmssd: 50) }
         sessions[0].analysisResult?.estimatedMetrics = [EstimatedMetric.sdnn.rawValue]
@@ -454,5 +476,27 @@ final class TrendAnalysisTests: XCTestCase {
         XCTAssertEqual(result.sdnnStats.count, 3)
         XCTAssertNil(result.dataPoints.last?.sdnn, "The newest reading's SDNN is an estimate")
         XCTAssertEqual(TrendAnalyzer.chartData(from: result.dataPoints, metric: .sdnn).count, 3)
+    }
+
+    // MARK: - The baseline-deviation line needs a worthwhile change
+
+    private func consecutiveDays(_ count: Int) -> [Date] {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        return (0 ..< count).map { start.addingTimeInterval(Double($0) * 86_400) }
+    }
+
+    /// Before, 16% under a noisy week's raw mean advised a rest day while the
+    /// score's ±0.5 SD deadband read the morning as unchanged. 42 ms after
+    /// 30/70/35/65 is inside the smallest worthwhile change.
+    func testAFixedPercentageInsideTheWorthwhileChangeIsNotADeviation() {
+        XCTAssertFalse(TrendAnalyzer.latestBeyondSWC(values: [30, 70, 35, 65, 42], dates: consecutiveDays(5)))
+    }
+
+    func testADropBeyondTheWorthwhileChangeIsADeviation() {
+        XCTAssertTrue(TrendAnalyzer.latestBeyondSWC(values: [50, 51, 49, 50, 40], dates: consecutiveDays(5)))
+    }
+
+    func testTwoEarlierReadingsAreTooFewToCallADeviation() {
+        XCTAssertFalse(TrendAnalyzer.latestBeyondSWC(values: [50, 51, 30], dates: consecutiveDays(3)))
     }
 }

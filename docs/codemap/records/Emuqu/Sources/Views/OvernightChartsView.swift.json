@@ -1,11 +1,12 @@
 {
  "file": "Emuqu/Sources/Views/OvernightChartsView.swift",
- "hash": "bc6268c4720e4e84",
+ "hash": "3e7173975c455556",
  "role": "Overnight HR/HRV chart screen section: shared drawing helpers for the HR and HRV canvases, and OvernightChartsView, which computes OvernightStats in a detached task, gap-fills HR from HealthKit, and renders summary cards, the HRV chart and the HR chart.",
  "types": [
   "OvernightChartFormatters: enum — shared clock-time formatter accessor",
   "OvernightChartViewport: protocol — size/totalDurationMs/x(forMs:) shared by HR and HRV chart geometry",
   "OvernightChartDrawing: enum — @MainActor static drawing helpers (axis labels, pill, tooltip clamp, sleep segment shading, grid)",
+  "OvernightRecordingClock: struct (Equatable) — the recording's span on the session clock and its end drifts, to place HealthKit gap-fill on the beats' t_ms axis (outside the generic view so it can be named without a content type)",
   "OvernightChartsView: struct — generic SwiftUI view rendering overnight stats and charts with optional inter-chart content"
  ],
  "state": [
@@ -231,6 +232,65 @@
    "deps": {}
   },
   {
+   "key": "init OvernightRecordingClock(series:sessionStart:)",
+   "hash": "1ecf4c8a4999a901",
+   "does": "From the series' first and last beat: each beat's drift is t_ms − (wallClockMs + series-start shift) when it has a wall-clock stamp, else 0; the span is first.t_ms − startDrift … last.endMs − endDrift (the session clock). No series or no beats: all zero.",
+   "entry": "Built by OvernightChartsView.withHealthKitGapFill and DetailScreenRuleTests",
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightRecordingClock(startMs:endMs:startDriftMs:endDriftMs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "series nil or empty",
+     "effect": "all-zero clock"
+    },
+    {
+     "at": "+6",
+     "cond": "beat has wallClockMs",
+     "effect": "drift computed; else 0"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightRecordingClock(startMs:endMs:startDriftMs:endDriftMs:)": "fc48a443360ef7e3"
+   }
+  },
+  {
+   "key": "init OvernightRecordingClock(startMs:endMs:startDriftMs:endDriftMs:)",
+   "hash": "799f2a876c324d78",
+   "does": "Stores the four values.",
+   "entry": "Called by OvernightRecordingClock(series:sessionStart:) and DetailScreenRuleTests",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func OvernightRecordingClock.onBeatClock(_:)",
+   "hash": "47e9d716a0a3269a",
+   "does": "Moves a session-clock offset lying outside the recording onto the beats' axis: before startMs adds the first beat's drift, otherwise the last beat's (the rule tMs(forSessionOffset:series:sessionStart:) applies past either end).",
+   "entry": "Called by withHealthKitGapFill for each HealthKit sample, and DetailScreenRuleTests",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sessionMs < startMs",
+     "effect": "startDriftMs; else endDriftMs"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "var OvernightChartsView.body",
    "hash": "0b359a550ce67891",
    "does": "Shows a spinner until cachedOvernightStats is set, then the chart sections; runs loadOvernightStats in .task(id: statsTaskKey).",
@@ -367,20 +427,21 @@
     "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.backfillZonesToArchive(sessionId:zones:)": "58f2bda03b464ed0",
     "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()": "3b54e0657cc32e32",
     "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.willScanOrganizedZones()": "c0a40351bf78a3d9",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.withHealthKitGapFill(_:)": "37619943999a6854"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.withHealthKitGapFill(_:)": "fd94d0da97ed2ebb"
    }
   },
   {
    "key": "func OvernightChartsView.withHealthKitGapFill(_:)",
-   "hash": "33154f3a4102c069",
-   "does": "If gap-fill is needed and HK sleep exists, fetches HK HR for uncovered segments and extends stats with it.",
+   "hash": "4a84af33265fabfd",
+   "does": "If gap-fill is needed and HK sleep exists, works out the recording's span on the session clock (OvernightRecordingClock, which undoes a streamed night's t_ms drift), fetches HK HR for the sleep segments outside that span, moves each sample onto the beats' t_ms axis (onBeatClock) and extends stats with them.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.needsGapFill(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightRecordingClock(series:sessionStart:)",
     "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.fetchHealthKitHRForUncoveredSegments(segments:recordingStartMs:recordingEndMs:)",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightRecordingClock.onBeatClock(_:)",
     "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.extendedStats(_:hkHR:hkSleep:session:)"
    ],
    "reads": [
@@ -415,7 +476,9 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.fetchHealthKitHRForUncoveredSegments(segments:recordingStartMs:recordingEndMs:)": "ca4af090b3abc985",
     "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.extendedStats(_:hkHR:hkSleep:session:)": "c2843b6f706e9d7a",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.needsGapFill(_:)": "9ab3bc50cf2e974c"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.needsGapFill(_:)": "9ab3bc50cf2e974c",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightRecordingClock.onBeatClock(_:)": "84d9381f312f82b7",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightRecordingClock(series:sessionStart:)": "70cdd8a957ae2917"
    }
   },
   {
@@ -769,14 +832,14 @@
    "does": "Deep sleep card with localized hours/minutes.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {

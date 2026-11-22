@@ -66,7 +66,9 @@ The user can do this themselves at any time:
 
 > More → Settings → Advanced Data Controls → Delete All My Data
 
-The user types `DELETE MY DATA` and confirms. That action invokes `DataPurgeService.purgeAllUserData(...)` which wipes:
+The user types `DELETE MY DATA` and confirms. That action invokes `DataPurgeService.purgeAllUserData(...)`.
+While it runs, nothing can be saved to the archive or uploaded (`PurgeGate`),
+and iCloud sync is turned off before anything is deleted. It wipes:
 
 - The session archive (`SessionArchive`)
 - Raw RR backups (`RawRRBackup`)
@@ -87,13 +89,17 @@ The user types `DELETE MY DATA` and confirms. That action invokes `DataPurgeServ
 
 It does not remove Apple Health samples the app wrote (the result tells the
 user how to remove them in the Health app), and it keeps the purchase/trial
-anchor — a wipe is not a refund.
+anchor — a wipe is not a refund. A user who wants one session's Apple Health
+samples gone can delete that session forever from the Trash, which removes
+everything the app wrote to Health for it.
 
 The delete is unavailable while a recording is in progress (a quick reading,
 a night, paused or still being analysed, a strap recording, or a workout) or
 a reading is waiting to be accepted; the page says so under the button. The
 user stops the recording, or accepts or discards the reading, and then runs
-it.
+it. If a recording starts while the iCloud copy is being deleted, the delete
+stops before it wipes the device and says so; iCloud sync is left off, and the
+user runs it again once the recording is stopped.
 
 Direct the user to that flow first. It's faster than waiting for you.
 
@@ -103,6 +109,17 @@ Direct the user to that flow first. It's faster than waiting for you.
 `CloudKitSyncManager.deleteAllRemoteData()`, which removes the app's custom
 zones (`HRVSessions`, `UserSettings`) from the user's private database before
 wiping local state. Step 2 covers it.
+
+Other devices on the same iCloud account are not wiped. Each one turns its
+own iCloud sync off when it next finds the zones gone, with a notice under the
+iCloud Sync switch, keeps its local copy and does not upload it again. To
+remove those copies, the user runs Delete All My Data on each device.
+
+It deletes the zones only in the iCloud account this device synced with (or,
+when none is recorded, the signed-in one, unless sync was stopped because it
+is a different account). Signed into another account, or with the account
+unchecked, it deletes nothing there and reports failure; the user signs back
+into their own account and runs it again.
 
 It can fail when the device is offline or signed out of iCloud. The local wipe
 still completes, and the result reports `remoteDeleted: false`, which the UI

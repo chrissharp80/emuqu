@@ -110,6 +110,8 @@ final class WorkoutPDFReport: Sendable {
 
     /// Render the report to a PDF file in the given URL. Async because the
     /// map snapshot requires an awaitable MKMapSnapshotter.start() bridge.
+    /// The report carries the route and heart rate, so the file gets
+    /// complete protection (`ExportFile.protect`).
     func generate(to url: URL) async throws {
         let mapImage = await drawing.renderMapSnapshot()
 
@@ -130,6 +132,7 @@ final class WorkoutPDFReport: Sendable {
             drawing.drawWhatThisMeansPage(ctx: ctx)
             drawing.physiology.drawMethodologyPage(ctx: ctx)
         }
+        ExportFile.protect(url)
     }
 
     // MARK: - Clinical interpretation generators

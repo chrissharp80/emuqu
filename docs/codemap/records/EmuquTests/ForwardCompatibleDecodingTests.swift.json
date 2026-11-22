@@ -1,0 +1,264 @@
+{
+ "file": "EmuquTests/ForwardCompatibleDecodingTests.swift",
+ "hash": "26a8fc836a32b698",
+ "role": "XCTest suite: a value a newer build wrote decodes to its fallback case instead of failing the session, index entry or marker set (sleep-boundary source, recording mode, score-factor impact, artifact type, Health profile field), and the payload reads as newer where a re-save would overwrite it.",
+ "types": [
+  "ForwardCompatibleDecodingTests: class (XCTestCase)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "units": [
+  {
+   "key": "func ForwardCompatibleDecodingTests.testUnknownSleepBoundarySourceReadsAsRecordingBounds()",
+   "hash": "ec422fdbeacc49d7",
+   "does": "Decodes [\"HealthKit\", \"Future Source\"] as [SleepBoundarySource] and asserts [.healthKit, .recordingBounds].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepBoundarySource(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepBoundarySource(from:)": "e874aa84ac6dad47"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.testUnknownRecordingModeReadsAsStreaming()",
+   "hash": "66cdceb1b9816db0",
+   "does": "Decodes an unknown DeviceProvenance.RecordingMode as .streaming.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init DeviceProvenance.RecordingMode(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init DeviceProvenance.RecordingMode(from:)": "90782a867ccb58b0"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.testUnknownScoreFactorImpactReadsAsNeutral()",
+   "hash": "819949ca223e1e60",
+   "does": "Decodes an unknown ScoreFactor.Impact as .neutral.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor.Impact(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor.Impact(from:)": "18bf1c5d511ac7d4"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.testUnknownArtifactTypeReadsAsUnclassified()",
+   "hash": "f9e5ab8b476e8e35",
+   "does": "Decodes two ArtifactFlags, the second with an unknown type, and asserts types [.ectopic, nil] with isArtifact and corrected kept, holdsUnknownType [false, true], and that a re-encode does not store holdsUnknownType.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(from:)": "a3327a0607dec34e"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.provenance()",
+   "hash": "ebc6111f19743f0c",
+   "does": "Builds a fixed streaming DeviceProvenance.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.sleep()",
+   "hash": "2551879db71ee9e5",
+   "does": "Builds a HealthKit-sourced SleepData.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.sessionJSON(_:edit:)",
+   "hash": "3225787ea4fbf928",
+   "does": "Encodes the session, applies edit to its JSON object and returns the bytes.",
+   "entry": null,
+   "calls": [
+    "ext:JSONEncoder.encode",
+    "ext:JSONSerialization"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.testSessionWithKnownNestedCasesReadsAsCurrent()",
+   "hash": "6473f9f3e1614f66",
+   "does": "A session with known provenance and sleep source round-trips with sourceSchemaVersion == currentSchemaVersion.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "EmuquTests/ForwardCompatibleDecodingTests.swift::func ForwardCompatibleDecodingTests.provenance()": "1859caf40be59c90",
+    "EmuquTests/ForwardCompatibleDecodingTests.swift::func ForwardCompatibleDecodingTests.sleep()": "babbba9737207f8c"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.testSessionWithUnknownRecordingModeDecodesAndReadsAsNewer()",
+   "hash": "2ef97a59030d5bfa",
+   "does": "A session whose recordingMode is unknown decodes with .streaming and sourceSchemaVersion currentSchemaVersion + 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "EmuquTests/ForwardCompatibleDecodingTests.swift::func ForwardCompatibleDecodingTests.provenance()": "1859caf40be59c90"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.testSessionWithUnknownSleepBoundarySourceDecodesAndReadsAsNewer()",
+   "hash": "8733e5e648c586e6",
+   "does": "A session whose sleep boundarySource is unknown decodes with .recordingBounds and sourceSchemaVersion currentSchemaVersion + 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "EmuquTests/ForwardCompatibleDecodingTests.swift::func ForwardCompatibleDecodingTests.sleep()": "babbba9737207f8c"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.testSessionWithUnknownArtifactTypeDecodesAndReadsAsNewer()",
+   "hash": "83a597ed5d92312d",
+   "does": "Encodes a session with one ectopic flag, rewrites the flag's type to an unknown string, and asserts the decoded flag is an artifact with a nil type and the session reads as currentSchemaVersion + 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ForwardCompatibleDecodingTests.swift::func ForwardCompatibleDecodingTests.sessionJSON(_:edit:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3d42e8f1b3cf25ba",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "EmuquTests/ForwardCompatibleDecodingTests.swift::func ForwardCompatibleDecodingTests.sessionJSON(_:edit:)": "c1dceaada6d7bdd6"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.testSessionWithUnknownScoreFactorImpactDecodesAndReadsAsNewer()",
+   "hash": "bfa7d4d2a7b52fd1",
+   "does": "Asserts a session whose breakdown factor has a known impact reads as current, then rewrites the impact to an unknown string and asserts it decodes as .neutral and the session reads as currentSchemaVersion + 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ForwardCompatibleDecodingTests.swift::func ForwardCompatibleDecodingTests.sessionJSON(_:edit:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "EmuquTests/ForwardCompatibleDecodingTests.swift::func ForwardCompatibleDecodingTests.sessionJSON(_:edit:)": "c1dceaada6d7bdd6"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.entryJSON(hrvDataQuality:)",
+   "hash": "a889904b829fa4ce",
+   "does": "Minimal index-entry JSON with the given hrvDataQuality.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.testIndexEntryWithUnknownDataQualityReadsAsNewer()",
+   "hash": "21c1d52fac2ae2e4",
+   "does": "An index entry with an unknown hrvDataQuality decodes as .insufficient and isFromNewerSchema.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)": "63cfbee8fbd51a33",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchiveEntry.isFromNewerSchema": "e6397fc980ef7078",
+    "EmuquTests/ForwardCompatibleDecodingTests.swift::func ForwardCompatibleDecodingTests.entryJSON(hrvDataQuality:)": "eb1eb1f16155ee7d"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.testIndexEntryWithKnownDataQualityReadsAsStated()",
+   "hash": "04783e59c698a732",
+   "does": "An index entry with a known hrvDataQuality is not newer.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)": "63cfbee8fbd51a33",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchiveEntry.isFromNewerSchema": "e6397fc980ef7078",
+    "EmuquTests/ForwardCompatibleDecodingTests.swift::func ForwardCompatibleDecodingTests.entryJSON(hrvDataQuality:)": "eb1eb1f16155ee7d"
+   }
+  },
+  {
+   "key": "func ForwardCompatibleDecodingTests.testUnknownHealthProfileFieldKeepsTheKnownMarkers()",
+   "hash": "fffba9125396ed1b",
+   "does": "Settings JSON with an unknown profile field keeps [.birthday, .bodyWeight].",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "2f7ab6abac1c4b7b"
+   }
+  }
+ ],
+ "deps": {}
+}

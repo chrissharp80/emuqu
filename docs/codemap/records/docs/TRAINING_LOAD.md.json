@@ -24,8 +24,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "eb3b9be07070a091",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "10ea7c04076f529f",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "260269964760c014",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)": "c47251a7f3a7932a",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)": "b6c00d6916c00fac",
@@ -97,32 +97,36 @@
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)": "c2761244f5a0267d",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "654be340768a34db",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "557250b35e2ea826",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "607fda538196aa13",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "9bcb0e7fb51ddbb7",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "d26eee9c8f04fad4",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "76ca57d4e4884777"
    }
   },
   {
    "key": "§ Training Load — end-to-end calculation > Layer 0 — Per-workout load (the stress score of a single session) > 0b. HR-only Banister TRIMP (the fallback)",
-   "hash": "f5bb404a4b9d00ae",
-   "does": "Claims HR-only Banister TRIMP: HRR clamped 0..1, TRIMP = minutes × HRR × A·e^(k·HRR), male 0.64/1.92, female 0.86/1.67 when biologicalSex == .female, constants in TrainingConstants.TRIMP (Constants.swift:318-327), no average HR → 0, restingHR = Apple resting HR else settings.effectiveRestingHR and maxHR = settings.effectiveMaxHR resolved once by trainingHeartRateAnchors and shared by live value and series. Verified HealthDataTypes.swift:369-391 (also returns 0 HRR when maxHR ≤ restingHR), TrainingHealthQueries+Queries.swift:488-495, TrainingLoadSeries.swift:20-22.",
+   "hash": "de22d753337e52ee",
+   "does": "Claims HR-only Banister TRIMP: HRR clamped 0..1, TRIMP = minutes × HRR × A·e^(k·HRR), male 0.64/1.92, female 0.86/1.67 when biologicalSex == .female, constants in TrainingConstants.TRIMP (Constants.swift), no average HR → 0; restingHR = Apple resting HR (latest sample in the WorkoutLoadRestingHR.maxAgeDays = 30 days up to the reference date, excluding the app's own writes via hrReadExcludingOwnWrites) else settings.effectiveRestingHR, maxHR = settings.effectiveMaxHR, resolved once by trainingHeartRateAnchors and shared by live value and series; a direct calculateTrainingMetrics call without anchors resolves them as of its reference date. Verified HealthDataTypes.calculateTrimp, TrainingHealthQueries.fetchAppleRestingHR(relativeTo:)/latestQuantitySample(_:unit:since:until:)/trainingHeartRateAnchors(relativeTo:)/heartRateAnchors, TrainingLoadSeries.HeartRateAnchors.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.banisterIntensityFactor(hrReserve:)",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors(relativeTo:)",
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchAppleRestingHR(relativeTo:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.latestQuantitySample(_:unit:since:until:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.HeartRateAnchors.resolve(appleRestingHR:settingRestingHR:settingMaxHR:)": "862cfd3dfcfb7632",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "f33747d3f9768073",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.banisterIntensityFactor(hrReserve:)": "d57c82dcbf1c40a0",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)": "2165868632351d87",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()": "6549aed993898ac2"
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchAppleRestingHR(relativeTo:)": "3a30a4b218567e8c",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.latestQuantitySample(_:unit:since:until:)": "53726bb78e660e63",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors(relativeTo:)": "0a13bde2368105dd"
    }
   },
   {
@@ -133,7 +137,7 @@
    "calls": [
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.buildDailyTrimp(workouts:anchors:today:forMorningReading:calendar:)",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:archive:healthKitWorkouts:anchors:)",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.collapseDuplicates(from:in:consumed:)",
@@ -146,10 +150,10 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "b03ad9f228bd03fa",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)": "56c5e32efc48e3fd",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:archive:healthKitWorkouts:anchors:)": "af9eaaaa555e1427",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.buildDailyTrimp(workouts:anchors:today:forMorningReading:calendar:)": "29043457a215ad45",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.collapseDuplicates(from:in:consumed:)": "ef8d75c92178244a",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.collapseDuplicates(from:in:consumed:)": "e10745f833d9811e",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "c7e2fe595cb079e6",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.mergeArchiveAuthoritative(archive:healthKit:additional:)": "d7b1cfbb94bf332a",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.overlaps(_:_:)": "74eb4580c3fa817e",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.summary(for:)": "2c0070754587a740",
@@ -174,7 +178,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "0484425576594949",
-    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)": "8ccd36469279a69c",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)": "1fc650bc3c9d93a6",
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)": "d7b5612921729235",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)": "858276868b88e9c4",
     "Emuqu/Sources/Collection/TrainingMetrics.swift::var TrainingMetrics.acuteChronicRatio": "e01ed28e5f944d39",
@@ -203,38 +207,42 @@
     "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "74895ca444d7dd74",
     "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)": "30086fb3a84d1cfb",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)": "170d2c19f5ca8a6e",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "e21365c728439fb3",
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)": "2a5c105f03a40a41",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)": "8dd9a2899b35528b",
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
     "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.peakingHeuristic(_:)": "29ed5cb6aef3bf7d"
    }
   },
   {
    "key": "§ Training Load — end-to-end calculation > The store / source-of-truth",
-   "hash": "ae84b149dc643117",
-   "does": "Claims TrainingMetricsCache (@MainActor singleton, TrainingMetricsCache.swift:19-21) holds current and a 400-day dailySeries; refresh fetches 580 days of HealthKit workouts once (TrainingMetricsCache.swift:373), resolves anchors once, rebuilds when the HistoricalKey changes; needsRebuild: no result or invalidated → always, LoadSettings changed → at once, archive workouts or day changed → after the 300 s burst throttle, else after 1800 s (unchangedMaxAgeSec); snapshot() uses the same rule; .flowRecoveryArchiveChanged invalidates only when the workout fingerprint changed; AI reaches it via TrainingLoadRegistry and training.load.* tools. Verified TrainingMetricsCache+Freshness.swift:12-69, TrainingMetricsCache.swift:98,142-148,283-320.",
+   "hash": "7d9b6124d6a7c306",
+   "does": "Claims TrainingMetricsCache (@MainActor, shared instance) holds current and a 400-day dailySeries; refresh fetches 580 days of HealthKit workouts once, resolves anchors once, rebuilds the series when the HistoricalKey changes; needsRebuild: no result or invalidated → always, LoadSettings or the calendar day changed → at once, archived workouts changed → after the 300 s burst throttle, else after 1800 s (unchangedMaxAgeSec); snapshot() uses the same rule; a HealthKit workout query that fails or times out publishes nothing and the next refresh asks again, while one refused as not authorized or denied reads as no HealthKit workouts (TrainingHealthQueries.isUnauthorizedAnswer) and the load comes from the archive; .flowRecoveryArchiveChanged invalidates only when the workout fingerprint changed; AI reaches it via TrainingLoadRegistry and training.load.* tools. Verified against TrainingMetricsCache+Freshness.swift (needsRebuild) and TrainingMetricsCache.swift (needsRebuild(reference:), recompute).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.recompute(healthKit:reference:forMorningReading:settings:)",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidate()",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidateIfWorkoutsChanged()",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:archive:healthKitWorkouts:anchors:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "99e58b00827618c1",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)": "56c5e32efc48e3fd",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidate()": "3d88aab61312c601",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidateIfWorkoutsChanged()": "a8c7bc0e743a61de",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)": "1faf6972f9023f4e",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "91671447087aacfe",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)": "6e100ea36811bb0d",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:archive:healthKitWorkouts:anchors:)": "af9eaaaa555e1427",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidate()": "50d144dd4e71c531",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidateIfWorkoutsChanged()": "6a51d313f9108da1",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)": "271beece1c5338ca",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.recompute(healthKit:reference:forMorningReading:settings:)": "961628550d9a3083",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "511ba226503fa4e1",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)": "a24fc447d45ac02d"
    }
   },
   {

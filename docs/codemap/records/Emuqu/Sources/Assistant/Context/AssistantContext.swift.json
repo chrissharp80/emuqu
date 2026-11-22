@@ -673,10 +673,11 @@
   },
   {
    "key": "func AssistantContext.todayLines(formatter:)",
-   "hash": "3cc3b11edba4006a",
-   "does": "Returns the today-session block (header, ISO start date, score, physiology, load/feeling lines) or [] when no today session.",
+   "hash": "ee76c5aa8d3f2442",
+   "does": "Returns the latest-session block (a header naming the day it is from — compactSessionHeader against generatedAt, so an old night is never headed today —, ISO start date, score, physiology, load/feeling lines) or [] when no session.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactSessionHeader(_:now:)",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayScoreLines(_:)",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayPhysiologyLines(_:)",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLoadAndFeelingLines(_:)"
@@ -691,6 +692,7 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactSessionHeader(_:now:)": "df1b94ac1155b4bc",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLoadAndFeelingLines(_:)": "b8a4d3275713da32",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayPhysiologyLines(_:)": "982bf23825165483",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayScoreLines(_:)": "0d57fbf9511b5c17"
@@ -890,10 +892,11 @@
   },
   {
    "key": "func AssistantContext.yesterdayLines(formatter:)",
-   "hash": "87771d9a0dc9ae87",
-   "does": "Returns the yesterday block (header, ISO date, metric lines) and the 'Yesterday's summary: title — explanation' line from yesterdayDiagnostic.",
+   "hash": "24274abd103d4e5c",
+   "does": "Returns the block for the night before the latest (a header naming the day it is from — compactSessionHeader against generatedAt —, ISO date, metric lines) and the \"Previous session's summary: title — explanation\" line from yesterdayDiagnostic.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactSessionHeader(_:now:)",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayMetricLines(_:)"
    ],
    "reads": [],
@@ -913,7 +916,23 @@
    "deps": {
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "c689fc8d106d17b9",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "8c0620f2c1dbb1a3",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactSessionHeader(_:now:)": "df1b94ac1155b4bc",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayMetricLines(_:)": "af534124267dfe2f"
+   }
+  },
+  {
+   "key": "func AssistantContext.compactSessionHeader(_:now:)",
+   "hash": "113b23f3a37c87e4",
+   "does": "The compact render's session header: '--- Session — <label> ---' with liveStateDayLabel's day label minus its colon — TODAY / YESTERDAY (plus the session type for a non-overnight), or 'MOST RECENT, recorded yyyy-MM-dd (N days ago, NOT today)'.",
+   "entry": "Called by todayLines / yesterdayLines; AssistantContextBuilderTests.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "bdfa54d8a2381dc9"
    }
   },
   {
@@ -1540,9 +1559,9 @@
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.narrativeLines()": "6ea2f4312b1a7810",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.profileLines()": "9fffcda8a4c31134",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "5d8c2c7a841dbb16",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLines(formatter:)": "b0bbcda4f0d9db0d",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklySummaryLines()": "3c74844826124237",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "0cced2f47198b703"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.yesterdayLines(formatter:)": "c77089f455e5dab8"
    }
   },
   {

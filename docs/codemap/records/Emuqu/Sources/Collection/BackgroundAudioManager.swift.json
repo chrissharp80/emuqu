@@ -202,6 +202,28 @@
    }
   },
   {
+   "key": "func BackgroundAudioManager.activateForClaimant(completion:)",
+   "hash": "d689e87f2fc11367",
+   "does": "Queues, on the serial transition queue, an activation of the session for a claimant that holds it for a while (the breathing guide), in order with any transition queued before it; `completion` runs on that queue with the activation error, or nil.",
+   "entry": null,
+   "calls": [
+    "dyn:CueAudioSession.activate",
+    "closure:completion"
+   ],
+   "reads": [],
+   "writes": [
+    "ext:AVAudioSession active (via the session seam)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "activation throws",
+     "effect": "completion gets the error"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "func BackgroundAudioManager.deactivateIfIdle(completion:)",
    "hash": "be1000da32485888",
    "does": "Asynchronously on the transition queue: if no cue is held and no coordinator claim remains, deactivates the session and reports the error (or nil) to completion; otherwise completes with nil without deactivating. Used by voice chat teardown (VoiceConversationController+Audio.swift:138).",
@@ -352,7 +374,8 @@
    "deps": {
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.claimCuePlayback()": "7ea6a900219fdbcd",
     "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.claimCuePlayback()": "5cbdbe8a15e172ee",
-    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.claimCuePlayback()": "fcfb246592bcbf10"
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.claimCuePlayback()": "fcfb246592bcbf10",
+    "EmuquTests/VoiceConversationControllerTests.swift::func CountingCueSession.claimCuePlayback()": "bc4b19b294ede1e4"
    }
   },
   {
@@ -367,7 +390,8 @@
    "deps": {
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.releaseCuePlayback()": "93bfff9937929f74",
     "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.releaseCuePlayback()": "f0b36d3bd72e86d4",
-    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.releaseCuePlayback()": "4f052fec0ae9c565"
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.releaseCuePlayback()": "4f052fec0ae9c565",
+    "EmuquTests/VoiceConversationControllerTests.swift::func CountingCueSession.releaseCuePlayback()": "9a2c48b91626ea38"
    }
   },
   {
@@ -382,7 +406,8 @@
    "deps": {
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.activate()": "087cdc83fc70f669",
     "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.activate()": "92a6614011fe8d44",
-    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.activate()": "b0424119af3d2c96"
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.activate()": "60c0e65338eacce8",
+    "EmuquTests/VoiceConversationControllerTests.swift::func CountingCueSession.activate()": "3530c3f0ee667f91"
    }
   },
   {
@@ -397,7 +422,8 @@
    "deps": {
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.deactivate()": "85356fbea95a9f33",
     "EmuquTests/BackgroundOperationsTests.swift::func RecordingCueSession.deactivate()": "7fd8147b17949af5",
-    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.deactivate()": "b70296fd11c4c8f9"
+    "EmuquTests/CueSessionIdleDeactivationTests.swift::func IdleRecordingSession.deactivate()": "454aeab550530982",
+    "EmuquTests/VoiceConversationControllerTests.swift::func CountingCueSession.deactivate()": "c040bcbaf9bc96ae"
    }
   },
   {

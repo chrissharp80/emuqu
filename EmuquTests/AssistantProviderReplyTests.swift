@@ -175,3 +175,71 @@ final class AppleReplyTrimmerTests: XCTestCase {
         XCTAssertLessThan(AppleContextCompactor.estimateTokens(AppleReplyTrimmer.lengthRule), 60)
     }
 }
+
+// MARK: - Apple session continuity
+
+/// Apple's cached session is reused only while the chat still ends the way
+/// the session remembers it (`AppleExchange`).
+final class AppleExchangeTests: XCTestCase {
+    private let question = ChatTurn(role: .user, text: "How did I sleep?")
+
+    private func reply(_ text: String, from provider: ProviderID = .apple) -> ChatTurn {
+        ChatTurn(role: .assistant, text: text, providerID: provider, modelID: "m")
+    }
+
+    func testTheExchangeBeforeTheNewQuestionIsReadFromTheChat() {
+        let messages = [question, reply("Seven hours. "), ChatTurn(role: .user, text: "And my HRV?")]
+        XCTAssertEqual(AppleExchange.before(latestQuestionIn: messages), AppleExchange(questionID: question.id, reply: "Seven hours."))
+    }
+
+    /// Regenerate removes the reply the session gave and asks the same
+    /// question again: the exchange before it is the earlier one, so the
+    /// session that holds the discarded answer is not reused.
+    func testARegeneratedQuestionDoesNotMatchTheSessionsLastExchange() {
+        let first = ChatTurn(role: .user, text: "Hi")
+        let messages = [first, reply("Hello."), question]
+        let sessionLastAnswered = AppleExchange(questionID: question.id, reply: "Seven hours.")
+        XCTAssertNotEqual(AppleExchange.before(latestQuestionIn: messages), sessionLastAnswered)
+    }
+
+    /// A reply the output perimeter or the number check rewrote is not what
+    /// the session generated.
+    func testARewrittenReplyDoesNotMatch() {
+        let messages = [question, reply("Seven and a half hours."), ChatTurn(role: .user, text: "And my HRV?")]
+        XCTAssertNotEqual(
+            AppleExchange.before(latestQuestionIn: messages),
+            AppleExchange(questionID: question.id, reply: "Seven hours.")
+        )
+    }
+
+    func testAReplyFromAnotherProviderIsNoAppleExchange() {
+        let messages = [question, reply("Seven hours.", from: .anthropic), ChatTurn(role: .user, text: "And my HRV?")]
+        XCTAssertNil(AppleExchange.before(latestQuestionIn: messages))
+        XCTAssertNil(AppleExchange.before(latestQuestionIn: [question]))
+    }
+}
+
+// MARK: - The request audit's streamed response
+
+@MainActor
+final class LLMRequestAuditResponseTests: XCTestCase {
+    override func tearDown() async throws {
+        LLMRequestAudit.shared.clear()
+        try await super.tearDown()
+    }
+
+    /// A streamed reply keeps its full text up to the cap plus the slack,
+    /// then is cut back to its last 60,000 characters, the kept count in
+    /// step with the text.
+    func testALongReplyIsCutBackToItsNewestText() {
+        let audit = LLMRequestAudit.shared
+        let id = audit.record(provider: "test", model: "m", systemPrompt: "", messagesJSON: "", toolsJSON: "")
+        for _ in 0 ..< 6 { audit.append(textDelta: String(repeating: "a", count: 10_000), to: id) }
+        XCTAssertEqual(audit.entries.first?.responseText.count, 60_000)
+        audit.append(textDelta: String(repeating: "b", count: 10_001), to: id)
+        let entry = audit.entries.first
+        XCTAssertEqual(entry?.responseText.count, 60_000)
+        XCTAssertEqual(entry?.responseCharacterCount, 60_000)
+        XCTAssertEqual(entry?.responseText.suffix(10_001), Substring(String(repeating: "b", count: 10_001)))
+    }
+}

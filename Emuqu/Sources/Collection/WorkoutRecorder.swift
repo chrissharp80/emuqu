@@ -144,15 +144,24 @@ final class WorkoutRecorder {
     /// Two overloads rather than a defaulted parameter: repeating the default
     /// here would be a second `AppDependencies.current.app.settingsManager` reference for a value the
     /// moved function already supplies.
-    static func scheduleCoachReportEmail(for session: HRVSession) {
+    /// Both return the render task; its value says whether the PDF was
+    /// attached.
+    @discardableResult
+    static func scheduleCoachReportEmail(for session: HRVSession) -> Task<Bool, Never> {
         WorkoutSessionLifecycle.scheduleCoachReportEmail(for: session)
     }
 
-    static func scheduleCoachReportEmail(for session: HRVSession, settings: UserSettings) {
+    @discardableResult
+    static func scheduleCoachReportEmail(for session: HRVSession, settings: UserSettings) -> Task<Bool, Never> {
         WorkoutSessionLifecycle.scheduleCoachReportEmail(for: session, settings: settings)
     }
 
     typealias HRSource = WorkoutSessionLifecycle.HRSource
+    /// The location stack if something has built it (start() for a GPS
+    /// sport, or a view that read `location`); nil otherwise. Pause, stop and
+    /// finalize read it through this, so an indoor workout never builds the
+    /// stack (the 1–3 s of main-thread work above) only to find it empty.
+    var startedLocation: WorkoutLocationManager? { _injectedLocation ?? _lazyLocation }
     var location: WorkoutLocationManager {
         if let injected = _injectedLocation { return injected }
         if let cached = _lazyLocation { return cached }
@@ -189,6 +198,11 @@ final class WorkoutRecorder {
     /// `WorkoutMetadata.samples` on finalize so post-summary charts and
     /// per-row export columns don't have to reconstruct from aggregates.
     var workoutSamples: [WorkoutSample] = []
+    /// The live trends of `workoutSamples`, kept as the buffer grows
+    /// (`WorkoutLiveTrends.Tally`), so the per-tick snapshot and each coach
+    /// turn read them without scanning the whole buffer. Read through
+    /// `syncedLiveTrends()` and `liveZoneBreakdown()`.
+    @ObservationIgnored var liveTrendTally = WorkoutLiveTrends.Tally()
     /// True while the heart rate on display is the Apple Watch's wrist HR
     /// (read from its HealthKit workout session) rather than the strap's.
     /// Set by the tick's HR arbitration; a strap reading clears it.
@@ -367,6 +381,22 @@ final class WorkoutRecorder {
     /// out for the rest of the workout). 0 = not tried yet. Reset in
     /// `start()`.
     var nextRouteDetectionAtMeters: Double = 0
+
+    /// The live grade, with the track and barometer state it was worked out
+    /// from (`WorkoutAIContextBuilder.computeCurrentGradePercent`). Reset in
+    /// `start()`.
+    @ObservationIgnored var gradeMemo: GradeMemo?
+
+    struct GradeMemo {
+        struct Key: Equatable {
+            let fixCount: Int
+            let lastFixAt: Date?
+            let baroCount: Int
+        }
+
+        let key: Key
+        let grade: Double?
+    }
 
     /// Per-threshold breach duration in seconds. Counts up while breached,
     /// resets to 0 the moment the metric comes back inside the band. The

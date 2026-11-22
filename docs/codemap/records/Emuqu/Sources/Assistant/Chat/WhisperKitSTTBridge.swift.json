@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift",
- "hash": "3c6db48ee6ba5815",
+ "hash": "ed1ccc3b62010e53",
  "role": "Optional WhisperKit (base.en, CoreML on-device) per-turn STT backend for voice conversation: loads the model, accumulates mic buffers during the user's turn, converts to 16 kHz mono WAV and transcribes.",
  "types": [
   "WhisperKitSTTBridge: final class @MainActor — model + buffer accumulation",
@@ -11,7 +11,8 @@
   "mem:WhisperKitSTTBridge.shared",
   "mem:WhisperKitSTTBridge.modelReady/pipeline/pendingBuffers/isLoading",
   "file:tmp/whisperkit-utterance-<unix>.wav (deleted after transcription)",
-  "net:huggingface.co (WhisperKit model download on first load)"
+  "net:huggingface.co (WhisperKit model download on first load)",
+  "mem:WhisperKitSTTBridge.drainCapacity = 4096 frames"
  ],
  "toplevel": "",
  "units": [
@@ -185,19 +186,20 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.writeConverted(_:to:format:)": "8f38bdf157f13a95",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.writeConverted(_:to:format:)": "34486315e8db7e80",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
    "key": "func WhisperKitSTTBridge.writeConverted(_:to:format:)",
-   "hash": "25caea3da6a69242",
-   "does": "Converts each buffer to the 16 kHz mono format and writes it to the file, building a new AVAudioConverter whenever a buffer's format differs from the current converter's input format (a mid-turn route change).",
+   "hash": "e207c9a3c5c6b494",
+   "does": "Converts each buffer to the 16 kHz mono format and writes it to the file, replacing the AVAudioConverter whenever a buffer's format differs from the current converter's input format (a mid-turn route change; freshConverter drains the old one first), and drains the last converter after the last buffer so the end of the utterance is written.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.freshConverter(replacing:from:to:file:)",
     "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.convert(_:with:to:)",
-    "ext:AVAudioConverter(from:to:)",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.drain(_:to:format:)",
     "ext:AVAudioFile.write(from:)"
    ],
    "reads": [],
@@ -213,7 +215,7 @@
     {
      "at": "+3",
      "cond": "no converter yet or input format changed",
-     "effect": "build a converter for this format"
+     "effect": "drain the old converter, build one for this format"
     },
     {
      "at": "+6",
@@ -229,11 +231,80 @@
      "at": "+8",
      "cond": "output has frames",
      "effect": "write; else skip"
+    },
+    {
+     "at": "+10",
+     "cond": "a converter was used",
+     "effect": "drain it"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.convert(_:with:to:)": "81330397a7a596c9"
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.convert(_:with:to:)": "81330397a7a596c9",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.drain(_:to:format:)": "ca184b917c95e51c",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.freshConverter(replacing:from:to:file:)": "f776b5c23bc9ac19"
    }
+  },
+  {
+   "key": "func WhisperKitSTTBridge.freshConverter(replacing:from:to:file:)",
+   "hash": "48993351199c2fc0",
+   "does": "Drains the converter being replaced (if any) into the file, then returns a new AVAudioConverter from `format` to the target (nil when it cannot be built).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.drain(_:to:format:)",
+    "ext:AVAudioConverter(from:to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/whisperkit-utterance-<unix>.wav"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "a converter is being replaced",
+     "effect": "drain it first"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.drain(_:to:format:)": "ca184b917c95e51c"
+   }
+  },
+  {
+   "key": "func WhisperKitSTTBridge.drain(_:to:format:)",
+   "hash": "2accd06ca43f76bb",
+   "does": "Tells the converter the input has ended (input block reports .endOfStream) and writes what it still held from the buffers already fed, 4,096 frames per pass, until it reports no more data; throws the conversion error on .error.",
+   "entry": null,
+   "calls": [
+    "ext:AVAudioPCMBuffer(pcmFormat:frameCapacity:)",
+    "ext:AVAudioConverter.convert(to:error:withInputFrom:)",
+    "ext:AVAudioFile.write(from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/whisperkit-utterance-<unix>.wav"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "output buffer allocation failed",
+     "effect": "return"
+    },
+    {
+     "at": "+8",
+     "cond": "conversion error",
+     "effect": "throw it (or conversionFailed)"
+    },
+    {
+     "at": "+9",
+     "cond": "output has frames",
+     "effect": "write them"
+    },
+    {
+     "at": "+10",
+     "cond": "converter has nothing more (not .haveData, or an empty pass)",
+     "effect": "return; else another pass"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func WhisperKitSTTBridge.convert(_:with:to:)",

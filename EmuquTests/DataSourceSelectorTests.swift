@@ -345,10 +345,11 @@ final class DataSourceSelectorTests: XCTestCase {
     }
 
     func testCompositeFallsBackToStreamingWhenCreationFails() {
-        // Internal has fewer beats but no detectable gaps — composite creation will fail.
+        // Internal has fewer beats over the same span and no detectable gaps:
+        // streaming adds no beat outside it, so no composite can be built.
         // The selector must fall back to streaming (more beats), NOT internal.
-        let streamingPoints = createRRPoints(count: 20000)
-        let internalPoints = createRRPoints(count: 18000) // 10% fewer, no gaps
+        let streamingPoints = createRRPoints(count: 20000, intervalMs: 720)
+        let internalPoints = createRRPoints(count: 18000) // 10% fewer, same span, no gaps
 
         let result = DataSourceSelector.selectBestSource(
             streamingPoints: streamingPoints,
@@ -361,6 +362,37 @@ final class DataSourceSelectorTests: XCTestCase {
         XCTAssertEqual(result?.points.count, 20000, "Must keep all streaming beats when composite fails")
         XCTAssertTrue(result?.sourceDescription.contains("streaming") ?? false)
         XCTAssertFalse(result?.isComposite ?? true)
+    }
+
+    /// A strap series has no gap of its own (its clock sums its intervals).
+    /// A strap armed late holds fewer beats than the stream, but it covers a
+    /// dropout of the stream's: the composite keeps every strap beat and adds
+    /// the stream's beats from before the strap started and after it ended,
+    /// instead of scoring
+    /// the night from the stream with its hole.
+    func testALateArmedStrapIsCompletedFromTheStreamNotDropped() throws {
+        let lateMs: Int64 = 45 * 60 * 1000
+        let internalPoints = createRRPoints(count: 27000, startMs: lateMs, intervalMs: 800)
+        // The stream runs the whole night but drops 20 minutes after the strap starts.
+        let dropoutStart = lateMs + 60 * 60 * 1000
+        let dropoutEnd = dropoutStart + 20 * 60 * 1000
+        let streamingPoints = createRRPoints(count: 33000, intervalMs: 800).compactMap { point -> RRPoint? in
+            guard point.t_ms < dropoutStart || point.t_ms >= dropoutEnd else { return nil }
+            return RRPoint(t_ms: point.t_ms, rr_ms: point.rr_ms, wallClockMs: point.t_ms, hr: 75)
+        }
+        let strapEnd = try XCTUnwrap(internalPoints.last).endMs
+        let uncoveredBeats = streamingPoints.filter { $0.t_ms < lateMs || $0.t_ms > strapEnd }.count
+
+        let result = try XCTUnwrap(DataSourceSelector.selectBestSource(
+            streamingPoints: streamingPoints,
+            internalPoints: internalPoints,
+            sessionId: UUID(),
+            sessionStart: Date()
+        ))
+
+        XCTAssertTrue(result.isComposite)
+        XCTAssertEqual(result.points.count, internalPoints.count + uncoveredBeats)
+        XCTAssertTrue(result.points.contains { $0.t_ms >= dropoutStart && $0.t_ms < dropoutEnd }, "the strap's beats in the dropout are kept")
     }
 
     // MARK: - mergePoints (time-alignment merge)

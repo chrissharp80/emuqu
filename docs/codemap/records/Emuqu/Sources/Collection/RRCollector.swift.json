@@ -1,13 +1,14 @@
 {
  "file": "Emuqu/Sources/Collection/RRCollector.swift",
- "hash": "e527e8f925ab38cd",
+ "hash": "4896139835399fca",
  "role": "The @Observable MainActor RRCollector orchestration shell: injected dependencies (including the shared SessionScoringContext), back-compat forwarders to DeviceStatus/SessionState/CollectorSessionControl/SessionScoringContext, archive read helpers, strap-recovery predicates, wiring factory and deferred baseline rebuild; plus RRCollectorError and two file-scope phase label helpers. Saved-session reanalysis is the composition root's SessionReanalysisCoordinator, not the collector's.",
  "types": [
   "RRCollector: class — recording orchestrator (@Observable, @MainActor)",
   "RRCollector.MorningProcessingStatus: enum — morning card state",
   "RRCollector.LiveHRVSnapshotMirror: struct — Sendable snapshot for LiveHRVBroker",
   "RRCollector.MorningProcessingDependencies: struct — factory argument bundle",
-  "RRCollectorError: enum — collector errors with localized descriptions"
+  "RRCollectorError: enum — collector errors with localized descriptions",
+  "RRCollector.ArchivedCopy: struct (Hashable, Sendable) — one stored copy of an archived session: session id and file hash, which every rewrite changes"
  ],
  "state": [
   "mem:RRCollector.current (static weak)",
@@ -30,7 +31,7 @@
   "RRCollector.streamingVerification (minPoints CollectorSessionControl.minimumQuickReadingBeats = 120, minDurationHours 0.025, maxArtifact 20%, warn 10%)",
   "RRCollector.scoring: SessionScoringContext (settings, baseline, training load), injected or built from the settings manager, HealthKit and baseline tracker"
  ],
- "toplevel": "Stored-property initializers: deviceFetchPolicy .automatic, useDeviceBackupForOvernight true, overnightDeviceBackupActive false, isOvernightEnding false, armingRetryInterval = StrapRecordingPolicy.armingRetryIntervalSeconds, streamingTimerBox lock(nil), liveHRVSnapshotMirror lock(nil), didBootBaseline lock(false), verification = Verification(), streamingVerification relaxed config (minPoints from CollectorSessionControl.minimumQuickReadingBeats). typealias CollectorError = RRCollectorError. The header doc maps each extension file to the coordinator that owns its behaviour and says saved-session reanalysis belongs to the composition root.",
+ "toplevel": "Stored-property initializers: deviceFetchPolicy .automatic, useDeviceBackupForOvernight true, overnightDeviceBackupActive false, isOvernightEnding false, armingRetryInterval = StrapRecordingPolicy.armingRetryIntervalSeconds, streamingTimerBox lock(nil), liveHRVSnapshotMirror lock(nil), didBootBaseline lock(false), verification = Verification(), streamingVerification relaxed config (minPoints from CollectorSessionControl.minimumQuickReadingBeats). typealias CollectorError = RRCollectorError. An RRCollector extension declares ArchivedCopy and holds the baseline rebuild's restart and off-main decode (restartReplacingRebuild(reusing:), rebuildBaselineOffMain(replacing:reusing:)); a file-scope helper, archiveHoldsSession(runningAt:slackMinutes:in:), answers whether an archived night or nap was running at a time. The header doc maps each extension file to the coordinator that owns its behaviour and says saved-session reanalysis belongs to the composition root.",
  "units": [
   {
    "key": "var RRCollector.archiveVersion",
@@ -303,7 +304,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.startStreamingSession(durationSeconds:)": "13c877fba3bd05bd",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.startStreamingSession(durationSeconds:)": "6e16a18fe269e5cd",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997"
    }
   },
@@ -371,7 +372,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "0740b26b052a6720",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "f00c32e21c009175",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997"
    }
   },
@@ -388,7 +389,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "e2c2ceb778dab145",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "e43638f1b8611004",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997"
    }
   },
@@ -474,7 +475,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)": "fddc6c9730ef95fe"
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)": "3b9c61b4ec04d6b3"
    }
   },
   {
@@ -578,7 +579,7 @@
   {
    "key": "var RRCollector.hasUnrecoveredData",
    "hash": "72c0c52c27118175",
-   "does": "True when the strap reports a stored exercise with a known start that the app has not saved (isStrapRecordingSaved: downloaded or predating the ledger, and held on this device by an archived session or a rescue backup near its start). A recording downloaded but stored nowhere — a failed rescue backup, or the app killed before the night was saved — counts as unrecovered, so the Recover card offers it.",
+   "does": "True when the strap reports a stored exercise with a known start that the app has not saved (isStrapRecordingSaved: downloaded or predating the ledger, and held on this device by an archived night or nap running when it began or a rescue backup near its start). A recording downloaded but stored nowhere — a failed rescue backup, or the app killed before the night was saved — counts as unrecovered, so the Recover card offers it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)"
@@ -596,40 +597,40 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "edf88e27053bda46",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "2ffeb0b0b9758522",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "614d193cfe0e5d19"
    }
   },
   {
    "key": "func RRCollector.isStrapRecordingSaved(startedAt:)",
-   "hash": "8524402c3c2c6763",
-   "does": "Asks StrapRecordingPolicy.recordingIsSaved using the download ledger (downloaded / predates ledger) and whether the recording is on this device: the archive has a session within 30 min of its start, or RawRRBackup holds a backup captured within 30 min of it (a rescue backup is dated by the recording's start).",
+   "hash": "3927c8085cd03a98",
+   "does": "Asks StrapRecordingPolicy.recordingIsSaved using the download ledger (downloaded / predates ledger) and whether the recording is on this device: the archive holds a night or nap that was running when it began, starting up to 30 min after it and not ended before it (archiveHoldsSession: a late-armed strap is filed into a night that started hours earlier; a quick reading or workout that ended just before does not count), or RawRRBackup holds a backup captured within 30 min of it (a rescue backup is dated by the recording's start).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.predatesRecord(_:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.hasSessionNear(date:toleranceMinutes:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func archiveHoldsSession(runningAt:slackMinutes:in:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.holdsBackup(capturedWithin:of:)",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)"
    ],
    "reads": [
     "mem:PolarManager.downloadLedger",
-    "archive:SessionArchive index (hasSessionNear)",
+    "archive:entries",
     "mem:RawRRBackup.index"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+5",
-     "cond": "archive has a session within 30 min",
+     "cond": "archive holds a night or nap running at the recording's start",
      "effect": "heldOnDisk true without asking the backups"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func archiveHoldsSession(runningAt:slackMinutes:in:)": "f3886ebefe40d547",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.predatesRecord(_:)": "e1d0d50e21caf4e1",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)": "09de3d8f5f282dc4",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "eccad6c84469d4b6",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.hasSessionNear(date:toleranceMinutes:)": "55eee5a8bff5a01d",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.holdsBackup(capturedWithin:of:)": "ebefeabf9420b181"
    }
   },
@@ -649,7 +650,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapHoldsOrphanedRecording": "0b7318f439d614dc",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "4fc7b99ece2053c6"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "efdf05438ecc01df"
    }
   },
   {
@@ -798,8 +799,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "3d7369730ef4c061",
-    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "3d7369730ef4c061"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "451afcfb546a3106",
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "451afcfb546a3106",
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()": "7eb7fa9354ab076a"
    }
   },
   {
@@ -832,50 +834,38 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "3d7369730ef4c061",
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "451afcfb546a3106",
     "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()": "7eb7fa9354ab076a"
    }
   },
   {
    "key": "func RRCollector.rebuildBaselineOffMain(replacing:)",
    "hash": "2f14799f5226a40e",
-   "does": "Snapshots archive entries, decodes each lightweight on a detached utility task, then on MainActor (weak self) commits the sessions with the ids they were decoded from (commitRebuiltBaseline). Also started by CollectorSessionControl.bindCloudSyncBaseline after a CloudKit pull into an empty baseline.",
+   "does": "Starts the off-main rebuild with nothing decoded yet (rebuildBaselineOffMain(replacing:reusing: [:])). Also started by CollectorSessionControl.bindCloudSyncBaseline after a CloudKit pull into an empty baseline.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decodedIds:replacing:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:reusing:)"
    ],
-   "reads": [
-    "archive:SessionArchive.retrieveLightweight (all)"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decodedIds:replacing:)": "279eb747b4af9e5f",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:reusing:)": "556d09bff72808c0"
    }
   },
   {
    "key": "func rebuildBaselineOffMain(replacing:)",
-   "hash": "fda5dc19aca0cbe5",
-   "does": "Snapshots archive entries, decodes each lightweight on a detached utility task, then on MainActor (weak self) commits the sessions with the ids they were decoded from (commitRebuiltBaseline). Also started by CollectorSessionControl.bindCloudSyncBaseline after a CloudKit pull into an empty baseline.",
+   "hash": "cf2b5aafebb73631",
+   "does": "Starts the off-main rebuild with nothing decoded yet (rebuildBaselineOffMain(replacing:reusing: [:])). Also started by CollectorSessionControl.bindCloudSyncBaseline after a CloudKit pull into an empty baseline.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decodedIds:replacing:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:reusing:)"
    ],
-   "reads": [
-    "archive:SessionArchive.retrieveLightweight (all)"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decodedIds:replacing:)": "279eb747b4af9e5f",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:reusing:)": "556d09bff72808c0"
    }
   },
   {
@@ -890,8 +880,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "3d7369730ef4c061",
-    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "3d7369730ef4c061"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "451afcfb546a3106",
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "451afcfb546a3106"
    }
   },
   {
@@ -906,23 +896,24 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "3d7369730ef4c061"
+    "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)": "451afcfb546a3106"
    }
   },
   {
-   "key": "func RRCollector.commitRebuiltBaseline(_:decodedIds:replacing:)",
+   "key": "func RRCollector.commitRebuiltBaseline(_:decoded:copies:replacing:)",
    "hash": "2f14799f5226a40e",
-   "does": "Replacing: when the archive's entries changed since the decode it starts the rebuild over (a night archived meanwhile is not wiped), else resets the tracker; boot: skips if a live session already seeded it. Then rebuildFromSessions with the settings sleep schedule.",
+   "does": "Replacing: when the archive's stored copies (ArchivedCopy: id and file hash) changed since the decode — a night archived, deleted or rewritten under its id, such as a newer iCloud copy — it starts the rebuild over, handing it the sessions just decoded by copy so only new or rewritten entries are decrypted (a night archived meanwhile is not wiped, a rewritten one not scored from its old copy), else resets the tracker; boot: skips if a live session already seeded it. Then rebuildFromSessions with the settings sleep schedule.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector.ArchivedCopy(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.restartReplacingRebuild(reusing:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)"
    ],
    "reads": [
-    "archive:entries",
+    "archive:entries (session ids and file hashes)",
     "mem:BaselineTracker.daysCollected",
     "mem:SettingsManager.settings.sleepSchedule"
    ],
@@ -937,8 +928,8 @@
     },
     {
      "at": "+3",
-     "cond": "replacing and the archive's ids differ from the decoded ones",
-     "effect": "starts a new replacing rebuild and returns"
+     "cond": "replacing and the archive's stored copies differ from the decoded ones",
+     "effect": "restartReplacingRebuild with the decoded sessions, return"
     },
     {
      "at": "+5",
@@ -947,27 +938,29 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "ec38259613741ffb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "b899a073d606c046",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "458e791447e9fdf7",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "ea6ad7424667b139",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "3d7369730ef4c061",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.restartReplacingRebuild(reusing:)": "0b099b0387f6e9ea",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector.ArchivedCopy(_:)": "cb8b29c31295ae90",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
    }
   },
   {
-   "key": "func commitRebuiltBaseline(_:decodedIds:replacing:)",
-   "hash": "c79679a7b06880f3",
-   "does": "Replacing: when the archive's entries changed since the decode it starts the rebuild over (a night archived meanwhile is not wiped), else resets the tracker; boot: skips if a live session already seeded it. Then rebuildFromSessions with the settings sleep schedule.",
+   "key": "func commitRebuiltBaseline(_:decoded:copies:replacing:)",
+   "hash": "ebd1e99bca90a454",
+   "does": "Replacing: when the archive's stored copies (ArchivedCopy: id and file hash) changed since the decode — a night archived, deleted or rewritten under its id, such as a newer iCloud copy — it starts the rebuild over, handing it the sessions just decoded by copy so only new or rewritten entries are decrypted (a night archived meanwhile is not wiped, a rewritten one not scored from its old copy), else resets the tracker; boot: skips if a live session already seeded it. Then rebuildFromSessions with the settings sleep schedule.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector.ArchivedCopy(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.restartReplacingRebuild(reusing:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)"
    ],
    "reads": [
-    "archive:entries",
+    "archive:entries (session ids and file hashes)",
     "mem:BaselineTracker.daysCollected",
     "mem:SettingsManager.settings.sleepSchedule"
    ],
@@ -982,8 +975,8 @@
     },
     {
      "at": "+2",
-     "cond": "replacing and the archive's ids differ from the decoded ones",
-     "effect": "starts a new replacing rebuild and returns"
+     "cond": "replacing and the archive's stored copies differ from the decoded ones",
+     "effect": "restartReplacingRebuild with the decoded sessions, return"
     },
     {
      "at": "+4",
@@ -992,10 +985,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "ec38259613741ffb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "b899a073d606c046",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "458e791447e9fdf7",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "ea6ad7424667b139",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "3d7369730ef4c061",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.restartReplacingRebuild(reusing:)": "0b099b0387f6e9ea",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector.ArchivedCopy(_:)": "cb8b29c31295ae90",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
    }
   },
@@ -1195,7 +1189,7 @@
    "deps": {
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)": "955073b942718ab5",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "6b93b9c581d7f854",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "1aa026e4481155fe"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "55bc57d654968cf9"
    }
   },
   {
@@ -1405,7 +1399,7 @@
    "does": "Messages for duplicateImport, importNotAnalyzed and strapStillHoldsNight(missingMinutes) (formats the gap with LocalizedDuration.hoursMinutes); nil otherwise.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)"
    ],
    "reads": [],
    "writes": [],
@@ -1433,7 +1427,152 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
+   }
+  },
+  {
+   "key": "init RRCollector.ArchivedCopy(_:)",
+   "hash": "38780c3abf58becd",
+   "does": "Takes an index entry's session id and file hash.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "archive:SessionArchiveEntry.sessionId/fileHash"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+   }
+  },
+  {
+   "key": "func RRCollector.restartReplacingRebuild(reusing:)",
+   "hash": "2f14799f5226a40e",
+   "does": "Starts a replacing rebuild over with the sessions the last pass decoded, keyed by their stored copy (ArchivedCopy), so rebuildBaselineOffMain(replacing:reusing:) decrypts only entries new or rewritten since.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:reusing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:reusing:)": "556d09bff72808c0"
+   }
+  },
+  {
+   "key": "func restartReplacingRebuild(reusing:)",
+   "hash": "70dae76d95f58fec",
+   "does": "Starts a replacing rebuild over with the sessions the last pass decoded, keyed by their stored copy (ArchivedCopy), so rebuildBaselineOffMain(replacing:reusing:) decrypts only entries new or rewritten since.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:reusing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:reusing:)": "556d09bff72808c0"
+   }
+  },
+  {
+   "key": "func RRCollector.rebuildBaselineOffMain(replacing:reusing:)",
+   "hash": "2f14799f5226a40e",
+   "does": "Snapshots the archive's stored copies (ArchivedCopy per entry) and, on a detached utility task, gets each copy's session (decodedSessions(of:reusing:from:): the one an earlier pass decoded for that same copy, else decoded lightweight, an unreadable entry left out); then on MainActor (weak self) commits the sessions in entry order with the copies they were decoded from (commitRebuiltBaseline).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector.ArchivedCopy(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodedSessions(of:reusing:from:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decoded:copies:replacing:)"
+   ],
+   "reads": [
+    "archive:entries (ids and file hashes)",
+    "archive:SessionArchive.retrieveLightweight (copies not already decoded)"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decoded:copies:replacing:)": "d02ca4bb3566b401",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodedSessions(of:reusing:from:)": "b505416dee2021d2",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector.ArchivedCopy(_:)": "cb8b29c31295ae90",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
+   }
+  },
+  {
+   "key": "func rebuildBaselineOffMain(replacing:reusing:)",
+   "hash": "d080c2818244d0a5",
+   "does": "Snapshots the archive's stored copies (ArchivedCopy per entry) and, on a detached utility task, gets each copy's session (decodedSessions(of:reusing:from:): the one an earlier pass decoded for that same copy, else decoded lightweight, an unreadable entry left out); then on MainActor (weak self) commits the sessions in entry order with the copies they were decoded from (commitRebuiltBaseline).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector.ArchivedCopy(_:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodedSessions(of:reusing:from:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decoded:copies:replacing:)"
+   ],
+   "reads": [
+    "archive:entries (ids and file hashes)",
+    "archive:SessionArchive.retrieveLightweight (copies not already decoded)"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.commitRebuiltBaseline(_:decoded:copies:replacing:)": "d02ca4bb3566b401",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodedSessions(of:reusing:from:)": "b505416dee2021d2",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector.ArchivedCopy(_:)": "cb8b29c31295ae90",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
+   }
+  },
+  {
+   "key": "func RRCollector.decodedSessions(of:reusing:from:)",
+   "hash": "f1d94c3886f37621",
+   "does": "Each stored copy's session, in order: the one in `decoded` for that same copy (id and file hash), else decrypted lightweight from the archive; a copy that cannot be read is left out.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight (copies not already decoded)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "the same copy is in `decoded`",
+     "effect": "reused, not decrypted again; a rewritten entry (new hash) is decrypted"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
+   }
+  },
+  {
+   "key": "func archiveHoldsSession(runningAt:slackMinutes:in:)",
+   "hash": "be001e19366c6993",
+   "does": "Whether an archived night or nap (the only session types a strap recording is saved into) was running at `date`: it started no more than slackMinutes after the date and had not ended before it; one with no end, or ending sooner, counts as running until slackMinutes after its start. Quick readings, workouts and Breathe sessions never count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "archive:entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "entry is not overnight or nap",
+     "effect": "does not count"
+    },
+    {
+     "at": "+5",
+     "cond": "entry has no endDate, or ends within slackMinutes of its start",
+     "effect": "runs until slackMinutes after its start"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
    }
   },
   {
@@ -1536,7 +1675,7 @@
    "does": "Localized human label for a phase in the app language (quick streaming includes the target in minutes), quoted to the user by the assistant.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -1579,7 +1718,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
    }
   },
   {
@@ -1588,7 +1727,7 @@
    "does": "Localized human label for a phase in the app language (quick streaming includes the target in minutes), quoted to the user by the assistant.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -1630,7 +1769,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
    }
   }
  ],

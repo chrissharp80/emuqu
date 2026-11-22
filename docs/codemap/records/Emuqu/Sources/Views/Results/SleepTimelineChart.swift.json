@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/Results/SleepTimelineChart.swift",
- "hash": "5147b303aa95bf40",
+ "hash": "8c6250778c546d0e",
  "role": "Defines SleepStageColors (stage colour + hypnogram depth shared with the timeline editor) and SleepTimelineChart, a Canvas-drawn stepped hypnogram with time axis and bedtime/wake labels.",
  "types": [
   "SleepStageColors: enum — stage colour and normalized depth",
@@ -8,9 +8,10 @@
  ],
  "state": [
   "SleepTimelineChart.chartHeight=100, topPad=8, bottomPad=4 (instance lets)",
+  "SleepTimelineChart.sorted / timelineStart / timelineEnd / totalDuration (private lets set once in init)",
   "splitGapMinutes default SleepConstants.defaultSplitGapMinutes"
  ],
- "toplevel": "Stored properties only; boundaryValidation (line 42) is accepted but never read anywhere in the type.",
+ "toplevel": "Stored properties, plus sorted / timelineStart / timelineEnd / totalDuration worked out once in init; boundaryValidation is accepted but never read anywhere in the type.",
  "units": [
   {
    "key": "func SleepStageColors.color(for:)",
@@ -98,84 +99,15 @@
    "deps": {}
   },
   {
-   "key": "var SleepTimelineChart.sorted",
-   "hash": "ebdc99adc65ace30",
-   "does": "stageIntervals sorted by start (recomputed on each access).",
-   "entry": "SwiftUI render of SleepTimelineChart, which is instantiated only by EmuquTests/SleepChartSnapshotTests.swift:40,57,74 (no production call site)",
+   "key": "init SleepTimelineChart(stageIntervals:sleepStart:sleepEnd:inBedStart:boundaryValidation:splitGapMinutes:)",
+   "hash": "fe449a1ea584b011",
+   "does": "Stores the inputs, then sorts the stage intervals by start once and works out the axis: start = min(inBedStart ?? first interval start ?? sleepStart ?? now, sleepStart) − 10 min, end = max(last interval end ?? sleepEnd ?? now, sleepEnd) + 10 min, span at least 1 s.",
+   "entry": "Built by SleepChartSnapshotTests (the only constructor calls)",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {}
-  },
-  {
-   "key": "var SleepTimelineChart.timelineStart",
-   "hash": "bdeac245c9f1fba8",
-   "does": "Start of the chart: min(inBedStart ?? first interval start ?? sleepStart ?? now, sleepStart) minus 10 minutes.",
-   "entry": "SwiftUI render of SleepTimelineChart, which is instantiated only by EmuquTests/SleepChartSnapshotTests.swift:40,57,74 (no production call site)",
-   "calls": [
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.sorted"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "?? chain: inBedStart nil, then no intervals, then sleepStart nil",
-     "effect": "falls back to first interval start, then sleepStart, then Date() now"
-    },
-    {
-     "at": "+2",
-     "cond": "sleepStart nil",
-     "effect": "?? uses earliest itself in min()"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.sorted": "84eacaa1ab2f7f69"
-   }
-  },
-  {
-   "key": "var SleepTimelineChart.timelineEnd",
-   "hash": "c60c5a151b954fe9",
-   "does": "End of chart: max(last interval end ?? sleepEnd ?? now, sleepEnd) plus 10 minutes.",
-   "entry": "SwiftUI render of SleepTimelineChart, which is instantiated only by EmuquTests/SleepChartSnapshotTests.swift:40,57,74 (no production call site)",
-   "calls": [
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.sorted"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "no intervals / sleepEnd nil",
-     "effect": "?? falls back to sleepEnd, then Date() now"
-    },
-    {
-     "at": "+2",
-     "cond": "sleepEnd nil",
-     "effect": "?? uses latest itself"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.sorted": "84eacaa1ab2f7f69"
-   }
-  },
-  {
-   "key": "var SleepTimelineChart.totalDuration",
-   "hash": "053e686501958c31",
-   "does": "Chart span in seconds, at least 1.",
-   "entry": "SwiftUI render of SleepTimelineChart, which is instantiated only by EmuquTests/SleepChartSnapshotTests.swift:40,57,74 (no production call site)",
-   "calls": [
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.timelineStart",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.timelineEnd"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.timelineEnd": "8a42a5a35f35f7e7",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.timelineStart": "cf7d5e44fac95440"
-   }
   },
   {
    "key": "var SleepTimelineChart.body",
@@ -293,8 +225,7 @@
    "does": "Accessibility string \"Sleep stages hypnogram showing N intervals from <start> to <end>\".",
    "entry": "SwiftUI render of SleepTimelineChart, which is instantiated only by EmuquTests/SleepChartSnapshotTests.swift:40,57,74 (no production call site)",
    "calls": [
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.sleepTimeFormatter",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.sorted"
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.sleepTimeFormatter"
    ],
    "reads": [],
    "writes": [],
@@ -312,8 +243,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.sleepTimeFormatter": "74eed5f0d81af39e",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.sorted": "84eacaa1ab2f7f69"
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.sleepTimeFormatter": "74eed5f0d81af39e"
    }
   },
   {
@@ -529,17 +459,11 @@
    "hash": "bcc5b31545b1c945",
    "does": "Maps a date to x = (date - timelineStart)/totalDuration * width.",
    "entry": "SwiftUI render of SleepTimelineChart, which is instantiated only by EmuquTests/SleepChartSnapshotTests.swift:40,57,74 (no production call site)",
-   "calls": [
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.timelineStart",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.totalDuration"
-   ],
+   "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.timelineStart": "cf7d5e44fac95440",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.totalDuration": "e50ea313d2b15210"
-   }
+   "deps": {}
   },
   {
    "key": "func SleepTimelineChart.yForStage(_:)",
@@ -605,10 +529,7 @@
    "hash": "6b595b034fd7608c",
    "does": "Lists every whole-hour Date strictly after timelineStart and before timelineEnd.",
    "entry": "SwiftUI render of SleepTimelineChart, which is instantiated only by EmuquTests/SleepChartSnapshotTests.swift:40,57,74 (no production call site)",
-   "calls": [
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.timelineStart",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.timelineEnd"
-   ],
+   "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
@@ -623,10 +544,7 @@
      "effect": "append and advance one hour; loop ends at timelineEnd"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.timelineEnd": "8a42a5a35f35f7e7",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.timelineStart": "cf7d5e44fac95440"
-   }
+   "deps": {}
   },
   {
    "key": "var SleepTimelineChart.hourLabelFormatter",

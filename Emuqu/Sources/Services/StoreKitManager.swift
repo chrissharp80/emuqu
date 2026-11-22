@@ -182,12 +182,20 @@ final class StoreKitManager {
     /// closed, and App Review installs carry the same receipt. An anchor that
     /// earlier builds wrote on a sandbox receipt grants nothing on a sandbox
     /// install either; see `isGrandfatheredBetaTester`.
+    ///
+    /// The reconcile lists and reads every keychain item, so it runs on a
+    /// background task, not on the main actor at every launch; the legacy
+    /// flag migration, which reads its result, follows it. The launch gate
+    /// has its own pass before it reads the anchor
+    /// (`grandfatherExistingUserIfNeeded`).
     func boot() {
         guard transactionListener == nil else { return }
         guard Self.paywallEnabled else { return }
         let now = Date()
-        EntitlementAnchor.resolve(wallClock: now)
-        migrateLegacyTestFlightFlag(now: now)
+        Task {
+            await Task.detached(priority: .utility) { _ = EntitlementAnchor.resolve(wallClock: now) }.value
+            migrateLegacyTestFlightFlag(now: now)
+        }
         transactionListener = listenForTransactions()
         Task { await refreshStatus() }
         // Background `AppTransaction` check — records an Xcode install off

@@ -182,39 +182,25 @@
   },
   {
    "key": "func NonlinearAnalysisTests.testDFAInsufficientData()",
-   "hash": "407ee1b9f90e2f9f",
-   "does": "Builds 50 constant 800 ms beats; only if dfaAlpha1 is computed asserts it is in (0,3).",
+   "hash": "6f9edb742d3856c6",
+   "does": "Builds 50 constant 800 ms beats, unwraps computeNonlinear's metrics (the other nonlinear metrics still come back) and asserts dfaAlpha1 and dfaAlpha2 are nil: DFA needs at least 64 beats.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(forCleanRR:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.successiveDifferenceVariance(_:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.populationVariance(_:)",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:m:r:)",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(for:successiveDifferences:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+17",
-     "cond": "metrics?.dfaAlpha1 is non-nil",
-     "effect": "asserts 0 < alpha1 < 3; when nil (or metrics nil) the test asserts nothing"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:m:r:)": "860ec59b6f358221",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)": "3e3d78bd99965ddb",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)": "d02079f558b62c40",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:)": "1d8f6a93f23a8f8e",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)": "b2dec3f644bfa965",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(forCleanRR:)": "1d6cc8f3ef15d6c8",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.populationVariance(_:)": "466ba01d43e7938a",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.successiveDifferenceVariance(_:)": "5ae2c4a8d547b16b",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(for:successiveDifferences:)": "15b9e7e629287438",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)": "644bfb993c7bd1d9",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.series(_:)": "71372a694a3d3c33"
    }
   },
   {
@@ -240,16 +226,14 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:m:r:)": "860ec59b6f358221",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)": "d02079f558b62c40",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:)": "1d8f6a93f23a8f8e",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:m:r:)": "b2dec3f644bfa965",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(forCleanRR:)": "1d6cc8f3ef15d6c8",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.populationVariance(_:)": "466ba01d43e7938a",
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.successiveDifferenceVariance(_:)": "5ae2c4a8d547b16b",
-    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "16f56b5efece7a16",
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3d42e8f1b3cf25ba",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
-    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd"
+    "EmuquTests/DFAReferenceValidationTests.swift::func DFAReferenceValidationTests.SeededGenerator.next()": "319f01c3d69503fd",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)": "644bfb993c7bd1d9",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.series(_:)": "71372a694a3d3c33"
    }
   },
   {
@@ -351,7 +335,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "16f56b5efece7a16"
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3d42e8f1b3cf25ba"
    }
   },
   {

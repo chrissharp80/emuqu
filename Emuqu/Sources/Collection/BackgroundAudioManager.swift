@@ -130,6 +130,23 @@ final class BackgroundAudioManager: Sendable {
         }
     }
 
+    /// Activate the session for a claimant that has just made its own claim
+    /// and keeps the session up while it lasts (the breathing guide). Done on
+    /// the transition queue, so the main actor never waits on
+    /// `setActive(true)`, which can block for seconds after a phone-call
+    /// interruption, and in order with a `deactivateIfIdle` queued before it.
+    /// `completion` runs on that queue with the activation error, or nil.
+    func activateForClaimant(completion: @escaping @Sendable (Error?) -> Void) {
+        transitions.async { [self] in
+            do {
+                try session.activate()
+                completion(nil)
+            } catch {
+                completion(error)
+            }
+        }
+    }
+
     /// Deactivate the session for a claimant that has just released its own
     /// claim (voice chat on tear-down), unless a cue still holds the session
     /// or another claimant does. Decided and done on the transition queue, so

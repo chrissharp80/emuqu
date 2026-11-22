@@ -44,7 +44,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleAudioInterruption(typeRaw:)": "c8d5e012b8176a69",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleAudioInterruption(typeRaw:)": "76d4c06115d15565",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.removeInterruptionObserver()": "d98812f1fb888d4d",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "d607730c7c553774"
    }
@@ -74,22 +74,18 @@
   },
   {
    "key": "func VoiceAudioPipeline.handleAudioInterruption(typeRaw:)",
-   "hash": "f85e7a2418507a5a",
-   "does": "On .began logs that voice will end with the interruption and pauses (pauseForInterruption: silence watchdog stopped, recognition task and request dropped); on .ended calls controller.stop() (full teardown, user must re-tap; .shouldResume is deliberately not honoured).",
+   "hash": "4c5f2c1a009f3af3",
+   "does": "On .began logs and ends voice at once (controller.stop(): full teardown, interruption observer removed, user must re-tap) — the engine and recognition task are dead and iOS does not promise an .ended, so voice never sits in listening/speaking with nothing behind it. On .ended (only reached when voice was not already stopped) calls controller.stop() too; .shouldResume is deliberately not honoured.",
    "entry": "NotificationCenter AVAudioSession.interruptionNotification observer (installed by installInterruptionObserver)",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.pauseForInterruption()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()"
    ],
    "reads": [
     "notif:AVAudioSession.interruptionNotification"
    ],
    "writes": [
-    "mem:VoiceConversationController.silenceTimer",
-    "mem:VoiceConversationController.recognitionTask",
-    "mem:VoiceConversationController.recognitionRequest",
-    "mem:VoiceConversationController.state"
+    "mem:VoiceConversationController.state (and everything stop() tears down)"
    ],
    "branches": [
     {
@@ -100,12 +96,12 @@
     {
      "at": "+6",
      "cond": "case .began",
-     "effect": "pauseForInterruption; state untouched"
+     "effect": "controller.stop() — voice torn down now"
     },
     {
      "at": "+9",
      "cond": "case .ended",
-     "effect": "controller.stop() — voice torn down"
+     "effect": "controller.stop() — no-op teardown when already stopped"
     },
     {
      "at": "+12",
@@ -114,25 +110,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.pauseForInterruption()": "dee2bedac694bd74",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "89dce1ce746e3a16",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
-  },
-  {
-   "key": "func VoiceAudioPipeline.pauseForInterruption()",
-   "hash": "0e26bd88d4376e86",
-   "does": "Interruption .began: invalidates the silence timer (so the max-turn / empty-transcript paths can't start a recognition task while the session is interrupted), cancels and drops the recognition task, ends and drops the recognition request.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [
-    "mem:VoiceConversationController.silenceTimer",
-    "mem:VoiceConversationController.recognitionTask",
-    "mem:VoiceConversationController.recognitionRequest"
-   ],
-   "branches": [],
-   "deps": {}
   },
   {
    "key": "func VoiceAudioPipeline.teardownAudioPipeline()",
@@ -786,7 +766,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.beginSpeakingWindow()": "d0503644702cb0c2",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleConsentRequired(_:)": "6587281c342fb1ba",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleQueuedSend()": "3ed977fadb7c6c34",
@@ -1171,7 +1151,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "11b7d59f422f3990",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.withdrawLast(_:)": "411fed959a6b495d",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "579381859ae4cd85"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "b5e50994c6b3eb1a"
    }
   },
   {
@@ -1209,8 +1189,8 @@
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "617bf2c6974d2d39",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.speakErrorRecoveryLineIfNeeded()": "176fd8d488e0c097",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishResponseSpeech()": "b558edb037f3d00b",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "579381859ae4cd85",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishResponseSpeech()": "ec66b6fdac20ec76",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "b5e50994c6b3eb1a",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "4283ff5361b1771c"
    }
   },
@@ -1239,7 +1219,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "579381859ae4cd85",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "b5e50994c6b3eb1a",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "f6972423b2fb8a62",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"

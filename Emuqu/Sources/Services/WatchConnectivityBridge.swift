@@ -123,6 +123,7 @@ final class WatchConnectivityBridge: NSObject {
         case acknowledgeFinishedFromWatch // Watch → iOS "user tapped Save & Done on the Watch summary"
         case requestStrapState     // Watch → iOS "send me the current strap status now" (Watch fires on activation so it never has to wait for the next iOS-pushed change)
         case requestCurrentState   // Watch → iOS "send me the current live workout snapshot now" (Watch fires on activation / foreground so a relaunch mid-workout restores the live session instead of offering a new one). Reply IS the liveState payload.
+        case coachAlert            // iOS → Watch "play a wrist haptic for a coach alert" (`urgent`, `firedAt`); a late one is dropped on the Watch
         // There is no voice-trigger (iOS → Watch) or stop-voice-chat
         // (Watch → iOS) message: the Watch has no UI for either. Add them
         // with both a sender and a handler if it grows one.
@@ -575,36 +576,39 @@ final class WatchConnectivityBridge: NSObject {
     }
 
     /// Queue-isolated transport. Running on `wcQueue`, never main.
-    /// Consecutive sendMessage timeouts trip a short-term
-    /// circuit breaker. iOS occasionally reports `isReachable = true` for
-    /// a fraction of a second when the Watch is actually unreachable
-    /// (during init, after wake, when the Watch app was force-quit). Each
-    /// `sendMessage` then waits the framework's full timeout and fires
-    /// `WCErrorCodeTransferTimedOut` — visible in the user's console as
-    /// 5–10 timeout pairs in a row, plus the framework's own internal
-    /// logs we can't suppress. After `circuitBreakerThreshold` consecutive
-    /// timeouts we skip `sendMessage` entirely until reachability flips
-    /// back to true (delegate callback resets the counter); the fallback
-    /// `updateApplicationContext` path still gets the latest snapshot.
+    /// Repeated sendMessage timeouts trip a short-term circuit breaker
+    /// (`WatchSendTimeoutBreaker`). iOS occasionally reports
+    /// `isReachable = true` for a fraction of a second when the Watch is
+    /// actually unreachable (during init, after wake, when the Watch app was
+    /// force-quit). Each `sendMessage` then waits the framework's full timeout
+    /// and fires `WCErrorCodeTransferTimedOut` — visible in the user's console
+    /// as 5–10 timeout pairs in a row, plus the framework's own internal logs
+    /// we can't suppress. While the breaker is open we skip `sendMessage`
+    /// entirely; the fallback `updateApplicationContext` path still gets the
+    /// latest snapshot. It closes when reachability flips back to true
+    /// (delegate callback resets it) or when its cooldown runs out, so a Watch
+    /// that stays reachable through a long workout gets live updates again
+    /// after a few scattered timeouts.
     /// Wrapped in `OSAllocatedUnfairLock` so concurrent
-    /// `transportLiveStatePayload` invocations can't race on the counter.
-    /// A per-process static counter; `bumpTimeoutCount` returns the new value
-    /// for logging.
-    nonisolated private static let timeoutCounter = OSAllocatedUnfairLock<Int>(initialState: 0)
-    nonisolated private static let circuitBreakerThreshold = 3
+    /// `transportLiveStatePayload` invocations can't race on it.
+    /// A per-process static; `bumpTimeoutCount` returns the new count for
+    /// logging.
+    nonisolated private static let timeoutBreaker = OSAllocatedUnfairLock(initialState: WatchSendTimeoutBreaker())
 
-    nonisolated private static var currentConsecutiveSendTimeouts: Int {
-        timeoutCounter.withLock { $0 }
+    nonisolated private static var isCircuitOpen: Bool {
+        let now = Date()
+        return timeoutBreaker.withLock { $0.isOpen(at: now) }
     }
     @discardableResult
     nonisolated private static func bumpTimeoutCount() -> Int {
-        timeoutCounter.withLock { count in
-            count += 1
-            return count
+        let now = Date()
+        return timeoutBreaker.withLock { breaker in
+            breaker.noteTimeout(at: now)
+            return breaker.timeouts
         }
     }
     nonisolated static func resetTimeoutCount() {
-        timeoutCounter.withLock { $0 = 0 }
+        timeoutBreaker.withLock { $0 = WatchSendTimeoutBreaker() }
     }
 
     /// While a workout is recording, ALWAYS persist the snapshot
@@ -632,8 +636,7 @@ final class WatchConnectivityBridge: NSObject {
         Self.cacheLiveState(payload)
         guard canTransport(session) else { return }
         let isRecording = (payload[MessageKey.isRecording.rawValue] as? Bool) ?? false
-        let circuitOpen = Self.currentConsecutiveSendTimeouts >= Self.circuitBreakerThreshold
-        let canSend = session.isReachable && !circuitOpen
+        let canSend = session.isReachable && !Self.isCircuitOpen
         if isRecording || !canSend {
             updateLiveStateContextIfLatest(payload)
         }
@@ -897,7 +900,7 @@ final class WatchConnectivityBridge: NSObject {
         if session.isReachable {
             session.sendMessage(payload, replyHandler: nil, errorHandler: logSendFailure(label))
         }
-        session.transferUserInfo(payload)
+        transferLatestUserInfo(payload, on: session)
     }
 
     /// Dual-channel commands issued before activation, oldest first; the
@@ -932,39 +935,4 @@ final class WatchConnectivityBridge: NSObject {
         }
     }
 
-}
-
-// MARK: - Control refusals
-
-/// Why the phone refused a Watch control message.
-///
-/// The reply carries the raw value as `errorCode`, and the Watch words it in
-/// its own language from the shared catalogue, so a Watch set to another
-/// language than the phone's app language shows one language. The reply's
-/// `error` carries `phoneText` too, for Watch builds that predate the code.
-enum WatchControlRefusal: String, Sendable {
-    /// No handler is wired yet: the phone app is still launching.
-    case phoneNotReady
-    /// A message type this phone build doesn't know.
-    case unknownMessage
-    /// A sport this phone build doesn't know.
-    case unknownSport
-    /// The paywall would stop this user on the phone.
-    case needsUnlock
-    /// The strap is recording on its own (an overnight session, or one
-    /// started on the device), and a workout would preempt it.
-    case strapBusy
-
-    /// The refusal in the phone's app language. `sport` is the Watch's
-    /// `Sport` raw value, quoted by `unknownSport`.
-    func phoneText(sport: String?) -> String {
-        let bundle = LanguageManager.appBundle
-        switch self {
-        case .phoneNotReady: return String(localized: "Phone not ready", bundle: bundle)
-        case .unknownMessage: return String(localized: "Unknown message", bundle: bundle)
-        case .unknownSport: return String(localized: "Unknown sport: \(sport ?? "")", bundle: bundle)
-        case .needsUnlock: return String(localized: "Open Emuqu on your iPhone to start your free trial or unlock.", bundle: bundle)
-        case .strapBusy: return String(localized: "The strap is currently used by another session. Stop it first.", bundle: bundle)
-        }
-    }
 }

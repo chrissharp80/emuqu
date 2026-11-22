@@ -45,16 +45,20 @@ extension VoiceConversationController {
     ///
     /// A line that fails to queue gets no `didFinish`; for a scripted trigger
     /// line that is what restores the pre-trigger state, so it is settled
-    /// here instead (`settleUnspokenTriggerLine`).
+    /// here instead (`settleUnspokenTriggerLine`). A coach line (in
+    /// `.triggerSpeaking`) claims the cue audio session first (`coachCue`).
     func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false) {
         let chosenVoice = voice ?? bestVoice
         let english = (chosenVoice?.language ?? AVSpeechSynthesisVoice.currentLanguageCode()).hasPrefix("en")
-        let guarded = applyHallucinationGuard(to: perimeterScrubbed(text))
+        let guarded = applyHallucinationGuard(to: perimeterScrubbed(text, continuing: &textChunker.safetyCopy))
         // Scripted lines (coach triggers, the recovery line) are not Flo's
         // reply, so they don't get the "Flo here. <Model>." preamble.
         let isScripted = scripted || state == .triggerSpeaking
         let attributed = TTSTextNormalizer.normalize(isScripted ? guarded : announced(guarded), english: english)
         let utterance = Self.makeUtterance(attributed, voice: chosenVoice)
+        guard state != .triggerSpeaking else {
+            return coachCue.speak(utterance) { [weak self] in self?.settleUnspokenTriggerLine() }
+        }
         var speakErr: NSError?
         guard !FRSafeSpeak(synthesizer, utterance, &speakErr) else { return }
         debugLog("[VoiceConv] synthesizer.speak failed (skipping TTS chunk): \(speakErr?.localizedDescription ?? "?")", level: .warning)
@@ -68,7 +72,7 @@ extension VoiceConversationController {
     /// restore the prior state. An AI interjection (`llmTask` set) is left to
     /// `finishInterjection`, which settles the state when its stream ends.
     private func settleUnspokenTriggerLine() {
-        guard state == .triggerSpeaking, llmTask == nil, !synthesizer.isSpeaking else { return }
+        guard state == .triggerSpeaking, llmTask == nil, !coachCue.isBusy else { return }
         finishTriggerSpeech()
     }
 
@@ -111,8 +115,10 @@ extension VoiceConversationController {
         return (modelTag.isEmpty ? preamble : "\(preamble) \(modelTag).") + " " + guarded
     }
 
+    /// Stops the speech and ends every coach line's audio-session hold.
     func stopSynthesizer() {
         _ = FRSafeStopSpeaking(synthesizer, .immediate, nil)
+        coachCue.stopAll()
     }
 
     /// Short audible
@@ -223,13 +229,12 @@ extension VoiceConversationController {
     @MainActor
     func stopAnyOngoingSpeech() {
         responseSpeakGeneration += 1
-        _ = FRSafeStopSpeaking(synthesizer, .immediate, nil)
+        stopSynthesizer()
         textChunker.reset()
         cancelAssistantObservers()
         activeAssistantIndex = nil
         spokenCharCursor = 0
-        let wasMidResponse = (state == .speaking || state == .thinking)
-        guard wasMidResponse, !isStoppingFully else { return }
+        guard state == .speaking, !isStoppingFully else { return }
         scheduleListeningRestartAfterStop()
     }
 
@@ -254,7 +259,7 @@ extension VoiceConversationController {
             guard let self, !self.isStoppingFully else { return }
             // Not `.idle`: that is where `stop()` leaves voice, and
             // restarting from it would reopen the mic the user just closed.
-            guard self.state == .speaking || self.state == .thinking else { return }
+            guard self.state == .speaking else { return }
             Task { @MainActor in await self.beginUserTurn() }
         }
     }
@@ -293,21 +298,29 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
         }
     }
 
+    /// A coach line's finish or cancel also ends its audio-session hold.
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        let line = ObjectIdentifier(utterance)
         Task { @MainActor in
+            self.coachCue.lineEnded(line)
             // If the synthesizer queue drained and we're still in speaking state,
             // transition back to idle. During trigger preemption, restore the
             // prior state. The check is made after the hop, on the controller's
             // own synthesizer: an utterance queued between this delegate call
             // and the hop must keep the speaking state, and the delegate's
             // parameter may not cross into the task.
-            guard !self.synthesizer.isSpeaking else { return }
+            guard !self.coachCue.isBusy else { return }
             switch state {
             case .triggerSpeaking where llmTask == nil: finishTriggerSpeech()
             case .speaking where llmTask == nil: finishResponseSpeech()
             default: break
             }
         }
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        let line = ObjectIdentifier(utterance)
+        Task { @MainActor in self.coachCue.lineEnded(line) }
     }
 
     /// Chain pending triggers before restoring the prior state.
@@ -319,20 +332,15 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
     /// earlier one's line had finished and listening was about to resume
     /// (its prior was a live conversation; one whose prior was idle goes
     /// straight to `.idle`), so it resumes listening too rather than leaving
-    /// the mic running under an idle state.
+    /// the mic running under an idle state. A prior of `.starting` (`toggle`) starts voice.
     @MainActor
     func finishTriggerSpeech() {
-        if !pendingTriggers.isEmpty {
-            drainPendingTriggersIfIdle()
-            return
-        }
+        if drainPendingTriggersIfIdle() { return }
         let prior = preemptedState ?? .idle
         preemptedState = nil
-        if prior == .listening || prior == .speaking || prior == .triggerSpeaking {
-            scheduleListenAfterAudioDrain()
-        } else {
-            state = .idle
-        }
+        if prior == .listening || prior == .speaking || prior == .triggerSpeaking { return scheduleListenAfterAudioDrain() }
+        state = .idle
+        if prior == .starting { Task { await start() } }
     }
 
     /// Critical: only restart listening when BOTH the synth queue
@@ -355,10 +363,7 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
             debugLog("[VoiceConv] synth idle but spoken buffer not empty — holding off mic restart")
             return
         }
-        if !pendingTriggers.isEmpty {
-            drainPendingTriggersIfIdle()
-            return
-        }
+        if drainPendingTriggersIfIdle() { return }
         scheduleListenAfterAudioDrain()
     }
 
@@ -387,7 +392,7 @@ extension VoiceConversationController: AVSpeechSynthesizerDelegate {
     /// "should be listening" state and the synth has stayed quiet.
     @MainActor
     private func resumeListeningIfStillQuiet() {
-        guard !synthesizer.isSpeaking else { return }
+        guard !coachCue.isBusy else { return }
         switch state {
         case .speaking, .triggerSpeaking:
             Task { @MainActor in await self.beginUserTurn() }
@@ -754,9 +759,13 @@ enum VoiceCoachPrompt {
 /// Ordering matters: scrub first, then `applyHallucinationGuard`, then the
 /// session preamble. The perimeter must see the model's words, not a string
 /// that already has "Flo here." glued to the front of it.
-private func perimeterScrubbed(_ text: String) -> String {
-    guard CoachVoiceGuard.containsProhibitedLanguage(text) else { return text }
-    let result = CoachVoiceGuard.scrub(text)
+///
+/// Every utterance goes through the guard, clean ones included, with the
+/// reply's `safetyCopy` progress, so the app's canned safety reply is kept
+/// when it is spoken as the reply, chunk by chunk, and its sentences are
+/// scrubbed anywhere else.
+private func perimeterScrubbed(_ text: String, continuing safetyCopy: inout CoachVoiceGuard.SafetyCopyProgress) -> String {
+    let result = CoachVoiceGuard.scrub(text, continuing: &safetyCopy)
     for trigger in result.triggers {
         debugLog("[VoiceConv] CoachVoiceGuard intercepted spoken output: \(trigger.reason)", level: .warning)
     }

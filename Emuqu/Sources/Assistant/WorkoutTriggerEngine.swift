@@ -12,19 +12,19 @@ import Foundation
 //      clause ("if you feel like it", "up to you", "no pressure"). The AI
 //      suggests; the athlete decides. No imperatives.
 //   3. SILENCE IS A FEATURE — each trigger has a cooldown and a tier. Cooldowns
-//      prevent repeat chatter. Only `.spoken` rules reach the user; `.haptic`
-//      has no Watch handler yet and `.silent` is recorded in the engine's
-//      in-memory event history only, so both stay quiet.
+//      prevent repeat chatter. `.spoken` rules are heard, `.haptic` rules are
+//      felt (a phone and a Watch haptic), and `.silent` ones are recorded in
+//      the engine's in-memory event history only.
 //
 // The engine is a pure evaluator — it takes a context and returns any events
-// that fire. The coach (WorkoutVoiceCoach) speaks the `.spoken` ones.
+// that fire. The coach (WorkoutVoiceCoach) delivers them.
 @MainActor
 final class WorkoutTriggerEngine {
     // MARK: Tier
 
     enum Tier: String {
         case silent    // recorded in history only
-        case haptic    // meant for a wrist pulse; no Watch handler yet, so recorded only
+        case haptic    // a phone and a Watch haptic + recorded (spoken too when urgent)
         case spoken    // audible + recorded (message spoken verbatim)
     }
 
@@ -34,10 +34,10 @@ final class WorkoutTriggerEngine {
     // voice conversation.
     // A `routine` event that reaches the coach while the AI is
     // mid-conversation is DROPPED; an `urgent` one still preempts because
-    // the user explicitly opted into it. In the default catalogue the only
-    // rule that can be heard is the user-declared threshold breach
-    // (`.spoken`, urgent). The strap-drop rule is urgent too but `.haptic`,
-    // which has no handler yet, so it stays quiet; every other rule is
+    // the user explicitly opted into it. An urgent event is also felt as a
+    // haptic, and an urgent `.haptic` one is spoken as well. In the default
+    // catalogue the urgent rules are the user-declared threshold breach
+    // (`.spoken`) and the strap drop (`.haptic`); every other rule is
     // routine and `.silent` or `.haptic`.
     enum Urgency {
         case routine   // background coaching — suppress when AI is talking
@@ -128,12 +128,12 @@ final class WorkoutTriggerEngine {
     /// cooldown state is spent in its `didFire`, so a snapshot evaluated
     /// twice fires at most once.
     ///
-    /// `canSpeak` is false while the coach is muted or its alerts are off.
-    /// A `.spoken` rule then doesn't fire, keeping its cooldown and per-rule
-    /// state for when its line can be heard.
-    func evaluate(context: WorkoutAIContext, now: Date = Date(), canSpeak: Bool = true) -> [Event] {
+    /// `canAlert` is false while the coach is muted or its alerts are off.
+    /// A `.spoken` or `.haptic` rule then doesn't fire, keeping its cooldown
+    /// and per-rule state for when its alert can be heard or felt.
+    func evaluate(context: WorkoutAIContext, now: Date = Date(), canAlert: Bool = true) -> [Event] {
         var fired: [Event] = []
-        for rule in rules where shouldFire(rule, context: context, now: now, canSpeak: canSpeak) {
+        for rule in rules where shouldFire(rule, context: context, now: now, canAlert: canAlert) {
             let event = Event(ruleID: rule.id, tier: rule.tier, urgency: rule.urgency, message: rule.message(context), firedAt: now)
             rule.didFire(context)
             fired.append(event)
@@ -144,11 +144,11 @@ final class WorkoutTriggerEngine {
     }
 
     /// The condition first, unconditionally (see `evaluate`), then the
-    /// cooldown and whether a spoken line could be heard.
-    private func shouldFire(_ rule: Rule, context: WorkoutAIContext, now: Date, canSpeak: Bool) -> Bool {
+    /// cooldown and whether an alert could be delivered.
+    private func shouldFire(_ rule: Rule, context: WorkoutAIContext, now: Date, canAlert: Bool) -> Bool {
         let conditionHolds = rule.condition(context)
         if let last = lastFired[rule.id], now.timeIntervalSince(last) < rule.cooldown { return false }
-        return conditionHolds && (canSpeak || rule.tier != .spoken)
+        return conditionHolds && (canAlert || rule.tier == .silent)
     }
 
     /// Append to history, capped at the last 200 events. An ultramarathon can

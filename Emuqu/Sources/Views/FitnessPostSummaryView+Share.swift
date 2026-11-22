@@ -22,6 +22,8 @@ extension FitnessSummaryCards {
         defer { recapGenerating = false }
         let meta = session.workoutMetadata
         let mapImage = await renderTrackImage()
+        // Closed while the map rendered: write no file for nobody to delete.
+        guard reportShare.summaryOnScreen else { return }
         let card = recapCard(meta: meta, routeMap: mapImage)
         guard let img = card.renderImage() else {
             reportShare.error = String(localized: "Couldn't build recap card. Try again.", bundle: LanguageManager.appBundle)
@@ -45,19 +47,21 @@ extension FitnessSummaryCards {
         ))
     }
 
-    /// Seconds of elapsed workout, floored at zero.
-    private var recapElapsedSeconds: TimeInterval {
-        max(0, (session.endDate ?? session.startDate).timeIntervalSince(session.startDate))
+    /// Seconds of active (un-paused) workout, floored at zero: the figure the
+    /// summary hero shows (`WorkoutActiveTime`), so a paused workout's recap
+    /// card carries the same duration and pace.
+    private var recapActiveSeconds: TimeInterval {
+        max(0, WorkoutActiveTime.seconds(samples: session.workoutMetadata?.samples, wallClock: session.duration) ?? 0)
     }
 
     private func recapDuration() -> String {
-        let secs = recapElapsedSeconds
+        let secs = recapActiveSeconds
         guard secs > 0 else { return "—" }
         return LocalizedDuration.hoursMinutes(minutes: Int(secs / 60))
     }
 
     private func recapPace(meta: WorkoutMetadata?) -> String {
-        let secs = recapElapsedSeconds
+        let secs = recapActiveSeconds
         guard let m = meta?.distanceMeters, m > 0, secs > 0 else { return "—" }
         return UnitsPreferenceStore.current.formatPace(secondsPerMeter: secs / m) ?? "—"
     }
@@ -276,32 +280,19 @@ extension FitnessSummaryCards {
         return String(localized: "to \(to) · cc \(cc)", bundle: LanguageManager.appBundle)
     }
 
+    /// Training → recovery → legacy generic, blank fields skipped
+    /// (`UserSettings.resolvedTrainingEmailRecipient`).
     var trainingMailRecipients: [String] {
-        // Prefer the training default, then fall back to the generic
-        // resolved chain (`resolvedDefaultEmailRecipient`: recovery →
-        // training → legacy generic), matching MainTabView's report mailer
-        // and MorningResultsView's recovery mailer. Reading `defaultTrainingEmailRecipient` alone leaves
-        // the workout PDF blank when the user has only set a recovery /
-        // legacy default while the other report types pre-fill.
-        if let to = settingsManager.settings.defaultTrainingEmailRecipient,
-           !to.trimmingCharacters(in: .whitespaces).isEmpty {
-            return [to]
-        }
-        return settingsManager.settings.resolvedDefaultEmailRecipient.map { [$0] } ?? []
+        settingsManager.settings.resolvedTrainingEmailRecipient.map { [$0] } ?? []
     }
 
     var trainingMailCC: [String] {
-        let trainingCC = (settingsManager.settings.defaultTrainingEmailCC ?? "")
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        if !trainingCC.isEmpty { return trainingCC }
-        return settingsManager.settings.resolvedDefaultEmailCC
+        settingsManager.settings.resolvedTrainingEmailCC
     }
 
     var pdfMailSubject: String {
-        let dateStr = session.startDate.formatted(date: .abbreviated, time: .omitted)
-        let sport = session.workoutMetadata?.sport.localizedName ?? "Workout"
+        let dateStr = session.startDate.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(LanguageManager.appLocale))
+        let sport = session.workoutMetadata?.sport.localizedName ?? String(localized: "Workout", bundle: LanguageManager.appBundle)
         return "Emuqu — \(sport), \(dateStr)"
     }
 
@@ -313,7 +304,7 @@ extension FitnessSummaryCards {
             pdfMailError = String(localized: "Mail isn't set up on this device. Use Share PDF Report and pick Mail from the share sheet to compose without a Emuqu default account.", bundle: LanguageManager.appBundle)
             return
         }
-        let outcome = await cachedOrRenderedPDF()
+        guard let outcome = await cachedOrRenderedPDF() else { return }
         switch outcome {
         case .success(let url):
             reportShare.presentedURL = url
@@ -324,7 +315,7 @@ extension FitnessSummaryCards {
     }
 
     func generateAndShowPDFShare() async {
-        let outcome = await cachedOrRenderedPDF()
+        guard let outcome = await cachedOrRenderedPDF() else { return }
         switch outcome {
         case .success(let url):
             reportShare.presentedURL = url
@@ -338,8 +329,9 @@ extension FitnessSummaryCards {
     /// for this session and not invalidated), else a fresh render. The fresh
     /// file is cached only when no archive refresh invalidated the cache
     /// while it rendered — it was drawn from the pre-refresh session, so it
-    /// is shown this once but never reused.
-    private func cachedOrRenderedPDF() async -> Result<URL, Error> {
+    /// is shown this once but never reused. Nil when the summary closed
+    /// while it rendered: the file is deleted and nothing is presented.
+    private func cachedOrRenderedPDF() async -> Result<URL, Error>? {
         if let url = pdfURL, FileManager.default.fileExists(atPath: url.path) {
             return .success(url)
         }
@@ -347,6 +339,10 @@ extension FitnessSummaryCards {
         pdfGenerating = true
         let outcome = await renderWorkoutPDF()
         pdfGenerating = false
+        guard reportShare.summaryOnScreen else {
+            removeClosedSummaryPDF(outcome)
+            return nil
+        }
         if case .success(let url) = outcome, generation == reportShare.cacheGeneration {
             pdfURL = url
         }
@@ -382,27 +378,26 @@ extension FitnessSummaryCards {
         }.value
     }
 
-    /// Native `ShareLink` row. We hand it a pre-written URL so the share sheet
-    /// opens instantly — UIActivityViewController-via-.sheet-item hangs for
-    /// 1–2 minutes cold-starting its extension scan; ShareLink sidesteps that
-    /// entirely. Disabled + dimmed until the
-    /// background file-write finishes (usually <100ms, visible only for very
-    /// long tracks).
+    /// Share row for an export built in memory when the summary opened. The
+    /// file is written only when the row is tapped and deleted when the share
+    /// sheet closes (`FileShareButton`), so the GPS track and heart rate are
+    /// not left in tmp. The sheet is presented straight from the topmost view
+    /// controller: a `UIActivityViewController` in a SwiftUI `.sheet(item:)`
+    /// hangs for 1–2 minutes cold-starting its extension scan. Disabled +
+    /// dimmed until the background build finishes (usually <100ms, visible
+    /// only for very long tracks).
     @ViewBuilder
-    func shareRow(icon: String, title: String, subtitle: String, url: URL?) -> some View {
-        if let url {
-            // ShareLink with preview so Strava / Garmin Connect / TrainingPeaks
-            // — all of which register as handlers for .gpx / .tcx — appear
-            // directly in the share sheet without the "More…" dance. The
-            // preview title is what shows at the top of the system sheet;
+    func shareRow(icon: String, title: String, subtitle: String, export: ExportFile.Pending?) -> some View {
+        if let export {
+            // The file itself is shared, so Strava / Garmin Connect /
+            // TrainingPeaks — all of which register as handlers for .gpx /
+            // .tcx — appear directly in the share sheet without the "More…"
+            // dance. The title is what shows at the top of the system sheet;
             // keeping it short + recognisable ("Emuqu · Walk · 2.3 mi")
             // reads better than the raw filename.
-            ShareLink(
-                item: url,
-                preview: SharePreview(previewTitle(title: title), icon: Image(systemName: icon))
-            ) {
+            FileShareButton(title: previewTitle(title: title), iconName: icon, makeFile: { try export.write() }, label: {
                 shareRowLabel(icon: icon, title: title, subtitle: subtitle)
-            }
+            })
             .buttonStyle(.plain)
         } else {
             shareRowLabel(icon: icon, title: title, subtitle: subtitle)
@@ -571,4 +566,11 @@ private func shareRowCaption(title: String, subtitle: String) -> some View {
             .foregroundStyle(AppTheme.textTertiary)
             .lineLimit(1)
     }
+}
+
+/// The PDF a render wrote after the summary closed: nothing will show it.
+/// At file scope: it reads nothing of the view.
+private func removeClosedSummaryPDF(_ outcome: Result<URL, Error>) {
+    guard case .success(let url) = outcome else { return }
+    attempt("FitnessSummaryCards.removeClosedSummaryPDF") { try FileManager.default.removeItem(at: url) }
 }

@@ -25,8 +25,9 @@
 #     ./scripts/verify_gates_fail.sh doc_links # one, by substring
 #
 # Cheap gates only — nothing here builds or runs a simulator, so it belongs in
-# `make ci`. Gates that need a build (coverage, TSan, strict-concurrency count)
-# are verified by their own runs, and are listed at the bottom as not covered.
+# `make ci`. The Thread Sanitizer gate runs here against a stand-in xcodebuild
+# (see its plants). The coverage gate needs a real build, is verified by its own
+# runs, and is listed at the bottom as not covered.
 
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -143,6 +144,12 @@ check "cloudkit/plaintext_health" \
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift');p.write_text(p.read_text().replace('return try CloudPayloadCodec.sealForUpload(compressed)','return compressed',1))"
 
+# A health field under a name no fixed list spells out.
+check "cloudkit/unlisted_health_field" \
+    "./scripts/check_no_health_data_in_cloudkit.sh" \
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift');s=p.read_text();o='record[\"beatCount\"] = ';assert s.count(o)==1;p.write_text(s.replace(o,'record[\"avgHR\"] = 0; record[\"beatCount\"] = ',1))"
+
 check "privacy_manifest/bad_type" \
     "./scripts/check_privacy_manifest_vocabulary.sh" \
     "Emuqu/PrivacyInfo.xcprivacy" \
@@ -157,6 +164,12 @@ check "no_developer_endpoint/sdk" \
     "./scripts/check_no_developer_endpoint.sh" \
     "Emuqu.xcodeproj/project.pbxproj" \
     "import pathlib;p=pathlib.Path('Emuqu.xcodeproj/project.pbxproj');p.write_text(p.read_text()+'\n/* planted firebase-analytics reference */\n')"
+
+# A lock file that is not there greps as zero hits; that is not "no SDK".
+check "no_developer_endpoint/missing_lock_file" \
+    "./scripts/check_no_developer_endpoint.sh" \
+    "Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" \
+    "import pathlib;pathlib.Path('Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved').unlink()"
 
 check "xcodebuild_pinned/unpinned_build" \
     "./scripts/check_xcodebuild_pinned.sh" \
@@ -209,7 +222,7 @@ check "empty_range/unguarded_count_arithmetic" \
 check "doc_counts/stale" \
     "./scripts/check_doc_file_counts.sh" \
     "docs/MAINTAINERS.md" \
-    "import pathlib;p=pathlib.Path('docs/MAINTAINERS.md');s=p.read_text();o='### 5.1 \`Analysis/\` — physiology math + scoring (~75 files)';assert s.count(o)==1;p.write_text(s.replace(o,'### 5.1 \`Analysis/\` — physiology math + scoring (~7 files)'))"
+    "import pathlib,re;p=pathlib.Path('docs/MAINTAINERS.md');s=p.read_text();r=r'(### 5\\.1 \`Analysis/\` — physiology math \\+ scoring \\(~)\\d+( files\\))';assert len(re.findall(r,s))==1;p.write_text(re.sub(r,r'\\g<1>7\\g<2>',s))"
 
 # Raw `Int64(interval * 1000)` on stored dates is a shape that ships live
 # defects.
@@ -261,10 +274,22 @@ check "log_redaction" \
     "Emuqu/Sources/Utilities/Errors.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedLeak(apiKey: String) { debugLog(\"key: \\(apiKey)\") }'+chr(10))"
 
+# The Watch logs through `os.Logger` values named `log`, and through a
+# `Logger(…)` built in place with the level call chained on the next line.
+check "log_redaction/watch_logger" \
+    "./scripts/check_log_redaction.sh" \
+    "EmuquWatch Watch App/WatchStrapConnector.swift" \
+    "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchStrapConnector.swift');s=p.read_text();o='dropped: \\(error.localizedDescription)';assert s.count(o)==1;p.write_text(s.replace(o,'dropped: \\(token)'))"
+
 check "unchecked_sendable" \
     "./scripts/check_unchecked_sendable.sh" \
     "Emuqu/Sources/Utilities/Errors.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+'\nfinal class PlantedUnsafe: @unchecked Sendable { nonisolated(unsafe) static var x = 0 }\n')"
+
+check "unchecked_sendable/decimal_budget" \
+    "./scripts/check_unchecked_sendable.sh" \
+    ".ci/unchecked_sendable_budget.txt" \
+    "import pathlib;p=pathlib.Path('.ci/unchecked_sendable_budget.txt');p.write_text(p.read_text().strip()+'.0'+chr(10))"
 
 check "orphan_swift" \
     "./scripts/check_no_orphan_swift.sh" \
@@ -299,6 +324,15 @@ check "comment_citations/markdown" \
     "./scripts/check_comment_citations.sh" \
     "docs/ARCHITECTURE.md" \
     "import pathlib;p=pathlib.Path('docs/ARCHITECTURE.md');p.write_text(p.read_text()+chr(10)+'Planted doc citation: EmuquApp.swift:99999'+chr(10))"
+
+# A source root with no Swift in it is a scan of nothing, not a clean tree.
+CITATION_ROOT="$BACKUP_DIR/citation-root"
+mkdir -p "$CITATION_ROOT"
+printf '// A file to scan.\n' > "$CITATION_ROOT/Planted.swift"
+check "comment_citations/empty_root" \
+    "./scripts/check_comment_citations.sh $CITATION_ROOT" \
+    "$CITATION_ROOT/Planted.swift" \
+    "import pathlib;pathlib.Path('$CITATION_ROOT/Planted.swift').unlink()"
 
 # A gate CI never invokes is indistinguishable from a working one: wired into
 # the Makefile only, or into neither, it looks exactly like one that runs.
@@ -335,6 +369,11 @@ check "locale_formatting/unlocalised_decimal" \
     "Emuqu/Sources/Views/SettingsView.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/SettingsView.swift');p.write_text(p.read_text()+chr(10)+'private let plantedFormat = String(format: \"%.1f\", 1.0)'+chr(10))"
 
+check "locale_formatting/watch_decimal" \
+    "./scripts/check_locale_formatting.sh" \
+    "EmuquWatch Watch App/WatchSessionManager.swift" \
+    "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchSessionManager.swift');s=p.read_text();o='String(format: \"%.2f\", locale: .current, alpha1)';assert s.count(o)==1;p.write_text(s.replace(o,'String(format: \"%.2f\", alpha1)'))"
+
 # A String(localized:) literal whose key is not in the catalogue ships English
 # to every locale, and the two other localization gates both report perfect
 # scores while exactly that happens.
@@ -368,6 +407,13 @@ check "budget_monotonicity/silent_raise" \
     ".ci/shared_usage_budget.txt" \
     "import pathlib;p=pathlib.Path('.ci/shared_usage_budget.txt');p.write_text(str(int(p.read_text().strip())+100000)+chr(10))"
 
+# `83` -> `83.0` compares equal as a number, but the gates that read a debt
+# ceiling accept only whole numbers.
+check "budget_monotonicity/ceiling_made_decimal" \
+    "./scripts/check_budget_monotonicity.sh HEAD" \
+    ".ci/shared_usage_budget.txt" \
+    "import pathlib;p=pathlib.Path('.ci/shared_usage_budget.txt');p.write_text(p.read_text().strip()+'.0'+chr(10))"
+
 # A budget file below the measured value must go red; this proves the
 # comparison runs at all, which is the half of a budget gate that can rot
 # silently while the counting half still works.
@@ -383,6 +429,18 @@ check "tech_debt_budgets/below_budget" \
     "./scripts/enforce_tech_debt_budgets.sh" \
     ".ci/shared_usage_budget.txt" \
     "import pathlib;pathlib.Path('.ci/shared_usage_budget.txt').write_text('0'+chr(10))"
+
+check "tech_debt_budgets/watch_debt" \
+    "./scripts/enforce_tech_debt_budgets.sh" \
+    "EmuquWatch Watch App/WatchDependencies.swift" \
+    "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchDependencies.swift');p.write_text(p.read_text()+chr(10)+'let plantedWatchSingleton = WatchSessionManager.shared'+chr(10))"
+
+# A budget written as a decimal makes `(( count > budget ))` a bash error,
+# which `if` reads as false: the gate would pass with no limit at all.
+check "tech_debt_budgets/decimal_budget" \
+    "./scripts/enforce_tech_debt_budgets.sh" \
+    ".ci/shared_usage_budget.txt" \
+    "import pathlib;p=pathlib.Path('.ci/shared_usage_budget.txt');p.write_text(p.read_text().strip()+'.0'+chr(10))"
 
 # `verify_tests_fail.sh` edits production source and restores it in an EXIT
 # trap. A killed run skips the trap, and the mutation can be committed as if
@@ -483,6 +541,19 @@ check "scoring_governance/constants_changed_without_version_bump" \
     ".ci/scoring_constants_hash.txt" \
     "import pathlib;p=pathlib.Path('.ci/scoring_constants_hash.txt');v=p.read_text().split()[0];p.write_text(v+' 0000000000000000'+chr(10))"
 
+# A version bump that leaves the baseline alone must not switch the check off:
+# the recorded version no longer matching is itself a failure.
+check "scoring_governance/version_bump_without_baseline" \
+    "./scripts/check_scoring_governance.sh" \
+    ".ci/scoring_constants_hash.txt" \
+    "import pathlib;p=pathlib.Path('.ci/scoring_constants_hash.txt');h=p.read_text().split()[1];p.write_text('v0.planted '+h+chr(10))"
+
+# Constants the pattern no longer matches hash nothing and would never move.
+check "scoring_governance/no_constants_matched" \
+    "./scripts/check_scoring_governance.sh" \
+    "Emuqu/Sources/Analysis/HRVThresholds.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/HRVThresholds.swift');s=p.read_text();assert 'static let' in s;p.write_text(s.replace('static let','static var'))"
+
 # A single planted `unowned let` anywhere in app source must go red.
 check "no_unowned/planted_reference" \
     "./scripts/check_no_unowned.sh" \
@@ -520,6 +591,11 @@ check "dated_comment_budget/planted_date" \
     "./scripts/check_dated_comment_budget.sh" \
     "Emuqu/Sources/Utilities/Constants.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Constants.swift');p.write_text(p.read_text()+chr(10)+'// 2026-01-01 — planted changelog comment'+chr(10))"
+
+check "dated_comment_budget/decimal_budget" \
+    "./scripts/check_dated_comment_budget.sh" \
+    ".ci/dated_comment_budget.txt" \
+    "import pathlib;p=pathlib.Path('.ci/dated_comment_budget.txt');p.write_text(p.read_text().strip()+'.0'+chr(10))"
 
 
 # A single `.shared` read outside the composition root must go red.
@@ -578,6 +654,63 @@ check "codemap/new_high_finding" \
     "docs/codemap/records/Emuqu/Sources/Utilities/Errors.swift.json" \
     "import json,pathlib,shutil;src=pathlib.Path('do_not_ship/codemap');d=pathlib.Path('$PLANT_OVERLAY');shutil.copytree(src,d) if src.is_dir() else [d.mkdir(parents=True),(d/'codemap_open_high.txt').write_text('0'+chr(10)),(d/'codemap_open_med.txt').write_text('0'+chr(10))];p=d/'flags/Emuqu/Sources/Utilities/Errors.swift.json';p.parent.mkdir(parents=True,exist_ok=True);r=json.loads(p.read_text()) if p.is_file() else {'file':[],'units':{}};r['file'].append({'kind':'broken','sev':'high','text':'planted','evidence':[]});p.write_text(json.dumps(r,indent=1)+chr(10))"
 
+# The Thread Sanitizer gate needs a simulator build, so here it runs against a
+# stand-in xcodebuild that behaves as the real one does in the two ways the gate
+# depends on: a race report reaches the output only when parallel testing is
+# off (with it on, the host's stderr goes to per-clone logs), and a race fails
+# the run only when the host gets `TSAN_OPTIONS=halt_on_error=1`. The canary
+# selector races when the host gets `EMUQU_TSAN_CANARY=1`; the suite selector
+# races when the fixture file says so. The plants are a race in the suite, and
+# each of the two settings removed from the gate, which its canary must catch.
+TSAN_STUB_BIN="$BACKUP_DIR/tsan-bin"
+TSAN_SUITE_FIXTURE="$BACKUP_DIR/tsan-suite-races"
+mkdir -p "$TSAN_STUB_BIN"
+printf 'none\n' > "$TSAN_SUITE_FIXTURE"
+cat > "$TSAN_STUB_BIN/xcodebuild" <<'STUB'
+#!/usr/bin/env bash
+parallel=YES selector="" prev=""
+for arg in "$@"; do
+    [[ "$prev" == "-parallel-testing-enabled" ]] && parallel="$arg"
+    [[ "$arg" == -only-testing:* ]] && selector="${arg#-only-testing:}"
+    prev="$arg"
+done
+race=false
+if [[ "$selector" == "EmuquTests/ThreadSanitizerCanaryTests" ]]; then
+    [[ "${TEST_RUNNER_EMUQU_TSAN_CANARY:-}" == "1" ]] && race=true
+elif grep -q race "$TSAN_SUITE_FIXTURE"; then
+    race=true
+fi
+echo "Test Case '-[EmuquTests.StubTests testOne]' started."
+if $race; then
+    [[ "$parallel" == "NO" ]] && echo "WARNING: ThreadSanitizer: data race (pid=1)"
+    if [[ "${TEST_RUNNER_TSAN_OPTIONS:-}" == *halt_on_error=1* ]]; then
+        echo "Restarting after unexpected exit, crash, or test timeout in StubTests.testOne()"
+        echo "Test Case '-[EmuquTests.StubTests testOne]' failed (0.001 seconds)."
+        echo "** TEST FAILED **"
+        exit 65
+    fi
+fi
+echo "Test Case '-[EmuquTests.StubTests testOne]' passed (0.001 seconds)."
+echo "** TEST SUCCEEDED **"
+STUB
+chmod +x "$TSAN_STUB_BIN/xcodebuild"
+TSAN_GATE="PATH=$TSAN_STUB_BIN:\$PATH TSAN_SUITE_FIXTURE=$TSAN_SUITE_FIXTURE DESTINATION=stub ./scripts/check_thread_sanitizer.sh"
+
+check "thread_sanitizer/race_in_suite" \
+    "$TSAN_GATE" \
+    "$TSAN_SUITE_FIXTURE" \
+    "import pathlib;pathlib.Path('$TSAN_SUITE_FIXTURE').write_text('race'+chr(10))"
+
+check "thread_sanitizer/parallel_testing_hides_races" \
+    "$TSAN_GATE" \
+    "scripts/check_thread_sanitizer.sh" \
+    "import pathlib;p=pathlib.Path('scripts/check_thread_sanitizer.sh');s=p.read_text();o='        -parallel-testing-enabled NO \\\\'+chr(10);assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+check "thread_sanitizer/race_does_not_fail_run" \
+    "$TSAN_GATE" \
+    "scripts/check_thread_sanitizer.sh" \
+    "import pathlib;p=pathlib.Path('scripts/check_thread_sanitizer.sh');s=p.read_text();o='env TEST_RUNNER_TSAN_OPTIONS=halt_on_error=1 ';assert s.count(o)==1;p.write_text(s.replace(o,'env '))"
+
 # TODO(codemap-recheck): restore the "codemap/callee_behaviour_changed" case (a
 # planted change to a callee's record must turn the check red) once re-check
 # lines fail the check again; see the TODO in scripts/codemap/codemap.py.
@@ -585,10 +718,9 @@ check "codemap/new_high_finding" \
 echo
 echo "  $PASS proven, $FAIL not protecting anything, $SKIP skipped"
 echo
-echo "  Not covered here — these two need a build or a simulator, so they are"
-echo "  verified by their own runs: check_coverage.sh (coverage floors) and"
-echo "  check_thread_sanitizer.sh. Every other gate in scripts/ has a plant"
-echo "  above. If you add a gate, add its plant in the same commit."
+echo "  Not covered here — check_coverage.sh (coverage floors) needs a build,"
+echo "  so it is verified by its own runs. Every other gate in scripts/ has a"
+echo "  plant above. If you add a gate, add its plant in the same commit."
 
 # ---------------------------------------------------------------------------
 # The meta-check: a gate with no plant here.
@@ -604,7 +736,6 @@ echo "  above. If you add a gate, add its plant in the same commit."
 # ---------------------------------------------------------------------------
 NEEDS_BUILD=(
     check_coverage.sh
-    check_thread_sanitizer.sh
 )
 
 unplanted=()
@@ -617,7 +748,10 @@ for gate in scripts/check_*.sh scripts/enforce_*.sh; do
         [[ "$base" == "$e" ]] && exempt=true && break
     done
     $exempt && continue
-    grep -q "$base" "$0" || unplanted+=("$base")
+    # Planted means run: the gate's path has to be in a `check` case's gate
+    # command (a quoted argument line, or a NAME="…" command it is given), not
+    # just named in a comment or a message.
+    grep -qE "^[[:space:]]*(\"|[A-Z_]+=\")[^\"]*\./scripts/${base//./\\.}" "$0" || unplanted+=("$base")
 done
 
 if (( ${#unplanted[@]} > 0 )); then

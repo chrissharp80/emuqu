@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/ConversationStoreTests.swift",
- "hash": "fb42f61ee43265d3",
- "role": "XCTest suite for ConversationStore (JSON-file chat history persistence): round-trip, clear, cross-instance reads, overwrite semantics, undecodable-file set-aside, held-save retry. Uses the internal init(fileURL:saveDebounceMs:) with a per-test temp directory and a 25 ms debounce.",
+ "hash": "ab744eb798da74e6",
+ "role": "XCTest suite for ConversationStore (JSON-file chat history persistence): round-trip, clear, cross-instance reads, overwrite semantics, undecodable-file set-aside, held-save retry, the sealed summary (its move out of defaults, removal of a plain copy beside the sealed file, the unreadable flag) and the assistant reloading a summary that was unreadable when it was created. Uses the internal init(fileURL:saveDebounceMs:) with a per-test temp directory and a 25 ms debounce.",
  "types": [
   "ConversationStoreTests: class (XCTestCase) — tests for ConversationStore"
  ],
@@ -10,7 +10,7 @@
   "file:<tmp>/ConversationStoreTests-<UUID>/conversation.json (lazy tempDir/fileURL per test instance)",
   "testDebounceMs = 25 (instance let)"
  ],
- "toplevel": "lazy fileURL = tempDir/conversation.json; testDebounceMs = 25. Pins NSTimeZone.default to UTC for the class although no test here depends on the time zone (ChatTurn dates are fixed epoch values).",
+ "toplevel": "lazy fileURL = tempDir/conversation.json; testDebounceMs = 25. Pins NSTimeZone.default to UTC for the class although no test here depends on the time zone (ChatTurn dates are fixed epoch values). Imports UIKit for the protected-data notification name.",
  "units": [
   {
    "key": "func ConversationStoreTests.setUp()",
@@ -96,7 +96,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "2248975558ac9cf0"
    }
   },
   {
@@ -180,7 +180,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "65338e15c91cf183",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "2248975558ac9cf0",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769"
    }
   },
@@ -211,7 +211,7 @@
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "2248975558ac9cf0",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
@@ -252,7 +252,7 @@
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "2248975558ac9cf0",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
@@ -281,8 +281,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "305a2f6600079f86",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()": "fa4723447a1fcb35",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "e4350cd91ff4f6a1",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()": "fc6cd71b4aa59878",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "65338e15c91cf183",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
@@ -314,8 +314,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "305a2f6600079f86",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()": "fa4723447a1fcb35",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "e4350cd91ff4f6a1",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()": "fc6cd71b4aa59878",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "65338e15c91cf183",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
@@ -346,7 +346,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "305a2f6600079f86",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "e4350cd91ff4f6a1",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "65338e15c91cf183",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeDirectoryReadOnly()": "4ae31ca825ed2627",
@@ -380,6 +380,182 @@
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "814889da1ceaa6ca"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.makeDefaults()",
+   "hash": "c910fb9a51be7f6a",
+   "does": "A UserDefaults suite with a unique name, its domain removed at teardown.",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults(suiteName:)",
+    "ext:XCTestCase.addTeardownBlock"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var ConversationStoreTests.summaryFileURL",
+   "hash": "7ff83f6485e09c1a",
+   "does": "tempDir/conversation_summary.json, where the store beside tempDir/conversation.json keeps its summary.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ConversationStoreTests.swift::let ConversationStoreTests.tempDir": "086c02a91cbd2f3d"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testSummaryIsSealedAtRestAndRoundTrips()",
+   "hash": "f246364a024c774b",
+   "does": "saveSummary writes a file whose raw bytes do not contain the summary text, and a new store loads the text back.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeDefaults()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)": "5127c454d7e61491",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "17e2087064119470",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeDefaults()": "06fa0b5eb63c7c80",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)": "df7bdca0fea57b1a",
+    "EmuquTests/ConversationStoreTests.swift::var ConversationStoreTests.summaryFileURL": "5088a4451523d051"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testPlainSummaryInDefaultsIsMovedIntoTheSealedFile()",
+   "hash": "6f5a946e6c2221b3",
+   "does": "A summary in defaults is returned by loadSummary, removed from defaults, written to the summary file, and read from the file by a new store.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeDefaults()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)": "5127c454d7e61491",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeDefaults()": "06fa0b5eb63c7c80",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::var ConversationStoreTests.summaryFileURL": "5088a4451523d051"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testAPlainSummaryBesideTheSealedFileIsRemoved()",
+   "hash": "15a5626054e82a4a",
+   "does": "Seals a summary, then puts a plain one in a test defaults suite: a fresh store's loadSummary returns the sealed text and removes the plain key.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeDefaults()",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)": "5127c454d7e61491",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "17e2087064119470",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeDefaults()": "06fa0b5eb63c7c80",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)": "df7bdca0fea57b1a",
+    "EmuquTests/ConversationStoreTests.swift::var ConversationStoreTests.summaryFileURL": "5088a4451523d051"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testAnUnreadableSummaryIsFlaggedUntilASummaryIsWritten()",
+   "hash": "b349633c68b61c9f",
+   "does": "With a directory where the summary file should be (present but unreadable), loadSummary returns nil and summaryNeedsReload is true; after the directory is removed and a summary saved, the flag clears and the summary loads.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.summaryNeedsReload",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeDefaults()",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)": "5127c454d7e61491",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "17e2087064119470",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.summaryNeedsReload": "843e481ff9ffac7b",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeDefaults()": "06fa0b5eb63c7c80",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)": "df7bdca0fea57b1a",
+    "EmuquTests/ConversationStoreTests.swift::var ConversationStoreTests.summaryFileURL": "5088a4451523d051"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testTheAssistantReloadsASummaryThatWasUnreadableWhenItWasCreated()",
+   "hash": "432b0f1e80ad974f",
+   "does": "Creates an AssistantViewModel on a temp store whose summary path is a directory (unreadable), so priorSummary starts nil; replaces it with a sealed summary, posts protectedDataDidBecomeAvailable and polls (up to 3 s) until the view model's recovery has read it into priorSummary.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::init AssistantViewModel(registry:store:contextSource:factsStore:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)",
+    "ext:NotificationCenter.post"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "for up to 300 polls while priorSummary is nil",
+     "effect": "sleep 10 ms"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "17e2087064119470",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "947446a062a66b08",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::init AssistantViewModel(registry:store:contextSource:factsStore:)": "4caa72a65d91d0fb",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)": "df7bdca0fea57b1a",
+    "EmuquTests/ConversationStoreTests.swift::let ConversationStoreTests.tempDir": "086c02a91cbd2f3d",
+    "EmuquTests/ConversationStoreTests.swift::var ConversationStoreTests.summaryFileURL": "5088a4451523d051",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
+   }
+  },
+  {
+   "key": "func ConversationStoreTests.testClearErasesTheSummary()",
+   "hash": "e075774aebc9393b",
+   "does": "A stored summary makes isEmptyOnDisk false; clear() removes the summary file, loadSummary returns nil and isEmptyOnDisk is true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "e4350cd91ff4f6a1",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()": "fc6cd71b4aa59878",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)": "5127c454d7e61491",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "17e2087064119470",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeDefaults()": "06fa0b5eb63c7c80",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)": "df7bdca0fea57b1a",
+    "EmuquTests/ConversationStoreTests.swift::var ConversationStoreTests.summaryFileURL": "5088a4451523d051"
    }
   },
   {
@@ -468,7 +644,7 @@
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "2248975558ac9cf0",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",
@@ -501,7 +677,7 @@
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "2248975558ac9cf0",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",
@@ -538,7 +714,7 @@
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "2248975558ac9cf0",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.needsReloadFromDisk": "b7c9c8390d25c7ff",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",
@@ -567,7 +743,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "305a2f6600079f86",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "e4350cd91ff4f6a1",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "65338e15c91cf183",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
@@ -577,12 +753,13 @@
   },
   {
    "key": "func ConversationStoreTests.testRetryingWithNothingPendingWritesNothing()",
-   "hash": "68e7059460e10c53",
-   "does": "Calls retryHeldSave() on a fresh store, sleeps 100 ms, asserts no file was written (writePending false makes retry a no-op).",
+   "hash": "c31a806b1b789638",
+   "does": "Calls retryHeldSave() on a fresh store, then asserts isEmptyOnDisk() (which runs on the store's serial queue after the queued retry, so it sees whatever the retry wrote) and that no file exists: with no save pending the retry writes nothing.",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()"
    ],
    "reads": [
     "file:conversation.json (test temp)"
@@ -590,10 +767,10 @@
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()": "fc6cd71b4aa59878",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()": "aa783f277d1e6109",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "2248975558ac9cf0",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769"
    }
   },
   {
@@ -622,7 +799,7 @@
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "2248975558ac9cf0",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
     "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",

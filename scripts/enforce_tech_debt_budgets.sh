@@ -18,6 +18,11 @@ OBSERVABLE_OBJECT_BUDGET_FILE="${OBSERVABLE_OBJECT_BUDGET_FILE:-.ci/legacy_obser
 # write/encode/delete subset so it can be ratcheted to zero independently
 # while the read-path count stays under the existing, looser budget.
 TRY_OPTIONAL_WRITE_BUDGET_FILE="${TRY_OPTIONAL_WRITE_BUDGET_FILE:-.ci/try_optional_write_budget.txt}"
+# The Watch target, counted the same five ways and held to one combined budget,
+# as `check_refactor_spec_conformance.sh` does for it: it carries little of
+# each kind, and a file per kind would be noise. It ratchets down like the rest.
+WATCH_ROOT="${WATCH_ROOT:-EmuquWatch Watch App}"
+WATCH_BUDGET_FILE="${WATCH_BUDGET_FILE:-.ci/watch_tech_debt_budget.txt}"
 
 read_budget() {
     local file_path="$1"
@@ -27,8 +32,10 @@ read_budget() {
     fi
     local value
     value="$(tr -d '[:space:]' < "$file_path")"
-    if [[ -z "$value" ]]; then
-        echo "Budget file is empty: $file_path" >&2
+    # A whole number only. `(( count > budget ))` with a budget of `83.0` is a
+    # bash syntax error, which `if` reads as false: the gate would pass.
+    if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+        echo "Budget file is not a whole number: $file_path" >&2
         exit 65
     fi
     echo "$value"
@@ -39,6 +46,7 @@ try_optional_budget="$(read_budget "$TRY_OPTIONAL_BUDGET_FILE")"
 large_file_budget="$(read_budget "$LARGE_FILE_BUDGET_FILE")"
 observable_object_budget="$(read_budget "$OBSERVABLE_OBJECT_BUDGET_FILE")"
 try_optional_write_budget="$(read_budget "$TRY_OPTIONAL_WRITE_BUDGET_FILE")"
+watch_budget="$(read_budget "$WATCH_BUDGET_FILE")"
 
 # `try?` on a line that also performs a write / encode / persist / delete.
 # Deliberately line-scoped and conservative — it is a ratchet, not a proof.
@@ -57,8 +65,14 @@ try_optional_write_budget="$(read_budget "$TRY_OPTIONAL_WRITE_BUDGET_FILE")"
 # this script already tolerates that by counting simple literals. A word-
 # boundary rule needs one unambiguous engine, and python3 is already a hard
 # dependency here (enforce_swiftlint_budget.sh, Tools/copy_linter/lint.py).
-try_optional_write_count="$(
-    python3 - "$SOURCE_ROOT" <<'PY'
+# measure_debt <root>: prints the five counts for the Swift under <root>, in the
+# order `.shared`, `try?`, `try?` on writes, large files, `ObservableObject`.
+# It runs inside `$( )`, so a failed count returns 1 rather than exiting, and
+# the caller checks that the output is five whole numbers.
+measure_debt() {
+    local root="$1" write pattern_counts shared try_optional observable large
+    write="$(
+    python3 - "$root" <<'PY'
 import os
 import re
 import sys
@@ -91,7 +105,7 @@ for dirpath, _dirnames, filenames in os.walk(root):
                     count += 1
 print(count)
 PY
-)"
+)" || return 1
 
 # COUNTS CODE, NOT PROSE.
 #
@@ -105,8 +119,8 @@ PY
 #
 # Same engine and same reasoning as the write-path counter above: one
 # unambiguous regex implementation rather than four disagreeing greps.
-read -r shared_count try_optional_count observable_object_count <<<"$(
-    python3 - "$SOURCE_ROOT" <<'PY'
+    pattern_counts="$(
+    python3 - "$root" <<'PY'
 import pathlib
 import re
 import sys
@@ -153,8 +167,32 @@ for path in pathlib.Path(sys.argv[1]).rglob("*.swift"):
         counts[index] += len(pattern.findall(code))
 print(" ".join(str(c) for c in counts))
 PY
-)"
-large_file_count="$(find "$SOURCE_ROOT" -name '*.swift' -print0 | xargs -0 wc -l | awk -v min="$LARGE_FILE_THRESHOLD" '$1 >= min && $2 != "total" { count++ } END { print count + 0 }')"
+)" || return 1
+    read -r shared try_optional observable <<<"$pattern_counts"
+    large="$(find "$root" -name '*.swift' -print0 | xargs -0 wc -l | awk -v min="$LARGE_FILE_THRESHOLD" '$1 >= min && $2 != "total" { count++ } END { print count + 0 }')" || return 1
+    printf '%s %s %s %s %s\n' "$shared" "$try_optional" "$write" "$large" "$observable"
+}
+
+# A missing root would count as zero debt, which is not the same as none.
+for root in "$SOURCE_ROOT" "$WATCH_ROOT"; do
+    if [[ ! -d "$root" ]]; then
+        echo "Source root not found: $root" >&2
+        exit 66
+    fi
+done
+app_counts="$(measure_debt "$SOURCE_ROOT")" || { echo "Counting failed under $SOURCE_ROOT" >&2; exit 70; }
+watch_counts="$(measure_debt "$WATCH_ROOT")" || { echo "Counting failed under $WATCH_ROOT" >&2; exit 70; }
+for counts in "$app_counts" "$watch_counts"; do
+    if [[ ! "$counts" =~ ^[0-9]+\ [0-9]+\ [0-9]+\ [0-9]+\ [0-9]+$ ]]; then
+        echo "Counting produced no usable numbers: '$counts'" >&2
+        exit 70
+    fi
+done
+read -r shared_count try_optional_count try_optional_write_count large_file_count observable_object_count <<<"$app_counts"
+read -r w_shared w_try_optional w_try_optional_write w_large w_observable <<<"$watch_counts"
+# `try?` already counts every `try?`, those on write paths included, so the
+# write-path count is shown but not added again.
+watch_count=$(( w_shared + w_try_optional + w_large + w_observable ))
 
 summary_lines=(
     "Tech debt budgets:"
@@ -163,6 +201,7 @@ summary_lines=(
     "- try? on write/encode/delete paths: ${try_optional_write_count} (budget: ${try_optional_write_budget}; ratchet toward 0)"
     "- Swift files >= ${LARGE_FILE_THRESHOLD} lines: ${large_file_count} (budget: ${large_file_budget})"
     "- ObservableObject (legacy; prefer @Observable): ${observable_object_count} (budget: ${observable_object_budget})"
+    "- ${WATCH_ROOT}: ${watch_count} in all (budget: ${watch_budget}): .shared ${w_shared}, try? ${w_try_optional} (${w_try_optional_write} of them on writes), large files ${w_large}, ObservableObject ${w_observable}"
 )
 
 failed=0
@@ -187,6 +226,7 @@ note_slack "try? usage" "$try_optional_count" "$try_optional_budget" "$TRY_OPTIO
 note_slack "try? on write paths" "$try_optional_write_count" "$try_optional_write_budget" "$TRY_OPTIONAL_WRITE_BUDGET_FILE"
 note_slack "large files" "$large_file_count" "$large_file_budget" "$LARGE_FILE_BUDGET_FILE"
 note_slack "ObservableObject" "$observable_object_count" "$observable_object_budget" "$OBSERVABLE_OBJECT_BUDGET_FILE"
+note_slack "Watch debt" "$watch_count" "$watch_budget" "$WATCH_BUDGET_FILE"
 if (( ${#slack_lines[@]} > 0 )); then
     summary_lines+=("${slack_lines[@]}")
 fi
@@ -213,6 +253,11 @@ fi
 
 if (( observable_object_count > observable_object_budget )); then
     summary_lines+=("- FAIL: ObservableObject usage exceeded budget — new types must use @Observable")
+    failed=1
+fi
+
+if (( watch_count > watch_budget )); then
+    summary_lines+=("- FAIL: ${WATCH_ROOT} debt exceeded budget")
     failed=1
 fi
 

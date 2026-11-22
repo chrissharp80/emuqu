@@ -1,19 +1,19 @@
 {
  "file": "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift",
- "hash": "fa8c5c94c9e306fd",
- "role": "Three record-tab cards for strap data handling: RecoverableDataCard (offer to recover or discard a recording left on the strap), FetchProgressCard (stage/progress/cancel UI for a strap download) and RetryFetchCard (failed-download card with retry/cancel/dismiss). Pure presentation; all actions arrive as closures.",
+ "hash": "9779f6b2690a776c",
+ "role": "Three record-tab cards for strap data handling: RecoverableDataCard (offer to recover a recording left on the strap, or delete it after a confirmation), FetchProgressCard (stage/progress/cancel UI for a strap download) and RetryFetchCard (failed-download card with retry/cancel/dismiss). Pure presentation; all actions arrive as closures.",
  "types": [
   "RecoverableDataCard: struct — View; recover / discard prompt for data found on the strap",
   "FetchProgressCard: struct — View; shows StrapFetchProgress stage, attempt, bar, percentage, Cancel",
   "RetryFetchCard: struct — View; failed fetch card with humanised reason, Retry, Cancel retry, Dismiss"
  ],
  "state": [],
- "toplevel": "No global state. Stored lets/vars are view inputs only (deviceName, closures, progress, isRetrying, isConnected, errorReason).",
+ "toplevel": "No global state. Stored lets/vars are view inputs only (deviceName, closures, progress, isRetrying, isConnected, errorReason), plus RecoverableDataCard's @State confirmingDiscard (false until the delete button asks for confirmation).",
  "units": [
   {
    "key": "var RecoverableDataCard.body",
    "hash": "f2ba4120496b625a",
-   "does": "Lays out the recoverable-data card: header, explanatory text that recovering keeps the data and a new recording clears it, Recover button and Discard & Start Fresh button on a primary-tinted rounded card.",
+   "does": "Lays out the recoverable-data card: header, explanatory text that recovering keeps the data and a new recording clears it, Recover button and the 'Delete from <deviceName>' button (which confirms before deleting) on a primary-tinted rounded card.",
    "entry": "SwiftUI view body; RecoverableDataCard is built by RecordView.recoverableDataSection (RecordView+Sections.swift:109) and ComponentSnapshotTests.swift:43",
    "calls": [
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.recoveryPromptHeader",
@@ -26,7 +26,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.discardStartFreshButton": "b436b8c4900d4e01",
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.discardStartFreshButton": "5629145da73836b5",
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.recoverDataButton": "1d3c5b38fcc3979a",
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.recoveryPromptHeader": "e5fa2bdcb066746a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
@@ -71,16 +71,26 @@
   },
   {
    "key": "var RecoverableDataCard.discardStartFreshButton",
-   "hash": "bb4e439745f90f78",
-   "does": "Bordered red 'Discard & Start Fresh' button that invokes onDiscard (RecordView.discardAndStartFresh → PolarManager.discardStoredExercises), deleting the strap's stored recordings.",
-   "entry": "Button tap by user",
+   "hash": "9c38cff3507bc1dd",
+   "does": "Bordered red destructive 'Delete from <deviceName>' button. A tap only opens a confirmation dialog ('Delete the recording on <deviceName>?': the app never saved it, so this deletes the only copy, a running recording is stopped first, cannot be undone); its destructive Delete invokes onDiscard (RecordView.discardAndStartFresh → PolarManager.discardStoredExercises), deleting the strap's stored recordings. Cancel leaves everything as it was.",
+   "entry": "Button tap by user; Delete in the confirmation dialog",
    "calls": [
     "closure:onDiscard set by RecordView+Sections.swift:112 to RecordView.discardAndStartFresh (Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.discardAndStartFresh())",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
+   "reads": [
+    "mem:RecoverableDataCard.confirmingDiscard"
+   ],
+   "writes": [
+    "mem:RecoverableDataCard.confirmingDiscard"
+   ],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "user picks Delete in the confirmation dialog",
+     "effect": "onDiscard runs; Cancel or dismissal deletes nothing"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }

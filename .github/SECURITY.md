@@ -84,16 +84,22 @@ the App Group container is set to
 while the phone is locked during overnight recording and screen-locked
 workouts, or every write in that window fails. It is still encrypted at rest.
 
-Lines are passed through `scrubPHI`, which redacts health values: a number
-after a health-metric name (RMSSD, heart rate, sleep score and the like), the
-further numbers chained to one by an arrow or comparison, and latitude and
-longitude values. Session IDs are not redacted: they are random UUIDs, kept so
-that lines can be tied to a session. Lines are scrubbed once, as they are
-flushed to disk, and an export of the log file returns that scrubbed content.
-With Persistent Logging off, the export comes from the in-memory buffer and
-each line is scrubbed as it is exported; the error-catalog export is scrubbed
-the same way. An export is written to a temporary directory with no file
-protection so the share sheet can open it. `make log-redaction-guard` fails the build when a log call interpolates a
+Lines are passed through `scrubPHI`, which redacts health values. A named
+value (`key=42`, `key: 42`) is redacted unless the key's last word is on a
+short allow-list of counts and identifiers (`beatCount`, `attempt`,
+`schemaVersion` and the like), so a new key is covered without anyone naming
+it. A number after a health-metric name in prose (RMSSD, heart rate, sleep
+score and the like), any number in bpm, the further numbers chained to one by
+an arrow, comparison, comma or range dash, and latitude and longitude values
+are redacted too. Session IDs are not redacted: they are random UUIDs, kept so
+that lines can be tied to a session. Lines are scrubbed as they are flushed to
+disk, and an export of the log file scrubs every line again, so lines an older
+build flushed are covered. With Persistent Logging off, the export comes from
+the in-memory buffer and each line is scrubbed as it is exported; the
+error-catalog export is scrubbed the same way. An export is written to the
+app's temporary `Exports` folder with complete file protection (readable only
+while the phone is unlocked, when the share sheet reads it), replaces the
+previous export, and is removed at the next launch. `make log-redaction-guard` fails the build when a log call interpolates a
 raw health or identifying value.
 
 ### Privacy manifest (`PrivacyInfo.xcprivacy`)
@@ -132,7 +138,9 @@ but are summarized here for completeness:
 
 - **Bluetooth** (`NSBluetoothAlwaysUsageDescription`) — Polar H10 / Verity
   Sense pairing and streaming, optional power, stride, bike and rower sensors,
-  and the optional heart-rate and power broadcaster.
+  and the optional heart-rate and power broadcaster, which advertises only
+  once its disclosure has been accepted on that device (the acceptance is kept
+  in that device's defaults, outside the iCloud settings backup).
 - **Health** (`NSHealthShareUsageDescription`,
   `NSHealthUpdateUsageDescription`) — reads sleep, heart rate, HRV, vitals,
   workouts and their routes, activity, VO2 max, body weight, date of birth and
@@ -252,6 +260,14 @@ to something else; a memory wipe made this way can be undone with
 `assistant.memory.restore` until the app quits (the copy is held in memory
 only, and Settings' Forget and Delete All My Data drop it).
 
+The same confirmation guards writes whose content the model could have taken
+from what it read: adding a memory fact or a contact, setting an address and
+renaming a saved route change nothing on the first call unless every value
+they would save is in the user's own latest message
+(`DestructiveActionContext.gateUnlessUserStated`). Composing an email also
+requires `user_quote`. Tool results are marked in the prompt as data, not
+instructions.
+
 **Cache-hit telemetry.**
 [`LLMCacheTelemetry`](../Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift)
 records prompt-cache hit ratios per provider in memory only. The sample buffer
@@ -312,7 +328,12 @@ exactly the devices entitled to read these backups. iCloud Keychain is
 end-to-end encrypted, so this does not hand Apple the key. A device that has to
 write before iCloud Keychain delivers the existing key creates one under its
 own account; sync carries all of them and `decode` tries each, since AES-GCM
-authentication rejects a wrong key outright.
+authentication rejects a wrong key outright. A key is created only while the
+signed-in iCloud account is confirmed as the one sync was enabled for
+(`CloudAccountIdentity`): a key made after an Apple ID switch would travel into
+the other account's iCloud Keychain. After such a switch, or once the app's
+iCloud data has been deleted, sync turns itself off and uploads nothing until
+the user turns it on again.
 
 Every upload is sealed by `CloudPayloadCodec.sealForUpload`, which throws
 rather than upload plaintext when there is no key to encrypt with. A key on
@@ -348,8 +369,12 @@ iOS file protection:
 - settings, the HRV baseline, the training-load cache, the beat-consistency
   priors, saved routes, email contacts and breadcrumb trails
   (`JSONFileSeal`);
-- the assistant's conversation, remembered facts and artifacts
-  (`AssistantStoreFile`);
+- the assistant's conversation, its running summary, remembered facts and
+  artifacts (`AssistantStoreFile`);
+- the cached Apple Health sleep nights and vitals baselines kept in
+  `UserDefaults` (`SleepDataCache`, and the respiratory-rate and
+  wrist-temperature baselines through `BaselineSnapshot`), sealed with
+  `JSONFileSeal`; with no key reachable they are not written;
 - the UI state cache that paints the dashboard at launch.
 
 Most of these are written with `completeFileProtectionUntilFirstUserAuthentication`.
@@ -367,6 +392,13 @@ Most of these are written with `completeFileProtectionUntilFirstUserAuthenticati
 The assistant's files are written with `completeFileProtectionUnlessOpen`: the
 voice assistant can write them while the phone is locked, and they are
 unreadable then.
+
+Files made for the user to share (CSV, GPX and TCX exports, PDF reports, the
+log and crash-report exports, the chat export) are not sealed, because the
+share sheet or mail composer has to read them. They are written with
+`complete` protection, unreadable while the phone is locked; most go through
+`ExportFile` into the app's temporary `Exports` folder, which is emptied at the
+next launch.
 
 **When the key cannot be reached** (a background write before the first unlock
 after a reboot, or a Keychain failure), what happens depends on the file
@@ -480,6 +512,11 @@ document, so it can be committed without generating diff noise — and
 dependency change. That is the difference between having an SBOM and having a
 current one.
 
+The on-demand `security.yml` dependency review fails unless every package
+pinned in `Package.resolved` appears in GitHub's dependency graph for the
+repository, so a graph that did not index the Swift packages cannot pass the
+review for them.
+
 Two things it deliberately does not claim: it is not signed, and there is no
 build provenance attestation. Both need a release pipeline that runs, which is
 the open item in `docs/CI_POSTURE.md`.
@@ -499,27 +536,44 @@ app does:
 
 1. **Settings → Advanced Data Controls → Delete All My Data.** The user types
    `DELETE MY DATA` and confirms a second time. `DataPurgeService` then:
+   - closes `PurgeGate`, which refuses every archive write and skips every
+     upload and full sync until the purge ends, and waits for writes already
+     under way;
+   - turns iCloud sync off;
    - deletes the app's CloudKit zones (`HRVSessions`, `UserSettings`) from the
      user's private database, first, through
-     `CloudKitSyncManager.deleteAllRemoteData()`;
+     `CloudKitSyncManager.deleteAllRemoteData()`, but only in the iCloud
+     account this device synced with (or, with none recorded, the signed-in
+     one, unless sync was stopped because it is a different account): in any
+     other account, or when the account cannot be checked, nothing there is
+     deleted and the remote step reports failure;
    - wipes the local archive, backups, workout tracks and breadcrumbs, and
      sweeps every other file in the app's containers;
    - removes the AI provider API keys from the Keychain;
    - clears the conversation history, remembered facts and settings, and
      leaves iCloud sync off.
 
+   It refuses to start while a recording is in progress, and if one starts
+   while the iCloud copy is being deleted it stops before wiping the device.
+   Another device signed into the same iCloud account turns its own sync off
+   when it next finds the zones gone, keeps its local copy, and does not
+   recreate them; the user runs the delete on each device.
+
    The trial and purchase record (`EntitlementAnchor`) is kept on purpose: a
    wipe is not a refund.
 
-   If the remote delete fails (offline, signed out of iCloud), the local wipe
+   If the remote delete fails (offline, signed out of iCloud, another account), the local wipe
    still runs and the report says `remoteDeleted: false`, so the user can run
    it again with a connection. Re-running is safe. The fallbacks are iCloud
    storage management on the device (Settings → [Your name] → iCloud → Manage
    Storage → Emuqu), or deleting the app from every device.
 2. **Settings → Wearables → Delete Emuqu sleep from Apple Health** removes the
-   sleep samples the app wrote. Other HealthKit samples the app wrote (workouts,
-   and HRV and heart rate if export was on) are removed in the Health app,
-   from Emuqu's entry in its list of apps.
+   sleep samples the app wrote. Deleting a session forever from the Trash (or
+   its expiry there) removes everything the app wrote to Apple Health for it:
+   HRV, heart rate, resting heart rate, sleep and workouts
+   (`HealthWriteAndObserve.removeExports`). Otherwise, HealthKit samples the
+   app wrote are removed in the Health app, from Emuqu's entry in its list of
+   apps.
 
 Data that went to a hosted AI provider, Tavily or a map, weather or elevation
 service is governed by that service's own policy.

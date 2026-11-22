@@ -487,6 +487,14 @@ final class WorkoutZoneBreakdownTests: XCTestCase {
         XCTAssertEqual(WorkoutZoneBreakdown.compute(samples: [], userMaxHR: 190), .empty)
     }
 
+    /// Before, the first sample after a 60 s dropout was credited with the
+    /// whole minute. A sample stands for at most five seconds, as in the
+    /// finished workout's zone time.
+    func testAGapIsNotCreditedAsZoneTime() {
+        let samples = WorkoutFixture.samples(count: 63, hr: { _ in 150 }).filter { $0.offsetSec <= 2 || $0.offsetSec == 62 }
+        XCTAssertEqual(WorkoutZoneBreakdown.compute(samples: samples, userMaxHR: 200).totalSec, 7)
+    }
+
     func testZoneBreakdownIsEmptyWithoutAMaxHeartRate() {
         let buffer = WorkoutFixture.samples(count: 100, hr: { _ in 140 })
         XCTAssertEqual(WorkoutZoneBreakdown.compute(samples: buffer, userMaxHR: 0), .empty)

@@ -31,10 +31,72 @@ final class SessionRecoveryClassificationTests: XCTestCase {
         )
     }
 
-    private func classify(beats: Int, durationSec: TimeInterval) -> SessionType {
+    private func classify(beats: Int, durationSec: TimeInterval, recordedType: SessionType? = nil) -> SessionType {
         SessionRecoveryService.recoveredSessionType(
-            for: backup(beats: beats, durationSec: durationSec), sessionId: UUID()
+            for: backup(beats: beats, durationSec: durationSec), sessionId: UUID(), recordedType: recordedType
         )
+    }
+
+    // MARK: - No qualifying window
+
+    /// A backup with no window the selector accepts (too short, too noisy, or
+    /// all before sleep) is analysed whole, as the morning and reanalysis
+    /// paths fall back; otherwise it could never be recovered.
+    func testABackupWithNoQualifyingWindowIsAnalysedWhole() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RecoveryFallback-\(UUID().uuidString)", isDirectory: true)
+        let archive = SessionArchive(
+            directory: directory,
+            sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
+            sessionMergeModeProvider: { .off }
+        )
+        let rawBackup = RawRRBackup(directory: directory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true))
+        defer {
+            rawBackup.waitForQueuedWork()
+            do { try FileManager.default.removeItem(at: directory) } catch {
+                // swallow-ok: the test's temporary directory; nothing may have been written.
+            }
+        }
+        let service = SessionRecoveryService(
+            archive: archive, rawBackup: rawBackup,
+            artifactDetector: ArtifactDetector(), windowSelector: WindowSelector(), cloudSyncManager: .shared,
+            baselineTracker: BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json"))
+        )
+        let data = backup(beats: 150, durationSec: 150)
+        var session = HRVSession(
+            id: UUID(), startDate: anchor, endDate: data.endDate, state: .collecting, sessionType: .quick,
+            rrSeries: data.series, analysisResult: nil, artifactFlags: data.flags
+        )
+        var analysedWhole = false
+
+        await service.analyzeSession(
+            &session, series: data.series, flags: data.flags,
+            analyze: { _, _, _, _ in
+                XCTFail("a window was analysed although none qualifies")
+                return nil
+            },
+            analyzeWithCapacity: { _, capacity in
+                analysedWhole = capacity == nil
+                return nil
+            }
+        )
+
+        XCTAssertTrue(analysedWhole, "the backup was not analysed whole")
+    }
+
+    // MARK: - The type the recording was started as
+
+    /// A nap long enough to clear the overnight bar is still a nap: it must
+    /// not take the night's overnight slot.
+    func testALongNapKeepsItsType() {
+        XCTAssertEqual(classify(beats: 6_000, durationSec: 90 * 60, recordedType: .nap), .nap)
+    }
+
+    /// The gate only ever downgrades: an interrupted night too short to be one
+    /// is still saved as a quick reading.
+    func testAShortInterruptedNightIsStillDowngraded() {
+        XCTAssertEqual(classify(beats: 500, durationSec: 20 * 60, recordedType: .overnight), .quick)
+        XCTAssertEqual(classify(beats: 20_000, durationSec: 8 * 3_600, recordedType: .overnight), .overnight)
     }
 
     // MARK: - Both conditions must hold

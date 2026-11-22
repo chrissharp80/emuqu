@@ -24,18 +24,45 @@ extension RecordView {
 
     private var acceptanceButtons: some View {
         HStack(spacing: 12) {
-            Button(action: rejectSession) {
-                Label(String(localized: "Discard", bundle: LanguageManager.appBundle), systemImage: "trash")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .tint(.red)
+            readingDiscardButton
 
             Button(action: acceptSession) {
                 Label(String(localized: "Save", bundle: LanguageManager.appBundle), systemImage: "checkmark")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+        }
+    }
+
+    /// What Discard does to a reading awaiting review (`rejectSession`): one
+    /// saved for review moves to the Trash and leaves the baseline; a night
+    /// that was archived before the review is left as it was. The acceptance
+    /// card and the morning report say it with the same words.
+    var readingDiscardMessage: String {
+        String(
+            localized: "This discards the reading and leaves it out of your baseline. If it was already saved, it moves to the Trash, where you can restore it from Settings → iCloud & Data → Trash. A night that was in your history before this recording stays as it was.",
+            bundle: LanguageManager.appBundle
+        )
+    }
+
+    /// Discard asks first, and says what it does to the saved copy.
+    private var readingDiscardButton: some View {
+        Button(role: .destructive) {
+            confirmingReadingDiscard = true
+        } label: {
+            Label(String(localized: "Discard", bundle: LanguageManager.appBundle), systemImage: "trash")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(.red)
+        .confirmationDialog(
+            String(localized: "Discard this reading?", bundle: LanguageManager.appBundle),
+            isPresented: $confirmingReadingDiscard,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Discard", bundle: LanguageManager.appBundle), role: .destructive, action: rejectSession)
+        } message: {
+            Text(readingDiscardMessage)
         }
     }
 
@@ -201,6 +228,7 @@ extension RecordView {
         if let review = morningCoordination.recoveredWorkoutReview {
             RecoveredWorkoutReviewCard(
                 review: review,
+                failureMessage: recoveredWorkoutFailure,
                 onSave: { keepRecoveredWorkout(review, endSec: $0) },
                 onDiscard: { discardRecoveredWorkout(review) }
             )
@@ -266,9 +294,19 @@ extension RecordView {
         if let verification = sessionState.verificationResult {
             RecordVerificationSection(
                 verification: verification,
-                recoveryWindow: sessionState.recoveryWindow
+                recoveryWindow: sessionState.recoveryWindow,
+                limits: verificationLimits
             )
         }
+    }
+
+    /// The limits the shown result was verified against: a quick reading by
+    /// the relaxed streaming verifier (the only one that verifies `.quick`
+    /// sessions), everything else by the overnight one.
+    private var verificationLimits: Verification.Config {
+        sessionState.currentSession?.sessionType == .quick
+            ? collector.streamingVerification.config
+            : collector.verification.config
     }
 
     /// Results Preview for quick readings (tap to see full results)
@@ -336,7 +374,7 @@ extension RecordView {
 
     func morningCover(_ presentation: ResultsPresentation) -> some View {
         NavigationStack {
-            withTagSaveFailureAlert(morningResultsWithAlert(presentation), shown: true)
+            withErrorAlert(withTagSaveFailureAlert(morningResultsWithAlert(presentation), shown: true), shown: true)
                 .toolbar { morningDoneToolbar }
         }
     }
@@ -361,6 +399,7 @@ extension RecordView {
             result: presentation.result,
             recentSessions: cachedRecentSessions,
             onDiscard: { dismissMorningReading() },
+            discardMessage: readingDiscardMessage,
             onReanalyze: { await dependencies.collection.sessionReanalysis.reanalyzeSession($0, method: $1) },
             onUpdateTags: { saveReportTags($0, notes: $1, sessionId: session.id) },
             onReanalyzeAt: { await dependencies.collection.reanalysisService.reanalyzeAtPosition(session, targetMs: $0) },
@@ -368,7 +407,7 @@ extension RecordView {
             onUpdateSleep: { dependencies.collection.reanalysisService.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) },
             onAdjustSleep: { adjustMorningSleep($0, for: session) },
             onUnlinkSegment: { dependencies.collection.reanalysisService.unlinkSegment(segmentId: $0, fromSession: session.id) },
-            linkedSegments: collector.archive.linkedSegments(for: session)
+            linkedSegments: presentation.linkedSegments
         )
     }
 
@@ -385,10 +424,14 @@ extension RecordView {
         await dependencies.collection.reanalysisService.applyManualAnalysis(session, result: manualResult)
     }
 
-    /// Surfaces persist failure (see DashboardV2View's onAdjust note).
+    /// Surfaces persist failure (see DashboardV2View's onAdjust note) once
+    /// the off-main save reports that nothing was stored.
     func adjustMorningSleep(_ sleepData: SleepData, for session: HRVSession) {
-        let reanalysis = dependencies.collection.reanalysisService
-        if !reanalysis.updateSessionSleepBoundaries(sessionId: session.id, sleepData: sleepData, isUserAdjustment: true) {
+        let save = dependencies.collection.reanalysisService.updateSessionSleepBoundaries(
+            sessionId: session.id, sleepData: sleepData, isUserAdjustment: true
+        )
+        Task {
+            guard await !save.value else { return }
             sleepEditSaveFailed = true
         }
     }
@@ -406,7 +449,7 @@ extension RecordView {
 
     func quickCover(_ presentation: ResultsPresentation) -> some View {
         NavigationStack {
-            withTagSaveFailureAlert(quickResults(presentation), shown: true)
+            withErrorAlert(withTagSaveFailureAlert(quickResults(presentation), shown: true), shown: true)
                 .toolbar { quickDoneToolbar }
                 .alert(String(localized: "Couldn't delete this reading. Try again.", bundle: LanguageManager.appBundle), isPresented: $quickDiscardFailed) {
                     quickDiscardFailedActions
@@ -425,6 +468,7 @@ extension RecordView {
             result: presentation.result,
             recentSessions: cachedRecentSessions,
             onDiscard: { discardQuickReading(session) },
+            discardMessage: String(localized: "This moves the reading to the Trash. You can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle),
             onUpdateTags: { saveReportTags($0, notes: $1, sessionId: session.id) },
             onUpdateSleep: { dependencies.collection.reanalysisService.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) }
         )
@@ -470,13 +514,25 @@ extension RecordView {
         withAnimation { selectedSessionType = nil }
     }
 
+    /// A Save that stored nothing keeps the card up (`retrimRecoveredWorkout`)
+    /// and the card says so, rather than the tap appearing to do nothing.
     func keepRecoveredWorkout(_ review: MorningCoordination.RecoveredWorkoutReview, endSec: Double) {
         interruptedWorkoutId = nil
-        Task { await collector.retrimRecoveredWorkout(sessionId: review.sessionId, endSec: endSec) }
+        recoveredWorkoutFailure = nil
+        Task {
+            let closed = await collector.retrimRecoveredWorkout(sessionId: review.sessionId, endSec: endSec)
+            if !closed {
+                recoveredWorkoutFailure = String(localized: "Couldn't save the trimmed workout. Try again.", bundle: LanguageManager.appBundle)
+            }
+        }
     }
 
+    /// The same for a Discard whose delete failed.
     func discardRecoveredWorkout(_ review: MorningCoordination.RecoveredWorkoutReview) {
         interruptedWorkoutId = nil
-        collector.discardRecoveredWorkout(sessionId: review.sessionId)
+        recoveredWorkoutFailure = nil
+        if !collector.discardRecoveredWorkout(sessionId: review.sessionId) {
+            recoveredWorkoutFailure = String(localized: "Couldn't delete this workout. Try again.", bundle: LanguageManager.appBundle)
+        }
     }
 }

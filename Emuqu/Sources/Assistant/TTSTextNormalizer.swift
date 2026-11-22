@@ -220,6 +220,12 @@ enum TTSTextNormalizer {
     // Match years only in non-numeric context: preceded/followed by
     // word boundary, NOT by another digit / decimal / colon. Avoids
     // touching prices ($1990), pace strings (8:45), step counts, etc.
+    //
+    // And only in a year's place: after a word that introduces one ("in",
+    // "since", "the", a month), after a day of the month and a comma, or
+    // after a dash in a range. A bare quantity with its
+    // unit left out ("You burned 1450 today", "TRIMP 1200 this month") is
+    // read as the number it is.
 
     /// A ZIP+4 suffix ("62704-1234") is not a year: it is left for
     /// PhoneticOverrides' ZIP read-out, which runs after this pass.
@@ -237,7 +243,7 @@ enum TTSTextNormalizer {
         let ns = input as NSString
         let matches = regex.matches(in: input, range: NSRange(location: 0, length: ns.length))
         var out = input
-        for match in matches.reversed() {
+        for match in matches.reversed() where isInYearPosition(ns.substring(to: match.range.location)) {
             let yearStr = ns.substring(with: match.range)
             guard let year = Int(yearStr) else { continue }
             let replacement = spokenYear(year)
@@ -245,6 +251,27 @@ enum TTSTextNormalizer {
         }
         return out
     }
+
+    /// Whether the text before a four-digit number puts it in a year's
+    /// place (see "Years" above): it ends in a year cue word, in a day of
+    /// the month and a comma, or in a range dash.
+    private static func isInYearPosition(_ before: String) -> Bool {
+        let trimmed = before.reversed().drop(while: \.isWhitespace)
+        guard let last = trimmed.first else { return false }
+        if last == "-" || last == "–" { return true }
+        if last == "," { return trimmed.dropFirst().drop(while: \.isWhitespace).first?.isNumber == true }
+        let word = String(trimmed.prefix(while: \.isLetter).reversed()).lowercased()
+        return yearCueWords.contains(word)
+    }
+
+    /// Words a year follows: prepositions, "the", "year", seasons and month
+    /// names (full and short).
+    private static let yearCueWords: Set<String> = [
+        "in", "since", "of", "from", "by", "until", "till", "through", "to", "before", "after", "during",
+        "around", "circa", "year", "the", "early", "late", "mid", "spring", "summer", "autumn", "fall", "winter",
+        "january", "february", "march", "april", "may", "june", "july", "august", "september", "october",
+        "november", "december", "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec"
+    ]
 
     /// Units that mark a number as a quantity. Case-insensitive, whole word.
     private static let notFollowedByUnit =

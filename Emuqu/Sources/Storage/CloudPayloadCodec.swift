@@ -113,15 +113,25 @@ enum CloudPayloadCodec {
     /// file can be repaired in place, but an upload cannot be taken back. A
     /// skipped upload is retried on a later cycle.
     ///
-    /// Creates a key when the device has none. That never displaces a key
-    /// another backup depends on: each key has its own Keychain account. A key
-    /// existing here does not prove another device can decrypt: the item is
-    /// synchronizable, but whether iCloud Keychain is on and has synced is not
-    /// observable from this device.
-    static func sealForUpload(_ payload: Data) throws -> Data {
+    /// Creates a key when the device has none, and only while the signed-in
+    /// iCloud account is the one sync is enabled for
+    /// (`CloudAccountIdentity.isConfirmed`): the key is synchronizable, so one
+    /// created after an Apple ID switch would travel into the new account's
+    /// iCloud Keychain, and its owner would hold a key that opens every record
+    /// sealed with it. That never displaces a key another backup depends on:
+    /// each key has its own Keychain account. A key existing here does not
+    /// prove another device can decrypt: the item is synchronizable, but
+    /// whether iCloud Keychain is on and has synced is not observable from
+    /// this device.
+    ///
+    /// `mayCreateKey` and `store` are left at their defaults by every upload;
+    /// they let the key rules be exercised without the iCloud Keychain.
+    static func sealForUpload(
+        _ payload: Data, mayCreateKey: Bool = CloudAccountIdentity.isConfirmed, in store: KeyStore = .keychain
+    ) throws -> Data {
         let key: SymmetricKey
         do {
-            key = try writingKey()
+            key = try writingKey(mayCreate: mayCreateKey, in: store)
         } catch {
             debugLog("[Cloud] No cloud backup key available: \(error.localizedDescription)", level: .error)
             throw CloudSyncError.encryptionUnavailable
@@ -129,9 +139,11 @@ enum CloudPayloadCodec {
         return try seal(payload, with: key)
     }
 
-    /// Wrap `payload` in the versioned, encrypted envelope.
+    /// Wrap `payload` in the versioned, encrypted envelope. The codec's own
+    /// round trip; nothing bound for iCloud uses it, every upload goes
+    /// through `sealForUpload`.
     static func encode(_ payload: Data) throws -> Data {
-        try seal(payload, with: writingKey())
+        try seal(payload, with: writingKey(mayCreate: true))
     }
 
     private static func seal(_ payload: Data, with key: SymmetricKey) throws -> Data {
@@ -205,6 +217,20 @@ enum CloudPayloadCodec {
 
     // MARK: - Key
 
+    /// A key this device holds, with the Keychain account it is stored under.
+    typealias StoredKey = (account: String, key: SymmetricKey)
+
+    /// Where the cloud keys are kept: the synchronizable Keychain items
+    /// (`keychain`), or a stand-in that exercises the key rules on their own.
+    struct KeyStore: Sendable {
+        /// Every key held; throws when the store refuses the read.
+        let read: @Sendable () throws -> [StoredKey]
+        /// Adds a new key under an account of its own and returns it.
+        let add: @Sendable () throws -> SymmetricKey
+
+        static let keychain = KeyStore(read: { try CloudPayloadCodec.storedKeys() }, add: { try CloudPayloadCodec.create() })
+    }
+
     /// The key new payloads are sealed with, created when the device has none.
     ///
     /// Only genuine absence permits creating one. A Keychain that refuses the
@@ -214,21 +240,26 @@ enum CloudPayloadCodec {
     /// Creation is serialized and re-checks under the lock: two first writers
     /// (settings push, session push, live backup) would otherwise each add a
     /// key under its own account. The usual path, a key already stored, takes
-    /// no lock.
-    private static func writingKey() throws -> SymmetricKey {
-        if let primary = try primaryKey() { return primary }
+    /// no lock. Without `mayCreate` a missing key throws
+    /// `CloudSyncError.encryptionUnavailable` instead.
+    private static func writingKey(mayCreate: Bool, in store: KeyStore = .keychain) throws -> SymmetricKey {
+        if let primary = try primaryKey(in: store) { return primary }
         return try keyCreation.withLock { _ in
-            if let primary = try primaryKey() { return primary }
-            return try create()
+            if let primary = try primaryKey(in: store) { return primary }
+            guard mayCreate else {
+                debugLog("[Cloud] No cloud backup key, and none is created before the iCloud account is confirmed", level: .warning)
+                throw CloudSyncError.encryptionUnavailable
+            }
+            return try store.add()
         }
     }
 
     /// Serializes `create()` against concurrent first writers.
     private static let keyCreation = OSAllocatedUnfairLock()
 
-    /// The stored key under `primaryAccount`, or nil when there is none.
-    private static func primaryKey() throws -> SymmetricKey? {
-        let keys = try storedKeys()
+    /// The key `store` holds under `primaryAccount`, or nil when there is none.
+    private static func primaryKey(in store: KeyStore) throws -> SymmetricKey? {
+        let keys = try store.read()
         guard let account = primaryAccount(among: keys.map(\.account)) else { return nil }
         return keys.first(where: { $0.account == account })?.key
     }
@@ -264,7 +295,7 @@ enum CloudPayloadCodec {
     /// `errSecItemNotFound` means none; anything else is a failure to read,
     /// which is NOT the same thing. Collapsing the two is what let a locked
     /// Keychain look like a first run.
-    private static func storedKeys() throws -> [(account: String, key: SymmetricKey)] {
+    private static func storedKeys() throws -> [StoredKey] {
         var query = baseQuery()
         query[kSecReturnData as String] = true
         query[kSecReturnAttributes as String] = true
@@ -283,8 +314,8 @@ enum CloudPayloadCodec {
     }
 
     /// The primary key first, so the common case opens on the first try.
-    private static func keys(from rows: [[String: Any]]) -> [(account: String, key: SymmetricKey)] {
-        rows.compactMap { row -> (account: String, key: SymmetricKey)? in
+    private static func keys(from rows: [[String: Any]]) -> [StoredKey] {
+        rows.compactMap { row -> StoredKey? in
             guard let account = row[kSecAttrAccount as String] as? String,
                   let data = row[kSecValueData as String] as? Data else { return nil }
             return (account, SymmetricKey(data: data))

@@ -38,6 +38,9 @@ struct GetMeBackView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var showClearConfirm = false
+    /// The arrow's drawn angle, unwrapped: it moves to each new heading the
+    /// short way round, so crossing ±180° turns it 2°, not 358°.
+    @State private var displayedArrowDegrees: Double = 0
     @State private var showSOSConfirm = false
     /// The number the SOS confirmation shows, fixed when SOS is tapped so the
     /// call goes to the number the user confirmed even if a geocode lands
@@ -157,6 +160,18 @@ struct GetMeBackView: View {
         let mod = (raw.truncatingRemainder(dividingBy: 360) + 360)
             .truncatingRemainder(dividingBy: 360)
         return mod > 180 ? mod - 360 : mod
+    }
+
+    private func turnArrow(to target: Double) {
+        displayedArrowDegrees = Self.continuousAngle(from: displayedArrowDegrees, to: target)
+    }
+
+    /// `target` (any angle) expressed as the angle nearest `current`, so an
+    /// animation from `current` turns at most 180° either way.
+    static func continuousAngle(from current: Double, to target: Double) -> Double {
+        let delta = (target - current).truncatingRemainder(dividingBy: 360)
+        let shortest = delta > 180 ? delta - 360 : (delta <= -180 ? delta + 360 : delta)
+        return current + shortest
     }
 
     /// Latest accuracy. Nil when there is no fix — handled in `accuracyState`.
@@ -484,6 +499,8 @@ struct GetMeBackView: View {
         return letters.count == 4 ? letters : ["N", "E", "S", "W"]
     }
 
+    /// The arrow follows `arrowRotationDegrees` from the first frame (`initial`),
+    /// so a dial built with a bearing and heading known never starts pointing up.
     private var arrowDial: some View {
         ZStack {
             roseRing
@@ -491,9 +508,10 @@ struct GetMeBackView: View {
             // origin to point at: an arrow pointing "up" would send the user
             // the wrong way.
             CompassArrow(opacity: accuracyState.arrowOpacity, fuzz: accuracyState.fuzzRadius)
-                .rotationEffect(.degrees(arrowRotationDegrees))
+                .rotationEffect(.degrees(displayedArrowDegrees))
                 .opacity(showsArrow ? 1 : 0)
-                .animation(.zenInterface(.easeOut(duration: 0.3), reduceMotion: reduceMotion), value: arrowRotationDegrees)
+                .animation(.zenInterface(.easeOut(duration: 0.3), reduceMotion: reduceMotion), value: displayedArrowDegrees)
+                .onChange(of: arrowRotationDegrees, initial: true) { _, target in turnArrow(to: target) }
             if accuracyState == .waiting || (trail != nil && originFix == nil) {
                 ProgressView().controlSize(.large)
             } else if !hasValidHeading {
@@ -664,44 +682,21 @@ struct GetMeBackView: View {
         .tint(.blue)
     }
 
-    @ViewBuilder
+    /// The brightness panel the toolbar's settings button shows. The slider
+    /// writes through `applyBrightness`, so this view keeps owning the
+    /// override that leaving the screen or the app reverts.
     private var settingsPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(String(localized: "Screen brightness", bundle: LanguageManager.appBundle))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.textSecondary)
-            brightnessSliderRow
-            Text(String(localized: "Defaults to your system brightness. Drag down to save battery; reverts when you leave this screen.", bundle: LanguageManager.appBundle))
-                .font(.caption2)
-                .foregroundStyle(AppTheme.textSecondary)
-        }
-        .padding(12)
-        .background(Color.gray.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-
-    private var brightnessSliderRow: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "sun.min")
-                .foregroundStyle(AppTheme.textSecondary)
-            brightnessSlider
-            Image(systemName: "sun.max.fill")
-                .foregroundStyle(AppTheme.textSecondary)
-        }
-    }
-
-    private var brightnessSlider: some View {
-        Slider(
-            value: Binding(
-                get: { brightnessOverride },
-                set: { newValue in
-                    brightnessOverride = newValue
-                    UIScreen.main.brightness = CGFloat(newValue)
-                    didSetBrightnessOverride = true
-                }
-            ),
-            in: 0.05 ... 1.0
+        GetMeBackBrightnessPanel(
+            brightness: Binding(get: { brightnessOverride }, set: { applyBrightness($0) })
         )
+    }
+
+    /// Sets the screen to the slider's value and marks the override, so
+    /// `resetScreenState` and `handleScenePhase` hand the system brightness back.
+    private func applyBrightness(_ newValue: Double) {
+        brightnessOverride = newValue
+        UIScreen.main.brightness = CGFloat(newValue)
+        didSetBrightnessOverride = true
     }
 
     // MARK: - Helpers

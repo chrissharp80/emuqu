@@ -91,6 +91,34 @@
    }
   },
   {
+   "key": "func HallucinationFeedbackTests.testClearingDropsPendingAndDeliveredCorrections()",
+   "hash": "b239aebdc8816352",
+   "does": "Builds an AssistantViewModel on a conversation store and facts store in a temporary directory, records one correction and delivers it to a prompt, records another pending one, then clears through the view model's clearConversation: the clear completes (no errorMessage) and no reminder is left for the next prompt.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::init AssistantViewModel(registry:store:contextSource:factsStore:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.pendingCorrectionsBlock()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "2248975558ac9cf0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "947446a062a66b08",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.pendingCorrectionsBlock()": "b712acc089226fa2",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "504750e4ad75b523",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "dff1863da10b59ec",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::init AssistantViewModel(registry:store:contextSource:factsStore:)": "4caa72a65d91d0fb",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "9f1e5eff4a202794"
+   }
+  },
+  {
    "key": "func HallucinationFeedbackTests.testRecordMultipleInOneBatch()",
    "hash": "44695a8a0b63eb70",
    "does": "Records HR and pace discrepancies in one batch and asserts both claims and actuals are in the block.",
@@ -277,7 +305,7 @@
   },
   {
    "key": "func LiveClaimVerificationTests.context(hr:alpha1:watts:)",
-   "hash": "06a2be444c8b611d",
+   "hash": "13867898499c3db4",
    "does": "Test helper: builds a WorkoutAIContext for a 10-minute run with the given heart rate, α1 and power and every other field nil/zero/default.",
    "entry": null,
    "calls": [],

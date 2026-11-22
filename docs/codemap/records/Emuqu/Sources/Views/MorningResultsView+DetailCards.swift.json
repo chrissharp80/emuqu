@@ -31,7 +31,7 @@
     "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)": "e804c8fde9ba6657",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "497254c576bf8794",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.scoreRing(score:color:)": "27e05adbe1987bdb",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.dateAndQualitySubtitle": "ddaf28a8fe4d1642",
+    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.dateAndQualitySubtitle": "7a7168c245452f92",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.scoreCaption": "5f63112b91df8d7a",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.splitNightSection": "e79212b6d476146a",
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.recoveryColor(_:)": "c4db2acf4b41fffe",
@@ -102,13 +102,14 @@
   },
   {
    "key": "var MorningDetailCards.dateAndQualitySubtitle",
-   "hash": "1331d4b0be779579",
-   "does": "Date of the displayed session (vm.displaySession endDate, else startDate, so a reload is honoured) · quality badge.",
+   "hash": "e960e2d8ed3fc99e",
+   "does": "Date of the displayed session (vm.displaySession endDate, else startDate, so a reload is honoured) as a long date in the app language · quality badge.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.qualityBadge",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
    "reads": [],
    "writes": [],
@@ -121,6 +122,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.qualityBadge": "a036dcda3137c906",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
@@ -466,13 +469,13 @@
    "does": "Formats seconds as localized hours/minutes via LocalizedDuration.hoursMinutes (truncating to whole minutes).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
@@ -828,7 +831,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.dataSourceColor(_:)": "f0e45f90c6cfe54b",
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.dataSourceLabel(_:)": "94fab81835a13467",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.dataSourceLabel(_:)": "02502cd3cfa6f606",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }

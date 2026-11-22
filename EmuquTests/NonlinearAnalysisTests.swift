@@ -157,7 +157,7 @@ final class NonlinearAnalysisTests: XCTestCase {
     }
 
     /// DFA should require sufficient data
-    func testDFAInsufficientData() {
+    func testDFAInsufficientData() throws {
         // DFA needs at least 100-200 points typically
         let points = (0 ..< 50).map { i in
             RRPoint(t_ms: Int64(i * 800), rr_ms: 800)
@@ -173,12 +173,11 @@ final class NonlinearAnalysisTests: XCTestCase {
             windowEnd: points.count
         )
 
-        // Should either return nil for DFA or handle gracefully
-        if let dfaAlpha1 = metrics?.dfaAlpha1 {
-            // If it computes, values should still be reasonable
-            XCTAssertGreaterThan(dfaAlpha1, 0)
-            XCTAssertLessThan(dfaAlpha1, 3.0)
-        }
+        // DFA needs at least 64 beats (its largest α2 box); 50 is too few,
+        // while the other nonlinear metrics still come back.
+        let computed = try XCTUnwrap(metrics, "50 clean beats still give the nonlinear metrics")
+        XCTAssertNil(computed.dfaAlpha1, "DFA ran on 50 beats")
+        XCTAssertNil(computed.dfaAlpha2)
     }
 
     // MARK: - Artifact Handling

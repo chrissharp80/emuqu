@@ -2,6 +2,7 @@ import Combine
 import Foundation
 import os
 @preconcurrency import WatchConnectivity
+import WatchKit
 
 // Watch-side counterpart to iOS `WatchConnectivityBridge`. Receives the live
 // state snapshot, unpacks it for the UI, and forwards workout-control
@@ -203,16 +204,16 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     private let log = Logger(subsystem: "com.chrissharp.flowrecovery", category: "WatchSessionManager")
-    private var workoutManager: WatchWorkoutManager?
+    private(set) var workoutManager: WatchWorkoutManager?
 
     /// Activate WCSession as early as possible — at @StateObject init time,
     /// well before the first view appears. Activating in `.onAppear` leaves
     /// a window where the user can tap a button (Start workout, voice chat)
     /// before the session is active; the `sendMessage` calls then fail
     /// silently and the Watch appears dead. The workout manager isn't
-    /// owned by the session manager so
-    /// that's wired separately by `attach(workoutManager:)` from the view's
-    /// `.onAppear` handler.
+    /// owned by the session manager, so it is wired separately by
+    /// `attach(workoutManager:)` (`WatchAppDelegate.wire`, run when the root
+    /// view appears or on a workout-recovery relaunch, whichever is first).
     override init() {
         super.init()
         guard WCSession.isSupported() else {
@@ -228,8 +229,8 @@ final class WatchSessionManager: NSObject, ObservableObject {
         statusLine = String(localized: "Connecting to phone…")
     }
 
-    /// Wire the workout manager once the view exists. Safe to call repeatedly
-    /// (e.g. on every .onAppear); only the first call sticks.
+    /// Wire the workout manager (`WatchAppDelegate.wire`). Safe to call
+    /// repeatedly (e.g. on every .onAppear); only the first call sticks.
     func attach(workoutManager: WatchWorkoutManager) {
         if self.workoutManager == nil {
             self.workoutManager = workoutManager
@@ -275,11 +276,11 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     /// Shown when a Start, Talk or control tap finds the phone out of reach,
     /// and when this Watch cannot talk to an iPhone at all.
-    private static var phoneUnreachableStatus: String { String(localized: "iPhone not reachable") }
+    static var phoneUnreachableStatus: String { String(localized: "iPhone not reachable") }
 
     /// Shows the answer to something the user tapped, and keeps it on screen
     /// for `controlStatusHold` (see `statusHeldUntil`).
-    private func showControlStatus(_ status: String) {
+    func showControlStatus(_ status: String) {
         statusLine = status
         statusHeldUntil = Date().addingTimeInterval(Self.controlStatusHold)
     }
@@ -407,126 +408,6 @@ final class WatchSessionManager: NSObject, ObservableObject {
                 self.showControlStatus(String(localized: "Tap again — iPhone didn't acknowledge"))
             }
         }
-    }
-
-    /// Ask the iPhone to stop the active workout.
-    @MainActor
-    func requestStopWorkout() {
-        sendControlMessage(
-            payload: ["type": WatchMessageDecoding.stopIntentType],
-            pendingStatus: String(localized: "Stopping on iPhone…"),
-            successStatus: String(localized: "Workout stopped")
-        )
-    }
-
-    /// Ask the iPhone to pause (user-initiated).
-    @MainActor
-    func requestPauseWorkout() {
-        sendControlMessage(
-            payload: ["type": "pauseWorkoutFromWatch"],
-            pendingStatus: String(localized: "Pausing…"),
-            successStatus: String(localized: "Paused")
-        )
-    }
-
-    /// Ask the iPhone to resume a paused workout.
-    @MainActor
-    func requestResumeWorkout() {
-        sendControlMessage(
-            payload: ["type": "resumeWorkoutFromWatch"],
-            pendingStatus: String(localized: "Resuming…"),
-            successStatus: String(localized: "Resumed")
-        )
-    }
-
-    /// User tapped Save & Done on the Watch summary screen. Tells the
-    /// iPhone to dismiss its post-workout sheet too and clears the
-    /// Watch's `justCompleted` banner locally.
-    @MainActor
-    func requestAcknowledgeFinished() {
-        justCompleted = false
-        sendControlMessage(
-            payload: ["type": "acknowledgeFinishedFromWatch"],
-            pendingStatus: String(localized: "Saving…"),
-            successStatus: String(localized: "Saved")
-        )
-    }
-
-    @MainActor
-    private func sendControlMessage(
-        payload: [String: Any],
-        pendingStatus: String,
-        successStatus: String
-    ) {
-        guard WCSession.isSupported() else {
-            statusLine = Self.phoneUnreachableStatus
-            return
-        }
-        let session = WCSession.default
-        // Stamp the payload so receivers can dedupe if both the live message
-        // and the queued context arrive (race during foreground transition).
-        var enriched = payload
-        enriched["ts"] = Date().timeIntervalSince1970
-
-        showControlStatus(pendingStatus)
-
-        guard session.isReachable else {
-            queueControlMessage(enriched, on: session, pendingStatus: pendingStatus)
-            return
-        }
-        sendLiveControlMessage(enriched, on: session, successStatus: successStatus)
-    }
-
-    /// The iPhone is not reachable: queue the intent via applicationContext so
-    /// it is not dropped. The phone picks up the latest the moment its
-    /// WCSession delegate runs again; past `expiresAt` it ignores it.
-    ///
-    /// The context holds one intent, so a queued End is never replaced by a
-    /// later Pause or Resume while the iPhone may still act on it: losing the
-    /// End would leave the workout running. Once the iPhone has reported the
-    /// workout stopped (`isRecording` false), the End no longer holds anything
-    /// back.
-    @MainActor
-    private func queueControlMessage(_ payload: [String: Any], on session: WCSession, pendingStatus: String) {
-        if WatchMessageDecoding.wouldDisplaceQueuedStop(
-            payloadType: payload["type"] as? String, pending: session.applicationContext,
-            phoneRecording: isRecording, now: Date().timeIntervalSince1970
-        ) {
-            let stopping = String(localized: "Stopping on iPhone…")
-            return showControlStatus(String(localized: "\(stopping) (open iPhone)"))
-        }
-        do {
-            try session.updateApplicationContext(Self.withQueueExpiry(payload))
-            showControlStatus(String(localized: "\(pendingStatus) (open iPhone)"))
-        } catch {
-            showControlStatus(String(localized: "Couldn't reach iPhone: \(error.localizedDescription)"))
-        }
-    }
-
-    /// `@Sendable` handlers: WatchConnectivity runs them on its own queue (see
-    /// `sendLiveVoiceChatRequest`). Only the decoded status line crosses the
-    /// hop. Any answer to a start, refusal or error included, ends the
-    /// "Starting…" wait: the iPhone's reason is the message to show, not a
-    /// later "didn't acknowledge".
-    private func sendLiveControlMessage(_ payload: [String: Any], on session: WCSession, successStatus: String) {
-        let isStart = payload["type"] as? String == "startWorkoutFromWatch"
-        let sport = payload["sport"] as? String
-        session.sendMessage(
-            payload,
-            replyHandler: { @Sendable [weak self] reply in
-                let status = WatchMessageDecoding.controlReplyStatus(reply, sport: sport, successStatus: successStatus)
-                Task { @MainActor in self?.finishControlRequest(status: status, isStart: isStart) }
-            },
-            errorHandler: { @Sendable [weak self] err in
-                let status = String(localized: "Couldn't reach iPhone: \(err.localizedDescription)")
-                Task { @MainActor in self?.finishControlRequest(status: status, isStart: isStart) }
-            }
-        )
-    }
-
-    private func finishControlRequest(status: String, isStart: Bool) {
-        if isStart { clearStartWorkoutRequest() }
-        showControlStatus(status)
     }
 
     // MARK: - State restoration (Watch → phone)
@@ -775,18 +656,22 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// `requestCurrentState` reply carries `isRecording: true` and lands here. The session is discarded on stop and
     /// never finalized into a saved workout, so it cannot duplicate the
     /// iPhone's. Runs in both display-only and legacy modes.
+    ///
+    /// The iPhone reporting it is not recording, with no transition, lets go
+    /// of a session watchOS handed back after a relaunch that the iPhone never
+    /// asked for (`WatchWorkoutManager.notePhoneNotRecording`).
     private func driveKeepAliveSession(wasRecording: Bool, update: WatchMessageDecoding.StateUpdate) {
         switch WatchMessageDecoding.recordingTransition(wasRecording: wasRecording, update: update) {
         case .started: workoutManager?.start(sportRaw: sportRaw)
         case .stopped: workoutManager?.stop()
-        case .none: break
+        case .none: if update.isRecording == false { workoutManager?.notePhoneNotRecording() }
         }
     }
 
     /// Clear the Watch's "Starting…" overlay the moment iOS
     /// confirms recording is live. Prevents a stale-spinner edge case if the
     /// user crosses back to the Start screen before the 10 s timeout fires.
-    private func clearStartWorkoutRequest() {
+    func clearStartWorkoutRequest() {
         guard startWorkoutRequestInFlight else { return }
         startWorkoutRequestInFlight = false
         startWorkoutTimeoutTask?.cancel()
@@ -813,8 +698,20 @@ final class WatchSessionManager: NSObject, ObservableObject {
         case .stopWorkout: workoutManager?.stop()
         case let .strapState(connected, deviceName): applyStrapState(connected, name: deviceName)
         case .liveState, .voiceChatState: break
+        case let .coachAlert(urgent, firedAt): playCoachAlert(urgent: urgent, firedAt: firedAt)
         case let .unknown(raw): noteUnrecognisedCommand(raw)
         }
+    }
+
+    /// The wrist haptic for a coach alert the iPhone fired (a strap drop, a
+    /// user-set threshold, a heart-rate spike or cadence drop): `.failure`
+    /// for an urgent one, `.notification` otherwise. One that arrives too
+    /// late to mean anything (`WatchMessageDecoding.playsCoachAlert`) plays
+    /// nothing. The iPhone decides whether alerts are on; the Watch only
+    /// plays what it is sent.
+    private func playCoachAlert(urgent: Bool, firedAt: Double?) {
+        guard WatchMessageDecoding.playsCoachAlert(firedAt: firedAt, now: Date().timeIntervalSince1970) else { return }
+        WKInterfaceDevice.current().play(urgent ? .failure : .notification)
     }
 
     /// The `startWorkout` command starts the keep-alive session only in legacy

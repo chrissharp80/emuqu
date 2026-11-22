@@ -4,7 +4,8 @@ import UIKit
 // Share plumbing for the recap card, shared by the Dashboard chip and the
 // Recovery-score detail screen. Both need the same three steps — name the
 // PNG, walk to the topmost presenter, present the activity sheet — and
-// separate copies drift.
+// separate copies drift. Export files shared once (`FileShareButton`) are
+// presented the same way (`presentFileShareSheet`).
 
 /// Share filename. Sharing a `UIImage` directly makes iOS
 /// auto-name the attachment "Image" or "IMG_XXXX.png", which looks awful when
@@ -66,11 +67,22 @@ private func recapShareFile(_ activityItem: Any) -> URL? {
     return folder == recapShareDirectory.standardizedFileURL ? url : nil
 }
 
-/// A share-sheet completion that deletes `file`, logging a failed delete.
-private func removeAfterSharing(_ file: URL) -> UIActivityViewController.CompletionWithItemsHandler {
-    { _, _, _, _ in
-        _ = attempt("share.png.remove") { try FileManager.default.removeItem(at: file) }
+/// A share-sheet completion that runs `shareSheetClosed`.
+private func closingHandler(
+    removing file: URL?, onClosed: (@MainActor @Sendable () -> Void)?
+) -> UIActivityViewController.CompletionWithItemsHandler {
+    { _, _, _, _ in shareSheetClosed(removing: file, onClosed: onClosed) }
+}
+
+/// The share sheet closed: deletes `file`, when given, logging a failed
+/// delete, then runs `onClosed` (UIKit calls the completion on the main
+/// thread).
+private func shareSheetClosed(removing file: URL?, onClosed: (@MainActor @Sendable () -> Void)?) {
+    if let file {
+        _ = attempt("share.file.remove") { try FileManager.default.removeItem(at: file) }
     }
+    guard let onClosed else { return }
+    MainActor.assumeIsolated { onClosed() }
 }
 
 /// Shares `activityItem` from `presenter`. A recap PNG is deleted once the
@@ -78,7 +90,28 @@ private func removeAfterSharing(_ file: URL) -> UIActivityViewController.Complet
 @MainActor
 func presentShareSheet(activityItem: Any, from presenter: UIViewController) {
     let activityVC = UIActivityViewController(activityItems: [activityItem], applicationActivities: nil)
-    activityVC.completionWithItemsHandler = recapShareFile(activityItem).map(removeAfterSharing)
+    activityVC.completionWithItemsHandler = recapShareFile(activityItem).map { closingHandler(removing: $0, onClosed: nil) }
+    presentActivitySheet(activityVC, from: presenter)
+}
+
+/// Shares `file`, written for this one share, from `presenter`, and deletes
+/// it once the sheet closes, whether the user shared it or cancelled; then
+/// `onClosed` runs. With a `title` the sheet's header shows it and the
+/// `iconName` symbol (`ShareFileItem`); without one it shows the file's name.
+@MainActor
+func presentFileShareSheet(
+    _ file: URL, title: String?, iconName: String? = nil, from presenter: UIViewController,
+    onClosed: (@MainActor @Sendable () -> Void)? = nil
+) {
+    let item: Any = title.map { ShareFileItem(file: file, title: $0, iconName: iconName) } ?? file
+    let activityVC = UIActivityViewController(activityItems: [item], applicationActivities: nil)
+    activityVC.completionWithItemsHandler = closingHandler(removing: file, onClosed: onClosed)
+    presentActivitySheet(activityVC, from: presenter)
+}
+
+/// Presents `activityVC` from `presenter`, anchored for iPad.
+@MainActor
+private func presentActivitySheet(_ activityVC: UIActivityViewController, from presenter: UIViewController) {
     // iPad popover anchor — without this, presenting on iPad crashes.
     if let popover = activityVC.popoverPresentationController {
         popover.sourceView = presenter.view

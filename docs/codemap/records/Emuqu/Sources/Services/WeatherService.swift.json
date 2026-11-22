@@ -68,9 +68,30 @@
    }
   },
   {
+   "key": "func WeatherService.forgetAfterPurge()",
+   "hash": "085ce1c65ffd579e",
+   "does": "Delete All My Data: cancels a fetch in flight and clears the snapshot, the forecast, the fetch time and the place they were fetched for; lastRequestAt (MET Norway's request spacing) is kept.",
+   "entry": "Called from DataPurgeService.forgetInMemoryStores.",
+   "calls": [],
+   "reads": [
+    "mem:WeatherService.inflightTask"
+   ],
+   "writes": [
+    "mem:WeatherService.inflightTask",
+    "mem:WeatherService.snapshot",
+    "mem:WeatherService.forecast",
+    "mem:WeatherService.fetchedAt",
+    "mem:WeatherService.fetchedAtCoord"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.snapshot(at:)": "ac9d70b86a004b09"
+   }
+  },
+  {
    "key": "func WeatherService.refreshIfNeeded(for:)",
-   "hash": "0de5843d7fdafba2",
-   "does": "If a location is given, no request is in flight and cacheCovers is false: rounds the coordinate to 2 decimals, sends If-Modified-Since only for the identical rounded place, records lastRequestAt, and starts a main-actor Task that awaits the off-main fetch through the stored transport, applies the outcome and, in the same turn (defer), clears the in-flight slot.",
+   "hash": "9f93ea3a332cc189",
+   "does": "If a location is given, no request is in flight and cacheCovers is false: rounds the coordinate to 2 decimals, sends If-Modified-Since only for the identical rounded place, records lastRequestAt, and starts a main-actor Task that awaits the off-main fetch through the stored transport. Unless it was cancelled meanwhile (forgetAfterPurge), the task clears the in-flight slot and applies the outcome in the same turn; a cancelled task leaves the slot as it is (the purge cleared it, and it may hold a newer request).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.cacheCovers(_:)",
@@ -99,6 +120,11 @@
      "at": "+3",
      "cond": "rounded coord equals fetchedAtCoord",
      "effect": "sends forecast.lastModified as If-Modified-Since; otherwise nil (unconditional GET)"
+    },
+    {
+     "at": "+13",
+     "cond": "the task was cancelled",
+     "effect": "the outcome is dropped and the slot is not touched"
     }
    ],
    "deps": {

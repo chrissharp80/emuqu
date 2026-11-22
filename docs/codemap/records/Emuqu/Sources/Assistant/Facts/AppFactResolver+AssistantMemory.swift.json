@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift",
- "hash": "c01a1a843d67bbbf",
- "role": "Declares AssistantMemoryNamespace (namespace 'assistant'): fact/action entries over UserFactsStore (assistant.memory.*), AssistantArtifactStore (assistant.artifacts.*), and the user-quote gate helpers shared with the contacts/email actions. assistant.memory.remove/.clear hand over to the confirmation-gated cores in AppFactResolver+AssistantConfirmation.swift; assistant.memory.restore undoes a confirmed clear.",
+ "hash": "a92b829ff2ca6a32",
+ "role": "Declares AssistantMemoryNamespace (namespace 'assistant'): fact/action entries over UserFactsStore (assistant.memory.*), AssistantArtifactStore (assistant.artifacts.*), and the user-quote gate helpers shared with the contacts/email actions. assistant.memory.remove/.clear hand over to the confirmation-gated cores in AppFactResolver+AssistantConfirmation.swift; assistant.memory.restore undoes a confirmed clear. assistant.memory.add saves through saveMemoryFact, which asks the user first when the text is not in their own latest message; saved facts are recorded with origin .user.",
  "types": [
   "AssistantMemoryNamespace: struct (FactNamespaceResolver) — 'assistant' namespace for memory facts, artifacts, contacts, email compose"
  ],
  "state": [
   "let namespace = 'assistant'",
-  "static let assistantMemoryAddDescription",
+  "static let assistantMemoryAddDescription (says a fact not in the user's words needs a plain-yes confirmation first)",
   "static let maxFactLength = 160",
   "static let assistantArtifactsListDescription",
   "static let assistantArtifactsAddDescription (requires user_quote)"
@@ -155,15 +155,15 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantMemoryAdd(_:)": "08821123a3191d5d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.resolveAssistantMemoryAdd(_:)": "d9a396e120527dca",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "96217c66f5b84d41",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
    }
   },
   {
    "key": "func AssistantMemoryNamespace.resolveAssistantMemoryAdd(_:)",
-   "hash": "0d6c392b7daafb0b",
-   "does": "Requires non-empty text of at most 160 characters; when auto-memory is off requires user_quote in the latest user message; then stores it via storeFact, which reports whether it was added and which oldest facts were evicted.",
+   "hash": "72726ef15a7cb7b8",
+   "does": "Requires non-empty text of at most 160 characters; when auto-memory is off requires user_quote in the latest user message; then on the main actor hands over to saveMemoryFact with the live facts store and confirmation context, which saves only once the text is the user's own words or they confirmed it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
@@ -171,16 +171,19 @@
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.autoExtractEnabled",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.storeFact(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.saveMemoryFact(_:store:context:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live",
     "ext:MainActor.assumeIsolated"
    ],
    "reads": [
     "ud:assistant.autoExtractFacts",
-    "mem:AssistantViewModel.turns"
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantActionConfirmations.pending"
    ],
    "writes": [
     "file:AppGroup/Assistant/user_facts.json (UserFactsStore)",
-    "mem:UserFactsStore.facts"
+    "mem:UserFactsStore.facts",
+    "mem:AssistantActionConfirmations.pending"
    ],
    "branches": [
     {
@@ -196,13 +199,14 @@
     {
      "at": "+10",
      "cond": "auto-memory on OR user_quote found in latest user message",
-     "effect": "storeFact; else userRequestRequired('save a memory fact while auto-memory is off')"
+     "effect": "saveMemoryFact; else userRequestRequired('save a memory fact while auto-memory is off')"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.autoExtractEnabled": "dd33e78cb9e18d0d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "e14cfc2abc4d9911",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.storeFact(_:)": "af3122e37c137e84",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live": "fba34d98abddbf6a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "37d7f0088e388109",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.saveMemoryFact(_:store:context:)": "54701a125aa0ead2",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "a2b5550709809fa9",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
@@ -210,15 +214,43 @@
    }
   },
   {
-   "key": "func AssistantMemoryNamespace.storeFact(_:)",
-   "hash": "74c694d7a86f9dd7",
-   "does": "On the main actor: calls UserFactsStore.add(text) and compares fact ids before and after; returns {added:false, text, note 'already saved'} when the store kept an existing same-text fact, else {added:true, text} plus evicted_oldest (texts of facts dropped by the 25-fact cap) when any.",
+   "key": "func AssistantMemoryNamespace.saveMemoryFact(_:store:context:)",
+   "hash": "ab57b14a4cdf652f",
+   "does": "Main actor. Asks first (gateUnlessUserStated with [text], action assistant.memory.add, target the text, question 'Save \"<text>\" to your memory? Reply yes to confirm.') unless the text is in the user's own latest message, returning the gate's answer when it does not pass; then storeFact(text, in: store).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.userFactsStore",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
-    "ext:MainActor.assumeIsolated"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.storeFact(_:in:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns (context transcript)",
+    "mem:AssistantActionConfirmations.pending",
+    "mem:UserFactsStore.facts"
+   ],
+   "writes": [
+    "mem:AssistantActionConfirmations.pending",
+    "mem:UserFactsStore.facts",
+    "file:AppGroup/Assistant/user_facts.json (UserFactsStore)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "text not stated by the user and the request not confirmed",
+     "effect": "return the confirmation_required (or no-user-message) answer; nothing saved"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "fa5e4ee2a83fe2df",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.storeFact(_:in:)": "60a1b6f5dc90fb56"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.storeFact(_:in:)",
+   "hash": "e0a116fd29c91f30",
+   "does": "Main actor: adds the text to `store` with origin .user and compares fact ids before and after; returns {added:false, text, note 'already saved'} when the store kept an existing same-text fact, else {added:true, text} plus evicted_oldest (texts of facts dropped by the 25-fact cap) when any.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:origin:)"
    ],
    "reads": [
     "mem:UserFactsStore.facts"
@@ -229,21 +261,18 @@
    ],
    "branches": [
     {
-     "at": "+9",
+     "at": "+7",
      "cond": "no new fact id after add",
      "effect": "added:false record"
     },
     {
-     "at": "+13",
+     "at": "+11",
      "cond": "facts evicted",
      "effect": "add evicted_oldest list"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.userFactsStore": "05bda0e1f9522c3e"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:origin:)": "7b073d2d38c04085"
    }
   },
   {
@@ -299,6 +328,27 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.isMeaningfulSpan(_:)": "f7eaf36f79acb64a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.normalizedForQuote(_:)": "db28fa8ab151d29f"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.isStated(_:in:)",
+   "hash": "e5ce179e6858f880",
+   "does": "Pure: normalizes value and message (normalizedForQuote: lowercase, punctuation stripped, whitespace collapsed) and returns true when the value appears in the message as whole words (space-bounded); false when the value normalizes to empty or the message is nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.normalizedForQuote(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "value empty after normalizing, or no message",
+     "effect": "return false"
+    }
+   ],
+   "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.normalizedForQuote(_:)": "db28fa8ab151d29f"
    }
   },

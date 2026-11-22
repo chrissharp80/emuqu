@@ -125,7 +125,7 @@
   },
   {
    "key": "func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)",
-   "hash": "1c7b9b497437ab62",
+   "hash": "7b6451b56c9b26fe",
    "does": "Builds RRSeries for both and tries createComposite; returns the composite ('composite (internal + streaming gap-fill)') or, if nil, the streaming points ('streaming (composite failed)').",
    "entry": null,
    "calls": [
@@ -142,7 +142,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "582e36e6a1520c96",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "67a35a6721da0066",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -159,8 +159,8 @@
   },
   {
    "key": "func DataSourceSelector.createComposite(internalSeries:streamingSeries:)",
-   "hash": "04093f14043cd06d",
-   "does": "Returns nil for empty series or when no internal gap can be filled from streaming; otherwise finds the internal gaps once and merges internal with every streaming beat it does not cover — inside a gap or before its first / after its last beat (uncoveredBeats) — logging how many were added.",
+   "hash": "8a047fe0a7d99d28",
+   "does": "Returns nil for empty series or when streaming has no beat the internal series lacks; otherwise finds the internal gaps once and merges internal with every streaming beat it does not cover — inside a gap or before its first / after its last beat (uncoveredBeats; a strap series, summed from its intervals, has no gaps, so for it this is the stretch it was not recording) — logging how many were added and how many of them fill gaps (fillableGapSummary).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)",
@@ -178,9 +178,14 @@
      "effect": "logs and returns nil"
     },
     {
-     "at": "+11",
-     "cond": "fillableGapSummary nil (no gaps or none fillable)",
-     "effect": "returns nil → caller uses streaming"
+     "at": "+13",
+     "cond": "no uncovered streaming beat (none in a gap, none outside the internal span)",
+     "effect": "logs and returns nil → caller uses streaming"
+    },
+    {
+     "at": "+18",
+     "cond": "fillableGapSummary nil",
+     "effect": "log reports 0 gap beats"
     }
    ],
    "deps": {

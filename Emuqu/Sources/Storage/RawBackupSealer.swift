@@ -12,8 +12,9 @@ protocol SealableBackupStore: AnyObject {
     /// The points file of the session and any set aside from it.
     func appendPointFiles(of sessionId: UUID) -> [URL]
     /// Writes `points` as the session's one-shot backup and indexes it.
+    /// The caller is on the store's `appendQueue`.
     @discardableResult
-    func backup(points: [RRPoint], sessionId: UUID, deviceId: String?, captureDate: Date?) throws -> RawRRBackup.BackupEntry
+    func backupOnAppendQueue(points: [RRPoint], sessionId: UUID, deviceId: String?, captureDate: Date?) throws -> RawRRBackup.BackupEntry
     /// Sets the archived flag of the session's row.
     func markAsArchived(_ sessionId: UUID)
 }
@@ -176,12 +177,12 @@ struct RawBackupSealer {
     }
 
     /// The fullest unindexed one-shot file of the session becomes the backup
-    /// via the store's `backup()`, archived flag kept; a failure is logged.
+    /// via the store's `backupOnAppendQueue`, archived flag kept; a failure is logged.
     private func adoptFullerBackup(_ sessionId: UUID, in store: some SealableBackupStore) {
         do {
             guard let indexed = store.existingIndexEntry(sessionId),
                   let fuller = try OneShotBackupName.fullerUnindexedBackup(than: indexed, in: directory) else { return }
-            try store.backup(points: fuller.points, sessionId: sessionId, deviceId: fuller.deviceId, captureDate: fuller.captureDate)
+            try store.backupOnAppendQueue(points: fuller.points, sessionId: sessionId, deviceId: fuller.deviceId, captureDate: fuller.captureDate)
             if indexed.archived { store.markAsArchived(sessionId) }
         } catch {
             debugLog("[RawRRBackup] adopting a fuller backup of \(sessionId.uuidString.prefix(8)) failed: \(error)", level: .warning)

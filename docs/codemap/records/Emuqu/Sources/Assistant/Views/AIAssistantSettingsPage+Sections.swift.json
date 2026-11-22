@@ -777,7 +777,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.addFactRow": "5603f05032f2e6dd",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.addFactRow": "de23e3ab5b9b5908",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.autoRememberToggle": "2f86e0be41e89571",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.forgetEverythingButton": "dd29be2c6377092b",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.rememberedFactsList": "6f4311968f41ff83"
@@ -902,11 +902,11 @@
   },
   {
    "key": "var AIAssistantSettingsPage.addFactRow",
-   "hash": "e35ed1512e2fbdbb",
-   "does": "Multi-line TextField bound to newFactText plus a plus button that calls facts.add and clears the field; button disabled when text is blank (spaces only).",
+   "hash": "814dcef9a68814d7",
+   "does": "Multi-line TextField bound to newFactText plus a plus button that calls facts.add with origin .user (the user typed it) and clears the field; button disabled when text is blank (spaces only).",
    "entry": "SwiftUI Button action / view-builder",
    "calls": [
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:origin:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -922,7 +922,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:origin:)": "7b073d2d38c04085",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts": "ad59c042de644b04",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }

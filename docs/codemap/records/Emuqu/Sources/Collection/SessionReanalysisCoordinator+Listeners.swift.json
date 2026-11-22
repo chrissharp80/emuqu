@@ -483,7 +483,7 @@
    "deps": {
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)": "b170cf5d249adeeb",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -550,7 +550,7 @@
   },
   {
    "key": "func SessionReanalysisCoordinator.backfillPass(over:maxPerCycle:)",
-   "hash": "d2177970b940e24f",
+   "hash": "01c41234d9fe9715",
    "does": "Walks the queue, processing at most maxPerCycle sessions that still need snapshots; returns done, missed and processed count.",
    "entry": null,
    "calls": [
@@ -578,13 +578,13 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.backfillOneSession(_:sessionId:)": "c2aae83fd363fbfc",
-    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.sessionNeedingSnapshots(_:)": "7b4f0f850d97ad8b"
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.sessionNeedingSnapshots(_:)": "7afd88217f253fc1"
    }
   },
   {
    "key": "func SessionReanalysisCoordinator.sessionNeedingSnapshots(_:)",
-   "hash": "e2884391e86fde93",
-   "does": "Returns the archived session when it has no sleepSnapshot and is not user-adjusted; nil otherwise, when it is not archived, or when its read throws (logged at .error by ArchivedSessionRead).",
+   "hash": "df426e2d27c4b71a",
+   "does": "Reads the archived session on a detached task (decrypt and decode off the main actor) and returns it when it has no sleepSnapshot and is not user-adjusted; nil otherwise, when it is not archived, or when its read throws (logged at .error by ArchivedSessionRead).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ArchivedSessionRead.read(_:from:caller:)",
@@ -596,7 +596,7 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+5",
      "cond": "not archived, unreadable, has sleepSnapshot, or user-adjusted",
      "effect": "nil"
     }
@@ -664,7 +664,7 @@
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.pulledSessionSleep(session:sessionEnd:sessionId:)": "897eef7285ba691b",
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.pulledSessionVitals(session:sessionEnd:)": "a691adfe5082eebe",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "cf6f3e738d761a42",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

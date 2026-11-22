@@ -79,7 +79,7 @@
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "5dc05159bc65d04f",
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
     "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.removeRetiredOfflineQueue(in:)": "b95566893975b8ba",
     "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "42f9f1d1676e14d4",
@@ -111,9 +111,9 @@
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
     "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.verifyIntegrity()": "44cb7266b59d022f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "5dc05159bc65d04f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
     "EmuquTests/IntegrationTests.swift::func IntegrationTests.createTestSeries(beatCount:sessionId:)": "07817035de90f97b"
    }
@@ -137,8 +137,8 @@
   },
   {
    "key": "func IntegrationTests.testRecoveryWindowSelectionWithTemporalConstraints()",
-   "hash": "6eb3581c07566710",
-   "does": "Builds an 8 h seeded synthetic RR series (two sine waves + seeded noise), detects artifacts, runs WindowSelector.findBestWindow with wake at the end, asserts a window is found and, if it has a relativePosition, that it lies in 0.30…0.70.",
+   "hash": "234cb61a0f288efd",
+   "does": "Builds an 8 h seeded synthetic RR series (two sine waves + seeded noise), detects artifacts, runs WindowSelector.findBestWindow with wake at the end, unwraps the window and its relativePosition (an organized window always carries one) and asserts the position lies in 0.30…0.70.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
@@ -156,11 +156,6 @@
      "at": "+10",
      "cond": "for i in 0..<28800",
      "effect": "appends one synthetic beat per index"
-    },
-    {
-     "at": "+35",
-     "cond": "window non-nil and relativePosition non-nil",
-     "effect": "asserts 0.30 ≤ position ≤ 0.70; when relativePosition is nil the band check is skipped silently"
     }
    ],
    "deps": {

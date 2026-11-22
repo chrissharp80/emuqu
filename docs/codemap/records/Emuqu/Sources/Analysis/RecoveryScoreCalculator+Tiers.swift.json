@@ -10,8 +10,8 @@
  "units": [
   {
    "key": "func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
-   "hash": "3e56c4d5c7ba8803",
-   "does": "Tier-1 HRV score 0-100: with baseline stats and rmssd>0 returns clamp(baselineNormalisedScore); else readiness*10 clamped; else 50 (neutral) when rmssd<=0; else absolute RMSSD threshold score clamped.",
+   "hash": "e9556b08b7a038f2",
+   "does": "Tier-1 HRV score 0-100: with baseline stats and rmssd>0 returns clamp(baselineNormalisedScore); with no baseline and rmssd>0 returns the clamped absolute RMSSD band score (the register's rmssd-absolute-fallback-bands); with no usable rmssd returns readiness*10 clamped when a readiness score is given, else 50 (neutral).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)",
@@ -26,19 +26,19 @@
      "effect": "true: returns min(100,max(0,baselineNormalisedScore(...))); false: falls through to fallbacks"
     },
     {
-     "at": "+17",
-     "cond": "readiness (legacy 1-10 readiness score) non-nil",
-     "effect": "true: returns readiness*10 clamped 0-100 (no baseline used even if rmssd is valid); false: continue"
+     "at": "+21",
+     "cond": "rmssd > 0 (no baseline yet)",
+     "effect": "returns clamped absoluteRMSSDScore(rmssd)"
     },
     {
-     "at": "+18",
-     "cond": "rmssd > 0",
-     "effect": "false: returns AbsoluteRMSSDFallback.neutralScore (50); true: returns clamped absoluteRMSSDScore(rmssd)"
+     "at": "+24",
+     "cond": "readiness (legacy 1-10 readiness score) non-nil",
+     "effect": "true: returns readiness*10 clamped 0-100; false: returns AbsoluteRMSSDFallback.neutralScore (50)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.absoluteRMSSDScore(_:)": "0f962dbde1e887ac",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "4c8862ede6aff1de"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "b536be8bd8b90fe8"
    }
   },
   {

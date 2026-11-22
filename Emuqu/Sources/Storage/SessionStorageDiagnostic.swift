@@ -73,11 +73,13 @@ enum SessionStorageDiagnostic {
         let archiveTotalBytes: Int64
         /// Total bytes used by all RawRRBackup files (backup directory).
         let backupTotalBytes: Int64
-        /// IDs that exist in RawRRBackup but NOT in the archive index —
-        /// orphaned backups. These usually mean a recording finished and
-        /// was backed up but the archive write either crashed or was
-        /// never called. Could indicate recoverable sessions that
-        /// never made it to history.
+        /// IDs of backups never marked archived whose session is neither in
+        /// the archive index nor deleted — orphaned backups. These usually
+        /// mean a recording finished and was backed up but the archive write
+        /// either crashed or was never called. Could indicate recoverable
+        /// sessions that never made it to history. A backup marked archived
+        /// under an id the index lacks was folded into another session of
+        /// its night, and is not lost.
         let orphanedBackupIds: [UUID]
     }
 
@@ -96,12 +98,9 @@ enum SessionStorageDiagnostic {
     /// keeps ids / list / count mutually consistent.
     static func run(archive: SessionArchive, backup: RawRRBackup) -> Report {
         let archiveEntries = archive.entries
-        let archivedIds = Set(archiveEntries.map(\.sessionId))
-        let backupIds = Set(backup.allBackupIds())
         let sessions = archiveEntries.map { inspectSession(entry: $0, archive: archive, backup: backup) }
         let counts = statusCounts(in: sessions)
-        // Orphaned backups: in RawRRBackup index but not in archive index.
-        let orphaned = backupIds.subtracting(archivedIds).sorted { $0.uuidString < $1.uuidString }
+        let orphaned = orphanedBackupIds(archivedIds: Set(archiveEntries.map(\.sessionId)), archive: archive, backup: backup)
         return Report(
             totalSessions: archiveEntries.count,
             archivedFullCount: counts[.archivedFull] ?? 0,
@@ -114,6 +113,14 @@ enum SessionStorageDiagnostic {
             backupTotalBytes: backup.totalBackupSize,
             orphanedBackupIds: orphaned
         )
+    }
+
+    /// Backups never marked archived whose session is not in `archivedIds`
+    /// and was not deleted (`Report.orphanedBackupIds`), in id order.
+    static func orphanedBackupIds(archivedIds: Set<UUID>, archive: SessionArchive, backup: RawRRBackup) -> [UUID] {
+        Set(backup.unarchivedSessionIds).subtracting(archivedIds)
+            .filter { !archive.wasIntentionallyDeleted($0) }
+            .sorted { $0.uuidString < $1.uuidString }
     }
 
     static func statusCounts(in sessions: [SessionReport]) -> [RRStatus: Int] {
@@ -136,7 +143,7 @@ enum SessionStorageDiagnostic {
         backup: RawRRBackup
     ) -> SessionReport {
         // (1) Archive file size — useful regardless of decode outcome.
-        let fileURL = archive.archiveDirectory.appendingPathComponent(entry.filePath)
+        let fileURL = archive.resolveFileURL(for: entry)
         let fileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? Int64) ?? 0
         // Looked up before the decode: an unreadable archive file whose beats
         // survive in the backup is exactly the case the audit exists to show.
@@ -220,23 +227,5 @@ enum SessionStorageDiagnostic {
             size += Int64(values?.fileSize ?? 0)
         }
         return size
-    }
-}
-
-// MARK: - RawRRBackup helper API
-
-extension RawRRBackup {
-    /// Diagnostic helper — every session ID currently in the backup
-    /// index, regardless of archived flag. Used by `SessionStorageDiagnostic`
-    /// to detect orphaned backups (in the backup but not in the
-    /// archive index, e.g. because an archive write crashed).
-    ///
-    /// Read from the index itself: going through `allBackups` decoded and
-    /// hashed every backup just to list ids, and dropped those that failed
-    /// to decode.
-    func allBackupIds() -> [UUID] {
-        indexLock.lock()
-        defer { indexLock.unlock() }
-        return index.map(\.id)
     }
 }

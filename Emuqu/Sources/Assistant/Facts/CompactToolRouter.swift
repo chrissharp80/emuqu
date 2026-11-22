@@ -327,7 +327,7 @@ struct CompactToolRouter {
     private static func readTools5b() -> [ToolSpec] {
         [
             // 14. get_score_meta
-            spec("get_score_meta", "Recovery-score algorithm metadata. `field`: 'algorithm_version' (current scoring version, e.g. 'v3.2.oct2026') or 'history_recomputed' (whether the user has run the v1→v2 history recompute).", [
+            spec("get_score_meta", "Recovery-score algorithm metadata. `field`: 'algorithm_version' (current scoring version, e.g. 'v3.3.nov2026') or 'history_recomputed' (whether the user has run the v1→v2 history recompute).", [
                 ("field", "'algorithm_version' or 'history_recomputed'")
             ], required: ["field"]),
             // 15. get_breadcrumbs
@@ -394,7 +394,8 @@ struct CompactToolRouter {
             // 21. lookup_fact (universal fallback)
             spec("lookup_fact", """
                 Long-tail fact lookup by raw fact-catalog key. Use this only when no other tool fits — most needs are covered by the typed tools above. Example keys: 'recovery.today.full', 'session.latest.id', 'training.load.acwr'. Pass `key` as the \
-                dotted path. Parameterised keys take their parameter inline like 'session.by_date(2026-04-21)'.
+                dotted path. Parameterised keys take their parameter inline like 'session.by_date(2026-04-21)'. The app manual is here too: \
+                'app.help.lookup(<topic>)' returns one section (topics are listed in the app reference).
                 """, [
                 ("key", "Dotted fact-catalog key")
             ], required: ["key"])

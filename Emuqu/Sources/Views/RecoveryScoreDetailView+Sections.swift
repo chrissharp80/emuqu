@@ -454,10 +454,11 @@ extension RecoveryScoreDetailView {
         return String(localized: "HRV \(rmssdText), \(sign)\(Int(pct.rounded()))% vs your average", bundle: LanguageManager.appBundle)
     }
 
+    /// Nil without a strap heart rate (`strapSleepHR`), never "Sleep HR 0 bpm".
     func sleepHRFinding() -> String? {
-        guard let meanHR = baselineStats?.meanHRBaseline, meanHR > 0 else { return nil }
-        let delta = result.timeDomain.meanHR - meanHR
-        let bpm = Int(result.timeDomain.meanHR.rounded())
+        guard let meanHR = baselineStats?.meanHRBaseline, meanHR > 0, let sleepHR = strapSleepHR else { return nil }
+        let delta = sleepHR - meanHR
+        let bpm = Int(sleepHR.rounded())
         guard abs(delta) >= 1 else {
             return String(localized: "Sleep HR \(bpm) bpm (at baseline)", bundle: LanguageManager.appBundle)
         }
@@ -611,7 +612,8 @@ enum RecoveryDetailCopy {
         case "streaming": String(localized: "Streaming", bundle: LanguageManager.appBundle)
         case "internal": String(localized: "Strap recording", bundle: LanguageManager.appBundle)
         case "composite": String(localized: "Merged", bundle: LanguageManager.appBundle)
-        default: source
+        // Not shown raw: the tag is internal English text.
+        default: String(localized: "Unknown", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -668,12 +670,15 @@ enum RecoveryDetailCopy {
     }
 
     /// The value clause is left out when no SpO₂ reading is in hand, rather
-    /// than reading "dropped to 0%".
+    /// than reading "averaged 0%". The value is the night's average
+    /// (`oxygenSaturation`), the reading the penalty is judged on
+    /// (`RecoveryVitals.isSpO2Concerning`), so it is worded as one and not
+    /// as the lowest reading.
     static func spo2PenaltyText(points: Int, value: Double?) -> String {
         guard let value else {
             return String(localized: "−\(points) penalty: low SpO₂.", bundle: LanguageManager.appBundle)
         }
-        return String(localized: "−\(points) penalty: SpO₂ dropped to \(Int(value.rounded()))%.", bundle: LanguageManager.appBundle)
+        return String(localized: "−\(points) penalty: SpO₂ averaged \(Int(value.rounded()))%.", bundle: LanguageManager.appBundle)
     }
 
     /// The method a stored result was selected by, from the fixed English
@@ -687,5 +692,12 @@ enum RecoveryDetailCopy {
         if reason.hasPrefix("Peak SDNN") { return .peakSDNN }
         if reason.hasPrefix("Peak RMSSD") { return .peakRMSSD }
         return nil
+    }
+
+    /// The window picker's starting segment: Best Recovery for the default
+    /// selection; nil for any other method, whose window no segment names,
+    /// so every segment is a tap that re-analyses.
+    static func initialSegment(forWindowReason reason: String?) -> RecoveryWindowSegment? {
+        storedWindowMethod(reason) == nil ? .bestRecovery : nil
     }
 }

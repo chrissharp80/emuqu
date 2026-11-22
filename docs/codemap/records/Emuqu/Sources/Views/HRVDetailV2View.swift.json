@@ -561,7 +561,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.startWarm(_:archive:)": "e98733fa7f596a01",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.overnightPriorIds(archive:)": "2ec2751dadca4cb2",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.scoreNight(priors:)": "f16291889a9109be",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.scoreNight(priors:)": "d9cb8df73562191e",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.waitForPriors(_:cache:)": "60946ae25f900576",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.cache": "3cc30a333cadf9ec"
    }
@@ -653,11 +653,12 @@
   },
   {
    "key": "func HRVDetailV2View.scoreNight(priors:)",
-   "hash": "76bec4e28474a5b5",
-   "does": "Builds a Beat Consistency baseline from the prior nights' features and scores tonight's RR series (with artifact flags and sleep bounds, defaulting to 0..durationMs) on a detached userInitiated task.",
+   "hash": "dc6b41517a24f17b",
+   "does": "Builds a Beat Consistency baseline from the prior nights' features and scores tonight's RR series (with artifact flags and the sleep window placed on the beats' clock by BeatConsistency.sleepWindowOnBeatClock) on a detached userInitiated task.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.effectiveRRSeries",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.sleepWindowOnBeatClock(sleepStartMs:sleepEndMs:series:sessionStart:)",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.buildBaseline(priorNights:config:)",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)"
    ],
@@ -667,28 +668,24 @@
     {
      "at": "+1",
      "cond": "effectiveRRSeries non-nil with points",
-     "effect": "false: returns nil (card shows empty state); true: continue"
+     "effect": "false: returns nil; true: continue"
     },
     {
      "at": "+3",
      "cond": "session.artifactFlags ?? []",
-     "effect": "nil flags → []: BeatConsistency.score treats empty flags as all-clean (BeatConsistency.swift:215)"
+     "effect": "nil flags → all-clean"
     },
     {
      "at": "+4",
-     "cond": "session.sleepStartMs ?? 0",
-     "effect": "nil → 0 (start of recording)"
-    },
-    {
-     "at": "+5",
-     "cond": "session.sleepEndMs ?? Int64(series.durationMs)",
-     "effect": "nil → full recording duration"
+     "cond": "sleep bounds nil",
+     "effect": "0 / full recording (sleepWindowOnBeatClock)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.buildBaseline(priorNights:config:)": "5b59be44acea5094",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "d7431f8070d2c93d",
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "b8e2a1bd40019ca9",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.buildBaseline(priorNights:config:)": "392a0e5f43af0327",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "094983fccfea6c40",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.sleepWindowOnBeatClock(sleepStartMs:sleepEndMs:series:sessionStart:)": "fb1deeaba93066d0",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.effectiveRRSeries": "0022a2d644038c48"
    }
   },
@@ -706,7 +703,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.heroHeadlineRow": "e17de1cb3352100f",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.heroSubtitle": "944602bf231ba4c3",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.heroSubtitle": "ee3be06edce60aea",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
@@ -755,8 +752,8 @@
   },
   {
    "key": "var HRVDetailV2View.heroSubtitle",
-   "hash": "89c7625acb740d0c",
-   "does": "One-sentence interpretation: generic copy without a baseline; else percent deviation of RMSSD from exp(lnMean) phrased per verdict.",
+   "hash": "9107ec11b9123b78",
+   "does": "One-sentence interpretation: generic copy unless the baseline has a mean and an SD above zero (the case the verdict compares against the baseline); else percent deviation of RMSSD from exp(lnMean) phrased per verdict.",
    "entry": "SwiftUI view-tree evaluation (re-evaluated on every body recompute of HRVDetailV2View)",
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.verdict",
@@ -767,26 +764,26 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "baselineStats?.lnRmssdMean non-nil and > 0",
+     "cond": "baselineStats lnRmssdMean > 0 and lnRmssdSD > 0 (the verdict also used the baseline)",
      "effect": "false: generic 'Today's RMSSD...' sentence; true: computes pct vs exp(mean)"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "verdict .excellent",
      "effect": "'N% above your baseline'"
     },
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "verdict .good",
      "effect": "'Within your usual range'"
     },
     {
-     "at": "+15",
+     "at": "+16",
      "cond": "verdict .fair",
      "effect": "'N% below your baseline'"
     },
     {
-     "at": "+17",
+     "at": "+18",
      "cond": "verdict .low",
      "effect": "'Well below your baseline'"
     }

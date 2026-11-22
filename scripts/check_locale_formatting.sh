@@ -20,7 +20,7 @@
 #     corrupted duration, not a localized one. Measured, not assumed. Any format
 #     string mixing %d with %f is left alone for a human to split.
 #
-#   * Only directories whose output a person reads: Views/ and Export/ (all of
+#   * Only directories whose output a person reads: the Watch app, Views/ and Export/ (all of
 #     whose format sites are PDF report text — CSVExporter has none, and must
 #     keep none, since a comma decimal separator would break the columns).
 #     Analysis/, Services/, Storage/ and friends mostly compute and log; POSIX
@@ -50,7 +50,8 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-SCAN_DIRS=("Emuqu/Sources/Views" "Emuqu/Sources/Export")
+# The Watch app is all display: every number it formats is read on the wrist.
+SCAN_DIRS=("Emuqu/Sources/Views" "Emuqu/Sources/Export" "EmuquWatch Watch App")
 # Narrative generators: they live under Analysis/ and ViewModels/ but their
 # output is sentences, not numbers for a machine.
 SCAN_GLOBS=(

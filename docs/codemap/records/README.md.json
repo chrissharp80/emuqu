@@ -36,16 +36,16 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "3964270adfea6cdb",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "36042c28cf8528af",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "9dd61611b15fc6b8",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "deb8f351263f64fc",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "72c81dbb40382d67",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1"
    }
   },
   {
    "key": "§ Emuqu > The hard parts",
-   "hash": "976d7be15106baeb",
-   "does": "Scoring version v3.2.oct2026 (ScoringVersion.current, ScoringVersion.swift:37), shown on score detail as 'Scored by <version>' (RecoveryScoreDetailView+Sections.swift:275-279); science register at Tools/science_register/register.json (exists); copy linter checks the 12 MedicalTermLexicon.neverInStaticCopy concepts (MedicalTermLexicon.swift:866-870) across translated catalogue strings in 17 locales; background BLE capture.",
+   "hash": "5b3138d33eec6c2c",
+   "does": "Scoring version v3.3.nov2026 (ScoringVersion.current, ScoringVersion.swift:37), shown on score detail as 'Scored by <version>' (RecoveryScoreDetailView+Sections.swift:275-279); science register at Tools/science_register/register.json (exists); copy linter checks the 12 MedicalTermLexicon.neverInStaticCopy concepts (MedicalTermLexicon.swift:866-870) across translated catalogue strings in 17 locales; background BLE capture.",
    "entry": null,
    "calls": [
     "Makefile::target copy-perimeter",
@@ -98,19 +98,17 @@
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingMetrics:config:ansBalance:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingContext:config:ansBalance:)",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "3964270adfea6cdb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "9dd61611b15fc6b8",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "0537b6229c6d467c",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingContext:config:ansBalance:)": "fc05f16d5d71d6fe",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingMetrics:config:ansBalance:)": "590efb2c7a569284",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "eb3b9be07070a091",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b"
    }
   },
   {
@@ -144,7 +142,7 @@
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "573ac4aba216c312",
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "dd8baa8be271270b",
     "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)": "dd30695f18f59a31",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "f5dffb131decedc0"
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "4f21d38ab14999a2"
    }
   },
   {
@@ -168,8 +166,8 @@
    "does": "SwiftUI/Concurrency; Polar BLE SDK plus direct BLE for Stryd/FTMS/PM5; HealthKit; Foundation Models and Speech as on-device frameworks; streaming HTTP/SSE for five cloud providers; encrypted archive, opt-in CloudKit with Apple Health data stripped (CloudSessionPayload.trainingWithoutHealthKitReadings / withoutHealthKitHR, CloudKitSyncSupport.swift); StoreKit 2 trial anchor surviving reinstalls (EntitlementAnchor synchronizable keychain).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)"
    ],
@@ -178,9 +176,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)": "6b1fb137822c7ac6",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)": "bc7707c0df3bc036",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "55b023f3b89c01c0"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "924265dc676fce0e",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)": "bc7707c0df3bc036",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074"
    }
   },
   {
@@ -202,13 +200,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "33c627035da22f46",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "1d2a4ac58caeb322",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "d6c953953bdfc507",
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "42657bcc4a447778",
-    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2eb0d3f9d4cf9d8a",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.parseCSV(_:)": "21238c5be834c4e0",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "0e1f4ca5e57ee8b5",
     "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "5ecdca0181ccc180",
     "Emuqu/Sources/Import/RRDataImporter+JSON.swift::func RRDataImporter.parseJSON(_:)": "f34fc998d77ad7c9",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.parse(_:as:)": "9240bd70f7839f61",
+    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.parse(_:as:)": "9777a4b60b9f2c1b",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1"
    }
   },
@@ -250,8 +248,8 @@
   },
   {
    "key": "§ Emuqu > Working on it > CI",
-   "hash": "7ff2654d7cc3b817",
-   "does": "Five workflows: gates.yml on push (also pull_request) runs bash/python gates plus gates-wired-guard and gate-preflight; ci.yml on every pull request and push to main at scope unit, on demand at any scope, and via workflow_call from testflight.yml at scope full; performance.yml, security.yml (CodeQL + dependency review) on demand; testflight.yml deploy needs quality-gate success. Claims the macOS build, unit suite and Thread Sanitizer run per pull request on the standard macOS runner at no minutes cost to a public repository, and the UI target and full coverage floors run on demand and before a release. scripts/evidence_report.sh exists.",
+   "hash": "b9bd6262cfa9f851",
+   "does": "Five workflows: gates.yml on push (also pull_request) runs bash/python gates plus gates-wired-guard and gate-preflight; ci.yml on every pull request and push to main at scope unit, on demand at any scope, and via workflow_call from testflight.yml at scope full; Thread Sanitizer runs the suite serially after a planted-race canary (ThreadSanitizerCanaryTests) must be reported and fail (check_thread_sanitizer.sh); performance.yml, security.yml (CodeQL + dependency review, the review first requiring every Package.resolved pin in the dependency-graph SBOM) on demand; testflight.yml deploy needs quality-gate success. Claims the macOS build, unit suite and Thread Sanitizer run per pull request on the standard macOS runner at no minutes cost to a public repository, and the UI target and full coverage floors run on demand and before a release. scripts/evidence_report.sh exists.",
    "entry": null,
    "calls": [
     ".github/workflows/gates.yml::job script-gates",
@@ -263,7 +261,8 @@
     ".github/workflows/security.yml::job codeql",
     ".github/workflows/security.yml::job dependency-review",
     ".github/workflows/testflight.yml::job quality-gate",
-    ".github/workflows/testflight.yml::job deploy"
+    ".github/workflows/testflight.yml::job deploy",
+    "scripts/check_thread_sanitizer.sh::fn run_sanitized"
    ],
    "reads": [],
    "writes": [],
@@ -271,14 +270,15 @@
    "deps": {
     ".github/workflows/ci.yml::job lint-and-budgets": "850dff7c2c40af40",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
-    ".github/workflows/ci.yml::job tests": "717dc9698a3dc7ba",
+    ".github/workflows/ci.yml::job tests": "495c14a3c33d4d31",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/performance.yml::job performance-tests": "330868dd344a0c70",
     ".github/workflows/security.yml::job codeql": "64078fc4677fac05",
     ".github/workflows/security.yml::job dependency-review": "f544cc3ea5ca4098",
-    ".github/workflows/testflight.yml::job deploy": "6f02a88632f05bad",
-    ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e"
+    ".github/workflows/testflight.yml::job deploy": "02e6016611ab02e4",
+    ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e",
+    "scripts/check_thread_sanitizer.sh::fn run_sanitized": "82b631abdc683244"
    }
   },
   {
@@ -298,8 +298,8 @@
   },
   {
    "key": "§ Emuqu > Privacy",
-   "hash": "cb9b3ea1342e3ee8",
-   "does": "No server/accounts; iCloud sync off until enabled; table of third-party egress: CloudKit (encrypted, no HealthKit data), hosted AI (with consent; on every turn the live-state block from AssistantContext.renderLiveStateForCloud; DeepSeek PRC disclosure in ProviderConsentSheet), Apple Intelligence row: Quick sends nothing beyond web search/map lookups; with a consented Grok or DeepSeek, Auto sends classifier-flagged turns and Deep every turn to it (TierProviderMapper.autoMapping/deepMapping, reached only while Apple is the selected provider) with the same data a hosted turn carries; in every tier mode voice turns and email/directions/web-search requests go to the first consented hosted provider (TurnRouter voice bypass and action-intent override). Then Apple speech, Tavily/Anthropic web search, MET Norway at ~1 km (WeatherService rounds to 2 decimals), Overpass, Apple geocoder, OpenTopoData ~11 m, Hugging Face for the WhisperKit model. The closing paragraph says Quick/Auto/Deep apply only with Apple selected and that Auto and Deep can send a turn to a consented Grok or DeepSeek. API keys in Keychain ThisDeviceOnly, never synced (APIKeyStore). Overpass requests carry a User-Agent with the author's email (OverpassClient) — identifies the app to the operator, not data sent to the author.",
+   "hash": "c5b080fde6112b66",
+   "does": "No server/accounts; iCloud sync off until enabled; table of third-party egress: CloudKit (encrypted, no HealthKit data), hosted AI (with consent; on every turn the live-state block from AssistantContext.renderLiveStateForCloud; DeepSeek PRC disclosure in ProviderConsentSheet), Apple Intelligence row: Quick sends nothing beyond web search/map lookups; with a consented Grok or DeepSeek, Auto sends classifier-flagged turns and Deep every turn to it (TierProviderMapper.autoMapping/deepMapping, reached only while Apple is the selected provider) with the same data a hosted turn carries; in every tier mode voice turns and email/directions/web-search requests go to the first consented hosted provider (TurnRouter voice bypass and action-intent override). Then Apple speech, Tavily/Anthropic web search, MET Norway at ~1 km (WeatherService rounds to 2 decimals), Overpass, Apple geocoder, OpenTopoData ~11 m, Hugging Face for the WhisperKit model. The closing paragraph says Quick/Auto/Deep apply only with Apple selected and that Auto and Deep can send a turn to a consented Grok or DeepSeek. API keys in Keychain ThisDeviceOnly, never synced (APIKeyStore). Overpass requests carry a User-Agent with the author's email (OverpassClient) — identifies the app to the operator, not data sent to the author. The iCloud row adds that sync is for the iCloud account it was turned on with and turns itself off on another account (CloudAccountGuard.stopSync).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)",
@@ -312,7 +312,8 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.makeTierStageInputs(mode:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.makeTierStageInputs(mode:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -328,7 +329,8 @@
     "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)": "7c48500322effe1d",
     "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)": "dd22654c446d6832",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)": "9161637c63632c3f",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "8c5da6b396d13175"
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "8c5da6b396d13175",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "4d2df9370d22b5f6"
    }
   },
   {

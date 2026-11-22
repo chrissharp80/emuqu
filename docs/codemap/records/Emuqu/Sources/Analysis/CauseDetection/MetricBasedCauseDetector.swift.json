@@ -78,7 +78,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectIllnessPattern(in:)": "ae281745366e3eff",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.detectIllnessPattern(in:)": "15cdbe8b3973fc85",
     "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.moderateIllnessCause(context:signals:)": "63128c7cb6ba961c",
     "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.strongIllnessCause(context:signals:)": "d2252d6312d1efcb",
     "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.weakIllnessCause(context:signals:)": "909a3ee3b44c4050",
@@ -219,11 +219,11 @@
   },
   {
    "key": "func MetricBasedCauseDetector.detectIllnessPattern(in:)",
-   "hash": "9a0fc2a2b6d1842a",
-   "does": "Filters recentSessions to complete, analysed, HRV-reliable overnight sessions newest-first; with >= 2 counts consecutive nightly declines from tonight (dated by context.session.startDate) and HR elevation vs trendStats.avgHR. hrElevated is cleared when SevereCauseDetector.elevatedHRWithLowHRV reports the same resting-HR rise, so it is not reported twice.",
+   "hash": "0ba538c69496bd5b",
+   "does": "Takes the earlier nights (earlierNights: complete, analysed, HRV-reliable overnights before tonight's night, one per night, newest first); with >= 2 counts consecutive nightly declines from tonight (dated by context.session.startDate) and HR elevation vs trendStats.avgHR. hrElevated is cleared when SevereCauseDetector.elevatedHRWithLowHRV reports the same resting-HR rise, so it is not reported twice.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.earlierNights(in:)",
     "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)",
     "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.hrElevation(context:)",
     "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.elevatedHRWithLowHRV(in:)"
@@ -232,22 +232,47 @@
    "writes": [],
    "branches": [
     {
-     "at": "+6",
-     "cond": "fewer than 2 qualifying sessions",
+     "at": "+3",
+     "cond": "fewer than 2 earlier nights",
      "effect": "returns zero signals (no illness pattern possible)"
     },
     {
-     "at": "+15",
+     "at": "+12",
      "cond": "severe detector reports Elevated HR + Low HRV",
      "effect": "hrElevated false (moderate falls back to the HRV-only variant; weak RHR cause does not fire)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.consecutiveDeclines(from:at:in:)": "828d4557f55b5643",
+    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.earlierNights(in:)": "f8bd90fd83b2ee44",
     "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift::func MetricBasedCauseDetector.hrElevation(context:)": "474555e4b6ed2ce8",
-    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.elevatedHRWithLowHRV(in:)": "08927d121ddcadd2",
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.elevatedHRWithLowHRV(in:)": "08927d121ddcadd2"
+   }
+  },
+  {
+   "key": "func MetricBasedCauseDetector.earlierNights(in:)",
+   "hash": "f7532cae3cda3628",
+   "does": "recentSessions filtered to complete, analysed, HRV-reliable overnights other than tonight's and not on tonight's night (DashboardSessionPolicy.nightDay), one per night (DashboardSessionPolicy.oneOvernightPerNight: the longer recording of a split night), sorted newest first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.nightDay(of:calendar:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.oneOvernightPerNight(_:calendar:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "tonight's session or another recording on tonight's night",
+     "effect": "left out"
+    }
+   ],
+   "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.nightDay(of:calendar:)": "7259294a51f79088",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.oneOvernightPerNight(_:calendar:)": "61b9e4c71bacfff3",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "1f169ca3f7045de3"
    }
   },
   {

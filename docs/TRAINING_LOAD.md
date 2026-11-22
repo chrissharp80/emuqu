@@ -114,14 +114,17 @@ TRIMP = durationMinutes × HRR × coefficient × e^(k × HRR)
 - **No average HR → returns 0**, not a fabricated value (`calculateTrimp`,
   `HealthDataTypes.swift`). Strava/manual imports with no HR contribute zero rather than
   inflating load.
-- `restingHR` = Apple's HealthKit resting HR when available, else the user's
+- `restingHR` = Apple's HealthKit resting HR when available (the latest
+  sample from the `WorkoutLoadRestingHR.maxAgeDays` (30) days up to the
+  reference date, never one Emuqu wrote to Health itself:
+  `hrReadExcludingOwnWrites`), else the user's
   resting-HR setting (`settings.effectiveRestingHR`); `maxHR` =
   `settings.effectiveMaxHR`. Both are resolved once per refresh by
   `trainingHeartRateAnchors` (`TrainingHealthQueries+Queries.swift`) and the
   same values go to the live value and the daily series
   (`TrainingLoadSeries.HeartRateAnchors`). A direct
   `calculateTrainingMetrics` call that passes no anchors resolves them the
-  same way. **maxHR must be the physiological max, not the workout's peak** —
+  same way, as of its own reference date. **maxHR must be the physiological max, not the workout's peak** —
   using the peak inverts the HR-reserve scoring.
 
 ---
@@ -255,13 +258,20 @@ the one place both the dashboard and the AI read from, so they can't disagree:
 - When a refresh recomputes (`needsRebuild`, `TrainingMetricsCache+Freshness.swift`):
   - no result yet, or `invalidate()` was called: always;
   - the load settings changed (`LoadSettings`: resting-HR setting, max HR,
-    biological sex, FTPs): at once;
-  - the archived workout set or the calendar day changed: once the 5-minute
-    burst throttle has passed;
+    biological sex, FTPs), or the calendar day changed: at once;
+  - the archived workout set changed: once the 5-minute burst throttle has
+    passed;
   - nothing the cache can see changed: once the result is 30 minutes old
     (`unchangedMaxAgeSec`), so a workout logged in another app or a new Apple
     resting HR shows up within half an hour.
   `snapshot()` uses the same rule before scheduling a background refresh.
+- A HealthKit workout query that fails or times out publishes nothing: the
+  last result and series stay, still due for a rebuild, and the next refresh
+  asks again, so a locked store never publishes a load without the Watch and
+  Strava workouts. A query HealthKit refuses because workouts were never
+  authorized, or were denied (`TrainingHealthQueries.isUnauthorizedAnswer`),
+  is an answer, not a failure: it reads as no HealthKit workouts, and the load
+  is built from the archive alone.
 - `.flowRecoveryArchiveChanged` invalidates only when the archived workout set
   changed (a fingerprint of each workout's id and file hash); HRV writes don't
   touch training load and are ignored.

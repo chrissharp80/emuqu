@@ -98,7 +98,6 @@ enum VoiceTurnPolicy {
         if synthesizerIsSpeaking, state == .speaking { return true }
         // Interrupting here would wipe the sentence in progress.
         if state == .listening, hasPartialTranscript { return true }
-        if state == .thinking { return true }
         return false
     }
 }

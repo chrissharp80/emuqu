@@ -8,6 +8,7 @@ struct RecoverableDataCard: View {
     let deviceName: String
     let onRecover: () -> Void
     let onDiscard: () -> Void
+    @State private var confirmingDiscard = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -57,13 +58,27 @@ struct RecoverableDataCard: View {
         .tint(AppTheme.primary)
     }
 
+    /// Deletes the strap's recording, only once the user confirms: the app
+    /// never saved it, so the strap holds the only copy. It starts nothing,
+    /// so it is named for the delete.
     private var discardStartFreshButton: some View {
-        Button(action: onDiscard) {
-            Text(String(localized: "Discard & Start Fresh", bundle: LanguageManager.appBundle))
+        Button(role: .destructive) {
+            confirmingDiscard = true
+        } label: {
+            Text(String(localized: "Delete from \(deviceName)", bundle: LanguageManager.appBundle))
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
         .foregroundColor(.red)
+        .confirmationDialog(
+            String(localized: "Delete the recording on \(deviceName)?", bundle: LanguageManager.appBundle),
+            isPresented: $confirmingDiscard,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Delete", bundle: LanguageManager.appBundle), role: .destructive, action: onDiscard)
+        } message: {
+            Text(String(localized: "Emuqu hasn't saved it, so this deletes the only copy. A recording still running is stopped first. This can't be undone.", bundle: LanguageManager.appBundle))
+        }
     }
 }
 

@@ -53,28 +53,31 @@ When stopping an overnight session, preference order (`DataSourceSelector`):
 
 A source counts as usable only at `minimumValidBeats = 120` beats or more; below that it is
 treated as absent. Each data path can succeed or fail independently — an H10 fetch failure
-doesn't cascade to streaming.
+doesn't cascade to streaming. A night that never armed the strap is not downloaded at all, and
+the strap is not reconnected for it, unless the strap reports a recording running
+(`nightFetchAllowed`); the gate clears the night's arming flag when it finishes.
 
 ### Composite Merging Algorithm
 
-The gap scan decides *whether* to build a composite, and also *which* streaming beats are
-used: only those that fall inside an internal gap.
+The composite takes from streaming only the beats the internal series lacks: those inside an
+internal gap, and those before its first beat or after its last (a strap recording that started
+late or stopped early).
 
 1. **Detect gaps**: scan internal points for a jump from one beat's end to the next beat's
-   start greater than the expected RR interval + 2 seconds.
-2. **Check the gaps are fillable**: a gap counts as fillable when at least one streaming point
-   falls inside it, matched on `wallClockMs` (raw `t_ms` drifts after a BLE drop). If no gap
-   can be filled, no composite is built and streaming is used instead.
-3. **Merge**: `createComposite` first filters the streaming series down to the beats inside
-   internal gaps (`streamingBeatsInsideGaps`), then `mergePoints` interleaves those gap-fill
-   beats with every internal beat in absolute time, suppressing a duplicate when two beats
-   from different sources land within `duplicateToleranceMs = 50` of each other. Gap-fill
-   points are rebased onto `wallClockMs`. This is gap-only insertion, not a full two-way
-   merge: the stream's arrival-time clock rarely lands within 50 ms of the strap's own beats,
-   so merging all of it would put nearly every beat of the night in twice. (When a later
-   import is merged into an existing session, `SessionMerger` uses
-   `mergeAddingOnlyUncoveredBeats`, which also keeps streaming beats outside the span the
-   device recorded.)
+   start greater than the expected RR interval + 2 seconds. A strap series is built by summing
+   its intervals, so it rarely has a gap of its own; what streaming adds to it is usually the
+   stretch the strap was not yet, or no longer, recording.
+2. **Pick the uncovered beats** (`uncoveredBeats`): each streaming point, placed on
+   `wallClockMs` (raw `t_ms` drifts after a BLE drop), is kept when it falls outside the
+   internal span or inside a gap. When none is kept, no composite is built and streaming is
+   used instead.
+3. **Merge**: `mergePoints` interleaves those beats with every internal beat in absolute time,
+   suppressing a duplicate when two beats from different sources land within
+   `duplicateToleranceMs = 50` of each other. Added points are rebased onto `wallClockMs`. This
+   is insertion of uncovered beats only, not a full two-way merge: the stream's arrival-time
+   clock rarely lands within 50 ms of the strap's own beats, so merging all of it would put
+   nearly every beat of the night in twice. It is the same rule `SessionMerger` applies when a
+   later import is merged into an existing session (`mergeAddingOnlyUncoveredBeats`).
 
 **Why 2-Second Threshold**: Normal RR intervals are 600-1200ms with ±200ms sinus arrhythmia variation. A 2-second buffer catches true recording gaps without flagging normal variation.
 
@@ -101,14 +104,20 @@ never be applied after the reconnect that followed it.
    buffering and never touches the strap's own recording state. The SDK reconnects on its
    own (`automaticReconnection`); the app re-asserts the connect once and gives the session
    `PolarReconnectPolicy.windowSeconds` (20 min) before `reconnectExhausted` lets the
-   collector save without it. A lost pairing is not retried and ends the wait at once.
+   collector save without it. A lost pairing is not retried and ends the wait at once, and so
+   does a strap told to restart or power off (`StrapLinkLoss.deviceCommand`). A connection
+   attempt that never became a link is left to the SDK.
 5. On reconnect the session keeps every prior point and `streamingReconnectCount` increments.
 
 ### Pause & Resume (Split Sleep)
 
 **Pause**: Streaming stops, full analysis runs, session archived as `.paused`, score preview shown, state persisted to UserDefaults.
 
-**Resume**: New linked session created with `linkedSessionIds` pointing to parent, hybrid recording starts.
+**Resume**: New linked session created with `linkedSessionIds` pointing to parent, hybrid recording starts. The parent's link to the child is written into the archive's copy in place (`archive.update`). A paused night that an archived segment was already resumed from is not offered to continue again (`findRecentPausedSessionOffMain`, `wasResumed`); the same test (`SessionRecoveryMath.isResumedSegment`: mutual link, the parent has a pause time, the segment ended after it) decides which entries `repairLinkedSession` may repair.
+
+**Done**: `finalizeFromPause` marks the archive's copy complete in place, so a rewrite made since the pause (a rescore, a sleep refresh) is kept, and publishes that copy. The pause archive, the parent re-link and the finalize each request a re-upload.
+
+**Starting while a night is ended**: the night being ended holds a claim (`StreamingLifecycle.claimOvernightEnding`, stamped with its time). A start or resume calls `refuseWhileEndingInProgress()` before any side effect: a claim younger than 30 minutes (`staleEndingClaimAge`) refuses with `alreadyRecording` and stays held; only an older one is dropped, with a warning. Quick readings and strap-only recordings also refuse while a night is paused or being ended (`requireConnectedWithNoNightHeld`).
 
 **Combined Analysis**: Both sessions' RR data is merged before window selection. The window selector sees the full night and chooses the best recovery window across both periods. The score comes from the combined analysis — not from picking the "best" of two independent scores. Sleep boundaries from HealthKit span both sessions so the 30-70% band covers the entire night.
 
@@ -134,7 +143,7 @@ Two problems share one mechanism (`Sources/Import/`, surfaced by
   still holds the passive record for that hour (steps, heart rate, distance, exercise minutes,
   flights), because it is sampled whether or not anything is recording.
   `HealthWorkoutImporter.rebuild` reconstructs the session from it and REUSES the stub's id, so
-  the result replaces the ghost instead of sitting beside it. `ActivityBoutResolver` supplies
+  the result replaces the ghost instead of sitting beside it, carrying the stub's tags and notes. `ActivityBoutResolver` supplies
   the one thing the passive record cannot: when the activity ended (a bout runs until activity
   stops for longer than `defaultMaxGap = 10 min`, capped at `maxBoutDuration = 6 h`).
   `InterruptedRecordingCard` puts this on the Fitness tab when such a stub exists, rather than
@@ -160,7 +169,7 @@ the right rule when summing over an interval.
 
 ## Analysis Algorithms
 
-**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points and the display helpers, with `+Composite`, `+Tiers` and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — in the current scoring, `ScoringVersion.current` = `v3.2.oct2026`, training load is **not** a composite tier). Three pieces live in their own types to keep it under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Each has a forwarding extension on `RecoveryScoreCalculator` (`+ReadinessForwarding`, `+VitalsForwarding`, `+DetailForwarding`), so call sites use the `RecoveryScoreCalculator` API. `WindowSelection` is split into `+Scoring` (`findBestWindow`, `selectWindowByMethod`, `analyzeAtPosition`), `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
+**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points and the display helpers, with `+Composite`, `+Tiers` and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — in the current scoring, `ScoringVersion.current` = `v3.3.nov2026`, training load is **not** a composite tier). Three pieces live in their own types to keep it under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Each has a forwarding extension on `RecoveryScoreCalculator` (`+ReadinessForwarding`, `+VitalsForwarding`, `+DetailForwarding`), so call sites use the `RecoveryScoreCalculator` API. `WindowSelection` is split into `+Scoring` (`findBestWindow`, `selectWindowByMethod`, `analyzeAtPosition`), `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
 
 ### Artifact Detection
 
@@ -187,6 +196,7 @@ Requires ≥10 clean RR intervals. Metrics: meanRR, SDNN, RMSSD, pNN50, SDSD, me
 - Band boundaries: VLF 0.003-0.04 Hz, LF 0.04-0.15 Hz, HF 0.15-0.4 Hz
 - VLF requires ≥10 min window (`minimumVLFWindowMinutes * 2`), nil otherwise. It comes from its own Welch pass with 1024-sample (256 s, 0.0039 Hz) segments; at 64-s segments the band is two bins next to DC
 - Windows shorter than one segment use a single periodogram: Hann over the samples, then zero-padded, normalised by the window energy over those samples
+- No segment spans a recording break: the window's clean beats are split into runs at each break, each run is resampled on its own, and the Welch periodogram is pooled over every segment that fits inside a run. When no run holds a full segment, the longest run alone is used
 
 ### DFA Analysis
 
@@ -246,7 +256,7 @@ to. `Tools/copy_linter` now blocks the verdict language from returning.
 
 ### Respiration Rate Estimation
 
-Spectral only: resample RR to 4Hz, FFT, peak in HF band → breaths/min. Needs ≥ 60 RR intervals. The peak must be breathing, not noise or leakage: at least 40% of the band's power within ±0.02 Hz of it, and at least 5% of the strongest peak above 0.04 Hz; otherwise no rate is reported. Sanity check: 6-40 breaths/min.
+Spectral only: resample the clean RR to 4Hz, each beat at its own time (`t_ms`), so a beat removed as an artifact leaves its time in the axis rather than shortening the series and raising every frequency; FFT; peak in the 0.15–0.5 Hz band (9–30 breaths/min) → breaths/min. Needs ≥ 60 RR intervals. The peak must be breathing, not noise or leakage: at least 40% of the band's power within ±0.02 Hz of it, and at least 5% of the strongest peak from 0.04 Hz up to the Nyquist frequency, so breathing faster than the band is not read as a slower rate inside it; otherwise no rate is reported. Sanity check: 6-40 breaths/min.
 
 ### Diagnostic Scoring
 
@@ -287,8 +297,8 @@ A custom window is a preview until the user taps Apply. Apply (`ReanalysisServic
 
 **Artifact rate is a two-pass rule, not one number.** Pass 1 keeps only windows at or under
 `maxArtifactRateStrict = 0.10`, the bound the literature converges on (Plews 2013, Lipponen &
-Tarvainen 2019, Citi 2012). Only when that pass yields zero windows does the scan re-run at
-`maxArtifactRate = 0.15`, so a genuinely noisy night still produces a result instead of nil —
+Tarvainen 2019, Citi 2012). Only when that pass yields no organized window (for the peak
+methods, no window at all) does the scan re-run at `maxArtifactRate = 0.15`, so a genuinely noisy night still produces a result instead of nil —
 and `HRVDetailV2View` surfaces the rate so the user knows the reading is degraded.
 
 **Step 1**: Build all windows within 30-70% using adaptive sizing:
@@ -297,7 +307,7 @@ and `HRVDetailV2View` surfaces the rate so the user knows the reading is degrade
 - <240 beats → 60% of available (minimum 60 beats)
 - Step size: max(10, windowSize / 10)
 
-**Step 2**: Filter isolated spikes (`isolatedSpikeRatio = 1.50` — RMSSD ≥150% of BOTH neighbours). No baseline-relative rejection, no magnitude caps. If the filter would remove every window, the unfiltered set is used instead: an all-spikes verdict is a filter failure, not a night with no recovery.
+**Step 2**: Filter isolated spikes (`isolatedSpikeRatio = 1.50` — RMSSD ≥150% of BOTH neighbours). No baseline-relative rejection, no magnitude caps. Only an interior window with two neighbours can be a spike, so the first and last windows always survive and the filter never empties a non-empty set.
 
 **Step 3**: Classify each window — DFA α1 and HR CV. (The block carries an LF/HF field, but
 the production evaluator never computes it per window and always passes `nil`, so the LF/HF
@@ -319,7 +329,8 @@ because it decides whether a night produces a score at all:
   a non-nil LF/HF (unit tests do this; the selector does not).
 - **α1 unavailable** (too few beats to compute DFA): HR CV < 8% alone. Stability is the proxy.
 - **Flexible/Unconsolidated**: DFA α1 ∈ [0.60, 0.75]
-- **High Variability**: DFA α1 < 0.6 or > 1.0
+- **High Variability**: DFA α1 < 0.6 or > 1.0, or α1 in the organized range without the stable HR it requires
+- **Insufficient**: fewer than 60 clean beats, whatever α1 says; such a window is never organized
 
 ### Peak Capacity
 
@@ -364,9 +375,10 @@ loses `missingSleepPenalty` (10) after the factor sum, alongside the SpO2 penalt
 `ScoreBreakdown.penalties` as "No sleep data (−10)". The perceived-readiness blend recomposes through
 the same `composeFinalScore`, so it keeps both penalties.
 
-Falls back to the raw ANS readiness score (1-10 → 10-100) when the recovery baseline (last 60 stored nights) has fewer
-than 3 days of data (`RecoveryBaselineStats.minimumDays`), and below that to absolute RMSSD bands (≥60 → 85, ≥45 → 70, ≥30 → 55,
-≥20 → 40, else 25; 50 when there is no HRV at all).
+When the recovery baseline (last 60 stored nights) has fewer than 3 days of data
+(`RecoveryBaselineStats.minimumDays`), a reading is scored on absolute RMSSD bands (≥60 → 85, ≥45 → 70, ≥30 → 55,
+≥20 → 40, else 25), provisionally until the baseline forms (science register: `rmssd-absolute-fallback-bands`). A night
+with no usable RMSSD scores the raw ANS readiness score (1-10 → 10-100) when the analysis produced one, else 50.
 
 The ANS-balance term is the one the window-ranking trace calls out as excluded — `WindowSelector`
 ranks candidate windows on the other four, so a window's rank score and the session's final
@@ -527,8 +539,10 @@ References: Banister et al. (1975), Morton et al. (1990), Foster (1998); Plews e
 
 Consolidated resolver with fallback chain:
 1. HealthKit sleep data (primary)
-2. HR-based estimation from RR data (optional)
-3. Recording boundaries (final fallback)
+2. HR-based estimation from RR data (optional; an onset-only estimate keeps no wake)
+3. Recording boundaries (final fallback). The resolver itself returns nothing for what it could not
+   resolve, never a stand-in, so a caller can tell resolved boundaries from none; the window selector
+   then uses the recording's own start and end
 
 **Fresh-data handling**: When `MorningResultsView` fetches HealthKit data covering a longer sleep period than was available at acceptance, `updateSessionSleepBoundaries()` writes the extended boundaries into the archived session (clamped to recording duration). The boundaries come from Apple Health, so they stay on the device and are not uploaded to iCloud.
 
@@ -567,7 +581,7 @@ Based on Ohayon et al. (2004), Buysse et al. (2014), Phillips et al. (2017):
 - **Sleep Cycles**: Detects NREM→REM cycles. Typical healthy: 4-5 complete.
 - **Architecture**: Checks deep sleep front-loading (early night) and REM back-loading (late night).
 - **Age-Adjusted Norms**: Expected deep/REM/efficiency ranges by age.
-- **Enhanced Score**: Multi-factor 0-100 used by Tier 2 when stage data available.
+- **Enhanced Score**: Multi-factor 0-100, the sleep sub-score for every night with sleep minutes, staged or not (see Tier 2): continuity is unmeasured when the night's wake was not measured, and cycles without stage data, and each then takes half credit.
 
 ### HR-Estimated Sleep (fallback, not extension)
 
@@ -631,6 +645,8 @@ onset rule          = first 2 consecutive smoothed points below threshold (≤ 2
 **One slot per night**: slots are keyed by the night's wake date (`SleepSchedule.nightKey`), not the calendar day, so a night started at 23:30 and its 00:30 continuation share a slot. When a night has more than one reading, only one contributes:
 - A morning reading (ends inside its own night, no later than expected wake + 4 h) always beats a non-morning one
 - Otherwise the newcomer must be objectively better (consolidation, organized recovery, artifact and HR-stability gates, then >5% readiness)
+- A newer reading of the session already in the slot is not a rival: each point records its `sessionId` (points saved before that are matched by start), and a re-analysis or hand-picked window first removes the session's earlier reading, then puts the new one in its place. If the new analysis no longer passes the gates, the old reading simply leaves the baseline
+- The change callback runs after the tracker's lock is released (`notifyIfChanged()`)
 
 ### 60-Night Recovery Baseline
 
@@ -640,7 +656,7 @@ Separate from the 7-day baseline, used for z-score normalization:
   60 calendar days)
 - `lnRmssdCV7Day` — 7-day coefficient of variation (overreaching signal)
 - `meanHRBaseline`, `meanHRSD`
-- Minimum 3 days for a z-score (`RecoveryBaselineStats.minimumDays`); below 7 days the SD is widened (≈1.53× at 3 days) so early scores stay near the middle
+- Minimum 3 days for a z-score (`RecoveryBaselineStats.minimumDays`); below 7 days both the ln(RMSSD) SD and the resting-HR SD are widened by √(7/n) (≈1.53× at 3 days, `BaselineTracker.smallSampleWidening`) so early scores stay near the middle
 - A night is scored against the nights before it, never itself or later nights (Kiviniemi 2007, Plews 2013: the reference is built from earlier days): scoring paths use `recoveryBaselineStats(excludingNightOf:sleepSchedule:)`, which keeps only slots whose night key is earlier than the scored night's. The plain `recoveryBaselineStats` (every night) is for display
 
 ---
@@ -651,7 +667,7 @@ Separate from the 7-day baseline, used for z-score normalization:
 
 File-based JSON in App Group container with SHA256 integrity checking.
 
-**Index**: `SessionArchiveEntry` stores lightweight metadata in memory — e.g. sessionId, date, endDate, recoveryScore, meanRMSSD, meanHR, stressIndex, meanSDNN, tags, sessionType, linkedSessionIds, plus `fileHash` / `filePath`, `notes`, and the sleep-index fields (`sleepEnd`, `sleepSegmentCount`, deep/rem/core/awake minutes, nocturnal-HR-dip) that make trend + AI queries possible without loading full sessions (see `Emuqu/Sources/Models/SessionMetadata.swift`, `SessionArchiveEntry` for the authoritative field list). This enables trend computation and filtering without loading full sessions from disk. A sorted cache (`sortedEntriesCache`) avoids re-sorting on every `entries` access.
+**Index**: `SessionArchiveEntry` stores lightweight metadata in memory — e.g. sessionId, date, endDate, recoveryScore, meanRMSSD, meanHR, stressIndex, meanSDNN, tags, sessionType, linkedSessionIds, plus `fileHash` / `filePath`, `notes`, and the sleep-index fields (`sleepEnd`, `sleepSegmentCount`, deep/rem/core/awake minutes, nocturnal-HR-dip) that make trend + AI queries possible without loading full sessions (see `Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift`, `SessionArchiveEntry` for the authoritative field list). This enables trend computation and filtering without loading full sessions from disk. A sorted cache (`sortedEntriesCache`) avoids re-sorting on every `entries` access.
 
 **Locking**: `archiveLock` (NSLock) protects the in-memory index. All migrations use 3-phase locking — gather work items under lock, release for disk I/O, reacquire to apply patches — so the main thread is never blocked for more than a few milliseconds. `archive()`, `retrieve()`, `entries`, and other public APIs acquire/release the lock per-call.
 
@@ -686,7 +702,11 @@ Each layer re-sorts only because its consumer requires a different order. Do not
 
 **Delete Safety**: `deletedSessionIds` prevents CloudKit sync from re-creating deleted sessions. `delete()` atomically: (1) adds to `deletedSessionIds` and persists, (2) removes from active index, (3) deletes file.
 
-**Recovery Score**: `session.recoveryScore` stores the composite recovery score on a 0-10 scale — the 0-100 composite divided by 10 (`RecoveryScoreCalculator.toTenScale`). Every screen multiplies it back by 10 and shows it as 0-100; only the HRV-only fallback (`ANSMetrics.readinessScore`, used before the composite is computed) is natively 1-10. In the current scoring (`ScoringVersion.current` = `v3.2.oct2026`) it's HRV + Sleep + Vitals when all three are available, falling through to HRV + Sleep or HRV only when inputs are missing. Each `ScoreBreakdown` is stamped with the version that produced it (`scoringVersion`); scores stored before the stamp existed decode as `unversioned`. Older sessions may have been computed under v1 (HRV + Sleep + Training); `ScoreArchitectureChangeSheet` only discloses the change, and re-running `reanalyzeAllSessions` from Settings recomputes history if the user wants it. `ANSMetrics.readinessScore` remains available in `analysisResult` as the HRV-only readiness component. The window selector's `RecoveryWindow.recoveryScore` (RMSSD × stability) is for ranking only, not persisted.
+**Purge gate**: while Delete All My Data runs, `PurgeGate` (`Emuqu/Sources/Services/PurgeGate.swift`) refuses every archive disk write. Session files (`writeArchiveBytes`), the index (`SessionArchive.saveIndex`), the deleted-session list (`saveDeletedIndex`), the re-encryption of a Trash or quarantine copy (`reencryptParkedCopy`) and the launch-time protection-class rewrite (`rewriteWithProtection`) run their write inside `PurgeGate.admitWrite`, which throws `PurgeGate.Refused` during a purge, so every write path (archiving, `update`, batch imports, merges, migrations, deletions, re-encryption) is covered; moving or removing a file already there (into the Trash or quarantine) is not gated; `beginPurge()` waits until the writes already admitted have finished. `CloudKitSyncManager.cloudUploadsAllowed` also requires `!PurgeGate.isPurging`, and uploads and the full sync re-check it inside their serializer turn. `DataPurgeService.purgeAllUserData` refuses while recording, closes the gate, turns iCloud Sync off, awaits the remote delete (which deletes the app's zones only in the account sync was confirmed or adopted for, or when none is recorded and sync was not stopped for a different account; otherwise it reports failure and deletes nothing), then checks for a recording again (`Refusal.recordingStartedDuringDelete`: nothing on the device is wiped and sync stays off) before the local wipe.
+
+**Duplicates**: `removeDuplicates` picks the keeper of tied duplicates by session id, so the result does not depend on index order. Before a copy is retired, its tags, notes, morning feeling (with its tags) and perceived readiness are carried into the keeper (`carryUserContent`), which is stamped and re-uploaded; a copy that cannot be read is not retired that pass. `repairArchive()` throws when the archive cannot be listed or the rebuilt index cannot be saved. A same-night fold stamps `modifiedAt` when it changes the target and asks for the target's re-upload (`archivedId(of:)` maps a folded id to it).
+
+**Recovery Score**: `session.recoveryScore` stores the composite recovery score on a 0-10 scale — the 0-100 composite divided by 10 (`RecoveryScoreCalculator.toTenScale`). Every screen multiplies it back by 10 and shows it as 0-100; only the HRV-only fallback (`ANSMetrics.readinessScore`, used before the composite is computed) is natively 1-10. In the current scoring (`ScoringVersion.current` = `v3.3.nov2026`) it's HRV + Sleep + Vitals when all three are available, falling through to HRV + Sleep or HRV only when inputs are missing. Each `ScoreBreakdown` is stamped with the version that produced it (`scoringVersion`); scores stored before the stamp existed decode as `unversioned`. Older sessions may have been computed under v1 (HRV + Sleep + Training); `ScoreArchitectureChangeSheet` only discloses the change, and re-running `reanalyzeAllSessions` from Settings recomputes history if the user wants it. `ANSMetrics.readinessScore` remains available in `analysisResult` as the HRV-only readiness component. The window selector's `RecoveryWindow.recoveryScore` (RMSSD × stability) is for ranking only, not persisted.
 
 **Deferred Migrations**: `runDeferredMigrations()` runs 9 passes on a background thread at launch: `reencryptPendingSessions` and `resealPlainIndexIfNeeded` (re-encrypt session files and the index written plain while the key was unavailable), `migrateRecoveryScores`, `migrateEndDates`, `migrateMetrics` (backfills meanHR/stressIndex), `migrateSleepIndexFields` (backfills `sleepEnd` / `sleepSegmentCount`), `migrateLegacyEliteImportIndex`, `removeDuplicates`, and `relinkSameNightSessions`. Each is a no-op if already complete.
 
@@ -694,15 +714,19 @@ Each layer re-sorts only because its consumer requires a different order. Do not
 
 ### iCloud Sync
 
-Off by default (`UserSettings.iCloudSyncEnabled`); the user turns it on from its own onboarding page or Settings → iCloud & Data. Once on: CloudKit private database, auto-upload on every save, ZLIB compression (~80-90% reduction), encrypted on the device before upload, full sync on launch/foreground. Deletes propagate via soft-delete flag. No third-party servers.
+Off by default (`UserSettings.iCloudSyncEnabled`); the user turns it on from its own onboarding page or Settings → iCloud & Data. Once on: CloudKit private database, auto-upload on every save, ZLIB compression (~80-90% reduction), encrypted on the device before upload, full sync on launch/foreground. Deletes propagate via soft-delete flag. No third-party servers. Sample nights are never built into a record (`CloudUploadExclusion.sampleData`). A session kept on this device only is marked on its record (`isDeleted = 2`, `keptOnDeviceMarker`, payload removed) instead of being deleted, and pulls and conflict resolution leave the marker alone. All `CloudKitSyncState` writes go through one serial queue.
+
+**Account identity.** Sync belongs to one Apple ID (`Emuqu/Sources/Storage/CloudAccountIdentity.swift`). The `userRecordID().recordName` of the account sync was enabled for is kept in this device's `UserDefaults` only. Nothing is read from or written to iCloud (full sync, uploads, tombstones, live backups, settings push and restore, the sync-off scrub, creating the cloud key) until this launch has confirmed the signed-in account is the recorded one (`CloudAccountGuard.confirmAccount`); `.CKAccountChanged` drops the confirmation at once, and pulls and pushes stop mid-run when it goes. A different account stops sync (`stopSync(.differentAccount)`): the per-account bookkeeping is reset, the recorded account forgotten, `iCloudSyncEnabled` set off and the reason shown under the switch; nothing on the device is touched, and the user opts in again. An install from before the identity was recorded adopts the signed-in account on the first successful check of a launch in which the account status did not change. When the account did change during that launch while sync bookkeeping remains (`Verdict.attributeBookkeeping`), the check first fetches up to five of the sessions this device uploaded from the signed-in account's session zone, reading only their deletion flag and writing nothing (`lookUpBookkeeping`): one found adopts the account; all missing, the zone missing, or nothing uploaded to look up makes it a different account; any other error decides nothing. With sync off and no bookkeeping nothing is adopted, and a stop while sync is already off resets the bookkeeping without a notice. `.CKAccountChanged` itself is handled by `CloudAccountChangeHandler`: a signed-out or restricted account shows the not-signed-in error, a temporarily unavailable one is left for the next sync, and an available one clears that error and runs a sync (with sync off, just the account check), which starts with the account check. When the session or settings zone is gone (`zoneNotFound`, `userDeletedZone`), `zoneWasDeleted` re-checks the account and, with the same account, stops sync as `.iCloudDataDeleted`: no zone is recreated and nothing is re-queued. The settings zone is created once per account (a persisted flag `forgetZone` resets); an install with session-sync history but no settings-zone flag checks the session zone first, and when it is gone stops sync as above instead of creating anything. The settings push replaces only an older cloud copy, by the local edit time. That time moves only when a setting the user edits changed: each settings change compares a SHA-256 digest of the uploadable settings without the app-written fields (`CloudSettingsRecord.editFingerprint`) with the last one, so a baseline, trial date or launch flag the app writes does not count as an edit; a restore takes the restored copy's edit time. The Back Up button passes `replacingNewerCloudCopy: true`.
 
 No reading from Apple Health is uploaded (Guideline 5.1.3(ii)); scores computed from them are, encrypted. Each device reads Health itself. `CloudSessionPayload.uploadable` strips the sleep and vitals snapshots, the sleep window and segments, VO2max and the HealthKit workout list from both the training snapshot and the analysis result's training context, Apple Health's daytime resting heart rate and the sleep-segment label in the HRV analysis, the SpO₂ penalty line and flag, the Sleep/Vitals score-row text and `facts`, split, lap and AI-snapshot heart rate on Apple Watch–sourced workouts, Watch and HealthKit heart-rate-recovery samples, and the heart rate on workout rows filled from Apple Health (`WorkoutMetadata.healthKitHROffsets`); sessions read out of Health whole are never uploaded (`CloudSessionPayload.isHealthKitSourced`). Settings leave out the profile fields filled from Health (`UserSettings.profileFieldsFromHealth`). On pull, this device's own copies of the stripped fields are kept (`CloudSessionPayload.restoringLocalOnlyFields`), and newly pulled sessions re-derive their HealthKit snapshots locally. Records uploaded by older builds are rewritten once without these fields, even while sync is off (`CloudHealthScrubCoordinator`).
 
-Edits reach devices that already hold the session. An edit (feeling, tags or notes, trim, reanalysis) stamps `HRVSession.modifiedAt` in whole seconds; the stamp travels in the encrypted payload and as a plain `modifiedAt` date field on the record, so a pull compares without downloading every backup. Last writer wins: a pull replaces a held copy only when the iCloud copy is strictly newer (keeping that device's HealthKit snapshots unless the sleep window changed), and an upload that meets a newer iCloud copy leaves it for the pull to import. An unstamped copy counts as older than any stamped one. Two copies stamped in the same second are told apart by the server record's change tag, which each device remembers for every session it saved or imported (`record_versions.json`): a server copy of another version wins the tie in both directions, so every device ends on it. Imported copies are marked uploaded, never queued again. The `modifiedAt` field must be deployed to the production CloudKit schema; until it is, uploads go without it and edits do not propagate (`CloudKitSessionFreshness`).
+Edits reach devices that already hold the session. An edit (feeling, tags or notes, trim, reanalysis) stamps `HRVSession.modifiedAt` in whole seconds, and never earlier than one second after the newest stamp this device has seen on an iCloud copy (`CloudKitSessionFreshness.stamp`), so an edit made after seeing another device's edit counts as later even when the clocks disagree; the stamp travels in the encrypted payload and as a plain `modifiedAt` date field on the record, so a pull compares without downloading every backup. Last writer wins: a pull replaces a held copy only when the iCloud copy is strictly newer (keeping that device's HealthKit snapshots unless the sleep window changed), and an upload that meets a newer iCloud copy leaves it for the pull to import. An unstamped copy counts as older than any stamped one. Two copies stamped in the same second are told apart by the server record's change tag, which each device remembers for every session it saved or imported (`record_versions.json`): a server copy of another version wins the tie in both directions, so every device ends on it. Imported copies are marked uploaded, never queued again. The `modifiedAt` field must be deployed to the production CloudKit schema; until it is, uploads go without it and edits do not propagate (`CloudKitSessionFreshness`).
 
 ### Apple Health Export
 
-Writes SDNN and mean HR back to Health as a **windowed SDNN series** (`exportHRV`, or a single summary when the recording is too short; HealthKit has no RMSSD type) and a **heart-rate series** (`exportHeartRateSeries`), and resting HR for overnight readings only, one per night (a later reading of the same night replaces it). A session or workout built from Apple Health data never writes its samples back: its readings are already in Health, and a copy would carry Emuqu as their source. A workout rebuilt from Health exports only the `HKWorkout`, with no samples and no route. Sleep export creates one `HKCategorySample` per stage interval (iOS 16+ values) — plus an overall `inBed` sample — each stamped with `HKMetadataKeyExternalUUID` for idempotent re-writes. Every metric's re-write saves the new samples before deleting the session's earlier ones, and re-writes of the same session run one at a time, each Health call bounded by a timeout (`HealthSampleReplacer`). Toggling the setting on applies to all archived sessions. (Export code lives in `Collection/HealthKitManager+{HRV,HeartRate,Sleep}.swift`.)
+Writes SDNN and mean HR back to Health as a **windowed SDNN series** (`exportHRV`, or a single summary when the recording is too short; HealthKit has no RMSSD type) and a **heart-rate series** (`exportHeartRateSeries`), and resting HR for overnight readings only, one per night (a later reading of the same night replaces it). A session or workout built from Apple Health data never writes its samples back: its readings are already in Health, and a copy would carry Emuqu as their source. A workout rebuilt from Health exports only the `HKWorkout`, with no samples and no route. Sleep export creates one `HKCategorySample` per stage interval (iOS 16+ values) — plus an overall `inBed` sample — each stamped with `HKMetadataKeyExternalUUID` for idempotent re-writes. Every sample and workout also carries that identity as `HKMetadataKeySyncIdentifier` with a rising `HKMetadataKeySyncVersion`, so HealthKit itself replaces a re-exported object (from this device or another) instead of keeping both. Every metric's re-write saves the new samples before deleting the session's earlier ones that HealthKit did not already replace, and re-writes of the same session run one at a time, each Health call bounded by a timeout (`HealthSampleReplacer`). A workout export finds the session's earlier workouts (by identity, or a copy saved before workouts carried one by its start), saves the new one, then deletes the earlier workouts with their samples and route; active energy is written net of the 1 MET of rest. When Health refuses the read of the earlier workouts because the phone is locked (`errorDatabaseInaccessible`; any other read failure fails the export), the new workout is still saved and the session is noted in `PendingWorkoutReplacements` (UserDefaults `hkPendingWorkoutReplacements`, removed by Delete All My Data); the next foreground backfill (`backfillWorkoutsToHealthKit`) first finds that session's exports and deletes all but the one with the highest sync version, keeping the entry for another try when the read or a delete fails. The export stamp written to the archive afterwards (`healthKitExportedAt`) asks for no iCloud re-upload and leaves `modifiedAt` alone: it travels with the session's next real upload. A trimmed or rebuilt workout is exported again and replaces its copy. Deleting a session forever deletes everything it exported: HRV, heart rate, resting HR, sleep and workouts (`HealthWriteAndObserve.removeExports`). A heart-rate summary exported under another end date is found by searching ±25 h for the session's identity (`summarySearchSpan`). Heart-rate, HRV and sleep saves and deletes are bounded by a 30 s write timeout (`HealthSampleReplacement.writeTimeout`), their reads by shorter ones. Toggling the setting on applies to all archived sessions. (Export code lives in `Collection/HealthKitManager+{HRV,HeartRate,Sleep}.swift`, `HealthKitWorkoutExport.swift`, `HealthExportIdentity.swift` and `HealthWriteAndObserve.swift`.)
+
+Reading from Health leaves out the app's own writes: the resting-HR reads (`fetchAppleRestingHR`, `latestQuantitySample`), and the sleep and vitals observers. Those observers are `HealthSampleWatch` queries: an `HKObserverQuery` plus an anchored read from an anchor stored in `UserDefaults` across launches, so samples added while the app was not running arrive on the next launch. One read runs per anchor at a time (`HealthSampleWatch.ReadGate`): a change that fires during a read has that read run once more when it ends, from the anchor it kept, so nothing is delivered twice and an older anchor is never written back. Sleep has background delivery; vitals background delivery is off, and the vitals observer starts at launch with the sleep one.
 
 ### PDF Reports
 
@@ -720,7 +744,11 @@ Writes SDNN and mean HR back to Health as a **windowed SDNN series** (`exportHRV
 - **Page 6**: "What This Means" — plain-language bridge (verdict / what's working / what to watch / tomorrow) via `drawWhatThisMeansPage`
 - **Page 7**: Methodology & Citations
 
-Each chart is downsampled to at most `maxPDFPoints` = 250 points for fast rendering.
+Each chart is downsampled to at most `maxPDFPoints` = 250 points for fast rendering. Average pace and calories use moving time (`WorkoutMetadata.movingSeconds(wallClockDuration:)`: the last per-second sample's offset, else wall clock less pauses), and the splits are re-bucketed from the per-second samples on the pause-excluded clock (`splitsFromSamples`), falling back to the stored splits.
+
+### Export files
+
+CSV, GPX, TCX, the report PDF (`writeReport`), the log export and the crash export are written through `ExportFile` (`Emuqu/Sources/Export/ExportFile.swift`): one folder, `tmp/Exports`, with complete file protection; each export replaces its own earlier copies; a file handed to the share sheet is deleted when the sheet closes, whether the user shared or cancelled (`presentFileShareSheet`, used by `FileShareButton`); the workout summary's GPX, CSV and TCX are built in memory (`ExportFile.Pending`) and written only on tap; and `EmuquApp.init` empties the folder at launch, the backstop for a sheet the app was closed under. A workout's GPX and TCX track points carry the times its fixes were taken (`WorkoutMetadata.gpsFixTimes`, stored since this was added); for a workout recorded before then, the times are spread evenly over the session and the file's description says so. `WorkoutPDFReport.generate` and `HolisticDailyReport.generate` apply complete protection to their files.
 
 ---
 
@@ -905,8 +933,9 @@ place, here:
 Cloud providers (Anthropic, OpenAI, Google, xAI, DeepSeek; the user's own key,
 after a consent sheet) receive the chat, the tool results the model asks for,
 and two blocks attached automatically:
-- the user-facts block (`UserFactsStore.systemPromptBlock()`, the things the
-  user asked Flo to remember) in every system prompt;
+- the user-facts block (`UserFactsStore.systemPromptBlock()`: the things the
+  user asked Flo to remember, then, labelled as unconfirmed background, facts
+  noted from earlier conversations) in every system prompt;
 - the live-state block (`AssistantContext.renderLiveStateForCloud()`) on every
   cloud tool round: the latest session's recovery score and tier, RMSSD, SDNN,
   mean HR, overnight HR nadir and mean, sleep duration and efficiency, and its
@@ -933,13 +962,16 @@ cost from "more managers"; cost is the highest accuracy any of them
 requests).
 
 ### `WorkoutLocationManager`
-`kCLLocationAccuracyBestForNavigation`, `location` background mode.
+`kCLLocationAccuracyBest` (not the navigation level Apple meant for external power), `location` background mode.
 Active during a recording workout. Owns the `CLAltimeter` for
 barometric elevation. **Lazy-initialised** on first access, so the
 recorder's `init()` does not pay the 2–3 s `CLLocationManager` +
 `CMAltimeter` setup cost synchronously on `@MainActor`. First access
 is `start()` for GPS sports, by which point the user has explicitly
-committed to a workout.
+committed to a workout. Pause, resume, stop, finalize and the per-tick
+reads go through `WorkoutRecorder.startedLocation`, which never builds
+the stack, so an indoor workout never creates `CLLocationManager` or
+`CMAltimeter`.
 
 ### `BreadcrumbRecorder`
 `kCLLocationAccuracyNearestTenMeters` with a 10 m `distanceFilter`
@@ -995,9 +1027,12 @@ off the main actor.
 Two-stage lookup, throttled to 15 m / 60 s (whichever first). 15 m and not 25 m because at a
 fast walk 25 m is ~10 s, and at a corner crossing the cached previous road still won a query
 long enough to answer with the wrong street name.
-Stage 1 — `CLGeocoder.reverseGeocodeLocation` for the road / locality
-/ admin / country / countryCode. Published immediately so the AI
-sees the road name without waiting on stage 2. Stage 2 —
+Stage 1 — the current road from an `MKLocalSearch` over the map tiles
+around the fix (`resolveCurrentRoadFromMapTiles`); when the tiles index no
+road there, or that search fails, `CLGeocoder.reverseGeocodeLocation` (5 s
+timeout) for the road / locality / admin / country / countryCode. Published
+immediately so the AI sees the road name without waiting on stage 2; a lookup
+cancelled by `reset()` publishes nothing. Stage 2 —
 `MKLocalSearch` for the **nearest cross street** in a 200 m
 bounding box, filtered against the current road via a suffix-
 stripping `normalizeStreetName` helper (so "Elm St" doesn't
@@ -1015,7 +1050,11 @@ Holds an `MKRoute` + sticky step index in memory. `currentStep(for:)`
 walks forward from the sticky index (never back, so GPS jitter can't
 bounce the user backwards through the route), returns the upcoming
 instruction + distance to the next turn + total remaining + an
-`arrived` flag (true within 25 m of destination).
+`arrived` flag (true within 25 m of destination). The voice coach's
+per-tick call is the one that moves the index; assistant reads
+(`location.situation`, `directions.next_step`) use `peekStep(for:)`,
+which answers for a fix without moving it, so a stale or coarse fix
+can't skip the coach past a turn.
 
 Offline-once-engaged: the `MKDirections.calculate()` round-trip happens
 once when `directions.routeTo` engages a route; subsequent
@@ -1026,15 +1065,18 @@ Single owner of `AVAudioSession.setCategory` calls. Four claimants
 declare INTENT through it:
 - `VoiceConversationController.claim(.voice, mode: .voiceRecord)`
 - `SpeechInputManager.claim(.dictation, mode: .voiceRecord)`
-- `BreathingAudioManager.claim(.breathingGuide, mode: .playback)` (the only one that ducks other audio)
+- `BreathingAudioManager.claim(.breathingGuide, mode: .playback)` (the only one that ducks other audio); it activates the session through `BackgroundAudioManager.activateForClaimant`, on the cue transition queue
 - `BackgroundAudioManager.claim(.workoutCue, mode: .playback)` — every spoken
   workout cue (the "<sport> started" announcement and each `WorkoutVoiceCoach`
-  line), held from `beginCue()` until the last held cue's `endCue(_:)`
+  line, including the lines the voice conversation speaks for the coach through
+  `CoachCueSpeech`), held from `beginCue()` until the last held cue's `endCue(_:)`
 
 Coordinator picks the strict-superset category — when voice is
 active, a workout cue's claim is satisfied by voice's `.playAndRecord`
 session, so a cue spoken mid-chat never resets the mic. The
-"skip if already-applied" rule makes a redundant claim a no-op.
+"skip if already-applied" rule makes a redundant claim a no-op. A
+`setCategory` that throws is logged and the claims are applied again once,
+a second later (`scheduleRetry`); a second failure is only logged.
 
 The coordinator never activates or deactivates the session; each claimant
 does, and deactivates only when `hasActiveClaims()` is false after its own
@@ -1223,10 +1265,11 @@ was cut, when, and why that seam and not another.
 The app has no home-screen widget, Lock Screen accessory or Live Activity, and
 nothing writes widget data to the App Group `UserDefaults`.
 
-`DataPurgeService` still erases the `widget.*` keys, deliberately. A user who
-ran an earlier build can still have those values on disk. The key list in the
-purge service describes what must be cleaned up. Remove it only once no
-supported upgrade path can still carry those keys.
+A user who ran an earlier build can still have `widget.*` keys (health-derived
+scores) in the App Group suite. Delete All My Data removes them with every other
+preference it does not keep: its preferences sweep
+(`DataPurgeService.sweepAllDefaults`) deletes each stored key not on the keep
+list, and no `widget.*` key is on it.
 
 The App Group entitlement stays — the archive, raw-RR backups, conversation
 store, user facts and unit preferences all live in that container.
@@ -1243,10 +1286,42 @@ target's build phases) and `docs/FLOWCHART.md` for the workout wiring.
 the canonical workout record; the Watch mirrors live HR/stats relayed over
 `WatchConnectivity` (`WatchConnectivityBridge.swift` on the phone,
 `WatchSessionManager.swift` on the wrist) and offers start/stop/pause controls.
-Files: `WatchApp.swift` (entry), `WatchLiveView.swift` (UI),
+Files: `WatchApp.swift` (entry, and `WatchAppDelegate`, which owns the
+`WatchWorkoutManager`), `WatchLiveView.swift` (UI),
 `WatchWorkoutManager.swift` (HKWorkoutSession keep-alive),
 `WatchStrapConnector.swift` (direct CoreBluetooth HR client, retained for the
-opt-in wrist-strap path). A second-wall punch-list of mirror-mode wiring fixes
+opt-in wrist-strap path).
+
+- **Session recovery.** When watchOS relaunches the app to hand back a running
+  workout session, `WatchAppDelegate.handleActiveWorkoutRecovery()` calls
+  `recoverActiveSession()` (`HKHealthStore.recoverActiveWorkoutSession`) first,
+  then wires the workout manager to the session manager itself (`wire(to:)`),
+  because a background relaunch may never show the root view that otherwise
+  does it. A start waits while recovery or authorization is outstanding, so the
+  start the phone's state then asks for keeps the recovered session instead of
+  creating a second one. A start, stop or not-recording report from the phone
+  that arrives while the hand-back is pending is kept and applied when it
+  finishes (`finishRecovery`): after a stop or a not-recording report the
+  recovered session is stopped at once. A failed `beginCollection` is reported
+  (`noteStartFailure`).
+- **Ending without the phone.** A wrist End while the iPhone is unreachable, or
+  the phone-silence end, sets `endedWithoutPhone`; the live screen then says
+  the workout ended on the Watch and asks the user to open Emuqu on the iPhone.
+  `isRecording` stays the phone's state. A live End, Pause, Resume or
+  acknowledgement that fails is queued for delivery instead; a start that finds
+  the iPhone unreachable is refused, never queued.
+- **Phone → Watch.** `WatchSendTimeoutBreaker` stops sends after 3 timeouts for
+  a 30 s cooldown; reachability coming back resets it. `transferLatestUserInfo`
+  cancels outstanding user-info transfers the new one supersedes (a start or
+  stop replaces a queued start or stop; a strap state, voice-chat state or coach
+  alert replaces a queued one of its own type). Both are in
+  `WatchConnectivityBridge+Transport.swift`. A start the
+  phone refuses because a workout is already recording is answered with
+  `WatchControlRefusal.workoutInProgress`. Coach alerts reach the wrist as a
+  haptic (`WatchConnectivityBridge.sendCoachAlertHaptic`: a live send, or the
+  queued transfer when the Watch is unreachable or the send fails), played by
+  `WatchSessionManager` only while fresh (`WatchMessageDecoding.playsCoachAlert`,
+  15 s). A second-wall punch-list of mirror-mode wiring fixes
 (reachability gating, strap-state push, duplicate listeners) is pending on-device
 verification.
 
@@ -1267,6 +1342,12 @@ verification.
   deactivated at workout stop. Voice chat the user starts (including from the
   Watch) holds `.playAndRecord` until it ends. No audio plays or is activated
   at launch.
+- HealthKit wakes the app for new sleep samples (background delivery on the
+  sleep type); the `HealthSampleWatch` anchor, stored across launches, makes the
+  read on that launch pick up whatever arrived meanwhile. Vitals background
+  delivery is off.
+- On the Watch, a workout session watchOS relaunches the app for is recovered
+  (`WatchAppDelegate`, see [Apple Watch app](#apple-watch-app)).
 - Screen locks normally — no idle timer override
 
 ---
@@ -1337,7 +1418,11 @@ Post-summary and the epic α1 report live in
   post-stop state can't mislead the AI.
 - **WorkoutAIContext / WorkoutTriggerEngine / WorkoutVoiceCoach** —
   the live coach rule engine. Engine is a pure evaluator; coach
-  handles TTS + haptics + conversation pre-emption. Context now
+  handles TTS + haptics + conversation pre-emption. A `.haptic` or urgent
+  event plays the alert haptic on the phone (`CoachAlertHaptic.playOnPhone`)
+  and on the Watch; a `.spoken` event, or an urgent `.haptic` one, is then
+  spoken. During an AI voice turn a routine line is not spoken but its haptic
+  still plays. Context now
   carries `routeTopology` (full climbs queue + peak altitude + total
   ascent remaining + steepest grade ahead), `weather` (MET Norway
   current conditions), `activeThresholds` + `thresholdBreachSec`
@@ -1415,7 +1500,9 @@ Post-summary and the epic α1 report live in
   pipeline as Stryd.
 - **ZwiftPeripheralBroadcaster** — `CBPeripheralManager` that
   advertises Heart Rate Service (`0x180D`) and Cycling Power Service
-  (`0x1818`). When `Settings.enableZwiftBroadcast` is on,
+  (`0x1818`). When `Settings.enableZwiftBroadcast` is on and this device
+  has accepted the broadcaster disclosure (`BroadcasterDisclosure`, kept in
+  `UserDefaults` outside the iCloud settings backup),
   `WorkoutRecorder` calls `update(heartRate:powerWatts:)` per tick
   so Zwift / TrainerRoad / Rouvy / Wahoo SYSTM see Emuqu as
   a sensor. Required `bluetooth-peripheral` UIBackgroundMode in
@@ -1454,7 +1541,9 @@ Post-summary and the epic α1 report live in
 - **Power-TSS — Coggan / TrainingPeaks**: `(NP / FTP)² × hours × 100`.
   NP is the 4-second rolling average → mean of the 4th power → 4th
   root. IF (Intensity Factor) = NP / FTP. Variability Index = NP / avg
-  power. Computed at session finalize when both a power source (Stryd
+  power. A 0 W reading counts as a reading (coasting); foot-pod power older
+  than 5 s is no reading (`FootPodManager.currentPowerWatts`,
+  `powerStaleAfter`). Computed at session finalize when both a power source (Stryd
   RSC / FTMS / PM5 / CPS) and the matching FTP (`runningFTPWatts` or
   `cyclingFTPWatts` in `UserSettings`) are present. Returns nil
   otherwise — no fabricated denominators.
@@ -1521,7 +1610,9 @@ process that signal correctly.
    advisory; the persisted value comes from the post-hoc processor.
 3. At `WorkoutRecorder.finalizeSession()`, the buffered samples pass
    through [`BarometricAltitudeProcessor`](../Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift):
-   - **Symmetric moving-average smoother** over 15 samples (~15 s).
+   - **Symmetric moving-average smoother** over a 15 s window, read from the
+     samples' own timestamps (±7 s around each sample), so the time constant
+     holds whatever rate the samples arrived at. Fewer than 15 samples give zero.
      Approximates the ≈ 8 s complementary-filter time constant
      Barczyk & Nemra recommend for human motion tracking. Offline
      application → zero phase lag.
@@ -1565,9 +1656,12 @@ sensor. That's what the barometer is for.
 
 ### Data quality filters (cadence, tail-spikes)
 
-- **Cadence**: sport-aware physiological cap (walks 125 spm, runs
-  220, bikes 140 RPM). Plus a trailing-15-sample tail-spike check
-  (1.5× baseline median) to catch foot-pod noise at stop time.
+- **Cadence**: sport-aware physiological cap (walks and hikes 125 spm,
+  runs and treadmill 220, bikes 140 RPM, rowing and CrossFit 60). Plus a
+  tail-spike check to catch foot-pod noise at stop time: the last
+  min(15, n/4) samples are checked against the median of up to 30 samples
+  before them, and the series is cut at the first one at or above 1.5× that
+  median. A series under 20 points is left as it is.
 - **Charts**: X-domain clamped to the session's actual duration /
   distance so chart ticks never extend past the data into dead
   space on the right.

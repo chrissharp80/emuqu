@@ -1,11 +1,13 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/ConversationStore.swift",
- "hash": "13f7af3d5ab4facd",
- "role": "Persists the assistant chat thread (Assistant/conversation.json in the App Group) sealed with EncryptionManager, with debounced saves, unlock-retry, merge-on-unreadable protection and a verified clear; plus AssistantStoreFile, the sealed-file read/write, set-aside and erase helpers shared by ConversationStore, UserFactsStore and AssistantArtifactStore.",
+ "hash": "bae31f4bc977f386",
+ "role": "Persists the assistant chat thread (Assistant/conversation.json in the App Group) sealed with EncryptionManager, with debounced saves, unlock-retry, merge-on-unreadable protection and a verified clear, plus the sealed conversation summary file beside it (moved there from the plain UserDefaults key older builds used); plus AssistantStoreFile, the sealed-file read/write, set-aside and erase helpers shared by ConversationStore, UserFactsStore and AssistantArtifactStore.",
  "types": [
   "ConversationStore: final class @unchecked Sendable — chat persistence",
   "AssistantStoreFile: enum — read/write sealed JSON files, set undecodable files aside, list and erase set-aside copies",
-  "AssistantStoreFile.Read: enum — missing / unreadable / undecodable / json(Data)"
+  "AssistantStoreFile.Read: enum — missing / unreadable / undecodable / json(Data)",
+  "ConversationStore.StoredSummary: private struct Codable — {text} as written to the summary file",
+  "ConversationStore.LegacySummary: private struct — the defaults and key of a plain summary an older build left, kept until a sealed summary is written"
  ],
  "state": [
   "mem:ConversationStore.shared",
@@ -16,18 +18,23 @@
   "mem:ConversationStore.unreadableOnDisk (OSAllocatedUnfairLock<Bool>)",
   "mem:ConversationStore.diskMerge (OSAllocatedUnfairLock<Void>: one disk merge at a time)",
   "mem:ConversationStore.defaultSaveDebounceMs = 750",
-  "mem:ConversationStore.unlockObservers (NotificationTokens)"
+  "mem:ConversationStore.unlockObservers (NotificationTokens)",
+  "file:<AppGroup|Documents|tmp>/Assistant/conversation_summary.json (sealed, completeFileProtectionUnlessOpen)",
+  "mem:ConversationStore.summaryURL",
+  "mem:ConversationStore.legacySummary (queue-only LegacySummary?)",
+  "mem:ConversationStore.summaryUnreadable (OSAllocatedUnfairLock<Bool>: the last loadSummary found the sealed file unreadable)"
  ],
- "toplevel": "unlockObservers = NotificationTokens(); unreadableOnDisk lock initial false; diskMerge = OSAllocatedUnfairLock().",
+ "toplevel": "unlockObservers = NotificationTokens(); unreadableOnDisk lock initial false; diskMerge = OSAllocatedUnfairLock(). summaryUnreadable lock initial false; legacySummary nil.",
  "units": [
   {
    "key": "init ConversationStore()",
-   "hash": "7781938149b35803",
-   "does": "Resolves App Group→Documents→tmp 'Assistant' dir, creates it, sets conversation.json URL, 750 ms debounce, and wires unlock/become-active retry observers.",
+   "hash": "28a187a7c7335a8a",
+   "does": "Resolves App Group→Documents→tmp 'Assistant' dir, creates it, sets the conversation.json URL and the conversation_summary.json URL beside it, 750 ms debounce, and wires unlock/become-active retry observers.",
    "entry": "first access of ConversationStore.shared",
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.wireRetryOnUnlock()"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.wireRetryOnUnlock()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.summaryFileURL(beside:)"
    ],
    "reads": [],
    "writes": [],
@@ -44,6 +51,7 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.summaryFileURL(beside:)": "c1ea82692d226276",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.wireRetryOnUnlock()": "0bbba42eda7843e6",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
@@ -51,16 +59,18 @@
   },
   {
    "key": "init ConversationStore(fileURL:saveDebounceMs:)",
-   "hash": "1e570ba2979d6576",
-   "does": "Test initializer: injected file URL and debounce, creates parent dir; does NOT wire unlock observers.",
+   "hash": "9c99544e22a9330b",
+   "does": "Test initializer: injected file URL (and the summary file beside it, <name>_summary.json) and debounce, creates parent dir; does NOT wire unlock observers.",
    "entry": "XCTest (ConversationStoreTests.swift:61)",
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.summaryFileURL(beside:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.summaryFileURL(beside:)": "c1ea82692d226276",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
@@ -264,6 +274,141 @@
    }
   },
   {
+   "key": "func ConversationStore.summaryFileURL(beside:)",
+   "hash": "ee5f637cbb37b3f4",
+   "does": "Pure: <history name without extension>_summary.json in the history file's directory (conversation.json → conversation_summary.json).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var ConversationStore.summaryNeedsReload",
+   "hash": "94a7cc31fc0091ee",
+   "does": "Reads the summaryUnreadable flag under its lock: true while the last loadSummary found the sealed summary present but unreadable and no summary has been written or the store cleared since.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ConversationStore.summaryUnreadable"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ConversationStore.loadSummary(migratingFrom:key:)",
+   "hash": "bc981f72617880a5",
+   "does": "Reads the sealed summary file and records whether it was unreadable now (summaryUnreadable). With no file: returns nil when `defaults` holds no plain summary under `key` (older builds); otherwise, synchronously on the queue, records the legacy location (legacySummary) and writes the text sealed — writeSummary removes the key once that or any later summary write succeeds — and returns the legacy text. With the file present in any state, removes the plain key from `defaults` (the file holds a later summary), then returns the decoded text for a readable file (nil when it does not decode) and nil when unreadable or undecodable.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.read(_:caller:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeSummary(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:DispatchQueue.sync",
+    "ext:OSAllocatedUnfairLock.withLock",
+    "ext:UserDefaults.string",
+    "ext:UserDefaults.removeObject",
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [
+    "file:<AppGroup|Documents|tmp>/Assistant/conversation_summary.json (sealed, completeFileProtectionUnlessOpen)",
+    "ud:assistant.priorSummary (legacy, via the key passed in)"
+   ],
+   "writes": [
+    "file:<AppGroup|Documents|tmp>/Assistant/conversation_summary.json (sealed, completeFileProtectionUnlessOpen)",
+    "ud:assistant.priorSummary (removed once a sealed summary exists)",
+    "mem:ConversationStore.summaryUnreadable",
+    "mem:ConversationStore.legacySummary"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "file present but unreadable now (if case ?:)",
+     "effect": "summaryUnreadable = true; else false"
+    },
+    {
+     "at": "+5",
+     "cond": "no file",
+     "effect": "legacy path below; else remove the key and decode"
+    },
+    {
+     "at": "+6",
+     "cond": "no legacy value in defaults",
+     "effect": "return nil"
+    },
+    {
+     "at": "+14",
+     "cond": "file read as JSON",
+     "effect": "return the decoded text (nil if it does not decode); unreadable or undecodable return nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.read(_:caller:)": "6e6ce13df5c02712",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeSummary(_:)": "0ae317857a697d92",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
+   "key": "func ConversationStore.saveSummary(_:)",
+   "hash": "0c74f6acf58efa8a",
+   "does": "Queues writeSummary of the text on the store queue (after any write already queued); the result is not reported — a failed write is logged by AssistantStoreFile.write and leaves the previous file. A successful write also removes a pending plain summary from defaults and clears the unreadable flag (writeSummary).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeSummary(_:)",
+    "ext:DispatchQueue.async"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<AppGroup|Documents|tmp>/Assistant/conversation_summary.json (sealed, completeFileProtectionUnlessOpen)",
+    "mem:ConversationStore.summaryUnreadable",
+    "ud:assistant.priorSummary (legacy key, once sealed)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeSummary(_:)": "0ae317857a697d92"
+   }
+  },
+  {
+   "key": "func ConversationStore.writeSummary(_:)",
+   "hash": "4afb021395bc8cfd",
+   "does": "Queue-only: encodes {text} as JSON and writes it sealed through AssistantStoreFile.write (atomic, completeFileProtectionUnlessOpen, directory created first). On success clears summaryUnreadable, removes the plain summary an older build left (legacySummary) from its defaults and forgets it, and returns true; false when encoding or writing failed, with nothing else changed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.write(_:to:caller:)",
+    "ext:JSONEncoder.encode",
+    "ext:OSAllocatedUnfairLock.withLock",
+    "ext:UserDefaults.removeObject"
+   ],
+   "reads": [
+    "mem:ConversationStore.legacySummary"
+   ],
+   "writes": [
+    "file:<AppGroup|Documents|tmp>/Assistant/conversation_summary.json (sealed, completeFileProtectionUnlessOpen)",
+    "mem:ConversationStore.summaryUnreadable",
+    "mem:ConversationStore.legacySummary",
+    "ud:assistant.priorSummary (legacy key, once sealed)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "encoding or the sealed write failed",
+     "effect": "return false"
+    },
+    {
+     "at": "+4",
+     "cond": "a legacy plain summary is pending",
+     "effect": "remove its key from its defaults and clear legacySummary"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.write(_:to:caller:)": "fbcde6efeddba39f",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
    "key": "var ConversationStore.needsReloadFromDisk",
    "hash": "b2a987e961d006af",
    "does": "True while unreadableOnDisk is set (disk holds turns the caller has not seen).",
@@ -425,38 +570,40 @@
   },
   {
    "key": "func ConversationStore.isEmptyOnDisk()",
-   "hash": "00949b50e6eee33c",
-   "does": "Runs synchronously on the store's queue (after every change already queued, a clear() included): false when a set-aside copy exists or the folder cannot be listed; true when the history file is missing or decodes to an empty list; false when it holds turns or cannot be read, opened or decoded.",
+   "hash": "f73a87964c7cce0d",
+   "does": "Runs synchronously on the store's queue (after every change already queued, a clear() included): false when a set-aside copy exists or the folder cannot be listed, or when a summary file exists; true when the history file is missing or decodes to an empty list; false when it holds turns or cannot be read, opened or decoded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.hasSetAsideCopies(of:caller:)",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.read(_:caller:)",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)",
-    "ext:DispatchQueue.sync"
+    "ext:DispatchQueue.sync",
+    "ext:FileManager.fileExists"
    ],
    "reads": [
     "file:Assistant/conversation.json",
-    "file:Assistant/conversation.undecodable-<unix>.json"
+    "file:Assistant/conversation.undecodable-<unix>.json",
+    "file:<AppGroup|Documents|tmp>/Assistant/conversation_summary.json (sealed, completeFileProtectionUnlessOpen)"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "a set-aside copy remains (or cannot be ruled out)",
+     "cond": "a set-aside copy remains (or cannot be ruled out), or the summary file exists",
      "effect": "return false"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "file missing",
      "effect": "return true"
     },
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "unreadable or undecodable",
      "effect": "return false"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "json",
      "effect": "return whether it decodes to an empty list (false when it does not decode)"
     }
@@ -469,8 +616,8 @@
   },
   {
    "key": "func ConversationStore.clear()",
-   "hash": "fd2f44586451451c",
-   "does": "Synchronously on the queue (after any queued write): erases every set-aside copy and then the history file (AssistantStoreFile.erase). On success resets latestTurns, saveScheduled (so a pending trailing write does not re-create the file), writePending and unreadableOnDisk and returns true; when anything could not be removed leaves the in-memory state as it was and returns false. Discardable result.",
+   "hash": "f1ab45346d4b4187",
+   "does": "Synchronously on the queue (after any queued write): erases the summary file (and any set-aside copy of it), then every set-aside copy of the history and the history file (AssistantStoreFile.erase). On success resets latestTurns, saveScheduled (so a pending trailing write does not re-create the file), writePending, unreadableOnDisk and summaryUnreadable and returns true; when anything could not be removed leaves the in-memory state as it was and returns false. Discardable result.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.erase(_:caller:)",
@@ -480,15 +627,17 @@
    "writes": [
     "file:Assistant/conversation.json",
     "file:Assistant/conversation.undecodable-<unix>.json",
+    "file:<AppGroup|Documents|tmp>/Assistant/conversation_summary.json (sealed, completeFileProtectionUnlessOpen)",
     "mem:ConversationStore.latestTurns",
     "mem:ConversationStore.saveScheduled",
     "mem:ConversationStore.writePending",
-    "mem:ConversationStore.unreadableOnDisk"
+    "mem:ConversationStore.unreadableOnDisk",
+    "mem:ConversationStore.summaryUnreadable"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "erase failed",
+     "cond": "erasing the summary or the history failed",
      "effect": "return false; nothing in memory changes"
     }
    ],

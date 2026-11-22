@@ -275,6 +275,9 @@ extension SleepTimelineState {
         return state.normalized()
     }
 
+    /// The merged segment keeps the id of the one the merge was asked from
+    /// (`leftId`, the inspected segment), so its selection and inspector
+    /// stay on it.
     private func applyingMerge(leftId: UUID, rightId: UUID) -> SleepTimelineState {
         guard let leftIdx = segments.firstIndex(where: { $0.id == leftId }),
               let rightIdx = segments.firstIndex(where: { $0.id == rightId }) else { return self }
@@ -284,7 +287,7 @@ extension SleepTimelineState {
         let gapMinutes = Int(b.start.timeIntervalSince(a.end) / 60)
         guard gapMinutes >= 0, gapMinutes <= SleepTimelineState.maxMergeGapMinutes else { return self }
         let merged = Segment(
-            id: UUID(),
+            id: leftId,
             start: a.start,
             end: b.end,
             intervals: (a.intervals + Self.mergeGapFill(between: a, and: b) + b.intervals).sorted { $0.start < $1.start }

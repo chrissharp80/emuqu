@@ -250,12 +250,39 @@ final class VitalsScoringTests: XCTestCase {
             factors: [.init(label: "Vitals", detail: "RR — no data", score: 50, weight: 0.15, impact: .neutral)],
             penalties: []
         )
-        let fresh = tempVitals(reading: 1.5, baseline: 1.4)
-        let refreshed = VitalsScoring.breakdownRefreshingVitalsFactor(frozen, freshVitals: fresh, baselineStats: nil)
-        let expected = VitalsScoring.calculateVitalsScore(
-            vitals: RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(fresh), baselineStats: nil
+        // RR 15 with no RR baseline is inside the 12-18 population window:
+        // 100. A +0.1 °C deviation is normal: 100. Read as the raw +1.5 °C
+        // offset it would be severe (25), giving 62.5.
+        let refreshed = VitalsScoring.breakdownRefreshingVitalsFactor(
+            frozen, freshVitals: tempVitals(reading: 1.5, baseline: 1.4), baselineStats: nil
         )
-        XCTAssertEqual(refreshed.factors.first?.score ?? .nan, expected ?? .nan, accuracy: 0.0001)
+        XCTAssertEqual(refreshed.factors.first?.score ?? .nan, 100, accuracy: 0.0001)
         XCTAssertEqual(refreshed.compositeScore, 70, accuracy: 0.0001)
+        // A cool sleeper running warm: raw -0.2 °C reads normal (100), but
+        // +0.4 °C over the -0.6 °C baseline is mild (75): (100 + 75) / 2.
+        let warm = VitalsScoring.breakdownRefreshingVitalsFactor(
+            frozen, freshVitals: tempVitals(reading: -0.2, baseline: -0.6), baselineStats: nil
+        )
+        XCTAssertEqual(warm.factors.first?.score ?? .nan, 87.5, accuracy: 0.0001)
+    }
+
+    /// Before, a refreshed Vitals factor raised the factors' sum over the
+    /// frozen composite, and the advice said baselines had improved since the
+    /// night. The refresh's move is not a gap.
+    func testARefreshedVitalsFactorLeavesTheFrozenGapAsItWas() {
+        let frozen = RecoveryScoreCalculator.ScoreBreakdown(
+            compositeScore: 70, tier: 3,
+            factors: [
+                .init(label: "HRV", detail: "", score: 70, weight: 0.6, impact: .neutral),
+                .init(label: "Sleep", detail: "", score: 70, weight: 0.25, impact: .neutral),
+                .init(label: "Vitals", detail: "RR — no data", score: 30, weight: 0.15, impact: .negative)
+            ],
+            penalties: []
+        )
+        let refreshed = VitalsScoring.breakdownRefreshingVitalsFactor(
+            frozen, freshVitals: tempVitals(reading: 1.5, baseline: 1.4), baselineStats: nil
+        )
+        XCTAssertNotEqual(refreshed.factors.last?.score ?? .nan, 30, "the test needs the refresh to move the factor")
+        XCTAssertEqual(refreshed.gapFromFactors, frozen.gapFromFactors, accuracy: 1e-9)
     }
 }

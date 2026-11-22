@@ -216,6 +216,29 @@ enum DashboardSessionPolicy {
             .max(by: { duration(of: $0) < duration(of: $1) })
     }
 
+    /// One overnight per night: of the overnights that land on the same day
+    /// (`nightDay`), such as the two recordings of a night split by a strap
+    /// restart, only the longest, the one `sessionForDay` would pick (the
+    /// first of equals). Every other session is kept, in order. A trend or a
+    /// night-to-night walk that counted both halves would count one night
+    /// twice.
+    static func oneOvernightPerNight(_ sessions: [HRVSession], calendar: Calendar) -> [HRVSession] {
+        var longest: [Date: HRVSession] = [:]
+        for session in sessions where session.sessionType == .overnight {
+            let night = nightDay(of: session, calendar: calendar)
+            if let kept = longest[night], duration(of: kept) >= duration(of: session) { continue }
+            longest[night] = session
+        }
+        let kept = Set(longest.values.map(\.id))
+        return sessions.filter { $0.sessionType != .overnight || kept.contains($0.id) }
+    }
+
+    /// The calendar day a session counts on (`dayOf`: an overnight's wake
+    /// time), at its start.
+    static func nightDay(of session: HRVSession, calendar: Calendar) -> Date {
+        calendar.startOfDay(for: dayOf(session))
+    }
+
     /// Light the dot for any real reading — one that has a live
     /// `analysisResult` OR a stored `recoveryScore`. Requiring
     /// `analysisResult` alone breaks restored devices: after an
@@ -249,7 +272,10 @@ enum DashboardSessionPolicy {
             if let snapshot = session.sleepSnapshot, let sleepEnd = snapshot.sleepEnd {
                 return sleepEnd
             }
-            if let endMs = session.sleepEndMs {
+            // A zero offset is no sleep end, as the index mirror reads it
+            // (`SessionArchive.deriveSleepIndexFields`), so the seed and
+            // this pick put a night on the same day.
+            if let endMs = session.sleepEndMs, endMs > 0 {
                 return session.startDate.addingTimeInterval(TimeInterval(endMs) / 1000.0)
             }
         }

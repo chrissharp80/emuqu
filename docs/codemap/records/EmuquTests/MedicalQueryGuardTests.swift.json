@@ -58,7 +58,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "87185a3436a6c315",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "8b8ad65e5b6da6e9",
     "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
@@ -94,8 +94,8 @@
   },
   {
    "key": "func MedicalQueryGuardTests.testSymptomTriageRefused()",
-   "hash": "53681cd7ed1b4138",
-   "does": "For 14 English symptom phrasings (chest pain, breathlessness, fainting, severe pain/fatigue/dizz, panic attack) asserts refusal with symptomReplyTemplate.",
+   "hash": "4737f1edd0e1886c",
+   "does": "For 23 English symptom phrasings (chest pain, 'my chest hurts', 'pain in my chest', 'my chest feels tight', chest pains, breathlessness, fainting, passed/blacked out and 'going to pass out' / 'might black out', severe pain/fatigue/dizz, panic attack) asserts refusal with symptomReplyTemplate.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)",
@@ -107,25 +107,25 @@
    "writes": [],
    "branches": [
     {
-     "at": "+22",
+     "at": "+29",
      "cond": "for each positive input",
      "effect": "evaluates it"
     },
     {
-     "at": "+25",
+     "at": "+32",
      "cond": "outcome .refuse",
      "effect": "asserts reply == symptomReplyTemplate"
     },
     {
-     "at": "+28",
+     "at": "+35",
      "cond": "outcome .proceed",
      "effect": "XCTFail"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "72c81dbb40382d67",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "2e2c92e55addde7f",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "1b78b93208cd2db0",
     "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
@@ -157,7 +157,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "4b690dde06ad386a",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "7af51eb3a25380a6",
     "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
@@ -242,7 +242,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "4b690dde06ad386a"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "7af51eb3a25380a6"
    }
   },
   {
@@ -318,8 +318,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "87185a3436a6c315",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "2e2c92e55addde7f"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "8b8ad65e5b6da6e9",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "1b78b93208cd2db0"
    }
   },
   {
@@ -345,7 +345,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "2e2c92e55addde7f",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "1b78b93208cd2db0",
     "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
@@ -362,7 +362,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "2e2c92e55addde7f",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "1b78b93208cd2db0",
     "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.collapsingWhitespace(_:)": "69e8e5d18d924ef7"
    }
   },
@@ -499,8 +499,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "87185a3436a6c315",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "2e2c92e55addde7f"
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.arrhythmiaReply": "8b8ad65e5b6da6e9",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "1b78b93208cd2db0"
    }
   },
   {

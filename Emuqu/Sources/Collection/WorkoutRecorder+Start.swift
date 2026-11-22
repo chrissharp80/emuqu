@@ -193,6 +193,7 @@ extension WorkoutSessionLifecycle {
         recorder.plannedRoute = route
         recorder.plannedRouteWasAutoDetected = false
         recorder.nextRouteDetectionAtMeters = 0
+        recorder.gradeMemo = nil
     }
 
     /// start() — source-conditional pre-flight + strap downgrade cascade (sync-breakdown `preflight` span).
@@ -488,8 +489,12 @@ extension WorkoutSessionLifecycle {
     /// so it can't block the start path even when the radio is wedged. A
     /// workout stopped before the deferred task runs has already stopped the
     /// broadcast, so the task re-checks that the workout is still recording.
+    ///
+    /// The setting alone is not enough: it comes back from the iCloud settings
+    /// backup on a new device, where the disclosure was never shown. Only a
+    /// device that accepted it (`BroadcasterDisclosure`) broadcasts.
     private func deferZwiftBroadcast() {
-        guard recorder.settingsProvider().enableZwiftBroadcast else { return }
+        guard BroadcasterDisclosure.allowsBroadcast(settingEnabled: recorder.settingsProvider().enableZwiftBroadcast) else { return }
         debugLog("[Recorder.start] step=zwiftBroadcaster.start (deferred)")
         Task { @MainActor [weak recorder] in
             guard let recorder, case .recording = recorder.lifecycle.phase else { return }
@@ -754,16 +759,12 @@ extension WorkoutSessionLifecycle {
 
     /// An AI-worded interval call, or the scripted one when the AI can't be
     /// asked (Flo off, its notice not accepted, no consent for the provider),
-    /// so interval calls are never silent.
+    /// fails, replies with nothing, or has said nothing a few seconds in, so
+    /// interval calls are never silent. The conversation decides which, when
+    /// the call comes up (`speakAIResponse(toPrompt:fallback:)`).
     @MainActor
     private static func announce(on conversation: VoiceConversationController, prompt: String, fallback: String) {
-        let provider = AppDependencies.current.providers.providerRegistry.activeProvider
-        let accepted = conversation.assistantViewModel.hasAcceptedDisclaimer
-        guard InterjectionGate.maySend(to: provider.id, disclaimerAccepted: accepted) else {
-            conversation.handleTrigger(message: fallback)
-            return
-        }
-        conversation.speakAIResponse(toPrompt: prompt)
+        conversation.speakAIResponse(toPrompt: prompt, fallback: fallback)
     }
 
     // MARK: - Pause / resume
@@ -785,7 +786,7 @@ extension WorkoutSessionLifecycle {
         recorder.lifecycle.autoPaused = isAuto
         recorder.lifecycle.pausedMotion.pause(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())
         recorder.lifecycle.pauseTimeline.pause(atElapsed: recorder.elapsedSeconds, now: Date())
-        recorder.location.isPaused = true
+        recorder.startedLocation?.isPaused = true
         recorder.autoPause.reset()
         debugLog("[WorkoutRecorder] paused (auto=\(isAuto))")
     }
@@ -797,7 +798,7 @@ extension WorkoutSessionLifecycle {
         recorder.lifecycle.autoPaused = false
         recorder.lifecycle.pausedMotion.resume(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())
         recorder.lifecycle.pauseTimeline.resume(now: Date())
-        recorder.location.isPaused = false
+        recorder.startedLocation?.isPaused = false
         recorder.autoPause.reset()
         debugLog("[WorkoutRecorder] resumed")
     }

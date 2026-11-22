@@ -31,25 +31,28 @@ import XCTest
 final class PendingEncryptionLedgerTests: XCTestCase {
     private static let stores = PendingEncryptionLedger.Store.allCases
 
-    /// The app host's own ledger. The ledger is process-global (UserDefaults
-    /// plus its file copy), so each test starts from an empty one; the host's
-    /// entries are put back afterwards, or a device whose container holds
-    /// sessions written without encryption would lose their repair records.
-    private var hostLedger: [PendingEncryptionLedger.Store: Set<UUID>] = [:]
+    /// The ledger is process-global (UserDefaults plus its file copy) and the
+    /// host app's own entries are in it: the only record that a file of the
+    /// host's was written in plaintext. The tests never empty it. Each works
+    /// on fresh ids, asserts only about those, and takes them out again in
+    /// `tearDown`, so the host's entries are never removed, not even for the
+    /// length of a test that is killed. The one exception is the purge test,
+    /// which clears the whole ledger and puts the host's entries straight
+    /// back.
+    private var ownIds: [(UUID, PendingEncryptionLedger.Store)] = []
 
-    override func setUp() {
-        super.setUp()
-        hostLedger = Dictionary(uniqueKeysWithValues: Self.stores.map { ($0, PendingEncryptionLedger.pending(in: $0)) })
-        PendingEncryptionLedger.clearAll()
+    /// A fresh id, removed from `store` after the test.
+    private func newId(in store: PendingEncryptionLedger.Store = .session) -> UUID {
+        let id = UUID()
+        ownIds.append((id, store))
+        return id
     }
 
     override func tearDown() {
-        PendingEncryptionLedger.clearAll()
-        for (store, ids) in hostLedger {
-            for id in ids {
-                PendingEncryptionLedger.record(id, in: store)
-            }
+        for (id, store) in ownIds {
+            PendingEncryptionLedger.clear(id, in: store)
         }
+        ownIds = []
         PendingEncryptionLedger.waitForPendingWrites()
         super.tearDown()
     }
@@ -61,7 +64,7 @@ final class PendingEncryptionLedgerTests: XCTestCase {
     /// the device is locked (when the fallback runs) and cannot be reopened
     /// until it is unlocked.
     func testUnencryptedWritesUseCompleteUnlessOpenProtection() {
-        let id = UUID()
+        let id = newId()
         let encrypted = archiveWriteOptions(for: .encrypted, sessionID: id)
         let plaintext = archiveWriteOptions(for: .plaintextPendingEncryption, sessionID: id)
 
@@ -76,7 +79,7 @@ final class PendingEncryptionLedgerTests: XCTestCase {
     /// Both formats stay atomic: a torn write is a separate failure mode that
     /// neither format may introduce.
     func testBothFormatsWriteAtomically() {
-        let id = UUID()
+        let id = newId()
         XCTAssertTrue(archiveWriteOptions(for: .encrypted, sessionID: id).contains(.atomic))
         XCTAssertTrue(archiveWriteOptions(for: .plaintextPendingEncryption, sessionID: id).contains(.atomic))
     }
@@ -87,7 +90,7 @@ final class PendingEncryptionLedgerTests: XCTestCase {
     /// these two ever came apart, a file would be written unencrypted and never
     /// fixed — silent, permanent, and exactly the original defect.
     func testChoosingPlaintextOptionsRecordsTheSession() {
-        let id = UUID()
+        let id = newId()
         XCTAssertFalse(PendingEncryptionLedger.pending.contains(id))
         _ = archiveWriteOptions(for: .plaintextPendingEncryption, sessionID: id)
         XCTAssertTrue(PendingEncryptionLedger.pending.contains(id))
@@ -95,7 +98,7 @@ final class PendingEncryptionLedgerTests: XCTestCase {
 
     /// And an encrypted write clears it, which is how the repair pass finishes.
     func testChoosingEncryptedOptionsClearsTheSession() {
-        let id = UUID()
+        let id = newId()
         _ = archiveWriteOptions(for: .plaintextPendingEncryption, sessionID: id)
         XCTAssertTrue(PendingEncryptionLedger.pending.contains(id))
         _ = archiveWriteOptions(for: .encrypted, sessionID: id)
@@ -103,46 +106,57 @@ final class PendingEncryptionLedgerTests: XCTestCase {
     }
 
     func testRecordingIsIdempotent() {
-        let id = UUID()
+        let id = newId()
         PendingEncryptionLedger.record(id)
         PendingEncryptionLedger.record(id)
         XCTAssertEqual(PendingEncryptionLedger.pending.filter { $0 == id }.count, 1)
     }
 
     func testClearingAnUnknownSessionIsHarmless() {
-        let known = UUID()
+        let before = PendingEncryptionLedger.pending
+        let known = newId()
         PendingEncryptionLedger.record(known)
         PendingEncryptionLedger.clear(UUID())
-        XCTAssertEqual(PendingEncryptionLedger.pending, [known])
+        XCTAssertEqual(PendingEncryptionLedger.pending, before.union([known]))
     }
 
     // MARK: - Survives the gap the repair has to cross
 
     /// The fallback happens in a background write before first unlock; the
     /// repair runs at the next launch. The record has to survive the process
-    /// ending in between, or nothing is ever repaired.
-    func testPendingSetSurvivesProcessRestart() {
-        let ids = [UUID(), UUID(), UUID()]
+    /// ending in between, or nothing is ever repaired. A relaunch reads the
+    /// union of two copies, the `UserDefaults` list and a file written
+    /// without data protection (the only one readable before the first
+    /// unlock), so both must hold every id. The in-memory list a restart
+    /// drops cannot be emptied from here, so this checks what the next
+    /// process reads.
+    func testPendingSetSurvivesProcessRestart() throws {
+        let ids = Set([newId(), newId(), newId()])
         ids.forEach(PendingEncryptionLedger.record)
-        // The ledger is backed by UserDefaults precisely so it outlives the
-        // process — and so it does not depend on the encryption that is broken.
         PendingEncryptionLedger.waitForPendingWrites()
-        let stored = UserDefaults.standard.stringArray(forKey: PendingEncryptionLedger.Store.session.rawValue) ?? []
-        XCTAssertEqual(Set(stored.compactMap(UUID.init(uuidString:))), Set(ids))
-        XCTAssertEqual(PendingEncryptionLedger.pending, Set(ids))
+
+        let key = PendingEncryptionLedger.Store.session.rawValue
+        let stored = Set((UserDefaults.standard.stringArray(forKey: key) ?? []).compactMap(UUID.init(uuidString:)))
+        XCTAssertTrue(ids.isSubset(of: stored), "the UserDefaults copy is missing an id")
+        let file = try XCTUnwrap(FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first)
+            .appendingPathComponent("PendingEncryption", isDirectory: true)
+            .appendingPathComponent("\(key).json")
+        let inFile = try Set(JSONDecoder().decode([String].self, from: Data(contentsOf: file)).compactMap(UUID.init(uuidString:)))
+        XCTAssertTrue(ids.isSubset(of: inFile), "the file copy a locked relaunch reads is missing an id")
     }
 
     /// A clear reaches disk too, so a relaunch does not re-encrypt a file
     /// that is already encrypted.
     func testClearIsPersisted() {
-        let kept = UUID()
-        let cleared = UUID()
+        let kept = newId()
+        let cleared = newId()
         PendingEncryptionLedger.record(kept)
         PendingEncryptionLedger.record(cleared)
         PendingEncryptionLedger.clear(cleared)
         PendingEncryptionLedger.waitForPendingWrites()
         let stored = UserDefaults.standard.stringArray(forKey: PendingEncryptionLedger.Store.session.rawValue) ?? []
-        XCTAssertEqual(stored, [kept.uuidString])
+        XCTAssertTrue(stored.contains(kept.uuidString))
+        XCTAssertFalse(stored.contains(cleared.uuidString), "the clear did not reach disk")
     }
 
     // MARK: - No UserDefaults write on the caller's thread
@@ -157,7 +171,8 @@ final class PendingEncryptionLedgerTests: XCTestCase {
             forName: UserDefaults.didChangeNotification, object: nil, queue: nil
         ) { _ in probe.noteChange() }
         defer { NotificationCenter.default.removeObserver(observer) }
-        let id = UUID()
+        let id = newId()
+        ownIds.append((id, .rawBackup))
         probe.whileCalling {
             PendingEncryptionLedger.record(id)
             PendingEncryptionLedger.record(id, in: .rawBackup)
@@ -170,9 +185,20 @@ final class PendingEncryptionLedgerTests: XCTestCase {
 
     /// A purge deletes the files, so the entries pointing at them must go too —
     /// otherwise the next launch tries to re-encrypt data the user erased.
+    ///
+    /// The one test that empties the whole ledger: the host's entries are
+    /// read first and recorded again as soon as the assertion is made, so
+    /// they are gone only for the moment the check takes.
     func testPurgeClearsEveryPendingEntry() {
+        let host = Dictionary(uniqueKeysWithValues: Self.stores.map { ($0, PendingEncryptionLedger.pending(in: $0)) })
+        defer {
+            for (store, ids) in host {
+                ids.forEach { PendingEncryptionLedger.record($0, in: store) }
+            }
+            PendingEncryptionLedger.waitForPendingWrites()
+        }
         for store in Self.stores {
-            PendingEncryptionLedger.record(UUID(), in: store)
+            PendingEncryptionLedger.record(newId(in: store), in: store)
         }
         XCTAssertFalse(Self.stores.contains { PendingEncryptionLedger.pending(in: $0).isEmpty })
         PendingEncryptionLedger.clearAll()
@@ -212,7 +238,7 @@ final class PendingEncryptionLedgerTests: XCTestCase {
     /// another archive's session, and stays queued.
     func testRepairKeepsAnIdThisArchiveDoesNotKnow() throws {
         let archive = try makeArchive()
-        let foreign = UUID()
+        let foreign = newId()
         PendingEncryptionLedger.record(foreign)
 
         reencryptPendingSessions(in: archive)
@@ -224,17 +250,16 @@ final class PendingEncryptionLedgerTests: XCTestCase {
     /// session stays queued while the index has not loaded, since the
     /// session may still be on disk.
     func testRepairClearsADeletedSessionOnlyOnceTheIndexHasLoaded() throws {
-        let deleted = UUID()
+        let deleted = newId()
         let unread = try makeArchive(deleted: [deleted], index: Data("not an index".utf8))
         PendingEncryptionLedger.record(deleted)
 
         reencryptPendingSessions(in: unread)
         XCTAssertTrue(PendingEncryptionLedger.pending.contains(deleted), "cleared while the index was unread")
 
+        try requireEncryptionKey()
         reencryptPendingSessions(in: try makeArchive(deleted: [deleted]))
-        if EncryptionManager.shared.isAvailable {
-            XCTAssertFalse(PendingEncryptionLedger.pending.contains(deleted))
-        }
+        XCTAssertFalse(PendingEncryptionLedger.pending.contains(deleted))
     }
 
     /// An indexed session whose file is gone has no plaintext left to repair:
@@ -245,13 +270,13 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         session.endDate = session.startDate.addingTimeInterval(300)
         _ = try archive.archive(session)
         try FileManager.default.removeItem(at: archive.archiveDirectory.appendingPathComponent("\(session.id.uuidString).json"))
+        ownIds.append((session.id, .session))
         PendingEncryptionLedger.record(session.id)
 
+        try requireEncryptionKey()
         reencryptPendingSessions(in: archive)
 
-        if EncryptionManager.shared.isAvailable {
-            XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
-        }
+        XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
         XCTAssertTrue(archive.exists(session.id))
     }
 
@@ -269,14 +294,14 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         try FileManager.default.createDirectory(at: archive.store.trashDirectory, withIntermediateDirectories: true)
         try FileManager.default.removeItem(at: file)
         try SessionArchive.sessionEncoder.encode(session).write(to: trashed)
+        ownIds.append((session.id, .session))
         PendingEncryptionLedger.record(session.id)
 
+        try requireEncryptionKey()
         reencryptPendingSessions(in: archive)
 
-        if EncryptionManager.shared.isAvailable {
-            XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: trashed)))
-            XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
-        }
+        XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: trashed)))
+        XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
     }
 
     /// A plaintext copy in the Trash is encrypted in place, and still
@@ -289,14 +314,14 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         try archive.delete(session.id)
         let trashed = archive.store.trashDirectory.appendingPathComponent("\(session.id.uuidString).session")
         try SessionArchive.sessionEncoder.encode(session).write(to: trashed)
+        ownIds.append((session.id, .session))
         PendingEncryptionLedger.record(session.id)
 
+        try requireEncryptionKey()
         reencryptPendingSessions(in: archive)
 
-        if EncryptionManager.shared.isAvailable {
-            XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: trashed)))
-            XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
-        }
+        XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: trashed)))
+        XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
         XCTAssertEqual(archive.trashedSession(session.id)?.id, session.id)
     }
 
@@ -319,8 +344,8 @@ final class PendingEncryptionLedgerTests: XCTestCase {
     /// A rewrite that fails leaves the old plaintext on disk, so its repair
     /// entry must survive; a first write that fails queues nothing.
     func testAFailedBackupWriteLeavesTheQueueAsItWas() {
-        let queued = UUID()
-        let fresh = UUID()
+        let queued = newId(in: .rawBackup)
+        let fresh = newId(in: .rawBackup)
         PendingEncryptionLedger.record(queued, in: .rawBackup)
         let missingDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent("PendingEncryptionLedgerTests-missing-\(UUID().uuidString)", isDirectory: true)
@@ -338,14 +363,22 @@ final class PendingEncryptionLedgerTests: XCTestCase {
     // MARK: - No silent path back
 
     /// A `try? encrypt(...) ?? plaintext` shape would produce identical bytes for
-    /// both formats with no way to tell them apart. The format enum existing
-    /// and being exhaustive is what makes that impossible to do accidentally.
-    func testDiskFormatDistinguishesTheTwoOutcomes() {
-        let formats: [SessionArchive.SessionFileCodec.DiskFormat] = [.encrypted, .plaintextPendingEncryption]
-        let ids = formats.map { _ in UUID() }
-        let options = zip(formats, ids).map { archiveWriteOptions(for: $0, sessionID: $1) }
-        XCTAssertEqual(Set(options.map(\.rawValue)).count, 2,
-                       "Encrypted and plaintext writes must be distinguishable at the call site")
+    /// both formats with no way to tell them apart. Through a real archive
+    /// write, the bytes on disk and the ledger must agree: with the key, the
+    /// file is ciphertext and the session is not queued for repair.
+    func testDiskFormatDistinguishesTheTwoOutcomes() throws {
+        try requireEncryptionKey()
+        let archive = try makeArchive()
+        var session = HRVSession(startDate: Date(timeIntervalSince1970: 1_790_000_000), sessionType: .quick)
+        session.endDate = session.startDate.addingTimeInterval(300)
+        ownIds.append((session.id, .session))
+
+        _ = try archive.archive(session)
+
+        let bytes = try Data(contentsOf: archive.archiveDirectory.appendingPathComponent("\(session.id.uuidString).json"))
+        XCTAssertTrue(SessionArchive.looksEncrypted(bytes), "An archive write with the key available wrote plaintext")
+        XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id),
+                       "An encrypted write left its session queued for re-encryption")
     }
 }
 

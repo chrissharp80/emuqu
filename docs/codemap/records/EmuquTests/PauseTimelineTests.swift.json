@@ -64,6 +64,43 @@
    }
   },
   {
+   "key": "func PauseTimelineTests.testActiveSecondsFollowTheWallClockLessPauses()",
+   "hash": "acac6a8fde7cd2c8",
+   "does": "Asserts activeSeconds is the floored wall-clock time with no pause, stands still during an open pause, subtracts a closed pause, and is 0 before the start.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.activeSeconds(sessionStart:now:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.pause(atElapsed:now:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.activeSeconds(sessionStart:now:)": "4ae6aecd908acf3b",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.pause(atElapsed:now:)": "1fd5ee68c4c13727",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)": "d35589150542c007"
+   }
+  },
+  {
+   "key": "func PauseTimelineTests.testAPauseEndedAtTheStopIsSaved()",
+   "hash": "41edbf3ed2ae341f",
+   "does": "Asserts a pause ended at the stop (resume at the stop time) is saved as a span of its length.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.pause(atElapsed:now:)",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.pause(atElapsed:now:)": "1fd5ee68c4c13727",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)": "d35589150542c007",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutPauseSpan.spans(of:)": "2da31e32de0c969d"
+   }
+  },
+  {
    "key": "func PauseTimelineTests.testAResumeWithoutAPauseRecordsNothing()",
    "hash": "856a1c30c88e218f",
    "does": "Asserts resume without a prior pause records no span.",

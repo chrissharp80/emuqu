@@ -1,9 +1,11 @@
 import CloudKit
+import CryptoKit
 import Foundation
 
 // Supporting types for CloudKit sync: the timeout error, the notification
-// names, the serializer that funnels concurrent syncs into one at a time, and
-// the separate settings-sync object.
+// names, the serializer that funnels concurrent syncs into one at a time, the
+// separate settings-sync object with its record format, and the sync status
+// lines. What a session record carries is in `CloudSessionPayload.swift`.
 
 enum SyncTimeoutError: Error, LocalizedError {
     case timedOut
@@ -74,7 +76,8 @@ final class SyncSerializer {
 //   • Zone: "UserSettings" (separate from the HRVSession zone so a
 //     sessions-only fault recovery doesn't drag settings along).
 //   • Record type: "UserSettings".
-//   • Single record with fixed name "primary"; last-writer-wins.
+//   • Single record with fixed name "primary"; the later edit wins
+//     (`modifiedAt` against `localEditedAtKey`).
 //   • Fields written: `settingsPayload` (Bytes, the encrypted settings) and
 //     `modifiedAt` (Date, for the "last synced" UI). See
 //     `CloudSettingsRecord` for why, and for the two legacy fields every
@@ -108,7 +111,22 @@ final class CloudKitSettingsSync {
     /// the second save lost to the first with `.serverRecordChanged` although
     /// both came from this device.
     private let pushSerializer = SyncSerializer()
-    private var zoneEnsured = false
+    /// Whether this device created the UserSettings zone, kept across
+    /// launches: a zone it created that is gone was deleted (Delete All My
+    /// Data, or the iCloud settings), and is not created again behind the
+    /// user's back. Reset with the rest of the bookkeeping (`forgetZone`).
+    static let zoneCreatedKey = "cloudkit.settingsZoneCreated"
+    /// When the settings the user edits on this device last changed, as the
+    /// record's `modifiedAt` is compared with it: a push replaces only an
+    /// older cloud copy. The app's own writes do not move it
+    /// (`noteSettingsChange`); a restore sets it to the restored copy's date.
+    static let localEditedAtKey = "cloudkit.settingsLocalEditedAt"
+    /// A digest of the settings the user edits, as last seen
+    /// (`CloudSettingsRecord.editFingerprint`): how a user's edit is told from
+    /// the app writing a baseline, a trial date or a launch flag, all of
+    /// which post the same settings change. A hash only; the settings
+    /// themselves are never put in UserDefaults.
+    static let editFingerprintKey = "cloudkit.settingsEditFingerprint"
     /// Sticky per-launch flag. Set when the UserSettings record type isn't
     /// in production schema yet — same retry-storm protection as
     /// `CloudKitSyncManager.schemaUnavailable`, applied to the settings
@@ -117,6 +135,10 @@ final class CloudKitSettingsSync {
     private var schemaUnavailable = false
 
     private init() {
+        // The settings as they are now are the starting point: a change made
+        // before this object listened, or a field a new build added, is not an
+        // edit made now.
+        Self.takeEditFingerprint(stampingAChange: false)
         // Listen to the same notification SettingsManager fires on every
         // change. Debounce so a flurry of edits (e.g. user rapidly
         // toggling a row) collapses into one push.
@@ -125,8 +147,56 @@ final class CloudKitSettingsSync {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.scheduleDebouncedPush() }
+            Task { @MainActor [weak self] in
+                Self.noteSettingsChange()
+                self?.scheduleDebouncedPush()
+            }
         }
+    }
+
+    /// A settings change was posted: the edit time moves to now only when a
+    /// setting the user edits changed (`CloudSettingsRecord.editFingerprint`).
+    /// The app's own writes (the HRV baselines, the trial start, the
+    /// launch-task flags, the sync switch) post the same change and leave it
+    /// alone, so a device that only scored a night does not count as edited
+    /// later than one where the user changed a setting.
+    private static func noteSettingsChange() {
+        takeEditFingerprint(stampingAChange: true)
+    }
+
+    /// Store the current settings' edit fingerprint and, with
+    /// `stampingAChange`, set the edit time to now when it differs from the
+    /// stored one. A device's first fingerprint is a starting point, never
+    /// an edit. Nothing is taken while the settings file is not loaded.
+    private static func takeEditFingerprint(stampingAChange: Bool) {
+        guard let json = AppDependencies.current.app.settingsManager.currentSettingsJSON() else { return }
+        let fingerprint: String
+        do {
+            fingerprint = try CloudSettingsRecord.editFingerprint(json)
+        } catch {
+            debugLog("[CloudKitSettings] settings edit fingerprint not taken: \(error.localizedDescription)", level: .warning)
+            return
+        }
+        let defaults = UserDefaults.standard
+        let previous = defaults.string(forKey: editFingerprintKey)
+        guard previous != fingerprint else { return }
+        defaults.set(fingerprint, forKey: editFingerprintKey)
+        if stampingAChange, previous != nil { defaults.set(Date(), forKey: localEditedAtKey) }
+    }
+
+    /// Forget the zone: after a remote wipe or an account change, the next
+    /// push creates it again for the account sync is then enabled for.
+    func forgetZone() {
+        UserDefaults.standard.removeObject(forKey: Self.zoneCreatedKey)
+    }
+
+    /// The settings now on this device are the copy restored from iCloud,
+    /// edited at `editedAt`: that is their edit time, and their fingerprint is
+    /// the starting point, so the restore itself (and the trial date it
+    /// adopts) is not taken for an edit made on this device now.
+    private static func noteRestored(editedAt: Date?) {
+        takeEditFingerprint(stampingAChange: false)
+        if let editedAt { UserDefaults.standard.set(editedAt, forKey: localEditedAtKey) }
     }
 
     /// Push the current settings now, without debounce. Called by the
@@ -134,15 +204,25 @@ final class CloudKitSettingsSync {
     /// user only adjusts settings on one device per session, and by the
     /// "Back Up Settings" button.
     ///
+    /// The launch push replaces the cloud copy only when this device's
+    /// settings were changed after it was (`localEditedAtKey`): a device
+    /// with older settings launching replaced the copy the user had just
+    /// edited elsewhere, and a later restore brought back the stale values.
+    /// The button passes `replacingNewerCloudCopy`: the user asked for this
+    /// device's settings to be the backup.
+    ///
     /// True only when the settings were saved to iCloud. Anything else also
     /// leaves `status` as `.error` with the reason, including a push that was
     /// skipped or lost a conflict, so the button never reports a backup that
-    /// did not happen.
+    /// did not happen. A newer cloud copy left in place is not an error.
     @discardableResult
-    func pushImmediately() async -> Bool {
-        switch await performPush() {
+    func pushImmediately(replacingNewerCloudCopy: Bool = false) async -> Bool {
+        switch await performPush(replacingNewerCloudCopy: replacingNewerCloudCopy) {
         case .pushed:
             return true
+        case .keptNewerCloudCopy:
+            status = .idle
+            return false
         case let .skipped(reason), let .failed(reason):
             status = .error(reason)
             return false
@@ -154,31 +234,62 @@ final class CloudKitSettingsSync {
     /// on success so the UI can confirm "Restored from iCloud (April
     /// 27)". Throws when no cloud record exists, or when iCloud is
     /// unreachable.
+    ///
+    /// Reads only from the iCloud account sync is enabled for
+    /// (`CloudAccountGuard.confirmAccount`): another Apple ID's settings are
+    /// never restored onto this device. Creates no zone: a missing zone holds
+    /// no copy. The restored settings take the copy's edit date
+    /// (`noteRestored`).
     func restoreFromCloud() async throws -> Date {
-        try await ensureZoneExists()
+        try await requireConfirmedAccount()
         let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         let record: CKRecord
         do {
             record = try await privateDB.record(for: recordID)
-        } catch let error as CKError where error.code == .unknownItem {
+        } catch let error as CKError where CloudHealthScrubCoordinator.meansNoRecord(error) {
             throw RestoreError.noCloudCopy
         }
         let settingsManager = AppDependencies.current.app.settingsManager
         let data = try CloudSettingsRecord.settingsJSON(from: record)
         try settingsManager.restoreFromJSON(CloudSettingsRecord.restorable(data, keepingProfileOf: settingsManager.settings))
-        let modifiedAt = (record["modifiedAt"] as? Date) ?? Date()
-        return modifiedAt
+        let editedAt = record[CloudSettingsRecord.modifiedAtField] as? Date
+        Self.noteRestored(editedAt: editedAt)
+        return editedAt ?? Date()
     }
 
-    enum RestoreError: LocalizedError {
+    /// Returns once the signed-in account is the one sync is enabled for;
+    /// throws `RestoreError.accountNotConfirmed` with the reason otherwise.
+    private func requireConfirmedAccount() async throws {
+        switch await AppDependencies.current.storage.cloudKitSyncManager.accountGuard.confirmAccount() {
+        case .confirmed:
+            return
+        case let .unavailable(message):
+            throw RestoreError.accountNotConfirmed(message)
+        case .stopped, .differentAccount:
+            throw RestoreError.accountNotConfirmed(Self.syncOffMessage)
+        }
+    }
+
+    /// Why nothing goes to or comes from iCloud while sync is off: the
+    /// app's own reason when it turned sync off, else the plain line.
+    private static var syncOffMessage: String {
+        CloudAccountIdentity.stopReason?.message ?? String(localized: "iCloud sync is off", bundle: LanguageManager.appBundle)
+    }
+
+    enum RestoreError: LocalizedError, Equatable {
         case noCloudCopy
         case cloudCopyMalformed
         /// The copy is encrypted with a cloud key this device does not hold,
         /// usually because iCloud Keychain has not delivered it yet.
         case keyNotOnThisDevice
+        /// The signed-in iCloud account is not, or could not be confirmed
+        /// as, the one sync is enabled for; the message says why.
+        case accountNotConfirmed(String)
 
         var errorDescription: String? {
             switch self {
+            case let .accountNotConfirmed(message):
+                message
             case .noCloudCopy:
                 String(localized: "No iCloud backup found. Settings haven't been backed up yet from this Apple ID.", bundle: LanguageManager.appBundle)
             case .cloudCopyMalformed:
@@ -214,6 +325,8 @@ final class CloudKitSettingsSync {
     /// What a push did.
     private enum PushOutcome {
         case pushed
+        /// Not saved: iCloud holds settings edited after this device's.
+        case keptNewerCloudCopy
         /// Not attempted: sync off, onboarding unfinished, or schema paused.
         case skipped(String)
         /// Attempted and not saved.
@@ -221,10 +334,10 @@ final class CloudKitSettingsSync {
     }
 
     /// Runs `pushNow` behind any push already in flight.
-    private func performPush() async -> PushOutcome {
+    private func performPush(replacingNewerCloudCopy: Bool = false) async -> PushOutcome {
         var outcome = PushOutcome.skipped("")
         await pushSerializer.run { [self] in
-            outcome = await pushNow()
+            outcome = await pushNow(replacingNewerCloudCopy: replacingNewerCloudCopy)
         }
         return outcome
     }
@@ -245,21 +358,43 @@ final class CloudKitSettingsSync {
     /// before the user had been asked. Finishing onboarding is itself a
     /// settings change, so the first push follows it without a separate hook.
     ///
+    /// Nothing is written to an iCloud account other than the one sync is
+    /// enabled for (`CloudAccountGuard.confirmAccount`), and a zone found gone
+    /// is a deletion the user made: sync stops for them to opt in again
+    /// (`CloudAccountGuard.zoneWasDeleted`) instead of the zone being created
+    /// again.
+    ///
     /// Callers go through `performPush`, which serializes pushes.
-    private func pushNow() async -> PushOutcome {
+    private func pushNow(replacingNewerCloudCopy: Bool) async -> PushOutcome {
         if let skipped = pushSkipReason() { return .skipped(skipped) }
-        let sealed: Data
-        switch sealedLocalSettings() {
-        case let .ready(data): sealed = data
-        case let .unavailable(reason): return .failed(reason)
+        do {
+            try await requireConfirmedAccount()
+        } catch {
+            return .skipped(error.localizedDescription)
         }
-        status = .syncing
+        switch sealedLocalSettings() {
+        case let .ready(sealed):
+            status = .syncing
+            return await save(sealed, replacingNewerCloudCopy: replacingNewerCloudCopy)
+        case let .unavailable(reason):
+            return .failed(reason)
+        }
+    }
+
+    /// `pushNow`'s save of the sealed settings, and what each failure means.
+    private func save(_ sealed: Data, replacingNewerCloudCopy: Bool) async -> PushOutcome {
         do {
             try await ensureZoneExists()
-            try await saveSettingsRecord(sealed)
+            guard try await saveSettingsRecord(sealed, replacingNewer: replacingNewerCloudCopy) else {
+                debugLog("[CloudKitSettings] iCloud holds settings edited after this device's — left in place")
+                status = .idle
+                return .keptNewerCloudCopy
+            }
             status = .lastPushed(Date())
             debugLog("[CloudKitSettings] settings pushed (\(sealed.count) encrypted bytes)")
             return .pushed
+        } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
+            return await zoneWasDeleted(error)
         } catch let error as CKError where error.code == .serverRecordChanged {
             debugLog("[CloudKitSettings] push conflict (server has newer copy); will retry on next change", level: .warning)
             status = .idle
@@ -267,6 +402,16 @@ final class CloudKitSettingsSync {
         } catch {
             return .failed(handlePushFailure(error))
         }
+    }
+
+    /// The settings zone this device created is gone: the user deleted the
+    /// app's iCloud data. Not recreated; sync stops for the user to opt in
+    /// again (`CloudAccountGuard.zoneWasDeleted`), and the push reports why.
+    private func zoneWasDeleted(_ error: CKError) async -> PushOutcome {
+        debugLog("[CloudKitSettings] settings zone gone (\(error.code.rawValue)) — not recreated", level: .warning)
+        status = .idle
+        let message = await AppDependencies.current.storage.cloudKitSyncManager.accountGuard.zoneWasDeleted()
+        return .failed(message ?? Self.syncOffMessage)
     }
 
     /// Why nothing may be pushed right now, or nil when a push may go ahead.
@@ -306,7 +451,11 @@ final class CloudKitSettingsSync {
         }
     }
 
-    private func saveSettingsRecord(_ sealed: Data) async throws {
+    /// Save the sealed settings over the cloud copy, dated with this device's
+    /// last settings change. False, with nothing written, when the cloud copy
+    /// was edited after that change (`CloudSettingsRecord.cloudCopyIsNewer`)
+    /// and `replacingNewer` is false. A replacing push dates the copy now.
+    private func saveSettingsRecord(_ sealed: Data, replacingNewer: Bool) async throws -> Bool {
         let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         let record: CKRecord
         do {
@@ -314,8 +463,16 @@ final class CloudKitSettingsSync {
         } catch let error as CKError where error.code == .unknownItem {
             record = CKRecord(recordType: recordType, recordID: recordID)
         }
-        CloudSettingsRecord.write(sealed, to: record, modifiedAt: Date())
+        let localEditedAt = UserDefaults.standard.object(forKey: Self.localEditedAtKey) as? Date
+        let cloudEditedAt = record[CloudSettingsRecord.modifiedAtField] as? Date
+        if !replacingNewer, CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt: cloudEditedAt, localEditedAt: localEditedAt) {
+            return false
+        }
+        let editedAt = replacingNewer ? Date() : (localEditedAt ?? Date())
+        CloudSettingsRecord.write(sealed, to: record, modifiedAt: editedAt)
         try await privateDB.save(record)
+        if replacingNewer { UserDefaults.standard.set(editedAt, forKey: Self.localEditedAtKey) }
+        return true
     }
 
     /// A permanent schema error means the CloudKit UserSettings record type
@@ -379,11 +536,36 @@ final class CloudKitSettingsSync {
     }
 
     /// Saving a zone that already exists succeeds, so any error here is a
-    /// real failure and is passed on rather than read as "zone exists".
+    /// real failure and is passed on rather than read as "zone exists". Once
+    /// created it is not saved again (`zoneCreatedKey`): a save into a zone
+    /// that is gone then fails with `.zoneNotFound`, which `pushNow` reads as
+    /// the user's deletion.
+    ///
+    /// A device without the flag that has synced sessions (a build from
+    /// before the flag was kept, which created this zone with every push)
+    /// creates it only while the session zone is still in iCloud. Both are
+    /// gone when the user deleted the app's iCloud data, and that throws
+    /// `.zoneNotFound` like a save into a deleted zone, rather than bringing
+    /// the zone and the settings back.
     private func ensureZoneExists() async throws {
-        guard !zoneEnsured else { return }
+        guard !UserDefaults.standard.bool(forKey: Self.zoneCreatedKey) else { return }
+        let sessionSync = AppDependencies.current.storage.cloudKitSyncManager
+        if sessionSync.zoneCreated || sessionSync.lastSyncDate != nil {
+            guard try await zoneExists(sessionSync.zoneID) else { throw CKError(.zoneNotFound) }
+        }
         try await privateDB.save(CKRecordZone(zoneID: zoneID))
-        zoneEnsured = true
+        UserDefaults.standard.set(true, forKey: Self.zoneCreatedKey)
+    }
+
+    /// Whether `zoneID` is in the private database; any failure other than
+    /// the zone being missing is thrown.
+    private func zoneExists(_ zoneID: CKRecordZone.ID) async throws -> Bool {
+        do {
+            _ = try await privateDB.recordZone(for: zoneID)
+            return true
+        } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
+            return false
+        }
     }
 }
 
@@ -429,10 +611,44 @@ enum CloudSettingsRecord {
     static let legacyDeviceNameField = "deviceName"
     static let modifiedAtField = "modifiedAt"
 
+    /// Whether the cloud copy, edited at `cloudEditedAt`, is newer than this
+    /// device's settings, last changed at `localEditedAt`. A copy with no
+    /// date is never newer. Settings this device has no change time for
+    /// (changed before the time was kept) are older than any dated copy: the
+    /// cloud copy may hold an edit made elsewhere, and unknown is not newer.
+    static func cloudCopyIsNewer(cloudEditedAt: Date?, localEditedAt: Date?) -> Bool {
+        guard let cloudEditedAt else { return false }
+        guard let localEditedAt else { return true }
+        return cloudEditedAt > localEditedAt
+    }
+
     /// The settings JSON as it may be uploaded: profile values filled from
     /// Apple Health are left out (`UserSettings.withoutHealthFilledProfile`).
     static func uploadable(_ json: Data) throws -> Data {
         try encoder.encode(decoder.decode(UserSettings.self, from: json).withoutHealthFilledProfile())
+    }
+
+    /// Uploaded settings the app writes itself rather than the user: the
+    /// schema version, the HRV baselines the analysis keeps, the synced copy
+    /// of the trial start, the sync switch (which the app also turns off),
+    /// and the onboarding and launch-task progress flags.
+    static let appWrittenFields: Set<String> = [
+        "schemaVersion", "baselineRMSSD", "baselineHR", "trialStartDate", "iCloudSyncEnabled",
+        "hasCompletedOnboarding", "hasFixedTempAsymmetry", "hasRunScoreHistoryRecompute",
+        "hasAcknowledgedScoreArchitectureChange"
+    ]
+
+    /// A SHA-256 digest, in hex, of the settings as the user edits them: the
+    /// uploadable JSON (`uploadable`) without `appWrittenFields`, with sorted
+    /// keys. Two settings JSONs with the same digest differ at most in what
+    /// the app writes or what never leaves the device.
+    static func editFingerprint(_ json: Data) throws -> String {
+        guard let object = try JSONSerialization.jsonObject(with: uploadable(json)) as? [String: Any] else {
+            throw CocoaError(.coderReadCorrupt)
+        }
+        let edited = object.filter { !appWrittenFields.contains($0.key) }
+        let canonical = try JSONSerialization.data(withJSONObject: edited, options: [.sortedKeys])
+        return SHA256.hash(data: canonical).map { String(format: "%02x", $0) }.joined()
     }
 
     /// A stored settings JSON as it may stay in iCloud: the profile values
@@ -505,7 +721,7 @@ enum CloudSettingsRecord {
 }
 
 /// Sync status lines shown in Settings → iCloud & Data, in the app language.
-/// One definition each: `resumeSyncForAvailableAccount` matches on the
+/// One definition each: `CloudKitSyncManager.clearNotSignedInError` matches on the
 /// not-signed-in line to clear it, through `isNotSignedIn`.
 enum CloudSyncMessages {
     static var notSignedIn: String { String(localized: "Not signed into iCloud", bundle: LanguageManager.appBundle) }
@@ -534,363 +750,5 @@ enum CloudSyncMessages {
             return String(localized: "Rate limited", bundle: LanguageManager.appBundle)
         }
         return String(localized: "Rate limited, retry in \(Int(retryAfter)) s", bundle: LanguageManager.appBundle)
-    }
-}
-
-// MARK: - What a session carries to iCloud
-
-/// Keeps every reading taken from Apple Health out of the session payloads
-/// uploaded to iCloud.
-///
-/// Guideline 5.1.3(ii): apps "may not store personal health information in
-/// iCloud." Every payload is already encrypted on the device before upload
-/// (`CloudPayloadCodec`); on top of that, what Apple Health supplied stays
-/// behind, not even uploaded as ciphertext. What the app measured itself (the
-/// strap's RR series and its analysis) and the scores and figures it computed
-/// travel; the readings it took from HealthKit do not:
-///   • sessions read out of Apple Health whole (imported or rebuilt workouts,
-///     Apple Watch Breathe readings) are not uploaded;
-///   • the sleep snapshot, the sleep boundaries and segments, whether the
-///     user adjusted them, and the analysis's sleep-segment label, which
-///     quotes a segment's clock times;
-///   • the vitals snapshot (respiratory rate, wrist temperature, SpO₂, sleep
-///     heart-rate dip);
-///   • VO2max and the list of recent workouts, in the session's training
-///     snapshot and in the analysis result's copy of it;
-///   • Apple Health's daytime resting heart rate the analysis compares the
-///     night against (the nocturnal dip computed from it stays);
-///   • the explanatory text of the score breakdown's Sleep and Vitals rows
-///     and the numbers it quotes (`facts`), and the SpO₂ penalty line and
-///     flag, which say that SpO₂ was below 95% (the sub-scores and the
-///     composite stay);
-///   • heart-rate-recovery samples computed from Apple Watch heart rate or
-///     read from HealthKit;
-///   • the heart rate on each per-second workout row filled from Apple Health
-///     (`healthKitHROffsets`); for a workout recorded with Apple Watch heart
-///     rate, also the per-split and per-lap heart rate and the AI snapshot's
-///     current and peak heart rate, which are that wrist heart rate.
-/// Load figures (ATL, CTL, TSB, TRIMP), zone times and the other scores
-/// computed from these readings travel.
-/// A device that pulls the session re-derives the sleep and vitals snapshots
-/// from its own HealthKit store (`cloudKitSnapshotBackfillNeeded`) and shows
-/// the rest as unavailable. A device that already holds the session keeps its
-/// own copies of these fields when a newer iCloud copy replaces it
-/// (`restoringLocalOnlyFields`).
-enum CloudSessionPayload {
-    /// The device ids `ImportedWorkoutBuilder.Source.appleHealth` and
-    /// `.appleHealthSamples` stamp on a session built from Apple Health data.
-    static let healthKitDeviceIds: Set<String> = ["healthkit-import", "healthkit-rebuild"]
-
-    /// The device id `WorkoutRecorder` stamps on a workout whose heart rate
-    /// came from Apple Watch (`makeStartProvenance`).
-    static let appleWatchDeviceId = "apple-watch"
-
-    /// Keys of a workout's AI snapshot (`HRVSession.aiContext`) that hold a
-    /// heart-rate reading.
-    static let heartRateContextKeys: Set<String> = ["hr", "peak_hr"]
-
-    /// Score-breakdown rows whose explanatory text quotes HealthKit readings.
-    static let healthKitFactorLabels: Set<String> = ["Sleep", "Vitals"]
-
-    /// Whether the whole session came out of Apple Health, so none of it may
-    /// be uploaded.
-    static func isHealthKitSourced(_ session: HRVSession) -> Bool {
-        if session.sessionType == .breathe { return true }
-        guard let deviceId = session.deviceProvenance?.deviceId else { return false }
-        return healthKitDeviceIds.contains(deviceId)
-    }
-
-    /// Whether the session's heart rate is Apple Watch wrist heart rate.
-    static func hasAppleWatchHeartRate(_ session: HRVSession) -> Bool {
-        session.deviceProvenance?.deviceId == appleWatchDeviceId
-    }
-
-    /// The session as it may be uploaded: every HealthKit reading removed,
-    /// and the auto-window comparison, which only means something on the
-    /// device where the window was picked.
-    static func uploadable(_ session: HRVSession) -> HRVSession {
-        let watchHR = hasAppleWatchHeartRate(session)
-        var payload = session
-        payload.sleepSnapshot = nil
-        payload.vitalsSnapshot = nil
-        payload.sleepStartMs = nil
-        payload.sleepEndMs = nil
-        payload.sleepSegments = nil
-        payload.sleepUserAdjusted = nil
-        payload.trainingSnapshot = session.trainingSnapshot.map(trainingWithoutHealthKitReadings)
-        payload.analysisResult = session.analysisResult.map(analysisWithoutHealthKitReadings)
-        payload.scoreBreakdown = session.scoreBreakdown.map(breakdownWithoutHealthKitReadings)
-        payload.workoutMetadata = session.workoutMetadata.map { workoutWithoutHealthKitReadings($0, watchHR: watchHR) }
-        if watchHR { payload.aiContext = session.aiContext?.filter { !heartRateContextKeys.contains($0.key) } }
-        payload.autoWindowResult = nil
-        payload.autoWindowScore = nil
-        return payload
-    }
-
-    /// Put back into `merged`, a newer iCloud copy, the HealthKit readings this
-    /// device holds and the upload left out. A field the iCloud copy does carry
-    /// (a record written before these were stripped) is kept as it came.
-    static func restoringLocalOnlyFields(into merged: inout HRVSession, from local: HRVSession) {
-        merged.vitalsSnapshot = merged.vitalsSnapshot ?? local.vitalsSnapshot
-        merged.trainingSnapshot = restoring(merged.trainingSnapshot, from: local.trainingSnapshot)
-        merged.analysisResult = merged.analysisResult.map { restoring($0, from: local.analysisResult) }
-        merged.scoreBreakdown = restoring(merged.scoreBreakdown, from: local.scoreBreakdown)
-        merged.aiContext = restoringHeartRateContext(merged.aiContext, from: local.aiContext)
-        if let metadata = merged.workoutMetadata {
-            merged.workoutMetadata = restoring(metadata, from: local.workoutMetadata)
-        }
-    }
-
-    // MARK: Stripping
-
-    private static func trainingWithoutHealthKitReadings(_ context: TrainingContext) -> TrainingContext {
-        TrainingContext(
-            atl: context.atl, ctl: context.ctl, tsb: context.tsb,
-            yesterdayTrimp: context.yesterdayTrimp, vo2Max: nil,
-            daysSinceHardWorkout: context.daysSinceHardWorkout, recentWorkouts: nil
-        )
-    }
-
-    private static func analysisWithoutHealthKitReadings(_ result: HRVAnalysisResult) -> HRVAnalysisResult {
-        var stripped = result
-        if let metrics = result.ansMetrics, metrics.daytimeRestingHR != nil {
-            stripped = result.withANSMetrics(metrics.withDaytimeRestingHR(nil))
-        }
-        stripped.trainingContext = result.trainingContext.map(trainingWithoutHealthKitReadings)
-        stripped.analysisSegmentLabel = nil
-        return stripped
-    }
-
-    private static func breakdownWithoutHealthKitReadings(
-        _ breakdown: RecoveryScoreCalculator.ScoreBreakdown
-    ) -> RecoveryScoreCalculator.ScoreBreakdown {
-        let factors = breakdown.factors.map { factor in
-            healthKitFactorLabels.contains(factor.label) ? withDetail("", facts: nil, on: factor) : factor
-        }
-        return RecoveryScoreCalculator.ScoreBreakdown(
-            compositeScore: breakdown.compositeScore, tier: breakdown.tier, factors: factors,
-            penalties: penaltiesWithoutSpO2(breakdown), spo2PenaltyApplied: false,
-            scoringVersion: breakdown.scoringVersion
-        )
-    }
-
-    /// The penalty lines without the SpO₂ one. Scoring lists it first
-    /// (`computeBreakdown`); a record scored before the lines were localized
-    /// is matched by its English text instead.
-    private static func penaltiesWithoutSpO2(_ breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> [String] {
-        var lines = breakdown.penalties
-        guard breakdown.spo2PenaltyApplied, !lines.isEmpty else { return lines }
-        let english = lines.firstIndex { ScoreBreakdownCopy.listsEnglishSpO2Penalty([$0]) }
-        lines.remove(at: english ?? lines.startIndex)
-        return lines
-    }
-
-    private static func workoutWithoutHealthKitReadings(_ metadata: WorkoutMetadata, watchHR: Bool) -> WorkoutMetadata {
-        var stripped = metadata
-        stripped.hrrSamples = strapMeasured(metadata.hrrSamples)
-        stripped.samples = withoutHealthKitHR(metadata)
-        guard watchHR else { return stripped }
-        stripped.splits = metadata.splits?.map { $0.withAverageHR(nil) }
-        stripped.laps = metadata.laps?.map { $0.withHeartRate(average: nil, max: nil) }
-        return stripped
-    }
-
-    /// Only the samples computed from the strap's own RR stream; nil when none.
-    private static func strapMeasured(_ samples: [HRRSample]?) -> [HRRSample]? {
-        let strap = (samples ?? []).filter { $0.provenance == .strap }
-        return strap.isEmpty ? nil : strap
-    }
-
-    /// The per-second samples with the heart rate cleared on each row
-    /// `healthKitHROffsets` lists: Apple Watch wrist HR read from Apple Health.
-    private static func withoutHealthKitHR(_ metadata: WorkoutMetadata?) -> [WorkoutSample]? {
-        guard let samples = metadata?.samples else { return nil }
-        let offsets = Set(metadata?.healthKitHROffsets ?? [])
-        guard !offsets.isEmpty else { return samples }
-        return samples.map { offsets.contains($0.offsetSec) ? $0.withHeartRate(nil) : $0 }
-    }
-
-    /// The factor with its line and the numbers the line quotes replaced.
-    private static func withDetail(
-        _ detail: String, facts: ScoreFactorFacts?, on factor: RecoveryScoreCalculator.ScoreFactor
-    ) -> RecoveryScoreCalculator.ScoreFactor {
-        RecoveryScoreCalculator.ScoreFactor(
-            label: factor.label, detail: detail, score: factor.score, weight: factor.weight, impact: factor.impact,
-            facts: facts
-        )
-    }
-
-    // MARK: Restoring
-
-    /// The local VO2max and recent-workout list on the iCloud copy's load
-    /// figures. The snapshot is frozen at waking, so a missing iCloud copy
-    /// keeps the local one.
-    private static func restoring(_ remote: TrainingContext?, from local: TrainingContext?) -> TrainingContext? {
-        guard let remote else { return local }
-        guard let local, remote.vo2Max == nil, remote.recentWorkouts == nil else { return remote }
-        return TrainingContext(
-            atl: remote.atl, ctl: remote.ctl, tsb: remote.tsb,
-            yesterdayTrimp: remote.yesterdayTrimp, vo2Max: local.vo2Max,
-            daysSinceHardWorkout: remote.daysSinceHardWorkout, recentWorkouts: local.recentWorkouts
-        )
-    }
-
-    /// The local training context, and, when both copies are the same
-    /// analysis, the local daytime resting heart rate and sleep-segment label.
-    private static func restoring(_ remote: HRVAnalysisResult, from local: HRVAnalysisResult?) -> HRVAnalysisResult {
-        guard let local else { return remote }
-        var merged = remote
-        merged.trainingContext = restoring(remote.trainingContext, from: local.trainingContext)
-        guard remote.analysisDate == local.analysisDate, remote.windowStart == local.windowStart else { return merged }
-        merged.analysisSegmentLabel = remote.analysisSegmentLabel ?? local.analysisSegmentLabel
-        if let metrics = remote.ansMetrics, metrics.daytimeRestingHR == nil,
-           let held = local.ansMetrics?.daytimeRestingHR {
-            merged = merged.withANSMetrics(metrics.withDaytimeRestingHR(held))
-        }
-        return merged
-    }
-
-    /// The local text of each row the upload emptied, with the numbers it
-    /// quotes, when the row's sub-score is the one that text explains, and the
-    /// local SpO₂ penalty line and flag when the composite is the one they
-    /// explain.
-    private static func restoring(
-        _ remote: RecoveryScoreCalculator.ScoreBreakdown?, from local: RecoveryScoreCalculator.ScoreBreakdown?
-    ) -> RecoveryScoreCalculator.ScoreBreakdown? {
-        guard let remote, let local else { return remote }
-        let factors = remote.factors.map { factor in
-            guard factor.detail.isEmpty,
-                  let held = local.factors.first(where: { $0.label == factor.label && $0.score == factor.score })
-            else { return factor }
-            return withDetail(held.detail, facts: held.facts, on: factor)
-        }
-        let heldSpO2 = local.spo2PenaltyApplied && !remote.spo2PenaltyApplied && local.compositeScore == remote.compositeScore
-        return RecoveryScoreCalculator.ScoreBreakdown(
-            compositeScore: remote.compositeScore, tier: remote.tier, factors: factors,
-            penalties: heldSpO2 ? local.penalties : remote.penalties,
-            spo2PenaltyApplied: heldSpO2 || remote.spo2PenaltyApplied,
-            scoringVersion: remote.scoringVersion
-        )
-    }
-
-    /// The local heart-rate entries of the AI snapshot the iCloud copy lacks.
-    private static func restoringHeartRateContext(_ remote: [String: String]?, from local: [String: String]?) -> [String: String]? {
-        guard var remote, let local else { return remote }
-        for key in heartRateContextKeys where remote[key] == nil {
-            remote[key] = local[key]
-        }
-        return remote
-    }
-
-    private static func restoring(_ remote: WorkoutMetadata, from local: WorkoutMetadata?) -> WorkoutMetadata {
-        var metadata = remote
-        metadata.hrrSamples = restoring(remote.hrrSamples, from: local?.hrrSamples)
-        // A copy written before these rows were marked carries no list:
-        // this device's list keeps the next upload from sending them.
-        metadata.healthKitHROffsets = remote.healthKitHROffsets ?? local?.healthKitHROffsets
-        metadata.samples = restoringHealthKitHR(metadata, from: local)
-        metadata.splits = restoringHR(remote.splits, from: local?.splits)
-        metadata.laps = restoringHR(remote.laps, from: local?.laps)
-        return metadata
-    }
-
-    /// The iCloud copy's per-second samples with this device's heart rate put
-    /// back on each row the upload cleared (listed in `healthKitHROffsets`).
-    /// A row the iCloud copy still carries a heart rate for keeps it.
-    private static func restoringHealthKitHR(_ remote: WorkoutMetadata, from local: WorkoutMetadata?) -> [WorkoutSample]? {
-        guard let samples = remote.samples else { return nil }
-        let offsets = Set(remote.healthKitHROffsets ?? [])
-        guard !offsets.isEmpty, let localSamples = local?.samples else { return samples }
-        let localHR = Dictionary(localSamples.map { ($0.offsetSec, $0.heartRate) }, uniquingKeysWith: { first, _ in first })
-        return samples.map { row in
-            guard row.heartRate == nil, offsets.contains(row.offsetSec), let held = localHR[row.offsetSec] ?? nil
-            else { return row }
-            return row.withHeartRate(held)
-        }
-    }
-
-    /// The iCloud copy's splits with this device's heart rate on each split
-    /// the upload cleared.
-    private static func restoringHR(_ remote: [Split]?, from local: [Split]?) -> [Split]? {
-        guard let remote, let local else { return remote }
-        return remote.map { split in
-            guard split.averageHR == nil,
-                  let held = local.first(where: { $0.index == split.index && $0.durationSeconds == split.durationSeconds })
-            else { return split }
-            return split.withAverageHR(held.averageHR)
-        }
-    }
-
-    /// The iCloud copy's laps with this device's heart rate on each lap the
-    /// upload cleared.
-    private static func restoringHR(_ remote: [Lap]?, from local: [Lap]?) -> [Lap]? {
-        guard let remote, let local else { return remote }
-        return remote.map { lap in
-            guard lap.averageHR == nil, lap.maxHR == nil,
-                  let held = local.first(where: { $0.index == lap.index && $0.startOffsetSec == lap.startOffsetSec })
-            else { return lap }
-            return lap.withHeartRate(average: held.averageHR, max: held.maxHR)
-        }
-    }
-
-    /// The iCloud copy's strap samples plus the local Watch and HealthKit
-    /// ones, unless the iCloud copy already carries those.
-    private static func restoring(_ remote: [HRRSample]?, from local: [HRRSample]?) -> [HRRSample]? {
-        let remoteSamples = remote ?? []
-        guard remoteSamples.allSatisfy({ $0.provenance == .strap }) else { return remote }
-        let combined = remoteSamples + (local ?? []).filter { $0.provenance != .strap }
-        return combined.isEmpty ? nil : combined
-    }
-}
-
-// MARK: - Copies with one reading replaced
-
-extension HRVAnalysisResult {
-    /// This result with `ansMetrics` replaced and every other field kept.
-    func withANSMetrics(_ metrics: ANSMetrics?) -> HRVAnalysisResult {
-        HRVAnalysisResult(
-            windowStart: windowStart, windowEnd: windowEnd, timeDomain: timeDomain,
-            frequencyDomain: frequencyDomain, nonlinear: nonlinear, ansMetrics: metrics,
-            artifactPercentage: artifactPercentage, cleanBeatCount: cleanBeatCount, analysisDate: analysisDate,
-            windowStartMs: windowStartMs, windowEndMs: windowEndMs, windowMeanHR: windowMeanHR,
-            windowHRStability: windowHRStability, windowSelectionReason: windowSelectionReason,
-            windowRelativePosition: windowRelativePosition, isConsolidated: isConsolidated,
-            isOrganizedRecovery: isOrganizedRecovery, windowClassification: windowClassification,
-            organizedRecoveryZones: organizedRecoveryZones, peakCapacity: peakCapacity,
-            trainingContext: trainingContext, analysisSegmentLabel: analysisSegmentLabel, isReanalysis: isReanalysis,
-            overnightNadirHR: overnightNadirHR, overnightNadirTimeMs: overnightNadirTimeMs,
-            overnightMinHR: overnightMinHR, overnightMaxHR: overnightMaxHR, overnightMeanHR: overnightMeanHR,
-            estimatedMetrics: estimatedMetrics
-        )
-    }
-}
-
-extension ANSMetrics {
-    /// These metrics with the daytime resting heart rate replaced. The dip
-    /// computed from it is kept.
-    func withDaytimeRestingHR(_ heartRate: Double?) -> ANSMetrics {
-        ANSMetrics(
-            stressIndex: stressIndex, pnsIndex: pnsIndex, snsIndex: snsIndex, readinessScore: readinessScore,
-            respirationRate: respirationRate, nocturnalHRDip: nocturnalHRDip,
-            daytimeRestingHR: heartRate, nocturnalMedianHR: nocturnalMedianHR
-        )
-    }
-}
-
-extension Split {
-    func withAverageHR(_ heartRate: Double?) -> Split {
-        Split(
-            index: index, distanceMeters: distanceMeters, durationSeconds: durationSeconds, averageHR: heartRate,
-            averagePaceSecPerKm: averagePaceSecPerKm, elevationGainMeters: elevationGainMeters, averageAlpha1: averageAlpha1
-        )
-    }
-}
-
-extension Lap {
-    func withHeartRate(average: Double?, max: Double?) -> Lap {
-        Lap(
-            index: index, startOffsetSec: startOffsetSec, endOffsetSec: endOffsetSec, distanceMeters: distanceMeters,
-            averageHR: average, maxHR: max, averagePaceSecPerKm: averagePaceSecPerKm
-        )
     }
 }

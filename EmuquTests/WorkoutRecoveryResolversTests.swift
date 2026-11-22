@@ -519,12 +519,15 @@ final class WorkoutRecoveryResolversTests: XCTestCase {
 
     // MARK: - carryForward
 
-    /// A trim rebuilds the session; what the user added and the Apple Health
-    /// stamp come from the archived copy, or the workout is exported twice.
-    func testCarryForwardKeepsUserFieldsAndTheExportStamp() {
+    /// A trim rebuilds the session; what the user added comes from the
+    /// archived copy. The Apple Health stamp does not: the copy in Health
+    /// describes the workout before the trim, so the rebuild is exported
+    /// again, and that export replaces it.
+    func testCarryForwardKeepsUserFieldsAndDropsTheExportStamp() {
         var archived = HRVSession(id: sessionID, startDate: start, endDate: nil, state: .complete, sessionType: .workout, rrSeries: nil, analysisResult: nil, artifactFlags: nil)
         archived.notes = "hill reps"
         archived.healthKitExportedAt = start
+        archived.healthKitExportFailureCount = 2
         var oldMeta = WorkoutMetadata(sport: .run)
         oldMeta.workoutFeeling = 4
         oldMeta.partialDataReason = nil
@@ -538,9 +541,28 @@ final class WorkoutRecoveryResolversTests: XCTestCase {
 
         WorkoutRecoveryService.carryForward(from: archived, into: &rebuilt)
         XCTAssertEqual(rebuilt.notes, "hill reps")
-        XCTAssertEqual(rebuilt.healthKitExportedAt, start)
+        XCTAssertNil(rebuilt.healthKitExportedAt, "exported again, replacing the copy in Health")
+        XCTAssertNil(rebuilt.healthKitExportFailureCount)
         XCTAssertEqual(rebuilt.workoutMetadata?.workoutFeeling, 4)
         XCTAssertNil(rebuilt.workoutMetadata?.partialDataReason, "a trimmed finished workout is not a crash recovery")
         XCTAssertEqual(rebuilt.workoutMetadata?.distanceMeters, 5_000, "the rebuild's own figures win")
+    }
+
+    /// A workout read out of Apple Health is stamped because it is Health's
+    /// own; a rebuild keeps that stamp, so it is never written back.
+    func testCarryForwardKeepsTheStampOfAWorkoutImportedFromHealth() {
+        var archived = HRVSession(id: sessionID, startDate: start, endDate: nil, state: .complete, sessionType: .workout, rrSeries: nil, analysisResult: nil, artifactFlags: nil)
+        archived.healthKitExportedAt = start
+        archived.deviceProvenance = DeviceProvenance(
+            deviceId: "healthkit-import", deviceModel: "Apple Health", firmwareVersion: nil,
+            recordingMode: .imported, appVersion: "1", osVersion: "1", capturedAt: start
+        )
+        archived.workoutMetadata = WorkoutMetadata(sport: .run)
+        var rebuilt = HRVSession(id: sessionID, startDate: start, endDate: nil, state: .complete, sessionType: .workout, rrSeries: nil, analysisResult: nil, artifactFlags: nil)
+        rebuilt.workoutMetadata = WorkoutMetadata(sport: .run)
+
+        WorkoutRecoveryService.carryForward(from: archived, into: &rebuilt)
+        XCTAssertEqual(rebuilt.healthKitExportedAt, start)
+        XCTAssertFalse(WorkoutRecoveryService.wasExportedByEmuqu(archived))
     }
 }

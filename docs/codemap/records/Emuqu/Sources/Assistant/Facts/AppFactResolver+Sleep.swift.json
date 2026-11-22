@@ -191,7 +191,7 @@
    "does": "Filters index entries to HRV-bearing types that are reliable for aggregates and, when scoredOnly, have a recovery score.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
    ],
    "reads": [
     "mem:SessionArchive.index (archive.entries)"
@@ -201,7 +201,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "7af30eca3eb87384"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a"
    }
   },
   {
@@ -1219,7 +1219,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryScoreByDateDateEntry": "c1a857fa73bcf3c4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryScoreLatestEntry": "484832f7c59c2a54",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryScoreLatestEntry": "f18902c4916cfa19",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryScoreRecentPeriodEntry": "b7f335d9102a747b",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::var RecoveryNamespace.recoveryTrendPeriodEntry": "f536b5184378179b"
    }
@@ -1386,13 +1386,13 @@
   },
   {
    "key": "var RecoveryNamespace.recoveryScoreLatestEntry",
-   "hash": "3a89ed6e94fa523b",
-   "does": "Declares recovery.score.latest: scoreRecord of OvernightArchive.latest(scoredOnly: true).",
+   "hash": "aac1f390d30db671",
+   "does": "Declares recovery.score.latest: latestScoreRecord of OvernightArchive.latest(scoredOnly: true) at the current time — the newest scored reading with days_ago and is_today; the description tells the model it is this morning's only when is_today is true and to present an older one as that day's, and names the composite weights with scoring version v3.3.nov2026.",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.latestScoreRecord(for:now:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)"
    ],
    "reads": [
@@ -1403,8 +1403,34 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "c969891a95b4545d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)": "4299813c374829e7",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)": "e760a59737809de5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.latestScoreRecord(for:now:)": "7b37a0abe1c91c19",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "01ca92a96a21d8b8"
+   }
+  },
+  {
+   "key": "func RecoveryNamespace.latestScoreRecord(for:now:)",
+   "hash": "e125bbd30d51276a",
+   "does": "scoreRecord(for:) for the newest scored reading, plus how old it is: days_ago (calendar days from the local day it woke on — endDate, else startDate — to now) and is_today (days_ago == 0). A missing session or score passes scoreRecord's .missing through unchanged.",
+   "entry": "recovery.score.latest's resolver (recoveryScoreLatestEntry); AssistantContextBuilderTests.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "scoreRecord gave a record and session is non-nil",
+     "effect": "adds days_ago / is_today; else returns scoreRecord's value"
+    },
+    {
+     "at": "+5",
+     "cond": "dateComponents.day nil",
+     "effect": "?? 0"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.scoreRecord(for:)": "e760a59737809de5"
    }
   }
  ],

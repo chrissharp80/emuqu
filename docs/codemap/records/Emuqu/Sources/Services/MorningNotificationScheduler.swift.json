@@ -1,15 +1,18 @@
 {
  "file": "Emuqu/Sources/Services/MorningNotificationScheduler.swift",
- "hash": "42d87be77d62dd16",
- "role": "Singleton that schedules the daily fixed-time morning push (number-free, repeating) and delivers a one-shot wake-triggered push (Smart delivery) carrying today's score when present.",
+ "hash": "230d3bde1160f903",
+ "role": "Singleton that schedules the daily fixed-time morning push (number-free, repeating) and delivers a one-shot wake-triggered push (Smart delivery) carrying today's score when present (in Auto format only while iOS hides notification previews on the locked screen), with at most one replacement that day when the first went out before the night was scored.",
  "types": [
-  "MorningNotificationScheduler: class (@MainActor final, singleton) — morning push scheduling"
+  "MorningNotificationScheduler: class (@MainActor final, singleton) — morning push scheduling",
+  "MorningNotificationScheduler.WakeClaim: private enum — first | replacingUnscored",
+  "MorningNotificationScheduler.WakePayload: private struct — title, body, hasReading"
  ],
  "state": [
   "mem:MorningNotificationScheduler.shared",
   "notification id flow.recovery.morningReport (daily repeating)",
   "notification id flow.recovery.morningReport.wake (one-shot)",
   "ud:MorningNotificationScheduler.wakeFiredDate.v1 (standard suite; Date of last wake push)",
+  "ud:MorningNotificationScheduler.wakeSettled.v1 (standard suite; Bool: today's wake push carries this morning's reading, or one is being built)",
   "notif:LanguageManager.languageDidChangeNotification (observed via languageObserver)"
  ],
  "toplevel": "Header doc states the plan (5 min after wake with 7am fallback) vs what is implemented, and lists deferred features.",
@@ -28,7 +31,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "62bd5275ef3f248f"
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "4e8514ceace2cec7"
    }
   },
   {
@@ -66,8 +69,8 @@
   },
   {
    "key": "func MorningNotificationScheduler.rescheduleIfNeeded()",
-   "hash": "6460bec29cab4594",
-   "does": "When daily report is enabled and notifications are authorized/provisional/ephemeral, replaces the pending repeating request at dailyReportFixedTime with number-free content; otherwise cancels both requests.",
+   "hash": "aa6a2c2a5754b5f5",
+   "does": "When daily report is enabled and notifications are authorized/provisional/ephemeral, reads the settings again after the authorization await (a report turned off, or a cancelAll with it, meanwhile cancels instead) and replaces the pending repeating request at dailyReportFixedTime with number-free content; otherwise cancels both requests.",
    "entry": "App launch (EmuquApp.swift:540; AppLaunchTasks.swift:123 and :412), the language-change observer (MorningNotificationScheduler.swift:57), and NotificationsSettingsPage toggle/time/format changes (NotificationsSettingsPage.swift:63, :69).",
    "calls": [
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.morningContent()",
@@ -85,29 +88,33 @@
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
      "cond": "dailyReportEnabled false",
      "effect": "cancelAll, return"
     },
     {
-     "at": "+4",
+     "at": "+3",
      "cond": "auth not authorized/provisional/ephemeral",
      "effect": "cancelAll, return"
     },
     {
-     "at": "+14",
+     "at": "+5",
+     "cond": "dailyReportEnabled false when read again after the await",
+     "effect": "cancelAll, return"
+    },
+    {
+     "at": "+15",
      "cond": "time.hour/minute nil (??)",
      "effect": "log prints 0"
     },
     {
-     "at": "+15",
+     "at": "+16",
      "cond": "center.add throws",
      "effect": "logged and swallowed; previous request already removed, so no daily push is scheduled"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.dailyReportFixedTime": "16ff5ca40b7a10a5",
-    "Emuqu/Sources/Services/LocationFinder.swift::func LocationFinder.authorizationStatus()": "fae74b5835684832",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "3d86e748ee6bd177",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.morningContent()": "7913d4281d969cac",
     "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "e6e5f2924672eaab",
@@ -148,23 +155,27 @@
   },
   {
    "key": "func MorningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd:)",
-   "hash": "729a83fe7aaa27a3",
-   "does": "For Smart delivery with notifications enabled and authorized, if the sleep end is a morning wake and the day's push can be claimed, builds a payload from the archive and delivers it immediately.",
+   "hash": "3f4d9d09605470e2",
+   "does": "For Smart delivery with notifications enabled and authorized (settings read again after the authorization await), if the sleep end is a morning wake and the day's push can be claimed, builds a payload from the archive (with whether iOS hides previews on the locked screen) and delivers it immediately, recording whether it carries this morning's reading. A replacement claim (the first push went out before the night was scored) is sent only when the payload now carries the reading; otherwise the day is left open and nothing is sent.",
    "entry": "HealthKit sleep observer update handler (HealthKitManager+SleepTrends.swift:482).",
    "calls": [
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.sendsWakePush(_:)",
+    "ext:UNUserNotificationCenter.notificationSettings",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.isMorningWake(_:schedule:)",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.claimWakePush(today:sleepEnd:)",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayloadFromArchive(settings:)",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverImmediately(title:body:today:sleepEnd:)",
-    "ext:UNUserNotificationCenter.notificationSettings"
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayloadFromArchive(settings:previewsHiddenWhileLocked:)",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.settleWakePush(_:)",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverImmediately(title:body:today:sleepEnd:)"
    ],
    "reads": [
     "mem:AppDependencies.current.app.settingsManager.settings"
    ],
-   "writes": [],
+   "writes": [
+    "ud:MorningNotificationScheduler.wakeSettled.v1"
+   ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "daily report disabled or delivery not .smart",
      "effect": "return"
     },
@@ -175,18 +186,41 @@
     },
     {
      "at": "+7",
-     "cond": "not a morning wake or claim fails (already sent today / sleepEnd older than 90 min or in future)",
+     "cond": "turned off while the authorization check awaited",
      "effect": "return"
+    },
+    {
+     "at": "+9",
+     "cond": "not a morning wake or claim fails (settled today / sleepEnd older than 90 min or in future)",
+     "effect": "return"
+    },
+    {
+     "at": "+14",
+     "cond": "replacement claim and still no reading",
+     "effect": "leave the day open, return without sending"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayloadFromArchive(settings:)": "0fd78cf5e39fd4f3",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.claimWakePush(today:sleepEnd:)": "bc47f60bbf466cfc",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayloadFromArchive(settings:previewsHiddenWhileLocked:)": "e4c1cda1a7b76c1d",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.claimWakePush(today:sleepEnd:)": "1289ca413004b5b4",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverImmediately(title:body:today:sleepEnd:)": "ef2f885a3b3e2067",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.isMorningWake(_:schedule:)": "efb8145f19ecd943",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.sendsWakePush(_:)": "25d111629d25fdca",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.settleWakePush(_:)": "132b8f35b87a9b93",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
+  },
+  {
+   "key": "func MorningNotificationScheduler.sendsWakePush(_:)",
+   "hash": "2f210596b29fcea6",
+   "does": "Whether the settings ask for a wake push: daily report enabled and Smart delivery.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "func MorningNotificationScheduler.isMorningWake(_:schedule:)",
@@ -207,28 +241,48 @@
   },
   {
    "key": "func MorningNotificationScheduler.claimWakePush(today:sleepEnd:)",
-   "hash": "5e8cc4ea9bf6dfff",
-   "does": "Returns false if a wake push was already recorded today or sleepEnd is not within the last 90 min; otherwise records today in UserDefaults and returns true.",
+   "hash": "ec55f85aa229ce92",
+   "does": "Returns nil if today's wake push is settled (sent with this morning's reading, or one being built) or sleepEnd is not within the last 90 min; otherwise records today and marks it settled for now (so a concurrent call is turned away) and returns .first, or .replacingUnscored when a number-free push already went out today.",
    "entry": null,
    "calls": [],
    "reads": [
-    "ud:MorningNotificationScheduler.wakeFiredDate.v1"
+    "ud:MorningNotificationScheduler.wakeFiredDate.v1",
+    "ud:MorningNotificationScheduler.wakeSettled.v1"
    ],
    "writes": [
-    "ud:MorningNotificationScheduler.wakeFiredDate.v1"
+    "ud:MorningNotificationScheduler.wakeFiredDate.v1",
+    "ud:MorningNotificationScheduler.wakeSettled.v1"
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "stored date is the same day as today",
-     "effect": "return false"
+     "at": "+4",
+     "cond": "claimed today and settled",
+     "effect": "return nil"
     },
     {
      "at": "+6",
      "cond": "age < 0 or > 90 min",
-     "effect": "return false; else claim"
+     "effect": "return nil; else claim"
+    },
+    {
+     "at": "+9",
+     "cond": "claimed earlier today (unsettled)",
+     "effect": ".replacingUnscored; else .first"
     }
    ],
+   "deps": {}
+  },
+  {
+   "key": "func MorningNotificationScheduler.settleWakePush(_:)",
+   "hash": "527b6c955051dda6",
+   "does": "Stores whether today's wake push carries this morning's reading.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:MorningNotificationScheduler.wakeSettled.v1"
+   ],
+   "branches": [],
    "deps": {}
   },
   {
@@ -256,15 +310,16 @@
    }
   },
   {
-   "key": "func MorningNotificationScheduler.buildPayloadFromArchive(settings:)",
-   "hash": "1e0492a92fdb7088",
-   "does": "Builds (title, body): no score today -> number-free nudge; score but resolved format not .full -> teaser \"Your recovery is in.\"; else \"Recovery N · <prescription>\".",
+   "key": "func MorningNotificationScheduler.buildPayloadFromArchive(settings:previewsHiddenWhileLocked:)",
+   "hash": "11bca2909691af12",
+   "does": "Builds the wake payload: no score today -> number-free nudge (no reading); score but resolved format (with the previews setting) not .full -> teaser \"Your recovery is in.\"; else \"Recovery N · <prescription>\". Both of the last carry the reading.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.todaysScore(in:)",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:previewsHiddenWhileLocked:)",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.shortPrescription(for:)",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "archive:SessionArchive.entries",
@@ -275,10 +330,10 @@
     {
      "at": "+5",
      "cond": "todaysScore nil",
-     "effect": "return nudge text"
+     "effect": "return nudge text, hasReading false"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "resolvedFormat != .full",
      "effect": "return teaser"
     }
@@ -286,7 +341,7 @@
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "44c36cfa15477f52",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)": "d55df80abffb0043",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:previewsHiddenWhileLocked:)": "f4505584aeb01ebd",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.shortPrescription(for:)": "aaa317b4c17803ea",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.todaysScore(in:)": "edaf49b7dcf08ba4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
@@ -294,10 +349,10 @@
    }
   },
   {
-   "key": "func MorningNotificationScheduler.resolvedFormat(_:archive:)",
-   "hash": "6a54ea487f1e3be7",
-   "does": "Resolves the push format: .full/.teaser as set; .auto -> .full once 30 distinct start-days of reliable overnights exist, else .teaser.",
-   "entry": "Also called by NotificationsSettingsPage.swift:308 to preview the auto format.",
+   "key": "func MorningNotificationScheduler.resolvedFormat(_:archive:previewsHiddenWhileLocked:)",
+   "hash": "48b4f22eef9f6daa",
+   "does": "Resolves the push format: .full/.teaser as set; .auto -> .full only when iOS hides notification previews on the locked screen and 30 distinct start-days of reliable overnights exist, else .teaser.",
+   "entry": "Also called by NotificationsSettingsPage.previewBody to preview the auto format.",
    "calls": [
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.overnightNights(in:)"
    ],
@@ -318,8 +373,8 @@
     },
     {
      "at": "+6",
-     "cond": ".auto (case and ?: on >= 30 nights)",
-     "effect": ".full when >= 30 reliable overnight nights; else .teaser"
+     "cond": ".auto",
+     "effect": ".full when previews are hidden while locked and >= 30 reliable overnight nights (the night count is not read otherwise); else .teaser"
     }
    ],
    "deps": {
@@ -333,7 +388,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
    ],
    "reads": [
     "archive:SessionArchive.entries"
@@ -342,7 +397,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
    }
   },
@@ -356,7 +411,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
     "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.recordedSeconds(_:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
    ],
    "reads": [
     "archive:SessionArchive.entries",
@@ -384,7 +439,7 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "0296267ddd882a15",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.recordedSeconds(_:)": "38ba7e6f2805259a",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"

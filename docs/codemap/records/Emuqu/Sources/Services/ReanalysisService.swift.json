@@ -1,18 +1,16 @@
 {
  "file": "Emuqu/Sources/Services/ReanalysisService.swift",
- "hash": "d26d943514b748ed",
+ "hash": "94ac439f8f15667d",
  "role": "@MainActor service that owns per-session and bulk re-analysis (artifact detection, window selection, re-classification, re-scoring, archive write, baseline update, CloudKit re-upload), score-only rebuilds, the one re-score builder (rescoredBreakdown) and the static readiness / insufficient-data / ANS-balance helpers used by morning processing, acceptance, migrations and sample data.",
  "types": [
-  "ReanalysisService: class — re-analysis / re-score service built once by the composition root (AppDependencies.makeReanalysisService) with injected archive, HealthKit, pipeline, selector, detector, baseline tracker and provider/callback closures over the shared scoring context, archive signal and iCloud sync",
-  "RescoreWrite: enum (file scope) — the optimistic rescore write: Kind, Outcome, the input comparison and the per-kind computed fields",
-  "RescoreWrite.Inputs: struct (private, Encodable) — what a rescore is computed from"
+  "ReanalysisService: class — re-analysis / re-score service built once by the composition root (AppDependencies.makeReanalysisService) with injected archive, HealthKit, pipeline, selector, detector, baseline tracker and provider/callback closures over the shared scoring context, archive signal and iCloud sync"
  ],
  "state": [
   "let archive/healthKit/analysisPipeline/windowSelector/artifactDetector/baselineTracker (injected, ReanalysisService.swift:76-81)",
   "closures settingsProvider, scoringConfigProvider, ansConfigProvider, trainingContextProvider, analyzeWithWindow, analyzeFullSession, onArchiveChanged, onSessionUploaded, onZonesStale (ReanalysisService.swift:84-114); analysisPipeline/ansConfigProvider are only used in ReanalysisService+Sleep.swift:214-218",
-  "RescoreWrite.runs (static let = 3); RescoreWrite.computedFields / storedFields: Set<String> — every stored HRVSession field, classified"
+  "mem:ReanalysisService.pendingSleepEdit — the last sleep-boundary edit started, which the next one waits for (set only by updateSessionSleepBoundaries)"
  ],
- "toplevel": "The class is @MainActor; every dependency is injected, the chart zones cache through the onZonesStale callback. The file-scope RescoreWrite enum (nonisolated) holds the optimistic rescore write. Sleep retro-apply and manual window paths live in ReanalysisService+Sleep.swift extension.",
+ "toplevel": "The class is @MainActor; every dependency is injected, the chart zones cache through the onZonesStale callback. A rescore is written through RescoreWrite (RescoreWrite.swift). Sleep retro-apply and manual window paths live in ReanalysisService+Sleep.swift extension. An extension at the end holds rescoreContext and the nonisolated re-score and classification (rescoredBreakdown(…context:), reclassifyHRVQuality(…baselineStats:)) that the instance methods and SleepBoundaryWrite share.",
  "units": [
   {
    "key": "func ReanalysisService.hasInsufficientData(session:analysisResult:baselineRmssd:)",
@@ -38,7 +36,7 @@
   },
   {
    "key": "func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
-   "hash": "9c1657b12aad16a1",
+   "hash": "f52f8d110ac48024",
    "does": "Static: computes frozen training readiness on the 0-10 scale from a composite score and an optional TrainingContext with todayTrimp=0, morningATL=atl and ACR=atl/ctl, via RecoveryScoreCalculator.calculateReadiness then toTenScale.",
    "entry": null,
    "calls": [
@@ -234,8 +232,8 @@
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.analyzeAndScore(_:series:method:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.persist(_:readFrom:kind:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.reanalysisRerun(read:stored:run:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::var RescoreWrite.Outcome.written"
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.reanalysisRerun(read:stored:run:)",
+    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written"
    ],
    "reads": [],
    "writes": [],
@@ -259,8 +257,8 @@
    "deps": {
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.analyzeAndScore(_:series:method:)": "28b845013111ab19",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.persist(_:readFrom:kind:)": "71551b61fb2c4b69",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.reanalysisRerun(read:stored:run:)": "bce16f99e05e77dd",
-    "Emuqu/Sources/Services/ReanalysisService.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8"
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.reanalysisRerun(read:stored:run:)": "bce16f99e05e77dd",
+    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8"
    }
   },
   {
@@ -367,40 +365,26 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.analysisResult(for:heavy:)": "df18a168457f0a9a",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:)": "4ccf2e8c433dd1df"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:)": "0ca4ea986b97ece0"
    }
   },
   {
    "key": "func ReanalysisService.reclassifyHRVQuality(of:result:)",
-   "hash": "fc1e199c5adc7514",
+   "hash": "ea8a58f9bc6c0b5f",
    "does": "Sets session.hrvDataQuality to SessionAcceptanceService.classifyHRVQuality(result, the session's current sleepSnapshot, the prior-nights scoring baseline, startDate, endDate ?? startDate).dataQuality — every acceptance rule (insufficient data, no sleep overlap → .preSleep, short session below baseline). Logs the old and new quality labels (no health values) when it changed.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:baselineStats:)"
    ],
    "reads": [
     "mem:BaselineTracker baseline points"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "session.endDate nil",
-     "effect": "recordingEnd = startDate"
-    },
-    {
-     "at": "+6",
-     "cond": "quality unchanged",
-     "effect": "return without logging"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)": "30f174216b2c12e0",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "40a5b51bfde62536",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:baselineStats:)": "fe92d4d38e2ab2d7",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)": "30f174216b2c12e0"
    }
   },
   {
@@ -469,7 +453,7 @@
    "does": "Writes the reconstructed wake context into session.trainingSnapshot when it is non-nil and heals the candidate (RescoreWrite.heals: its ATL or CTL differs); logs that it was restored, without the ATL/CTL values. Returns whether it healed.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.heals(_:over:)",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.heals(_:over:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -483,7 +467,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.heals(_:over:)": "1d2ab641f489c08e",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.heals(_:over:)": "1d2ab641f489c08e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -493,7 +477,7 @@
    "does": "Writes a reanalysis on a detached task through RescoreWrite.write (only what this kind computes, and only when the inputs it read are still the archive's); when written, finishes the write (finishReanalysisWrite). Returns the write's outcome, or nil when the write threw (logged).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.write(_:readFrom:kind:to:)",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.write(_:readFrom:kind:to:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.finishReanalysisWrite(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:Task.detached"
@@ -517,10 +501,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.finishReanalysisWrite(_:)": "333ef79b09b2f539",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.finishReanalysisWrite(_:)": "dd6d86c14139c1d2",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescored(_:result:training:)": "ef680740ce0eda12",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.write(_:readFrom:kind:to:)": "fcfa7c2c62c827b3",
-    "Emuqu/Sources/Services/ReanalysisService.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.write(_:readFrom:kind:to:)": "c413e99d2594643e",
+    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -549,9 +533,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "741bb32eafe0edde",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "a468796746c73ee7",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
-    "Emuqu/Sources/Services/ReanalysisService.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
+    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.forceReuploadSession(_:)": "28d40115a90d94c4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.invalidate(_:)": "9df76aee83053c94"
@@ -655,7 +639,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoreOnlyRun(sessionId:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::var RescoreWrite.Outcome.written",
+    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -674,7 +658,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoreOnlyRun(sessionId:)": "8bf0837e8fbdff71",
-    "Emuqu/Sources/Services/ReanalysisService.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
+    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -688,7 +672,7 @@
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::var ArchivedSessionRead.session",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.healedTrainingContext(for:result:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescored(_:result:training:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.heals(_:over:)",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.heals(_:over:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.persistRescore(_:readFrom:kind:previous:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoreFingerprint(of:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -727,7 +711,7 @@
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.persistRescore(_:readFrom:kind:previous:)": "03059730528be6d7",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescored(_:result:training:)": "ef680740ce0eda12",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoreFingerprint(of:)": "bca5267ad097d63d",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.heals(_:over:)": "1d2ab641f489c08e",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.heals(_:over:)": "1d2ab641f489c08e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -801,7 +785,7 @@
   },
   {
    "key": "func ReanalysisService.ansBalance(of:)",
-   "hash": "4a9ff1aca48f4d3e",
+   "hash": "246226a1ac303969",
    "does": "Static, internal: returns pnsIndex − snsIndex from ansMetrics, nil if either is missing. The one copy every reanalysis re-score and SessionAcceptanceService.scoreBreakdown use.",
    "entry": null,
    "calls": [],
@@ -820,7 +804,7 @@
   },
   {
    "key": "func ReanalysisService.scoringVitals(of:result:)",
-   "hash": "2116629b73f3ba7b",
+   "hash": "ba2ae747cd45c710",
    "does": "Static: returns the session's vitalsSnapshot with resting HR swapped for the analysis mean HR (withStrapNocturnalRHR); nil when no vitals snapshot.",
    "entry": null,
    "calls": [
@@ -836,17 +820,12 @@
   },
   {
    "key": "func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:)",
-   "hash": "8addf6d5a3fcb4e8",
+   "hash": "6ed2da35e02ead2e",
    "does": "The one re-score builder for every reanalysis path: calculateWithBreakdown from the result's metrics (ANS readiness, RMSSD, mean HR, DFA α1), the prior-nights baseline, the session's sleepSnapshot and strap-swapped vitals, typicalSleepHours, the current scoring config, training, useBaselineHRV when the session is not reliable for aggregates, perceivedReadiness, the pns−sns ANS balance, and referenceDate.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.ansBalance(of:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
-    "closure:settingsProvider — collector.settingsManager.settings",
-    "closure:scoringConfigProvider — collector.currentScoringConfig"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoreContext(for:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:context:)"
    ],
    "reads": [
     "mem:BaselineTracker baseline points"
@@ -854,13 +833,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "eb3b9be07070a091",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "1f169ca3f7045de3",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.ansBalance(of:)": "d66078425cbb7066",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)": "30f174216b2c12e0",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)": "90a121a4b5513310"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoreContext(for:)": "36c6ec97e488fe27",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:context:)": "7333b863f0823f22"
    }
   },
   {
@@ -890,7 +864,7 @@
    "does": "Writes a score-only rescore through RescoreWrite.write (only the score, plus a healed training context, and only when the inputs it read are still the archive's). When written, fires onArchiveChanged and a Task calling onSessionUploaded with the written session and logs whether score/training load changed (without values). Returns the outcome, or nil on archive failure.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.write(_:readFrom:kind:to:)",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.write(_:readFrom:kind:to:)",
     "closure:onArchiveChanged — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
     "closure:onSessionUploaded — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
@@ -926,8 +900,8 @@
    "deps": {
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoreFingerprint(of:)": "bca5267ad097d63d",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.write(_:readFrom:kind:to:)": "fcfa7c2c62c827b3",
-    "Emuqu/Sources/Services/ReanalysisService.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.write(_:readFrom:kind:to:)": "c413e99d2594643e",
+    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.forceReuploadSession(_:)": "28d40115a90d94c4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -1059,167 +1033,56 @@
    }
   },
   {
-   "key": "var RescoreWrite.Outcome.written",
-   "hash": "76f67cff5faa7e71",
-   "does": "The written session for .written; nil for .inputsChanged.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "not .written",
-     "effect": "nil"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "func RescoreWrite.write(_:readFrom:kind:to:)",
-   "hash": "f602e868006fb750",
-   "does": "Writes a rescore computed from `read`: when the archive does not hold the id, archives the rescored session as it is (.written). Otherwise inside SessionArchive.update (requestingReupload false): when the stored copy's inputs differ from the read copy's (inputsMatch) returns .inputsChanged with the stored copy, which goes back unchanged; else sets only this kind's computed fields on the stored copy (applyComputedFields) and returns .written with it. Throws what the archive throws.",
+   "key": "func ReanalysisService.rescoreContext(for:)",
+   "hash": "57f1b72294248354",
+   "does": "Captures on the main actor what a re-score of the session reads besides it: scoringBaseline(for:) (the nights before it), settingsProvider().typicalSleepHours and scoringConfigProvider().",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.inputsMatch(_:_:kind:)",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.applyComputedFields(from:to:kind:)"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)",
+    "closure:settingsProvider — collector.settingsManager.settings",
+    "closure:scoringConfigProvider — collector.currentScoringConfig"
    ],
    "reads": [
-    "archive:SessionArchive"
+    "mem:BaselineTracker baseline points"
    ],
-   "writes": [
-    "archive:SessionArchive.archive",
-    "notif:.flowRecoveryArchiveChanged"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "id not in the archive",
-     "effect": "archive as it is, return .written"
-    },
-    {
-     "at": "+7",
-     "cond": "inputs differ",
-     "effect": ".inputsChanged(stored), stored written back unchanged"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescored(_:result:training:)": "ef680740ce0eda12",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.applyComputedFields(from:to:kind:)": "81a27e6f21e44194",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.inputsMatch(_:_:kind:)": "ec64c644c8dc41cf",
-    "Emuqu/Sources/Services/ReanalysisService.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db"
-   }
-  },
-  {
-   "key": "func RescoreWrite.applyComputedFields(from:to:kind:)",
-   "hash": "f81cbe43a99c7824",
-   "does": "Sets recoveryScore, scoreBreakdown and frozenReadiness from the rescored session. Reanalysis also sets analysisResult, artifactFlags, windowUserAdjusted and hrvDataQuality, and trainingSnapshot only when healed. Score-only sets trainingSnapshot and analysisResult.trainingContext only when healed, and nothing else.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "kind",
-     "effect": "reanalysis: the window fields; scoreOnly: only the healed training"
-    },
-    {
-     "at": "+10",
-     "cond": "reanalysis and healed",
-     "effect": "trainingSnapshot set"
-    },
-    {
-     "at": "+12",
-     "cond": "scoreOnly and not healed",
-     "effect": "return"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescored(_:result:training:)": "ef680740ce0eda12"
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)": "30f174216b2c12e0"
    }
   },
   {
-   "key": "func RescoreWrite.reanalysisRerun(read:stored:run:)",
-   "hash": "c06de08c2422c5e3",
-   "does": "For a reanalysis whose inputs changed: nil (logged) when the stored copy has a manual window the read copy had not, when this was the last run, or when the stored copy has no beats; otherwise the stored copy to run again from.",
+   "key": "func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:context:)",
+   "hash": "18fc07835861e5dc",
+   "does": "The re-score arithmetic, nonisolated: calculateWithBreakdown from the result's metrics (ANS readiness, RMSSD, mean HR, DFA α1), context.baselineStats, the session's sleepSnapshot and strap-swapped vitals, context.typicalSleepHours, context.scoringConfig, training, useBaselineHRV when the session is not reliable for aggregates, perceivedReadiness, the pns−sns ANS balance, and referenceDate.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.ansBalance(of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
    ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "manual window picked meanwhile",
-     "effect": "log, nil"
-    },
-    {
-     "at": "+5",
-     "cond": "run == runs",
-     "effect": "log, nil"
-    },
-    {
-     "at": "+9",
-     "cond": "stored copy has no beats",
-     "effect": "log, nil"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
-   "key": "func RescoreWrite.heals(_:over:)",
-   "hash": "27c6e1d174d2254e",
-   "does": "True when the training context's ATL or CTL differs from the candidate's (or there is no candidate).",
-   "entry": null,
-   "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "eb3b9be07070a091",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "1f169ca3f7045de3",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.ansBalance(of:)": "d66078425cbb7066",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)": "90a121a4b5513310",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "8d54c092a68c1d94",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)": "74b253b4ff4a78e2"
    }
   },
   {
-   "key": "func RescoreWrite.inputsMatch(_:_:kind:)",
-   "hash": "af7e7def4cdf8ea2",
-   "does": "Compares the two copies' encoded inputs for this kind (encodedInputs); false when either cannot be encoded.",
+   "key": "func ReanalysisService.reclassifyHRVQuality(of:result:baselineStats:)",
+   "hash": "39d9d9f018dce450",
+   "does": "Sets session.hrvDataQuality to SessionAcceptanceService.classifyHRVQuality(result, the session's current sleepSnapshot, baselineStats, startDate, endDate ?? startDate).dataQuality — every acceptance rule (insufficient data, no sleep overlap → .preSleep, short session below baseline). Logs the old and new quality labels (no health values) when it changed. Nonisolated: the baseline is passed in.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.encodedInputs(of:kind:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "an encoding failed",
-     "effect": "false"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/ReanalysisService.swift::func RescoreWrite.encodedInputs(of:kind:)": "4414551f314ee3cd"
-   }
-  },
-  {
-   "key": "func RescoreWrite.encodedInputs(of:kind:)",
-   "hash": "0a281e80a6753b1d",
-   "does": "JSON-encodes the session's Inputs with sorted keys (non-finite numbers as strings); nil and a warning log when encoding throws.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/ReanalysisService.swift::init RescoreWrite.Inputs(of:kind:)",
-    "ext:JSONEncoder.encode",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -1227,35 +1090,19 @@
    "branches": [
     {
      "at": "+6",
-     "cond": "encode throws",
-     "effect": "log, nil"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/ReanalysisService.swift::init RescoreWrite.Inputs(of:kind:)": "a7a54b8326e2f04d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
-   "key": "init RescoreWrite.Inputs(of:kind:)",
-   "hash": "4aefd5de864204f3",
-   "does": "Captures what a rescore is computed from: beat count and first/last t_ms, sleepStartMs/EndMs, sleepSegments, sleepSnapshot, vitalsSnapshot, perceivedReadiness, trainingSnapshot; for a reanalysis also windowUserAdjusted, for a score-only pass also analysisResult.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
+     "cond": "session.endDate nil",
+     "effect": "recordingEnd = startDate"
+    },
     {
-     "at": "+12",
-     "cond": "kind",
-     "effect": "reanalysis: windowUserAdjusted; scoreOnly: analysisResult"
+     "at": "+8",
+     "cond": "quality unchanged",
+     "effect": "return without logging"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.analysisResult(for:heavy:)": "df18a168457f0a9a"
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "40a5b51bfde62536",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

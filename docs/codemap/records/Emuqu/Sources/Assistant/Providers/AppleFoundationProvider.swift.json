@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift",
- "hash": "bff0bfc343e6846b",
+ "hash": "2822e7d23b1742b5",
  "role": "On-device Apple Intelligence provider (Foundation Models, iOS 26+): availability check, prewarm, a process-wide LanguageModelSession cache with a token ledger used by chat turns only (side sends run on one-off sessions), per-turn planning (Apple-specific instructions, relevance-ranked tools that fit the 4K window, compacted transcript, tool-output allowance), streaming through ProviderStream with one trimmed retry on context overflow, error translation, plus AppleReplyTrimmer/AppleReplyRelay that end capped replies at a complete sentence.",
  "types": [
   "AppleFoundationProvider: class (AIProvider) — on-device provider",
@@ -11,11 +11,12 @@
   "FailedAfterOutput: struct Error (private) — stream failure after text was shown",
   "UnreadableSnapshot: struct Error (private) — a stream snapshot with no readable text",
   "AppleReplyTrimmer: enum — 150-word length rule and sentence-boundary trimming",
-  "AppleReplyRelay: struct — converts cumulative snapshots into sentence-at-a-time deltas"
+  "AppleReplyRelay: struct — converts cumulative snapshots into sentence-at-a-time deltas",
+  "AppleExchange: struct Equatable Sendable — a question turn id and the trimmed Apple reply to it, compared to decide session reuse"
  ],
  "state": [
   "mem:AppleFoundationProvider.model (static ModelOption apple.foundation.on-device, 4096 ctx, free, default)",
-  "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)",
+  "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger, last exchange)",
   "mem:SessionCache.maxTurnsPerSession = 20",
   "mem:SessionCache.volatileLinePrefixes [\"- now_iso:\", \"- local_date:\"]",
   "mem:AppleReplyTrimmer.lengthRule (instructions text)",
@@ -132,29 +133,29 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)": "26137a2b53b98bbf",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.adopt(_:)": "5dea2f617b6ed29b",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.canReuse(for:)": "a5a21a29423ea673",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "49907c8eb7ffacc0",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.adopt(_:)": "6036a7e34c952a06",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.canReuse(for:)": "1efcfa1b49bf7ec3",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "0415a8947de848fb",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
-   "key": "func AppleFoundationProvider.SessionCache.record(_:promptTokens:toolTokens:replyTokens:)",
-   "hash": "cfaf41c451eb8061",
-   "does": "Charges a finished turn's prompt/tool/reply tokens to the ledger if the session used is still the cached one.",
+   "key": "func AppleFoundationProvider.SessionCache.record(_:promptTokens:toolTokens:replyTokens:exchange:)",
+   "hash": "11c88a70fab3d4fc",
+   "does": "If the session used is still the cached one: charges the finished turn's prompt/tool/reply tokens to the ledger and remembers `exchange` (the question it answered and the reply it generated) as the session's last exchange.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)"
    ],
    "reads": [],
    "writes": [
-    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger, last exchange)"
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "used !== cached session (replaced/invalidated meanwhile)",
-     "effect": "ignored; else ledger charged"
+     "effect": "ignored; else ledger charged and last exchange stored"
     }
    ],
    "deps": {
@@ -163,26 +164,26 @@
   },
   {
    "key": "func AppleFoundationProvider.SessionCache.canReuse(for:)",
-   "hash": "96206e21fe6fc8b8",
-   "does": "True when instruction signature (clock lines removed) and tool hash match, fewer than 20 turns, the transcript has >1 turn and the previous reply came from Apple.",
+   "hash": "45a068aa14b0815e",
+   "does": "True when instruction signature (clock lines removed) and tool hash match, fewer than 20 turns, the transcript has >1 turn, and the exchange before the new question (the request's previousExchange, read from the chat) exists and equals the session's last exchange: same question turn id and the same reply text. Another provider's reply, a regenerated question, or a reply rewritten after it was generated therefore starts a fresh session.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)"
    ],
    "reads": [
-    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger, last exchange)"
    ],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)": "954900871b58cf9a",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "49907c8eb7ffacc0"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "0415a8947de848fb"
    }
   },
   {
    "key": "func AppleFoundationProvider.SessionCache.adopt(_:)",
-   "hash": "55e80d9bf13e6d1e",
-   "does": "Creates a LanguageModelSession (with tools when any), stores it with its signatures, turn count 1 and a ledger seeded with prefixTokens.",
+   "hash": "5bf265e4d5bcca05",
+   "does": "Creates a LanguageModelSession (with tools when any), stores it with its signatures, turn count 1, a ledger seeded with prefixTokens, and no last exchange.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)",
@@ -191,7 +192,7 @@
    ],
    "reads": [],
    "writes": [
-    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger, last exchange)"
    ],
    "branches": [
     {
@@ -203,19 +204,19 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)": "522b04451108276d",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.signature(of:)": "954900871b58cf9a",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "49907c8eb7ffacc0",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "0415a8947de848fb",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da"
    }
   },
   {
    "key": "func AppleFoundationProvider.SessionCache.invalidate()",
-   "hash": "213aa0b7ca14b786",
-   "does": "Drops the cached session, signature, turn count and ledger (toolSignature kept).",
+   "hash": "b62f172b830e82b2",
+   "does": "Drops the cached session, signature, turn count, ledger and last exchange (toolSignature kept).",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [
-    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)"
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger, last exchange)"
    ],
    "branches": [],
    "deps": {}
@@ -281,7 +282,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()": "30fd33df9de8c1c3",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()": "236a229112ae4a84",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runAttempts(messages:systemPrompt:tools:continuation:)": "913ea5a3521d20e0",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.translate(_:)": "03bb21a99baf9fa0"
    }
@@ -339,18 +340,18 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.afterOverflow": "caa7d80c3b41f6fd",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()": "30fd33df9de8c1c3",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.invalidate()": "236a229112ae4a84",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.isContextOverflow(_:)": "c775e77acaf23756",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.makePlan(messages:systemPrompt:tools:attempt:)": "381f7b6168aa6ab4",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runStream(_:continuation:)": "174171b8f70c2ff6",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.makePlan(messages:systemPrompt:tools:attempt:)": "8f81c366be18daae",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runStream(_:continuation:)": "6f0299616af568ea",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
    "key": "func AppleFoundationProvider.makePlan(messages:systemPrompt:tools:attempt:)",
-   "hash": "cc5bb8f1c94124e3",
-   "does": "Plans one attempt: Apple instructions rebuilt from the composed prompt (on MainActor) cut to the attempt cap plus the length rule; whether it is a chat turn (the prompt carries AssistantSystemPrompt's cache marker); for a chat turn the relevance-ranked tools fitting the attempt tool budget, for any other send no tools; compacted transcript (or only the last message on .trimmed); and the tool-output allowance from the remaining window.",
+   "hash": "8d63d138de6a61b9",
+   "does": "Plans one attempt: Apple instructions rebuilt from the composed prompt (on MainActor) cut to the attempt cap plus the length rule; whether it is a chat turn (the prompt carries AssistantSystemPrompt's cache marker); for a chat turn the relevance-ranked tools fitting the attempt tool budget, for any other send no tools; compacted transcript (or only the last message on .trimmed); the tool-output allowance from the remaining window; and, from the uncompacted messages, the exchange before the latest question (AppleExchange.before) and the latest question's turn id.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)",
@@ -364,7 +365,8 @@
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.toolOutputBudget(fixedTokens:transcriptTokens:)",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.transcriptTokens(_:)",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleExchange.before(latestQuestionIn:)"
    ],
    "reads": [],
    "writes": [],
@@ -391,6 +393,7 @@
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolOutputCap": "7a33c21249265072",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::var AppleContextCompactor.Attempt.toolTokenBudget": "9d70187bc9162f54",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "a9293788382bb14c",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleExchange.before(latestQuestionIn:)": "a5123dc82e5789af",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.fittingTools(_:for:budget:)": "ac49c1fa9aadd12b",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.withLengthRule(_:cap:)": "182886717bb98600",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
@@ -421,8 +424,8 @@
   },
   {
    "key": "func AppleFoundationProvider.runStream(_:continuation:)",
-   "hash": "d190535ad953b871",
-   "does": "Leases a session (lease: the cached one for a chat turn, a one-off otherwise), picks the prompt (full transcript for fresh, clock+latest user text for reuse), installs the tool-output allowance on the dispatcher for a chat turn only (toolDispatcher), streams the reply through relay, charges tokens to the ledger (a one-off session is not charged) and yields .done.",
+   "hash": "cb51177d0de361bc",
+   "does": "Leases a session (lease: the cached one for a chat turn, a one-off otherwise), picks the prompt (full transcript for fresh, clock+latest user text for reuse), installs the tool-output allowance on the dispatcher for a chat turn only (toolDispatcher), streams the reply through relay, charges tokens to the ledger and records the exchange (the latest question's id and the generated reply) on the cache (a one-off session is neither charged nor recorded), and yields .done.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prompt(from:isFresh:now:)",
@@ -433,16 +436,17 @@
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.replyOptions",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.relay(_:to:)",
     "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::var AppleToolDispatcher.toolTokensSpent",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.record(_:promptTokens:toolTokens:replyTokens:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.record(_:promptTokens:toolTokens:replyTokens:exchange:)",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)",
-    "ext:LanguageModelSession.streamResponse(to:options:)"
+    "ext:LanguageModelSession.streamResponse(to:options:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleExchange(questionID:reply:)"
    ],
    "reads": [
     "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger)",
     "mem:AppleToolDispatcher.shared (outputAllowance spent) — chat turns only"
    ],
    "writes": [
-    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger) — chat turns only",
+    "mem:AppleFoundationProvider.sharedCache (SessionCache actor: session, signatures, turn count, ledger, last exchange) — chat turns only",
     "mem:AppleToolDispatcher.shared (callsThisTurn, outputAllowance) — chat turns only"
    ],
    "branches": [
@@ -466,11 +470,12 @@
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.SessionLedger.followUpToolBudget(promptTokens:perCallCap:)": "26137a2b53b98bbf",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "61a120b7b67ce74c",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.record(_:promptTokens:toolTokens:replyTokens:)": "2645eaa9564d4e4d",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.record(_:promptTokens:toolTokens:replyTokens:exchange:)": "73254f65d19fbbbf",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.lease(for:followUp:)": "33027705c07fe52f",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prompt(from:isFresh:now:)": "c27c83f2decebdf1",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.relay(_:to:)": "0f7d0feb0d187c53",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.toolDispatcher(for:allowance:)": "6a3fd03c6bd01c43",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleExchange(questionID:reply:)": "3aa485118d050cf8",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.replyOptions": "444bdb2713645eee",
     "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::var AppleToolDispatcher.toolTokensSpent": "8d45dbddbf2cedc7",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da",
@@ -503,7 +508,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.lease(for:)": "1978b7374040f1a9",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "49907c8eb7ffacc0"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.request(for:followUp:)": "0415a8947de848fb"
    }
   },
   {
@@ -537,8 +542,8 @@
   },
   {
    "key": "func AppleFoundationProvider.request(for:followUp:)",
-   "hash": "139d3c06d4d0904d",
-   "does": "Builds the SessionRequest: wrapped Apple tools, catalog hash, transcript length, whether the turn before the latest was answered by Apple, prefix tokens, follow-up prompt tokens and per-call cap.",
+   "hash": "6014c925239cb8d3",
+   "does": "Builds the SessionRequest: wrapped Apple tools, catalog hash, transcript length, the plan's previousExchange (the question and Apple reply before the latest question, from the chat), prefix tokens, follow-up prompt tokens and per-call cap.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.appleTools(for:)",
@@ -854,6 +859,38 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
+   "key": "init AppleExchange(questionID:reply:)",
+   "hash": "c46ad5f0742f6862",
+   "does": "Stores the question turn id and the reply text trimmed of surrounding whitespace and newlines.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func AppleExchange.before(latestQuestionIn:)",
+   "hash": "0d5686e056b67d15",
+   "does": "Pure: drops the latest message; when the turn before it is an assistant reply with providerID .apple and the turn before that is a user question, returns AppleExchange(question id, reply text); otherwise nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleExchange(questionID:reply:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no Apple reply before the latest question, or no user question before that reply",
+     "effect": "return nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::init AppleExchange(questionID:reply:)": "3aa485118d050cf8"
    }
   },
   {

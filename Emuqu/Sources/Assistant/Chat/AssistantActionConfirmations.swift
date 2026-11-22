@@ -12,6 +12,9 @@ import Foundation
 // very next message, which only the user can write, is a short, explicit
 // "yes". A different reply, a later turn, or `lifetime` passing, and the
 // request lapses. One request is pending at a time; a new one replaces it.
+// Writes whose content the model supplies (a memory fact, a contact, an
+// address, a route name) take the same step when that content is not in the
+// user's own latest message (`DestructiveActionContext.gateUnlessUserStated`).
 
 /// A destructive action the assistant has asked the user to confirm.
 struct PendingAssistantAction: Equatable, Sendable {

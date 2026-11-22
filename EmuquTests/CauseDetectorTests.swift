@@ -26,7 +26,9 @@ final class CauseDetectorTests: XCTestCase {
         isExcellentReading: Bool = false,
         tags: Set<ReadingTag> = [],
         totalSleepMinutes: Int = 420,
-        sleepEfficiency: Double = 85.0
+        sleepEfficiency: Double = 85.0,
+        session: HRVSession = HRVSession(),
+        recentSessions: [HRVSession] = []
     ) -> CauseDetectionContext {
         let trendStats = AnalysisSummaryGenerator.TrendStats(
             hasData: true,
@@ -52,8 +54,6 @@ final class CauseDetectorTests: XCTestCase {
             sleepEfficiency: sleepEfficiency
         )
 
-        let session = HRVSession()
-
         return CauseDetectionContext(
             rmssd: rmssd,
             stressIndex: stressIndex,
@@ -67,7 +67,7 @@ final class CauseDetectorTests: XCTestCase {
             sleepInput: sleepInput,
             sleepTrend: nil,
             session: session,
-            recentSessions: []
+            recentSessions: recentSessions
         )
     }
 
@@ -95,17 +95,19 @@ final class CauseDetectorTests: XCTestCase {
         }
     }
 
+    /// A detector built with one strategy runs that strategy alone: it
+    /// returns the severe detector's own causes, where the default detector
+    /// finds more in the same context.
     func testDetectorWithCustomStrategies() {
-        // Create detector with only one strategy
         let customDetector = CauseDetector(strategies: [SevereCauseDetector()])
 
         let context = createContext(rmssd: 15.0, stressIndex: 400.0)
-        let causes = customDetector.detectCauses(in: context)
+        let causes = customDetector.detectCauses(in: context, limit: 10)
 
-        // Should only get severe causes
-        XCTAssertTrue(causes.isEmpty || causes.allSatisfy {
-            $0.confidence == .critical || $0.confidence == .veryHigh || $0.confidence == .high
-        })
+        XCTAssertEqual(causes.map(\.cause), ["Sharp HRV Drop"])
+        XCTAssertEqual(causes.map(\.cause), SevereCauseDetector().detectCauses(in: context).map(\.cause))
+        XCTAssertGreaterThan(CauseDetector().detectCauses(in: context, limit: 10).count, causes.count,
+                             "the default detector finds no more than the one strategy, so this proves nothing")
     }
 
     // MARK: - Positive Cause Detector Tests
@@ -117,10 +119,11 @@ final class CauseDetectorTests: XCTestCase {
         let goodContext = createContext(rmssd: 60.0, isGoodReading: true, totalSleepMinutes: 480)
 
         let badCauses = positiveDetector.detectCauses(in: badContext)
-        _ = positiveDetector.detectCauses(in: goodContext)
+        let goodCauses = positiveDetector.detectCauses(in: goodContext)
 
         XCTAssertTrue(badCauses.isEmpty, "Should not detect positive causes for bad readings")
-        // Good context might have positive causes
+        XCTAssertTrue(goodCauses.contains { $0.cause == "Solid Sleep" },
+                      "Eight hours of sleep on a good reading is a positive cause: \(goodCauses.map(\.cause))")
     }
 
     func testPositiveDetectorDetectsSolidSleep() {
@@ -150,17 +153,22 @@ final class CauseDetectorTests: XCTestCase {
         XCTAssertTrue(causes.isEmpty, "Should not detect severe causes for good readings")
     }
 
+    /// RMSSD 15 ms against a 45 ms average of seven sessions is 67 % below
+    /// it: past the 50 % line, a sharp drop. 28 ms (38 % below) is a major
+    /// drop. The session carries no heart rate, so no HR cause joins them.
     func testSevereDetectorDetectsHRVCrash() {
         let severeDetector = SevereCauseDetector()
 
-        // Create context with HRV way below average
-        let context = createContext(rmssd: 15.0, stressIndex: 350.0) // Very low
+        let crash = severeDetector.detectCauses(in: createContext(rmssd: 15.0, stressIndex: 350.0))
+        XCTAssertEqual(crash.map(\.cause), ["Sharp HRV Drop"])
+        XCTAssertEqual(crash.first?.confidence, .critical)
 
-        let causes = severeDetector.detectCauses(in: context)
+        let drop = severeDetector.detectCauses(in: createContext(rmssd: 28.0))
+        XCTAssertEqual(drop.map(\.cause), ["Major HRV Drop"])
+        XCTAssertEqual(drop.first?.confidence, .veryHigh)
 
-        // May or may not trigger depending on trend data
-        // The test verifies the detector runs without crashing
-        XCTAssertTrue(causes.isEmpty || causes.contains { $0.confidence == .critical || $0.confidence == .veryHigh })
+        XCTAssertTrue(severeDetector.detectCauses(in: createContext(rmssd: 40.0)).isEmpty,
+                      "11 % below the average is no severe drop")
     }
 
     // MARK: - Tag-Based Cause Detector Tests
@@ -493,5 +501,50 @@ final class CauseDetectorTests: XCTestCase {
                 "Good reading should only have positive causes, got \(cause.confidence)"
             )
         }
+    }
+
+    // MARK: - A split night is one step of the decline walk
+
+    /// An overnight from `start` lasting `hours`, with an analysed RMSSD.
+    private func overnight(start: Date, hours: Double, rmssd: Double) -> HRVSession {
+        let result = HRVAnalysisResult(
+            windowStart: 0, windowEnd: 500,
+            timeDomain: TimeDomainMetrics(
+                meanRR: 1_000, sdnn: rmssd * 1.2, rmssd: rmssd, pnn50: 20,
+                sdsd: rmssd * 0.9, meanHR: 58, sdHR: 5, triangularIndex: nil
+            ),
+            frequencyDomain: nil,
+            nonlinear: NonlinearMetrics(
+                sd1: 30, sd2: 60, sd1Sd2Ratio: 0.5, sampleEntropy: 1.5,
+                approxEntropy: 1.3, dfaAlpha1: 0.9, dfaAlpha2: nil, dfaAlpha1R2: 0.95
+            ),
+            ansMetrics: nil, artifactPercentage: 2, cleanBeatCount: 500, analysisDate: start
+        )
+        return HRVSession(
+            id: UUID(), startDate: start, endDate: start.addingTimeInterval(hours * 3_600),
+            state: .complete, sessionType: .overnight, rrSeries: nil,
+            analysisResult: result, artifactFlags: nil
+        )
+    }
+
+    /// Before, the two recordings of last night were two steps of the walk,
+    /// so two nights of falling HRV read as three consecutive days.
+    func testASplitNightIsOneStepOfTheDeclineWalk() throws {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date(timeIntervalSince1970: 1_790_000_000))
+        func evening(_ daysBack: Int) -> Date {
+            calendar.date(byAdding: .hour, value: 22 - 24 * daysBack, to: today) ?? today
+        }
+        let lastNightLonger = overnight(start: evening(1), hours: 6, rmssd: 40)
+        let lastNightShorter = overnight(start: evening(1).addingTimeInterval(6.5 * 3_600), hours: 2, rmssd: 30)
+        let context = createContext(
+            rmssd: 20, stressIndex: 250,
+            session: overnight(start: evening(0), hours: 8, rmssd: 20),
+            recentSessions: [lastNightShorter, lastNightLonger, overnight(start: evening(2), hours: 8, rmssd: 50)]
+        )
+        let causes = MetricBasedCauseDetector().detectCauses(in: context)
+        XCTAssertFalse(causes.contains { $0.cause == "Sustained HRV Decline" }, "Two nights are not three days")
+        let decline = try XCTUnwrap(causes.first { $0.explanation.contains("in a row") })
+        XCTAssertTrue(decline.explanation.contains("2 days"), decline.explanation)
     }
 }

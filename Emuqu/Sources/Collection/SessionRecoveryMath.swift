@@ -13,6 +13,23 @@ import Foundation
 /// tie-break was unreachable through its own caller, and the review card's
 /// `Int(Double)` conversion would have killed the process on a NaN mean HR.
 enum SessionRecoveryMath {
+    /// Whether one session is a segment resumed from another.
+    ///
+    /// A resume gives the new segment the paused session as its first link
+    /// and adds the segment to the paused session's links, so the two link
+    /// each other; and the segment ran after the pause. The order is needed
+    /// because the mutual link alone reads the same both ways: a paused night
+    /// that was resumed has its segment as its first link. A night that only
+    /// lists same-night siblings it superseded is not linked back by them.
+    nonisolated static func isResumedSegment(
+        segmentId: UUID, segmentLinks: [UUID]?, segmentEnd: Date,
+        parentId: UUID, parentLinks: [UUID]?, parentPausedAt: Date?
+    ) -> Bool {
+        guard segmentLinks?.first == parentId, parentLinks?.contains(segmentId) == true,
+              let parentPausedAt else { return false }
+        return segmentEnd > parentPausedAt
+    }
+
     nonisolated static func makeRecoveredWorkoutReview(from session: HRVSession) -> MorningCoordination.RecoveredWorkoutReview {
         let dur = (session.endDate ?? session.startDate).timeIntervalSince(session.startDate)
         return MorningCoordination.RecoveredWorkoutReview(

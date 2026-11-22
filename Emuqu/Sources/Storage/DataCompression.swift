@@ -59,21 +59,29 @@ enum DataCompression {
         }
     }
 
+    /// The most any payload may decompress to. A long night, or a long
+    /// workout with its GPS track and per-second rows, is a few megabytes of
+    /// JSON; the ratio cap alone let a 1.5 MB, highly compressible payload ask
+    /// for a 1.5 GB buffer, enough to have the app killed mid-pull.
+    static let maxDecompressedSize = 128 * 1024 * 1024
+
     /// Decompress ZLIB-compressed data
-    /// Grows the buffer dynamically until decompressed output fits without truncation
+    /// Grows the buffer dynamically until decompressed output fits without
+    /// truncation, up to 1024x the input and never past `maxDecompressedSize`;
+    /// output that does not fit by then throws.
     static func decompress(_ data: Data) throws -> Data {
         let sourceSize = data.count
+        let maxDestinationSize = min(sourceSize * 1024, maxDecompressedSize) // Safety cap
         // Start at 16x (covers typical JSON compression ratios), double on each retry
-        var destinationSize = sourceSize * 16
-        let maxDestinationSize = sourceSize * 1024 // Safety cap: 1024x original size
-        while destinationSize <= maxDestinationSize {
+        var destinationSize = min(sourceSize * 16, maxDestinationSize)
+        while true {
             if let decompressed = try decodeOnce(data, sourceSize: sourceSize, destinationSize: destinationSize) {
                 return decompressed
             }
             // Buffer was fully filled — likely truncated; grow and retry
-            destinationSize *= 2
+            guard destinationSize < maxDestinationSize else { throw CompressionError.decompressionFailed }
+            destinationSize = min(destinationSize * 2, maxDestinationSize)
         }
-        throw CompressionError.decompressionFailed
     }
 
     /// One decode attempt at a fixed buffer size. Nil means the output filled

@@ -137,6 +137,11 @@ struct EmuquApp: App {
     @State var dataLoaded = false
     @State var interruptedSessionAlert: InterruptedSessionInfo?
     @State var recoveryResultMessage: String?
+    /// Set when the scene goes to the background, cleared once it is active
+    /// again. A return goes background → inactive → active, so the
+    /// transition `handleScenePhaseChange` sees on arrival starts at
+    /// `.inactive`; this remembers where it came from.
+    @State private var returningFromBackground = false
     @Environment(\.scenePhase) private var scenePhase
 
     // MARK: Launch diagnostics
@@ -169,6 +174,10 @@ struct EmuquApp: App {
         NSLog("[App][launch] EmuquApp.init() — entry")
         debugLog("[App][launch] EmuquApp.init() entry", level: .info)
         Self.observeMemoryWarnings()
+        // A share sheet from the previous run may have left its export file
+        // (`ShareLink` reports no completion); nothing can still read it now.
+        // A few files in tmp, removed before any export of this run exists.
+        ExportFile.removeLeftovers()
         NSLog("[App][launch] EmuquApp.init() — exit")
         debugLog("[App][launch] EmuquApp.init() exit; the stored-property singletons are already built", level: .info)
     }
@@ -397,24 +406,27 @@ struct EmuquApp: App {
     }
 
     /// The launch gate stops at the paywall or the trial reminder before it
-    /// checks for an interrupted recording, so that check runs once the gate
-    /// closes instead: when either modal is dismissed with nothing after it.
+    /// checks for an interrupted recording, and the check holds its alert
+    /// while the score-architecture disclosure is on screen, so that check
+    /// runs once the gate closes instead: when any of those is dismissed with
+    /// nothing after it.
     private func handleLaunchModalChange(from oldModal: LaunchModal?, to newModal: LaunchModal?) {
-        guard newModal == nil, oldModal == .paywall || oldModal == .trialReminder else { return }
+        guard newModal == nil,
+              oldModal == .paywall || oldModal == .trialReminder || oldModal == .scoreArchitectureChange else { return }
         checkForInterruptedSession()
     }
 
     /// Everything the app does on a foreground/background transition.
     ///
     /// Each step is its own method below; they are unrelated to one another and
-    /// share only a trigger.
+    /// share only a trigger. The return-from-background steps (sync, the
+    /// entitlement re-check) key off `returningFromBackground`, not
+    /// `oldPhase`, which is `.inactive` by the time the scene is active.
     private func handleScenePhaseChange(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
         if newPhase == .background {
+            returningFromBackground = true
             autoArchivePendingSession()
             AppDependencies.current.location.ambientLocationService.stop()
-        }
-        if newPhase == .active && oldPhase == .background {
-            resumeSyncOnForeground()
         }
         if newPhase == .active && oldPhase != .active {
             startAmbientLocationOnForeground()
@@ -424,9 +436,17 @@ struct EmuquApp: App {
         if settingsManager.settings.hasCompletedOnboarding {
             refreshHealthKitWriteAuthorization()
         }
-        if oldPhase == .background {
-            recheckEntitlementOnForeground()
+        if returningFromBackground {
+            resumeAfterBackground()
         }
+    }
+
+    /// The first active phase after a background: clears the mark, resumes
+    /// sync and re-checks the entitlement.
+    private func resumeAfterBackground() {
+        returningFromBackground = false
+        resumeSyncOnForeground()
+        recheckEntitlementOnForeground()
     }
 
     /// A trial ends, or a refund lands, while the process stays alive: an
@@ -677,8 +697,7 @@ struct EmuquApp: App {
         // built synchronously before first paint) so a full-directory
         // scan + per-orphan decode does not block launch. Runs
         // off-main; SessionArchive is a plain class (not @MainActor).
-        let archiveForBoot = collector.archive
-        Task.detached(priority: .utility) { archiveForBoot.boot() }
+        LaunchArchiveBoot.start(collector.archive)
     }
 
     /// Prewarm `AVSpeechSynthesisVoice.speechVoices()` on a detached task.
@@ -762,13 +781,14 @@ struct EmuquApp: App {
     /// Why a Watch Start can't go ahead, answered before the start runs so
     /// the Watch shows the reason. The Watch starts with the strap as its
     /// source, and the start refuses a strap that is mid-recording
-    /// (`WorkoutHRSourceResolver`) or already feeding a workout on the phone
-    /// (`startWorkoutFromWatch` ignores a start while one is recording or
-    /// finalizing).
+    /// (`WorkoutHRSourceResolver`), and a start while a workout is already
+    /// recording or finalizing on the phone (`startWorkoutFromWatch` ignores
+    /// one), each with its own reason.
     private func watchStartRefusal(sportRaw: String) -> WatchControlRefusal? {
         guard Sport(rawValue: sportRaw) != nil else { return .unknownSport }
         if let refusal = watchAccessRefusal() { return refusal }
-        guard !collector.polarManager.isRecordingOnDevice, !isWorkoutInProgress else { return .strapBusy }
+        guard !collector.polarManager.isRecordingOnDevice else { return .strapBusy }
+        guard !isWorkoutInProgress else { return .workoutInProgress }
         return nil
     }
 

@@ -1,0 +1,168 @@
+{
+ "file": "EmuquTests/WorkoutLiveTrendsTallyTests.swift",
+ "hash": "fd316d3a6301ca09",
+ "role": "XCTest suite for WorkoutLiveTrends.Tally: on a growing buffer, a buffer that starts over (trimmed head, new workout, empty) and one whose offsets go back, every tally answer equals the stateless function's (reverse split, HR drift, cadence drift, decoupling, HR slope, fade, average HR, split GAPs, kilometre chunks, zone breakdown for two max HRs).",
+ "types": [
+  "WorkoutLiveTrendsTallyTests: class — XCTestCase"
+ ],
+ "state": [],
+ "toplevel": "No stored state.",
+ "units": [
+  {
+   "key": "func WorkoutLiveTrendsTallyTests.run(seconds:from:)",
+   "hash": "542067d2f44898db",
+   "does": "A run of one sample a second from `start`, each built by sample(at:): heart rate rising, pace easing, cadence falling, a climb, each series with regular gaps.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.sample(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.sample(at:)": "41e8145405d8e87a"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsTallyTests.sample(at:)",
+   "hash": "38ea49127f2a2d11",
+   "does": "The sample at second t: heart rate 130 + t/40 (absent every 7th second), distance 3.1 m/s (absent every 11th), pace 300 + (t mod 90)/3 s/km (absent every 5th), cadence 172 - t/120 (absent every 9th), altitude 40 + t/20 m (absent every 13th).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsTallyTests.assertMatchesStateless(_:_:line:)",
+   "hash": "d643b130e659ce2d",
+   "does": "Asserts each tally answer equals the stateless function's on `samples` (doubles within 1e-9, nil matching nil), the chunk ends and the zone breakdown for max HR 185 and 160.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.reverseSplitDeltaSecPerKm",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.hrDriftPercent",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.cadenceDriftSpm",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.aerobicDecouplingPercent",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.recentHRSlopeBpm",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.projectedMinutesUntilFade",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.sessionAverageHR",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.recentSplitGradeAdjustedPaces",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.kilometreChunks",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.zoneBreakdown(of:userMaxHR:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.kilometreChunks(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.near(_:_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.zoneBreakdown(of:userMaxHR:)": "33c7e245c7a70e33",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "37f4cb69898f6e4d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "cdb5a0cea6c4097b",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "cfe47a2075181798",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)": "4b422e9ff9c91239",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)": "41e113751acf5510",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "30171ba55743b2d5",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "a14332360ad925a3",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.compute(samples:userMaxHR:)": "a4b57b5385e3c112",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.aerobicDecouplingPercent": "4b2f1bf03e13c4b7",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.cadenceDriftSpm": "cebb14a70b9f1d99",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.hrDriftPercent": "118af00313d5bf92",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.kilometreChunks": "61d0ef651465227a",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.projectedMinutesUntilFade": "03d804acf7dfde5d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.recentHRSlopeBpm": "06c16d11f7d7fcaa",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.recentSplitGradeAdjustedPaces": "fc619e0a28370c2d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.reverseSplitDeltaSecPerKm": "51933fb5ae1be5ff",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.sessionAverageHR": "2cbb61a983fc7333",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.kilometreChunks(_:)": "0442bb1e6847c5c5",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.near(_:_:_:)": "fbdb6c0c41b5841e"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsTallyTests.near(_:_:_:)",
+   "hash": "0443f4347560af7d",
+   "does": "Asserts two optional doubles are both nil or equal within 1e-9, naming the metric on failure.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "one nil and the other not",
+     "effect": "fails"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveTrendsTallyTests.testAGrowingBufferMatchesTheStatelessTrends()",
+   "hash": "c31fc85f9214af0e",
+   "does": "Syncs a tally to a 25-minute run every 61 samples and asserts its count and every answer match the stateless functions at each step, and that the run reaches every trend.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.catchUp(to:)",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.assertMatchesStateless(_:_:line:)",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.run(seconds:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.catchUp(to:)": "4f94ecafae69b49e",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.assertMatchesStateless(_:_:line:)": "bbd9ff61b7369f10",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.run(seconds:from:)": "e8c7685435e7d2cc"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsTallyTests.testAnotherBufferStartsOver()",
+   "hash": "aaf7825ab030a486",
+   "does": "Syncs to one run, then to a run with its head dropped, a new shorter run and an empty buffer, asserting each time the tally matches the stateless answers for that buffer.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.catchUp(to:)",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.assertMatchesStateless(_:_:line:)",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.run(seconds:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.catchUp(to:)": "4f94ecafae69b49e",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.assertMatchesStateless(_:_:line:)": "bbd9ff61b7369f10",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.run(seconds:from:)": "e8c7685435e7d2cc"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsTallyTests.testOffsetsOutOfOrderAreAnsweredFromTheBuffer()",
+   "hash": "de1c360f161c8afa",
+   "does": "Syncs a buffer whose offsets go back part-way, then grown, and asserts the answers equal the stateless functions'.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.catchUp(to:)",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.assertMatchesStateless(_:_:line:)",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.run(seconds:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.catchUp(to:)": "4f94ecafae69b49e",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.assertMatchesStateless(_:_:line:)": "bbd9ff61b7369f10",
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.run(seconds:from:)": "e8c7685435e7d2cc"
+   }
+  }
+ ],
+ "deps": {}
+}

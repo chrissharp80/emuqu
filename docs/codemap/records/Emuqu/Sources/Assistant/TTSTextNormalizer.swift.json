@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/TTSTextNormalizer.swift",
- "hash": "4b3812e88c392f23",
+ "hash": "730e1ca445a5d1cd",
  "role": "Spoken-text normalisation for AVSpeech: English-only pre-passes (domain abbreviations, pace strings, years) then PhoneticOverrides for ZIPs/homographs/IPA; returns the NSAttributedString VoiceConversationController.speak hands to AVSpeechUtterance.",
  "types": [
   "TTSTextNormalizer: enum — static normalisation pipeline"
@@ -8,9 +8,10 @@
  "state": [
   "mem:TTSTextNormalizer.domainAbbreviations (static let, 22 regex→spoken pairs, lines 75-116)",
   "mem:TTSTextNormalizer.pacePatterns (static let, 3 regexes, line 152)",
-  "mem:TTSTextNormalizer.notFollowedByUnit (static let lookahead regex, line 243)"
+  "mem:TTSTextNormalizer.yearCueWords (static let Set<String>: prepositions, 'the', 'year', seasons, full and short month names)",
+  "mem:TTSTextNormalizer.notFollowedByUnit (static let lookahead regex)"
  ],
- "toplevel": "Static tables: abbreviation expansions (VO2, VO2max, HRV, RHR, BPM/bpm, /min, RPE, PR, TSB/ATL/CTL, α1/α-1/alpha-1, DFA, Z1-Z5), three pace regexes, and the unit lookahead that keeps '1205 steps' from being read as a year.",
+ "toplevel": "Static tables: abbreviation expansions (VO2, VO2max, HRV, RHR, BPM/bpm, /min, RPE, PR, TSB/ATL/CTL, α1/α-1/alpha-1, DFA, Z1-Z5), three pace regexes, the year cue words a number must follow to be read as a year, and the unit lookahead that keeps '1205 steps' from being read as a year.",
  "units": [
   {
    "key": "func TTSTextNormalizer.normalize(_:english:)",
@@ -36,7 +37,7 @@
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:english:)": "bb436be91a1fa656",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "36e95cd160bdf0b0",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "0d3637290a2193dc",
-    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "0a9a8148ffc52feb"
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "ae790062673056aa"
    }
   },
   {
@@ -205,10 +206,11 @@
   },
   {
    "key": "func TTSTextNormalizer.expandYears(_:)",
-   "hash": "d7e3ff92e1b546ce",
-   "does": "Finds 4-digit numbers 1100-2099 not adjacent to digits/./,/:/$, not the suffix of a ZIP+4 ('62704-1234', left for PhoneticOverrides), and not followed by a unit word, and replaces each (right-to-left) with spokenYear().",
+   "hash": "eb6cfbd1a7efda15",
+   "does": "Finds 4-digit numbers 1100-2099 not adjacent to digits/./,/:/$, not the suffix of a ZIP+4 ('62704-1234', left for PhoneticOverrides), and not followed by a unit word; of those, replaces (right-to-left) with spokenYear() only the ones in a year's place in the original text (isInYearPosition: after a year cue word, a date's day and comma, or a range dash). A bare quantity ('You burned 1450 today') stays a number.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.isInYearPosition(_:)",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)"
    ],
    "reads": [],
@@ -221,8 +223,8 @@
     },
     {
      "at": "+14",
-     "cond": "for each match reversed",
-     "effect": "right-to-left replacement"
+     "cond": "for each match reversed, where isInYearPosition(text before it)",
+     "effect": "right-to-left replacement; a match not in a year position is left as digits"
     },
     {
      "at": "+16",
@@ -232,8 +234,43 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.isInYearPosition(_:)": "9b42d10ea61a3377",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.spokenYear(_:)": "63a51b0de9ea68c3"
    }
+  },
+  {
+   "key": "func TTSTextNormalizer.isInYearPosition(_:)",
+   "hash": "a3c017799c924641",
+   "does": "Whether the text before a four-digit number puts it in a year's place: its last non-space character is a range dash ('-' or '–'); or a comma right after a digit (a date's day, 'March 3, 2026'); or its last word, lowercased, is one of yearCueWords ('in', 'since', 'the', 'year', a season or month…). Empty text before → false.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:TTSTextNormalizer.yearCueWords"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "nothing but spaces before",
+     "effect": "false"
+    },
+    {
+     "at": "+3",
+     "cond": "last char is '-' or '–'",
+     "effect": "true"
+    },
+    {
+     "at": "+4",
+     "cond": "last char is ','",
+     "effect": "true when a digit precedes it (spaces skipped); else false"
+    },
+    {
+     "at": "+6",
+     "cond": "last word in yearCueWords",
+     "effect": "true; else false"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func TTSTextNormalizer.spokenYear(_:)",

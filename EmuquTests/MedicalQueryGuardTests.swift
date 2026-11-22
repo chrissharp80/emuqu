@@ -78,7 +78,14 @@ final class MedicalQueryGuardTests: XCTestCase {
             "I had syncope yesterday",
             "I passed out at work",
             "blacked out after exercise",
+            "I think I'm going to pass out",
+            "I might black out",
+            "I feel like I'll pass out on this climb",
             "severe pain in my chest",
+            "my chest hurts",
+            "pain in my chest when I run",
+            "my chest feels tight",
+            "I get chest pains on hills",
             "severe fatigue all day",
             // Note: regex pattern is `severe\s+(pain|fatigue|dizz)\b`. The
             // literal `dizz` matches only at a word boundary — "severe dizz"

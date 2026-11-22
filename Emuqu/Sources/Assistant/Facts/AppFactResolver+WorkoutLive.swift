@@ -456,21 +456,27 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     // Past workouts that passed the live GPS position. The in-flight
     // workout itself is excluded by `sessionStartAt`.
     private var segmentLookbackEntry: FactEntry {
-        .fixed(
+        .fixedAsync(
             key: "workout.live.segment_lookback_at_current_position",
             description: Self.segmentLookbackDescription,
             valueType: "List"
-        ) { self.resolveWorkoutLiveSegmentLookbackAtCurrentPosition() }
+        ) { await self.resolveWorkoutLiveSegmentLookbackAtCurrentPosition() }
     }
 
-    private func resolveWorkoutLiveSegmentLookbackAtCurrentPosition() -> FactValue {
+    /// The archive scan (up to 120 index entries and 30 GPS-track decodes)
+    /// runs off the main actor: it is asked for mid-workout, while the main
+    /// actor drives the recorder's tick loop.
+    @MainActor
+    private func resolveWorkoutLiveSegmentLookbackAtCurrentPosition() async -> FactValue {
         guard let s = self.snapshot else { return self.missing() }
         guard let lat = s.currentLatitude, let lon = s.currentLongitude else {
             return self.missing("no GPS fix yet")
         }
-        let target = CLLocation(latitude: lat, longitude: lon)
         let radius: Double = 50
-        let matches = lookbackMatches(near: target, radius: radius, excluding: s.sessionStartAt)
+        let activeStart = s.sessionStartAt
+        let matches = await Task.detached(priority: .userInitiated) {
+            self.lookbackMatches(near: CLLocation(latitude: lat, longitude: lon), radius: radius, excluding: activeStart)
+        }.value
         guard !matches.isEmpty else {
             return .missing(reason: .notRecorded, detail: "no past workouts passed within \(Int(radius))m of the current position")
         }

@@ -12,7 +12,8 @@ extension RecoveryScoreCalculator {
     ///   - meanHR: Today's mean heart rate (bpm), optional for RHR adjustment
     ///   - dfaAlpha1: Today's DFA α1 value, optional for fractal organization check
     ///   - baselineStats: 60-day rolling baseline statistics from BaselineTracker
-    ///   - readiness: Legacy readiness score (1-10) as fallback when no baseline exists
+    ///   - readiness: Legacy readiness score (1-10), the fallback for a night
+    ///     with no usable RMSSD
     ///   - referenceDate: "Now" for the baseline-staleness penalty; injected so
     ///     the score is deterministic (defaults to the wall clock)
     /// - Returns: HRV recovery score 0-100
@@ -31,11 +32,17 @@ extension RecoveryScoreCalculator {
                 stats: stats, ansBalance: ansBalance, referenceDate: referenceDate
             )))
         }
-        // With fewer than 3 days of baseline data (no stats yet), fall back to the legacy readiness
-        // score (1-10 → 10-100), then to absolute RMSSD thresholds.
+        // With fewer than 3 nights of baseline data (no stats yet), the
+        // absolute RMSSD bands score the reading, provisionally until the
+        // baseline forms (science register: rmssd-absolute-fallback-bands).
+        // The readiness score is not used here: it is built against a
+        // population baseline the register does not cover, and it always
+        // exists, so before it hid the bands entirely.
+        if rmssd > 0 { return min(100, max(0, absoluteRMSSDScore(rmssd))) }
+        // No usable RMSSD: the legacy readiness score (1-10 → 10-100) when
+        // the analysis produced one, else neutral.
         if let readinessScore = readiness { return min(100, max(0, readinessScore * 10)) }
-        guard rmssd > 0 else { return RecoveryScoreConstants.AbsoluteRMSSDFallback.neutralScore }
-        return min(100, max(0, absoluteRMSSDScore(rmssd)))
+        return RecoveryScoreConstants.AbsoluteRMSSDFallback.neutralScore
     }
 
     /// Primary path: ln(RMSSD) z-score normalization (Plews/Buchheit), then the
@@ -97,7 +104,7 @@ extension RecoveryScoreCalculator {
         return (daysSince, penalty)
     }
 
-    /// Last resort: absolute RMSSD thresholds, with no baseline and no readiness.
+    /// Absolute RMSSD thresholds, for a reading with no baseline yet.
     private static func absoluteRMSSDScore(_ rmssd: Double) -> Double {
         let fallback = RecoveryScoreConstants.AbsoluteRMSSDFallback.self
         if rmssd >= fallback.threshold1 { return fallback.score1 }

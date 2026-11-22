@@ -147,6 +147,19 @@
    "deps": {}
   },
   {
+   "key": "func SurroundingsPOIService.forgetAfterPurge()",
+   "hash": "e38b921d5c38e177",
+   "does": "Delete All My Data: clears the cached nearby places and the coordinate they were searched around.",
+   "entry": "Called from DataPurgeService.forgetInMemoryStores.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:SurroundingsPOIService.cacheStorage"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
    "key": "func SurroundingsPOIService.cachedPOIs(near:radiusMeters:topPerCategory:)",
    "hash": "6343bc5da51dd0c0",
    "does": "Snapshot of the cache under the lock; returns its POIs when it was searched with the same radius and per-category count, is under 60 s old and was captured within 75 m of coord; else nil.",

@@ -2,13 +2,13 @@
 
 **Constants-hash version locks, a machine-checked science register, gates that must prove they fail, and one-way budget ratchets**
 
-Technical White Paper • v1.3 • 8 October 2026
+Technical White Paper • v1.4 • 22 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision e028039 (2026-10-07), scoring version v3.1.oct2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 6b195c6 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
 
-Cite as: Sharp C. Emuqu — Build-Time Governance of a Consumer Physiology Score. Technical White Paper v1.3, 8 October 2026. github.com/chrissharp80/emuqu, docs/whitepapers/04-claims-governance.md.
+Cite as: Sharp C. Emuqu — Build-Time Governance of a Consumer Physiology Score. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/04-claims-governance.md.
 
 ---
 
@@ -18,10 +18,10 @@ Emuqu is an iOS app that turns overnight beat-to-beat (RR) intervals from a ches
 
 Emuqu answers each with build-time checks, shell and Python scripts that almost all run in continuous integration (CI); the test-mutation harness runs by hand on an iOS simulator.
 
-- **A constants-hash version lock.** The 155 numeric constants of two designated scoring files are hashed with SHA-256 (Secure Hash Algorithm, 256-bit). The build fails if the digest moves while the scoring version stays the same. Every stored score carries its version; older records decode to an explicit `unversioned` sentinel.
+- **A constants-hash version lock.** The 188 numeric constants of two designated scoring files and two scoring enums are hashed with SHA-256 (Secure Hash Algorithm, 256-bit). The build fails if the digest moves while the scoring version stays the same, or if the recorded version and digest are not the code's. Every stored score carries its version; older records decode to an explicit `unversioned` sentinel.
 - **A machine-checked science register.** A JSON (JavaScript Object Notation) inventory classifies 19 heuristics into a closed status vocabulary defined in the register itself: 3 `validated` (the register's label for a use backed by a peer-reviewed result or checked against reference data on every build), 4 `supported-transfer` and 12 `awaiting-validation`. Each entry states the wording copy may and may not use, and every score-adjusting function found by a name scan must be claimed or waived.
-- **Gates that test the gates.** Each gate that needs no build must go red on a planted violation (64 plants), fail closed on temp-file errors, and be named in the full-CI workflow. A separate harness applies 125 targeted mutations that named test suites must catch.
-- **One-way budget ratchets.** Each integer CI budget file may move only in the tightening direction its filename declares, unless a commit trailer acknowledges the loosening. At this revision a non-integer value is skipped, so the views-coverage floor (43.5) and a deleted budget file are not compared (Section 3.6.2).
+- **Gates that test the gates.** Every gate but the coverage-floor gate must go red on a planted violation (86 plants), every gate must fail closed on temp-file errors, and every gate must run in the CI workflows. A separate harness applies 125 targeted mutations that named test suites must catch.
+- **One-way budget ratchets.** Each numeric CI budget file may move only in the tightening direction its filename declares, unless a commit trailer acknowledges the loosening; deleting a budget, or making it non-numeric, counts as a loosening (Section 3.6.2).
 
 The parts form one chain: a change to a constant in a designated scoring file forces a version change, which forces an edit of the register's permitted wording, which the regulated-claim perimeter of Paper 3, *A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Perimeter* ([link](03-grounded-health-assistant.md)), polices for prohibited vocabulary. Section 4 compares the published tools this builds on, and Section 5 states what is new.
 
@@ -78,7 +78,7 @@ The governance layer is a set of scripts in the repository, run by two CI workfl
 | Gate: science register | Register version must equal code version | Force an edit of the register on every version bump |
 | Gate: science register | Status vocabulary, required fields, test paths, retracted claims, discovery scan, entry floor | Keep the claim inventory complete in a checkable sense and keep it current |
 | Gate: regulated-claim perimeter (Paper 3) | Prohibited-term lint on Swift string literals and string catalogs; build-time list reconciled with the runtime assistant guards | Keep medical-claim vocabulary out of user-facing text |
-| Meta-gates | Planted violation per gate; fail-closed temp files; wiring check | Prove each gate goes red, fails closed and is named in the full-CI workflow |
+| Meta-gates | Planted violation per gate; fail-closed temp files; wiring check | Prove each gate goes red, fails closed and runs in CI |
 | Test verification | Targeted mutation per behavior; leak backstop; tree lock | Prove the test suites assert the behaviors that matter |
 | Ratchets | Direction-aware budget comparison against a baseline commit | Debt only falls, floors only rise |
 | Reporting | Evidence report prints live counts | Give reviewers numbers that cannot be stale |
@@ -112,26 +112,27 @@ constant edited ──► hash moves ──► [gate] version must change
 
 **Inputs.**
 
-- Two designated scoring-constant source files: the recovery-score constants file (91 numeric declarations) and the HRV thresholds file (64 numeric declarations), 155 in all at this revision.
+- Two designated scoring-constant source files: the recovery-score constants file (91 numeric declarations) and the HRV thresholds file (63 numeric declarations).
+- Two enums of the general constants file, the score bounds (4) and the composite weights (30). That file also holds non-scoring constants (unit conversions, settings keys), so only these two enums are read from it. 188 constants in all at this revision.
 - The scoring-version source file, which declares `current` and `unversioned`.
-- A one-line baseline file in the CI directory containing `<recorded_version> <recorded_hash>`. At this revision it reads `v3.1.oct2026 541b56e600080795`.
+- A one-line baseline file in the CI directory containing `<recorded_version> <recorded_hash>`. At this revision it reads `v3.3.nov2026 f07c58c40ce20acc`.
 
 **Steps.**
 
-1. Visit the two constant files in a fixed order: recovery-score constants first, HRV thresholds second. If either file is missing, exit 2 (configuration error).
-2. Read each file and delete every `//` line comment (the regex `//[^\n]*`, replaced with nothing). Rewording a rationale comment therefore never changes the hash. Block comments are not stripped; neither file contains one.
+1. Visit the two constant files in a fixed order, recovery-score constants first and HRV thresholds second, then the two enums of the general constants file, score bounds first. If a file or an enum is missing, exit 2 (configuration error).
+2. Read each file and delete every `//` line comment (the regex `//[^\n]*`, replaced with nothing). Rewording a rationale comment therefore never changes the hash. Block comments are not stripped; none of the hashed sources contains one. An enum is the text from its `enum <Name>` line to the first line that is a bare `}`.
 3. Extract all matches of
    `static let\s+(\w+)\s*:?\s*[\w<>\[\], .]*=\s*([-\d.]+)`
-   giving `(symbol, value)` pairs. `value` is the literal text of the number as written, so `60` and `60.0` are different values. A declaration whose right-hand side is not a bare numeric literal is not matched.
-4. Sort the pairs of each file lexicographically by `(symbol, value)`. Moving a declaration within a file, or renaming an enclosing namespace, does not change the hash. Renaming a symbol or changing its value does. Symbols repeated under different nested namespaces are all included.
-5. For each pair, in file order and then sorted order, feed the UTF-8 bytes of `"<file path>:<symbol>=<value>\n"` into one running SHA-256 digest.
+   giving `(symbol, value)` pairs. `value` is the literal text of the number as written, so `60` and `60.0` are different values. A declaration whose right-hand side is not a bare numeric literal is not matched. A file or enum that yields no pair exits 2, so a refactor the pattern no longer matches (`static var`, computed values) cannot hash nothing and never move.
+4. Sort the pairs of each file or enum lexicographically by `(symbol, value)`. Moving a declaration within a file, or renaming an enclosing namespace inside a hashed file, does not change the hash. Renaming a symbol or changing its value does. Symbols repeated under different nested namespaces are all included.
+5. For each pair, in source order and then sorted order, feed the UTF-8 bytes of `"<file path>:<symbol>=<value>\n"` into one running SHA-256 digest; an enum's lines read `"<file path>:<enum>.<symbol>=<value>\n"`.
 6. Take the first 16 hexadecimal characters of the digest (64 bits) as `current_hash`.
-7. Read `current` from the version file with `static let current\s*=\s*"([^"]+)"`. If it cannot be read, exit 2.
-8. If the baseline file is missing, exit 2. Otherwise split it on whitespace into `recorded_version` and `recorded_hash`.
+7. Read `current` from the version file with `static let current\s*=\s*"([^"]+)"`. If the pattern finds no version, exit 2.
+8. If the baseline file is missing, or does not split on whitespace into exactly two fields, exit 2. Otherwise read them as `recorded_version` and `recorded_hash`.
 9. Print the number of constants hashed, the hash and the version, whatever the result.
-10. **Violation rule:** if `current_hash != recorded_hash` **and** `version == recorded_version`, report "scoring constants changed while the version stayed the same" and exit 1.
+10. **Violation rules:** if `current_hash != recorded_hash` **and** `version == recorded_version`, report "scoring constants changed while the version stayed the same" and exit 1. Otherwise, if `(version, current_hash)` differs from the recorded pair, report that the baseline must be rewritten to the code's pair in the same change as the version bump, and exit 1.
 
-*Limitation at this revision.* The gate passes whenever `version != recorded_version`, and nothing requires the baseline line to be rewritten when the version is bumped. A version bump without a baseline update therefore leaves the lock open for every later constant change under the new version, until someone records the new (version, hash) pair. "A change to a constant forces a version change" holds for the first change after each baseline update.
+The second rule closes a gap the first leaves on its own: accepting any version other than the recorded one would let one bump that left the baseline alone switch the lock off for every later constant change. With both rules, a change to a hashed constant forces a version change, and the version change forces the new (version, hash) pair to be recorded beside it.
 
 **Why it works.** A score's meaning is the set of numbers that produced it, so the version should change exactly when those numbers change. The hash captures the numbers and nothing else. Stripping comments means the rationale written beside a constant can be improved freely without a version bump. Sorting per file means reorganizing code is free too, while a renamed or retuned constant is not. Hashing the literal text rather than a parsed value is the conservative choice: `60` becoming `60.0` is treated as a change, so the gate never has to decide whether two spellings are equal. The gate does not bump the version itself. A version is a name stamped on users' data, and requiring a person to choose the new name makes each algorithm change a deliberate, reviewable act. Sixteen hexadecimal characters keep the baseline on one human-readable line while leaving accidental collisions out of practical reach. Exit code 2 for a missing input separates "cannot measure" from "measured a violation", so neither is ever reported as clean.
 
@@ -150,7 +151,7 @@ The same script also confines a ranking key. The probable-cause list orders cand
 | Construction | A new `ScoreBreakdown` defaults its `scoringVersion` field to the current version |
 | Decoding | A stored breakdown with no `scoringVersion` key decodes to the literal string `unversioned`, never to the current version. Scores from before the stamp may come from the v1 algorithm (which preceded v2.may2026) or from v2.may2026, because the app offered a v1-to-v2 history recompute the user may or may not have run. |
 | Derived copies | Code that rebuilds a breakdown copies the version field forward. This covers the vitals refresh after scoring and the stripped copy prepared for iCloud sync. |
-| Display | The recovery-score detail screen shows "Scored by v3.1.oct2026" (the stored value), or "Scored before score versions were recorded" for `unversioned`. At this revision a legacy session with a stored score but no stored breakdown is shown with a breakdown recomputed on display, which carries the current version, so its old score appears above "Scored by v3.1.oct2026". Beneath it is a fixed line saying the inputs are research-informed and the weights and bands are calibrated, not outcome-validated. |
+| Display | The recovery-score detail screen shows "Scored by v3.3.nov2026" (the stored value), or "Scored before score versions were recorded" for `unversioned`. A legacy session with a stored score but no stored breakdown also shows "Scored before score versions were recorded": the breakdown on screen is recomputed on display, and its version is not the one that produced the score. When that recompute differs from the stored score, the breakdown is pinned to the stored score and marked `unversioned`. Beneath the version line is a fixed line saying the inputs are research-informed and the weights and bands are calibrated, not outcome-validated. |
 | Assistant | The in-app assistant's fact catalog (key `score.algorithm.version`) and its context block report the current version string and describe the v1 weighting older history may carry. |
 
 **Why it works.** Freezing and versioning each stored score keeps history attributable: a user comparing this month with last month can see whether the same algorithm produced both. The `unversioned` sentinel is the honest default for old records. Their true version is unknowable, because a recompute may or may not have run, and labeling them with the current version would assert something false. Carrying the stamp through every derived copy matters because a stamp dropped on sync or refresh would quietly relabel old scores as new. Placing the stamp next to the fixed "calibrated, not outcome-validated" line puts the version and the evidence status in front of the user together.
@@ -162,6 +163,8 @@ The same script also confines a ranking key. The probable-cause list orders cand
 | v2.may2026 | 2026-09-08 (public initial commit) |
 | v3.oct2026 | 2026-10-03 |
 | v3.1.oct2026 | 2026-10-04 |
+| v3.2.oct2026 | 2026-10-13 |
+| v3.3.nov2026 | 2026-11-21 |
 
 ### 3.2 The science register
 
@@ -246,13 +249,13 @@ The floor file's name begins with `min_`, so the ratchet of Section 3.6 treats i
 
 ### 3.3 The regulated-claim perimeter, briefly
 
-Paper 3 covers the regulated-claim perimeter in detail. In outline, a Python linter reads a JSON list of prohibited regular expressions and scans every Swift string literal and string-catalog value for user-facing medical-claim vocabulary. Comments are stripped, and an allowlist covers the methodology page and the guard sources. A second gate proves that the runtime vocabulary used by the in-app assistant's input and output guards covers every build-time pattern: for each build-time regex it synthesizes a matching string and requires some runtime lexicon concept to match it too.
+Paper 3 covers the regulated-claim perimeter in detail. In outline, a Python linter reads a JSON list of prohibited regular expressions and scans every Swift string literal and string-catalog value for user-facing medical-claim vocabulary. Comments are stripped, and an allowlist covers the methodology page and the guard sources. A second gate proves that the runtime vocabulary used by the in-app assistant's input and output guards covers every build-time pattern: it expands each build-time regex into every spelling it matches and requires some runtime lexicon alternative to match each one.
 
 For this paper, the point is the division of labor. The perimeter is lexical: it bans phrasings across the whole app. The register's `allowed_language` field states the claim boundary per heuristic, which is a judgment about meaning. The build forces the maintainer to revisit that boundary on every version bump (Section 3.2.2, step 3), and the perimeter enforces the vocabulary that no boundary permits. Each mechanism does the part it can do reliably.
 
 ### 3.4 Gates that test the gates
 
-The repository has 45 gate scripts (names beginning `check_` or `enforce_`). Two meta-gates and one harness establish three properties of every gate: it **goes red** on a real violation, it **fails closed** when it cannot measure, and it **is wired**, meaning it is named in the full-CI workflow.
+The repository has 48 gate scripts (names beginning `check_` or `enforce_`). Two meta-gates and one harness establish three properties of every gate: it **goes red** on a real violation, it **fails closed** when it cannot measure, and it **is wired**, meaning a step of the full-CI workflow runs it, and so does the per-push Linux workflow unless a recorded exemption says why the gate cannot run there.
 
 **Why three properties.** A green result means "nothing is wrong" only if the gate could have gone red, actually measured something, and actually ran. Each property fails independently: a gate with a typo in its pattern stays green on real violations; a gate whose temp file was not created greps nothing; a gate missing from the workflow never runs. Checking each property separately, for every gate, is what lets a green CI run be read as evidence.
 
@@ -267,18 +270,20 @@ The planted-violation harness holds a list of plants. Each plant is defined as `
 5. Run the gate again, record its exit code, and restore every touched file.
 6. A non-zero exit is PASS. A zero exit is FAIL ("STAYED GREEN — this gate protects nothing").
 
-At this revision there are 64 plants. Examples: a retracted phrase appended to a register evidence field; an unknown register status; the hash baseline zeroed under the same version; a budget raised by 100000 with no trailer; a CI step renamed to a nonexistent script; the pNN50 mutation of Section 3.5.1 left in place; a bare `mktemp` in a gate. Several gates have more than one plant, one for each shape of miss the gate is meant to catch.
+At this revision there are 86 plants. Examples: a retracted phrase appended to a register evidence field; an unknown register status; the hash baseline zeroed under the same version; a budget raised by 100000 with no trailer; a CI step renamed to a nonexistent script; the pNN50 mutation of Section 3.5.1 left in place; a bare `mktemp` in a gate; a stale code-map record. Several gates have more than one plant, one for each shape of miss the gate is meant to catch.
+
+**A gate that needs a simulator, planted against a stand-in.** The Thread Sanitizer gate runs the unit suite on a simulator under the sanitizer. Its three plants run it against a stand-in `xcodebuild`, a short script put first on `PATH`, that behaves as the real tool does in the two ways the gate depends on: a race report reaches the output only when parallel testing is off, and a race fails the run only when the test host gets `halt_on_error=1`. The plants are a race in the suite, parallel testing left on (which hides race reports), and the halt-on-error option removed (which lets a race pass). The gate itself first runs a canary, `ThreadSanitizerCanaryTests`, which races on purpose when the host gets `EMUQU_TSAN_CANARY=1`, and fails unless the canary's race is reported and fails its run; the two settings plants are caught by that canary.
 
 **Every gate has a plant.** After the plants run, the harness lists every `check_*.sh` and `enforce_*.sh` in the scripts directory and drops two groups:
 
-- a two-entry `NEEDS_BUILD` exemption list: the coverage-floor gate and the Thread Sanitizer gate, which need a build or a simulator;
+- a one-entry `NEEDS_BUILD` exemption list: the coverage-floor gate, which needs a real build and is verified by its own runs;
 - the preflight gate of Section 3.4.2, which the harness classifies as the preflight library's self-test rather than as a gate. It still has two plants of its own.
 
-For each remaining gate, the harness greps its own source for the gate's filename. If any filename is missing, the run exits 1 and lists the unplanted gates, so adding a gate and adding its plant must happen in the same change.
+For each remaining gate, the harness searches its own source for the gate's path on a line that is a plant's gate command (a quoted argument line, or a `NAME="…"` command a plant is given), not merely in a comment or a message. If any gate is missing, the run exits 1 and lists the unplanted gates, so adding a gate and adding its plant must happen in the same change.
 
-The run also exits 1 if any plant was FAIL. A plant that was SKIPped is reported and does not fail this harness; the test-mutation harness of Section 3.5.1 treats skips more strictly.
+The run also exits 1 if any plant was FAIL, and if any plant was SKIPped: a skipped plant proved nothing, because its gate was already red or its anchor text has changed.
 
-**Why it works.** The only convincing evidence that a check can detect a violation is a violation it detected. Requiring green first rules out a gate that is red for an unrelated reason. The completeness check is what makes the discipline scale: the set of gates that must have plants is derived from the directory, not from anyone's memory, so coverage grows with every new gate automatically.
+**Why it works.** The only convincing evidence that a check can detect a violation is a violation it detected. Requiring green first rules out a gate that is red for an unrelated reason, and failing on a skip keeps a permanently red gate or a stale plant from dropping out of verification unnoticed. A stand-in tool lets a gate whose real input needs a simulator be planted against on any machine, and the canary proves on every real run that the sanitizer can still see a race. The completeness check is what makes the discipline scale: the set of gates that must have plants is derived from the directory, not from anyone's memory, so coverage grows with every new gate automatically.
 
 #### 3.4.2 Fails closed: temp-file preflight
 
@@ -287,8 +292,8 @@ The gates run with `set -uo pipefail` but not `-e`, because several rely on `gre
 *Helper library.*
 
 - `gate_mktemp label` creates `${TMPDIR:-/tmp}/label.XXXXXX` with an explicit template, which behaves the same under BSD and GNU `mktemp`. If creation fails, the path is empty, or the file is not writable, it prints the reason and calls `exit 70` (EX_OSERR).
-- `gate_mktemp_dir` creates a directory and fails closed the same way, but at this revision it calls `mktemp -d -t label`, the BSD-only form: GNU `mktemp` rejects it, so the two mutation harnesses that use it exit 70 at startup off macOS.
-- `gate_require_nonempty` exits 70 when an input the gate is about to parse is missing or empty.
+- `gate_mktemp_dir` creates `${TMPDIR:-/tmp}/label.XXXXXX` as a directory, with the same explicit template, and fails closed the same way.
+- `gate_require_nonempty` exits 70 when an input the gate is about to parse is missing or empty. It exits the calling shell, so it is called directly, never inside `$( )`.
 
 The temp-file helpers are called inside `$( )`, which is a subshell, so their `exit` cannot stop the caller. Every such call site must therefore append `|| exit $?`.
 
@@ -298,7 +303,7 @@ The temp-file helpers are called inside `$( )`, which is a subshell, so their `e
 2. any line calling `gate_mktemp` without `|| exit` on the same line;
 3. any `source "$(dirname "$0")/<path>"` whose target does not exist, because a mistyped source path would silently define no helpers.
 
-Any finding exits 1. At this revision it scans 53 scripts and finds 10 guarded temp-file uses.
+Any finding exits 1. At this revision it scans 54 scripts and finds 11 guarded temp-file uses.
 
 The scoring and register gates also fail closed on configuration problems: a missing input exits 2, not 0. In CI, the ratchet treats a missing baseline as a failure (Section 3.6.2).
 
@@ -306,9 +311,9 @@ The scoring and register gates also fail closed on configuration problems: a mis
 
 #### 3.4.3 Is wired: CI reachability
 
-The wiring gate reads the full-CI workflow file (`.github/workflows/ci.yml`), which runs on demand and is called by the release workflow. The path can be overridden by an environment variable; a missing file exits 2. Every `check_*.sh` or `enforce_*.sh` whose filename does not occur as a substring of that file is reported. One gate is exempt by name with a recorded reason: the coverage-floor gate, which runs inside the coverage step. Any unwired gate exits 1. At this revision 44 gates are named in the workflow and 1 is invoked by the coverage step.
+The wiring gate reads two workflow files, the full-CI workflow (`.github/workflows/ci.yml`) and the per-push Linux workflow (`.github/workflows/gates.yml`), and the `Makefile`; each path can be overridden by an environment variable, and a missing file exits 2. From each workflow it collects the text of every `run:` command, skipping comment lines, trailing comments, steps and jobs disabled with `if: false`, and anything that is not a `run:` value, then appends the recipe of every `make` target those commands invoke, following prerequisites and nested `make` calls. A gate runs in a workflow when its filename occurs in that text as a whole name. Every `check_*.sh` or `enforce_*.sh` that does not run in the full-CI workflow is reported, and so is every one that does not run in the per-push workflow. Exemptions are recorded by name with a reason: the coverage-floor gate, which the coverage step invokes, is exempt from both; the SwiftLint warning budget (SwiftLint's rule set differs on Linux) and the Thread Sanitizer gate (it needs Xcode and a simulator) are exempt from the per-push workflow only. An exemption naming a gate that no longer exists also fails. Any finding exits 1. At this revision 47 gates run in the full-CI workflow, 45 of them also in the per-push workflow, and 1 is invoked by the coverage step.
 
-**Why it works.** A gate that exists but never runs protects nothing and looks complete. Deriving the list of gates from the directory and the list of steps from the workflow makes reachability a property the build checks, rather than something a reviewer infers.
+**Why it works.** A gate that exists but never runs protects nothing and looks complete. Deriving the list of gates from the directory and the list of steps from the workflows makes reachability a property the build checks, rather than something a reviewer infers. Reading only what a step would execute, through the make targets it calls, means a gate named in a comment, a disabled step or a step's name does not count as run.
 
 ### 3.5 Tests that must catch defects
 
@@ -318,19 +323,19 @@ This harness applies the planted-violation discipline to the unit tests instead 
 
 For each mutation:
 
-1. Run the named suite alone (`-only-testing`, parallel testing off) and classify the result:
+1. Run the named suite alone (`-only-testing`, parallel testing off, package versions pinned to the resolved file) and classify the result:
    - **0**: passed;
    - **1**: tests failed;
    - **2**: build or runner failure, recognized by a build-failure banner in the log or by the absence of any "Test Suite" or "Test Case" line.
 2. If the baseline result is 2, retry once. If the baseline is still not 0, print SKIP with the reason.
 3. Back up the file and apply the mutation. Each mutation asserts that its original text occurs exactly once, so a mutation cannot silently land in a doc comment or the wrong place. If it cannot be applied, print SKIP.
-4. Run the suite and restore.
-5. A non-zero result is PASS ("caught"). A zero result is FAIL ("SURVIVED — <suite> asserts nothing about this"). At this revision the build-failure code is not separated here: a mutation that does not compile, or a build failure during the mutated run, also counts as caught.
-6. At the end, **any FAIL or any SKIP exits 1**. "A skip is not a pass."
+4. Run the suite and restore. A mutated run classified 2 is split by the compiler errors in its log: an error in the mutated file means the mutation does not compile; any other build failure is retried once and, if it persists, is not a test result.
+5. A result of 1 is PASS ("caught"). A result of 0 is FAIL ("SURVIVED — <suite> asserts nothing about this"). A mutation that does not compile is FAIL as an invalid mutation ("rewrite it to change behaviour, not syntax"), because no test was asked about it. A build failure not caused by the mutation is SKIP.
+6. At the end, **any FAIL, any invalid mutation or any SKIP exits 1**. "A skip is not a pass."
 
 This harness needs a simulator and a build per mutation. It is not part of `make ci`, and no CI workflow runs it; it is run by hand when analysis or storage code changes.
 
-**Why it works.** For a physiology score, the important question is not what fraction of random mutants die but whether a specific wrong formula would be caught. Each curated mutation is a plausible scientific error (the wrong threshold, the wrong statistic, the missing detrend), and naming its suite turns a survivor into a precise finding: this suite does not assert this behavior. Running the suite alone keeps attribution exact. Classifying build failures separately stops a broken baseline build from being read as a red suite (the mutated run does not yet make that distinction; step 5), and treating every skip as a failure stops an unapplied mutation from passing silently.
+**Why it works.** For a physiology score, the important question is not what fraction of random mutants die but whether a specific wrong formula would be caught. Each curated mutation is a plausible scientific error (the wrong threshold, the wrong statistic, the missing detrend), and naming its suite turns a survivor into a precise finding: this suite does not assert this behavior. Running the suite alone keeps attribution exact. Classifying build failures separately stops a broken build from being read as a red suite, before or after the mutation, and stops a mutation that only breaks the syntax from counting as caught; treating every skip as a failure stops an unapplied mutation from passing silently.
 
 #### 3.5.2 Leaked-mutation detection and the tree lock
 
@@ -347,7 +352,7 @@ Both harnesses edit tracked files in place and restore them in an EXIT trap. A k
 
 This gate runs on every push to main and every pull request.
 
-*Tree lock.* Before mutating, each harness atomically creates a lock directory inside the git directory using `mkdir`, and writes its name and process ID (PID) into it. A second mutator finds the lock; if the PID is alive, it exits 75 (EX_TEMPFAIL). If the PID is dead, it warns that the earlier run never restored, points to the leak detector, and takes the lock over. The helper library also provides a reader function that refuses to run (exit 75) while a live mutator holds the lock; the local CI simulation (`scripts/simulate_ci.sh`, run by `make ci-local`) calls it. The lock is released in the same trap that restores files.
+*Tree lock.* Before mutating, each harness atomically creates a lock directory inside the git directory using `mkdir`, and writes its process ID (PID) and then its name into it. A second mutator finds the lock and, since creating it and writing the PID are two steps, waits up to two seconds for the PID; if the PID is alive, it exits 75 (EX_TEMPFAIL). If the PID is dead, it warns that the earlier run never restored, points to the leak detector, and takes the lock over. The helper library also provides a reader function that refuses to run (exit 75) while a live mutator holds the lock; the local CI simulation (`scripts/simulate_ci.sh`, run by `make ci-local`) is the one reader that calls it, so a gate run on its own does not check the lock. The lock is released in the same trap that restores files.
 
 **Why it works.** The mutation list already states, for every case, the exact text that must be present in the clean tree. Reading that list statically turns it into a manifest that exists before any run, so no run has to record one, and a leak from a run killed at any point is still found. Because the detector needs only Python and the repository, it runs on Linux for every push to main and every pull request, far more often than the harness itself. Creating a directory with `mkdir` is atomic, and keeping it inside the git directory keeps it out of the working tree and out of commits.
 
@@ -355,7 +360,9 @@ This gate runs on every push to main and every pull request.
 
 #### 3.6.1 Policy and counting
 
-**Decision record.** The repository's architecture decision record (ADR) on ratcheted budgets, ADR 004, states the policy. Every quality rule has a measured numeric ceiling, never an aspirational one. A ceiling may only move down. There is no per-site escape hatch: the app sources contain no SwiftLint disable directives. The record reasons that a gate nobody can satisfy gets routed around, while a measured ceiling blocks regression immediately.
+**Decision record.** The repository's architecture decision record (ADR) on ratcheted budgets, ADR 004, states the policy. Every quality rule has a measured numeric ceiling, never an aspirational one. A ceiling may only move down, and a floor only up. There is no per-site escape hatch: the app sources contain no SwiftLint disable directives. The record reasons that a gate nobody can satisfy gets routed around, while a measured ceiling blocks regression immediately.
+
+**Measured means measured.** The tech-debt budget gate fails not only when a count exceeds its ceiling but also when the ceiling sits above the count: a change that removes debt must lower the budget file in the same commit, or every later addition up to the old ceiling would pass unseen. Several other count gates only print a reminder to lower a budget that sits above its count. A ceiling must be a whole number, because a comparison against a decimal ceiling is a shell syntax error that an `if` reads as false. The Watch target is counted the same five ways as the app and held to one combined ceiling of its own.
 
 **Counting code, not prose.** Several budgets count occurrences of a pattern: static singleton reads, `try?`, legacy observable-object conformances. Before counting, the counter removes comments. Block comments `/* … */` are blanked character for character, keeping newlines. Line comments `//…` are replaced with spaces of the same length, so nothing on an adjacent line is joined into a match. Explaining a piece of debt in a comment therefore never raises its count. A fixed list of platform singletons (URLSession, FileManager, NotificationCenter and others) is blanked before the singleton count, because no version of the app can inject those away.
 
@@ -368,15 +375,15 @@ This gate runs on every push to main and every pull request.
    - otherwise there is no baseline.
 2. **No baseline.** If `BUDGET_REQUIRE_BASELINE` is set, exit 1 ("refusing to report enforcement that did not happen"). Otherwise print a skip notice and exit 0. The same applies to an all-zero SHA (a new or force-pushed branch) and to a ref that does not resolve.
 3. **Acknowledgments.** Collect them from every commit message in `baseline..HEAD`, using the case-insensitive regex `^budget-raise-ok:[[:space:]]*[^[:space:]]+`. Keep only the path token.
-4. **Comparison.** For each `*.txt` file directly in the CI directory, in sorted order:
-   - Read the current value. It must match `^[0-9]+$` once whitespace is removed; otherwise skip the file. The views-coverage floor holds 43.5, so at this revision it is never compared, and a budget file deleted from the tree is not compared either.
-   - Read the value at the baseline with `git show`. A file absent at the baseline is a new budget and is skipped. A non-integer baseline value is skipped too.
-   - Equal values pass.
+4. **Comparison.** For each `*.txt` file directly in the CI directory, in the working tree or at the baseline, in sorted order:
+   - Read the value at the baseline with `git show`. A file absent at the baseline is a new budget and is skipped. A baseline value that is not a number (`^[0-9]+(\.[0-9]+)?$` once whitespace is removed) is not a budget: it is listed as not compared. The scoring-hash baseline of Section 3.1.1 is such a file.
+   - A file deleted from the tree, or whose current value is not a number, is a loosening. So is a ceiling that held a whole number and now holds a decimal.
+   - Otherwise compare the two numbers, decimals included, so the coverage floors with a fractional value are compared like the rest. Equal values pass.
    - **Direction** comes from the filename. A basename starting with `min_` is a floor, and a decrease loosens it. Any other file is a ceiling, and an increase loosens it.
    - A loosening whose exact path appears among the acknowledged paths prints `ALLOWED`. Any other loosening is a violation. A tightening prints `ratcheted`.
-5. Any violation exits 1, with instructions to pay the debt or add `budget-raise-ok: <path> <reason>`.
+5. Any violation exits 1, with instructions to pay the debt or add `budget-raise-ok: <path> <reason>`. Otherwise the gate prints how many budgets it compared.
 
-**CI wiring of the baseline.** The full-CI workflow uses an explicit baseline input if one is given, and otherwise the parent commit. On a root commit there is no parent: if the budget files in the working tree have uncommitted edits, the workflow compares them with the root commit itself; otherwise it prints a notice and skips, because there is nothing to compare. Whenever a baseline exists, it sets the require flag, and a baseline that does not resolve to a commit is a hard failure. The per-push workflow passes the pull-request target on a pull request, and the parent commit with `BUDGET_REQUIRE_BASELINE=1` on a push to main. A push to main therefore cannot skip the comparison, but it compares only the last commit of the push: a budget raised in an earlier commit of a multi-commit push is already in the baseline and is not seen.
+**CI wiring of the baseline.** The per-push Linux workflow compares against the pull-request target on a pull request and, on a push to main, against the tip before the push (`github.event.before`), so every commit of a multi-commit push is inside the compared range and inside the trailer scan. When that tip is a null SHA or is not in the checkout (a branch-creating or forced push), it falls back to the parent commit and says so; on a root commit it says there is nothing to compare. Every comparison it makes sets the require flag. The full-CI workflow uses an explicit baseline input if one is given, and otherwise the parent commit. On a root commit there is no parent: if the budget files in the working tree have uncommitted edits, it compares them with the root commit itself; otherwise it prints a notice and skips, because there is nothing to compare. Whenever a baseline exists, it sets the require flag, and a baseline that does not resolve to a commit is a hard failure.
 
 #### 3.6.3 Documentation may not restate a ratcheting value
 
@@ -390,30 +397,30 @@ The documentation-links gate scans every Markdown file. Whenever a line names a 
 - *A required baseline in CI.* A comparison that did not happen must not look like one that passed. Locally, the gate skips without a baseline so that uncommitted work needs no justification addressed to no one; in CI the require flag makes the same condition a failure.
 - *No restated values in documentation.* A number copied into prose is a second copy that the ratchet cannot update. Pointing at the file keeps one source of truth.
 
-**Observed history.** Across the 28 commits of the public repository (2026-09-08 to 2026-10-07), every integer budget that changed moved in its tightening direction. The SwiftLint warning, `try?`, test-skip and localization-orphan ceilings each fell more than once, and the refactor-spec watch ceiling fell to zero. The views-coverage floor rose. No commit message carries a `budget-raise-ok:` trailer.
+**Observed history.** Across the 215 commits of the public repository's history at 6b195c6 (2026-09-08 to 2026-11-21, merges and side branches included), every budget whose value changed moved in its tightening direction. The SwiftLint warning, `try?`, test-skip and localization-orphan ceilings each fell more than once, and the refactor-spec watch ceiling fell to zero. The views-coverage floor rose. Three budget files were removed: a superseded SwiftLint budget file on 2026-09-30, before the gate counted a deletion as a loosening, and the two code-map open-findings budgets on 2026-10-13, when they moved to a local, untracked findings overlay; that commit carries a `budget-raise-ok:` trailer for each. No other trailer has been used.
 
 ### 3.7 Costed CI posture and the evidence report
 
-GitHub Actions bills macOS minutes at ten times the Linux rate, so the plan's 3,000 billable minutes a month buy about 300 macOS minutes. The repository measured a full macOS run at about 108 wall-clock minutes, roughly 1,080 billable, so fewer than three full runs fit in a month. The posture follows from that arithmetic:
+The repository is public, and GitHub's standard hosted runners cost a public repository no Actions minutes. On a private repository the same runs would be costly: macOS minutes bill at ten times the Linux rate, and the full-CI workflow records a full run at about 1,083 billable minutes, 885 of them the tests job and 184 the Thread Sanitizer job. The posture spends the free macOS capacity on every change and keeps the longest runs for releases:
 
 **Table 3.7.** CI workflows and what each runs.
 
 | Workflow | Trigger | Runner | Content |
 |---|---|---|---|
-| Script gates | Every push to main and every pull request | Linux | Every gate that needs only bash, Python and git: regulated-claim perimeter, perimeter sync, science register, scoring governance, localization, source-hygiene guards (including the leaked-mutation backstop), documentation and software bill of materials (SBOM) checks, wiring and preflight meta-gates, tech-debt budgets, and the monotonicity ratchet |
-| Full CI | Manual, or called by the release workflow | macOS | Scope `gates` (about 14 billable minutes): SwiftLint and its budget, all budgets, the planted-violation harness and every gate step. Scope `unit` adds unit tests and the Thread Sanitizer. Scope `full` adds UI tests and coverage floors. |
-| Local | `make ci` | Developer machine | Every gate, the planted-violation harness and the full test suite with coverage |
+| Script gates | Every pull request and every push to main | Linux | Every gate that needs only bash, Python and git: regulated-claim perimeter, perimeter sync, science register, scoring governance, localization, source-hygiene guards (including the leaked-mutation backstop), documentation, software bill of materials (SBOM) and pinned-package checks, the code map, wiring and preflight meta-gates, tech-debt budgets, and the monotonicity ratchet |
+| Full CI | Every pull request and every push to main (scope `unit`); on demand; called by the release workflow (scope `full`) | macOS (strict-concurrency check on Linux) | SwiftLint and its budget, all budgets, the planted-violation harness, every gate step and the strict-concurrency check; scope `unit` adds the Release build, the unit suite with the views-coverage floor and the unit suite under Thread Sanitizer; scope `full` adds the UI tests and the overall and logic coverage floors. A manual `gates` scope runs only the first group. |
+| Local | `make ci` | Developer machine | Every gate, the planted-violation harness, the Release build, the unit suite under Thread Sanitizer and the full test suite with coverage |
 | Manual | By hand | Developer machine with simulator | Targeted test-mutation harness (Section 3.5.1) |
 
-The planted-violation harness runs in the full-CI workflow and in `make ci` but not in the Linux workflow, because several of its plants exercise SwiftLint, whose rule set differs on Linux and would make the warning budget unreliable.
+`main` merges only when the Linux job and the five full-CI jobs pass on a branch that is up to date with it. The planted-violation harness runs in the full-CI workflow and in `make ci` but not in the Linux workflow, because several of its plants exercise SwiftLint, whose rule set differs on Linux and would make the warning budget unreliable.
 
 The **evidence report** script prints, in seconds and without building, live counts (files, tests, locales, waivers) and every budget value, as text or JSON. It omits coverage and pass/fail results on purpose: those need a simulator, and a cached number would be stale.
 
-**Why it works.** The hash lock, the register, the perimeter, the preflight and wiring meta-gates, the ratchet and the leak backstop need only bash, Python and git, so they run on Linux for every push to main and every pull request at almost no cost. The guarantees that matter most are therefore checked most often, and the expensive simulator work is spent where only a simulator can help.
+**Why it works.** The hash lock, the register, the perimeter, the preflight and wiring meta-gates, the ratchet and the leak backstop need only bash, Python and git, so they run on Linux for every push to main and every pull request in about a minute. The guarantees that matter most are therefore checked most often and answer first, the macOS jobs add the builds and the unit suite on the same changes, and the UI target, the slowest work, is spent where a release needs it.
 
 ### 3.8 How the parts form one chain
 
-Figure 2.1 shows the sequence. A developer who edits a numeric threshold in a designated scoring-constant file fails scoring governance until the version changes (once per baseline update; Section 3.1.1); the new version fails the science register until its `scoring_version` and the affected entries' status, evidence and `allowed_language` are revisited; new or removed score-adjusting functions fail discovery or the stale-claim check; and new user-facing copy passes through the regulated-claim perimeter. Every gate involved is proven to go red, to fail closed and to be named in the full-CI workflow.
+Figure 2.1 shows the sequence. A developer who edits a numeric threshold in a designated scoring-constant file fails scoring governance until the version changes and the new (version, hash) pair is recorded (Section 3.1.1); the new version fails the science register until its `scoring_version` and the affected entries' status, evidence and `allowed_language` are revisited; new or removed score-adjusting functions fail discovery or the stale-claim check; and new user-facing copy passes through the regulated-claim perimeter. Every gate involved is proven to go red, to fail closed and to run in CI.
 
 **Why it works.** Each gate is small and cheap. Their value is the coupling: the event that changes what a score means, a change to a hashed scoring constant, triggers in order a new name for the algorithm, a stamp on the user's data, and a forced review of what may be said about it.
 
@@ -442,7 +449,7 @@ Emuqu builds on several established families of tools, each of which solves part
 | didrun (PyPI, 2026-08-31) | A check must show positive evidence in its output that it ran (a count, a pattern, a written file) | Not applicable | No | No | Ran-or-not, per run | [18] |
 | restore-verified (PyPI, 2026-08-31) | A mutated file is restored and the restore checked byte for byte; an outer sentinel detects a tree left modified after SIGKILL; no locking | Not applicable | No | No | Covers the restore step of a mutation harness | [19] |
 | IEC 62304 / ISO 13485 | Documented life cycle, change control, traceability, audited | Process, not numeric | Through configuration management, as a process | Through design and risk files, as a process | Through verification records, as a process | [20][21][24] |
-| **Emuqu (this paper)** | **Constants-hash/version lock; claim register with closed vocabulary, test-existence, version match, retracted claims and discovery; per-file direction ratchets** | **Ceilings fall and `min_` floors rise, checked against a baseline commit** | **Yes, for numeric constants in two files, and the version is stored on each score** | **Yes, machine-checked fields with a per-entry wording boundary, versioned with the code** | **Yes: a plant required for every gate outside the build exemptions, preflight, wiring check, 125 targeted test mutations, static leak detector and tree lock** | **This paper** |
+| **Emuqu (this paper)** | **Constants-hash/version lock; claim register with closed vocabulary, test-existence, version match, retracted claims and discovery; per-file direction ratchets** | **Ceilings fall and `min_` floors rise, checked against a baseline commit** | **Yes, for numeric constants in two files and two enums, and the version is stored on each score** | **Yes, machine-checked fields with a per-entry wording boundary, versioned with the code** | **Yes: a plant required for every gate outside the build exemption, preflight, wiring check, 125 targeted test mutations, static leak detector and tree lock** | **This paper** |
 
 Emuqu is a consumer wellness app. It is not developed under IEC 62304 or ISO 13485 and claims no conformity with them. They appear in this table only because traceability and controlled change are what those standards address by process, and the mechanisms here address a narrow part of the same concern by build-time checks.
 
@@ -452,17 +459,17 @@ Emuqu is a consumer wellness app. It is not developed under IEC 62304 or ISO 134
 
 Each statement gives only the part not found in a prior-art search made on 2026-10-08 (PyPI, npm, NuGet and GitHub; vendor, lint-rule, requirements-tool and documentation-lint tool documentation; and the literature cited in the references). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 9d89933) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
 
-**N1 (Section 3.1.1). A build gate that hashes only the comment-stripped numeric `static let` declarations of designated scoring-constant files and fails the build when that digest moves while the scoring version stays the same.** The digest is SHA-256 over a per-file sorted list of `path:symbol=value` lines, truncated to 16 hexadecimal characters; the version compared is the same string stamped on every stored score (N2), checked against the version recorded beside the digest.
+**N1 (Section 3.1.1). A build gate that hashes only the comment-stripped numeric `static let` declarations of designated scoring-constant files and enums and fails the build when that digest moves while the scoring version stays the same, or when the recorded version and digest are not the code's.** The digest is SHA-256 over a per-file sorted list of `path:symbol=value` lines, truncated to 16 hexadecimal characters; the version compared is the same string stamped on every stored score (N2), checked against the version recorded beside the digest.
 
 *Builds on:* hashing configuration or lockfiles to detect change, which is general practice; CI checks that fail when hashed content changes without a semantic-version bump were later proposed in maiconsouza89/agents-skills issue 130 (2026-09-17) [22] and pandas-studio/agent-team-plugins pull request 165 (2026-09-27) [23], both after Emuqu's public commit; adds selection of numeric declarations only, comment stripping, and a tie to the version stamped on stored user data.
 
-*Earliest dated record:* flow-recovery dba6fcc, 2026-05-01 (first form, a precursor: a unit test that pinned the version string of a versioned scoring-parameters value and its six score-band values, failing if a value changed without a version change); emuqu-dev f2e6ed1, 2026-09-03 (current form, the hash gate).
+*Earliest dated record:* flow-recovery dba6fcc, 2026-05-01 (first form, a precursor: a unit test that pinned the version string of a versioned scoring-parameters value and its six score-band values, failing if a value changed without a version change); emuqu-dev f2e6ed1, 2026-09-03 (the hash gate); emuqu e003b94, 2026-11-21 (current form: the recorded pair must be the code's). Intermediate: the scoring enums of the general constants file hashed, emuqu 5a32c19, 2026-10-11.
 
-**N2 (Section 3.1.3). Persisting the scoring-version string on every stored score breakdown and showing it to the user.** Records written before the field existed decode to an explicit `unversioned` sentinel rather than to the current version; the stamp is carried through every derived copy; and the score-detail screen renders the stored stamp, or "Scored before score versions were recorded", next to a fixed statement that the weights are calibrated, not outcome-validated. (At the described revision, a legacy session with no stored breakdown is still displayed under the current version; Section 3.1.3.)
+**N2 (Section 3.1.3). Persisting the scoring-version string on every stored score breakdown and showing it to the user.** Records written before the field existed decode to an explicit `unversioned` sentinel rather than to the current version; the stamp is carried through every derived copy; and the score-detail screen renders the stored stamp, or "Scored before score versions were recorded", next to a fixed statement that the weights are calibrated, not outcome-validated.
 
 *Builds on:* version identifiers on machine-learning models in model cards and registries [10][11]; adds a version stamped on each stored consumer score and shown to the user. No wearable vendor documentation found describes score versioning (searched: WHOOP, Oura, Garmin and Polar public documentation).
 
-*Earliest dated record:* flow-recovery dba6fcc, 2026-05-01 (precursor: versioned scoring parameters, not persisted with scores); emuqu-dev f2e6ed1, 2026-09-03 (current form).
+*Earliest dated record:* flow-recovery dba6fcc, 2026-05-01 (precursor: versioned scoring parameters, not persisted with scores); emuqu-dev f2e6ed1, 2026-09-03 (current form). Later: a stored score with no stored breakdown shown as scored before versions were recorded, emuqu 946c8b2, 2026-10-11.
 
 **N3 (Section 3.1.2). A containment gate that confines a hand-set ranking-weight identifier to a single source directory.** A number with no outcome evidence therefore cannot be displayed as a confidence anywhere else in the app without a visible rename.
 
@@ -488,11 +495,11 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* emuqu-dev f2e6ed1, 2026-09-03 (first form: discovery and stale-claim check); emuqu 9d89933, 2026-09-08 (current form: entry-count floor).
 
-**N7 (Section 3.4.1). A planted-violation harness that refuses to report success while any `check_`/`enforce_` script in the scripts directory lacks a plant.** It searches its own source for each gate's filename and fails the run if one is absent, so adding a gate without a plant fails the build. A named list exempts the two gates that need a build or simulator; the preflight gate is excluded from the name search as the helper library's self-test but carries its own plants.
+**N7 (Section 3.4.1). A planted-violation harness that refuses to report success while any `check_`/`enforce_` script in the scripts directory lacks a plant.** It searches its own source for each gate's path in a plant's gate command and fails the run if one is absent, so adding a gate without a plant fails the build; a skipped plant also fails the run. A named list exempts the one gate that needs a real build (the coverage-floor gate); a gate that needs a simulator is planted against a stand-in tool (Section 3.4.1); the preflight gate is excluded from the search as the helper library's self-test but carries its own plants.
 
 *Builds on:* canfail (PyPI, 2026-08-31) [17], which breaks a file on purpose, requires the check to go red, confirms the check is green first, requires the anchor to match exactly once and verifies the restore; those rules are therefore not claimed. Adds completeness: a requirement that every check in the repository has a plant.
 
-*Earliest dated record:* emuqu-dev 26fe7b1, 2026-08-28 (first form: plants, green first); emuqu-dev ba968cd, 2026-09-02 (current form: completeness check).
+*Earliest dated record:* emuqu-dev 26fe7b1, 2026-08-28 (first form: plants, green first); emuqu-dev ba968cd, 2026-09-02 (completeness check); emuqu e003b94, 2026-11-21 (current form: the path must be in a plant's command; the Thread Sanitizer gate planted against a stand-in). Intermediate: skips fail the run, emuqu 946c8b2, 2026-10-11.
 
 **N8 (Section 3.4.2). A preflight gate that statically requires every gate's temp-file creation to go through a helper that exits non-zero on failure.** Every call site must carry an `|| exit` guard on the same line, and every sourced helper path must resolve, so that gates fail closed instead of reporting clean after measuring nothing.
 
@@ -500,17 +507,17 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* emuqu-dev 26fe7b1, 2026-08-28 (first and current form).
 
-**N9 (Section 3.4.3). A wiring meta-gate that fails when any `check_`/`enforce_` script's filename does not appear in the CI workflow file.** A named exemption covers a gate invoked by another step. Together with N7 and N8 it makes "is wired into CI" a third separately enforced property of every gate, next to "goes red" and "fails closed"; the preflight and wiring meta-gates are themselves covered by planted violations.
+**N9 (Section 3.4.3). A wiring meta-gate that fails when any `check_`/`enforce_` script is not run by an enabled step of the full-CI workflow, directly or through the make targets it calls, or of the per-push workflow unless an exemption records why it cannot run there.** A named exemption covers a gate invoked by another step, and an exemption naming a gate that no longer exists fails. Together with N7 and N8 it makes "is wired into CI" a third separately enforced property of every gate, next to "goes red" and "fails closed"; the preflight and wiring meta-gates are themselves covered by planted violations.
 
 *Builds on:* canfail [17] (goes red), didrun [18] (ran) and Semgrep's `ruleid:` test annotations [25], which prove that a rule fires on an example; adds a check that every gate is reached by CI. No prior instance found.
 
-*Earliest dated record:* emuqu-dev ba968cd, 2026-09-02 (first and current form).
+*Earliest dated record:* emuqu-dev ba968cd, 2026-09-02 (first form: filename in the workflow file); emuqu 946c8b2, 2026-10-11 (current form: executed step text through make targets, both workflows).
 
-**N10 (Section 3.5.1). A curated production-mutation harness in which each mutation names the single test suite that must catch it, a misclassified baseline is retried once, and any skip fails the run.** The named suite is run alone; a baseline run classified as a build or runner failure (a build-failure banner, or no "Test Suite"/"Test Case" line in the log) is retried exactly once; and any skipped mutation (baseline not green, or mutation not applicable) fails the whole run.
+**N10 (Section 3.5.1). A curated production-mutation harness in which each mutation names the single test suite that must catch it, a misclassified run is retried once, and any skip fails the run.** The named suite is run alone; a run classified as a build or runner failure (a build-failure banner, or no "Test Suite"/"Test Case" line in the log) is retried exactly once, and after the mutation a compiler error in the mutated file marks the mutation itself invalid; and any skipped or invalid mutation (baseline not green, mutation not applicable, mutation not compiling, build failure unrelated to it) fails the whole run.
 
 *Builds on:* mutation testing in general [12][13][26][27], which is not claimed, and canfail [17], which also requires a green baseline and an anchor that matches exactly once, and scores a syntax error, or a run with no evidence it ran, as not a catch; those rules are not claimed. Adds per-mutation suite attribution, a single classified retry, and skips that fail the run (in canfail such cases are reported without failing it).
 
-*Earliest dated record:* emuqu-dev d0267b3 "Add mutation testing", 2026-08-28 (first form: anchor exactly once, green first); emuqu-dev 409a762, 2026-09-01 (current form: build/test classification, single retry, skips fail).
+*Earliest dated record:* emuqu-dev d0267b3 "Add mutation testing", 2026-08-28 (first form: anchor exactly once, green first); emuqu-dev 409a762, 2026-09-01 (build/test classification, single retry, skips fail); emuqu 946c8b2, 2026-10-11 (current form: the mutated run classified too, invalid mutations fail).
 
 **N11 (Section 3.5.2). A static leak detector that recovers each mutation's target and original text from the mutation harness's own source, combined with an atomic `mkdir` tree lock shared by both mutation harnesses.** The detector handles `chr()`-escaped forms and fails if the original text is absent from its target file or if any case cannot be parsed. The lock lives in the git directory, records the holder's PID, refuses a second mutator while that PID is alive, takes over a dead holder's lock with a warning, and comes with a reader check, used by the local CI simulation, that refuses to run while a live mutator holds it.
 
@@ -518,11 +525,11 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* emuqu-dev ba968cd, 2026-09-02 (first and current form).
 
-**N12 (Section 3.6.2). A budget ratchet over a directory of single-integer files in which the allowed direction is read from the filename.** A `min_` prefix marks a floor that may only rise and any other name a ceiling that may only fall; a loosening passes only when a commit in the compared range carries a `budget-raise-ok: <path>` trailer naming that file; and a CI-set flag turns a missing baseline into a failure.
+**N12 (Section 3.6.2). A budget ratchet over a directory of single-number files in which the allowed direction is read from the filename.** A `min_` prefix marks a floor that may only rise and any other name a ceiling that may only fall; deleting a budget or making it non-numeric is a loosening; a loosening passes only when a commit in the compared range carries a `budget-raise-ok: <path>` trailer naming that file; and a CI-set flag turns a missing baseline into a failure.
 
 *Builds on:* jest-ratchet (npm, 2018) [8] and CoverageRatchet (NuGet, versions listed from 2026-05-05) [9], which ratchet coverage thresholds upward, and betterer [7] and SwiftLint baselines [6], which freeze existing results. Ratcheting as an idea is not claimed. Adds per-file direction from the filename, an audited per-file trailer, and a required baseline in CI.
 
-*Earliest dated record:* emuqu-dev 17f1114, 2026-08-22 (first form: `min_` floors and trailer); emuqu-dev 6a7ff33, 2026-08-31 (current form: require-baseline flag).
+*Earliest dated record:* emuqu-dev 17f1114, 2026-08-22 (first form: `min_` floors and trailer); emuqu-dev 6a7ff33, 2026-08-31 (require-baseline flag); emuqu 946c8b2, 2026-10-11 (current form: decimal values compared, deletions and non-numeric values loosenings, the tip before a push as its baseline). Later: a whole-number ceiling made decimal counts as loosened, emuqu e003b94, 2026-11-21.
 
 **N13 (Section 3.6.3). A documentation gate that rejects any Markdown line naming a ratcheting budget file next to a bare number.** Prose must therefore point at the value instead of restating it.
 
@@ -550,21 +557,23 @@ canfail, didrun and restore-verified were published on PyPI on 2026-08-31 [17][1
 
 ## 6. Verification
 
-Each gate's ability to fail is itself checked (Section 3.4). The counts below are printed by the gates at e028039.
+Each gate's ability to fail is itself checked (Section 3.4). The counts below are printed by the gates at 6b195c6, or counted in the scripts and history at that revision.
 
-**Table 6.1.** Counts printed by the gates at e028039.
+**Table 6.1.** Counts at 6b195c6.
 
-| Check | Result at e028039 |
+| Check | Result at 6b195c6 |
 |---|---|
-| Constants hashed by the scoring-governance gate | 155 (91 + 64) |
+| Constants hashed by the scoring-governance gate | 188 (91 + 63 + 4 + 30) |
+| Register entries | 19: 3 validated, 4 supported-transfer, 12 awaiting-validation |
 | Score-adjusting functions found by discovery | 13: 12 claimed, 1 waived |
-| Planted violations in the gate harness | 64, with the every-gate-has-a-plant check applied to all gates except the two-entry build exemption and the preflight gate (which has its own plants) |
-| Scripts scanned by the preflight gate | 53, with 10 guarded temp-file uses |
-| Gates reached by the full-CI workflow | 44 named in the workflow, 1 invoked by the coverage step |
+| Gate scripts | 48 |
+| Planted violations in the gate harness | 86, with the every-gate-has-a-plant check applied to all gates except the coverage-floor gate and the preflight gate (which has its own plants) |
+| Scripts scanned by the preflight gate | 54, with 11 guarded temp-file uses |
+| Gates run by the CI workflows | 47 in the full-CI workflow, 45 of them also in the per-push workflow; 1 invoked by the coverage step |
 | Targeted test mutations parsed by the leak detector | 125 of 125 parsed; no leaked mutation |
-| Integer budgets changed across the 28 public commits | Every change in its tightening direction; no `budget-raise-ok:` trailer used |
+| Budgets changed across the 215 commits of the public history | Every value change in its tightening direction; three budget files removed, two of them under a `budget-raise-ok:` trailer (Section 3.6.4) |
 
-The analysis methods that the register classifies were also checked by a separate reimplementation in Python, built from the Swift source at e028039 and run against the app's unit-test expectations and PhysioNet recordings; the scripts are in `Tools/validation/` [31].
+The analysis methods that the register classifies were also checked by a separate reimplementation in Python, built from the Swift source at e028039 (2026-10-07) and run against the app's unit-test expectations and PhysioNet recordings; the scripts are in `Tools/validation/` [31].
 
 ---
 
@@ -572,7 +581,7 @@ The analysis methods that the register classifies were also checked by a separat
 
 **Recorded baseline, not history.** The hash lock compares the code with one recorded line, which keeps the gate stateless and readable; the recorded line itself is trusted, so edits to it are left to review.
 
-**Two files, literal declarations.** The lock covers the numeric `static let` literals of two designated files. The composite weights live in a separate weights namespace in the general constants file and are governed through their register entry (`composite-weights-60-25-15`) rather than the hash; inline literals and expression-valued constants are outside it.
+**Two files and two enums, literal declarations.** The lock covers the numeric `static let` literals of two designated files and of the score-bounds and composite-weights enums of the general constants file; inline literals, expression-valued constants and scoring numbers elsewhere are outside it, and are governed through their register entries.
 
 **Truncated digest.** Sixteen hexadecimal characters detect accidental change; they are not meant to resist deliberate collision.
 
@@ -631,7 +640,7 @@ Chris Sharp is the sole author of these papers and of the design, and the only p
 
 ### 8.6 Document history
 
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims).
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.3 described source revision e028039 (2026-10-07). v1.4, published 2026-11-22, brings the whole paper to source revision 6b195c6 (2026-11-21) and scoring version v3.3.nov2026. Changed: the hashed sources (two scoring enums added, 188 constants), the rule that the recorded (version, hash) pair must be the code's, and the empty-match check (Section 3.1.1, B.1); the display of a legacy score without a stored breakdown (Section 3.1.3); scoring versions v3.2.oct2026 and v3.3.nov2026 (Table 3.2); every-spelling expansion in perimeter sync (Section 3.3); 48 gates and 86 plants, the Thread Sanitizer gate planted against a stand-in with its canary, the one-entry build exemption, plants that must be run, and skips that fail (Section 3.4.1, B.3); the explicit directory template (Section 3.4.2); the wiring gate's reading of executed steps through make targets in both workflows (Section 3.4.3, B.4); classification of the mutated run and invalid mutations (Section 3.5.1, B.5); the lock's PID wait (Section 3.5.2); slack and whole-number rules and the Watch budget (Section 3.6.1); decimal values, deletions and the push baseline in the ratchet (Section 3.6.2, B.6); the observed history (Section 3.6.4); the CI posture (Section 3.7); N1, N2, N7, N9, N10 and N12 and their records (Section 5); the counts (Section 6, Appendix A); the source map (Appendix C).
 
 ---
 
@@ -675,18 +684,18 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 
 ## Appendix A: Parameters
 
-**Table A.1.** Parameters and counts at e028039.
+**Table A.1.** Parameters and counts at 6b195c6.
 
 | Name | Value | Unit | Role |
 |---|---|---|---|
-| Hashed source files | 2 | files | Recovery-score constants file and HRV thresholds file |
-| Hashed constants | 155 (91 + 64) | declarations | Count at this revision |
+| Hashed sources | 2 files, 2 enums | — | Recovery-score constants file and HRV thresholds file; score-bounds and composite-weights enums of the general constants file |
+| Hashed constants | 188 (91 + 63 + 4 + 30) | declarations | Count at this revision |
 | Constant regex | `static let\s+(\w+)\s*:?\s*[\w<>\[\], .]*=\s*([-\d.]+)` | — | Extracts symbol and literal value |
 | Comment strip (hash) | `//[^\n]*` → empty | — | Line comments only |
-| Hash line format | `<path>:<symbol>=<value>\n` | UTF-8 | One per constant, per-file sorted |
+| Hash line format | `<path>:<symbol>=<value>\n`; `<path>:<enum>.<symbol>=<value>\n` in an enum | UTF-8 | One per constant, sorted per file or enum |
 | Digest | SHA-256, first 16 hexadecimal characters | 64 bits | Constants fingerprint |
-| Baseline line | `<version> <hash>` | — | Recorded pair |
-| Current version | v3.1.oct2026 | — | Version this build computes |
+| Baseline line | `<version> <hash>` | — | Recorded pair; must equal the code's |
+| Current version | v3.3.nov2026 | — | Version this build computes |
 | Legacy sentinel | `unversioned` | — | Decoded value for unstamped records |
 | Ranking-key identifier | `rankingWeight` | — | Allowed only in the cause-detection directory |
 | Register entries | 19 | entries | Count at this revision |
@@ -696,24 +705,26 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | Discovery suffixes | Adjustment, Penalty, Bonus, Modifier, Damper, Fraction | — | Function-name shape |
 | Discovery exclusions | names ending Descriptions or Message; cause-detection directory | — | Not score inputs |
 | Discovered functions | 13 (12 claimed, 1 waived) | functions | At this revision |
-| Gate scripts | 45 | scripts | `check_*` and `enforce_*` |
-| Planted violations | 64 | plants | Planted-violation harness |
-| Plant-completeness exclusions | coverage-floor gate, Thread Sanitizer gate (need a build or simulator); preflight gate (helper library's self-test, has its own plants) | — | Not searched for by name |
+| Gate scripts | 48 | scripts | `check_*` and `enforce_*` |
+| Planted violations | 86 | plants | Planted-violation harness |
+| Plant-completeness exclusions | coverage-floor gate (needs a real build); preflight gate (helper library's self-test, has its own plants) | — | Not searched for |
+| Thread Sanitizer plants | 3, against a stand-in `xcodebuild` | plants | Race in the suite; parallel testing on; halt-on-error removed |
 | Targeted test mutations | 125 | mutations | Test-mutation harness |
 | Build-failure retry | 1 | retry | Baseline suite run only |
-| Wiring exemptions | 1 | gate | Coverage gate runs inside the coverage step |
-| Preflight-scanned scripts | 53 | scripts | All shell scripts except the preflight gate |
+| Wiring exemptions | 1 from both workflows; 2 more from the per-push workflow | gates | Coverage gate runs inside the coverage step; SwiftLint budget and Thread Sanitizer gate cannot run on Linux |
+| Preflight-scanned scripts | 54 | scripts | All shell scripts in the scripts directory except the preflight gate |
+| Lock PID wait | 2 | s | Before a lock without a PID is called ownerless |
 | Gate exit codes | 0 clean, 1 violation, 2 configuration error | — | Scoring, register, wiring gates |
 | Helper exit code | 70 (EX_OSERR) | — | Temp-file or empty-input failure |
 | Lock-held exit code | 75 (EX_TEMPFAIL) | — | Another mutator is live |
 | Trailer | `budget-raise-ok: <path> <reason>` | — | Acknowledged loosening; case-insensitive key |
 | Floor prefix | `min_` | — | Budget may only rise |
 | Require-baseline flag | `BUDGET_REQUIRE_BASELINE` | env var | Missing baseline becomes a failure |
+| Budget value | `^[0-9]+(\.[0-9]+)?$` | — | Compared by the ratchet; tech-debt ceilings must be whole numbers |
 | Doc-quote number regex | `(?<![\w.])(\d{2,6})(?![\w.%])` | — | Bare number near a budget filename |
 | Doc-quote window | current line + next line | lines | Where the number is sought |
-| macOS billing multiplier | 10 | × Linux | CI cost basis |
-| Monthly plan | 3,000 billable (about 300 macOS) | minutes | CI cost basis |
-| Full macOS run | ~108 wall / ~1,080 billable | minutes | Measured by the repository |
+| macOS billing multiplier | 10 | × Linux | Cost on a private repository; standard runners are free for a public one |
+| Full macOS run | ~1,083 billable | minutes | Recorded in the full-CI workflow, for a private repository |
 
 ## Appendix B: Pseudocode
 
@@ -732,15 +743,26 @@ function scoring_governance():
         if not exists(path): exit 2
         src = regex_replace(read(path), "//[^\n]*", "")
         pairs = sorted(regex_findall(src, CONST_RE))           # (symbol, value)
+        if pairs empty: exit 2
         for (sym, val) in pairs:
             h.update(utf8(path + ":" + sym + "=" + val + "\n"))
+            count += 1
+    src = regex_replace(read(GENERAL_CONSTANTS) or exit 2, "//[^\n]*", "")
+    for enum in ["ScoringBounds", "ScoringWeights"]:
+        block = text from "enum <enum>" to the next line "}" in src or exit 2
+        pairs = sorted(regex_findall(block, CONST_RE)); if pairs empty: exit 2
+        for (sym, val) in pairs:
+            h.update(utf8(GENERAL_CONSTANTS + ":" + enum + "." + sym + "=" + val + "\n"))
             count += 1
     current_hash = hex(h)[0:16]
     version = regex_group(read(VERSION_FILE), 'static let current\s*=\s*"([^"]+)"') or exit 2
     if not exists(BASELINE): exit 2
-    (rec_version, rec_hash) = split_whitespace(read(BASELINE))
+    fields = split_whitespace(read(BASELINE)); if len(fields) != 2: exit 2
+    (rec_version, rec_hash) = fields
     if current_hash != rec_hash and version == rec_version:
         problems.add("constants changed without a version change")
+    elif (version, current_hash) != (rec_version, rec_hash):
+        problems.add("record the new version and hash in the baseline")
     print(count, current_hash, version)
     exit 1 if problems else 0
 
@@ -791,10 +813,10 @@ for (name, gate, file, mutation) in PLANTS:
     code = run(gate); restore_all()
     if code != 0: PASS else: FAIL
 unplanted = [g for g in glob(check_*.sh, enforce_*.sh)
-             if g != "check_gate_preflight.sh" and g not in NEEDS_BUILD
-             and basename(g) not in read(this_script)]
+             if g != "check_gate_preflight.sh" and g not in NEEDS_BUILD   # NEEDS_BUILD = [check_coverage.sh]
+             and no plant-command line of this_script runs ./scripts/<g>]
 if unplanted: exit 1
-exit 1 if FAIL > 0 else 0
+exit 1 if FAIL > 0 or SKIP > 0 else 0
 ```
 
 ### B.4 Preflight and wiring
@@ -808,10 +830,15 @@ preflight:
       if line sources "$(dirname "$0")/X" and not exists(scripts/X): fail
 
 wiring:
-  wf = read(WORKFLOW) or exit 2
+  for f in [CI_WORKFLOW, PUSH_WORKFLOW, MAKEFILE]: exists(f) or exit 2
+  ran(wf) = run: text of enabled steps of wf, comments dropped,
+            + recipes of every make target it calls, recursively
   for g in gates (check_*/enforce_*) not in NOT_A_STEP:
-      if basename(g) not substring of wf: unwired.add(g)
-  exit 1 if unwired else 0
+      if g not a whole name in ran(CI_WORKFLOW): unwired.add(g)
+      if g not in NOT_ON_PUSH and g not a whole name in ran(PUSH_WORKFLOW): not_on_push.add(g)
+  if unwired or not_on_push: exit 1
+  if any exemption names a missing gate: exit 1
+  exit 0
 ```
 
 ### B.5 Targeted test mutations and leak detector
@@ -823,9 +850,12 @@ for (name, suite, file, mutation) in MUTATIONS:
     b = run_suite(suite); if b == 2: b = run_suite(suite)
     if b != 0: SKIP; continue
     backup(file); if not apply(mutation): restore(); SKIP; continue
-    r = run_suite(suite); restore()
-    if r != 0: PASS else: FAIL
-exit 1 if FAIL or SKIP else 0
+    r = run_suite(suite)
+    if r == 2 and no compiler error in file: r = run_suite(suite)
+    if r == 2 and compiler error in file: r = 3
+    restore()
+    r == 1: PASS | r == 0: FAIL | r == 3: INVALID | else: SKIP
+exit 1 if FAIL or INVALID or SKIP else 0
 
 leak_detector:
   for case in split(read(MUTATION_SCRIPT), '\nmutate "')[1:]:
@@ -839,9 +869,10 @@ leak_detector:
 
 tree_lock_acquire(owner):
   if mkdir(LOCK) fails:
-      if pid_alive(read(LOCK/pid)): exit 75
+      pid = read(LOCK/pid), waiting up to 2 s while the lock has none
+      if pid_alive(pid): exit 75
       warn "stale lock: previous run never restored"; rm LOCK; mkdir(LOCK) or exit 70
-  write LOCK/owner, LOCK/pid
+  write LOCK/pid, LOCK/owner
 
 tree_lock_require_unmutated(who):          # reader side
   if exists(LOCK) and pid_alive(read(LOCK/pid)): exit 75
@@ -856,10 +887,15 @@ if not base or base == 40 zeros or not resolvable(base):
     if BUDGET_REQUIRE_BASELINE: exit 1 else: exit 0
 acks = [path for msg in commit_messages(base..HEAD)
         for path in regex_i("^budget-raise-ok:\s*(\S+)", msg)]
-for f in sorted(CI_DIR/*.txt):
-    cur = int_or_skip(read(f)); prev = int_or_skip(git_show(base, f)) or skip
-    if cur == prev: continue
-    loosened = (cur < prev) if basename(f).startswith("min_") else (cur > prev)
+for f in sorted(CI_DIR/*.txt in the tree ∪ at base):
+    prev = git_show(base, f) or continue               # new budget
+    prev = number(prev) or (not_compared.add(f); continue)
+    if not exists(f) or not number(read(f)): loosened = true
+    else:
+        cur = number(read(f))
+        if cur == prev: continue
+        loosened = (cur < prev) if basename(f).startswith("min_") else (cur > prev)
+        loosened |= not floor and prev whole and cur not whole
     if loosened and f not in acks: violations.add(f, prev, cur)
 exit 1 if violations else 0
 
@@ -878,15 +914,15 @@ count_for_budget(src):
 |---|---|
 | Constants-hash lock, ranking-weight containment | `scripts/check_scoring_governance.sh`, `.ci/scoring_constants_hash.txt` (baseline), `Emuqu/Sources/Utilities/Constants+RecoveryScore.swift`, `Emuqu/Sources/Analysis/HRVThresholds.swift` |
 | Version string and sentinel | `Emuqu/Sources/Analysis/ScoringVersion.swift` |
-| Version persisted on breakdowns | `Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift`, `Emuqu/Sources/Analysis/VitalsScoring.swift`, `Emuqu/Sources/Storage/CloudKitSyncSupport.swift` |
-| Version shown | `Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift` |
+| Version persisted on breakdowns | `Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift`, `Emuqu/Sources/Analysis/VitalsScoring.swift`, `Emuqu/Sources/Storage/CloudSessionPayload.swift` |
+| Version shown | `Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift`; legacy breakdown pinned as `unversioned` in `Emuqu/Sources/ViewModels/MorningResultsViewModel.swift` |
 | Version given to the assistant | `Emuqu/Sources/Assistant/Facts/AppFactResolver.swift`, `Emuqu/Sources/Assistant/Context/ContextBuilder.swift` |
-| Composite weights (governed by the register) | `Emuqu/Sources/Utilities/Constants.swift` |
+| Score bounds and composite weights (hashed enums) | `Emuqu/Sources/Utilities/Constants.swift` |
 | Science register and gate | `Tools/science_register/register.json`, `scripts/check_science_register.sh`, register floor file in `.ci/` |
 | Regulated-claim perimeter (Paper 3) | `Tools/copy_linter/lint.py`, `Tools/copy_linter/prohibited_terms.json`, `scripts/check_perimeter_sync.sh` |
-| Planted violations | `scripts/verify_gates_fail.sh` |
+| Planted violations | `scripts/verify_gates_fail.sh`; Thread Sanitizer gate and canary `scripts/check_thread_sanitizer.sh`, `EmuquTests/ThreadSanitizerCanaryTests.swift` |
 | Fail-closed helpers and tree lock | `scripts/lib/preflight.sh`, `scripts/check_gate_preflight.sh`, `scripts/simulate_ci.sh` (lock reader) |
-| Wiring | `scripts/check_gates_wired.sh`, `.github/workflows/ci.yml` |
+| Wiring | `scripts/check_gates_wired.sh`, `.github/workflows/ci.yml`, `.github/workflows/gates.yml`, `Makefile` |
 | Targeted test mutations and leak backstop | `scripts/verify_tests_fail.sh`, `scripts/check_no_leaked_mutations.sh` |
 | Ratchets | `docs/adr/004-ratcheted-budgets.md`, `scripts/check_budget_monotonicity.sh`, `scripts/enforce_tech_debt_budgets.sh`, `scripts/enforce_swiftlint_budget.sh`, budget files in `.ci/` |
 | Documentation constants rule | `scripts/check_doc_links.sh` |

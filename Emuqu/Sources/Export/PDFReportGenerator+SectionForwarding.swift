@@ -88,8 +88,8 @@ extension PDFReportGenerator {
         return sections.drawTimeDomainSection(result, yPosition: yPosition, in: context, pageRect: pageRect)
     }
 
-    func drawWindowSelectionSection(result: HRVAnalysisResult, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
-        return sections.drawWindowSelectionSection(result: result, yPosition: yPosition, in: context, pageRect: pageRect)
+    func drawWindowSelectionSection(result: HRVAnalysisResult, series: RRSeries, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
+        return sections.drawWindowSelectionSection(result: result, series: series, yPosition: yPosition, in: context, pageRect: pageRect)
     }
 
     func ensureSpace(needed: CGFloat, y: CGFloat, pageNumber: inout Int, context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {

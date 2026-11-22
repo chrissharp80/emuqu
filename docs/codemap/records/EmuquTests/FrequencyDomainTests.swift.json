@@ -365,6 +365,55 @@
    "deps": {
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "4554c37c79ea0219"
    }
+  },
+  {
+   "key": "func FrequencyDomainTests.breathingRun(start:meanRR:)",
+   "hash": "ccab132a78aa17e8",
+   "does": "A CleanRun of 400 beats from `start` s whose RR breathes at 0.25 Hz (±40 ms) around meanRR, timed at mid-beat.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func FrequencyDomainTests.testNoSegmentSpansARecordingBreak()",
+   "hash": "a9b3c73b0d1474fb",
+   "does": "Two 0.25 Hz runs (800 and 1000 ms) 300 s apart: asserts computeFromCleanRuns reads HF above LF, and that resampling them as one series (computeFromCleanPairs) reads more than twice the LF.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FrequencyDomainTests.swift::func FrequencyDomainTests.breathingRun(start:meanRR:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanRuns(_:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "4554c37c79ea0219",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanRuns(_:)": "b25107bab84f4212",
+    "EmuquTests/FrequencyDomainTests.swift::func FrequencyDomainTests.breathingRun(start:meanRR:)": "1f787d02b8dfa95f"
+   }
+  },
+  {
+   "key": "func FrequencyDomainTests.testOneRunIsTheCleanPairsPath()",
+   "hash": "bb002802acc9ed71",
+   "does": "Asserts computeFromCleanRuns on one run gives the same HF and LF as computeFromCleanPairs on its beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FrequencyDomainTests.swift::func FrequencyDomainTests.breathingRun(start:meanRR:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanRuns(_:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "4554c37c79ea0219",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanRuns(_:)": "b25107bab84f4212",
+    "EmuquTests/FrequencyDomainTests.swift::func FrequencyDomainTests.breathingRun(start:meanRR:)": "1f787d02b8dfa95f"
+   }
   }
  ],
  "deps": {}

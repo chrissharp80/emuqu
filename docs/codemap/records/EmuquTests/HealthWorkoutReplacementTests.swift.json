@@ -1,0 +1,292 @@
+{
+ "file": "EmuquTests/HealthWorkoutReplacementTests.swift",
+ "hash": "77889a059fe5ae70",
+ "role": "XCTest suite for replacing and deleting a session's exported workouts in Apple Health against the in-memory Health store that keeps each workout with its samples: a re-export leaves one workout and its samples (earlier tail and identity-less copy deleted, workouts last), delete-forever leaves only other sessions' workouts, a failed sample delete still deletes the workout, only a locked read is skipped, a workout saved while locked has its earlier copies deleted on the next return (and a failed cleanup is kept), nothing is deleted without a versioned copy, the export stamp asks for no re-upload, and one HealthSampleWatch read per anchor at a time. The class is marked deprecated with HKWorkout's initialiser, the only way to make a workout fixture outside a real store.",
+ "types": [
+  "HealthWorkoutReplacementTests: class — @MainActor XCTestCase, @available deprecated 17.0 for its HKWorkout fixtures"
+ ],
+ "state": [
+  "mem:HealthWorkoutReplacementTests.start (fixed Date 1_622_534_400)",
+  "mem:HealthWorkoutReplacementTests.sessionId (UUID per test instance)",
+  "ud:hkPendingWorkoutReplacements (cleared for sessionId in tearDown)"
+ ],
+ "toplevel": "Stored fixtures start and sessionId.",
+ "units": [
+  {
+   "key": "func HealthWorkoutReplacementTests.tearDown()",
+   "hash": "6c065742a27c6f04",
+   "does": "Drops this test's session from the pending locked-save cleanups, then the superclass tearDown.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.clear(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:hkPendingWorkoutReplacements"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.clear(sessionId:)": "dabe032afd871030"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.testAReExportLeavesOneWorkoutAndItsSamples()",
+   "hash": "3dd74343ca3cd81a",
+   "does": "Stores the session's earlier export (version 1, three heart-rate samples), an identity-less workout in the same second with one sample, one starting 5 s later and another session's; finds the earlier exports (2 workouts, 4 samples), saves a shorter version-2 export and deletes keeping its sync identifiers. Asserts only the new workout and its samples, the later workout and the other session's remain, nothing HealthKit replaced is deleted again, and workouts are deleted last.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.saveWorkout(_:with:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.syncIdentifier(of:)",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.workout(_:startingAt:)",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.heartRate(_:count:)",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.stamp(version:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.syncIdentifier(of:)": "5a7a5b433a98884b",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)": "42fde0c19bdd2767",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)": "b01e3fee14e4c6a6",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.saveWorkout(_:with:)": "4af5d0e39b86f2b9",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.heartRate(_:count:)": "03e9575d16098385",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.stamp(version:)": "f4f6182493041f55",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.workout(_:startingAt:)": "b296f4cb1a95e936"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.testDeletingASessionForeverLeavesOnlyOtherSessionsWorkouts()",
+   "hash": "db4437438048534e",
+   "does": "Stores the session's export with three heart-rate samples and another session's workout, finds and deletes everything of the session, and asserts only the other workout remains, deleted heart rate first and workouts after.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.saveWorkout(_:with:)",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.workout(_:startingAt:)",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.heartRate(_:count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)": "42fde0c19bdd2767",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)": "b01e3fee14e4c6a6",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.saveWorkout(_:with:)": "4af5d0e39b86f2b9",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.heartRate(_:count:)": "03e9575d16098385",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.stamp(version:)": "f4f6182493041f55",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.workout(_:startingAt:)": "b296f4cb1a95e936"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.testAFailedSampleDeleteStillDeletesTheWorkout()",
+   "hash": "cbb4ac8ea22dfb0e",
+   "does": "With the next delete set to fail, deleting the session's export throws, its two heart-rate samples stay and its workout is gone.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.saveWorkout(_:with:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)": "42fde0c19bdd2767",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)": "b01e3fee14e4c6a6",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.saveWorkout(_:with:)": "4af5d0e39b86f2b9",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.heartRate(_:count:)": "03e9575d16098385",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.stamp(version:)": "f4f6182493041f55",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.workout(_:startingAt:)": "b296f4cb1a95e936"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.testOnlyALockedReadIsSkipped()",
+   "hash": "0f69c36a6c24a0b0",
+   "does": "A read refused with errorDatabaseInaccessible gives findUnlessLocked nil; one refused with errorAuthorizationDenied is rethrown (and isLockedRead is false for it); an answered read gives an export.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.findUnlessLocked(sessionId:startDate:in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.isLockedRead(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.findUnlessLocked(sessionId:startDate:in:)": "4e158348548fcf24",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.isLockedRead(_:)": "4f4d8ca46d71ed11"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.testAWorkoutSavedWhileLockedHasItsEarlierCopiesDeletedLater()",
+   "hash": "32cf9850b571fd2c",
+   "does": "Stores a three-sample version-1 export, saves a two-sample version-2 export over it without reading (its third sample is left with no workout) and notes the session; finish then leaves exactly the new workout and its samples and clears the entry.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.note(sessionId:startDate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.finish(in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.saveWorkout(_:with:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:hkPendingWorkoutReplacements"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.finish(in:)": "a25bd6799a51feda",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.note(sessionId:startDate:)": "5a5439aa33a8e53f",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()": "a3de3836df8c4ecf",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.saveWorkout(_:with:)": "4af5d0e39b86f2b9",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.heartRate(_:count:)": "03e9575d16098385",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.stamp(version:)": "f4f6182493041f55",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.workout(_:startingAt:)": "b296f4cb1a95e936"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.testAFailedCleanupIsKeptForTheNextReturn()",
+   "hash": "6a4a4f5aef4cf57b",
+   "does": "A pending session whose read is refused again keeps its entry with its start time.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.note(sessionId:startDate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.finish(in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:hkPendingWorkoutReplacements"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.finish(in:)": "a25bd6799a51feda",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.note(sessionId:startDate:)": "5a5439aa33a8e53f",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()": "a3de3836df8c4ecf"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.testNothingIsDeletedWithoutAVersionedCopy()",
+   "hash": "dca6f785971818ad",
+   "does": "An identity-less workout and sample found as the session's are left by deleteSuperseded, since no versioned copy is among them.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.deleteSuperseded(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.deleteSuperseded(from:)": "645af581e4d1bbf8",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)": "b01e3fee14e4c6a6",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.saveWorkout(_:with:)": "4af5d0e39b86f2b9",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.heartRate(_:count:)": "03e9575d16098385",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.workout(_:startingAt:)": "b296f4cb1a95e936"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.testTheExportStampAsksForNoReupload()",
+   "hash": "727620353e879db1",
+   "does": "Archives a workout session with a modification stamp in a scratch archive, writes the export stamp, and asserts healthKitExportedAt is set, modifiedAt unchanged and no re-upload notification posted for it.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeExportStamp(_:at:archive:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.removeDirectory(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:scratch archive directory (removed)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeExportStamp(_:at:archive:)": "6f56c6433a484251",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "5dc05159bc65d04f",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)": "d14e6c55f8aaa87a",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.removeDirectory(_:)": "b424fa8a8b9703d1",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.workout(_:startingAt:)": "b296f4cb1a95e936"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.testARequestDuringAReadRunsItOnceMore()",
+   "hash": "58fc92d760f238d5",
+   "does": "Drives a HealthSampleWatch.ReadGate: one read per key at a time, requests during it run it once more, another key is independent, and a read that cannot run again frees its key.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.ReadGate.claimRead(_:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.ReadGate.finishRead(_:canRerun:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.ReadGate.claimRead(_:)": "6f5b5134cda66504",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.ReadGate.finishRead(_:canRerun:)": "b67326b377000fcc"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.stamp(version:)",
+   "hash": "d76f8bd39d6a60aa",
+   "does": "An ExportStamp for the test's session at `version`.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.workout(_:startingAt:)",
+   "hash": "2361a90a1a809382",
+   "does": "A ten-minute running HKWorkout from the test start (or `date`) carrying the stamp's workout metadata, none for a nil stamp; uses HealthKit's deprecated initialiser.",
+   "entry": null,
+   "calls": [
+    "ext:HKWorkout.init(activityType:start:end:duration:totalEnergyBurned:totalDistance:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.metadataOfWorkout": "046fabc234810b92",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.stamp(version:)": "f4f6182493041f55"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.heartRate(_:count:)",
+   "hash": "b853ccc92fd75fbf",
+   "does": "`count` heart-rate samples one a minute from the test start, each with the stamp's hr-<n> sample metadata (none for a nil stamp).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.ExportStamp.sampleMetadata(_:index:)": "44fbd369b85a8016",
+    "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
+    "EmuquTests/HealthWorkoutReplacementTests.swift::func HealthWorkoutReplacementTests.stamp(version:)": "f4f6182493041f55"
+   }
+  },
+  {
+   "key": "func HealthWorkoutReplacementTests.removeDirectory(_:)",
+   "hash": "90f011907f2e8e77",
+   "does": "Removes a scratch directory; a missing one is not an error.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

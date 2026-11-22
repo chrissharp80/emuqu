@@ -67,11 +67,15 @@
   },
   {
    "key": "func WorkoutLoadRestingHR.record(_:measuredAt:)",
-   "hash": "672564a0ab5f13ed",
-   "does": "Keeps a finite positive Apple resting HR value with its measurement date, in memory and in UserDefaults (lastApple.v1), so later launches start from it.",
+   "hash": "3bb5a0e4fc90d6b9",
+   "does": "Keeps a finite positive Apple resting HR value with its measurement date, in memory and in UserDefaults (lastApple.v1), so later launches start from it; only a value measured after the one kept replaces it, so a reanalysis reading a past day's resting HR leaves today's in place.",
    "entry": "Called by TrainingHealthQueries.fetchAppleRestingHR with each value it reads.",
-   "calls": [],
-   "reads": [],
+   "calls": [
+    "ext:OSAllocatedUnfairLock.withLock"
+   ],
+   "reads": [
+    "mem:WorkoutLoadRestingHR.lastAppleValue"
+   ],
    "writes": [
     "mem:WorkoutLoadRestingHR.lastAppleValue",
     "ud:WorkoutLoadRestingHR.lastApple.v1"
@@ -80,7 +84,17 @@
     {
      "at": "+1",
      "cond": "value finite and > 0",
-     "effect": "false: ignored; true: stored in memory and UserDefaults"
+     "effect": "false: ignored"
+    },
+    {
+     "at": "+3",
+     "cond": "a value measured at or after this one is already kept",
+     "effect": "nothing changes"
+    },
+    {
+     "at": "+7",
+     "cond": "this one is newer",
+     "effect": "stored in memory and UserDefaults"
     }
    ],
    "deps": {}

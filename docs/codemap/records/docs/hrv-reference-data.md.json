@@ -37,7 +37,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "ae5a1983d1c7500d",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible()": "6f2ea748c5e0ccc5",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord()": "c72cc7fcffb848e4",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()": "384bee052ea593f9",
@@ -82,16 +82,19 @@
   },
   {
    "key": "§ HRV reference data > Three differences that are not defects",
-   "hash": "df38e0ec045ed4a9",
-   "does": "Documents three places a plain reference implementation disagrees with the app without an app defect: SDNN uses N-1; computeTimeDomain gates ectopics (nsr005: 15.96 against 28.98), so the test compares the unfiltered reference against rmssd(fromCleanRRs:) and recomputes the pipeline RMSSD from the kept adjacent pairs, asserting no direction and only that the gate changes at least one record; mean HR comes from rolling 10-second windows, so the test asserts agreement in scale (tolerance max(2.0, 5%)); computeHRStatistics uses stored sensor HR when every clean beat carries it, then rolling-window HR, then the meanRR fallback.",
+   "hash": "36c0888478c7b28d",
+   "does": "Documents three places a plain reference implementation disagrees with the app without an app defect: SDNN uses N-1; computeTimeDomain gates ectopics (nsr005: 15.96 against 28.98), so the suite compares the unfiltered reference against rmssd(fromCleanRRs:) and compares the pipeline's RMSSD, pNN50 and gate-removed beat count with gated values pinned in the test on every record (computed outside the app in Python from the published 20%-of-local-median rule and kept adjacent pairs), requires at least one record to lose beats, checks a hand-worked twelve-beat series (RMSSD exactly 10 ms) and, on the sixteen records the gate leaves whole, pipeline pNN50 equal to the unfiltered reference; mean HR comes from rolling 10-second windows, so the test asserts agreement in scale.",
    "entry": null,
    "calls": [
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDIsTheRMSOfTheKeptAdjacentPairs()",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDMatchesTheIndependentGatedReferenceOnEveryRecord()",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanHeartRateAgreesInScaleWithMeanRR()",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDOnAHandWorkedSeriesWithOnePrematureBeat()",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPNN50MatchesTheReferenceWhereNoBeatIsFiltered()",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -99,9 +102,12 @@
    "deps": {
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)": "271733259b6ae97a",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "ae5a1983d1c7500d",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)": "b4cdab2ada0aaa92",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "1596841c414b391c",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanHeartRateAgreesInScaleWithMeanRR()": "e3ad3e25f1f4641a",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDIsTheRMSOfTheKeptAdjacentPairs()": "252593599ea5cf12",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPNN50MatchesTheReferenceWhereNoBeatIsFiltered()": "cfb48adbb85390a7",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDMatchesTheIndependentGatedReferenceOnEveryRecord()": "ea42f754d757d76a",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDOnAHandWorkedSeriesWithOnePrematureBeat()": "9512b128d5830d73",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()": "384bee052ea593f9"
    }
   }

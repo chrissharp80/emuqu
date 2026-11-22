@@ -24,7 +24,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.header(_:)": "965b6074061fa368",
+    "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.header(_:)": "892764f475e1795e",
     "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.metrics(_:)": "4245b10b405826c6",
     "Emuqu/Sources/Views/MorningPreviewCards.swift::var MorningPreviewCards.background": "357ad93ce22ab05e",
     "Emuqu/Sources/Views/RecordView+Results.swift::var RecordView.continueToDashboardButton": "6815d4e195e9a798",
@@ -64,21 +64,24 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.presentFullReport()": "015b614ee0d9647c",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.presentFullReport()": "0be19920cede04bc",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
    "key": "func RecordView.presentFullReport()",
-   "hash": "1ca2a90b1db342ce",
-   "does": "If the current session has an analysis result, loads up to 28 prior overnight sessions before it (off-main) into cachedRecentSessions, then sets pendingMorningPresentation, which opens the pre-score prompt cover.",
+   "hash": "f281fd25e0184fae",
+   "does": "If the current session has an analysis result, loads up to 28 prior overnight sessions before it (off-main) into cachedRecentSessions, reads the session's split-night linked segments off the main actor (a detached task: each linked session is read, decrypted and decoded), then sets pendingMorningPresentation carrying those segments, which opens the pre-score prompt cover.",
    "entry": "Button action of viewFullReportButton.",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)"
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)",
+    "Emuqu/Sources/Views/RecordView.swift::init RecordView.ResultsPresentation(session:result:linkedSegments:)"
    ],
    "reads": [
     "mem:SessionState.currentSession",
-    "archive:SessionArchive entries/retrieve (recent overnight sessions)"
+    "archive:SessionArchive entries/retrieve (recent overnight sessions)",
+    "archive:SessionArchive.linkedSegments"
    ],
    "writes": [],
    "branches": [
@@ -89,8 +92,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "1d40c0a9ed870882",
-    "Emuqu/Sources/Views/RecordView.swift::init RecordView.ResultsPresentation(session:result:)": "2323d5ad61702ff5"
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "01350655a5b18c85",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "083d7e30ca95aee7",
+    "Emuqu/Sources/Views/RecordView.swift::init RecordView.ResultsPresentation(session:result:linkedSegments:)": "0c00ff399835e907"
    }
   },
   {
@@ -193,7 +197,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

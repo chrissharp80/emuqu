@@ -3,23 +3,26 @@ import SwiftUI
 
 // The analysis-window picker, engine room and share sheet.
 
+/// The analysis window picker's three segments. Outside the view type, which
+/// is at its size limit; the view names it `AnalysisWindowSegment`.
+enum RecoveryWindowSegment: String, CaseIterable, Identifiable {
+    case bestRecovery
+    case pickWindow
+    case lastFiveMin
+    var id: String { rawValue }
+    var shortName: String {
+        switch self {
+        case .bestRecovery: String(localized: "Best Recovery", bundle: LanguageManager.appBundle)
+        case .pickWindow: String(localized: "Pick Window", bundle: LanguageManager.appBundle)
+        case .lastFiveMin: String(localized: "Last 5 min", bundle: LanguageManager.appBundle)
+        }
+    }
+}
+
 extension RecoveryScoreDetailView {
     // MARK: - Analysis Window picker
 
-    /// Three-segment window picker.
-    enum AnalysisWindowSegment: String, CaseIterable, Identifiable {
-        case bestRecovery
-        case pickWindow
-        case lastFiveMin
-        var id: String { rawValue }
-        var shortName: String {
-            switch self {
-            case .bestRecovery: String(localized: "Best Recovery", bundle: LanguageManager.appBundle)
-            case .pickWindow: String(localized: "Pick Window", bundle: LanguageManager.appBundle)
-            case .lastFiveMin: String(localized: "Last 5 min", bundle: LanguageManager.appBundle)
-            }
-        }
-    }
+    typealias AnalysisWindowSegment = RecoveryWindowSegment
 
     var analysisWindowPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -29,10 +32,11 @@ extension RecoveryScoreDetailView {
         }
     }
 
+    /// Optional tags: no segment is selected while none names the window.
     private var windowSegmentPicker: some View {
         Picker(String(localized: "Window method", bundle: LanguageManager.appBundle), selection: $selectedWindowSegment) {
             ForEach(AnalysisWindowSegment.allCases) { seg in
-                Text(seg.shortName).tag(seg)
+                Text(seg.shortName).tag(Optional(seg))
             }
         }
         .pickerStyle(.segmented)
@@ -43,17 +47,19 @@ extension RecoveryScoreDetailView {
                 restoringSegment = false
                 return
             }
+            guard let newSegment else { return }
             guard newSegment == .bestRecovery || recordingMidpointMs != nil else {
                 return restoreSegment(oldSegment)
             }
-            handleWindowSegmentChange(newSegment)
+            handleWindowSegmentChange(newSegment, from: oldSegment)
         }
     }
 
-    /// Pick Window and Last 5 min place a window on the beat stream; a
-    /// session without one (pruned or legacy) cannot, so the control
-    /// returns to where it was rather than appearing to choose.
-    private func restoreSegment(_ segment: AnalysisWindowSegment) {
+    /// Pick Window and Last 5 min need a beat stream (pruned or legacy
+    /// sessions have none), so the control returns to where it was rather
+    /// than appearing to choose, as after a re-analysis that stored nothing.
+    private func restoreSegment(_ segment: AnalysisWindowSegment?) {
+        guard selectedWindowSegment != segment else { return }
         restoringSegment = true
         selectedWindowSegment = segment
     }
@@ -67,15 +73,18 @@ extension RecoveryScoreDetailView {
                     .scaledFont(size: 12)
                     .foregroundStyle(AppTheme.textTertiary)
             }
+        } else if reanalysisFailed {
+            Text(String(localized: "Couldn't re-analyze this reading. Try again.", bundle: LanguageManager.appBundle))
+                .scaledFont(size: 12).foregroundStyle(AppTheme.terracottaText)
         }
     }
 
-    func handleWindowSegmentChange(_ segment: AnalysisWindowSegment) {
+    func handleWindowSegmentChange(_ segment: AnalysisWindowSegment, from previous: AnalysisWindowSegment?) {
         switch segment {
         case .bestRecovery:
             previewWindowMs = nil
             windowChangedHere = true
-            reanalyzeBestRecovery()
+            reanalyzeBestRecovery(restoringOnFailure: previous)
         case .pickWindow:
             // Inline picker, no modal sheet. The slider shows up
             // beneath the HRV chart and the user sees the preview band move
@@ -84,30 +93,35 @@ extension RecoveryScoreDetailView {
         case .lastFiveMin:
             previewWindowMs = nil
             windowChangedHere = true
-            reanalyzeLastFiveMinutes()
+            reanalyzeLastFiveMinutes(restoringOnFailure: previous)
         }
     }
 
-    private func reanalyzeBestRecovery() {
+    private func reanalyzeBestRecovery(restoringOnFailure previous: AnalysisWindowSegment?) {
         // Reanalyses this session only; the default method in Settings is
         // left alone.
         guard let onReanalyze else { return }
-        Task {
-            isReanalyzing = true
-            await onReanalyze(.consolidatedRecovery)
-            isReanalyzing = false
-        }
+        runReanalysis(restoringOnFailure: previous) { await onReanalyze(.consolidatedRecovery) }
     }
 
     /// Centre a 5-minute window 2.5 min before recording end so the analyzer's
     /// window selector has data on both sides of the target.
-    private func reanalyzeLastFiveMinutes() {
+    private func reanalyzeLastFiveMinutes(restoringOnFailure previous: AnalysisWindowSegment?) {
         guard let onReanalyzeAt, let lastMs = recordingEndMs else { return }
-        let targetMs = max(0, lastMs - 150_000)
+        runReanalysis(restoringOnFailure: previous) { await onReanalyzeAt(max(0, lastMs - 150_000)) }
+    }
+
+    /// One that stored nothing says so and puts the control back: the window
+    /// on screen is still the old one.
+    private func runReanalysis(restoringOnFailure previous: AnalysisWindowSegment?, _ work: @escaping () async -> Bool) {
         Task {
             isReanalyzing = true
-            await onReanalyzeAt(targetMs)
+            reanalysisFailed = false
+            let stored = await work()
             isReanalyzing = false
+            guard !stored else { return }
+            reanalysisFailed = true
+            restoreSegment(previous)
         }
     }
 
@@ -216,10 +230,10 @@ extension RecoveryScoreDetailView {
         guard let stored = RecoveryDetailCopy.storedWindowMethod(result.windowSelectionReason) else {
             return WindowSelectionMethod.consolidatedRecovery.shortName
         }
-        guard stored == .custom, windowChangedHere, selectedWindowSegment != .bestRecovery else {
+        guard stored == .custom, windowChangedHere, let segment = selectedWindowSegment, segment != .bestRecovery else {
             return stored.shortName
         }
-        return selectedWindowSegment.shortName
+        return segment.shortName
     }
 
     @ViewBuilder
@@ -334,7 +348,9 @@ extension RecoveryScoreDetailView {
     /// Runs as Best Recovery does, so it shows it is running and cannot be
     /// tapped twice; the banner goes once the new analysis is sufficient.
     private var retryAnalysisButtonBody: some View {
-        Button(action: reanalyzeBestRecovery) {
+        Button {
+            reanalyzeBestRecovery(restoringOnFailure: selectedWindowSegment)
+        } label: {
             Text(isReanalyzing
                 ? String(localized: "Re-analyzing…", bundle: LanguageManager.appBundle)
                 : String(localized: "Retry analysis", bundle: LanguageManager.appBundle))

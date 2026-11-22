@@ -217,7 +217,7 @@
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAddSegment(start:end:)": "c1b688686fdcf4f8",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAdjustBoundary(id:side:newTime:)": "294d7281a8d87a15",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingCarveAwake(start:end:)": "45afd79157d95fc0",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingMerge(leftId:rightId:)": "a26e1a913a036189",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingMerge(leftId:rightId:)": "eb2dc05242bdd903",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingRemoveSegment(id:)": "5ab5b20980a051bb",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingSplit(id:at:)": "04d84eb50b88d89b",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.snap(_:)": "6d12928957121682"
@@ -418,8 +418,8 @@
   },
   {
    "key": "func SleepTimelineState.applyingMerge(leftId:rightId:)",
-   "hash": "8879a946c686d492",
-   "does": "Merges two segments whose gap is 0..maxMergeGapMinutes into one fresh-UUID segment spanning both, holding both segments' intervals plus mergeGapFill (the gap as .awake/.userAdjusted, so it counts toward time in bed, not sleep); records a merge edit; normalizes.",
+   "hash": "5f3371de3dbe71aa",
+   "does": "Merges two segments whose gap is 0..maxMergeGapMinutes into one segment spanning both that keeps leftId (the segment the merge was asked from, so it stays selected), holding both segments' intervals plus mergeGapFill (the gap as .awake/.userAdjusted, so it counts toward time in bed, not sleep); records a merge edit; normalizes.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.mergeGapFill(between:and:)",
@@ -741,8 +741,8 @@
    "does": "Formats seconds as hours+minutes when >= 60 min, else minutes.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -754,8 +754,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
    }
   },
   {

@@ -397,8 +397,8 @@
   },
   {
    "key": "var RRStorageAuditDetailView.body",
-   "hash": "ebcf97813f620c1b",
-   "does": "List: summary caption, sessionsSection, orphanedBackupsSection; nav title \"RR Storage Audit\".",
+   "hash": "081dbda64eb83d92",
+   "does": "List: summary caption (each session lists its archive and backup beat counts and file size; the status icon shows where the raw beat stream lives), sessionsSection, orphanedBackupsSection; nav title \"RR Storage Audit\".",
    "entry": "SwiftUI renders View.body when the view is pushed/updated (pushed from ArchiveDiagnosticsView.rrAuditDetailLink, ExportAndArchiveViews.swift:804)",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -452,6 +452,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.orphanedBackupIds(archivedIds:archive:backup:)": "79b131012865dd6a",
     "Emuqu/Sources/Views/SettingsDiagnosticsViews.swift::var RRStorageAuditDetailView.orphanedBackupRows": "828948a010f0598c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
@@ -465,7 +466,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.orphanedBackupIds(archivedIds:archive:backup:)": "79b131012865dd6a"
+   }
   },
   {
    "key": "func RRStorageAuditDetailView.sessionRow(_:)",

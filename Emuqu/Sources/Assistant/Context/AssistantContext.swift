@@ -454,10 +454,11 @@ extension AssistantContext {
         return vitals.map { text + " / Vitals \(percent($0))" } ?? text
     }
 
-    /// Today's session — the headline numbers the model reaches for first.
+    /// The latest session — the headline numbers the model reaches for
+    /// first. Its header names the day it is from (`compactSessionHeader`).
     private func todayLines(formatter: ISO8601DateFormatter) -> [String] {
         guard let today else { return [] }
-        return ["", "--- Today's session ---", "Date: \(formatter.string(from: today.startDate))"]
+        return ["", Self.compactSessionHeader(today, now: generatedAt), "Date: \(formatter.string(from: today.startDate))"]
             + todayScoreLines(today)
             + todayPhysiologyLines(today)
             + todayLoadAndFeelingLines(today)
@@ -528,20 +529,31 @@ extension AssistantContext {
         return out
     }
 
-    /// Yesterday's session — a rich snapshot so day-over-day comparisons have
-    /// real values on both sides rather than one side and a memory.
+    /// The night before the latest session — a rich snapshot so
+    /// day-over-day comparisons have real values on both sides rather than
+    /// one side and a memory. Headed by the day it is from, like the latest.
     private func yesterdayLines(formatter: ISO8601DateFormatter) -> [String] {
         var out: [String] = []
         if let y = yesterday {
             out.append("")
-            out.append("--- Yesterday's session ---")
+            out.append(Self.compactSessionHeader(y, now: generatedAt))
             out.append("Date: \(formatter.string(from: y.startDate))")
             out += yesterdayMetricLines(y)
         }
         if let yd = yesterdayDiagnostic {
-            out.append("Yesterday's summary: \(yd.analysisTitle) — \(yd.analysisExplanation)")
+            out.append("Previous session's summary: \(yd.analysisTitle) — \(yd.analysisExplanation)")
         }
         return out
+    }
+
+    /// "--- Session — TODAY ---", "--- Session — YESTERDAY ---", or, for an
+    /// older one, "--- Session — MOST RECENT, recorded <yyyy-MM-dd> (4 days
+    /// ago, NOT today) ---": the day label `renderLiveStateForCloud` uses,
+    /// so the on-device and no-tools paths never present an old night as
+    /// this morning's. Measured from `generatedAt`, so the header changes
+    /// only when the day does and the render stays cache-stable.
+    static func compactSessionHeader(_ session: SessionSnapshot, now: Date) -> String {
+        "--- Session — \(liveStateDayLabel(session, now: now).dropLast()) ---"
     }
 
     /// Score, HRV, overnight HR, sleep, training load, and the self-rating —

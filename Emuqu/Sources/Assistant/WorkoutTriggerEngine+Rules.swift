@@ -458,7 +458,9 @@ extension WorkoutTriggerEngine {
 
         // Strap dropped mid-session: connected on one workout second, gone
         // on the next. A workout recorded without a strap never had one to
-        // drop, so it never fires.
+        // drop, so it never fires. The line is spoken as well as felt, so it
+        // names the Watch only when the Watch's wrist heart rate is arriving
+        // and the workout's heart rate falls through to it.
     private static func equipmentStrapDownRule() -> Rule {
         let state = StrapLinkState()
         return Rule(
@@ -467,8 +469,10 @@ extension WorkoutTriggerEngine {
             urgency: .urgent,
             cooldown: 60,
             condition: { strapDroppedCondition($0, state: state) },
-            message: { _ in
-                String(localized: "Strap just went quiet — switching to your Watch's heart rate.", bundle: LanguageManager.appBundle)
+            message: { ctx in
+                ctx.wristHeartRateLive
+                    ? String(localized: "Strap just went quiet — switching to your Watch's heart rate.", bundle: LanguageManager.appBundle)
+                    : String(localized: "Strap just went quiet — check its fit and battery.", bundle: LanguageManager.appBundle)
             },
             resetWorkoutState: { state.reset() }
         )
@@ -578,9 +582,9 @@ extension WorkoutTriggerEngine {
 
         // Cadence consistency drop. Fires when the
         // cadence has dropped >5 spm sustained vs the first quarter.
-        // Tier .haptic: meant as a wrist tap, so cadence breakdown — a
+        // Tier .haptic: a phone and wrist tap, so cadence breakdown — a
         // fatigue signal worth flagging — doesn't interrupt the user's
-        // audiobook. No Watch handler exists yet, so it is recorded only.
+        // audiobook.
     private static func cadenceConsistencyDropRule() -> Rule {
         Rule(
             id: "cadence.consistencyDrop",

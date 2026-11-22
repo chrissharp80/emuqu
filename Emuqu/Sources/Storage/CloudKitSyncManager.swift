@@ -13,7 +13,7 @@ final class CloudKitSyncManager {
 
     // MARK: - Singleton
 
-    static let shared = CloudKitSyncManager()
+    static let shared = CloudKitSyncManager(syncStateURL: resolveSyncStateURL())
 
     // MARK: - Published State
 
@@ -136,7 +136,7 @@ final class CloudKitSyncManager {
 
     // MARK: - CloudKit Configuration
 
-    private let container = CKContainer(identifier: AppConfig.iCloudContainerIdentifier)
+    let container = CKContainer(identifier: AppConfig.iCloudContainerIdentifier)
     var privateDB: CKDatabase { container.privateCloudDatabase }
     let recordType = "HRVSession"
     let zoneID = CKRecordZone.ID(zoneName: "HRVSessions", ownerName: CKCurrentUserDefaultName)
@@ -197,7 +197,8 @@ final class CloudKitSyncManager {
     }
     @ObservationIgnored private(set) lazy var liveBackup = CloudKitLiveBackupManager(
         settingsManager: settingsManager,
-        ensureZone: { [weak self] in try await self?.ensureZoneExists() ?? () }
+        ensureZone: { [weak self] in try await self?.ensureZoneExists() ?? () },
+        confirmAccount: { [weak self] in await self?.accountGuard.confirmAccount() == .confirmed }
     )
 
     /// Whether the custom zone has been created
@@ -206,7 +207,7 @@ final class CloudKitSyncManager {
         set { UserDefaults.standard.set(newValue, forKey: UserDefaultsKeys.cloudKitZoneCreated) }
     }
 
-    private let settingsManager: SettingsManager
+    let settingsManager: SettingsManager
     let archive: SessionArchive
 
     /// Serializes concurrent sync operations (upload, delete, full sync) so
@@ -235,15 +236,21 @@ final class CloudKitSyncManager {
     /// (the pull) is not gated here — it brings the user's own records back
     /// from their own container and writes nothing about them to it. A session
     /// held back by this gate stays pending and goes up with the next sync.
+    /// Nothing is uploaded while "Delete All My Data" runs (`PurgeGate`).
     var cloudUploadsAllowed: Bool {
-        settings.iCloudSyncEnabled && settings.hasCompletedOnboarding
+        settings.iCloudSyncEnabled && settings.hasCompletedOnboarding && !PurgeGate.isPurging
     }
 
     // MARK: - Init
 
-    private init(
+    /// The app's manager is `shared`, whose bookkeeping is at
+    /// `resolveSyncStateURL()`. A test builds its own over its archive,
+    /// settings and sync-state file, so it neither reads nor rewrites the
+    /// app's sync bookkeeping.
+    init(
         settingsManager: SettingsManager = AppDependencies.current.app.settingsManager,
-        archive: SessionArchive = AppDependencies.current.storage.sessionArchive
+        archive: SessionArchive = AppDependencies.current.storage.sessionArchive,
+        syncStateURL: URL
     ) {
         self.settingsManager = settingsManager
         self.archive = archive
@@ -254,10 +261,13 @@ final class CloudKitSyncManager {
         // frame paints. `CloudKitSyncState` holds its saves until that load,
         // so a CloudKit upload that lands during the boot gap doesn't
         // overwrite the file and trigger a re-upload of every session.
-        state = CloudKitSyncState(syncStateURL: Self.resolveSyncStateURL())
+        state = CloudKitSyncState(syncStateURL: syncStateURL)
         observeReuploadSignals()
         observers.add(Self.observeAccountChanges { [weak self] in
-            Task { @MainActor [weak self] in await self?.handleAccountChange() }
+            // Unconfirmed at once, before the status check: nothing is read
+            // or written until the new account has been checked.
+            CloudAccountIdentity.noteAccountChanged()
+            Task { @MainActor [weak self] in await self?.accountChange.handle() }
         })
     }
 
@@ -271,73 +281,6 @@ final class CloudKitSyncManager {
             object: nil,
             queue: .main
         ) { _ in handler() }
-    }
-
-    /// Re-check the CloudKit account status after `.CKAccountChanged` and
-    /// reflect it in sync state. A signed-out / restricted account surfaces
-    /// as `.error` (read by the same UI as every other sync error) rather
-    /// than failing silently; a recovered `.available` account clears the
-    /// account-related error and triggers a fresh sync so the new Apple ID's
-    /// data pulls down.
-    ///
-    /// `.temporarilyUnavailable` is transient (iCloud briefly unreachable) so
-    /// it stamps no permanent error — the next sync retries. It is handled
-    /// explicitly because it's a KNOWN case: `@unknown default` covers only
-    /// future/unknown values, so leaving it out tripped "switch must be
-    /// exhaustive" (a warning under Swift 5, a hard error under stricter
-    /// concurrency settings).
-    private func handleAccountChange() async {
-        let status: CKAccountStatus
-        do {
-            status = try await container.accountStatus()
-        } catch {
-            debugLog("[CloudKit] Account change: status check failed: \(error.localizedDescription)", level: .warning)
-            return
-        }
-        switch status {
-        case .available:
-            await resumeSyncForAvailableAccount()
-        case .noAccount, .restricted, .couldNotDetermine:
-            pauseSyncForUnusableAccount(status)
-        case .temporarilyUnavailable:
-            debugLog("[CloudKit] Account change: iCloud temporarily unavailable — will retry on next sync", level: .warning)
-        @unknown default:
-            break
-        }
-    }
-
-    /// Clear any stale account-related error so the UI stops showing
-    /// "Not signed into iCloud", then refresh. Deliberately does NOT wipe
-    /// local sync bookkeeping: `.CKAccountChanged` also fires on a transient
-    /// drop/reconnect of the SAME account, and `resetLocalSyncState()` would
-    /// force a full re-push of the entire archive every time — exactly the
-    /// launch/foreground hammering this app avoids. The pull re-marks remote
-    /// records as uploaded and queues anything the remote listing is missing
-    /// (`reuploadSessionsMissingFromCloud`), so a normal `performFullSync()`
-    /// reconciles a switched account without the brute-force reset.
-    ///
-    /// The schema-unavailable error is not an account error and stays: it
-    /// pauses sync for the rest of the launch, and `performFullSync` returns
-    /// at once while it is set, so clearing it showed "Up to date" over a
-    /// paused sync.
-    private func resumeSyncForAvailableAccount() async {
-        debugLog("[CloudKit] Account change: iCloud account available — refreshing sync")
-        if case .error = syncState, !schemaUnavailable { syncState = .idle }
-        if lastPermanentErrorMessage == CloudSyncMessages.notSignedIn {
-            lastPermanentErrorMessage = nil
-        }
-        await performFullSync()
-    }
-
-    /// Surface via the same `syncState`/error path the rest of the UI reads,
-    /// and stamp the permanent-error field so Settings shows why sync stopped
-    /// instead of silently no-op'ing.
-    private func pauseSyncForUnusableAccount(_ status: CKAccountStatus) {
-        let message = CloudSyncMessages.notSignedIn
-        debugLog("[CloudKit] Account change: no usable iCloud account (\(status.rawValue)) — pausing sync", level: .warning)
-        syncState = .error(message)
-        lastPermanentErrorMessage = message
-        syncingStartedAt = nil
     }
 
     /// Cold-start: post-first-frame catch-up. Loads
@@ -354,16 +297,57 @@ final class CloudKitSyncManager {
     @ObservationIgnored private let didBootSyncState = OSAllocatedUnfairLock(initialState: false)
 
     /// Wipe local sync state (uploaded set, pending queue, change tokens,
-    /// zone-created flag). Called by the user-initiated "Delete All My Data"
-    /// Settings action. Local bookkeeping only — remote CloudKit records
-    /// are removed by `deleteAllRemoteData()`, which calls this on success
-    /// (the purge flow also calls it directly so local state resets even
-    /// when the remote deletion fails).
+    /// the session and settings zone flags, the listing memory). Called by
+    /// the user-initiated "Delete All My Data" Settings action, and when sync
+    /// stops for another account or deleted iCloud data
+    /// (`CloudAccountGuard.stopSync`). Local bookkeeping only — remote
+    /// CloudKit records are removed by `deleteAllRemoteData()`, which calls
+    /// this on success (the purge flow also calls it directly so local state
+    /// resets even when the remote deletion fails).
     func resetLocalSyncState() {
         state.resetAll()
         zoneCreated = false
+        missingFromLastListing = []
+        AppDependencies.current.storage.cloudKitSettingsSync.forgetZone()
         lastSyncDate = nil
         syncState = .idle
+    }
+
+    /// Checks the signed-in account; built on each access.
+    var accountGuard: CloudAccountGuard {
+        CloudAccountGuard(manager: self)
+    }
+
+    /// Whether any sync bookkeeping is held, which an unrecorded account
+    /// cannot be assumed to own (`CloudAccountIdentity.verdict`): uploaded
+    /// sessions, a created zone or a completed sync. The upload queue is not
+    /// counted: it fills while sync is off (re-upload requests after
+    /// migrations, folds and edits) and says nothing about any account.
+    var hasAccountBookkeeping: Bool {
+        !state.uploadedSessionIds.isEmpty || zoneCreated || lastSyncDate != nil
+    }
+
+    /// Show why sync stopped or paused (another account, deleted iCloud
+    /// data, no usable account): as the sync state Settings reads, and as the
+    /// permanent-error line, so the reason stays on screen. Ends any sync the
+    /// stuck-sync timer was watching.
+    func showSyncStopped(_ message: String) {
+        syncState = .error(message)
+        lastPermanentErrorMessage = message
+        syncingStartedAt = nil
+    }
+
+    /// Clear the not-signed-in line wherever it shows, matched in any
+    /// language the app ships (`CloudSyncMessages.isNotSignedIn`). Any other
+    /// error is not about the account and stays until a sync clears it.
+    func clearNotSignedInError() {
+        if case let .error(message) = syncState, CloudSyncMessages.isNotSignedIn(message) { syncState = .idle }
+        if CloudSyncMessages.isNotSignedIn(lastPermanentErrorMessage) { lastPermanentErrorMessage = nil }
+    }
+
+    /// Reacts to `.CKAccountChanged`; built on each access.
+    var accountChange: CloudAccountChangeHandler {
+        CloudAccountChangeHandler(manager: self)
     }
 
     // MARK: - Upload Session
@@ -388,22 +372,40 @@ final class CloudKitSyncManager {
     /// archive write. The batch push (`pendingPushBatch`) uploads every
     /// archived entry whatever its state, so a session skipped here still
     /// goes up on the next full sync.
+    ///
+    /// The consent (`cloudUploadsAllowed`, which also refuses while "Delete
+    /// All My Data" runs, `PurgeGate`), the schema pause and the iCloud
+    /// account are checked again once the upload's turn in the serializer
+    /// comes: sync can be turned off, a purge start, or the account change,
+    /// while it waited behind another operation.
+    ///
+    /// A recording the archive folded into a same-night session
+    /// (`SessionArchive.archivedId(of:)`) is uploaded as that session, queued
+    /// again first: its iCloud copy predates the merge.
     func uploadSession(_ session: HRVSession) async {
         guard cloudUploadsAllowed else { return }
         // Short-circuit when the CloudKit schema is known not to be in
         // production. Without this, every completed recording triggers a
         // save that's guaranteed to fail with the same error.
         guard !schemaUnavailable else { return }
-        let isWorkoutWithData = session.sessionType == .workout && session.workoutMetadata != nil
-        guard session.state == .complete || isWorkoutWithData else { return }
-        // Read out of Apple Health whole: it stays on this device. The push
-        // marks it local-only when it reaches it.
-        guard !CloudSessionPayload.isHealthKitSourced(session) else { return }
+        guard Self.takesDirectUpload(session) else { return }
         await syncSerializer.run { [self] in
+            guard cloudUploadsAllowed, !schemaUnavailable, await accountGuard.confirmAccount() == .confirmed else { return }
+            let sessionId = archive.archivedId(of: session.id)
+            if sessionId != session.id { state.markRemoved(sessionId) }
             // Skip if already uploaded
-            guard !state.uploadedSessionIds.contains(session.id) else { return }
-            await uploadOne(session)
+            guard !state.uploadedSessionIds.contains(sessionId) else { return }
+            await uploadOne(sessionId)
         }
+    }
+
+    /// Whether the direct upload takes `session` at all (`uploadSession`): a
+    /// complete session, or a workout carrying its metadata in any state, and
+    /// never one read out of Apple Health whole, which stays on this device
+    /// (the push marks it local-only when it reaches it).
+    static func takesDirectUpload(_ session: HRVSession) -> Bool {
+        let isWorkoutWithData = session.sessionType == .workout && session.workoutMetadata != nil
+        return (session.state == .complete || isWorkoutWithData) && !CloudSessionPayload.isHealthKitSourced(session)
     }
 
     /// Routes through the SANITIZED off-main builder
@@ -416,26 +418,30 @@ final class CloudKitSyncManager {
     /// `prepareUploadOffMain` retrieves the just-archived copy by id
     /// (uploadSession is documented as "called after each archive write"),
     /// which is the same or fresher data than the in-memory parameter.
-    private func uploadOne(_ session: HRVSession) async {
+    private func uploadOne(_ sessionId: UUID) async {
         do {
             try await ensureZoneExists()
-            guard let prepared = try await prepareUploadOffMain(sessionId: session.id) else {
-                debugLog("[CloudKit] Upload skipped — session \(session.id.uuidString.prefix(8)) no longer in archive")
+            guard let prepared = try await prepareUploadOffMain(sessionId: sessionId) else {
+                debugLog("[CloudKit] Upload skipped — session \(sessionId.uuidString.prefix(8)) no longer in archive")
                 return
             }
             let record = prepared.record
             defer { cleanupTempAsset(for: record) }
-            try await saveUploadRecord(record, sessionId: session.id)
+            try await saveUploadRecord(record, sessionId: sessionId)
         } catch {
-            await handleUploadError(error, sessionId: session.id)
+            await handleUploadError(error, sessionId: sessionId)
         }
     }
 
     /// Saves one prepared record. A conflict is resolved here, with the fields
     /// this device tried to write; any other error is rethrown to the caller.
+    /// A save that returns once the account is no longer confirmed (sync
+    /// stopped meanwhile and reset the bookkeeping, or the account changed)
+    /// marks nothing.
     private func saveUploadRecord(_ record: CKRecord, sessionId: UUID) async throws {
         do {
             let saved = try await privateDB.save(record)
+            guard CloudAccountIdentity.isConfirmed else { return }
             state.markUploaded(sessionId)
             state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
             trashRestore.clear(sessionId)
@@ -472,24 +478,20 @@ final class CloudKitSyncManager {
     /// foreground activation; an account check and, once the list is done, an
     /// empty pass), without uploading anything new: the session records
     /// (`CloudHealthScrubCoordinator.scrubInPlace`) and the settings record
-    /// (`CloudKitSettingsSync.scrubStoredRecord`). Needs an iCloud account;
-    /// without one nothing is read or written.
+    /// (`CloudKitSettingsSync.scrubStoredRecord`). Needs the iCloud account
+    /// the records were uploaded to (`CloudAccountGuard.confirmAccount`);
+    /// without it nothing is read or written, and a different account found
+    /// here resets the bookkeeping before the user turns sync on for it.
     func scrubHealthReadingsWhileSyncOff() async {
-        guard settings.hasCompletedOnboarding, !schemaUnavailable, await iCloudAccountAvailable() else { return }
+        guard settings.hasCompletedOnboarding, !schemaUnavailable else { return }
+        var confirmed = false
         await syncSerializer.run { [self] in
+            confirmed = await accountGuard.confirmAccount() == .confirmed
+            guard confirmed else { return }
             await healthScrub.scrubInPlace()
         }
+        guard confirmed else { return }
         await AppDependencies.current.storage.cloudKitSettingsSync.scrubStoredRecord(keepingOutHealthFilledFrom: settings)
-    }
-
-    /// Whether this device is signed into an iCloud account CloudKit can use.
-    func iCloudAccountAvailable() async -> Bool {
-        do {
-            return try await container.accountStatus() == .available
-        } catch {
-            debugLog("[CloudKit] Account status check failed: \(error.localizedDescription)", level: .warning)
-            return false
-        }
     }
 
     /// Whether an error means the zone is already gone — used by tests and by
@@ -618,10 +620,17 @@ final class CloudKitSyncManager {
     }
 
     /// Upload a soft-delete flag for a session. Called when Archive.delete() runs.
+    ///
+    /// A tombstone is a write to iCloud, so it waits for the same consent as
+    /// an upload (`cloudUploadsAllowed`: nothing before onboarding's iCloud
+    /// choice) and for the confirmed account. One held back stays in the
+    /// archive's deleted list, and the full sync writes it
+    /// (`reconcileLocalDeletions`).
     func uploadDeletion(_ sessionId: UUID) async {
-        guard settings.iCloudSyncEnabled else { return }
+        guard cloudUploadsAllowed else { return }
 
         await syncSerializer.run { [self] in
+            guard cloudUploadsAllowed, await accountGuard.confirmAccount() == .confirmed else { return }
             await deletion.performUploadDeletion(sessionId: sessionId)
         }
     }
@@ -638,6 +647,11 @@ final class CloudKitSyncManager {
     /// Diagnostic logging on every entry, so a sync that silently stops
     /// shows which of the early-bail conditions is firing. Every call logs
     /// whether it proceeded or why it didn't.
+    ///
+    /// The sync toggle is read again, with `PurgeGate`, once the sync's turn
+    /// in the serializer comes. A sync admitted before "Delete All My Data"
+    /// turned sync off and queued behind its remote delete would otherwise
+    /// recreate the deleted zone and push the archive back into it.
     func performFullSync() async {
         let correlation = LogCorrelation.begin("sync")
         defer { LogCorrelation.end(correlation) }
@@ -649,6 +663,10 @@ final class CloudKitSyncManager {
         defer { fullSyncsAdmitted -= 1 }
         debugLog("[CloudKit] performFullSync entering serializer (uploaded=\(state.uploadedSessionIds.count), pending=\(state.pendingUploadIds.count), archive=\(archive.entries.count))")
         await syncSerializer.run { [self] in
+            guard settings.iCloudSyncEnabled, !PurgeGate.isPurging else {
+                debugLog("[CloudKit] performFullSync skipped — sync turned off, or Delete All My Data started, while it waited")
+                return
+            }
             await performFullSyncBody()
         }
     }
@@ -693,16 +711,27 @@ final class CloudKitSyncManager {
         syncingStartedAt = Date()
         let startedAt = Date()
         debugLog("[CloudKit] Full sync body started")
-        if !schemaUnavailable { await healthScrub.dripReupload() }
         let result = await runSyncPhases()
         switch result {
         case let .success(pushed):
             finishSuccessfulSync(pushed: pushed, startedAt: startedAt)
+        case .failure(CloudAccountGuard.Halt.stopped):
+            debugLog("[CloudKit] Full sync stopped — iCloud sync is off for this account, or the account is no longer the one sync is enabled for")
         case let .failure(error):
             let message = cloudKitErrorMessage(error)
             syncState = .error(message)
             debugLog("[CloudKit] Full sync failed: \(message)")
         }
+        endSyncBody()
+    }
+
+    /// The body's last step. A run that ended with nothing to show (sync
+    /// turned off while it ran, or stopped before a stop notice was set) must
+    /// not stay "Syncing…": `fullSyncSkipReason` would turn every later sync
+    /// away as already running, and with `syncingStartedAt` cleared nothing
+    /// would reset it.
+    private func endSyncBody() {
+        if syncState == .syncing { syncState = .idle }
         syncingStartedAt = nil
     }
 
@@ -718,16 +747,32 @@ final class CloudKitSyncManager {
     /// a slow sync runs to completion and only a genuine wedge is caught. The
     /// push/pull loops call `noteSyncProgress()` as they advance. When the
     /// watchdog fires it cancels this work, and the phases and their loops stop
-    /// at the next record or page, so the stalled sync does not run on
-    /// alongside the next one once its wedged call returns.
+    /// at the next record or page, and a save that returns after the watchdog
+    /// fired marks nothing, so the stalled sync does not run on alongside the
+    /// next one once its wedged call returns.
+    ///
+    /// The signed-in account is confirmed first
+    /// (`CloudAccountGuard.requireConfirmedAccount`): no zone is created and
+    /// nothing is re-queued (`healthScrub.dripReupload`), pushed, deleted or
+    /// pulled for an account this device's bookkeeping does not belong to.
+    /// It is confirmed again before the deletions and before the pull: a sync
+    /// stopped partway (the zone found gone, another account found by an
+    /// upload or the settings push meanwhile), or an account change, ends
+    /// there instead of listing an account that is no longer confirmed.
+    /// The body is entered only while the schema is not paused
+    /// (`fullSyncSkipReason`), so the scrub's re-marking needs no check of it.
     private func runSyncPhases() async -> Result<Int, Error> {
         await withProgressWatchdog(stuckAfter: syncStuckThresholdSec) {
+            try await self.accountGuard.requireConfirmedAccount()
+            await self.healthScrub.dripReupload()
             try await self.ensureZoneExists()
             let beforeUploaded = await MainActor.run { self.state.uploadedSessionIds.count }
             await self.pushPendingSessions()
             try Task.checkCancellation()
+            try await self.accountGuard.requireConfirmedAccount()
             await self.deletion.reconcileLocalDeletions()
             try Task.checkCancellation()
+            try await self.accountGuard.requireConfirmedAccount()
             await self.pullRemoteChanges()
             let afterUploaded = await MainActor.run { self.state.uploadedSessionIds.count }
             return afterUploaded - beforeUploaded
@@ -748,8 +793,15 @@ final class CloudKitSyncManager {
     /// and the `performFullSyncIfNeeded` interval gate would then suppress
     /// retries as if the sync had worked. A push that could not
     /// prepare sessions for a reason the user can act on
-    /// (`lastPushErrorMessage`) ends the same way.
+    /// (`lastPushErrorMessage`) ends the same way. A sync that stopped itself
+    /// partway (deleted iCloud data, another account) turned iCloud Sync off
+    /// and left its own message; that is kept. One the user turned off while
+    /// it ran stamps nothing either; `performFullSyncBody` then leaves
+    /// `.syncing`.
     private func finishSuccessfulSync(pushed: Int, startedAt: Date) {
+        // Turned off during this run, by `CloudAccountGuard.stopSync` (its
+        // message stays) or by the user: nothing is stamped.
+        guard settings.iCloudSyncEnabled else { return }
         if !schemaUnavailable {
             if let syncError = lastPullErrorMessage ?? lastPushErrorMessage {
                 syncState = .error(syncError)

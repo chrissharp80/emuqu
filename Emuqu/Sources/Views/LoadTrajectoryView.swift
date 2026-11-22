@@ -733,7 +733,7 @@ extension LoadTrajectoryView {
         case .comeback:
             String(localized: "For the next 21 days your recovery score weights HRV more heavily and ignores noisy vitals.", bundle: LanguageManager.appBundle)
         case .overreach:
-            String(localized: "Rapid-increase and high-load warnings will be hidden until you turn this off.", bundle: LanguageManager.appBundle)
+            String(localized: "Rapid-increase and high-load warnings are hidden for the next 7 days. You can change the end date, or turn it off sooner, in Settings.", bundle: LanguageManager.appBundle)
         }
     }
 

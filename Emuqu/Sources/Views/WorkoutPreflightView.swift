@@ -35,6 +35,8 @@ import SwiftUI
 struct WorkoutPreflightView: View {
     @Environment(\.dependencies) var dependencies
     @Environment(WorkoutPlanModel.self) private var plan
+    /// Resolves the sport colour for the Start label's contrast check.
+    @Environment(\.self) private var environment
     var collector: RRCollector
     /// The live workout recorder. The Start button reads its `phase`, so the
     /// body re-renders when recording transitions.
@@ -272,9 +274,16 @@ struct WorkoutPreflightView: View {
         // Sport-color background: every sport has one (`Sport.themeColor`).
         // Disabled state stays neutral.
         .background(canTap ? plan.selectedSport.themeColor : Color.gray.opacity(0.4))
-        .foregroundStyle(.white)
+        .foregroundStyle(canTap ? startLabelColor : .white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+    }
+
+    /// White where it clears WCAG 2.2 AA 4.5:1 on the sport colour, black on
+    /// a fill too light for it (walk's sage, treadmill's primaryLight): the
+    /// rule `ZenButtonStyle` applies.
+    private var startLabelColor: Color {
+        ZenButtonStyle.whiteClearsContrast(on: plan.selectedSport.themeColor.resolve(in: environment)) ? .white : .black
     }
 
     /// "Start <sport>", except treadmill and row, which have their own

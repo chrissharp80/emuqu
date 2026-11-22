@@ -199,8 +199,8 @@
   },
   {
    "key": "var TrendsV2View.Metric.displayUnit",
-   "hash": "136821202be1c209",
-   "does": "Unit suffix: '/ 100', 'ms', 'bpm', '' (balance), 'ms²', '' (stress).",
+   "hash": "b6556202a973886f",
+   "does": "Unit suffix from the catalog in the app's language: '/ 100', 'ms', 'bpm', '' (balance), 'ms²', '' (stress).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -237,7 +237,9 @@
      "effect": "''"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
   },
   {
    "key": "var TrendsV2View.sessions",
@@ -361,7 +363,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.deleteSession(_:)": "c3475259938b8652"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.deleteSession(_:)": "9089c7335db27510"
    }
   },
   {
@@ -432,8 +434,8 @@
   },
   {
    "key": "func TrendsV2View.deleteSession(_:)",
-   "hash": "2516ac126accd424",
-   "does": "Soft-deletes a session through SessionTrash.move (archive.delete to Trash, notifyArchiveChanged, CloudKit uploadDeletion in a Task), then removes it from allSessions and rebuilds derived; returns true. On throw logs and returns false.",
+   "hash": "11200a6497c55c4b",
+   "does": "Async: soft-deletes a session through SessionTrash.move (archive.delete to Trash off the main actor, then notifyArchiveChanged and CloudKit uploadDeletion in a Task), then removes it from allSessions and rebuilds derived; returns true. On throw logs and returns false.",
    "entry": "HistoryCalendarView onDelete callback (user deletes from day sheet)",
    "calls": [
     "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)",
@@ -466,7 +468,7 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "71598a6e60000bb7",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "b2656c4803bdf3c8",
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "de1c5ca48de74176",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "83e84e37195e7c19"
    }
   },

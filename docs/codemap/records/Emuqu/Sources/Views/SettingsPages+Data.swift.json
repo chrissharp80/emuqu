@@ -210,16 +210,16 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "9956563e3f17fa81",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "eff72e3d17da1100",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "2d613940641c274b",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.uploadedCount": "5109f0657f5f14ee",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)": "18ffeea358d196fc"
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)": "0ac0477052f8b7f7"
    }
   },
   {
    "key": "func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)",
-   "hash": "1ef4f84bd2a87856",
-   "does": "Alert text for a force sync: \"iCloud unavailable\" when the schema is unavailable this launch; the forceSyncSummary error text when syncState is .error; \"Syncing…\" when lastSyncDate did not change (the call was skipped because another full sync is running, so nothing synced); otherwise forceSyncSummary.",
+   "hash": "f993fd0ff4a23433",
+   "does": "Alert text for a force sync: \"iCloud unavailable\" when the schema is unavailable this launch; the forceSyncSummary error text when syncState is .error; when lastSyncDate did not change (the call was skipped because another full sync is running, so nothing synced) that nothing was synced this time and another sync may still be running; otherwise forceSyncSummary.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -246,7 +246,7 @@
     {
      "at": "+7",
      "cond": "no completed sync",
-     "effect": "\"Syncing…\""
+     "effect": "nothing synced; another sync may still be running"
     }
    ],
    "deps": {
@@ -346,33 +346,43 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.iCloudSyncDetail": "8ddd6772873a5a39",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.iCloudSyncDetail": "6ae0b7747fbbb87a",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.settingsBinding": "e6ab23158d898e1f"
    }
   },
   {
    "key": "var DataSettingsPage.iCloudSyncDetail",
-   "hash": "14eebd12e8c44232",
-   "does": "Shows sync status and last-sync rows only when iCloud sync is on.",
+   "hash": "c18df161506995f5",
+   "does": "With iCloud sync on, shows the sync status and last-sync rows; with it off because the app stopped it (another iCloud account, or the iCloud data deleted: CloudAccountIdentity.stopReason), shows that reason's message in the alert colour.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.syncStatusRow",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.syncLastSyncRow"
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.syncLastSyncRow",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.stopReason",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message"
    ],
    "reads": [
-    "mem:SettingsManager.settings.iCloudSyncEnabled"
+    "mem:SettingsManager.settings.iCloudSyncEnabled",
+    "ud:cloudkit.syncStoppedReason"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+2",
      "cond": "settings.iCloudSyncEnabled",
-     "effect": "shows syncStatusRow + syncLastSyncRow; else nothing"
+     "effect": "shows syncStatusRow + syncLastSyncRow"
+    },
+    {
+     "at": "+5",
+     "cond": "sync off with a stop reason stored",
+     "effect": "shows its message; else nothing"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message": "fc75f12bef78c376",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.stopReason": "51e9a5028ec44682",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.syncLastSyncRow": "1083a2f496d41cef",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.syncStatusRow": "7b7a8575c4fe962a"
    }
@@ -915,8 +925,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.backupSettingsNow()": "bbb6ce48cda7d09f",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.backupSettingsNow()": "6fbcecfa41a6aa67",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.backUpSettingsLabel": "1d28790ba88e07fd"
    }
   },
@@ -1015,13 +1025,13 @@
   },
   {
    "key": "func DataSettingsPage.backupSettingsNow()",
-   "hash": "dc7efd3c1d22c877",
-   "does": "Manual settings backup: re-entry guarded, awaits CloudKitSettingsSync.pushImmediately (returns false and sets status .error on skip/failure), then finishSettingsBackup on main.",
+   "hash": "0f2e189b73d55d09",
+   "does": "Manual settings backup: re-entry guarded, awaits CloudKitSettingsSync.pushImmediately(replacingNewerCloudCopy: true) — the user asked for this device's settings to be the backup — (returns false and sets status .error on skip/failure), then finishSettingsBackup on main.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately(replacingNewerCloudCopy:)",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishSettingsBackup(saved:)",
     "ext:CloudKit CKDatabase.save (via pushImmediately)"
    ],
@@ -1040,9 +1050,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately()": "271ed9eedddd24d7",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately(replacingNewerCloudCopy:)": "14f6c1da756190f7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync": "ea626da789f00ac9",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishSettingsBackup(saved:)": "1f11d3f5218bc732"
    }
@@ -1167,7 +1177,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.restoreFromCloud()": "f374d7e0b5c1b7d9"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.restoreFromCloud()": "86cdfb349b2cd4fe"
    }
   },
   {

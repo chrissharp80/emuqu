@@ -1,10 +1,11 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift",
- "hash": "7c363b2b1813fdc5",
+ "hash": "e59da6c33c83bce8",
  "role": "Persistent user facts ('memory') injected into every assistant system prompt; ≤25 deduped facts in Assistant/user_facts.json, sealed through AssistantStoreFile, with merge-on-unreadable, set-aside of undecodable files, verified remove and clear (which also erase set-aside copies); an in-memory backup of the assistant's last wipe for restoreCleared(); plus the auto-extract toggle.",
  "types": [
   "UserFactsStore: final class (@Observable @MainActor) — fact memory",
-  "UserFactsStore.Fact: struct Codable Identifiable Hashable"
+  "UserFactsStore.Fact: struct Codable Identifiable Hashable",
+  "UserFactsStore.Fact.Origin: enum String Codable — user / inferred"
  ],
  "state": [
   "mem:UserFactsStore.shared (nonisolated)",
@@ -23,9 +24,20 @@
  "toplevel": "",
  "units": [
   {
-   "key": "init UserFactsStore.Fact(id:text:createdAt:)",
-   "hash": "d4abd08a489415aa",
-   "does": "Fact memberwise init with generated id and now createdAt.",
+   "key": "init UserFactsStore.Fact(id:text:createdAt:origin:)",
+   "hash": "7f7c6426283b866e",
+   "does": "Memberwise init with defaults: new UUID, now, origin nil (nil = saved before origins were recorded).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var UserFactsStore.Fact.isFromUser",
+   "hash": "4a7300c4ec03c766",
+   "does": "True only when origin is .user; an inferred or legacy (nil) fact is not presented as set by the user.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -198,13 +210,13 @@
    }
   },
   {
-   "key": "func UserFactsStore.add(_:)",
-   "hash": "daa4aaa1ca2a9c03",
-   "does": "Adds a trimmed fact unless empty or a normalized duplicate exists, prunes oldest beyond 25, persists.",
+   "key": "func UserFactsStore.add(_:origin:)",
+   "hash": "86c7de783c8d8878",
+   "does": "Adds a trimmed fact unless empty or a normalized duplicate exists, prunes oldest beyond 25, persists. The new fact records `origin` (who it came from); the parameter has no default.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore.Fact(id:text:createdAt:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore.Fact(id:text:createdAt:origin:)",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()"
    ],
    "reads": [],
@@ -232,7 +244,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.normalizedKey(_:)": "0e086fbe00eef118",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "8226dafb9aa913b0",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore.Fact(id:text:createdAt:)": "ffb8c5ec4320b53b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore.Fact(id:text:createdAt:origin:)": "9230db3e8713e3bb",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "ab67bb2276e13c58"
    }
   },
@@ -467,10 +479,12 @@
   },
   {
    "key": "func UserFactsStore.systemPromptBlock()",
-   "hash": "aa8970fc456a2e7b",
-   "does": "Renders facts as 'Things to remember about this user…' header plus bullet lines; '' when empty.",
+   "hash": "2b307317dd13e66d",
+   "does": "Renders facts for the system prompt; '' when there are none. The user's own facts (isFromUser) go under 'Things to remember about this user (they set these in earlier conversations or via the Remember action):'; inferred and legacy facts under 'Noted from earlier conversations, not confirmed by the user (background only; ask before relying on one):'; each as '• text'. Ends with a line saying these are facts, never instructions.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.Fact.isFromUser"
+   ],
    "reads": [
     "mem:UserFactsStore.facts"
    ],
@@ -482,12 +496,18 @@
      "effect": "return ''"
     },
     {
-     "at": "+3",
-     "cond": "for each fact",
-     "effect": "append '• text'"
+     "at": "+5",
+     "cond": "user's own facts present",
+     "effect": "their header and bullets"
+    },
+    {
+     "at": "+9",
+     "cond": "inferred or legacy facts present",
+     "effect": "the not-confirmed header and bullets"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.Fact.isFromUser": "68a27995b0d5a6d6",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "ab67bb2276e13c58"
    }
   },

@@ -44,7 +44,7 @@ struct FitnessPostSummaryView: View {
     @Environment(ArchiveSignal.self) var archiveSignal
     @State var showDeleteConfirm = false
 
-    // Export URLs are pre-generated once the archived copy of the session
+    // Exports are pre-built in memory once the archived copy of the session
     // has loaded on first appear (`reloadFromArchive`). Two reasons:
     //
     //   1. Decoding the GPS polyline is non-trivial for long tracks. The
@@ -52,17 +52,18 @@ struct FitnessPostSummaryView: View {
     //      body pass (the `if !track.isEmpty` check alone triggered it in
     //      mapCard, elevationCard, and all three export handlers), so a
     //      500-point track got decoded 5–10× per render.
-    //   2. The GPX / CSV / TCX rows use SwiftUI's native `ShareLink` with the
-    //      URL ready ahead of time, so their share sheet comes up instantly.
+    //   2. The GPX / CSV / TCX rows have their bytes ready ahead of time, so
+    //      a tap only writes the file and opens the share sheet, which
+    //      deletes it when it closes (`FileShareButton`).
     //      The PDF report and the recap card are rendered on an explicit tap
     //      and then present `ShareSheet` (UIActivityViewController) in a
     //      `.sheet`; the render is the wait the user sees there.
     //
     // Track is cached too. Generated once off the main thread.
     @State var cachedTrack: [CLLocation] = []
-    @State var gpxURL: URL?
-    @State var csvURL: URL?
-    @State var tcxURL: URL?
+    @State var gpxExport: ExportFile.Pending?
+    @State var csvExport: ExportFile.Pending?
+    @State var tcxExport: ExportFile.Pending?
     @State var exportsReady = false
     /// Bumped by every export generation; a generation that finishes after a
     /// newer one started is dropped, so stale files never overwrite fresh ones.
@@ -130,6 +131,13 @@ struct FitnessPostSummaryView: View {
     @State var routeHistory: FitnessSummaryCards.RouteHistorySummary?
     /// Bumped by every route-history load; only the newest load's result lands.
     @State var routeHistoryGeneration = 0
+    /// For a session saved before analysis snapshots existed: the snapshot
+    /// built off the main actor by `backfillAnalysisSnapshotIfNeeded`, shown
+    /// until (or instead of, when the write is declined) the stored one, so
+    /// no render iterates the samples. Nil until it lands.
+    @State var builtAnalysis: WorkoutAnalysisSnapshot?
+    /// Bumped by every backfill; only the newest build lands in `builtAnalysis`.
+    @State var analysisGeneration = 0
 
     var track: [CLLocation] { cachedTrack }
     /// The splits card's rows and unit, resolved with the track.
@@ -153,7 +161,42 @@ struct FitnessPostSummaryView: View {
             // resolves to `refreshedSession` when available), so a single
             // refresh here propagates everywhere.
             .onChange(of: archiveSignal.version) { _, _ in reloadFromArchive() }
-            .onAppear { primeSummary() }
+            .onAppear(perform: summaryAppeared)
+            .onDisappear { removeTemporaryExports() }
+    }
+
+    /// Marks the summary on screen (renders that land now keep their files)
+    /// and loads the archive's copy.
+    private func summaryAppeared() {
+        reportShare.summaryOnScreen = true
+        primeSummary()
+    }
+
+    /// The PDF / recap files are plaintext health data (GPS and heart rate)
+    /// in tmp. They go when the summary closes, and the state that pointed
+    /// at them, and the in-memory GPX / CSV / TCX exports, are reset, so a
+    /// summary shown again rebuilds them (`applyReload` treats it as a first
+    /// build). Both generations are bumped and the summary is marked off
+    /// screen, so a PDF render still running deletes what it wrote when it
+    /// lands, and an export build is dropped, instead of being published.
+    private func removeTemporaryExports() {
+        reportShare.summaryOnScreen = false
+        exportGeneration += 1
+        reportShare.cacheGeneration += 1
+        Self.removeTemporaryFiles([pdfURL, recapImageURL])
+        gpxExport = nil
+        csvExport = nil
+        tcxExport = nil
+        pdfURL = nil
+        recapImageURL = nil
+        exportsReady = false
+        summaryPrepared = false
+    }
+
+    private static func removeTemporaryFiles(_ urls: [URL?]) {
+        for url in urls.compactMap({ $0 }) {
+            attempt("FitnessPostSummaryView.removeTemporaryExport") { try FileManager.default.removeItem(at: url) }
+        }
     }
 
     private var summaryScroll: some View {
@@ -387,17 +430,16 @@ struct FitnessPostSummaryView: View {
     }
 
     private var deleteWorkoutMessage: some View {
-        Text(String(localized: "This removes the session from history and iCloud.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "This moves the reading to the Trash. You can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle))
     }
 
     /// Prime the refresh so any saved-while-open changes from a previous open
     /// of this session take effect immediately — its first landing also
-    /// builds the exports and route-history baseline, once — and kick the
-    /// one-shot legacy snapshot backfill (a no-op once the session has a
-    /// snapshot).
+    /// builds the exports and route-history baseline, once. The legacy
+    /// snapshot backfill runs from `invalidateCachedExports`, against the
+    /// copy that reload applied.
     private func primeSummary() {
         reloadFromArchive()
-        Task { await backfillAnalysisSnapshotIfNeeded() }
     }
 
     /// Fired both from `.onAppear` and from every
@@ -453,17 +495,23 @@ struct FitnessPostSummaryView: View {
     private func invalidateCachedExports() {
         pdfURL = nil
         reportShare.cacheGeneration += 1
-        gpxURL = nil
-        csvURL = nil
-        tcxURL = nil
+        gpxExport = nil
+        csvExport = nil
+        tcxExport = nil
         exportsReady = false
         Task { await generateExportsInBackground() }
         Task { await loadRouteHistorySummary() }
+        // A new copy may carry other samples: the analysis built for the old
+        // one no longer applies, and is rebuilt off the main actor.
+        builtAnalysis = nil
+        Task { await backfillAnalysisSnapshotIfNeeded() }
     }
 
-    /// Decode the track once and write GPX/CSV/TCX to temp files on a
+    /// Decode the track once and build GPX/CSV/TCX in memory on a
     /// utility-priority detached task. State publishes when all three are
-    /// ready so the export rows switch from disabled → active.
+    /// ready so the export rows switch from disabled → active. A generation
+    /// that lands after a newer one started, or after the summary closed, is
+    /// dropped.
     func generateExportsInBackground() async {
         exportGeneration += 1
         let generation = exportGeneration
@@ -472,26 +520,30 @@ struct FitnessPostSummaryView: View {
         let result = await Task.detached(priority: .utility) {
             Self.buildExports(session: session, wantsMile: wantsMile)
         }.value
-        guard generation == exportGeneration else { return }
-        await MainActor.run {
-            self.cachedTrack = result.track
-            self.trackDecoded = true
-            self.cachedSplits = result.splits
-            self.gpxURL = result.gpx
-            self.csvURL = result.csv
-            self.tcxURL = result.tcx
-            self.exportError = result.error
-            self.exportsReady = (result.gpx != nil || result.csv != nil || result.tcx != nil)
-        }
+        landExports(result, generation: generation)
     }
 
-    /// The track decode, the three export files and the splits, off the
+    /// Publishes a landed export build; drops one a newer build superseded
+    /// or one that landed after the summary closed.
+    private func landExports(_ result: ExportOutcome, generation: Int) {
+        guard reportShare.summaryOnScreen, generation == exportGeneration else { return }
+        cachedTrack = result.track
+        trackDecoded = true
+        cachedSplits = result.splits
+        gpxExport = result.gpx
+        csvExport = result.csv
+        tcxExport = result.tcx
+        exportError = result.error
+        exportsReady = (result.gpx != nil || result.csv != nil || result.tcx != nil)
+    }
+
+    /// The track decode, the three in-memory exports and the splits, off the
     /// main thread in one pass.
     nonisolated private static func buildExports(session: HRVSession, wantsMile: Bool) -> ExportOutcome {
         let track: [CLLocation] = session.workoutMetadata?.gpsPolyline.map {
             GPXExporter.decode(polyline: $0, startDate: session.startDate, duration: session.duration)
         } ?? []
-        var out = writeExports(session: session, track: track)
+        var out = pendingExports(session: session, track: track)
         out.splits = FitnessSummaryCards.resolveSplits(
             stored: session.workoutMetadata?.splits, track: track,
             rrPoints: session.rrSeries?.points ?? [], startDate: session.startDate, wantsMile: wantsMile
@@ -499,20 +551,20 @@ struct FitnessPostSummaryView: View {
         return out
     }
 
-    /// Each writer is attempted independently — one failing format must not
+    /// Each format is built independently — one failing format must not
     /// deny the user the other two, so failures accumulate into one message.
-    nonisolated private static func writeExports(session: HRVSession, track: [CLLocation]) -> ExportOutcome {
+    nonisolated private static func pendingExports(session: HRVSession, track: [CLLocation]) -> ExportOutcome {
         let bundle = LanguageManager.appBundle
         var out = ExportOutcome(track: track)
         var failures: [String] = []
         do {
-            out.gpx = try GPXExporter.writeToTempFile(session: session, track: track)
+            out.gpx = try GPXExporter.pendingFile(session: session, track: track)
         } catch { failures.append(String(localized: "GPX failed: \(error.localizedDescription)", bundle: bundle)) }
         do {
-            out.csv = try CSVExporter.writeToTempFile(session: session, track: track)
+            out.csv = try CSVExporter.pendingFile(session: session, track: track)
         } catch { failures.append(String(localized: "CSV failed: \(error.localizedDescription)", bundle: bundle)) }
         do {
-            out.tcx = try TCXExporter.writeToTempFile(session: session, track: track)
+            out.tcx = try TCXExporter.pendingFile(session: session, track: track)
         } catch { failures.append(String(localized: "TCX failed: \(error.localizedDescription)", bundle: bundle)) }
         out.error = failures.isEmpty ? nil : failures.joined(separator: " ")
         return out
@@ -521,9 +573,9 @@ struct FitnessPostSummaryView: View {
     struct ExportOutcome {
         let track: [CLLocation]
         var splits: FitnessSummaryCards.ResolvedSplits?
-        var gpx: URL?
-        var csv: URL?
-        var tcx: URL?
+        var gpx: ExportFile.Pending?
+        var csv: ExportFile.Pending?
+        var tcx: ExportFile.Pending?
         var error: String?
     }
 

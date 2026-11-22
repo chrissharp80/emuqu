@@ -107,13 +107,32 @@
    }
   },
   {
+   "key": "func HealthKitManager.fetchWorkoutsExtendedIfAnswered(days:relativeTo:)",
+   "hash": "0bdf1d5558268daa",
+   "does": "Forwards fetchWorkoutsExtendedIfAnswered(days:relativeTo:) to TrainingHealthQueries: the workouts, or nil when HealthKit did not answer. Called by TrainingMetricsCache.recompute.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutsExtendedIfAnswered(days:relativeTo:)"
+   ],
+   "reads": [
+    "hk:workoutType"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "ec4cf9ffd067edc5",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutsExtendedIfAnswered(days:relativeTo:)": "8889a2d090180ce2"
+   }
+  },
+  {
    "key": "func HealthKitManager.trainingHeartRateAnchors()",
    "hash": "e7117fa38298938f",
    "does": "Forwards trainingHeartRateAnchors() to TrainingHealthQueries (Apple resting HR else setting; user max HR); called by TrainingMetricsCache.swift:374.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()"
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors(relativeTo:)"
    ],
    "reads": [
     "hk:restingHeartRate"
@@ -122,7 +141,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "ec4cf9ffd067edc5",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors()": "6549aed993898ac2"
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.trainingHeartRateAnchors(relativeTo:)": "0a13bde2368105dd"
    }
   },
   {
@@ -141,7 +160,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "ec4cf9ffd067edc5",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.calculateTrainingMetrics(restingHR:userMaxHR:forMorningReading:relativeTo:additionalWorkouts:preloadedHealthKitWorkouts:)": "dabd7a86c9e04bdb"
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.calculateTrainingMetrics(restingHR:userMaxHR:forMorningReading:relativeTo:additionalWorkouts:preloadedHealthKitWorkouts:)": "4aaf19c5d7ca9573"
    }
   },
   {

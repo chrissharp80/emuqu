@@ -1,0 +1,12 @@
+{
+ "file": ".ci/watch_tech_debt_budget.txt",
+ "hash": "7902699be42c8a8e",
+ "role": "Committed CI threshold file (ceiling) read by scripts/enforce_tech_debt_budgets.sh: the Watch app's combined count of `.shared` uses, `try?`, `try?` on writes, files >= 1500 lines and ObservableObject.",
+ "types": [],
+ "state": [
+  "file:.ci/watch_tech_debt_budget.txt = 7"
+ ],
+ "toplevel": "Single line `7` (2 `.shared`, 2 `try?`, 3 ObservableObject at the time it was added). Read by scripts/enforce_tech_debt_budgets.sh, which fails above it and on slack below it. Every .ci/*.txt with an integer value is also compared against a baseline commit by scripts/check_budget_monotonicity.sh (ceilings may only fall unless a `budget-raise-ok: .ci/watch_tech_debt_budget.txt` commit trailer is present in the compared range). Changes are owned by @chrissharp80 per CODEOWNERS.",
+ "units": [],
+ "deps": {}
+}

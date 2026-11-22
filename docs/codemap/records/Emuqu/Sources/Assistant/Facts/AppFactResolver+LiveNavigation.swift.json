@@ -45,7 +45,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.journeyEntry": "3b99da07f47ca52c",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationCurrentDetailedEntry": "8bfb7fc87d59c0fa",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationRoadsAheadEntry": "a07d6c349be6a278",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationSetAddressEntry": "fdcca8004493d557",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.locationSetAddressEntry": "74c3578d7670ba05",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveHrrCaptureStatusEntry": "481a1ca9a67bf4c0",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveIntervalActiveEntry": "cdfe304ddf804714",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::var WorkoutLiveCoachingNamespace.workoutLiveIntervalCurrentStepEntry": "1ae111b3552b864d",
@@ -413,8 +413,8 @@
   },
   {
    "key": "var WorkoutLiveCoachingNamespace.locationSetAddressEntry",
-   "hash": "420ac5a0ddc02424",
-   "does": "Builds async action entry 'location.set_address' (param address) whose closure awaits resolveLocationSetAddress; the description lists invalidParameter for no match/unreachable and notRecorded for a timeout (retry).",
+   "hash": "6d5166e7762135f7",
+   "does": "Builds async action entry 'location.set_address' (param address) whose closure awaits resolveLocationSetAddress; the description lists invalidParameter for no match/unreachable, notRecorded for a timeout (retry), and that an address not in the user's own latest message first returns confirmation_required.",
    "entry": "fact closure runs when the LLM calls tool 'location.set_address' (FactResolverRegistry.resolveTool/resolveActionTool dispatch, Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift:291/348); the computed property itself is read when WorkoutLiveCoachingNamespace.entries builds the catalog",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)",
@@ -424,27 +424,31 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveLocationSetAddress(_:)": "23e10d2d2d88cc7c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveLocationSetAddress(_:)": "9e61316bac41ca17",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "946dd1182951eac7",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
    }
   },
   {
    "key": "func WorkoutLiveCoachingNamespace.resolveLocationSetAddress(_:)",
-   "hash": "7bbede06d61eb3d7",
-   "does": "Trims the 'address' arg and forward-geocodes it (12 s cap, room for a queued forward geocode); a match overrides RoadGeocodingService's current context (and AmbientLocationService's address mirror) and returns the resolved address record; no match or an unreachable geocoder returns invalidParameter; no answer in time returns notRecorded telling the model to retry rather than ask the user to rephrase. Not gated on an active workout.",
+   "hash": "7d70b330819d2b1e",
+   "does": "Trims the 'address' arg; unless it is in the user's own latest message or the user confirmed it (addressUnconfirmed), returns the confirmation answer without geocoding. Then forward-geocodes it (12 s cap, room for a queued forward geocode); a match overrides RoadGeocodingService's current context (and AmbientLocationService's address mirror) and returns the resolved address record; no match or an unreachable geocoder returns invalidParameter; no answer in time returns notRecorded telling the model to retry rather than ask the user to rephrase. Not gated on an active workout.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.geocodedRoadContext(_:)",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.overrideContext(_:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadContextRecord(_:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadContextRecord(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.addressUnconfirmed(_:)"
    ],
    "reads": [
-    "net:Apple CLGeocoder (forward geocode)"
+    "net:Apple CLGeocoder (forward geocode)",
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantActionConfirmations.pending"
    ],
    "writes": [
     "mem:RoadGeocodingService.current",
-    "mem:AmbientLocationService._latestRoadContext"
+    "mem:AmbientLocationService._latestRoadContext",
+    "mem:AssistantActionConfirmations.pending"
    ],
    "branches": [
     {
@@ -453,26 +457,54 @@
      "effect": "returns .missing invalidParameter 'address is required'"
     },
     {
-     "at": "+7",
+     "at": "+6",
+     "cond": "address not stated by the user and not confirmed",
+     "effect": "returns the confirmation_required (or no-user-message) answer; nothing geocoded or changed"
+    },
+    {
+     "at": "+8",
      "cond": "geocode matched",
      "effect": "apply override, return record"
     },
     {
-     "at": "+12",
+     "at": "+13",
      "cond": "geocode returned no match / unreachable",
      "effect": "missing invalidParameter"
     },
     {
-     "at": "+14",
-     "cond": "7 s race timed out",
+     "at": "+15",
+     "cond": "12 s race timed out",
      "effect": "missing notRecorded 'didn't answer in time'"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.addressUnconfirmed(_:)": "1e5d144d2e205b14",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.geocodedRoadContext(_:)": "294a21437de23f48",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.roadContextRecord(_:)": "7a70be4781e35009",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.overrideContext(_:)": "cea2a61f9c932011",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
+   }
+  },
+  {
+   "key": "func WorkoutLiveCoachingNamespace.addressUnconfirmed(_:)",
+   "hash": "dedd76f1f86004f6",
+   "does": "Main actor: DestructiveActionContext.live.gateUnlessUserStated([query], action location.set_address, target the query, question 'Set your location to \"<query>\"? Reply yes to confirm.'): nil when the address is the user's own words or they confirmed it, else the answer telling the model to ask first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "writes": [
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "fa5e4ee2a83fe2df",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live": "fba34d98abddbf6a"
    }
   },
   {
@@ -1034,28 +1066,26 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveDirectionsNextStep()": "8da831b84a2e1bd1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveDirectionsNextStep()": "cd3334f810acd19a",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
    "key": "func WorkoutLiveCoachingNamespace.resolveDirectionsNextStep()",
-   "hash": "4922d824dc1cf261",
-   "does": "Reads the ActiveRouteSession snapshot and the cached fix ≤60 s old, advances the session's step index for that position (currentStep mutates step index/departure flag; its remaining distance counts only the unwalked part of the current step), and returns the next-step record. Not workout-gated: the route exists only because the user asked for directions.",
+   "hash": "eb32c50a148b13c9",
+   "does": "Reads the ActiveRouteSession snapshot and the cached fix ≤60 s old, computes the step for that position without moving the route (peekStep: the step index and departure flag the voice coach advances are left alone; its remaining distance counts only the unwalked part of the current step), and returns the next-step record. Not workout-gated: the route exists only because the user asked for directions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.peekStep(for:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.nextStepRecord(session:step:)"
    ],
    "reads": [
     "mem:ActiveRouteSession (_steps/_destination*/_currentStepIndex)",
     "mem:AmbientLocationService._latestLocation"
    ],
-   "writes": [
-    "mem:ActiveRouteSession._currentStepIndex/_hasLeftEnd"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -1069,13 +1099,13 @@
     },
     {
      "at": "+7",
-     "cond": "currentStep returned nil",
-     "effect": "returns .missing notRecorded 'step lookup returned nothing'; otherwise record. currentStep returns nil only when _steps is empty, which the snapshot guard at 612 already excluded, so this fires only if directions.clear / a new engage runs between the two calls (ActiveRouteSession.swift:148,169)"
+     "cond": "peekStep returned nil",
+     "effect": "returns .missing notRecorded 'step lookup returned nothing'; otherwise record. peekStep returns nil only when the route has no steps, which the snapshot guard already excluded, so this fires only if directions.clear / a new engage runs between the two calls"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.nextStepRecord(session:step:)": "55a4f0d23ae3eee9",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "2681f2bbcbb3c4af",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.peekStep(for:)": "a8daeda3eb90fea8",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "236e3a0832306138",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"

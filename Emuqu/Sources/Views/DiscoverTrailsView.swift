@@ -54,6 +54,9 @@ struct DiscoverTrailsView: View {
     @State private var results: [TrailDiscoveryService.DiscoveredTrail] = []
     @State private var isSearching = false
     @State private var errorText: String?
+    /// The running trail search; cancelled by a new search and when the sheet
+    /// closes, so no request outlives the screen.
+    @State private var searchTask: Task<Void, Never>?
     @State var radiusKm: Double = 10
     @State var minLengthKm: Double = 0
     /// Max length stepper (km). At the stepper's top (`lengthStepperMaxKm`,
@@ -94,6 +97,8 @@ struct DiscoverTrailsView: View {
         }
         .onDisappear {
             location.stop()
+            searchTask?.cancel()
+            searchTask = nil
         }
     }
 
@@ -533,16 +538,22 @@ struct DiscoverTrailsView: View {
         errorText = nil
         results = []
         isSearching = true
-        Task.detached { await searchAndPublish(near: loc, filters: f) }
+        searchTask?.cancel()
+        searchTask = Task { await searchAndPublish(near: loc, filters: f) }
     }
 
+    /// A child of `searchTask`, so cancelling it cancels the request; a
+    /// cancelled search publishes nothing.
     private func searchAndPublish(near loc: CLLocation, filters: TrailDiscoveryService.SearchFilters) async {
+        let service = dependencies.location.trailDiscoveryService
         do {
-            let trails = try await dependencies.location.trailDiscoveryService.search(near: loc, filters: filters)
-            await MainActor.run { finishSearch(trails: trails, error: nil) }
+            let trails = try await service.search(near: loc, filters: filters)
+            guard !Task.isCancelled else { return }
+            finishSearch(trails: trails, error: nil)
         } catch {
+            guard !Task.isCancelled else { return }
             let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            await MainActor.run { finishSearch(trails: nil, error: message) }
+            finishSearch(trails: nil, error: message)
         }
     }
 

@@ -33,6 +33,10 @@ enum CloudSyncError: LocalizedError {
 enum CloudUploadExclusion: Error {
     /// Read out of Apple Health whole (`CloudSessionPayload.isHealthKitSourced`).
     case healthKitSourced
+    /// A sample night (`DemoSessionSeeder.isSampleData`). Its removal and the
+    /// baseline it fed are this device's only, so in iCloud it would score
+    /// other devices' nights against synthetic data nothing removes there.
+    case sampleData
 }
 
 extension CloudKitSyncManager {
@@ -64,8 +68,8 @@ extension CloudKitSyncManager {
     // DESIGN NOTE on serial vs batched uploads.
     // CKModifyRecordsOperation would parallelise these saves into a single
     // network roundtrip, but it would also collapse per-session failure
-    // handling (serverRecordChanged retry, zone-not-found single-shot
-    // recreation, exponential backoff per session ID, schema-unavailable
+    // handling (serverRecordChanged retry, the deleted-zone stop,
+    // exponential backoff per session ID, schema-unavailable
     // circuit breaker) into a batch-level failure mode that's far harder to
     // recover from. The serial loop below intentionally keeps each save
     // independent so one bad record (e.g. malformed asset on disk) doesn't
@@ -75,9 +79,9 @@ extension CloudKitSyncManager {
     // The four decision blocks (batch selection, backoff, prep-failure
     // classification, zone recovery) are named functions rather than inline
     // so each is readable on its own.
-    /// `zoneNotFoundEncountered` records that this cycle has already recreated
-    /// the zone, so it is recreated at most ONCE per sync cycle, not once per
-    /// session: the zone vanishing again after that ends the cycle.
+    /// A zone found gone ends the cycle (`handleZoneGone`), and so does an
+    /// account change: nothing more is uploaded once the signed-in account is
+    /// no longer the confirmed one.
     ///
     /// The backoff counter advances on every cycle that gets this far, one
     /// whose whole batch is deferred included; advanced only after a
@@ -90,20 +94,16 @@ extension CloudKitSyncManager {
         let pendingIds = pendingPushBatch()
         Self.pushCycleCounter &+= 1
         guard !pendingIds.isEmpty else { return }
-        var zoneNotFoundEncountered = false
         for sessionId in pendingIds {
-            if schemaUnavailable || Task.isCancelled { break }
+            if schemaUnavailable || Task.isCancelled || !CloudAccountIdentity.isConfirmed { break }
             defer { noteSyncProgress() }
             guard let prepared = await prepareUpload(sessionId) else { continue }
-            if await pushOne(prepared, sessionId: sessionId, zoneNotFound: &zoneNotFoundEncountered) {
+            if await pushOne(prepared, sessionId: sessionId) {
                 break
             }
         }
         await state.saveSyncStateAsync()
         await state.savePendingQueueAsync()
-        if zoneNotFoundEncountered {
-            debugLog("[CloudKit] Push cycle recreated the zone after zoneNotFound", level: .info)
-        }
     }
 
     /// Heavyweight prep (retrieve + decrypt + encode + compress + temp
@@ -132,25 +132,31 @@ extension CloudKitSyncManager {
     }
 
     /// Save one prepared record. Returns true when the whole push cycle should
-    /// stop (the zone could not be recreated or vanished again after this
-    /// cycle's recreation, or the schema turned out to be unavailable); false
-    /// continues with the next session.
+    /// stop (the zone is gone, the schema turned out to be unavailable, or the
+    /// stall watchdog fired while the save ran); false continues with the next
+    /// session.
+    ///
+    /// A save that returns after the watchdog fired marks nothing: the next
+    /// sync already owns the state, and uploads the session again over its own
+    /// record. Nor does one that returns once the account is no longer
+    /// confirmed (sync stopped meanwhile, which reset the bookkeeping, or the
+    /// account changed): the cycle ends, and the session is not marked
+    /// uploaded into the reset state.
     ///
     /// The record's temp asset file is removed only once this session is done
     /// with — a conflict re-save reuses the same file.
-    private func pushOne(
-        _ prepared: PreparedUpload, sessionId: UUID, zoneNotFound: inout Bool
-    ) async -> Bool {
+    private func pushOne(_ prepared: PreparedUpload, sessionId: UUID) async -> Bool {
         defer { cleanupTempAsset(for: prepared.record) }
         do {
             let saved = try await privateDB.save(prepared.record)
+            guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return true }
             state.markUploaded(sessionId)
             state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
             trashRestore.clear(sessionId)
         } catch let error as CKError where error.code == .serverRecordChanged {
             return await resolveConflict(error, prepared: prepared, sessionId: sessionId)
         } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
-            return await handleZoneGone(error, sessionId: sessionId, recreatedThisCycle: &zoneNotFound)
+            return await handleZoneGone(error, sessionId: sessionId)
         } catch {
             if Self.isPermanentSchemaError(error) {
                 flagSchemaUnavailable(reason: error.localizedDescription)
@@ -240,11 +246,17 @@ extension CloudKitSyncManager {
     /// The one exception is a deletion. A server record flagged deleted means
     /// the user removed the session on another device; copying this device's
     /// `isDeleted = 0` over it would bring the session back everywhere. The
-    /// deletion wins and is applied here, the same way a pull applies it.
+    /// deletion wins and is applied here, the same way a pull applies it. A
+    /// record marked kept on another device (`keptOnDeviceMarker`) is not
+    /// overwritten either: the session counts as uploaded and the record stays
+    /// a marker, as the pull leaves it.
     ///
     /// Shared by the batch push and the direct upload
     /// (`CloudKitSyncManager.resolveDirectConflict`), which persists the state
-    /// afterwards. Always returns false: a conflict never stops the cycle.
+    /// afterwards. Always returns false: a conflict never stops the cycle. A
+    /// re-save that returns after the stall watchdog fired marks nothing, as
+    /// in `pushOne`. The server copy's edit stamp counts as seen
+    /// (`CloudKitSessionFreshness.noteSeen`).
     func resolveConflict(
         _ error: CKError, prepared: PreparedUpload, sessionId: UUID
     ) async -> Bool {
@@ -252,22 +264,36 @@ extension CloudKitSyncManager {
             noteConflictUnresolved(sessionId, reason: "no server record in the error")
             return false
         }
-        if (serverRecord["isDeleted"] as? Int64 ?? 0) == 1, !trashRestore.isRestored(sessionId) {
+        CloudKitSessionFreshness.noteSeen(CloudKitSessionFreshness.modifiedAt(of: serverRecord))
+        let serverFlag = serverRecord["isDeleted"] as? Int64 ?? 0
+        if serverFlag == 1, !trashRestore.isRestored(sessionId) {
             pull.applyDeletionMetDuringUpload(sessionId)
+            return false
+        }
+        if serverFlag == Self.keptOnDeviceMarker {
+            state.markUploaded(sessionId)
             return false
         }
         let restoring = trashRestore.isRestored(sessionId)
         guard CloudKitSessionFreshness.overwrite(serverRecord, with: prepared.record, restoring: restoring, yieldingIn: &state) else { return false }
         trashRestore.markIfReplacingTombstone(serverRecord, sessionId: sessionId)
+        await saveResolved(serverRecord, sessionId: sessionId)
+        return false
+    }
+
+    /// Save the server record with this device's fields on it. One that
+    /// returns after the stall watchdog fired, or once the account is no
+    /// longer confirmed, marks nothing.
+    private func saveResolved(_ serverRecord: CKRecord, sessionId: UUID) async {
         do {
             let saved = try await privateDB.save(serverRecord)
+            guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return }
             state.markUploaded(sessionId)
             state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
             trashRestore.clear(sessionId)
         } catch {
             noteConflictUnresolved(sessionId, reason: "\(error)", error: error)
         }
-        return false
     }
 
     /// Leave the session pending after a conflict we could not resolve.
@@ -339,17 +365,19 @@ extension CloudKitSyncManager {
         return archive.repairSessionHashIfDecodable(sessionId: sessionId)
     }
 
-    /// A session read out of Apple Health whole stays on this device. One this
+    /// A session excluded from upload (`CloudUploadExclusion`: read out of
+    /// Apple Health whole, or a sample night) stays on this device. One this
     /// device had uploaded or queued may have an iCloud copy from an earlier
-    /// build; that copy is deleted outright, not tombstoned, because a
-    /// tombstone would delete the session on the user's other devices. The
-    /// session is marked local-only once iCloud holds no copy; a failed delete
-    /// leaves it queued, and a later cycle tries again.
+    /// build; that copy's payload is removed and the record kept as a marker
+    /// (`markKeptOnDevice`), not tombstoned, because a tombstone would delete
+    /// the session on the user's other devices. The session is marked
+    /// local-only once iCloud holds no payload of it; a failed write leaves it
+    /// queued, and a later cycle tries again.
     private func keepOnDevice(_ sessionId: UUID) async {
         let mayBeInCloud = state.uploadedSessionIds.contains(sessionId) || state.pendingUploadIds.contains(sessionId)
         if mayBeInCloud {
             do {
-                try await privateDB.deleteRecord(withID: CKRecord.ID(recordName: sessionId.uuidString, zoneID: zoneID))
+                try await markKeptOnDevice(CKRecord.ID(recordName: sessionId.uuidString, zoneID: zoneID))
             } catch let error as CKError where error.code == .unknownItem || error.code == .zoneNotFound {
                 debugLog("[CloudKit] Push: \(sessionId.uuidString.prefix(8)) has no iCloud copy to remove (\(error.code.rawValue))")
             } catch {
@@ -360,45 +388,44 @@ extension CloudKitSyncManager {
         }
         state.markLocalOnly(sessionId)
         await state.saveLocalOnlyAsync()
-        debugLog("[CloudKit] Push: \(sessionId.uuidString.prefix(8)) came from Apple Health — kept on this device only")
+        debugLog("[CloudKit] Push: \(sessionId.uuidString.prefix(8)) is excluded from iCloud — kept on this device only")
     }
 
-    /// Zone gone server-side — recreate ONCE per cycle and retry this session
-    /// inline. Returns `true` when the whole cycle should bail: if recreation
-    /// fails, or the zone is gone again after this cycle already recreated
-    /// it, every remaining push will fail too, and continuing would log the
-    /// same error twenty times. A retry that lands is handled as `pushOne`
-    /// handles a save: uploaded, and any Trash-restore mark cleared.
-    private func handleZoneGone(_ error: CKError, sessionId: UUID, recreatedThisCycle: inout Bool) async -> Bool {
-        guard !recreatedThisCycle else {
-            debugLog("[CloudKit] Push: zone gone again after this cycle's recreation — bailing on this sync cycle", level: .error)
-            state.markFailed(sessionId)
-            return true
-        }
-        recreatedThisCycle = true
-        debugLog("[CloudKit] Push: zone gone (\(error.code.rawValue)) — attempting recreation", level: .warning)
-        guard await recreateZoneAfterNotFound() else {
-            debugLog("[CloudKit] Push: zone recreation failed — bailing on this sync cycle", level: .error)
-            state.markFailed(sessionId)
-            return true
-        }
-        await retryAfterZoneRecreation(sessionId)
-        return false
+    /// `isDeleted` value of a record whose session is kept on one device: no
+    /// payload, not a deletion. Every build reads a tombstone as
+    /// `isDeleted == 1` only, so an older build sees a live record without a
+    /// payload and skips it.
+    nonisolated static let keptOnDeviceMarker: Int64 = 2
+
+    /// Remove the payload of a session's record and mark it kept on device,
+    /// rather than delete the record. Deleted outright, the record was missing
+    /// from the next listings of every other device, and one that held a copy
+    /// under the same id (a stub a rebuild replaced here) uploaded it back
+    /// (`reuploadSessionsMissingFromCloud`). Listed with this marker, it is
+    /// left alone by the pull and counts as present. Fetched without its
+    /// payload; throws `.unknownItem` when there is no record.
+    func markKeptOnDevice(_ recordID: CKRecord.ID) async throws {
+        let fetched = try await privateDB.records(for: [recordID], desiredKeys: ["isDeleted"])
+        guard let record = try fetched[recordID]?.get() else { throw CKError(.unknownItem) }
+        record["isDeleted"] = Self.keptOnDeviceMarker as CKRecordValue
+        record["sessionData"] = nil
+        _ = try await privateDB.save(record)
     }
 
-    /// The session's save, once more, into the recreated zone.
-    private func retryAfterZoneRecreation(_ sessionId: UUID) async {
-        do {
-            guard let retryPrepared = try await prepareUploadOffMain(sessionId: sessionId) else { return }
-            defer { cleanupTempAsset(for: retryPrepared.record) }
-            let saved = try await privateDB.save(retryPrepared.record)
-            state.markUploaded(sessionId)
-            state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
-            trashRestore.clear(sessionId)
-        } catch {
+    /// Zone gone server-side: the app's iCloud data was deleted (Delete All My
+    /// Data on another device, or the iCloud settings), or the account
+    /// changed. Recreating the zone and uploading into it undid the deletion,
+    /// so the cycle ends here and `CloudAccountGuard.zoneWasDeleted` stops
+    /// sync for the user to opt in again. When the account cannot be checked,
+    /// the session stays queued and the reason ends the sync as an error.
+    /// Always `true`: every remaining push would meet the same zone.
+    private func handleZoneGone(_ error: CKError, sessionId: UUID) async -> Bool {
+        debugLog("[CloudKit] Push: zone gone (\(error.code.rawValue)) — iCloud data was deleted, or the account changed", level: .warning)
+        if let message = await accountGuard.zoneWasDeleted() {
             state.markFailed(sessionId)
-            debugLog("[CloudKit] Push: retry-after-recreate failed for \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)", level: .error)
+            lastPushErrorMessage = message
         }
+        return true
     }
 
     /// Stable retry-spreading bucket derived from the UUID's own bytes —
@@ -435,10 +462,11 @@ extension CloudKitSyncManager {
     /// can run from a detached task without main-actor hops.
     ///
     /// Throws `CloudUploadExclusion` for a session read out of Apple Health
-    /// whole: this is the one builder every upload goes through, so the
-    /// refusal here covers every path.
+    /// whole, or a sample night: this is the one builder every upload goes
+    /// through, so the refusal here covers every path.
     nonisolated static func buildSessionRecord(from session: HRVSession, zoneID: CKRecordZone.ID, recordTypeName: String) throws -> CKRecord {
         guard !CloudSessionPayload.isHealthKitSourced(session) else { throw CloudUploadExclusion.healthKitSourced }
+        guard !DemoSessionSeeder.isSampleData(session.tags) else { throw CloudUploadExclusion.sampleData }
         let recordID = CKRecord.ID(recordName: session.id.uuidString, zoneID: zoneID)
         let record = CKRecord(recordType: recordTypeName, recordID: recordID)
         record["sessionId"] = session.id.uuidString as CKRecordValue
@@ -495,8 +523,13 @@ extension CloudKitSyncManager {
 
     // MARK: - Zone Management
 
+    /// Create the session zone unless this device already has. Only for the
+    /// confirmed account (`CloudAccountIdentity.isConfirmed`): a zone is never
+    /// created in another Apple ID's iCloud; otherwise it throws
+    /// `CloudAccountGuard.Halt.stopped`.
     func ensureZoneExists() async throws {
         guard !zoneCreated else { return }
+        guard CloudAccountIdentity.isConfirmed else { throw CloudAccountGuard.Halt.stopped }
 
         let zone = CKRecordZone(zoneID: zoneID)
         do {
@@ -509,30 +542,6 @@ extension CloudKitSyncManager {
             _ = try await privateDB.recordZone(for: zoneID)
             debugLog("[CloudKit] Zone save rejected (\(error.code.rawValue)) but the zone exists")
             zoneCreated = true
-        }
-    }
-
-    /// Force re-creation of the zone after a `.zoneNotFound` failure.
-    /// Resets the cached `zoneCreated` flag and re-attempts the save.
-    /// Returns true if creation succeeded, false otherwise (caller can
-    /// then disable sync to stop a retry storm).
-    ///
-    /// **Why this exists:** A CloudKit zone can disappear server-side
-    /// (likely an iCloud account state transition). Every push attempt
-    /// then fails with `Zone does not exist` and is queued for retry, so
-    /// every pending session retries every sync cycle in an endless loop,
-    /// hammering CPU + battery. `ensureZoneExists` alone only runs on
-    /// first sync and caches its result; once `zoneCreated = true`, it
-    /// never re-attempts even when the zone is clearly gone.
-    func recreateZoneAfterNotFound() async -> Bool {
-        zoneCreated = false  // Force re-attempt
-        do {
-            try await ensureZoneExists()
-            debugLog("[CloudKit] Zone recreated after .zoneNotFound", level: .warning)
-            return true
-        } catch {
-            debugLog("[CloudKit] Zone recreation failed: \(error.localizedDescription)", level: .error)
-            return false
         }
     }
 

@@ -1,0 +1,147 @@
+{
+ "file": "Emuqu/Sources/Views/Utilities/FileShareButton.swift",
+ "hash": "8af9e58f8c6a7925",
+ "role": "FileShareButton, the share button that stands where a ShareLink stood for export files: it writes its file only when tapped (off the main actor), presents the system share sheet from the topmost view controller (presentFileShareSheet), which deletes the file once it closes, shared or cancelled, and raises 'Export failed' when the file cannot be written; and ShareFileItem, the activity item that gives the sheet a title and icon (LPLinkMetadata) while every destination receives the file.",
+ "types": [
+  "FileShareButton<Label>: struct (View) — title, iconName, makeFile (@Sendable async throws → URL), label",
+  "ShareFileItem: class (NSObject, UIActivityItemSource) — file URL with a header title and SF Symbol"
+ ],
+ "state": [
+  "mem:FileShareButton.preparing (@State, true while the file is being written; disables the button)",
+  "mem:FileShareButton.failed (@State, drives the 'Export failed' alert)"
+ ],
+ "toplevel": "@State preparing and failed start false; no other stored initialisers.",
+ "units": [
+  {
+   "key": "init FileShareButton(title:iconName:makeFile:label:)",
+   "hash": "aa652f8ac7db503f",
+   "does": "Stores the sheet title, icon name, file writer and the built label.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var FileShareButton.body",
+   "hash": "8e39ef68e2361397",
+   "does": "A Button showing the label that starts share() in a Task; disabled while preparing; carries the 'Export failed' alert (OK) bound to failed.",
+   "entry": "SwiftUI body; button tap",
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::func FileShareButton.share()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "ext:Task"
+   ],
+   "reads": [
+    "mem:FileShareButton.preparing"
+   ],
+   "writes": [
+    "mem:FileShareButton.failed (alert dismissal)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::func FileShareButton.share()": "44b77f5c93498b1a"
+   }
+  },
+  {
+   "key": "func FileShareButton.share()",
+   "hash": "1ddea918d1567d85",
+   "does": "Unless a write is already running: marks preparing (cleared on exit), awaits makeFile (off the main actor); on a throw logs it at .warning and sets failed (the 'Export failed' alert); with no presenter (topmostPresenter nil) deletes the file at once; else presents it with presentFileShareSheet(title, iconName), which deletes it when the sheet closes.",
+   "entry": null,
+   "calls": [
+    "closure:FileShareButton.makeFile — the export writer the share site passes",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentFileShareSheet(_:title:iconName:from:onClosed:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:FileShareButton.preparing"
+   ],
+   "writes": [
+    "mem:FileShareButton.preparing",
+    "mem:FileShareButton.failed",
+    "file:the written export (deleted when unpresentable)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a write already running",
+     "effect": "return"
+    },
+    {
+     "at": "+7",
+     "cond": "makeFile threw",
+     "effect": "log, failed = true, return"
+    },
+    {
+     "at": "+12",
+     "cond": "no presenter",
+     "effect": "delete the file, return; else present"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentFileShareSheet(_:title:iconName:from:onClosed:)": "1114a84169ab2526",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()": "a3d510a9337700d2"
+   }
+  },
+  {
+   "key": "init ShareFileItem(file:title:iconName:)",
+   "hash": "1b04d00922b8d9ed",
+   "does": "Stores the file URL, header title and optional SF Symbol name.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ShareFileItem.activityViewControllerPlaceholderItem(_:)",
+   "hash": "7173bc407fbc14f7",
+   "does": "The placeholder the sheet sizes its destinations by: the file URL.",
+   "entry": "UIActivityItemSource requirement (UIActivityViewController)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ShareFileItem.activityViewController(_:itemForActivityType:)",
+   "hash": "49627bb101f0e1da",
+   "does": "The item every destination receives: the file URL.",
+   "entry": "UIActivityItemSource requirement (UIActivityViewController)",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ShareFileItem.activityViewControllerLinkMetadata(_:)",
+   "hash": "81dc930fce156d03",
+   "does": "The sheet's header: an LPLinkMetadata with the title and, when the SF Symbol exists, its image as the icon.",
+   "entry": "UIActivityItemSource requirement (UIActivityViewController)",
+   "calls": [
+    "ext:LPLinkMetadata",
+    "ext:NSItemProvider"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "icon name given and the symbol exists",
+     "effect": "iconProvider set; else title only"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

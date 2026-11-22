@@ -226,7 +226,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.fullerUnindexedBackup(than:in:)": "e119722e24905b0a",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e6ebfa51ed45acda",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "0241edd84800b1f0",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -400,7 +400,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e6ebfa51ed45acda",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "0241edd84800b1f0",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -718,8 +718,8 @@
   },
   {
    "key": "func SessionRecoveryService.deleteLostSessions(_:)",
-   "hash": "47923afa4c635031",
-   "does": "Marks each id as deleted in the archive (failures logged) and logs the requested count.",
+   "hash": "9d63f8b485ea6997",
+   "does": "Marks each id as deleted in the archive and returns the set of ids whose mark was stored; a failed mark is logged and left out. Logs how many of the requested ids were marked.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.markAsDeleted(_:)",
@@ -731,14 +731,14 @@
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+3",
      "cond": "for each id",
-     "effect": "markAsDeleted"
+     "effect": "markAsDeleted; on success the id joins the returned set"
     },
     {
-     "at": "+4",
+     "at": "+7",
      "cond": "catch: markAsDeleted threw",
-     "effect": "logged; the summary log still counts it as marked"
+     "effect": "logged; the id is not returned"
     }
    ],
    "deps": {
@@ -748,15 +748,15 @@
   },
   {
    "key": "func SessionRecoveryService.retrieveBackupWithParentMerge(_:)",
-   "hash": "9ead2dfa8a542462",
-   "does": "Retrieves the session's raw backup and, if an archived session lists it in linkedSessionIds and has beats, prepends the parent's beats with the child re-based onto the parent clock and uses the parent start; returns series, artifact flags, start and backup end date.",
+   "hash": "5f667739bd26421d",
+   "does": "Retrieves the session's raw backup and, if an archived session lists it in linkedSessionIds and has beats, prepends the parent's beats with the child re-based onto the parent clock and uses the parent start; returns series, artifact flags (detected off the main actor, detectedArtifacts), start and backup end date.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.storedBackup(_:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.parentSession(of:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.parentMergedPoints(parentSeries:parentStart:childPoints:childStart:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.detectedArtifacts(in:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.backupEndDate(_:)"
    ],
    "reads": [
@@ -778,8 +778,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.backupEndDate(_:)": "51087c38ca56a9e8",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.detectedArtifacts(in:)": "ae05a221c74b0137",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.parentMergedPoints(parentSeries:parentStart:childPoints:childStart:)": "b5cc6fdad549429b",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.parentSession(of:)": "edcc4e4218a47e09",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.storedBackup(_:)": "b6ac4026c3b8483f",
@@ -887,32 +887,49 @@
   },
   {
    "key": "func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)",
-   "hash": "108b53ac56ade2fa",
-   "does": "Finds the best recovery window with capacity (ranked against the baseline excluding this night); if a window exists runs the windowed analyze closure, else the capacity-only closure, writing session.analysisResult; when no window result at all, leaves analysisResult unchanged.",
+   "hash": "fe0f05259fd4b916",
+   "does": "Finds the best recovery window with capacity (ranked against the baseline excluding this night) on a detached task; when the selector finds nothing (too short, noisy or pre-sleep) logs and analyses the whole series (analyzeWithCapacity with no capacity), as the morning and reanalysis paths fall back; otherwise runs the windowed analyze closure when there is a recovery window, else the capacity-only closure. Writes session.analysisResult (nil when the closure returns nil).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.windowBaselineStats(for:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "closure:analyze / analyzeWithCapacity supplied by recoverFromBackup / recoverToPausedState callers"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+8",
-     "cond": "findBestWindowWithCapacity returned a result",
-     "effect": "proceeds; else no analysis (recoverFromBackup then returns nil)"
+     "at": "+12",
+     "cond": "no window result",
+     "effect": "log, analyzeWithCapacity(session, nil), return"
     },
     {
-     "at": "+9",
+     "at": "+17",
      "cond": "result has a recoveryWindow",
-     "effect": "windowed analyze; else analyzeWithCapacity"
+     "effect": "windowed analyze; else analyzeWithCapacity with the peak capacity"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "6ea9fe23df8bc412",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "76bb1c7f5f1b2540",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "f982489dcaac4121",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.windowBaselineStats(for:)": "0e771b1026792e97"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.windowBaselineStats(for:)": "0e771b1026792e97",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionRecoveryService.detectedArtifacts(in:)",
+   "hash": "789a8e8fb2759ffe",
+   "does": "Runs ArtifactDetector.detectArtifacts over the series on a detached user-initiated task and returns the flags.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "58bfe64fc444721d"
    }
   }
  ],

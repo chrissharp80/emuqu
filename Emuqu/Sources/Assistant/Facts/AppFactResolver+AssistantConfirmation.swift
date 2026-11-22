@@ -5,11 +5,15 @@ import Foundation
 // and the user_quote it carries, only start the request: content the model
 // read can make it quote any span of the user's message. The change happens
 // when `AssistantActionConfirmations` sees the user's next message confirm it.
+// The writes whose content the model supplies (a memory fact, a contact, an
+// address, a route name) go through the same step whenever that content is
+// not in the user's own latest message (`gateUnlessUserStated`).
 
 extension AssistantMemoryNamespace {
 
-    /// What a destructive action is checked against: the pending-request
-    /// store and the chat transcript, live or supplied by a test.
+    /// What a destructive action, or a write of content the user did not
+    /// state, is checked against: the pending-request store and the chat
+    /// transcript, live or supplied by a test.
     @MainActor
     struct DestructiveActionContext {
         let confirmations: AssistantActionConfirmations
@@ -19,6 +23,22 @@ extension AssistantMemoryNamespace {
         static var live: DestructiveActionContext {
             let viewModel = AppDependencies.current.assistant.assistantViewModel
             return DestructiveActionContext(confirmations: viewModel.actionConfirmations, turns: viewModel.turns)
+        }
+
+        /// nil when the change may go ahead without asking: every value it
+        /// would write (`values`) is in the user's own latest message
+        /// (`AssistantMemoryNamespace.isStated`). Otherwise the same as
+        /// `gate`: nil once the user has confirmed this request, else the
+        /// result telling the model to ask first.
+        ///
+        /// For the writes the model fills in from what it reads — a memory
+        /// fact, a contact, an address, a route name. A web page, an email or
+        /// a search result can steer the model into any of those calls; a
+        /// value the user did not say is shown to them before it is saved.
+        func gateUnlessUserStated(_ values: [String], action: String, target: String, question: String) -> FactValue? {
+            let latest = turns.last { $0.role == .user }?.text
+            guard !values.allSatisfy({ AssistantMemoryNamespace.isStated($0, in: latest) }) else { return nil }
+            return gate(action: action, target: target, question: question)
         }
 
         /// nil when the user's latest message confirms this request; otherwise

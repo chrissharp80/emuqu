@@ -36,6 +36,7 @@ final class ConversationStore: @unchecked Sendable {
         }()
         _ = attempt("ConversationStore.create") { try fm.createDirectory(at: baseURL, withIntermediateDirectories: true) }
         fileURL = baseURL.appendingPathComponent("conversation.json")
+        summaryURL = Self.summaryFileURL(beside: fileURL)
         saveDebounceMs = Self.defaultSaveDebounceMs
         wireRetryOnUnlock()
     }
@@ -49,6 +50,7 @@ final class ConversationStore: @unchecked Sendable {
     /// the singleton always uses `defaultSaveDebounceMs`.
     init(fileURL: URL, saveDebounceMs: Int = ConversationStore.defaultSaveDebounceMs) {
         self.fileURL = fileURL
+        summaryURL = Self.summaryFileURL(beside: fileURL)
         self.saveDebounceMs = saveDebounceMs
         let parent = fileURL.deletingLastPathComponent()
         _ = attempt("ConversationStore.create") { try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true) }
@@ -162,6 +164,92 @@ final class ConversationStore: @unchecked Sendable {
 
     private let unlockObservers = NotificationTokens()
 
+    // MARK: - Summary
+
+    /// The rolling summary of the turns that fell out of the send window
+    /// (`AssistantViewModel.priorSummary`). It restates the conversation —
+    /// the summarizer keeps injuries, illness and medications — so it is
+    /// sealed and protected like the history, beside it.
+    private let summaryURL: URL
+
+    private struct StoredSummary: Codable {
+        let text: String
+    }
+
+    private static func summaryFileURL(beside history: URL) -> URL {
+        history.deletingLastPathComponent()
+            .appendingPathComponent(history.deletingPathExtension().lastPathComponent + "_summary.json")
+    }
+
+    /// Where an older build left the summary in plain text, kept until the
+    /// sealed file that replaces it is written.
+    private struct LegacySummary {
+        let defaults: UserDefaults
+        let key: String
+    }
+
+    /// Queue-only. Set when a plain summary was found with no sealed file;
+    /// cleared by the first successful `writeSummary`, which removes it.
+    private var legacySummary: LegacySummary?
+
+    /// The last `loadSummary` found the sealed file present but unreadable
+    /// (the phone locked, or the seal key unavailable), and no summary has
+    /// been written or cleared since.
+    private let summaryUnreadable = OSAllocatedUnfairLock(initialState: false)
+
+    /// True while the sealed summary holds text the caller could not read:
+    /// `loadSummary` is worth calling again once the phone is unlocked.
+    var summaryNeedsReload: Bool { summaryUnreadable.withLock { $0 } }
+
+    /// The stored summary, or nil when there is none or it cannot be read
+    /// now. A summary an older build left in plain text under `key` in
+    /// `defaults` is moved into the sealed file when there is no file yet,
+    /// and removed from `defaults` as soon as a sealed summary is written:
+    /// by this move, or by a later `saveSummary` when this write fails (the
+    /// seal key can be unavailable early in a background launch). When the
+    /// sealed file is present, whether or not it can be read now, it holds
+    /// a later summary than the plain one, so the plain one is removed.
+    func loadSummary(migratingFrom defaults: UserDefaults, key: String) -> String? {
+        let stored = AssistantStoreFile.read(summaryURL, caller: "ConversationStore")
+        let unreadable: Bool
+        if case .unreadable = stored { unreadable = true } else { unreadable = false }
+        summaryUnreadable.withLock { $0 = unreadable }
+        if case .missing = stored {
+            guard let legacy = defaults.string(forKey: key) else { return nil }
+            queue.sync {
+                legacySummary = LegacySummary(defaults: defaults, key: key)
+                _ = writeSummary(legacy)
+            }
+            return legacy
+        }
+        defaults.removeObject(forKey: key)
+        guard case let .json(data) = stored else { return nil }
+        return attempt("conversationStore.decodeSummary") { try JSONDecoder().decode(StoredSummary.self, from: data) }?.text
+    }
+
+    /// Seals and writes the summary on the store's queue, after any write
+    /// already queued. A failed write is logged (`AssistantStoreFile.write`)
+    /// and leaves the previous summary; the next summary is written afresh.
+    func saveSummary(_ text: String) {
+        queue.async { [weak self] in
+            _ = self?.writeSummary(text)
+        }
+    }
+
+    /// Queue-only. Once a summary is sealed on disk, the plain copy an older
+    /// build left (`legacySummary`) is removed from its defaults, and the file
+    /// no longer holds a summary the caller has not read.
+    private func writeSummary(_ text: String) -> Bool {
+        guard let data = attempt("conversationStore.encodeSummary", { try JSONEncoder().encode(StoredSummary(text: text)) }),
+              AssistantStoreFile.write(data, to: summaryURL, caller: "ConversationStore") else { return false }
+        summaryUnreadable.withLock { $0 = false }
+        if let legacy = legacySummary {
+            legacy.defaults.removeObject(forKey: legacy.key)
+            legacySummary = nil
+        }
+        return true
+    }
+
     // MARK: - Protected data
 
     /// The file cannot be read while the phone is locked, and `load()` then
@@ -247,12 +335,13 @@ final class ConversationStore: @unchecked Sendable {
 
     /// Whether nothing of the history is left on disk once every change
     /// already queued (a `clear()` included) has run: true when the file is
-    /// gone or decodes to an empty list and no set-aside copy remains. A file
-    /// that cannot be read or decoded counts as holding turns. Delete All My
-    /// Data reads its result back with it.
+    /// gone or decodes to an empty list, no set-aside copy remains and no
+    /// summary is stored. A file that cannot be read or decoded counts as
+    /// holding turns. Delete All My Data reads its result back with it.
     func isEmptyOnDisk() -> Bool {
         queue.sync {
-            guard !AssistantStoreFile.hasSetAsideCopies(of: fileURL, caller: "ConversationStore") else { return false }
+            guard !AssistantStoreFile.hasSetAsideCopies(of: fileURL, caller: "ConversationStore"),
+                  !FileManager.default.fileExists(atPath: summaryURL.path) else { return false }
             switch AssistantStoreFile.read(fileURL, caller: "ConversationStore") {
             case .missing: return true
             case .unreadable, .undecodable: return false
@@ -269,14 +358,18 @@ final class ConversationStore: @unchecked Sendable {
     /// re-create the file. When something could not be removed the
     /// in-memory state is left as it was and false is returned: the caller
     /// still holds the turns and says the chat was not erased.
+    ///
+    /// The conversation summary (`saveSummary`) is erased with it.
     @discardableResult
     func clear() -> Bool {
         queue.sync {
-            guard AssistantStoreFile.erase(fileURL, caller: "ConversationStore") else { return false }
+            guard AssistantStoreFile.erase(summaryURL, caller: "ConversationStore"),
+                  AssistantStoreFile.erase(fileURL, caller: "ConversationStore") else { return false }
             latestTurns = []
             saveScheduled = false
             writePending = false
             unreadableOnDisk.withLock { $0 = false }
+            summaryUnreadable.withLock { $0 = false }
             return true
         }
     }

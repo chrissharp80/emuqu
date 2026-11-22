@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift",
- "hash": "202dcab197f878b1",
+ "hash": "c2b32238316b9a65",
  "role": "One-shot cleanup removing sleepSnapshot from archived .workout sessions that an old dashboard selector had attached it to.",
  "types": [
-  "SessionDataMigrations: extension — workout sleep cleanup"
+  "SessionDataMigrations: extension — workout sleep cleanup",
+  "SessionDataMigrations.WorkoutCleanupOutcome: private enum — stripped / unchanged / failed"
  ],
  "state": [
   "ud:didRunWorkoutSleepCleanup_v1 (standard suite; static workoutSleepCleanupKey)"
@@ -12,8 +13,8 @@
  "units": [
   {
    "key": "func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()",
-   "hash": "0d2935e45206cd96",
-   "does": "If the flag is unset, in a detached utility task filters workout entries and strips the sleep snapshot from each; sets the flag and logs cleaned/examined counts.",
+   "hash": "fbdbbc361eee376d",
+   "does": "If the flag is unset, in a detached utility task filters workout entries and strips the sleep snapshot from each, counting stripped and failed writes; with any failed write logs a warning and returns without the flag (retried next launch), else sets the flag and logs cleaned/examined counts.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
@@ -32,49 +33,55 @@
      "at": "+2",
      "cond": "flag already set",
      "effect": "return"
+    },
+    {
+     "at": "+13",
+     "cond": "a write failed",
+     "effect": "warning log, return without the flag"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.stripWorkoutSleepSnapshot(_:archive:)": "5b4adea4e9ca0f3b",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.stripWorkoutSleepSnapshot(_:archive:)": "5d1e625f1c5004fb",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func SessionDataMigrations.stripWorkoutSleepSnapshot(_:archive:)",
-   "hash": "7d32ee8545c85ae8",
-   "does": "Retrieves the session; if it is a workout with a sleepSnapshot, sets it to nil and archives; returns whether removed.",
+   "hash": "2b40cfc70bba80c0",
+   "does": "Retrieves the session; if it is a workout with a sleepSnapshot, clears that field on the archive's copy in place (SessionArchive.update, no reupload); returns .stripped, .unchanged, or .failed when the write threw.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieve"
    ],
    "writes": [
-    "archive:SessionArchive.archive(_:) (full-session overwrite, skipSameNightMerge false, no reupload)",
-    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive)"
+    "archive:SessionArchive.update (in place, no reupload)",
+    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.update)"
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+3",
      "cond": "retrieve fails, not a workout, or no sleepSnapshot",
-     "effect": "return false"
+     "effect": "return .unchanged"
     },
     {
      "at": "+10",
-     "cond": "archive throws",
-     "effect": "warning logged, return false"
+     "cond": "update throws",
+     "effect": "warning logged, return .failed"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }

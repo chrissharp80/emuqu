@@ -346,6 +346,24 @@ final class ArchiveIntegrityTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: deletedFile), unreadable)
     }
 
+    /// A deletion mark that cannot be saved is taken back out of memory, so a
+    /// lost session the user tried to dismiss is still offered for recovery.
+    func testADeletionMarkThatCannotBeSavedIsNotKept() throws {
+        let id = UUID()
+        // Built (and its directory made) before the directory is locked.
+        XCTAssertTrue(archive.entries.isEmpty)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: archiveDirectory.path)
+        defer {
+            attempt("test.unlockArchiveDirectory") {
+                try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: archiveDirectory.path)
+            }
+        }
+
+        XCTAssertThrowsError(try archive.markAsDeleted(id))
+
+        XCTAssertFalse(archive.wasIntentionallyDeleted(id))
+    }
+
     /// Puts a folder at every name the set-aside of `file` can take from a
     /// second ago to half a minute ahead, so its move fails.
     private func occupySetAsideNames(of file: URL) throws {
@@ -601,7 +619,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         XCTAssertThrowsError(try cold.retrieve(session.id), "Corrupt-hash entry must throw on retrieve")
 
         // Run repair.
-        let recovered = cold.repairArchive()
+        let recovered = try cold.repairArchive()
         XCTAssertGreaterThan(recovered, 0, "Repair should rebuild at least one entry")
 
         // Now retrieve must succeed — repair rebuilt the hash from the
@@ -610,6 +628,22 @@ final class ArchiveIntegrityTests: XCTestCase {
         let retrieved = try cold.retrieve(session.id)
         XCTAssertNotNil(retrieved, "Repair should have rebuilt a usable index for the encrypted file")
         XCTAssertEqual(retrieved?.id, session.id)
+    }
+
+    /// A repair whose rebuilt index cannot be written throws, so the
+    /// diagnostics page reports the failure instead of "Repair complete".
+    func testRepairThrowsWhenTheRebuiltIndexCannotBeSaved() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: archiveDirectory.path)
+        defer {
+            attempt("test.unlockArchiveDirectory") {
+                try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: archiveDirectory.path)
+            }
+        }
+
+        XCTAssertThrowsError(try archive.repairArchive())
     }
 
     /// Test detecting nearby sessions
@@ -746,23 +780,37 @@ extension ArchiveIntegrityTests {
     }
 
     /// A session deleted forever is not brought back by a pull, even when
-    /// iCloud still holds a live copy of it.
+    /// iCloud still holds a live copy of it. The same record, once the
+    /// session is not on the deleted-forever list, is imported: so the
+    /// refusal is the list's, not a record the pull could not read. The pull
+    /// runs on a sync manager of the test's own over this test's archive,
+    /// never the host's.
     @MainActor
     func testAForgottenSessionIsNotReimportedOnPull() async throws {
-        let manager = CloudKitSyncManager.shared
-        let session = createTestSession()
-        let record = try liveRecord(of: session)
-        addTeardownBlock { @MainActor in
-            guard manager.archive.exists(session.id) else { return }
-            attempt("test.removePulled") { try manager.archive.deleteWithoutTrash(session.id) }
+        let syncDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ArchiveIntegritySync-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: syncDirectory, withIntermediateDirectories: true)
+        let host = HostDefaults.setAside(HostDefaults.cloudSyncBookkeeping)
+        defer {
+            host.restore()
+            attempt("test.removeSyncDirectory") { try FileManager.default.removeItem(at: syncDirectory) }
         }
+        let manager = CloudKitSyncManager.isolated(archive: archive, directory: syncDirectory)
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        let record = try liveRecord(of: session)
 
         let outcome = await manager.pull.processRemoteRecord(record, forgotten: [session.id])
 
         XCTAssertEqual(outcome.new, 0)
         XCTAssertNil(outcome.backfillId)
-        XCTAssertFalse(manager.archive.exists(session.id))
+        XCTAssertFalse(archive.exists(session.id))
         XCTAssertFalse(manager.state.uploadedSessionIds.contains(session.id))
+
+        let imported = await manager.pull.processRemoteRecord(record, forgotten: [])
+
+        XCTAssertEqual(imported.new, 1, "the record itself could not be imported")
+        XCTAssertTrue(archive.exists(session.id))
     }
 
     // MARK: Sealed index
@@ -848,6 +896,7 @@ extension ArchiveIntegrityTests {
 
     /// The iCloud record a device that still held the session would upload.
     private func liveRecord(of session: HRVSession) throws -> CKRecord {
+        standInForConfirmedICloudAccount()
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         let payload = try CloudPayloadCodec.sealForUpload(DataCompression.compress(encoder.encode(session)))

@@ -19,12 +19,17 @@ extension CloudPullCoordinator {
         var backfillIds: [UUID] = []
     }
 
+    /// List every record and process each; then re-queue what iCloud lacks,
+    /// save the sync state and run the post-pull backfills. When the stall
+    /// watchdog fired, or the iCloud account changed, partway, the pull stops
+    /// there: a partial pull, which the next sync redoes for the right
+    /// account. A zone found gone is `handleMissingZone`'s.
     func pullRemoteChanges() async {
         manager.lastPullErrorMessage = nil
         do {
             let results = try await fetchAllRemoteRecords()
             let counts = await processRemoteRecords(results)
-            guard !Task.isCancelled else { return } // stall watchdog: partial pull, the next sync redoes it
+            guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return }
             reuploadSessionsMissingFromCloud(results)
             await manager.state.saveSyncStateAsync()
             await manager.state.savePendingQueueAsync()
@@ -76,15 +81,20 @@ extension CloudPullCoordinator {
     }
 
     /// A session this device believes is in iCloud but the complete remote
-    /// listing does not contain goes back in the upload queue. That is what an
-    /// emptied zone or a switched Apple ID looks like from here, and nothing
-    /// else ever noticed: the archive stayed out of iCloud while Settings said
-    /// everything was synced. Only after a listing with no per-record errors —
-    /// a partial answer would re-upload sessions that are there — and only
-    /// for a session missing from this listing and the one before it
-    /// (`missingFromLastListing`): a record saved seconds ago by the push can
-    /// be absent from a listing whose query index has not caught up yet.
+    /// listing does not contain goes back in the upload queue: a record lost
+    /// from the zone, which nothing else ever noticed, so the archive stayed
+    /// out of iCloud while Settings said everything was synced. Only after a
+    /// listing with no per-record errors — a partial answer would re-upload
+    /// sessions that are there — and only for a session missing from this
+    /// listing and the one before it (`missingFromLastListing`): a record
+    /// saved seconds ago by the push can be absent from a listing whose query
+    /// index has not caught up yet.
+    ///
+    /// Only while the signed-in account is the recorded one
+    /// (`CloudAccountIdentity.isConfirmed`): another Apple ID's listing lacks
+    /// every session, and re-queueing them would upload the archive into it.
     private func reuploadSessionsMissingFromCloud(_ results: [(CKRecord.ID, Result<CKRecord, Error>)]) {
+        guard CloudAccountIdentity.isConfirmed else { return }
         guard results.allSatisfy({ if case .success = $0.1 { true } else { false } }) else { return }
         let remoteIds = Set(results.compactMap { UUID(uuidString: $0.0.recordName) })
         let missing = manager.state.uploadedSessionIds.filter {
@@ -105,22 +115,18 @@ extension CloudPullCoordinator {
     /// A record the listing could not return is not imported this pass, and
     /// the sync ends as an error rather than "Up to date" (`noteListingFailure`).
     /// The sessions deleted forever (`ForgottenSessions`) are read once per
-    /// pull, not once per record.
+    /// pull, not once per record. An account change during the pull stops it
+    /// at the next record: nothing from another Apple ID is imported.
     private func processRemoteRecords(
         _ results: [(CKRecord.ID, Result<CKRecord, Error>)]
     ) async -> PullCounts {
         var counts = PullCounts()
         let forgotten = ForgottenSessions.ids
         for (_, result) in results {
-            if Task.isCancelled { break }
-            let record: CKRecord
-            switch result {
-            case .success(let listed):
-                record = listed
-            case .failure(let error):
-                noteListingFailure(error)
-                continue
-            }
+            if Task.isCancelled || !CloudAccountIdentity.isConfirmed { break }
+            guard let record = listedRecord(result) else { continue }
+            // Seen, so an edit made here afterwards is stamped after it.
+            CloudKitSessionFreshness.noteSeen(CloudKitSessionFreshness.modifiedAt(of: record))
             let outcome = await processRemoteRecord(record, forgotten: forgotten)
             manager.noteSyncProgress() // processed a remote record — sync is advancing
             counts.newSessions += outcome.new
@@ -129,6 +135,18 @@ extension CloudPullCoordinator {
             if let id = outcome.backfillId { counts.backfillIds.append(id) }
         }
         return counts
+    }
+
+    /// The listed record, or nil when that entry of the listing failed
+    /// (`noteListingFailure`).
+    private func listedRecord(_ result: Result<CKRecord, Error>) -> CKRecord? {
+        switch result {
+        case let .success(record):
+            return record
+        case let .failure(error):
+            noteListingFailure(error)
+            return nil
+        }
     }
 
     /// One record of the listing failed. Logged, and kept as the pull's error
@@ -167,21 +185,18 @@ extension CloudPullCoordinator {
         )
     }
 
-    /// Zone gone server-side — recreate and try once more. After recreating an
-    /// empty zone there's nothing to pull yet, and every session this device
-    /// believed uploaded went with the old zone: they are queued again so the
-    /// next push repopulates it.
+    /// Zone gone server-side. `.zoneNotFound` after this device created the
+    /// zone, or `.userDeletedZone`, means the app's iCloud data was deleted:
+    /// by Delete All My Data on another device, or in the iCloud settings.
+    /// Recreating the zone and queueing every session again undid that
+    /// deletion, so `CloudAccountGuard.zoneWasDeleted` stops sync instead,
+    /// after checking the account afresh (another Apple ID's empty container
+    /// looks the same). Nothing is recreated or queued; when the account
+    /// cannot be checked, the reason ends the sync as an error.
     private func handleMissingZone(_ error: CKError) async {
-        debugLog("[CloudKit] Pull: zone gone (\(error.code.rawValue)) — attempting recreation", level: .warning)
-        if await manager.recreateZoneAfterNotFound() {
-            let uploaded = manager.state.uploadedSessionIds
-            for id in uploaded { manager.state.markRemoved(id) }
-            await manager.state.saveSyncStateAsync()
-            await manager.state.savePendingQueueAsync()
-            debugLog("[CloudKit] Pull: zone recreated — \(uploaded.count) session(s) queued to upload on next cycle", level: .info)
-        } else {
-            debugLog("[CloudKit] Pull: zone recreation failed", level: .error)
-            manager.lastPullErrorMessage = String(localized: "iCloud pull failed: sync zone could not be recreated.", bundle: LanguageManager.appBundle)
+        debugLog("[CloudKit] Pull: zone gone (\(error.code.rawValue)) — iCloud data was deleted, or the account changed", level: .warning)
+        if let message = await manager.accountGuard.zoneWasDeleted() {
+            manager.lastPullErrorMessage = message
         }
     }
 
@@ -209,16 +224,29 @@ extension CloudPullCoordinator {
     /// HK sleep/vitals backfill (synced past sessions arrive with the
     /// HK-derived snapshots stripped per Guideline 5.1.3 and must be
     /// re-derived locally). nil for skips and deletes.
+    ///
+    /// A record marked kept on another device
+    /// (`CloudKitSyncManager.keptOnDeviceMarker`) has no payload and is left
+    /// alone; a copy held here counts as uploaded and stays as it is. A
+    /// restore made on another device after this one applied a deletion is
+    /// adopted here (`adoptRestoreIfNewer`), so the session comes back with
+    /// this pull.
     func processRemoteRecord(_ record: CKRecord, forgotten: Set<UUID>) async -> RecordOutcome {
         let sessionIdString = record.recordID.recordName
         guard let sessionId = UUID(uuidString: sessionIdString), !forgotten.contains(sessionId) else { return RecordOutcome() }
+        let deletedFlag = record["isDeleted"] as? Int64 ?? 0
         // Handle soft-deleted records — except one this device restored from
         // the Trash and has not uploaded yet: its upload overrides the
         // tombstone, and deleting it here undid the restore.
-        if (record["isDeleted"] as? Int64 ?? 0) == 1, !manager.trashRestore.isRestored(sessionId) {
+        if deletedFlag == 1, !manager.trashRestore.isRestored(sessionId) {
             let counts = handleDeletedRecord(sessionId: sessionId, sessionIdString: sessionIdString)
             return RecordOutcome(new: counts.new, deleted: counts.deleted)
         }
+        if deletedFlag == CloudKitSyncManager.keptOnDeviceMarker {
+            _ = isKnownLocally(sessionId)
+            return RecordOutcome()
+        }
+        adoptRestoreIfNewer(record, sessionId: sessionId)
         guard !isKnownLocally(sessionId) else { return await refreshIfRemoteIsNewer(record, sessionId: sessionId) }
         guard let assetURL = await assetURL(for: record) else { return RecordOutcome() }
         return await importPulledSession(
@@ -227,15 +255,35 @@ extension CloudPullCoordinator {
     }
 
     /// The local file of the record's backup, fetching the full record when
-    /// the listing left it out; nil, logged, when there is none.
+    /// the listing left it out; nil when there is none. A live record that
+    /// carries no backup is kept as the pull's error, as a failed fetch is
+    /// (`recordWithAsset`): the session is not imported, so the sync must not
+    /// read "Up to date".
     func assetURL(for record: CKRecord) async -> URL? {
-        guard let full = await recordWithAsset(record),
-              let asset = full["sessionData"] as? CKAsset,
-              let assetURL = asset.fileURL else {
-            debugLog("[CloudKit] Pull: No asset data for \(record.recordID.recordName.prefix(8))")
+        guard let full = await recordWithAsset(record) else { return nil }
+        guard let asset = full["sessionData"] as? CKAsset, let assetURL = asset.fileURL else {
+            debugLog("[CloudKit] Pull: No asset data for \(record.recordID.recordName.prefix(8))", level: .warning)
+            manager.lastPullErrorMessage = String(
+                localized: "A session in iCloud has no recording attached, so it couldn't be imported.",
+                bundle: LanguageManager.appBundle
+            )
             return nil
         }
         return assetURL
+    }
+
+    /// This device applied a deletion of the session (from another device,
+    /// or its own), and another device has since restored it from its Trash:
+    /// the record carries the restore marker, dated after the deletion here
+    /// (`TrashRestoreCoordinator.restoreIsNewer`). The deletion is dropped
+    /// (`adoptFromAnotherDevice`) so this pull imports the session, rather than
+    /// the daily re-check of local deletions doing it up to a day later. A
+    /// session deleted forever here never reaches this point.
+    private func adoptRestoreIfNewer(_ record: CKRecord, sessionId: UUID) {
+        guard !manager.archive.exists(sessionId), manager.archive.wasIntentionallyDeleted(sessionId),
+              TrashRestoreCoordinator.restoreIsNewer(record, thanDeletionAt: manager.archive.deletionTime(of: sessionId))
+        else { return }
+        manager.trashRestore.adoptFromAnotherDevice(sessionId)
     }
 
     /// The record with its backup file. A listed record carries only
@@ -314,6 +362,9 @@ extension CloudPullCoordinator {
             let session = try await Task.detached(priority: .utility) {
                 try Self.decodeSessionAsset(at: assetURL)
             }.value
+            // The stall watchdog fired, or the account changed, while it
+            // decoded: the next sync imports it.
+            guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return RecordOutcome() }
             try manager.archive.archive(session, skipSameNightMerge: true)
             manager.state.markUploaded(sessionId)
             manager.state.noteRecordVersion(version, of: sessionId)
@@ -369,24 +420,55 @@ extension CloudPullCoordinator {
         debugLog("[CloudKit] Upload of \(sessionId.uuidString.prefix(8)) met a deletion from another device — applying it")
     }
 
-    /// Handle a soft-deleted remote record by deleting the local copy if it exists.
-    /// The copy is not kept in this device's Trash: the deletion was made, and
-    /// can be undone or made final, on the other device. Kept here, a session
-    /// deleted for good there could be restored here. So the file is removed
-    /// directly (`deleteWithoutTrash`), and a Trash that cannot take it does
-    /// not stop the deletion.
+    /// Handle a soft-deleted remote record by deleting the local copy if it exists
+    /// (`removeLocalCopy`).
+    ///
+    /// A local copy that could not be removed stays in the archive, and in
+    /// the sync state: the deletion is not counted, the sync ends as an error
+    /// rather than "Up to date", and the next pull, which lists the tombstone
+    /// again, tries once more.
     func handleDeletedRecord(sessionId: UUID, sessionIdString: String) -> (new: Int, deleted: Int) {
         var deletedCount = 0
         if manager.archive.exists(sessionId) {
             do {
-                try manager.archive.deleteWithoutTrash(sessionId)
-                manager.archive.discardTrashed(sessionId)
+                try removeLocalCopy(sessionId)
                 deletedCount = 1
             } catch {
-                debugLog("[CloudKit] Pull: Failed to delete local session \(sessionIdString.prefix(8)): \(error)")
+                debugLog("[CloudKit] Pull: Failed to delete local session \(sessionIdString.prefix(8)): \(error)", level: .warning)
+                manager.lastPullErrorMessage = String(
+                    localized: "A session deleted on another device couldn't be removed from this device. It will be tried again at the next sync.",
+                    bundle: LanguageManager.appBundle
+                )
+                return (0, 0)
             }
         }
         manager.state.markDeleted(sessionId)
         return (0, deletedCount)
+    }
+
+    /// The local copy of a session deleted on another device. It is normally
+    /// not kept in this device's Trash: the deletion was made, and can be
+    /// undone or made final, on the other device, and kept here a session
+    /// deleted for good there could be restored here. So the file is removed
+    /// directly (`deleteWithoutTrash`), which throws when the file will
+    /// neither go nor move into the Trash, keeping the session.
+    ///
+    /// A copy with a change of this device's still waiting to upload (queued,
+    /// `pendingUploadIds`: an edit made offline, say) goes to this device's
+    /// Trash instead, so the change is not lost unrecoverably; removed as
+    /// above when the Trash cannot take it.
+    private func removeLocalCopy(_ sessionId: UUID) throws {
+        if manager.state.pendingUploadIds.contains(sessionId) {
+            do {
+                try manager.archive.delete(sessionId)
+                return
+            } catch {
+                debugLog("[CloudKit] Pull: the Trash could not keep \(sessionId.uuidString.prefix(8))'s unsynced change: \(error)", level: .warning)
+            }
+        }
+        try manager.archive.deleteWithoutTrash(sessionId)
+        if !manager.archive.discardTrashed(sessionId) {
+            debugLog("[CloudKit] Pull: \(sessionId.uuidString.prefix(8)) left a copy in the Trash, removed when the Trash expires", level: .warning)
+        }
     }
 }

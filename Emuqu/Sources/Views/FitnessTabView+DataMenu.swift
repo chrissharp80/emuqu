@@ -97,8 +97,19 @@ extension FitnessTabView {
     /// opens a session file for a workout entry the INDEX already says ran for
     /// under a minute, and there are approximately none of those in a normal
     /// archive. Called on tab load and after an import so a rebuilt walk clears
-    /// its own card.
+    /// its own card. The scan reads candidate files, so it runs on a detached
+    /// task, as the launch path and the import sheet run it; when scans
+    /// overlap, only the newest one's result lands.
     func reloadInterruptedRecordings() {
-        interruptedRecordings = healthImporter.interruptedSessions(archive: collector.archive)
+        let archive = collector.archive
+        interruptedScanGeneration += 1
+        let generation = interruptedScanGeneration
+        Task {
+            let found = await Task.detached(priority: .userInitiated) {
+                HealthWorkoutImporter.scanInterruptedSessions(archive: archive)
+            }.value
+            guard generation == interruptedScanGeneration else { return }
+            interruptedRecordings = found
+        }
     }
 }

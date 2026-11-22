@@ -125,14 +125,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "8f9178cd1d775e49",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "2f5b9c5a202619d6",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "08fb02a1f8e571fd"
    }
   },
   {
    "key": "func SleepRefreshPolicy.applyFreshSleep(_:to:)",
-   "hash": "238b90f160d6736f",
-   "does": "Overwrites session.sleepSnapshot with fresh, sets sleepStartMs and sleepEndMs (both clamped >= 0) from fresh boundaries when present, and sets sleepSegments to ms ranges for multi-segment nights or nil for single-segment nights.",
+   "hash": "28e5401828c31b15",
+   "does": "Overwrites session.sleepSnapshot with fresh, sets sleepStartMs and sleepEndMs (both clamped >= 0) from fresh boundaries when present, and sets sleepSegments to ms ranges, each offset clamped >= 0 the same way, for multi-segment nights or nil for single-segment nights.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
@@ -153,12 +153,12 @@
     {
      "at": "+10",
      "cond": "fresh.segments.count <= 1",
-     "effect": "sleepSegments = nil and return; otherwise mapped to SleepSegmentMs array"
+     "effect": "sleepSegments = nil and return; otherwise mapped to SleepSegmentMs array with offsets clamped >= 0"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "e9f79b449cb7a7c9",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
    }
   },

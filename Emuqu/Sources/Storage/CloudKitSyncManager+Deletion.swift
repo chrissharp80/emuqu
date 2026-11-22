@@ -60,21 +60,64 @@ extension CloudDeletionCoordinator {
     /// surfaces as "retry on network".
     ///
     /// Once the wipe lands (or nothing existed), local bookkeeping is reset so
-    /// a future re-enable starts from scratch. `resetLocalSyncState` also
-    /// clears `zoneCreated` and sets `syncState = .idle`, so the next upload
-    /// (if the user keeps using the app with sync on) recreates an empty zone
-    /// via `ensureZoneExists` — correct.
+    /// a future re-enable starts from scratch, and iCloud Sync is turned off
+    /// with the recorded account forgotten: the user asked for their iCloud
+    /// data to be deleted, so nothing recreates the zones or uploads again
+    /// until they turn sync on, the same rule a deletion found by a sync
+    /// follows (`CloudAccountGuard.zoneWasDeleted`). `resetLocalSyncState`
+    /// also clears `zoneCreated` and sets `syncState = .idle`.
+    ///
+    /// Zones are deleted only in an account this device may delete from
+    /// (`mayDeleteInSignedInAccount`); in any other the remote step reports
+    /// failure, deletes nothing, and the purge tells the user to run it again
+    /// signed into their iCloud account. The account check runs inside the
+    /// same 30 s cap.
     private func performDeleteAllRemoteData() async -> Bool {
         let zoneNames = allCustomZoneIDs.map(\.zoneName).joined(separator: ", ")
         let outcome: Result<Bool, Error> = await manager.withTimeoutResult(seconds: 30) {
-            try await self.deleteCustomZonesOnce()
+            guard await self.mayDeleteInSignedInAccount() else { return false }
+            return try await self.deleteCustomZonesOnce()
         }
         guard Self.remoteDeletionSucceeded(outcome) else { return false }
+        manager.settingsManager.settings.iCloudSyncEnabled = false
+        CloudAccountIdentity.forget()
         manager.resetLocalSyncState()
         clearSanitizeDripState()
-        UserDefaults.standard.removeObject(forKey: Self.confirmedTombstonesKey)
-        debugLog("[CloudKit] Remote deletion complete — zones [\(zoneNames)] removed from private DB; local sync manager.state reset")
+        forgetConfirmedTombstones()
+        debugLog("[CloudKit] Remote deletion complete — zones [\(zoneNames)] removed from private DB; sync turned off, local sync manager.state reset")
         return true
+    }
+
+    /// Whether "Delete All My Data" may delete the app's zones in the
+    /// signed-in iCloud account: it is the account sync is enabled for
+    /// (`CloudAccountGuard.confirmAccount`, which adopts an unrecorded one as
+    /// a sync would), or no account is recorded and nothing shows the
+    /// signed-in one to be another person's (a reinstall, sync never turned
+    /// on). Not when the check finds a different account (and resets the
+    /// bookkeeping), when the app stopped sync earlier because the device was
+    /// signed into a different account, or when the account cannot be
+    /// checked.
+    private func mayDeleteInSignedInAccount() async -> Bool {
+        switch await manager.accountGuard.confirmAccount() {
+        case .confirmed:
+            return true
+        case .unavailable, .differentAccount:
+            debugLog("[CloudKit] Remote deletion skipped — the signed-in iCloud account could not be checked, or is not the one this device synced with", level: .warning)
+            return false
+        case .stopped:
+            // Nothing is recorded here (`CloudAccountIdentity.Verdict.awaitingOptIn`).
+            let mayDelete = CloudAccountIdentity.stopReason != .differentAccount
+            if !mayDelete {
+                debugLog("[CloudKit] Remote deletion skipped — sync was stopped for a different iCloud account", level: .warning)
+            }
+            return mayDelete
+        }
+    }
+
+    /// Forget which deletions iCloud confirmed: they describe zones that are
+    /// gone, or another account's.
+    func forgetConfirmedTombstones() {
+        UserDefaults.standard.removeObject(forKey: Self.confirmedTombstonesKey)
     }
 
     /// A zone-already-gone error counts as success: the remote data the user
@@ -154,6 +197,11 @@ extension CloudDeletionCoordinator {
                 return
             }
             noteDeletionConfirmed(sessionId)
+        } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
+            // The zone was deleted: no tombstone is written into a recreated
+            // one, and sync stops for the user to opt in again.
+            debugLog("[CloudKit] Delete sync found the zone gone (\(error.code.rawValue)) for \(sessionId.uuidString.prefix(8))", level: .warning)
+            _ = await manager.accountGuard.zoneWasDeleted()
         } catch {
             if CloudKitSyncManager.isPermanentSchemaError(error) {
                 manager.flagSchemaUnavailable(reason: error.localizedDescription)
@@ -252,7 +300,8 @@ extension CloudDeletionCoordinator {
     /// zone fine; this runs with a bounded concurrency of 6 so we don't
     /// hammer the zone's per-second rate limit. Each delete fails
     /// independently — no shared throw. A cancelled sync (the stall watchdog
-    /// fired) starts no further deletions.
+    /// fired), or one whose iCloud account is no longer confirmed, starts no
+    /// further deletions.
     ///
     /// Lock-safe copy via `deletedIds` — the raw `deletedSessionIds` set
     /// is mutated under `archiveLock` (delete / restore / tombstone
@@ -260,10 +309,18 @@ extension CloudDeletionCoordinator {
     ///
     /// First, the iCloud live backups of deleted sessions, and of sessions
     /// deleted forever, whose delete failed are deleted again
-    /// (`CloudKitLiveBackupManager.retryAwaitingDeletion`).
+    /// (`CloudKitLiveBackupManager.retryAwaitingDeletion`), and those of
+    /// sessions archived here and already in iCloud, which the backup no
+    /// longer protects.
+    ///
+    /// Writes nothing before onboarding's iCloud choice
+    /// (`cloudUploadsAllowed`): a tombstone is a write to iCloud like an
+    /// upload. The deletions stay listed and go up once it is allowed.
     func reconcileLocalDeletions() async {
+        guard manager.cloudUploadsAllowed else { return }
         let deleted = manager.archive.deletedIds
-        await manager.liveBackup.retryAwaitingDeletion(among: deleted.union(ForgottenSessions.ids))
+        let archivedAndInCloud = manager.state.uploadedSessionIds.filter { manager.archive.exists($0) }
+        await manager.liveBackup.retryAwaitingDeletion(among: deleted.union(ForgottenSessions.ids).union(archivedAndInCloud))
         let due = Self.tombstonesDue(among: deleted)
         guard !due.isEmpty else { return }
         debugLog("[CloudKit] Reconciling \(due.count) local deletions to iCloud")
@@ -282,7 +339,7 @@ extension CloudDeletionCoordinator {
     }
 
     private func addDeletionTask(to group: inout TaskGroup<Void>, from iterator: inout Set<UUID>.Iterator) {
-        guard !Task.isCancelled, let sessionId = iterator.next() else { return }
+        guard !Task.isCancelled, CloudAccountIdentity.isConfirmed, let sessionId = iterator.next() else { return }
         let syncManager = manager
         group.addTask { await syncManager.deletion.performUploadDeletion(sessionId: sessionId) }
     }

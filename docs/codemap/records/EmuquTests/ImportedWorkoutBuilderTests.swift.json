@@ -293,6 +293,25 @@
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "1934e1b5fbcc9365",
     "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a"
    }
+  },
+  {
+   "key": "func ImportedWorkoutBuilderTests.testAGPXFileParsesAndBuildsOffTheMainActor()",
+   "hash": "578e15a6a34e003d",
+   "does": "Parses a two-point, one-minute 'running' GPX with GPXImporter.parseWorkout, builds it with GPXImporter.buildSession and measures it with clampedDurationSeconds inside Task.detached (off the main actor: compiles only while the importer and builder are nonisolated), and asserts sport .run, 60 s and 61 samples.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parseWorkout(data:defaultSport:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.buildSession(from:)",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.clampedDurationSeconds(from:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.buildSession(from:)": "763d10ef1091b055",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parseWorkout(data:defaultSport:)": "b9bc9dc832b4f121",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.clampedDurationSeconds(from:to:)": "8c76e416342e0d73"
+   }
   }
  ],
  "deps": {}

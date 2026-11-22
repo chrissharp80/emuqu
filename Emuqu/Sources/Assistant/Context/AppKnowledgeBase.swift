@@ -45,7 +45,7 @@ enum AppKnowledgeBase {
       Per-screen suggested prompts available from the toolbar lightbulb.
     - **More** — profile + avatar, Trends (with the session calendar), Settings (search-enabled), Help, About. Past sessions also open from the Dashboard's Recent strip.
 
-    ## Recovery Score (v3.2.oct2026)
+    ## Recovery Score (v3.3.nov2026)
     - **0–100 composite**. Tier verdict: 90+ Excellent · 75–89 Good · 60–74 Fair · 45–59 Pay Attention · 30–44 Low · <30 Very low.
     - **Three factors** (D2 detail screen explains each):
       - **HRV — 60% weight** (the core signal). Strap-derived ln(RMSSD) vs the user's own baseline (up to 60 nights; from the 3rd night, cautious until the 7th).
@@ -193,7 +193,7 @@ enum AppKnowledgeBase {
     static let referenceCompact: String = """
     # Emuqu — quick reference
     Tabs (v2): Dashboard, Record, Fitness, Flo, More (Trends/Settings/Help live here; past sessions open from the Dashboard).
-    Recovery Score (v3.2.oct2026): 0–100 composite. HRV 60% · Sleep 25% · Vitals 15%. \
+    Recovery Score (v3.3.nov2026): 0–100 composite. HRV 60% · Sleep 25% · Vitals 15%. \
     SpO₂<95% adds a flat -10 penalty. Sleep HR is the strap's nocturnal analysis-window mean, \
     NOT Apple's daytime RHR — never compare them apples-to-apples mixed.
     Modes: Comeback (active = a score with vitals shifts to HRV 80% / Sleep 20% / Vitals 0% for 21 days). \
@@ -207,14 +207,17 @@ enum AppKnowledgeBase {
     Training break: user-settable range, hides load.
     Stryd / foot-pod power, FTMS cycling power and structured intervals are supported. AI can inform but not change settings.
     For app-feature, metric-explanation, or navigation questions (e.g. "what does DFA mean", \
-    "where's the export option", "what's TRIMP"), call `app.help.lookup(topic:)` — the full \
-    reference lives there. Valid topics: \(helpTopics.filter { $0 != "all" }.joined(separator: ", ")).
+    "where's the export option", "what's TRIMP"), call `lookup_fact` with key `app.help.lookup(<topic>)`, \
+    e.g. `app.help.lookup(navigation)` — the full reference lives there. \
+    Valid topics: \(helpTopics.filter { $0 != "all" }.joined(separator: ", ")).
     """
 
     /// Available topics for `lookup(topic:)`. Stable identifiers that
     /// match the section headers in `reference`. Interpolated into the
-    /// `app.help.lookup` tool description and into `referenceCompact`, so
-    /// the model is told exactly this list.
+    /// `app.help.lookup` fact description and into `referenceCompact`, so
+    /// the model is told exactly this list. The model reaches the fact
+    /// through the compact schema's `lookup_fact` tool, which
+    /// `referenceCompact` names: there is no tool named for it.
     static let helpTopics: [String] = [
         "tabs",
         "recovery_score",
@@ -251,7 +254,7 @@ enum AppKnowledgeBase {
     /// Topic aliases → the heading each one resolves to in `reference`.
     private static let topicHeadings: [String: String] = [
         "tabs": "Tabs (v2 layout — 5 tabs)",
-        "recovery_score": "Recovery Score (v3.2.oct2026)",
+        "recovery_score": "Recovery Score (v3.3.nov2026)",
         "modes": "Modes",
         "hrv_session_flow": "HRV session flow",
         "session": "HRV session flow",

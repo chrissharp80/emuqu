@@ -207,4 +207,45 @@ final class EffectiveSettingsTests: XCTestCase {
         s.cyclingFTPWatts = 245
         XCTAssertEqual(s.effectiveCyclingFTP, 245)
     }
+
+    // MARK: - Report email defaults
+
+    /// A field left holding only spaces names nobody: the next field in the
+    /// chain is used, and the address comes back trimmed. Before, the
+    /// spaces were the recipient and the mail went to nobody.
+    func testABlankRecipientFallsThroughToTheNextField() {
+        var s = settings()
+        s.defaultRecoveryEmailRecipient = "   "
+        s.defaultTrainingEmailRecipient = " coach@example.com "
+        XCTAssertEqual(s.resolvedDefaultEmailRecipient, "coach@example.com")
+        s.defaultTrainingEmailRecipient = ""
+        s.defaultEmailRecipient = "me@example.com"
+        XCTAssertEqual(s.resolvedDefaultEmailRecipient, "me@example.com")
+        s.defaultEmailRecipient = nil
+        XCTAssertNil(s.resolvedDefaultEmailRecipient)
+    }
+
+    /// A Cc of only commas and spaces names nobody, so the next field's
+    /// list is used.
+    func testACcOfOnlyCommasFallsThroughToTheNextField() {
+        var s = settings()
+        s.defaultRecoveryEmailCC = " , ,"
+        s.defaultTrainingEmailCC = "a@example.com, b@example.com"
+        XCTAssertEqual(s.resolvedDefaultEmailCC, ["a@example.com", "b@example.com"])
+    }
+
+    /// Workout reports try the training field first, then recovery, then
+    /// the legacy one; an empty training field no longer becomes a blank
+    /// recipient.
+    func testWorkoutReportsPreferTheTrainingFieldThenFallBack() {
+        var s = settings()
+        s.defaultRecoveryEmailRecipient = "recovery@example.com"
+        s.defaultTrainingEmailRecipient = "training@example.com"
+        XCTAssertEqual(s.resolvedTrainingEmailRecipient, "training@example.com")
+        s.defaultTrainingEmailRecipient = ""
+        XCTAssertEqual(s.resolvedTrainingEmailRecipient, "recovery@example.com")
+        s.defaultRecoveryEmailCC = "r@example.com"
+        s.defaultTrainingEmailCC = "  "
+        XCTAssertEqual(s.resolvedTrainingEmailCC, ["r@example.com"])
+    }
 }

@@ -54,7 +54,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "8c10933c1ee90442",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "94a443709f905fd4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvState": "2aa570eee8bc1a20",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvVariant": "ef4a6bea670ca2bc",
@@ -80,7 +80,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "8c10933c1ee90442",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "94a443709f905fd4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepChipSession": "3eb6b2a57d7ac377",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepState": "0b12fc7ffdb4836c",
@@ -104,7 +104,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "8c10933c1ee90442",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "94a443709f905fd4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.vitalsState": "1d742df21e7ba96b",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.vitalsVariant": "6bafc204c0896c34"
@@ -135,7 +135,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "8c10933c1ee90442",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "94a443709f905fd4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.loadState": "9f5f344576dfd7e4",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.loadVariant": "e3ceb1cab36083f0",
@@ -220,7 +220,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepChipSession",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.cachedDashboard"
    ],
    "reads": [
@@ -254,7 +254,7 @@
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "b70c38d229828097",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.sleepChipSession": "3eb6b2a57d7ac377",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.cachedDashboard": "5e06a00713a0a483",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
     "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
@@ -875,14 +875,15 @@
   },
   {
    "key": "func DashboardV2View.copyHeroDataToClipboard()",
-   "hash": "7b4795417533ff86",
-   "does": "Copies date, recovery score, RMSSD, mean HR (the whole-recording mean, recordingMeanHR) and DFA α1 of the overnight session as plain text to a local-only pasteboard and toasts \"Copied.\"",
+   "hash": "ec1094ec0e403144",
+   "does": "Copies date (app language), recovery score, RMSSD, mean HR (the whole-recording mean, recordingMeanHR) and DFA α1 (two decimals in the app locale, localized label) of the overnight session as plain text to a local-only pasteboard and toasts \"Copied.\"",
    "entry": "hero context menu \"Copy data\"",
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore",
     "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.copy(_:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
    "reads": [],
    "writes": [
@@ -902,12 +903,13 @@
     {
      "at": "+8",
      "cond": "dfaAlpha1 non-nil",
-     "effect": "append DFA line formatted with Locale.current (not app locale)"
+     "effect": "append the localized 'DFA α1: <value>' line"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR": "340f01a3ede11a45",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "acbdebbf6a8768d8",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "b92aed75b0ecc3d2",

@@ -1,185 +1,150 @@
 {
  "file": "EmuquTests/RRCollectorTests.swift",
- "hash": "0486e2084173cb06",
- "role": "XCTest suites for RRCollector legacy persisted-recording-state read/clear/recovery, CollectorError descriptions, and (RRCollectorSaveResultTests) the save results the screens act on: the re-score's re-archive and the segment unlink.",
+ "hash": "31c5ef40bf9b7067",
+ "role": "XCTest suites for RRCollector's persisted recording state (the current atomic save round-trip, clearing, and the legacy three-key migration), CollectorError descriptions, and (RRCollectorSaveResultTests) the save results the screens act on: the re-score's re-archive and the segment unlink.",
  "types": [
   "RRCollectorTests: class — @MainActor XCTestCase for RRCollector lifecycle basics",
   "extension RRCollectorTests — CollectorError description test",
   "RRCollectorSaveResultTests: class — @MainActor XCTestCase over a hermetic archive, baseline file and mock HealthKit"
  ],
  "state": [
-  "collector: lazy var RRCollector() (shared AppDependencies wiring)",
-  "ud:RRCollector.activeRecordingStartTime / RRCollector.activeRecordingSessionId / RRCollector.activeRecordingSessionType (seeded and removed)",
+  "collector: lazy var built by makeCollector() over a temporary archive, raw-backup folder and baseline file (storageDirectory RRCollectorTests-<UUID>)",
+  "hostRecordingState: HostDefaults of HostDefaults.recordingState, set aside in setUp and restored in tearDown",
+  "ud:RRCollector.persistedRecordingState and the legacy RRCollector.activeRecording* keys (written by tests, the host's put back)",
   "RRCollectorSaveResultTests: lazy directory (<tmp>/RRCollectorSaveResultTests-<UUID>), lazy archive over it (merge mode off), lazy collector (makeCollector), nightStart 2100-01-01T00:00:00Z"
  ],
- "toplevel": "lazy collector so setUp's state clearing runs before RRCollector() construction. RRCollectorSaveResultTests builds its directory, archive and collector lazily on first use.",
+ "toplevel": "lazy collector so setUp sets the host's recording state aside before the collector is built. RRCollectorSaveResultTests builds its directory, archive and collector lazily on first use.",
  "units": [
   {
-   "key": "func RRCollectorTests.clearPersistedState()",
-   "hash": "04fddd7588acd6b7",
-   "does": "Clears PersistedRecordingState (modern, legacy and dismissed keys) and removes the three legacy RRCollector.activeRecording* keys.",
+   "key": "func RRCollectorTests.makeCollector()",
+   "hash": "cb0b67fce4f26fba",
+   "does": "Builds an RRCollector with a new PolarManager and HealthKitManager over a SessionArchive, a RawRRBackup and a BaselineTracker all in this test's storageDirectory, never the host's stores.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clearLegacy()"
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)"
    ],
    "reads": [],
-   "writes": [
-    "ud:UserDefaultsKeys.persistedRecordingState",
-    "ud:RRCollector.dismissedInterruptedSessionIds",
-    "ud:RRCollector.activeRecordingStartTime",
-    "ud:RRCollector.activeRecordingSessionId",
-    "ud:RRCollector.activeRecordingSessionType"
-   ],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()": "33e94c72eef0b465",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clearLegacy()": "4c304e176a44c1e5"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "a41f1bac098eee8d",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)": "d9768b730a189edf",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)": "1eba2516dc6628c1",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "fdbbc520aa4c0476"
    }
   },
   {
    "key": "func RRCollectorTests.setUp()",
-   "hash": "1a96b134e71d9707",
-   "does": "setUp: clears persisted recording state and pins the app language to English.",
+   "hash": "c66495ecdb1278c0",
+   "does": "setUp: sets the host's persisted recording state aside (HostDefaults.recordingState) and pins the app language to English.",
    "entry": "XCTest runner: setUp before each test",
    "calls": [
-    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.clearPersistedState()",
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.setAside(_:)",
     "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()"
    ],
-   "reads": [],
+   "reads": [
+    "ud:HostDefaults.recordingState"
+   ],
    "writes": [
-    "ud:UserDefaultsKeys.persistedRecordingState",
-    "ud:RRCollector.dismissedInterruptedSessionIds",
-    "ud:RRCollector.activeRecordingStartTime",
-    "ud:RRCollector.activeRecordingSessionId",
-    "ud:RRCollector.activeRecordingSessionType",
+    "ud:HostDefaults.recordingState (removed)",
     "mem:LanguageManager.shared language (AppLanguage.apply persists it; only when host language is not English, restored by teardown block)"
    ],
    "branches": [],
    "deps": {
-    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "53b148fe7d5c46b7",
-    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.clearPersistedState()": "4c04b7cc04cb2665"
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.setAside(_:)": "7fdeccb8d06ee6ee",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "53b148fe7d5c46b7"
    }
   },
   {
    "key": "func RRCollectorTests.tearDown()",
-   "hash": "4c5eb8fa81d7ac56",
-   "does": "tearDown: deletes the lazy collector's currentSession from collector.archive if set (try?), then clears persisted state.",
+   "hash": "e742a3a49712cb24",
+   "does": "tearDown: puts the host's recording state back (and drops whatever a test left), then removes the test's storage directory (a missing one is ignored).",
    "entry": "XCTest runner: tearDown after each test",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
-    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.clearPersistedState()"
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.restore()",
+    "ext:FileManager.removeItem(at:)"
    ],
    "reads": [],
    "writes": [
-    "archive:SessionArchive.delete",
-    "ud:UserDefaultsKeys.persistedRecordingState",
-    "ud:RRCollector.dismissedInterruptedSessionIds",
-    "ud:RRCollector.activeRecordingStartTime",
-    "ud:RRCollector.activeRecordingSessionId",
-    "ud:RRCollector.activeRecordingSessionType"
+    "ud:HostDefaults.recordingState (restored)",
+    "file:<tmp>/RRCollectorTests-<UUID>/ (removed)"
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "collector.currentSession is non-nil",
-     "effect": "deletes it from the shared archive, error swallowed; otherwise nothing"
+     "at": "+3",
+     "cond": "removing the directory throws",
+     "effect": "ignored: a test that built no collector wrote nothing"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "b82f95f14f120618",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "4d6afc6970c97bb2",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "4ba35bfe1dd469ec",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ac5fb66c0359130b",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
-    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.clearPersistedState()": "4c04b7cc04cb2665"
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.restore()": "1d370b6a567ac8ba"
    }
   },
   {
    "key": "func RRCollectorTests.testPersistedRecordingStateSaved()",
-   "hash": "65146074cdc2a6de",
-   "does": "Seeds the three legacy activeRecording* keys and asserts collector.getPersistedRecordingState returns the same session id and type (legacy fallback in PersistedRecordingState.load).",
+   "hash": "15efbe64659be838",
+   "does": "Saves a recording through persistRecordingState (the atomic record recording start writes) and asserts getPersistedRecordingState reads back the same id, type and start time, the atomic key is written and the legacy session-id key is not.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()",
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.makeCollector()",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.loadLegacy()"
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()"
    ],
    "reads": [
     "ud:UserDefaultsKeys.persistedRecordingState",
-    "ud:RRCollector.activeRecording* legacy keys"
+    "ud:RRCollector.activeRecordingSessionId"
    ],
    "writes": [
-    "ud:RRCollector.activeRecordingStartTime",
-    "ud:RRCollector.activeRecordingSessionId",
-    "ud:RRCollector.activeRecordingSessionType"
+    "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "286e8ca1bed4c447",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.loadLegacy()": "3977491cf0f93f71",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "1cf85a75d85e2e34",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "b82f95f14f120618",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "4d6afc6970c97bb2",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "4ba35bfe1dd469ec",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ac5fb66c0359130b",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "819342ac0cbfaaea",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.makeCollector()": "42afe2a4f9482e6a"
    }
   },
   {
    "key": "func RRCollectorTests.testPersistedStateCleared()",
-   "hash": "9ec5d09d223906e6",
-   "does": "Seeds legacy keys, asserts hasPersistedRecordingState true, then calls the test's own clearPersistedState helper and asserts false.",
+   "hash": "8ff1afd92a6fcc2d",
+   "does": "Saves a recording through persistRecordingState, asserts hasPersistedRecordingState, clears it with clearPersistedRecordingStatePublic and asserts it is gone.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()",
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.makeCollector()",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::var RRCollector.hasPersistedRecordingState",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.loadLegacy()",
-    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.clearPersistedState()"
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()"
    ],
    "reads": [
     "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "writes": [
-    "ud:RRCollector.activeRecording* legacy keys"
+    "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "286e8ca1bed4c447",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.loadLegacy()": "3977491cf0f93f71",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "1cf85a75d85e2e34",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "a512c5e01802946f",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "819342ac0cbfaaea",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::var RRCollector.hasPersistedRecordingState": "ac1f885a46cd8ed2",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "b82f95f14f120618",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "4d6afc6970c97bb2",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "4ba35bfe1dd469ec",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ac5fb66c0359130b",
-    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.clearPersistedState()": "4c04b7cc04cb2665"
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.makeCollector()": "42afe2a4f9482e6a"
    }
   },
   {
    "key": "func RRCollectorTests.testRecoveryFromPersistedState()",
-   "hash": "70c41bcf6634f230",
-   "does": "Seeds legacy keys (start 1 h ago), builds a fresh RRCollector, asserts hasPersistedRecordingState and recovered id/type/start time within 1 s.",
+   "hash": "7dc4557b9bbe15b8",
+   "does": "Seeds the three legacy activeRecording* keys (start 1 h ago), builds a fresh collector (makeCollector), asserts hasPersistedRecordingState and the recovered id/type/start time within 1 s, and that the load moved the state into the atomic key and removed the legacy keys.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()",
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.makeCollector()",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::var RRCollector.hasPersistedRecordingState",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()",
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()",
@@ -190,7 +155,8 @@
     "ud:RRCollector.activeRecording* legacy keys"
    ],
    "writes": [
-    "ud:RRCollector.activeRecording* legacy keys"
+    "ud:RRCollector.activeRecording* legacy keys",
+    "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "branches": [],
    "deps": {
@@ -199,11 +165,8 @@
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.loadLegacy()": "3977491cf0f93f71",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "1cf85a75d85e2e34",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::var RRCollector.hasPersistedRecordingState": "ac1f885a46cd8ed2",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "b82f95f14f120618",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "4d6afc6970c97bb2",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "4ba35bfe1dd469ec",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ac5fb66c0359130b",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.makeCollector()": "42afe2a4f9482e6a"
    }
   },
   {
@@ -485,7 +448,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.adoptArchivedCopy(_:)": "43796119c333b684",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.adoptArchivedCopy(_:)": "d06b512952cbe98f",
     "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.night()": "7cd693f1c6b696c9",
     "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.reviewCard()": "3a8309e433e450aa"
    }

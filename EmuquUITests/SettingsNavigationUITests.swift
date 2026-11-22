@@ -288,12 +288,11 @@ final class SettingsNavigationUITests: XCTestCase {
         // Zip is the last entry in the list, so it is below
         // the fold on every device; waiting for it in place reports it missing.
         //
-        // Completeness is not checked here, and nothing else checks it
-        // either: the list in `PrivacyPolicyView` is hand-written and can go
-        // stale (RxSwift stopped being a dependency when the Polar SDK moved
-        // to 8.2.0) with no gate comparing it to `Package.resolved`. What
-        // this test owns is that the page renders and scrolls to the three
-        // entries named below.
+        // Completeness is not checked here: the list in `PrivacyPolicyView`
+        // is hand-written, and `scripts/check_sbom_drift.sh` is the gate that
+        // holds it to `Package.resolved`, name for name and version for
+        // version. What this test owns is that the page renders and scrolls
+        // to the three entries named below.
         let names = ["polar-ble-sdk", "swift-protobuf", "Zip"]
         for name in names {
             let pkg = app.staticTexts[name]

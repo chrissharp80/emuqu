@@ -24,30 +24,45 @@ extension SessionDataMigrations {
         // Only workout files are opened, and off the main actor: retrieval
         // decrypts and decodes each one (SessionArchive owns its own lock).
         let archive = self.archive
-        let (cleaned, examined) = await Task.detached(priority: .utility) {
+        let (cleaned, failed, examined) = await Task.detached(priority: .utility) {
             let workouts = archive.entries.filter { $0.sessionType == .workout }
-            let cleaned = workouts.filter { Self.stripWorkoutSleepSnapshot($0, archive: archive) }.count
-            return (cleaned, workouts.count)
+            let outcomes = workouts.map { Self.stripWorkoutSleepSnapshot($0, archive: archive) }
+            return (outcomes.filter { $0 == .stripped }.count, outcomes.filter { $0 == .failed }.count, workouts.count)
         }.value
+        // A workout whose write failed still carries the snapshot: leave the
+        // flag unset so the next launch tries again.
+        guard failed == 0 else {
+            debugLog("[WorkoutSleepCleanup] Stripped sleepSnapshot from \(cleaned) of \(examined) workouts; \(failed) could not be written — retrying next launch", level: .warning)
+            return
+        }
         defaults.set(true, forKey: Self.workoutSleepCleanupKey)
         debugLog("[WorkoutSleepCleanup] Complete. Stripped sleepSnapshot from \(cleaned) of \(examined) workouts.")
     }
 
-    /// A workout should never carry a sleep snapshot. Returns whether one was
-    /// actually removed.
-    nonisolated private static func stripWorkoutSleepSnapshot(_ entry: SessionArchiveEntry, archive: SessionArchive) -> Bool {
+    /// What `stripWorkoutSleepSnapshot` did to one workout.
+    private enum WorkoutCleanupOutcome {
+        case stripped
+        case unchanged
+        case failed
+    }
+
+    /// A workout should never carry a sleep snapshot. Whether one was
+    /// removed, there was none to remove, or the write failed. Only that
+    /// field is changed, on the archive's copy as it is at the write, so
+    /// nothing saved since the read is put back.
+    nonisolated private static func stripWorkoutSleepSnapshot(
+        _ entry: SessionArchiveEntry, archive: SessionArchive
+    ) -> WorkoutCleanupOutcome {
         guard let session = archive.retrieveOrLog(entry.sessionId, caller: "WorkoutSleepCleanup"),
               session.sessionType == .workout,
               session.sleepSnapshot != nil
-        else { return false }
-        var updated = session
-        updated.sleepSnapshot = nil
+        else { return .unchanged }
         do {
-            try archive.archive(updated)
-            return true
+            try archive.update(session.id, requestingReupload: false) { $0.sleepSnapshot = nil }
+            return .stripped
         } catch {
             debugLog("[WorkoutSleepCleanup] Failed to re-archive \(session.id.uuidString.prefix(8)): \(error)", level: .warning)
-            return false
+            return .failed
         }
     }
 }

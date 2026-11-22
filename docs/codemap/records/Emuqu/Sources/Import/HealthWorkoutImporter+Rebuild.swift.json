@@ -14,8 +14,23 @@
  "units": [
   {
    "key": "func HealthWorkoutImporter.interruptedSessions(archive:days:now:)",
-   "hash": "9ffdf2df3f088ecb",
-   "does": "Scans archived workout entries from the last `days` (default 30), returns the ones that are rebuildable stubs (captured 0-60 s with a readable sport), newest first, and logs one diagnostic line listing every scanned workout's captured seconds.",
+   "hash": "87e1b88d231d211f",
+   "does": "Forwards to scanInterruptedSessions(archive:days:now:): the rebuildable interrupted workout stubs of the last `days`, newest first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.scanInterruptedSessions(archive:days:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.scanInterruptedSessions(archive:days:now:)": "93d5b77d66bb3178"
+   }
+  },
+  {
+   "key": "func HealthWorkoutImporter.scanInterruptedSessions(archive:days:now:)",
+   "hash": "4430aca392897c48",
+   "does": "Nonisolated (callable off the main actor): Scans archived workout entries from the last `days` (default 30), returns the ones that are rebuildable stubs (captured 0-60 s with a readable sport), newest first, and logs one diagnostic line listing every scanned workout's captured seconds.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)",

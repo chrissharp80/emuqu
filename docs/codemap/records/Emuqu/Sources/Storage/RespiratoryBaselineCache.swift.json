@@ -26,7 +26,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.read(key:maxAgeSeconds:)": "31b656e34952fb47"
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.read(key:maxAgeSeconds:)": "a0774f335f4af6c2"
    }
   },
   {
@@ -43,7 +43,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.write(_:key:)": "cd4754431492a02c"
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.write(_:key:)": "3194fae699d68d8d"
    }
   },
   {
@@ -61,19 +61,23 @@
   },
   {
    "key": "func BaselineSnapshot.read(key:maxAgeSeconds:)",
-   "hash": "ac39f5bcb1a90b52",
-   "does": "Reads Data at UserDefaults.standard[key], JSON-decodes a BaselineSnapshot and returns it unless it is older than maxAgeSeconds measured from Date() now.",
+   "hash": "4dfdb67469dae938",
+   "does": "Reads Data at UserDefaults.standard[key], opens it with the app's key (JSONFileSeal.app; plain JSON an older build wrote passes through) and decodes a BaselineSnapshot, returning it unless it is older than maxAgeSeconds measured from Date() now.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)"
+   ],
    "reads": [
-    "ud:<key> (RespiratoryBaselineCache.v1 or WristTemperatureBaselineCache.v1)"
+    "ud:<key> (RespiratoryBaselineCache.v1 or WristTemperatureBaselineCache.v1)",
+    "kc:AppConfig.keychainService / session-encryption-key (EncryptionManager, via JSONFileSeal.app)"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "no data under key, or JSON decode fails (try?)",
-     "effect": "returns nil; decode error swallowed silently (no log), else continue"
+     "cond": "no data under key, or it cannot be opened or decoded (key out of reach, damage)",
+     "effect": "returns nil; the failure logged as '<key>.decode'"
     },
     {
      "at": "+4",
@@ -81,30 +85,36 @@
      "effect": "returns nil (stale), else returns snapshot"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
   },
   {
    "key": "func BaselineSnapshot.write(_:key:)",
-   "hash": "b097abeba6a3eed1",
-   "does": "JSON-encodes BaselineSnapshot(value, lastUpdated: now) and stores it at UserDefaults.standard[key]; an encode failure is logged through attempt as '<key>.encode' and nothing is stored.",
+   "hash": "da1701a1443f584f",
+   "does": "Encodes BaselineSnapshot(value, lastUpdated: now), seals it with the app's key (JSONFileSeal.app) and stores it at UserDefaults.standard[key]; an encode or seal failure (no key reachable) is logged through attempt as '<key>.encode' and nothing is stored.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:JSONEncoder.encode",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)",
     "ext:UserDefaults.set"
    ],
-   "reads": [],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key (EncryptionManager, via JSONFileSeal.app)"
+   ],
    "writes": [
     "ud:<key> (RespiratoryBaselineCache.v1 or WristTemperatureBaselineCache.v1)"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "encode succeeds",
+     "cond": "encode and seal succeed",
      "effect": "store; else logged, nothing stored"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   }

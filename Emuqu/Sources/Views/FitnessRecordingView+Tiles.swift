@@ -109,7 +109,7 @@ extension FitnessRecordingView {
     /// they do not show "—" all session.
     @ViewBuilder
     private var liveTrendTiles: some View {
-        if let drift = WorkoutLiveTrends.hrDriftPercent(samples: recorder.samplesView) {
+        if let drift = liveTally.hrDriftPercent {
             metricTile(
                 icon: "waveform.path.ecg",
                 label: labels.hrDrift,
@@ -122,7 +122,7 @@ extension FitnessRecordingView {
 
     @ViewBuilder
     private var decouplingTile: some View {
-        if let dec = WorkoutLiveTrends.aerobicDecouplingPercent(samples: recorder.samplesView) {
+        if let dec = liveTally.aerobicDecouplingPercent {
             metricTile(
                 icon: "arrow.down.right.circle",
                 label: labels.decoupling,
@@ -374,10 +374,16 @@ extension FitnessRecordingView {
     /// Average HR over the captured samples. Live-computed so it reflects
     /// "the workout so far" not the current-beat number on the hero card.
     var avgHRLabel: String {
-        let hrValues = recorder.samplesView.compactMap(\.heartRate)
-        guard !hrValues.isEmpty else { return "—" }
-        let mean = Double(hrValues.reduce(0, +)) / Double(hrValues.count)
+        guard let mean = liveTally.sessionAverageHR else { return "—" }
         return "\(Int(mean.rounded()))"
+    }
+
+    /// The recorder's live trend tally (`WorkoutLiveTrends.Tally`), brought up
+    /// to its sample buffer: kept as the buffer grows, so a tick does not
+    /// rescan every sample. Reading the buffer here keeps the tiles observing
+    /// it as before.
+    var liveTally: WorkoutLiveTrends.Tally {
+        recorder.syncedLiveTrends()
     }
 
     var peakHRCaption: String? {
@@ -723,7 +729,6 @@ extension FitnessRecordingView {
         case .idle: "mic.circle.fill"
         case .starting: "ellipsis.circle.fill"
         case .listening: "waveform.circle.fill"
-        case .thinking: "ellipsis.circle.fill"
         case .speaking: "speaker.wave.3.fill"
         case .triggerSpeaking: "exclamationmark.circle.fill"
         }
@@ -734,7 +739,6 @@ extension FitnessRecordingView {
         case .idle: String(localized: "Talk", bundle: LanguageManager.appBundle)
         case .starting: String(localized: "Connecting…", bundle: LanguageManager.appBundle)
         case .listening: String(localized: "Listening…", bundle: LanguageManager.appBundle)
-        case .thinking: String(localized: "Thinking…", bundle: LanguageManager.appBundle)
         case .speaking: String(localized: "Tap to interrupt", bundle: LanguageManager.appBundle)
         case .triggerSpeaking: String(localized: "Alert", bundle: LanguageManager.appBundle)
         }
@@ -745,7 +749,6 @@ extension FitnessRecordingView {
         case .idle: AppTheme.primary
         case .starting: AppTheme.mist
         case .listening: AppTheme.sage
-        case .thinking: AppTheme.mist
         case .speaking: AppTheme.dustyRose
         case .triggerSpeaking: AppTheme.fitnessAccent
         }
@@ -771,6 +774,10 @@ private struct StableMapCard: View {
     /// when the track grows meaningfully, not every tick. Keeps the map
     /// from panning with every GPS sample.
     @State private var lastFramedCount: Int = 0
+    /// The track's coordinates, kept in step with `track` by `syncCoordinates`
+    /// on each new fix, so a body pass (about once a second) does not remap
+    /// the whole route.
+    @State private var coordinates: [CLLocationCoordinate2D] = []
 
     var body: some View {
         ZStack {
@@ -787,8 +794,24 @@ private struct StableMapCard: View {
         // Keyed on the newest fix, not the count: a seed fix replaced by the
         // first accurate one keeps the count at 1 but must still reframe.
         // `.onAppear` frames a track that is already there when the card mounts.
-        .onChange(of: track.last?.timestamp) { _, _ in reframe() }
-        .onAppear { reframe() }
+        .onChange(of: track.last?.timestamp) { _, _ in trackChanged() }
+        .onAppear { trackChanged() }
+    }
+
+    private func trackChanged() {
+        syncCoordinates()
+        reframe()
+    }
+
+    /// The track only grows once it has two fixes, so only the new tail is
+    /// mapped then; a first fix replacing the seed, or a track that did not
+    /// grow, is mapped whole.
+    private func syncCoordinates() {
+        if coordinates.count > 1, track.count > coordinates.count {
+            coordinates.append(contentsOf: track[coordinates.count...].map(\.coordinate))
+        } else {
+            coordinates = track.map(\.coordinate)
+        }
     }
 
     /// Always present so the card height never shifts while GPS is still
@@ -819,8 +842,7 @@ private struct StableMapCard: View {
     }
 
     private var liveRouteMap: some View {
-        let coordinates = track.map(\.coordinate)
-        return Map(position: $position) {
+        Map(position: $position) {
             if coordinates.count >= 2 {
                 MapPolyline(coordinates: coordinates)
                     .stroke(AppTheme.fitnessAccent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
@@ -860,7 +882,7 @@ private struct StableMapCard: View {
         guard newCount > 0, Self.shouldReframe(count: newCount, lastFramed: lastFramedCount) else { return }
         lastFramedCount = newCount
         if newCount >= 2 {
-            position = .region(Self.regionForTrack(track.map(\.coordinate)))
+            position = .region(Self.regionForTrack(coordinates))
         } else if let last = track.last?.coordinate {
             position = .region(MKCoordinateRegion(
                 center: last,

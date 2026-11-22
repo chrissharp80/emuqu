@@ -345,6 +345,47 @@ final class AssistantContextBuilderTests: XCTestCase {
         XCTAssertTrue(cloud.contains("5 days ago"), "the stale night must carry its age — got: \(cloud)")
     }
 
+    /// The compact render (the on-device model, the no-tools fallback) heads
+    /// the latest session with the day it is from, as the cloud line does:
+    /// an old night is never "today's session".
+    func testCompactRenderHeadsTheLatestSessionWithItsDay() {
+        let session = makeSession(recoveryScore: 8.2)
+        let wake = session.endDate ?? session.startDate
+        let context = ContextBuilder.build(latestSession: session, recentSessions: [session], userSettings: makeUserSettings())
+        guard let snapshot = context.today else { return XCTFail("the latest session is in the context") }
+        XCTAssertEqual(AssistantContext.compactSessionHeader(snapshot, now: wake), "--- Session — TODAY ---")
+        let stale = AssistantContext.compactSessionHeader(snapshot, now: wake.addingTimeInterval(4 * 86400))
+        XCTAssertFalse(stale.contains("TODAY"), "a four-day-old night must not be headed today — got: \(stale)")
+        XCTAssertTrue(stale.contains("4 days ago"), "the stale night's header must carry its age — got: \(stale)")
+    }
+
+    /// The compact app reference points the model at a tool the compact
+    /// schema really has, so the manual is reachable: `lookup_fact` with an
+    /// `app.help.lookup(<topic>)` key.
+    @MainActor
+    func testTheAppManualIsReachedThroughARealTool() {
+        XCTAssertTrue(AppKnowledgeBase.referenceCompact.contains("`lookup_fact`"))
+        XCTAssertTrue(AppKnowledgeBase.referenceCompact.contains("app.help.lookup(navigation)"))
+        XCTAssertTrue(CompactToolRouter.readTools().contains { $0.name == "lookup_fact" })
+    }
+
+    /// The newest score says how old it is, so it is not presented as
+    /// today's after nights without the strap.
+    func testTheNewestScoreCarriesItsAge() {
+        let session = makeSession(recoveryScore: 8.2)
+        let wake = session.endDate ?? session.startDate
+        guard case let .record(fields) = RecoveryNamespace.latestScoreRecord(for: session, now: wake.addingTimeInterval(4 * 86400)) else {
+            return XCTFail("a scored night resolves to a record")
+        }
+        guard case .integer(4)? = fields["days_ago"], case .boolean(false)? = fields["is_today"] else {
+            return XCTFail("a four-day-old score must say so — got \(fields)")
+        }
+        guard case let .record(todays) = RecoveryNamespace.latestScoreRecord(for: session, now: wake),
+              case .boolean(true)? = todays["is_today"] else {
+            return XCTFail("this morning's score is today's")
+        }
+    }
+
     // MARK: - Generated capability index (progressive-disclosure menu)
 
     /// The index is generated from the real read-tool catalog, so it can't

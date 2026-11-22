@@ -14,15 +14,14 @@ final class RespirationAnalysisTests: XCTestCase {
         XCTAssertNil(result, "Should return nil for <60 samples")
     }
 
-    func testExactMinimumDataProcesses() {
-        // 60 samples should be processed (may still return nil if signal is constant)
-        let rr = Array(repeating: 800.0, count: 60)
+    /// Sixty beats, the minimum, are analysed: a 15 breaths/min modulation
+    /// over exactly 60 beats (48 s) is found, where 59 beats return nil above.
+    func testExactMinimumDataProcesses() throws {
+        let rr = (0 ..< 60).map { 800.0 + 30.0 * sin(2.0 * .pi * 0.25 * Double($0) * 0.8) }
 
-        // Constant signal has no peak in respiratory band → nil is acceptable
-        let result = RespirationAnalyzer.estimateRespirationRate(rr)
-
-        // Just verifying it doesn't crash — constant RR has no respiratory modulation
-        _ = result
+        let rate = try XCTUnwrap(RespirationAnalyzer.estimateRespirationRate(rr),
+                                 "60 beats is the minimum the estimator analyses")
+        XCTAssertEqual(rate, 15.0, accuracy: 3.0)
     }
 
     // MARK: - Known Respiratory Frequency
@@ -104,26 +103,15 @@ final class RespirationAnalysisTests: XCTestCase {
         XCTAssertNil(RespirationAnalyzer.estimateRespirationRate(rr))
     }
 
-    func testRejectsImplausiblyHighRate() {
-        // Frequency above 0.67 Hz = 40 bpm
-        let count = 300
-        var rr = [Double]()
-        var t = 0.0
-        for _ in 0 ..< count {
-            let modulation = 20.0 * sin(2.0 * .pi * 0.8 * t)
-            rr.append(800.0 + modulation)
-            t += 0.8
-        }
+    /// The estimator reports only rates inside its 9-30 breaths/min search
+    /// band. A 0.8 Hz (48/min) modulation sampled once per 0.8 s beat
+    /// (1.25 Hz) aliases to 0.45 Hz, inside the band, so a rate comes back,
+    /// and it is the band's, never one above 40.
+    func testRejectsImplausiblyHighRate() throws {
+        let rr = (0 ..< 300).map { 800.0 + 20.0 * sin(2.0 * .pi * 0.8 * Double($0) * 0.8) }
 
-        let result = RespirationAnalyzer.estimateRespirationRate(rr)
-
-        if let rate = result {
-            XCTAssertLessThanOrEqual(
-                rate,
-                40.0,
-                "Respiration rate should not exceed 40 bpm"
-            )
-        }
+        let rate = try XCTUnwrap(RespirationAnalyzer.estimateRespirationRate(rr))
+        XCTAssertTrue((9.0 ... 30.0).contains(rate), "A rate outside the search band was reported: \(rate)")
     }
 
     // MARK: - Constant Signal
@@ -148,5 +136,49 @@ final class RespirationAnalysisTests: XCTestCase {
         // Should not crash, should return nil
         let result = RespirationAnalyzer.estimateRespirationRate(rr)
         XCTAssertNil(result)
+    }
+
+    // MARK: - Beats left out
+
+    /// Before, the pipeline passed only the kept beats and the rate was timed
+    /// by their summed intervals, so with every fifth beat dropped as an
+    /// artifact the 300 s of a 15 breaths/min recording read as 240 s and the
+    /// rate as about 19. Timed by the beats' own times, it reads 15.
+    func testBeatsLeftOutDoNotRaiseTheRate() throws {
+        var rr: [Double] = []
+        var times: [Double] = []
+        var t = 0.0
+        for index in 0 ..< 375 {
+            let interval = 800.0 + 40.0 * sin(2.0 * .pi * 0.25 * t)
+            if !index.isMultiple(of: 5) {
+                rr.append(interval)
+                times.append(t)
+            }
+            t += interval / 1_000
+        }
+        let rate = try XCTUnwrap(RespirationAnalyzer.estimateRespirationRate(rr, beatTimes: times))
+        XCTAssertEqual(rate, 15, accuracy: 1)
+        let collapsed = try XCTUnwrap(RespirationAnalyzer.estimateRespirationRate(rr))
+        XCTAssertGreaterThan(collapsed, 17, "Timed by the kept intervals alone, the same beats read high")
+    }
+
+    /// Before, the peak had to stand out only against peaks up to 0.5 Hz, so
+    /// breathing at 36/min (0.6 Hz) left its leakage in the band to be read
+    /// as a slower in-band rate (about 12/min). A rhythm above the band
+    /// dwarfs that leakage, so no rate is reported.
+    func testBreathingAboveTheBandIsNotReadAsASlowerRate() {
+        var rr: [Double] = []
+        var t = 0.0
+        for _ in 0 ..< 375 {
+            let interval = 800.0 + 40.0 * sin(2.0 * .pi * 0.6 * t)
+            rr.append(interval)
+            t += interval / 1_000
+        }
+        XCTAssertNil(RespirationAnalyzer.estimateRespirationRate(rr))
+    }
+
+    func testBeatTimesThatDoNotMatchTheIntervalsGiveNoRate() {
+        let rr = Array(repeating: 800.0, count: 100)
+        XCTAssertNil(RespirationAnalyzer.estimateRespirationRate(rr, beatTimes: Array(repeating: 0, count: 99)))
     }
 }

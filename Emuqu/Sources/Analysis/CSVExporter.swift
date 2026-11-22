@@ -102,13 +102,9 @@ enum CSVExporter {
         iso.formatOptions = [.withInternetDateTime]
         let units = Units()
         let samples = metadata?.samples ?? []
-        var out = headerBlock(
-            session: session,
-            sport: metadata?.sport.displayName ?? "Workout",
-            units: units,
-            iso: iso
-        )
-        out += trackpointBlock(session: session, track: track, samples: samples, units: units, iso: iso)
+        var out = headerBlock(session: session, sport: metadata?.sport.displayName ?? "Workout", units: units, iso: iso)
+        let timed = GPXExporter.timedAsRecorded(track, metadata: metadata)
+        out += trackpointBlock(session: session, track: timed, samples: samples, units: units, iso: iso)
         // Indoor fallback: no GPS track but a per-second sample series exists.
         if track.isEmpty, let metadata, !samples.isEmpty {
             out += indoorBlock(samples: samples, of: metadata, units: units)
@@ -166,6 +162,8 @@ enum CSVExporter {
     }
 
     /// One CSV row: the GPS fix plus whatever the nearest 1 Hz sample carried.
+    /// A fix with no altitude (negative vertical accuracy) leaves the
+    /// elevation cell empty, as the other unknown cells are, rather than 0.0.
     private static func trackpointRow(
         fix: CLLocation,
         cumulative: Double,
@@ -182,7 +180,7 @@ enum CSVExporter {
             "\(secondsFromStart)",
             String(format: "%.6f", fix.coordinate.latitude),
             String(format: "%.6f", fix.coordinate.longitude),
-            String(format: "%.1f", units.metresToElev(fix.altitude)),
+            fix.verticalAccuracy >= 0 ? String(format: "%.1f", units.metresToElev(fix.altitude)) : "",
             String(format: "%.3f", units.metresToDist(cumulative)),
             matched?.heartRate.map { "\($0)" } ?? "",
             matched.flatMap(\.paceSecPerKm).map { String(format: "%.0f", secPerKmToSecPerUnit($0)) } ?? "",
@@ -260,7 +258,10 @@ enum CSVExporter {
         return abs(best.offsetSec - offsetSec) <= 5 ? best : nil
     }
 
-    static func writeToTempFile(session: HRVSession, track: [CLLocation]) throws -> URL {
+    /// The CSV export in memory, named `<sport>-<UTC start>.csv`, for writing
+    /// when the user shares it (`ExportFile.Pending.write`). Throws when the
+    /// text cannot be encoded.
+    static func pendingFile(session: HRVSession, track: [CLLocation]) throws -> ExportFile.Pending {
         let csv = export(session: session, track: track)
         let sport = session.workoutMetadata?.sport.rawValue ?? "workout"
         // Machine format: POSIX locale and Gregorian calendar, so a Buddhist-
@@ -271,14 +272,11 @@ enum CSVExporter {
         fmt.dateFormat = "yyyyMMdd-HHmmss"
         fmt.timeZone = TimeZone(secondsFromGMT: 0)
         let filename = "\(sport)-\(fmt.string(from: session.startDate)).csv"
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         guard let data = csv.data(using: .utf8) else {
             throw NSError(domain: "CSVExporter", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: String(localized: "Couldn't create the CSV file.", bundle: LanguageManager.appBundle)
             ])
         }
-        try data.write(to: url, options: .atomic)
-        debugLog("[CSVExporter] wrote \(data.count) bytes to \(url.path)")
-        return url
+        return ExportFile.Pending(name: filename, data: data)
     }
 }

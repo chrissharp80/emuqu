@@ -312,8 +312,10 @@ enum HRVSleepStageClassifier {
     ///
     /// Weights reflect research-validated feature importance for cardiac sleep staging
     /// (Fonseca 2015, Xiao 2013, Radha 2019). LF/HF ratio carries the most weight
-    /// for deep/REM discrimination — it is the strongest single cardiac discriminator
-    /// between these stages (Vanoli 1995).
+    /// for deep/REM discrimination when DFA α1 is unavailable (the `FreqOnly`
+    /// weights); with both, DFA α1 carries slightly more (`AllFeatures`). LF/HF
+    /// is a strong single cardiac discriminator between these stages
+    /// (Vanoli 1995).
     ///
     /// DFA α1 direction (Penzel 2003, Bunde 2000):
     /// - Deep sleep has the LOWEST α1 of the night

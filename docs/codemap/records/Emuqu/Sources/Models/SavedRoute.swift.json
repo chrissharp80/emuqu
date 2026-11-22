@@ -1,23 +1,24 @@
 {
  "file": "Emuqu/Sources/Models/SavedRoute.swift",
- "hash": "99713808d96ab5e4",
+ "hash": "a350dca1ee3043fc",
  "role": "SavedRoute (user-named library route with encoded polyline and cached totals/enriched climbs), SavedRouteStore (@Observable MainActor JSON-file store in the App Group with locked-file recovery, migration, and reverse-geocode enrichment), and LatestWinsFileWriter (serial newest-wins JSON writer shared with EmailContactStore).",
  "types": [
   "SavedRoute: struct Codable/Identifiable/Hashable — library entry",
   "SavedRouteStore: final class @Observable @MainActor — route library store",
-  "LatestWinsFileWriter<Value>: final class Sendable — coalescing serial file writer"
+  "LatestWinsFileWriter<Value>: final class Sendable — coalescing serial file writer",
+  "LatestWinsFileWriter.State: private struct Sendable — waiting snapshot, generation, failed writes"
  ],
  "state": [
   "SavedRouteStore.shared singleton",
   "mem:SavedRouteStore.routes",
   "SavedRouteStore.loadFailed",
   "SavedRouteStore.protectedDataObserver",
-  "file:<AppGroup>/saved_routes.json",
+  "file:<AppGroup>/saved_routes.json (sealed, completeFileProtectionUntilFirstUserAuthentication)",
   "file:<AppGroup>/saved_routes.undecodable.json (copy of a library file that read but did not decode)",
   "file:<ApplicationSupport>/saved_routes.json (legacy, migrated)",
   "notif:UIApplication.protectedDataDidBecomeAvailableNotification (observed)",
   "DispatchQueue com.emuqu.<label>.write",
-  "LatestWinsFileWriter.pending (OSAllocatedUnfairLock)"
+  "LatestWinsFileWriter.state (OSAllocatedUnfairLock<State>: waiting snapshot, generation, failed-write count)"
  ],
  "toplevel": "SavedRoute uses synthesized Codable; enrichedClimbs optional so old files decode. SavedRouteStore.shared is created lazily on first access via AppDependencies.location.savedRouteStore.",
  "units": [
@@ -95,19 +96,19 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "4d9b88ba10ab6291",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "d7e6ba844750c90b",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d"
    }
   },
   {
    "key": "init SavedRouteStore(storeURL:)",
-   "hash": "86f51cae4036475d",
-   "does": "Uses storeURL when given (tests; no migration), otherwise the App Group saved_routes.json after migrating the legacy Application Support file if needed; sets up the writer, loads the library, and installs an unlock observer when the file could not be read (an undecodable file is set aside by load and does not block).",
+   "hash": "3be8c96a83dd2fbf",
+   "does": "Uses storeURL when given (tests; no migration), otherwise the App Group saved_routes.json after migrating the legacy Application Support file if needed; sets up the writer (atomic, completeFileProtectionUntilFirstUserAuthentication), loads the library, and installs an unlock observer when the file could not be read (an undecodable file is set aside by load and does not block).",
    "entry": "Lazy static SavedRouteStore.shared initialisation on first access; XCTest (StoredItemDeleteTests) with its own file.",
    "calls": [
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.migrateLegacyStoreIfNeeded(to:)",
-    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:retryDelays:seal:)",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.installProtectedDataObserver()"
    ],
@@ -122,7 +123,7 @@
      "effect": "migrate the legacy file into the App Group"
     },
     {
-     "at": "+6",
+     "at": "+8",
      "cond": "loadFailed after load",
      "effect": "install protected-data observer to retry; otherwise none"
     }
@@ -131,7 +132,7 @@
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.installProtectedDataObserver()": "39f32751713cd669",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()": "728fd1ae892e8277",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.migrateLegacyStoreIfNeeded(to:)": "5af40efa317de231",
-    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)": "ff6d7d9df5fa4798",
+    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:retryDelays:seal:)": "2194b0c246cd5121",
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586"
    }
   },
@@ -363,7 +364,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)": "46130e4c9e265b47",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)": "db0e03828a3d6d3e",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()": "67d78c19651e692b",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d"
    }
@@ -671,16 +672,27 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "a110d95e1d08cfd3",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "1cecd48171fbd501",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.recoverBlockedLoad()": "df982475b3c1615d",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
-   "key": "init LatestWinsFileWriter(url:options:label:)",
-   "hash": "d88f05ae3d832dcd",
-   "does": "Stores url/options/label and creates a utility-QoS serial queue named com.emuqu.<label>.write.",
+   "key": "func LatestWinsFileWriter.State.supersede(with:)",
+   "hash": "30d2d70a0aa1ef50",
+   "does": "Replaces the waiting snapshot with value (nil for none), bumps the generation and clears the failed-write count.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "init LatestWinsFileWriter(url:options:label:retryDelays:seal:)",
+   "hash": "0bc56c967662302c",
+   "does": "Stores url/options/label, the retry delays (default 5, 30, 120 s) and the seal (default JSONFileSeal.app), and creates a utility-QoS serial queue named com.emuqu.<label>.write.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -690,53 +702,61 @@
   },
   {
    "key": "func LatestWinsFileWriter.enqueue(_:)",
-   "hash": "0a6cd9bc8b3bd3a8",
-   "does": "Replaces the pending snapshot under the lock and schedules a drain on the serial queue.",
+   "hash": "9add8463bf18dde9",
+   "does": "Replaces the waiting snapshot under the lock (State.supersede: new generation, failure count reset) and schedules a drain on the serial queue.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)",
     "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:LatestWinsFileWriter.state"
+   ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()": "2cece9b002341176"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)": "3ebfd283c79d53e7",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()": "55bf492d45792d2e"
    }
   },
   {
    "key": "func LatestWinsFileWriter.discard()",
-   "hash": "6dfc06a3673ab857",
-   "does": "Clears the pending snapshot and queues removeFile on the writer's serial queue, after any write in progress and before any queued later, so the file a purge deleted cannot be written back and the caller never waits on a write.",
+   "hash": "53906505c7b33a15",
+   "does": "Clears the waiting snapshot under a new generation (so a failed write's retry cannot bring it back) and queues removeFile on the writer's serial queue, after any write in progress and before any queued later, so the file a purge deleted cannot be written back and the caller never waits on a write.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)",
     "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeFile()"
    ],
    "reads": [],
    "writes": [
+    "mem:LatestWinsFileWriter.state",
     "file:<label file>"
    ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)": "3ebfd283c79d53e7",
     "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeFile()": "dd0d470c3049071b"
    }
   },
   {
    "key": "func LatestWinsFileWriter.replaceNow(with:removing:)",
-   "hash": "dd2b0a451c23ebce",
-   "does": "Synchronously on the writer's serial queue (after any write running or queued): removes staleCopy, then writes value (write(_:)); when both succeed drops the pending snapshot (older than value) and returns true; otherwise returns false, the pending snapshot left as it was.",
+   "hash": "21978ebe694dd494",
+   "does": "Synchronously on the writer's serial queue (after any write running or queued): removes staleCopy, then writes value (write(_:)); when both succeed drops the waiting snapshot (older than value) under a new generation and returns true; otherwise returns false, the waiting snapshot left as it was.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeIfPresent(_:label:)",
     "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)",
     "ext:DispatchQueue.sync"
    ],
    "reads": [
-    "mem:LatestWinsFileWriter.pending"
+    "mem:LatestWinsFileWriter.state"
    ],
    "writes": [
     "file:<label file>",
     "file:<set-aside copy> (removed)",
-    "mem:LatestWinsFileWriter.pending"
+    "mem:LatestWinsFileWriter.state"
    ],
    "branches": [
     {
@@ -746,8 +766,9 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)": "3ebfd283c79d53e7",
     "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeIfPresent(_:label:)": "51a9bcf71432dac3",
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)": "c2753dbc9732a261"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)": "43a232c378aade76"
    }
   },
   {
@@ -794,34 +815,79 @@
   },
   {
    "key": "func LatestWinsFileWriter.drain()",
-   "hash": "bf388acb40824aeb",
-   "does": "Takes and clears the pending snapshot; if present, writes it through write(_:) (sealed); a failure is logged only.",
-   "entry": "Runs on the private serial DispatchQueue from enqueue.",
+   "hash": "9283179b27a3142e",
+   "does": "Takes the waiting snapshot and its generation and clears it; if present, writes it through write(_:) (sealed); a failed write goes to retryLater instead of being dropped.",
+   "entry": "Runs on the private serial DispatchQueue from enqueue and from a scheduled retry.",
    "calls": [
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.retryLater(_:generation:)"
    ],
    "reads": [
-    "mem:LatestWinsFileWriter.pending"
+    "mem:LatestWinsFileWriter.state"
    ],
    "writes": [
-    "mem:LatestWinsFileWriter.pending",
+    "mem:LatestWinsFileWriter.state",
     "file:<label file>"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "a snapshot is pending",
+     "cond": "a snapshot is waiting",
      "effect": "write it; otherwise return (coalesced)"
+    },
+    {
+     "at": "+6",
+     "cond": "write failed",
+     "effect": "retryLater; otherwise done"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)": "c2753dbc9732a261"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.retryLater(_:generation:)": "1fa580df1d741430",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)": "43a232c378aade76"
+   }
+  },
+  {
+   "key": "func LatestWinsFileWriter.retryLater(_:generation:)",
+   "hash": "58fe67cbd0538184",
+   "does": "Under the lock: when nothing superseded the failed snapshot (same generation, nothing waiting) puts it back to wait and, while retries remain, takes the next delay and counts the attempt; logs a warning and schedules a drain on the serial queue after that delay. A superseded snapshot (newer value, discard or replace) is dropped; past the last retry it waits for the next enqueue.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()",
+    "ext:DispatchQueue.asyncAfter"
+   ],
+   "reads": [
+    "mem:LatestWinsFileWriter.state"
+   ],
+   "writes": [
+    "mem:LatestWinsFileWriter.state"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "generation changed or another snapshot waits",
+     "effect": "nil: dropped, no retry"
+    },
+    {
+     "at": "+5",
+     "cond": "all retries used",
+     "effect": "kept waiting, no retry scheduled"
+    },
+    {
+     "at": "+9",
+     "cond": "a delay was taken",
+     "effect": "warning log and drain after it"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()": "55bf492d45792d2e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func LatestWinsFileWriter.write(_:)",
-   "hash": "66564249b83fa0de",
-   "does": "Encodes value as JSON and seals it with the app's key (JSONFileSeal.app.sealJSON), then writes it with the configured options. True on success; false (logged via attempt) when sealing or writing failed, leaving the file as it was. Discardable result.",
+   "hash": "4c6b0fd265e81bd3",
+   "does": "Encodes value as JSON and seals it with the writer's seal (JSONFileSeal.app unless a test passed one), then writes it with the configured options. True on success; false (logged via attempt) when sealing or writing failed, leaving the file as it was. Discardable result.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",

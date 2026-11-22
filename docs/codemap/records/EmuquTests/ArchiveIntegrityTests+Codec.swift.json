@@ -212,38 +212,27 @@
   },
   {
    "key": "func ArchiveIntegrityTests.testCodecHashMatchesBytesAsWritten()",
-   "hash": "e66babc94c29b100",
-   "does": "Encodes a session with SessionFileCodec.encodeForDisk and asserts the returned hash equals an independent CryptoKit SHA256 of the bytes (64 hex chars); when encryption is available asserts format .encrypted and that the bytes look encrypted.",
+   "hash": "1bc634a068cf4c0d",
+   "does": "Encodes a session with SessionFileCodec.encodeForDisk and asserts the returned hash equals an independent CryptoKit SHA256 of the bytes (64 hex chars); then requires the encryption key (failing without it) and asserts format .encrypted and that the bytes look encrypted.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:)",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)",
-    "ext:CryptoKit.SHA256"
+    "ext:CryptoKit.SHA256",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.requireEncryptionKey(file:line:)"
    ],
    "reads": [
     "kc:EncryptionManager archive key"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+10",
-     "cond": "EncryptionManager.shared.isAvailable",
-     "effect": "asserts format == .encrypted; otherwise no format assertion"
-    },
-    {
-     "at": "+16",
-     "cond": "EncryptionManager.shared.isAvailable",
-     "effect": "asserts looksEncrypted(bytes); otherwise skipped"
-    }
-   ],
+   "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:)": "b2d76b7ce6014d3e",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)": "4561fbf4c8aa1e85",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionEncoder": "349bd41e509b1925",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
-    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d"
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.requireEncryptionKey(file:line:)": "c0cfdc825868f52c"
    }
   },
   {
@@ -464,7 +453,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "5dc05159bc65d04f",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.appendToIndexFile(_:)": "d2494121e7ea75d1",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.indexFileObject(sessionId:)": "796396e3deaf5760",

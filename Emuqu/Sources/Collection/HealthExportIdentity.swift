@@ -1,4 +1,6 @@
 import Foundation
+import HealthKit
+import os
 
 /// The `HKMetadataKeyExternalUUID` scheme the app stamps on everything it
 /// writes to Apple Health, and the predicates that decide which of those
@@ -29,6 +31,9 @@ enum HealthExportIdentity {
         case sdnn
         case rmssd
         case sleep
+        /// A saved `HKWorkout` (the summary identity) and the samples and
+        /// route saved with it (series members named by kind and index).
+        case workout
     }
 
     /// The identity of a session's single summary sample for a metric.
@@ -73,6 +78,54 @@ enum HealthExportIdentity {
     static func belongsToSession(_ externalUUID: String, sessionId: UUID, metric: Metric) -> Bool {
         isSummary(externalUUID, sessionId: sessionId, metric: metric)
             || isSeriesMember(externalUUID, sessionId: sessionId, metric: metric)
+    }
+
+    // MARK: - HealthKit's own de-duplication
+
+    /// The metadata every sample and workout the app writes carries: its
+    /// identity as `HKMetadataKeyExternalUUID`, the same identity as
+    /// `HKMetadataKeySyncIdentifier`, `version` as `HKMetadataKeySyncVersion`,
+    /// and `extra`.
+    ///
+    /// The identity is derived from the session id, so the same session
+    /// exported again, on this device or on another one on the same Health
+    /// account, carries the same sync identifier. HealthKit then replaces the
+    /// earlier object with the new one when the new version is greater,
+    /// instead of keeping both. HealthKit requires the version whenever the
+    /// identifier is given.
+    static func metadata(_ externalUUID: String, version: Int, _ extra: [String: Any] = [:]) -> [String: Any] {
+        var metadata = extra
+        metadata["Source"] = "Emuqu"
+        metadata[HKMetadataKeyExternalUUID] = externalUUID
+        metadata[HKMetadataKeySyncIdentifier] = externalUUID
+        metadata[HKMetadataKeySyncVersion] = version
+        return metadata
+    }
+
+    /// The sync identifier an object the app wrote carries; nil for one
+    /// written before the app gave one.
+    static func syncIdentifier(of object: HKObject) -> String? {
+        object.metadata?[HKMetadataKeySyncIdentifier] as? String
+    }
+
+    /// The sync version an object the app wrote carries; nil for one
+    /// written before the app gave one.
+    static func syncVersion(of object: HKObject) -> Int? {
+        object.metadata?[HKMetadataKeySyncVersion] as? Int
+    }
+
+    /// The last version `nextSyncVersion(now:)` handed out.
+    private static let lastSyncVersion = OSAllocatedUnfairLock<Int>(initialState: 0)
+
+    /// The sync version for an export starting `now`: milliseconds since
+    /// 1970, and always above the last one handed out, so a later export of a
+    /// session replaces an earlier one even within the same millisecond.
+    static func nextSyncVersion(now: Date = Date()) -> Int {
+        let millis = Int((now.timeIntervalSince1970 * 1000).rounded(.down))
+        return lastSyncVersion.withLock { last in
+            last = max(millis, last + 1)
+            return last
+        }
     }
 }
 

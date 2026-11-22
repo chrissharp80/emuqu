@@ -235,25 +235,48 @@ struct UserSettings: Codable, Equatable {
 
     /// Generic-default resolver for the "uncategorised"
     /// email path (per-message chat notes from the AI, anything else
-    /// that doesn't have a recovery/training tag). Returns the first
-    /// non-empty match in: recovery → training → legacy generic, so an
-    /// address the user set in Settings always wins over the old single
-    /// field. Nil when nothing is configured. Callers `.flatMap { ... }`
-    /// into a recipients array.
+    /// that doesn't have a recovery/training tag), and the recovery
+    /// report's. Returns the first set address in: recovery → training →
+    /// legacy generic, so an address the user set in Settings always wins
+    /// over the old single field (`firstAddress`). Nil when nothing is
+    /// configured. Callers `.flatMap { ... }` into a recipients array.
     var resolvedDefaultEmailRecipient: String? {
-        let candidates = [defaultRecoveryEmailRecipient, defaultTrainingEmailRecipient, defaultEmailRecipient]
-        return candidates.compactMap { $0 }.first(where: { !$0.isEmpty })
+        Self.firstAddress(in: [defaultRecoveryEmailRecipient, defaultTrainingEmailRecipient, defaultEmailRecipient])
     }
 
-    /// CC list for the uncategorised email path. Same precedence as
-    /// `resolvedDefaultEmailRecipient`. Returns a parsed array (empty
-    /// when nothing configured), suitable for direct use as
-    /// `MailComposerView.ccRecipients`.
+    /// CC list for the uncategorised email path and the recovery report.
+    /// Same precedence as `resolvedDefaultEmailRecipient` (`firstAddresses`).
+    /// Returns a parsed array (empty when nothing configured), suitable for
+    /// direct use as `MailComposerView.ccRecipients`.
     var resolvedDefaultEmailCC: [String] {
-        let raw = [defaultRecoveryEmailCC, defaultTrainingEmailCC, defaultEmailCC]
-            .compactMap { $0 }
-            .first(where: { !$0.isEmpty }) ?? ""
-        return raw
+        Self.firstAddresses(in: [defaultRecoveryEmailCC, defaultTrainingEmailCC, defaultEmailCC])
+    }
+
+    /// The workout reports' recipient: training → recovery → legacy generic.
+    var resolvedTrainingEmailRecipient: String? {
+        Self.firstAddress(in: [defaultTrainingEmailRecipient, defaultRecoveryEmailRecipient, defaultEmailRecipient])
+    }
+
+    /// The workout reports' CC list: training → recovery → legacy generic.
+    var resolvedTrainingEmailCC: [String] {
+        Self.firstAddresses(in: [defaultTrainingEmailCC, defaultRecoveryEmailCC, defaultEmailCC])
+    }
+
+    /// The first field holding an address, trimmed. A field that is empty
+    /// or holds only spaces counts as unset, so the next one is used.
+    static func firstAddress(in fields: [String?]) -> String? {
+        fields.compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }.first(where: { !$0.isEmpty })
+    }
+
+    /// The addresses of the first field naming anybody. A field that holds
+    /// only spaces or commas counts as unset, so the next one is used.
+    static func firstAddresses(in fields: [String?]) -> [String] {
+        fields.map(addresses(in:)).first(where: { !$0.isEmpty }) ?? []
+    }
+
+    /// The comma-separated addresses in `field`, each trimmed, blanks dropped.
+    static func addresses(in field: String?) -> [String] {
+        (field ?? "")
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }

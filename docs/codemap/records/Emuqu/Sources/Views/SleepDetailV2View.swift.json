@@ -92,8 +92,8 @@
   },
   {
    "key": "var SleepDetailV2View.effectiveVitals",
-   "hash": "61340791354b6b2b",
-   "does": "Merges the passed-in recoveryVitals (stored) with the HealthKit-refreshed refreshedVitals field by field (fresh wins for resp/SpO2/temp), and sets restingHeartRate to the session strap analysis meanHR, else stored RHR, else fresh RHR. With neither stored nor fresh returns a heart-rate-only vitals or nil.",
+   "hash": "044b17c984dee36d",
+   "does": "Merges the passed-in recoveryVitals (stored) with the HealthKit-refreshed refreshedVitals field by field (fresh wins for resp/SpO2/temp), and sets restingHeartRate to the session's strap analysis meanHR when it is above 0 (VitalsDetailV2View.strapMeanHR), else stored RHR, else fresh RHR. With neither stored nor fresh returns a heart-rate-only vitals or nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.heartRateOnlyVitals(_:)"
@@ -145,7 +145,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.heartRateOnlyVitals(_:)": "2dc3218d3b22d5ea"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.heartRateOnlyVitals(_:)": "2dc3218d3b22d5ea",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.strapMeanHR(of:)": "e3143b77721e9595"
    }
   },
   {
@@ -209,7 +210,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refreshVitals()": "f297064a07d7efbc",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refreshVitals()": "a25e4107386f2ca1",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.menuButton": "63119514b5f4a631",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.sleepCards": "098806a5b6877ee5",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
@@ -323,7 +324,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "bdc8d0383e8b6150",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::init SleepTimelineEditorView(sleepData:onSave:onRefreshFromHealthKit:onRefreshAccepted:)": "7c7037dfebb8c9a8",
@@ -409,8 +410,8 @@
   },
   {
    "key": "func SleepDetailV2View.refreshVitals()",
-   "hash": "d17a71799e0546a8",
-   "does": "Fetches recovery vitals from HealthKit relative to the session end (or start), overrides RHR with the session strap meanHR when present, and stores them in refreshedVitals, or nil when every field is empty so an earlier session's reading is not kept.",
+   "hash": "db6973a2f40b7027",
+   "does": "Fetches recovery vitals from HealthKit relative to the session end (or start), overrides RHR with the session's strap meanHR when it is above 0 (VitalsDetailV2View.strapMeanHR), and stores them in refreshedVitals, or nil when every field is empty so an earlier session's reading is not kept.",
    "entry": "Called from .task(id: session.id) in sleepStack",
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)",
@@ -442,7 +443,8 @@
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)": "af7cbc8f5a445eda",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "cf6f3e738d761a42",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.strapMeanHR(of:)": "e3143b77721e9595"
    }
   },
   {
@@ -661,7 +663,7 @@
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.formatMinutes(_:)",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.awakeText(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
@@ -684,7 +686,7 @@
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.napSleepFormatted": "f23a5ea45885e4dd",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "7048e5b4587e15b2",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9",
     "Emuqu/Sources/Views/SleepDetailV2View+Breakdown.swift::func SleepDetailV2View.efficiencyText(_:)": "d996ae57149e550e",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.awakeText(_:)": "945a70a666bd0b70",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.formatMinutes(_:)": "e2f2dd9edd791189",
@@ -713,7 +715,7 @@
    "deps": {
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "cf6f3e738d761a42",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.vitalCells(_:)": "0328d9e34f0f62b9",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.effectiveVitals": "28ed3b1b00b2eeac"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.effectiveVitals": "9323fd695de19821"
    }
   },
   {
@@ -832,13 +834,13 @@
    "does": "Formats minutes as localized hours/minutes via LocalizedDuration.hoursMinutes.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
@@ -902,7 +904,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.formatTime(_:)",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -914,7 +916,7 @@
    "deps": {
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.formatTime(_:)": "067b747045b74939",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
@@ -985,7 +987,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.hypnogramScrubMarks(intervals:)": "9455dcaccefe90eb",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.hypnogramScrubPill(intervals:)": "e905179bd72452dc",
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.hypnogramScrubPill(intervals:)": "f3c0d46e54b02372",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageBarMarks(intervals:)": "e5e5fd15192fe05b",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.hypnogramStageAxis": "e090bcec58757b3a",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::var SleepDetailV2View.hypnogramTimeAxis": "44b75d3bfa1702fc"
@@ -1087,8 +1089,8 @@
   },
   {
    "key": "func SleepDetailV2View.hypnogramScrubPill(intervals:)",
-   "hash": "9986f23489b97639",
-   "does": "Capsule pill showing stage colour dot, scrubbed time (hour:minute) and stage name.",
+   "hash": "78430dc9dc13a9be",
+   "does": "Capsule pill showing stage colour dot, scrubbed time (hour:minute in the app's language, LanguageManager.appLocale) and stage name.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.stageAt(_:in:)",
@@ -1107,6 +1109,7 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "e6e5f2924672eaab",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.scrubStageLabel(_:)": "bfd00e996a6f7367",

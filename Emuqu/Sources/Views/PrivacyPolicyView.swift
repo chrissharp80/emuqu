@@ -156,7 +156,7 @@ struct PrivacyPolicyView: View {
     }
 
     /// What goes to iCloud. Keep in step with `UserSettings.iCloudSyncEnabled`
-    /// (off by default), `CloudKitSyncManager+Push` and `CloudKitSyncSupport`:
+    /// (off by default), `CloudKitSyncManager+Push` and `CloudSessionPayload`:
     /// both payloads are encrypted by `CloudPayloadCodec`, and every reading
     /// taken from Apple Health is left out of them (`CloudSessionPayload`);
     /// the scores computed from those readings travel.
@@ -222,6 +222,21 @@ struct PrivacyPolicyView: View {
                 String(localized: "When you look up real elevation for a workout, including one imported from Apple Health, up to 100 of its route's points, rounded to about 11 m, are sent to OpenTopoData.", bundle: LanguageManager.appBundle),
                 String(localized: "If you choose WhisperKit for voice input, its speech model is downloaded once from Hugging Face (huggingface.co). Your voice is still transcribed on your device.", bundle: LanguageManager.appBundle),
                 String(localized: "Tavily and Anthropic searches run under your own key or account. The weather, map, elevation and model-download services get no account or name, though like any web request they see your device's IP address.", bundle: LanguageManager.appBundle)
+            ]
+        )
+    }
+
+    /// The BLE heart-rate and power broadcaster. Not a service: the data goes
+    /// to whatever is in Bluetooth range. Keep in step with
+    /// `BroadcasterDisclosureSheet` and `BroadcasterDisclosure`.
+    private static var broadcastBlock: PolicyBlock {
+        PolicyBlock(
+            title: String(localized: "Bluetooth Sensor Broadcast", bundle: LanguageManager.appBundle),
+            sentences: [
+                String(localized: "If you turn on Broadcast as BLE sensor in Settings → Wearables and accept its explanation on that device, your iPhone sends your live heart rate and power over Bluetooth during workouts.", bundle: LanguageManager.appBundle),
+                String(localized: "Apps such as Zwift use them as a heart-rate monitor and power meter.", bundle: LanguageManager.appBundle),
+                String(localized: "Any Bluetooth device in range, usually about 10 m, can read them while the workout runs. No HRV, location, identity or Apple Health data is sent.", bundle: LanguageManager.appBundle),
+                String(localized: "It is off by default and stops when the workout ends.", bundle: LanguageManager.appBundle)
             ]
         )
     }
@@ -327,6 +342,7 @@ struct PrivacyPolicyView: View {
             policyBlock(Self.otherServicesBlock)
             policyBlock(Self.thirdPartyBlock)
             servicePolicyLinks
+            policyBlock(Self.broadcastBlock)
         }
     }
 

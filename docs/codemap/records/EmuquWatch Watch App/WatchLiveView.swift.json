@@ -798,28 +798,49 @@
   },
   {
    "key": "var LiveMetricsScreen.body",
-   "hash": "008b531aa0238d61",
-   "does": "Live page: metrics while recording, else the connection-status view.",
+   "hash": "f4a4f47b16923e30",
+   "does": "Live page: while recording, the ended-on-Watch notice if the Watch ended its own session without the iPhone (workoutManager.endedWithoutPhone), else the metrics; when not recording, the connection-status view.",
    "entry": "SwiftUI body",
    "calls": [
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.endedOnWatchView",
     "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.metrics",
     "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.connectionStatusView"
    ],
    "reads": [
-    "mem:WatchSessionManager.isRecording"
+    "mem:WatchSessionManager.isRecording",
+    "mem:WatchWorkoutManager.endedWithoutPhone"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+2",
+     "cond": "isRecording and endedWithoutPhone",
+     "effect": "true: endedOnWatchView"
+    },
+    {
+     "at": "+4",
      "cond": "isRecording",
      "effect": "true: metrics; false: connectionStatusView"
     }
    ],
    "deps": {
     "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.connectionStatusView": "1eafe588583a2b52",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.endedOnWatchView": "5ab3540b21ae86a1",
     "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.metrics": "4f2d9f4822ba0514"
    }
+  },
+  {
+   "key": "var LiveMetricsScreen.endedOnWatchView",
+   "hash": "a7f9755ff32810ea",
+   "does": "Notice for a workout the Watch ended without the iPhone: an orange iphone.slash icon with the localized 'Ended on Watch. Open Emuqu on your iPhone to finish the workout.' line, then the session manager's status line (up to 3 lines).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchSessionManager.statusLine"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "var LiveMetricsScreen.metrics",
@@ -1303,7 +1324,7 @@
    "does": "Resume button: requests resume and plays the start haptic.",
    "entry": "Button action",
    "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestResumeWorkout()",
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.requestResumeWorkout()",
     "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)",
     "ext:WKInterfaceDevice.play"
    ],
@@ -1315,7 +1336,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
     "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)": "c5ddd8408e0cfce6",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestResumeWorkout()": "e62c6671c310052b"
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.requestResumeWorkout()": "e62c6671c310052b"
    }
   },
   {
@@ -1324,7 +1345,7 @@
    "does": "Pause button: requests pause and plays a click.",
    "entry": "Button action",
    "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestPauseWorkout()",
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.requestPauseWorkout()",
     "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)",
     "ext:WKInterfaceDevice.play"
    ],
@@ -1336,7 +1357,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
     "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)": "c5ddd8408e0cfce6",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestPauseWorkout()": "0f0e79b0160fdd89"
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.requestPauseWorkout()": "0f0e79b0160fdd89"
    }
   },
   {
@@ -1345,7 +1366,7 @@
    "does": "End button: captures reachability, requests stop, ends the Watch's own session immediately when the iPhone was unreachable, plays the stop haptic.",
    "entry": "Button action",
    "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStopWorkout()",
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.requestStopWorkout()",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteWristStop(phoneReachable:)",
     "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)",
     "ext:WKInterfaceDevice.play"
@@ -1361,8 +1382,8 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
     "EmuquWatch Watch App/WatchLiveView.swift::func PauseStopScreen.buttonLabel(icon:title:)": "c5ddd8408e0cfce6",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestStopWorkout()": "adc69f059f8876f7",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteWristStop(phoneReachable:)": "a1429700dd115dc4"
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.requestStopWorkout()": "adc69f059f8876f7",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteWristStop(phoneReachable:)": "1a8e7d13d882e979"
    }
   },
   {
@@ -1416,7 +1437,7 @@
    "does": "Save & Done button: acknowledges the finished workout to the iPhone (clearing justCompleted) and plays the success haptic.",
    "entry": "Button action",
    "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestAcknowledgeFinished()",
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.requestAcknowledgeFinished()",
     "ext:WKInterfaceDevice.play"
    ],
    "reads": [],
@@ -1427,7 +1448,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestAcknowledgeFinished()": "f2a2244a30990d96"
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.requestAcknowledgeFinished()": "f2a2244a30990d96"
    }
   }
  ],

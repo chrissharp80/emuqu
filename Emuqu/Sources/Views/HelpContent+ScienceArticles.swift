@@ -183,7 +183,7 @@ enum HelpScienceCatalog {
                     .heading("What we do"),
                     .steps([
                         "During your walk, the app collects every reading from the iPhone's barometric pressure sensor (CMAltimeter) at ~1 Hz. Every sample is buffered — nothing is discarded at collect time.",
-                        "At session stop, the full sample buffer runs through a symmetric moving-average smoother (15-sample window ≈ 15 seconds). This matches the ~8 s complementary-filter time constant recommended in the sports-fusion literature.",
+                        "At session stop, the full sample buffer runs through a symmetric moving-average smoother (a 15-second window, timed by each sample's timestamp). This matches the ~8 s complementary-filter time constant recommended in the sports-fusion literature.",
                         "Gain and loss are summed from the smoothed signal: a climb or descent counts once the smoothed altitude turns back by 2 m — well above the CMAltimeter documented noise floor (0.3–0.5 m).",
                         "The processed value is written to the session archive. The live ticker showing elevation during your walk is just a rough estimate; the number that lands in History is the properly-processed one."
                     ]),

@@ -457,6 +457,86 @@ final class CoachVoiceGuardTests: XCTestCase {
         XCTAssertTrue(result.scrubbed.contains("healthcare professional"))
     }
 
+    // MARK: - The app's own safety copy
+
+    /// The replies `MedicalQueryGuard` gives on its own, and rule B tells the
+    /// model to give, reach the user as written. "Talk to your doctor about
+    /// that." in the chest-pain reply was rewritten into a line saying the
+    /// app can't tell whether the user needs a professional.
+    func testEveryCannedSafetyReplySurvivesTheScrubUnchanged() {
+        for reply in MedicalQueryGuard.cannedReplies {
+            let result = CoachVoiceGuard.scrub(reply)
+            XCTAssertEqual(result.scrubbed, reply)
+            XCTAssertFalse(result.didIntercept, "the safety reply was treated as a violation: \(reply)")
+        }
+    }
+
+    /// The reply as a model streams it: inside other text, with typographic
+    /// apostrophes and emphasis. The reply stays; a prohibited sentence next
+    /// to it is still rewritten.
+    func testCannedSafetyReplyInsideAModelReplyIsKeptAndItsNeighboursStillScrubbed() {
+        let reply = MedicalQueryGuard.symptomReplyTemplate
+        let streamed = "You may have an infection. " + reply.replacingOccurrences(of: "'", with: "\u{2019}")
+            .replacingOccurrences(of: "Talk to your doctor about that.", with: "**Talk to your doctor about that.**")
+        let result = CoachVoiceGuard.scrub(streamed)
+        XCTAssertFalse(result.scrubbed.contains("may have an infection"))
+        XCTAssertTrue(result.scrubbed.contains("**Talk to your doctor about that.**"))
+        XCTAssertTrue(result.scrubbed.hasSuffix("(or your local emergency number for severe symptoms)."))
+        XCTAssertEqual(result.triggers.count, 1)
+    }
+
+    /// Only the app's exact sentences are kept: the model's own referral
+    /// wording is still deflected.
+    func testAReferralThatIsNotTheSafetyCopyIsStillDeflected() {
+        let result = CoachVoiceGuard.scrub("Talk to your doctor about your HRV.")
+        XCTAssertTrue(result.didIntercept)
+        XCTAssertFalse(result.scrubbed.contains("Talk to your doctor"))
+    }
+
+    /// A canned referral sentence after the model's own reasoning is not the
+    /// canned reply: it is the readings-based referral the medical-referral
+    /// rule deflects. The model's sentence before it is kept.
+    func testACannedReferralSentenceAfterAModelSentenceIsScrubbed() {
+        let model = "Your HRV has dropped three days running. "
+        let result = CoachVoiceGuard.scrub(model + "Talk to your doctor about that.")
+        XCTAssertTrue(result.didIntercept)
+        XCTAssertTrue(result.scrubbed.hasPrefix(model))
+        XCTAssertFalse(result.scrubbed.contains("Talk to your doctor"))
+    }
+
+    /// The same, when the two sentences arrive in separate streamed flushes:
+    /// the progress carried between them says no canned reply is under way.
+    func testACannedReferralSentenceInTheFlushAfterAModelSentenceIsScrubbed() {
+        var progress = CoachVoiceGuard.SafetyCopyProgress()
+        let first = CoachVoiceGuard.scrub("Your HRV has dropped three days running. ", continuing: &progress)
+        XCTAssertEqual(first.scrubbed, "Your HRV has dropped three days running. ")
+        let second = CoachVoiceGuard.scrub("Talk to your doctor about that.", continuing: &progress)
+        XCTAssertTrue(second.didIntercept)
+        XCTAssertFalse(second.scrubbed.contains("Talk to your doctor"))
+    }
+
+    /// A canned reply streamed one sentence per flush reaches the user as
+    /// written: its opening sentence starts it and each later one follows in
+    /// order. Out of order, a sentence that trips a rule is scrubbed.
+    func testACannedReplyStreamedSentenceBySentenceIsKeptOnlyInOrder() {
+        let sentences = [
+            "If you're exercising, stop now. ",
+            "Talk to your doctor about that. ",
+            "I can't assess your health — Emuqu is a fitness coaching app, not a medical device. ",
+            "If you're feeling unwell, please contact a clinician (or your local emergency number for severe symptoms)."
+        ]
+        XCTAssertEqual(sentences.joined(), MedicalQueryGuard.symptomReplyTemplate)
+        var progress = CoachVoiceGuard.SafetyCopyProgress()
+        let streamed = sentences.map { CoachVoiceGuard.scrub($0, continuing: &progress) }
+        XCTAssertEqual(streamed.map(\.scrubbed).joined(), MedicalQueryGuard.symptomReplyTemplate)
+        XCTAssertTrue(streamed.allSatisfy { !$0.didIntercept })
+
+        var skipped = CoachVoiceGuard.SafetyCopyProgress()
+        let referral = CoachVoiceGuard.scrub(sentences[1], continuing: &skipped)
+        XCTAssertTrue(referral.didIntercept, "a later sentence without its opening is not the canned reply")
+        XCTAssertFalse(referral.scrubbed.contains("Talk to your doctor"))
+    }
+
     /// Terms the build-time linter forbids; the runtime guard must know every
     /// one of them too.
     func testTermsThatUsedToEvadeTheRuntimeGuard() {

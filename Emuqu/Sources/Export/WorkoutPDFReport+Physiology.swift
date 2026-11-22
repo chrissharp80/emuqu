@@ -155,7 +155,11 @@ extension WorkoutPDFPhysiologyPages {
 
     func hrrRows(_ hrr: [HRRSample], bundle: Bundle) -> [(String, String)] {
         var hrrRows: [(String, String)] = []
-        if let one = hrr.bestAtOneMinute {
+        // Apple's computed one-minute value carries only the drop; the stop
+        // and +60 s rates stored with it are derived, so they are not shown.
+        if let one = hrr.bestAtOneMinute, one.provenance == .healthKitComputed {
+            hrrRows.append((String(localized: "1-min HR drop", bundle: bundle), "\(one.drop) bpm"))
+        } else if let one = hrr.bestAtOneMinute {
             hrrRows.append((String(localized: "1-min HR drop", bundle: bundle), String(localized: "\(one.drop) bpm (from \(one.peakHR) bpm at stop)", bundle: bundle)))
             hrrRows.append((String(localized: "1-min absolute HR", bundle: bundle), String(localized: "\(one.hr) bpm, source: \(renderer.provenanceLabel(one.provenance))", bundle: bundle)))
         }

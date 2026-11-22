@@ -1,17 +1,17 @@
 {
  "file": "Emuqu/Sources/Views/SettingsSubviews.swift",
- "hash": "23f1b2c2d4a7e437",
+ "hash": "6196abf787b54d91",
  "role": "Settings sub-screens: DebugLogView (in-memory debug log list, clear, export), CrashLogView (previous crash report show/share/delete), ErrorCatalogView (warning/error catalogue with clear and text export), AddTagSheet (new custom tag name+colour form) and MetricExplanationsView/MetricExplanationRow (age-personalised HRV metric glossary).",
  "types": [
   "DebugLogView: struct (View) — lists DebugLogger.entries newest first; Clear + Export Diagnostic Log toolbar",
-  "CrashLogView: struct (View) — shows CrashLogManager.previousCrashLog, ShareLink share, delete",
-  "ErrorCatalogView: struct (View, @MainActor) — DebugLogger.errorCatalog list, clear, ShareLink export",
+  "CrashLogView: struct (View) — shows CrashLogManager.previousCrashLog, share (FileShareButton), delete",
+  "ErrorCatalogView: struct (View, @MainActor) — DebugLogger.errorCatalog list, clear, text export (FileShareButton)",
   "AddTagSheet: struct (View) — name field, 12-colour picker, preview, Save/Cancel; Save refused for blank or existing names",
   "MetricExplanationsView: struct (View) — metric glossary with age-band RMSSD copy",
   "MetricExplanationsView.RMSSDAgeContext: struct — range/median/brief/athleteNote strings",
   "MetricExplanationRow: private struct (View) — expandable metric row",
-  "CrashReportExport: struct (Transferable) — crash report written on demand for ShareLink",
-  "ErrorCatalogExport: struct (Transferable) — error catalog written on demand for ShareLink"
+  "CrashReportExport: enum — sheet title and makeFile(from:), which writes the scrubbed crash report to tmp/Exports",
+  "ErrorCatalogExport: enum — sheet title and makeFile(from:), which writes the scrubbed error catalog to tmp/Exports/Emuqu_Error_Catalog.txt"
  ],
  "state": [
   "mem:DebugLogView.showingClearConfirm / clearFailed (@State)",
@@ -19,7 +19,7 @@
   "mem:ErrorCatalogView.showingExport/exportURL/showingClearConfirm/errorCount/isExporting (@State)",
   "mem:AddTagSheet.presetColors (12 Colors), static presetColorNames",
   "mem:MetricExplanationRow.isExpanded (@State)",
-  "file:tmp/hrv_error_catalog_<epoch>.txt (written by ErrorCatalogView export)"
+  "file:tmp/Exports/Emuqu_Error_Catalog.txt (ErrorCatalogExport.makeFile; deleted when its share sheet closes)"
  ],
  "toplevel": "AddTagSheet.presetColors is a stored let of 12 SwiftUI colours (red..brown) parallel to presetColorNames. MetricExplanationRow.action defaults to nil. Comment at line 88 points to ShareSheet in Views/Utilities/ShareSheet.swift.",
  "units": [
@@ -167,17 +167,18 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.exportLogsButton": "7c671cf3ae3a3ea5"
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.exportLogsButton": "80ba2882b3fe2f16"
    }
   },
   {
    "key": "var DebugLogView.exportLogsButton",
-   "hash": "1f4963972ab74f85",
-   "does": "ShareLink for DiagnosticLogExport: the system share sheet opens immediately and the log file is written (DebugLogger.exportToFileAsync) only when a destination asks for it.",
-   "entry": "SwiftUI ShareLink tap",
+   "hash": "10f7f83f403aafa4",
+   "does": "FileShareButton labelled \"Export Diagnostic Log\": on tap writes the log file (DiagnosticLogExport.makeFile, DebugLogger.exportToFileAsync) and opens the system share sheet with it, which deletes the file when it closes.",
+   "entry": "SwiftUI button tap",
    "calls": [
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.preview",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.transferRepresentation",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.title",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func DiagnosticLogExport.makeFile()",
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
@@ -187,8 +188,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.preview": "11e7276c8b0751bc",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.transferRepresentation": "8ef8e9c945bb3f1f"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func DiagnosticLogExport.makeFile()": "a24dfb2646373757",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.title": "0124e0bbbdbfaf68",
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)": "8dd01e57f3094370"
    }
   },
   {
@@ -284,18 +286,20 @@
    ],
    "deps": {
     "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.deleteCrashButton": "0beb54b59b189c53",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.shareCrashButton": "37f5d9bbf7d6d35d"
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.shareCrashButton": "a1fcfbd26d0bb5d9"
    }
   },
   {
    "key": "var CrashLogView.shareCrashButton",
-   "hash": "de3a920a5fa96c25",
-   "does": "ShareLink of CrashReportExport: the system share sheet opens at once and the PHI-scrubbed copy is written off the main thread only when a destination asks for it.",
+   "hash": "125bc743a2839c99",
+   "does": "FileShareButton labelled \"Share Crash Report\": on tap the PHI-scrubbed copy is written off the main thread (CrashReportExport.makeFile) and shared, and deleted when the sheet closes.",
    "entry": "SwiftUI button tap",
    "calls": [
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashReportExport.preview",
-    "ext:SwiftUI.ShareLink",
-    "dyn:Transferable.transferRepresentation → Emuqu/Sources/Views/SettingsSubviews.swift::var CrashReportExport.transferRepresentation",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashReportExport.title",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func CrashReportExport.makeFile(from:)",
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -304,7 +308,10 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashReportExport.preview": "95d44cd9096db017"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "d874529ff05bd756",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func CrashReportExport.makeFile(from:)": "a49e5a98192dfc35",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashReportExport.title": "f1e78fa77a6b70df",
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)": "8dd01e57f3094370"
    }
   },
   {
@@ -347,10 +354,10 @@
    }
   },
   {
-   "key": "var CrashReportExport.preview",
-   "hash": "e86ee009f761bcaf",
-   "does": "Share preview titled \"Share Crash Report\".",
-   "entry": "Read by ShareLink",
+   "key": "var CrashReportExport.title",
+   "hash": "29216c06843485e8",
+   "does": "The share sheet header, localized \"Share Crash Report\".",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -362,30 +369,28 @@
    }
   },
   {
-   "key": "var CrashReportExport.transferRepresentation",
-   "hash": "78d4e144119a5953",
-   "does": "FileRepresentation (.plainText) that, when a share destination asks, calls CrashLogManager.exportCrashLog() off the main thread and returns the file; throws CocoaError(.fileWriteUnknown) when there is no report or the write failed.",
-   "entry": "Transferable protocol witness; invoked by the system share sheet when a ShareLink destination requests the file",
+   "key": "func CrashReportExport.makeFile(from:)",
+   "hash": "7d07922cf7c7c1d8",
+   "does": "Writes the PHI-scrubbed previous crash report to tmp/Exports (CrashLogManager.exportCrashLog) and returns its URL; throws CocoaError(.fileWriteUnknown) when there is none or it could not be written.",
+   "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()",
-    "ext:FileRepresentation",
-    "ext:SentTransferredFile"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()"
    ],
    "reads": [
-    "file:previous_crash.txt"
+    "file:previous crash log"
    ],
    "writes": [
-    "file:tmp/Emuqu_Crash_<timestamp>.txt"
+    "file:tmp/Exports/Emuqu_Crash_<timestamp>.txt"
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "exportCrashLog returned nil",
-     "effect": "throws; else SentTransferredFile(url)"
+     "at": "+1",
+     "cond": "no report or write failed",
+     "effect": "throws"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()": "dd3d62fb19fb43d3"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()": "ef7245749c5169c4"
    }
   },
   {
@@ -593,19 +598,19 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.exportErrorsButton": "dfbc96e2b23a9447"
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.exportErrorsButton": "e5b0af7cd721a477"
    }
   },
   {
    "key": "var ErrorCatalogView.exportErrorsButton",
-   "hash": "0cf7fd037a281cfe",
-   "does": "ShareLink of ErrorCatalogExport (share icon), hidden when the catalog is empty; the scrubbed catalog is built and written only when a destination asks.",
+   "hash": "0e30f27352ba181e",
+   "does": "FileShareButton (share icon), hidden when the catalog is empty: on tap the scrubbed catalog is built and written (ErrorCatalogExport.makeFile) and shared under \"Error Catalog\", and deleted when the sheet closes.",
    "entry": "SwiftUI toolbar; button tap",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogExport.preview",
-    "ext:SwiftUI.ShareLink",
-    "dyn:Transferable.transferRepresentation → Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogExport.transferRepresentation"
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogExport.title",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogExport.makeFile(from:)",
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)"
    ],
    "reads": [
     "mem:DebugLogger.errorCatalog"
@@ -613,21 +618,23 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "catalog non-empty",
-     "effect": "ShareLink shown; else nothing"
+     "effect": "FileShareButton shown; else nothing"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogExport.preview": "72560bdb44e61a6b",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "3f0b80962265b1aa"
+    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogExport.makeFile(from:)": "2d446d8f020bee18",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogExport.title": "abe34f30e06fbc0b",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "3f0b80962265b1aa",
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)": "8dd01e57f3094370"
    }
   },
   {
-   "key": "var ErrorCatalogExport.preview",
-   "hash": "e37c1b9abb337035",
-   "does": "Share preview titled \"Error Catalog\".",
-   "entry": "Read by ShareLink",
+   "key": "var ErrorCatalogExport.title",
+   "hash": "d36918e439c668a6",
+   "does": "The share sheet header, localized \"Error Catalog\".",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -639,47 +646,30 @@
    }
   },
   {
-   "key": "var ErrorCatalogExport.transferRepresentation",
-   "hash": "1b20decb9c9e77a4",
-   "does": "FileRepresentation (.plainText) that, when a share destination asks, awaits DebugLogger.exportErrorCatalog() (PHI-scrubbed, on the main actor) and writes it with writeExport.",
-   "entry": "Transferable protocol witness; invoked by the system share sheet when a ShareLink destination requests the file",
+   "key": "func ErrorCatalogExport.makeFile(from:)",
+   "hash": "d8cd6ab7174ac015",
+   "does": "Builds the PHI-scrubbed catalog on the main actor (DebugLogger.exportErrorCatalog) and writes it over tmp/Exports/Emuqu_Error_Catalog.txt through ExportFile.write (atomic, complete protection); throws when it cannot be encoded or written.",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogExport.writeExport(_:)",
-    "ext:FileRepresentation",
-    "ext:SentTransferredFile"
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)"
    ],
    "reads": [
     "mem:DebugLogger.errorCatalog"
    ],
    "writes": [
-    "file:tmp/Emuqu_Error_Catalog.txt"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()": "a1e2da0314a4f1d3",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::func ErrorCatalogExport.writeExport(_:)": "f8eb7570b257c5a9"
-   }
-  },
-  {
-   "key": "func ErrorCatalogExport.writeExport(_:)",
-   "hash": "dd73a81aed82e67d",
-   "does": "Writes the text as UTF-8 over tmp/Emuqu_Error_Catalog.txt (one fixed file, replaced on every export so copies do not pile up) and returns its URL; throws when encoding or the write fails.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [
-    "file:tmp/Emuqu_Error_Catalog.txt"
+    "file:tmp/Exports/Emuqu_Error_Catalog.txt"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "UTF-8 encoding failed",
-     "effect": "throws"
+     "cond": "UTF-8 encoding fails",
+     "effect": "throws CocoaError(.fileWriteInapplicableStringEncoding)"
     }
    ],
    "deps": {
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()": "a1e2da0314a4f1d3"
    }
   },
   {
@@ -912,11 +902,11 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.ageBanner": "15cc7572b584bee6",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.derivedMetrics": "77c0370084e5cf3d",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.frequencyDomainMetrics": "417a101f6b1c4725",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.frequencyDomainMetricsMore": "7f5c52f0ef7a3921",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.frequencyDomainMetrics": "9d2047a01483206a",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.frequencyDomainMetricsMore": "5e4b1d8462eb77ee",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.nonlinearMetrics": "e0599f1ad10b8a8e",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.timeDomainMetrics": "5807868e76de3c27",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.timeDomainMetricsMore": "844c436e2858bede",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.timeDomainMetrics": "8b5e9ba59def1500",
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.timeDomainMetricsMore": "cbde0afda7df5096",
     "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "5af2c037e112ed05"
    }
   },
@@ -965,8 +955,8 @@
   },
   {
    "key": "var MetricExplanationsView.timeDomainMetrics",
-   "hash": "274b22844d5c6611",
-   "does": "Section with RMSSD (age-personalised description/interpretation) and SDNN rows.",
+   "hash": "f2b81cf17958a2cf",
+   "does": "'Time Domain' section (the group's heading, above its first rows) with RMSSD (age-personalised description/interpretation) and SDNN rows.",
    "entry": "SwiftUI view-builder evaluation of the parent view's body",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.rmssdDescription",
@@ -984,8 +974,8 @@
   },
   {
    "key": "var MetricExplanationsView.timeDomainMetricsMore",
-   "hash": "aad3854d83d37773",
-   "does": "'Time Domain' section with the pNN50 row (age-dependent interpretation).",
+   "hash": "0fe6eb6076fe23a8",
+   "does": "Section with the pNN50 row (age-dependent interpretation), continuing the Time Domain group.",
    "entry": "SwiftUI view-builder evaluation of the parent view's body",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.pnn50Interpretation",
@@ -1001,8 +991,8 @@
   },
   {
    "key": "var MetricExplanationsView.frequencyDomainMetrics",
-   "hash": "e5bf7c670c94aa5c",
-   "does": "Section with the LF Power row and the HF Power row.",
+   "hash": "9af26ce5bffae640",
+   "does": "'Frequency Domain' section (the group's heading, above its first rows) with the LF Power row and the HF Power row.",
    "entry": "SwiftUI view-builder evaluation of the parent view's body",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.hfPowerRow",
@@ -1033,8 +1023,8 @@
   },
   {
    "key": "var MetricExplanationsView.frequencyDomainMetricsMore",
-   "hash": "096e54814e054d08",
-   "does": "'Frequency Domain' section with the LF/HF ratio row (stated as used only to pick the analysis window).",
+   "hash": "125ed5fb6d0fea73",
+   "does": "Section with the LF/HF ratio row (stated as used only to pick the analysis window), continuing the Frequency Domain group.",
    "entry": "SwiftUI view-builder evaluation of the parent view's body",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"

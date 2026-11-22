@@ -170,11 +170,11 @@ final class SleepScienceAnalyzerTests: XCTestCase {
 
         let cycles = SleepScienceAnalyzer.detectSleepCycles(intervals: intervals)
 
-        // Should have 1 incomplete cycle
-        if let cycle = cycles.first {
-            XCTAssertFalse(cycle.isComplete, "Cycle without REM should be incomplete")
-            XCTAssertEqual(cycle.remMinutes, 0)
-        }
+        // 90 minutes of NREM is one cycle, never closed by REM.
+        XCTAssertEqual(cycles.count, 1, "90 minutes of NREM is one incomplete cycle")
+        XCTAssertEqual(cycles.first?.isComplete, false, "Cycle without REM should be incomplete")
+        XCTAssertEqual(cycles.first?.remMinutes, 0)
+        XCTAssertEqual(cycles.first?.nremMinutes, 90)
     }
 
     /// Every NREM minute lands in exactly one cycle: the post-REM NREM run
@@ -437,21 +437,22 @@ final class SleepScienceAnalyzerTests: XCTestCase {
 
     // MARK: - Full Analysis
 
-    func testFullAnalysisWithStages() {
+    /// The standard night closes five cycles on REM; the 55 minutes of NREM
+    /// after the last REM form a sixth, incomplete one.
+    func testFullAnalysisWithStages() throws {
         let sleepData = makeStandardSleepData()
 
         let result = SleepScienceAnalyzer.analyze(
             sleepData: sleepData, userAge: 35, typicalSleepHours: 7.5
         )
 
-        XCTAssertNotNil(result, "Should produce analysis for valid sleep data")
-        if let analysis = result {
-            XCTAssertGreaterThanOrEqual(analysis.cycleCount, 0)
-            XCTAssertGreaterThan(analysis.enhancedScore, 0)
-            XCTAssertLessThanOrEqual(analysis.enhancedScore, 100)
-            XCTAssertNotNil(analysis.ageNorms, "Should have age norms when age is provided")
-            XCTAssertEqual(analysis.ageNorms?.age, 35)
-        }
+        let analysis = try XCTUnwrap(result, "Should produce analysis for valid sleep data")
+        XCTAssertEqual(analysis.cycleCount, 5, "five cycles end in REM")
+        XCTAssertEqual(analysis.sleepCycles.count, 6)
+        XCTAssertGreaterThan(analysis.enhancedScore, 0)
+        XCTAssertLessThanOrEqual(analysis.enhancedScore, 100)
+        XCTAssertNotNil(analysis.ageNorms, "Should have age norms when age is provided")
+        XCTAssertEqual(analysis.ageNorms?.age, 35)
     }
 
     func testFullAnalysisNoAge() {

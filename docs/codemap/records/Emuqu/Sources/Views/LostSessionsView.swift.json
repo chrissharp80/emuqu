@@ -1,15 +1,15 @@
 {
  "file": "Emuqu/Sources/Views/LostSessionsView.swift",
- "hash": "dc5f90506777d520",
- "role": "Settings > Data screen listing sessions that have raw RR backups but no archive entry, with Recover All (rebuild each from backup) and delete (mark as intentionally deleted).",
+ "hash": "6a3d69c24de9c406",
+ "role": "Settings > Data screen listing sessions that have raw RR backups but no archive entry, with Recover All (rebuild each from backup) and delete (mark as intentionally deleted), which a swipe or the multi-select Delete only asks for: a confirmation names what is lost, and only rows whose mark was stored leave the list.",
  "types": [
   "LostSessionsView: struct — list/recover/delete UI over RRCollector recovery API"
  ],
  "state": [
-  "@State lostSessions [(id,date,beatCount)], isLoading, isRecovering, recoveryProgress, currentSessionDate, recoveredCount, failedCount, showingResult, resultMessage, selectedSessions, showingDeleteConfirmation",
+  "@State lostSessions [(id,date,beatCount)], isLoading, isRecovering, recoveryProgress, currentSessionDate, recoveredCount, failedCount, showingResult, resultMessage, selectedSessions, pendingDeleteIds (rows awaiting the delete confirmation), deleteFailedCount (rows whose deletion mark could not be stored)",
   "@Environment RRCollector, dismiss, editMode"
  ],
- "toplevel": "#Preview builds LostSessionsView in a NavigationStack with a fresh RRCollector() environment (lines 370-375).",
+ "toplevel": "#Preview builds LostSessionsView in a NavigationStack with a fresh RRCollector() environment.",
  "units": [
   {
    "key": "var LostSessionsView.isEditing",
@@ -30,33 +30,19 @@
   },
   {
    "key": "var LostSessionsView.body",
-   "hash": "b5f67035e9940c08",
-   "does": "Selectable List of the content with toolbar, interactive dismiss disabled while recovering, loads lost sessions in .task, result alert and delete confirmation dialog.",
+   "hash": "b47ccff2c963288d",
+   "does": "lostSessionsList wrapped in withDeleteDialogs.",
    "entry": "SwiftUI view-body evaluation (NavigationLink at SettingsPages+Data.swift:402; snapshot test PageSnapshotTests.swift:79); .task runs loadLostSessions",
    "calls": [
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsContent",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsToolbar",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.loadLostSessions()",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteActions",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteMessage",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogActions",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogMessage",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.withDeleteDialogs(_:)",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsList"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.loadLostSessions()": "8415b618c7246cf0",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogActions": "cc80e9747f59df18",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogMessage": "e330e27f014f345e",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsContent": "2748cbe04483be3a",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsToolbar": "6538ad05866b733a",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteActions": "b354e484e7fa492a",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteMessage": "8ed7e70e2a6c9687",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "5af2c037e112ed05"
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.withDeleteDialogs(_:)": "a9157a8c5c4c46d3",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsList": "23607990cf873f1e"
    }
   },
   {
@@ -114,7 +100,7 @@
    "deps": {
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.emptyStateSection": "30a4039a33d72848",
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsHeaderSection": "70cfc94552865828",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsListSection": "834f0d6f15b4f281",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsListSection": "61c7cb640a52dc14",
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoverySection": "02d1128a4bc1f6bb",
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.scanningSection": "945165979dd0d2ed"
    }
@@ -219,12 +205,12 @@
   },
   {
    "key": "var LostSessionsView.lostSessionsListSection",
-   "hash": "2a1df98471d46a51",
-   "does": "'Sessions' section with a tagged row per lost session and swipe-to-delete via deleteSessionsAtOffsets; rows are deleteDisabled while Recover All runs, so a session cannot be swiped away from under the recovery loop.",
+   "hash": "b2ff481871a5b8b7",
+   "does": "'Sessions' section with a tagged row per lost session; a swipe-to-delete only asks (confirmDeleteAtOffsets); rows are deleteDisabled while Recover All runs, so a session cannot be swiped away from under the recovery loop.",
    "entry": "SwiftUI view-body evaluation; .onDelete swipe",
    "calls": [
     "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.sessionRow(_:)",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessionsAtOffsets(_:)",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.confirmDeleteAtOffsets(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
@@ -240,7 +226,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessionsAtOffsets(_:)": "68d51bd7991dd6b5",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.confirmDeleteAtOffsets(_:)": "10484adbde5120ea",
     "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.sessionRow(_:)": "8b15a31403bd1f7f"
    }
   },
@@ -412,7 +398,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteSelectedButton": "35fdb98ee3b74c77",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteSelectedButton": "38819fd407d7af86",
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.editButton": "ef2884b2ca754b8b"
    }
   },
@@ -435,14 +421,16 @@
   },
   {
    "key": "var LostSessionsView.deleteSelectedButton",
-   "hash": "66ab91f1226e89b6",
-   "does": "Destructive 'Delete <n> Selected' button (opens confirmation) while editing with a selection.",
-   "entry": "SwiftUI view-body evaluation; Button tap sets showingDeleteConfirmation",
+   "hash": "6d060ceb984d0efe",
+   "does": "Destructive 'Delete <n> Selected' button while editing with a selection; it sets pendingDeleteIds to the selection, which opens the confirmation.",
+   "entry": "SwiftUI view-body evaluation; Button tap",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:LostSessionsView.pendingDeleteIds"
+   ],
    "branches": [
     {
      "at": "+2",
@@ -456,26 +444,9 @@
    }
   },
   {
-   "key": "var LostSessionsView.deleteDialogActions",
-   "hash": "7f5c57f285f13f68",
-   "does": "Confirmation dialog actions: Delete → deleteSelectedSessions; Cancel no-op.",
-   "entry": "Dialog button tap",
-   "calls": [
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSelectedSessions()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSelectedSessions()": "35273f69d78fe299"
-   }
-  },
-  {
    "key": "var LostSessionsView.deleteDialogMessage",
-   "hash": "14ecec2f3f3c6433",
-   "does": "Dialog message saying the sessions leave the list but raw backups stay on the device.",
+   "hash": "28bd49e78b851821",
+   "does": "Dialog message: the sessions leave the list and are no longer offered for recovery; their raw backup files stay on the device.",
    "entry": "SwiftUI view-body evaluation",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -503,40 +474,6 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.checkForLostSessions()": "fd72cf5c6e464810"
-   }
-  },
-  {
-   "key": "func LostSessionsView.deleteSessionsAtOffsets(_:)",
-   "hash": "55c186364adf915f",
-   "does": "Swipe-delete: marks the sessions at the offsets as deleted via collector.deleteLostSessions and removes them from the list.",
-   "entry": "List .onDelete",
-   "calls": [
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.deleteLostSessions(_:)"
-   ],
-   "reads": [],
-   "writes": [
-    "archive:markAsDeleted"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.deleteLostSessions(_:)": "0b7fa7b143a9ead1"
-   }
-  },
-  {
-   "key": "func LostSessionsView.deleteSelectedSessions()",
-   "hash": "737a27a0315ceadd",
-   "does": "Marks all selected sessions deleted via collector.deleteLostSessions, removes them from the list, clears the selection and exits edit mode.",
-   "entry": "Confirmation dialog Delete",
-   "calls": [
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.deleteLostSessions(_:)"
-   ],
-   "reads": [],
-   "writes": [
-    "archive:markAsDeleted"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.deleteLostSessions(_:)": "0b7fa7b143a9ead1"
    }
   },
   {
@@ -568,7 +505,7 @@
    "does": "Updates progress/current date, awaits collector.recoverFromBackup(id), and increments recoveredCount when a session comes back or failedCount when nil.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:recordedType:)"
    ],
    "reads": [
     "file:raw RR backups"
@@ -584,7 +521,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)": "1817386ae5c64a63"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:recordedType:)": "1817386ae5c64a63"
    }
   },
   {
@@ -644,6 +581,163 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
+   }
+  },
+  {
+   "key": "var LostSessionsView.lostSessionsList",
+   "hash": "c9f345d7a9742ea4",
+   "does": "Selectable List of the content with toolbar, interactive dismiss disabled while recovering, loads lost sessions in .task, and the Recovery Complete alert.",
+   "entry": "SwiftUI view-body evaluation; .task runs loadLostSessions",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsContent",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsToolbar",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.loadLostSessions()",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteActions",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteMessage",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LostSessionsView.isRecovering"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.loadLostSessions()": "8415b618c7246cf0",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsContent": "2748cbe04483be3a",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsToolbar": "6538ad05866b733a",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteActions": "b354e484e7fa492a",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoveryCompleteMessage": "8ed7e70e2a6c9687",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "5af2c037e112ed05"
+   }
+  },
+  {
+   "key": "func LostSessionsView.withDeleteDialogs(_:)",
+   "hash": "e1a7afd5cdc55bf3",
+   "does": "Attaches the 'Delete N Sessions?' confirmation presenting pendingDeleteIds (its actions get exactly that set; message deleteDialogMessage) and the \"Couldn't delete N sessions\" alert bound to deleteFailedCount.",
+   "entry": "SwiftUI view-body evaluation",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteConfirmationBinding",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteDialogActions(_:)",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogMessage",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteFailedBinding",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:LostSessionsView.pendingDeleteIds",
+    "mem:LostSessionsView.deleteFailedCount"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteDialogActions(_:)": "917aa3734bb66600",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteConfirmationBinding": "25e330d77ceafa12",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogMessage": "a2b345a985987225",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteFailedBinding": "5308f09d19392a08"
+   }
+  },
+  {
+   "key": "var LostSessionsView.deleteConfirmationBinding",
+   "hash": "cc02f9922b8e630a",
+   "does": "Bool binding for the delete confirmation: true while pendingDeleteIds is set; setting false clears it.",
+   "entry": "SwiftUI reads/writes it through the confirmationDialog",
+   "calls": [],
+   "reads": [
+    "mem:LostSessionsView.pendingDeleteIds"
+   ],
+   "writes": [
+    "mem:LostSessionsView.pendingDeleteIds"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "set to false",
+     "effect": "pendingDeleteIds = nil"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var LostSessionsView.deleteFailedBinding",
+   "hash": "c9238403bb3895aa",
+   "does": "Bool binding for the delete-failure alert: true while deleteFailedCount > 0; setting false resets it to 0.",
+   "entry": "SwiftUI reads/writes it through the alert",
+   "calls": [],
+   "reads": [
+    "mem:LostSessionsView.deleteFailedCount"
+   ],
+   "writes": [
+    "mem:LostSessionsView.deleteFailedCount"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "set to false",
+     "effect": "deleteFailedCount = 0"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func LostSessionsView.deleteDialogActions(_:)",
+   "hash": "1917d27eee700c28",
+   "does": "Confirmation actions for the presented ids: Delete → deleteSessions(ids); Cancel no-op.",
+   "entry": "Dialog button tap",
+   "calls": [
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessions(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessions(_:)": "c54ee04a8f300f3d"
+   }
+  },
+  {
+   "key": "func LostSessionsView.confirmDeleteAtOffsets(_:)",
+   "hash": "203e3e8091582542",
+   "does": "Swipe-to-delete handler: sets pendingDeleteIds to the swiped rows' ids, which opens the confirmation; nothing is deleted yet.",
+   "entry": ".onDelete swipe in lostSessionsListSection",
+   "calls": [],
+   "reads": [
+    "mem:LostSessionsView.lostSessions"
+   ],
+   "writes": [
+    "mem:LostSessionsView.pendingDeleteIds"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func LostSessionsView.deleteSessions(_:)",
+   "hash": "2fa35880e382fe44",
+   "does": "The confirmed delete: clears pendingDeleteIds, marks the ids deleted through RRCollector.deleteLostSessions, removes from the list and the selection only the ids whose mark was stored, sets deleteFailedCount to how many were not (raising the alert), and leaves edit mode once the selection is empty.",
+   "entry": "Delete button in deleteDialogActions",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.deleteLostSessions(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LostSessionsView.pendingDeleteIds",
+    "mem:LostSessionsView.lostSessions",
+    "mem:LostSessionsView.selectedSessions",
+    "mem:LostSessionsView.deleteFailedCount",
+    "mem:editMode",
+    "archive:deletedIds"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "selectedSessions is empty",
+     "effect": "editMode = .inactive"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.deleteLostSessions(_:)": "0b7fa7b143a9ead1"
    }
   }
  ],

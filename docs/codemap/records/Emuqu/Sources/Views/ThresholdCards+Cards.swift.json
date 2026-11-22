@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/ThresholdCards+Cards.swift",
- "hash": "2ffd130961790f4c",
+ "hash": "3675a5afb993c29e",
  "role": "Builds the post-workout summary's LT1 estimate card, α1 threshold-crossings card (crossing detector state machine), derived-metrics card (moving time, VAM, grade-adjusted pace, calorie rate, stride length, power:HR) and HR-zone distribution card; also declares UserSettingsBridge (settings snapshot) and Alpha1StatsCache (single-slot cache used by Alpha1ReportCards).",
  "types": [
   "ThresholdCards: extension — card builders and crossing detection",
@@ -9,7 +9,7 @@
   "ThresholdCards.DerivedRow: struct — label/value/sub row",
   "UserSettingsBridge: struct — userMaxHR + weightKg snapshot",
   "Alpha1StatsCache: final class (@MainActor) — LRU(1) cache of FitnessPostSummaryView.Alpha1Stats",
-  "Alpha1StatsCache.Key: struct — sessionId + sample-shape fingerprint"
+  "Alpha1StatsCache.Key: struct — sessionId + sample-shape fingerprint + a hash of the α1 values"
  ],
  "state": [
   "mem:Alpha1StatsCache.shared (singleton, served via AppDependencies UtilityServices.alpha1StatsCache)",

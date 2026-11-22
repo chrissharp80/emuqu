@@ -294,7 +294,8 @@ extension HeartRateHealthQueries {
     ) async throws {
         try await manager.sampleReplacer.replace(samples, HealthSampleReplacement(
             type: type, span: span, timeout: Self.vitalsQueryTimeoutSec,
-            label: "heart rate export", serialKey: key, matches: matches
+            label: "heart rate export", serialKey: key, matches: matches,
+            writeTimeout: Self.backgroundAggregateQueryTimeoutSec
         ))
     }
 
@@ -327,12 +328,23 @@ extension HeartRateHealthQueries {
         let externalUUID = HealthExportIdentity.summary(sessionId: sessionId, metric: .heartRate)
         let sample = HealthSampleFactory.quantitySample(
             type: hrType, value: value, unit: HKUnit.count().unitDivided(by: .minute()), start: date, end: date,
-            metadata: [HKMetadataKeyExternalUUID: externalUUID, "Source": "Emuqu"]
+            metadata: HealthExportIdentity.metadata(externalUUID, version: HealthExportIdentity.nextSyncVersion())
         )
         // Exact match: "-hr" must NOT swallow the "-hr-<n>" minute series.
+        // Searched 25 hours either side, as the HRV summary is, so a summary
+        // exported under an earlier end date (before a trim or re-analysis)
+        // is replaced too.
         try await replace(
-            sample.map { [$0] } ?? [], of: hrType, over: DateInterval(start: date, duration: 0), key: sessionId.uuidString
+            sample.map { [$0] } ?? [], of: hrType, over: Self.summarySearchSpan(around: date), key: sessionId.uuidString
         ) { $0 == externalUUID }
+    }
+
+    /// `date` ± 25 hours, where a session's heart-rate summary exported under
+    /// another end date is searched for. The match is the session's exact
+    /// identity, so the wide window reaches nothing else.
+    nonisolated static func summarySearchSpan(around date: Date) -> DateInterval {
+        let padding: TimeInterval = 25 * 3600
+        return DateInterval(start: date.addingTimeInterval(-padding), end: date.addingTimeInterval(padding))
     }
 
     /// Export a night's resting heart rate to Apple Health.
@@ -346,7 +358,7 @@ extension HeartRateHealthQueries {
         let externalUUID = HealthExportIdentity.summary(sessionId: sessionId, metric: .restingHeartRate)
         guard let sample = HealthSampleFactory.quantitySample(
             type: rhrType, value: value, unit: HKUnit.count().unitDivided(by: .minute()), start: date, end: date,
-            metadata: [HKMetadataKeyExternalUUID: externalUUID, "Source": "Emuqu"]
+            metadata: HealthExportIdentity.metadata(externalUUID, version: HealthExportIdentity.nextSyncVersion())
         ) else {
             debugLog("[HealthKit] exportRestingHeartRate: refusing non-finite value (\(value))", level: .warning)
             return
@@ -367,6 +379,21 @@ extension HeartRateHealthQueries {
         try await replace(
             [], of: rhrType, over: Self.restingHeartRateSearchSpan(around: date), key: Self.restingHeartRateReplaceKey
         ) { $0 == externalUUID }
+    }
+
+    /// Delete every heart-rate sample a session deleted forever exported: the
+    /// summary and the minute series (`HealthExportIdentity.belongsToSession`).
+    /// `start...end` is the recording's span; the search reaches 25 hours
+    /// past either end, which covers both shapes, as the HRV removal does. It
+    /// runs as a replacement with nothing to save, so it waits for an export
+    /// of the same session still running. Errors propagate.
+    func removeExportedHeartRate(sessionId: UUID, from start: Date, to end: Date) async throws {
+        guard manager.isHealthKitAvailable, let hrType = HKTypes.quantity(.heartRate) else { return }
+        let padding: TimeInterval = 25 * 3600
+        let span = DateInterval(start: start.addingTimeInterval(-padding), end: end.addingTimeInterval(padding))
+        try await replace([], of: hrType, over: span, key: sessionId.uuidString) {
+            HealthExportIdentity.belongsToSession($0, sessionId: sessionId, metric: .heartRate)
+        }
     }
 
     /// `date` ± `restingHeartRateNightSpan`, where a night's resting heart
@@ -411,7 +438,10 @@ extension HeartRateHealthQueries {
     ) async throws {
         guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
         guard let hrType = HKTypes.quantity(.heartRate) else { return }
-        let samples = Self.minuteHRSamples(rrPoints: rrPoints, hrType: hrType, sessionStart: sessionStart, sessionId: sessionId)
+        let samples = Self.minuteHRSamples(
+            rrPoints: rrPoints, hrType: hrType, sessionStart: sessionStart, sessionId: sessionId,
+            version: HealthExportIdentity.nextSyncVersion()
+        )
         // The cleanup covers this session's earlier export wherever it ran,
         // not just the span of the new samples: a re-analysis that trimmed
         // the night (or left no minutes at all) must not leave the old rows
@@ -436,7 +466,8 @@ extension HeartRateHealthQueries {
         rrPoints: [RRPoint],
         hrType: HKQuantityType,
         sessionStart: Date,
-        sessionId: UUID
+        sessionId: UUID,
+        version: Int
     ) -> [HKQuantitySample] {
         let endMs = rrPoints.map(\.exportTimeMs).max() ?? 0
         let minuteMs: Int64 = 60 * 1000
@@ -447,8 +478,8 @@ extension HeartRateHealthQueries {
             let windowPoints = rrPoints.filter { $0.exportTimeMs >= windowStart && $0.exportTimeMs < windowEnd }
             let sample = meanHR(of: windowPoints).flatMap { hr in
                 hrSample(
-                    hr, type: hrType, sessionStart: sessionStart, sessionId: sessionId,
-                    index: samples.count, windowStartMs: windowStart, windowEndMs: windowEnd
+                    hr, type: hrType, sessionStart: sessionStart, sessionId: sessionId, version: version,
+                    index: samples.count, windowMs: windowStart..<windowEnd
                 )
             }
             if let sample { samples.append(sample) }
@@ -457,20 +488,21 @@ extension HeartRateHealthQueries {
         return samples
     }
 
+    /// The sample for one minute: `windowMs` is the minute as milliseconds
+    /// from `sessionStart`, from its first millisecond up to the next minute's.
     nonisolated private static func hrSample(
-        _ hr: Double, type: HKQuantityType, sessionStart: Date, sessionId: UUID,
-        index: Int, windowStartMs: Int64, windowEndMs: Int64
+        _ hr: Double, type: HKQuantityType, sessionStart: Date, sessionId: UUID, version: Int,
+        index: Int, windowMs: Range<Int64>
     ) -> HKQuantitySample? {
         HealthSampleFactory.quantitySample(
             type: type,
             value: hr,
             unit: HKUnit.count().unitDivided(by: .minute()),
-            start: sessionStart.addingTimeInterval(Double(windowStartMs) / 1000),
-            end: sessionStart.addingTimeInterval(Double(windowEndMs) / 1000),
-            metadata: [
-                HKMetadataKeyExternalUUID: HealthExportIdentity.seriesMember(sessionId: sessionId, metric: .heartRate, index: index),
-                "Source": "Emuqu"
-            ]
+            start: sessionStart.addingTimeInterval(Double(windowMs.lowerBound) / 1000),
+            end: sessionStart.addingTimeInterval(Double(windowMs.upperBound) / 1000),
+            metadata: HealthExportIdentity.metadata(
+                HealthExportIdentity.seriesMember(sessionId: sessionId, metric: .heartRate, index: index), version: version
+            )
         )
     }
 

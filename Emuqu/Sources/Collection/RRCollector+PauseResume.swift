@@ -189,9 +189,11 @@ extension CollectorSessionControl {
     }
 
     /// Archive a paused session; a failure is logged and shown to the user.
+    /// Asked to go to iCloud again: a segment paused again after a resume is
+    /// an id iCloud already holds, which sync would otherwise never re-send.
     private func archivePausedSession(_ session: HRVSession, label: String) async -> Bool {
         do {
-            try collector.archive.archive(session)
+            try collector.archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
             debugLog("[RRCollector] ✅ \(label) session archived: \(session.id.uuidString.prefix(8))")
             return true
         } catch {
@@ -218,8 +220,13 @@ extension CollectorSessionControl {
     ///
     /// No overnight keep-alives (App Store 2.5.4);
     /// `bluetooth-central` carries resumed overnight segments too.
-    /// See the note in `startOvernightStreaming`.
+    /// See the note in `startOvernightStreaming`. Refused, like a new night,
+    /// while an earlier ending is still in progress. Streaming starts first,
+    /// as for a fresh night, so a failed resume leaves no arming loop, and the
+    /// child is linked to its parent only once streaming started, so a failed
+    /// resume leaves no link.
     func resumeOvernightStreaming(linkedSessionId: UUID) throws {
+        try collector.overnightStreaming.refuseWhileEndingInProgress()
         guard collector.polarManager.connectionState == .connected else {
             throw RRCollector.CollectorError.notConnected
         }
@@ -231,23 +238,19 @@ extension CollectorSessionControl {
             sessionType: parentSessionType(of: linkedSessionId), deviceProvenance: .streaming(from: collector.polarManager)
         )
         session.linkedSessionIds = [linkedSessionId]
-        // Streaming first, as a fresh night: a failed resume leaves no arming loop.
         collector.overnightDeviceBackupActive = false
         try collector.polarManager.startStreaming()
         if collector.useDeviceBackupForOvernight, collector.polarManager.connectedDeviceType != .veritySense {
             launchResumeDeviceBackupRecording()
         }
-        // Only once streaming started: a failed resume must not leave a link.
         linkChildToParent(childId: session.id, parentId: linkedSessionId)
         commitResumedSession(session)
     }
 
-    /// Publish the resumed session's state, drop an ending claim left behind,
-    /// persist it for crash recovery, drop the paused-session marker, and
-    /// restart the 1 Hz overnight timer.
+    /// Publish the resumed session's state, persist it for crash recovery,
+    /// drop the paused-session marker, and restart the 1 Hz overnight timer.
     private func commitResumedSession(_ session: HRVSession) {
         resetStateForResumedSession(session)
-        collector.overnightStreaming.dropStaleEndingClaim()
         collector.persistRecordingState(sessionId: session.id, startTime: Date(), sessionType: session.sessionType)
         clearPausedSessionState()
         collector.startOvernightStreamingTimer()
@@ -261,14 +264,17 @@ extension CollectorSessionControl {
         collector.archive.retrieveOrLog(linkedSessionId)?.sessionType ?? .overnight
     }
 
-    /// Update the parent session so it knows about this child.
+    /// Update the parent session so it knows about this child. The link is
+    /// added to the archive's copy as it is at the write, and the parent goes
+    /// to iCloud again so other devices see it too.
     private func linkChildToParent(childId: UUID, parentId: UUID) {
         do {
-            guard var parentSession = try collector.archive.retrieve(parentId) else { return }
-            var links = parentSession.linkedSessionIds ?? []
-            links.append(childId)
-            parentSession.linkedSessionIds = links
-            _ = try collector.archive.archive(parentSession)
+            guard collector.archive.exists(parentId) else { return }
+            try collector.archive.update(parentId, requestingReupload: true) { parent in
+                var links = parent.linkedSessionIds ?? []
+                links.append(childId)
+                parent.linkedSessionIds = links
+            }
         } catch {
             debugLog("[RRCollector] ⚠️ Failed to link child \(childId.uuidString.prefix(8)) to parent \(parentId.uuidString.prefix(8)): \(error)", level: .error)
         }
@@ -318,15 +324,17 @@ extension CollectorSessionControl {
     /// have nothing to accept: they are saved and the recorder returns to idle.
     /// When the save fails the night stays paused, as the archive still holds
     /// it, so Resume and Done remain.
+    ///
+    /// The night is finalized from the archive's copy, which a sleep refresh
+    /// or a rescore may have rewritten since the pause; the copy held at the
+    /// pause would put the older sleep and score back.
     func finalizeFromPause() {
         guard let session = collector.pausedSession, session.state == .paused else {
             debugLog("[RRCollector] Cannot finalize — no paused session")
             return
         }
         debugLog("[RRCollector] Finalizing paused session \(session.id.uuidString.prefix(8))")
-        var finalSession = session
-        finalSession.state = .complete
-        guard rearchiveFinalized(finalSession) else { return }
+        guard let finalSession = rearchiveFinalized(session) else { return }
         collector.baselineTracker.update(with: finalSession, sleepSchedule: collector.settingsManager.settings.sleepSchedule)
         collector.currentSession = finalSession
         collector.needsAcceptance = finalSession.analysisResult != nil
@@ -338,14 +346,25 @@ extension CollectorSessionControl {
         clearPausedSessionState()
     }
 
-    private func rearchiveFinalized(_ finalSession: HRVSession) -> Bool {
+    /// Marks the archive's copy of the paused night complete, in place, and
+    /// returns it as written. A night the archive no longer holds is saved
+    /// from the held copy. Either write asks iCloud for the night again, as
+    /// the finished night replaces the paused one there. Nil when the write
+    /// failed; the error is shown.
+    private func rearchiveFinalized(_ paused: HRVSession) -> HRVSession? {
+        var finalSession = paused
+        finalSession.state = .complete
         do {
-            try collector.archive.archive(finalSession)
-            return true
+            guard collector.archive.exists(paused.id) else {
+                try collector.archive.archive(finalSession, skipSameNightMerge: false, requestingReupload: true)
+                return finalSession
+            }
+            try collector.archive.update(paused.id, requestingReupload: true) { $0.state = .complete }
+            return try collector.archive.retrieve(paused.id) ?? finalSession
         } catch {
             debugLog("[RRCollector] ⚠️ Failed to re-archive finalized session: \(error)", level: .error)
             collector.lastError = error
-            return false
+            return nil
         }
     }
 

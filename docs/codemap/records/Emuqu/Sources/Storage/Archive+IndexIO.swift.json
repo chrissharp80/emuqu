@@ -163,7 +163,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func rewriteWithProtection(at:)": "e8a97c0c9d12d0f3",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func rewriteWithProtection(at:)": "e5001aadff7043e9",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.protectionAttributes": "90bfb89d8d932951",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)": "4011267e08da02e8",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "3a3880893754edfe",
@@ -527,15 +527,17 @@
   },
   {
    "key": "func SessionArchive.saveDeletedIndex()",
-   "hash": "a44cac0beeea716b",
-   "does": "First merges a deleted.json that failed to load (throws while it still cannot be read, so the partial set never overwrites it), then encodes deletedSessionIds as UUID strings and writes atomically with completeUntilFirstUserAuthentication.",
+   "hash": "c6ecbcf5c715c7e7",
+   "does": "Through PurgeGate.admitWrite (throws PurgeGate.Refused and writes nothing while Delete All My Data runs): first merges a deleted.json that failed to load (throws while it still cannot be read, so the partial set never overwrites it), then encodes deletedSessionIds as UUID strings and writes atomically with completeUntilFirstUserAuthentication.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeDeletedIndexThatFailedToLoad()"
    ],
    "reads": [
     "mem:SessionArchive.deletedSessionIds",
-    "mem:SessionArchive.deletedIndexReadFailed"
+    "mem:SessionArchive.deletedIndexReadFailed",
+    "mem:PurgeGate.state"
    ],
    "writes": [
     "file:<deletedIndexFile>",
@@ -543,16 +545,18 @@
    ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeDeletedIndexThatFailedToLoad()": "69d3c72f9def1bbd",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "0dea00d1e12c27f4"
    }
   },
   {
    "key": "func SessionArchive.saveIndex()",
-   "hash": "459b93f38317d7b8",
-   "does": "Merges a previously unreadable on-disk index (throws if still unreadable), clears derived caches, builds the bytes with newerBuildIndexEntries.indexData (the plain encoding, or with a newer build's entries written back as read), passes them through sealedOrPlain (sealed with the archive's key, or plain JSON when the key cannot be reached) and atomically writes index.json (completeFileProtectionUntilFirstUserAuthentication). Throws merge, encode and write errors.",
+   "hash": "80ee7f8c9993d3a5",
+   "does": "Through PurgeGate.admitWrite (throws PurgeGate.Refused and writes nothing while Delete All My Data runs): merges a previously unreadable on-disk index (throws if still unreadable), clears derived caches, builds the bytes with newerBuildIndexEntries.indexData (the plain encoding, or with a newer build's entries written back as read), passes them through sealedOrPlain (sealed with the archive's key, or plain JSON when the key cannot be reached) and atomically writes index.json (completeFileProtectionUntilFirstUserAuthentication). Throws merge, encode and write errors.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.indexData(for:deleted:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.sealedOrPlain(_:)",
@@ -562,15 +566,24 @@
     "mem:SessionArchive.index",
     "mem:SessionArchive.newerBuildIndexEntries",
     "mem:SessionArchive.deletedSessionIds",
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
+    "mem:PurgeGate.state"
    ],
    "writes": [
     "file:<indexFile>",
     "mem:SessionArchive.sortedEntriesCache",
-    "mem:SessionArchive.sessionIdLookup"
+    "mem:SessionArchive.sessionIdLookup",
+    "mem:PurgeGate.state"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a purge runs",
+     "effect": "throws PurgeGate.Refused; nothing merged or written"
+    }
+   ],
    "deps": {
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.indexData(for:deleted:)": "c12e9eb29fed867b",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()": "b289f8d08b398093",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.sealedOrPlain(_:)": "a00359c9ff3d4dd6"
@@ -644,7 +657,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "bc9f8909df43d2dd",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "fa7f11dc067c058a",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex": "4d992f398d9be95b",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.indexEncryption": "c8ce9f7f8e86bf28",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
@@ -718,7 +731,7 @@
    "calls": [
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.deriveSleepIndexFields(from:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::init SessionArchiveEntry.SleepMirror(session:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex"
@@ -740,7 +753,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "a8931f1f0477a31d",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "a8931f1f0477a31d",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "52bc71a25da47070",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
@@ -808,7 +821,7 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.coreSleepMinutes(_:)": "e05b80b17e575703",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "474586cf18129a57",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "46cf8d8d2290f40e",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "282d64c9cade85ef",
     "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
@@ -819,13 +832,13 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::init SessionArchiveEntry.SleepMirror(session:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "a8931f1f0477a31d",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "a8931f1f0477a31d",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::init SessionArchiveEntry.SleepMirror(session:)": "b575c7030b2f391d",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99"
    }
@@ -959,7 +972,7 @@
    "does": "Decodes one SessionArchiveEntry from the element's decoder; on failure logs a warning and holds nil, so the array decode continues.",
    "entry": "Called by JSONDecoder for each element of the index array (SessionArchive.decodeIndex).",
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(from:)",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -972,20 +985,22 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(from:)": "4152f3b5379b5147",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)": "63cfbee8fbd51a33",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func rewriteWithProtection(at:)",
-   "hash": "795d9500cfcbab7c",
-   "does": "Reads the file and rewrites it atomically with completeUntilFirstUserAuthentication protection; logs and returns on either failure.",
+   "hash": "59e52bfc66fe3eae",
+   "does": "Reads the file and rewrites it atomically with completeUntilFirstUserAuthentication protection through PurgeGate.admitWrite (refused while Delete All My Data runs); logs and returns on either failure, the refusal included.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)"
    ],
    "reads": [
-    "file:<archiveDirectory>/<file>"
+    "file:<archiveDirectory>/<file>",
+    "mem:PurgeGate.state"
    ],
    "writes": [
     "file:<archiveDirectory>/<file>"
@@ -998,6 +1013,7 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   }
