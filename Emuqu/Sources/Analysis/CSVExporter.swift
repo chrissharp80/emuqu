@@ -271,13 +271,12 @@ enum CSVExporter {
         fmt.dateFormat = "yyyyMMdd-HHmmss"
         fmt.timeZone = TimeZone(secondsFromGMT: 0)
         let filename = "\(sport)-\(fmt.string(from: session.startDate)).csv"
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         guard let data = csv.data(using: .utf8) else {
             throw NSError(domain: "CSVExporter", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: String(localized: "Couldn't create the CSV file.", bundle: LanguageManager.appBundle)
             ])
         }
-        try data.write(to: url, options: .atomic)
+        let url = try ExportFile.write(data, named: filename)
         debugLog("[CSVExporter] wrote \(data.count) bytes to \(url.path)")
         return url
     }
