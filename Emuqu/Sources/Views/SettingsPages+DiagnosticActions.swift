@@ -94,32 +94,60 @@ extension TroubleshootingPage {
     /// Only while the problems are listed (Advanced Diagnostics on): with it
     /// off the page says "No Problems Found", and a Clear button beside that
     /// would contradict it.
+    /// Asks first, with the Error Catalog's own wording.
     @ViewBuilder
     private var clearProblemsButton: some View {
         if debugModeEnabled, !logger.errorCatalog.isEmpty {
             Button(role: .destructive) {
-                dependencies.app.debugLogger.clearErrorCatalog()
+                confirmingClearProblems = true
             } label: {
                 Label(
                     String(localized: "Clear Problems", bundle: LanguageManager.appBundle),
                     systemImage: "xmark.circle"
                 )
             }
+            .alert(String(localized: "Clear All Errors?", bundle: LanguageManager.appBundle), isPresented: $confirmingClearProblems) {
+                clearProblemsAlertActions
+            } message: {
+                Text(String(localized: "This will permanently delete all \(logger.errorCatalog.count) error records.", bundle: LanguageManager.appBundle))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var clearProblemsAlertActions: some View {
+        Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
+        Button(String(localized: "Clear \(logger.errorCatalog.count) Errors", bundle: LanguageManager.appBundle), role: .destructive) {
+            dependencies.app.debugLogger.clearErrorCatalog()
         }
     }
 
     /// Deleting the report file changes nothing SwiftUI observes, so the
     /// page also records the clear, which hides this button and the Crash
     /// Report section at once.
+    /// Asks first, with the Crash Report screen's own wording.
     @ViewBuilder
     private var clearCrashReportButton: some View {
         if hasCrashReport {
             Button(role: .destructive) {
-                dependencies.app.crashLogManager.clearPreviousCrash()
-                crashReportCleared = true
+                confirmingClearCrashReport = true
             } label: {
                 Label(String(localized: "Clear Crash Report", bundle: LanguageManager.appBundle), systemImage: "xmark.circle")
             }
+            .alert(String(localized: "Delete Crash Report?", bundle: LanguageManager.appBundle), isPresented: $confirmingClearCrashReport) {
+                clearCrashReportAlertActions
+            } message: {
+                Text(String(localized: "The crash report will be permanently deleted.", bundle: LanguageManager.appBundle))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var clearCrashReportAlertActions: some View {
+        Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
+        Button(String(localized: "Delete", bundle: LanguageManager.appBundle), role: .destructive) {
+            dependencies.app.crashLogManager.clearPreviousCrash()
+            crashReportCleared = true
         }
     }
 
@@ -286,11 +314,18 @@ extension TroubleshootingPage {
     /// "All Logs": the debug log and every crash log (the live ones and the
     /// previous run's report, whose section hides once it is gone). When
     /// anything is left the page says so.
+    /// Asks first, as the Debug Log screen's Clear does.
     private var debugResetButton: some View {
         Button(role: .destructive) {
-            clearAllLogs()
+            confirmingClearAllLogs = true
         } label: {
             Label(String(localized: "Clear All Logs", bundle: LanguageManager.appBundle), systemImage: "trash")
+        }
+        .alert(String(localized: "Clear All Logs?", bundle: LanguageManager.appBundle), isPresented: $confirmingClearAllLogs) {
+            Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
+            Button(String(localized: "Clear", bundle: LanguageManager.appBundle), role: .destructive, action: clearAllLogs)
+        } message: {
+            Text(String(localized: "This deletes the debug log and every crash log, including the last crash report. You can't undo this.", bundle: LanguageManager.appBundle))
         }
         .alert(String(localized: "Some logs couldn't be deleted. Try again.", bundle: LanguageManager.appBundle), isPresented: $logsClearFailed) {
             Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}

@@ -154,7 +154,7 @@ struct DataSettingsPage: View {
             return forceSyncSummary(newlyUploaded: delta)
         }
         guard syncManager.lastSyncDate != lastSyncBefore else {
-            return String(localized: "Syncing…", bundle: LanguageManager.appBundle)
+            return String(localized: "Nothing was synced this time: another sync may still be running. Try again in a moment.", bundle: LanguageManager.appBundle)
         }
         return forceSyncSummary(newlyUploaded: delta)
     }

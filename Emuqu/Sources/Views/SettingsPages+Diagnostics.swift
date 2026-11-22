@@ -22,6 +22,11 @@ struct TroubleshootingPage: View {
     @State var crashReportCleared = false
     /// Set when Clear All Logs left a log behind.
     @State var logsClearFailed = false
+    /// Clear Problems, Clear Crash Report and Clear All Logs each wait for
+    /// confirmation, as their own screens' clears do.
+    @State var confirmingClearProblems = false
+    @State var confirmingClearCrashReport = false
+    @State var confirmingClearAllLogs = false
     @State var showingTrainingRepairAlert = false
     @State var showingTrainingRepairConfirm = false
     @State var trainingRepairMessage = ""
