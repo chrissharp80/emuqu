@@ -116,7 +116,7 @@ final class IntegrationTests: XCTestCase {
     // MARK: - Window Selection
 
     /// Recovery window should be found within temporal constraints
-    func testRecoveryWindowSelectionWithTemporalConstraints() {
+    func testRecoveryWindowSelectionWithTemporalConstraints() throws {
         let windowSelector = WindowSelector()
 
         // Create long series (simulating overnight - 8 hours at ~60bpm)
@@ -148,21 +148,12 @@ final class IntegrationTests: XCTestCase {
         let window = windowSelector.findBestWindow(in: series, flags: flags, wakeTimeMs: wakeTimeMs)
 
         // Should find a window (may be organized or high-variability depending on DFA)
-        XCTAssertNotNil(window, "Should find a window for 8-hour recording")
+        let found = try XCTUnwrap(window, "Should find a window for 8-hour recording")
 
         // Window should be within the temporal representativeness band (30-70%)
-        if let window, let relativePosition = window.relativePosition {
-            XCTAssertGreaterThanOrEqual(
-                relativePosition,
-                0.30,
-                "Window should be at least 30% into sleep episode"
-            )
-            XCTAssertLessThanOrEqual(
-                relativePosition,
-                0.70,
-                "Window should be at most 70% into sleep episode"
-            )
-        }
+        let relativePosition = try XCTUnwrap(found.relativePosition, "an organized window always carries its position")
+        XCTAssertGreaterThanOrEqual(relativePosition, 0.30, "Window should be at least 30% into sleep episode")
+        XCTAssertLessThanOrEqual(relativePosition, 0.70, "Window should be at most 70% into sleep episode")
     }
 
     /// Test that short sleep returns no representative window

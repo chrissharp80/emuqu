@@ -8,159 +8,172 @@ import XCTest
 /// are integration tests that require an iCloud account and are not included here.
 /// These tests verify the logic layer: state transitions, error formatting, deduplication,
 /// and data integrity of the sync state persistence.
+///
+/// ## Whose manager
+///
+/// The tests that change sync state build their own manager
+/// (`CloudKitSyncManager.isolated`): over a temporary archive, fresh-install
+/// settings and a sync-state file in the test's folder. Run against
+/// `CloudKitSyncManager.shared` they reset the host's uploaded, pending,
+/// quarantine and local-only lists and its record versions, so the next real
+/// sync re-pushed and re-pulled everything. What a reset still clears in the
+/// host's standard defaults (`HostDefaults.cloudSyncBookkeeping`) is set
+/// aside in `setUp` and put back in `tearDown`, with the Health-scrub list's
+/// keys (`CloudHealthScrubCoordinator`), which the scrub tests write.
+///
+/// ## What an upload test can show
+///
+/// `uploadSession` changes nothing a test can read before it reaches
+/// CloudKit, so a test that only calls it cannot tell a guard that held
+/// from a session the upload skipped for another reason. Which sessions the
+/// direct upload takes is `takesDirectUpload(_:)`, asserted directly; the
+/// consent gate is `cloudUploadsAllowed`, asserted directly; the upload
+/// tests then check, on the test's own manager, that nothing was queued or
+/// marked uploaded and the state did not move.
 @MainActor
-/// ## A note on `syncState` assertions
-///
-/// These tests drive `CloudKitSyncManager.shared` — a singleton whose
-/// `syncState` outlives any one test. Do not assert
-/// `syncState == .idle` after an operation that is supposed to be a no-op.
-///
-/// That is not what "no-op" means, and it makes the assertions depend on the
-/// host: on a machine with no iCloud account — which every GitHub runner is —
-/// an earlier test leaves `error("Not signed into iCloud")` behind and the
-/// operation under test fails having done nothing wrong.
-///
-/// The genuinely state-neutral ones — `uploadSession` and
-/// `uploadDeletion`, which `return` before touching anything — assert the
-/// state is UNCHANGED across the call. That is both what "no-op" means and
-/// strictly stronger: it fails if such a path touches the state at all.
-///
-/// `testFullSyncReturnsIdleWhenDisabled` deliberately asserts `.idle`.
-/// `performFullSync` normalises to `.idle` when the setting is off, so that
-/// turning sync off clears a stale error instead of leaving it on screen. That
-/// one is not a no-op; do not generalise the unchanged-state assertion to it.
 final class CloudKitSyncManagerTests: XCTestCase {
-    // MARK: - Upload Guard Tests
+    private let directory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("CloudKitSyncManagerTests-\(UUID().uuidString)", isDirectory: true)
+    private lazy var settings = SettingsManager(settingsURL: directory.appendingPathComponent("user_settings.json"))
+    private lazy var archive = SessionArchive(directory: directory.appendingPathComponent("Archive", isDirectory: true))
+    private lazy var manager = CloudKitSyncManager.isolated(archive: archive, directory: directory, settings: settings)
+    private var hostSyncDefaults: HostDefaults?
 
-    func testUploadSkipsFailedSession() async {
-        let manager = CloudKitSyncManager.shared
-
-        // Create a session that isn't complete (failed state)
-        let session = HRVSession(
-            id: UUID(),
-            startDate: Date(),
-            endDate: Date(),
-            state: .failed,
-            sessionType: .overnight,
-            rrSeries: nil,
-            analysisResult: nil,
-            artifactFlags: nil
+    override func setUp() async throws {
+        try await super.setUp()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        hostSyncDefaults = HostDefaults.setAside(
+            HostDefaults.cloudSyncBookkeeping + [CloudHealthScrubCoordinator.remainingKey, CloudHealthScrubCoordinator.initializedKey]
+                + CloudHealthScrubCoordinator.legacyKeys
         )
-
-        // Should return immediately without attempting upload
-        // (no crash, no error — just a no-op)
-        let before = manager.syncState
-        await manager.uploadSession(session)
-
-        XCTAssertEqual(manager.syncState, before, "Should not attempt sync for failed session")
     }
 
-    func testUploadSkipsCollectingSession() async {
-        let manager = CloudKitSyncManager.shared
+    override func tearDown() async throws {
+        hostSyncDefaults?.restore()
+        try FileManager.default.removeItem(at: directory)
+        try await super.tearDown()
+    }
 
-        // The short init creates a session in .collecting state
-        let session = HRVSession(sessionType: .overnight)
-        XCTAssertEqual(session.state, .collecting)
+    private func completeNight() -> HRVSession {
+        HRVSession(
+            id: UUID(), startDate: Date(timeIntervalSince1970: 1_790_000_000), endDate: Date(timeIntervalSince1970: 1_790_028_800),
+            state: .complete, sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+    }
+
+    /// Nothing about `id` was queued or marked uploaded, and the sync state
+    /// is what it was.
+    private func assertUntouched(_ id: UUID, stateBefore: CloudKitSyncManager.SyncState, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertFalse(manager.state.pendingUploadIds.contains(id), "queued for upload", file: file, line: line)
+        XCTAssertFalse(manager.state.uploadedSessionIds.contains(id), "marked uploaded", file: file, line: line)
+        XCTAssertEqual(manager.syncState, stateBefore, file: file, line: line)
+    }
+
+    // MARK: - Upload Guard Tests
+
+    /// The direct upload takes a complete session, and a workout carrying
+    /// its metadata whatever its state; not a failed or collecting night, and
+    /// never a session read out of Apple Health whole (a breathing session).
+    func testTheDirectUploadTakesOnlyCompleteSessionsAndWorkoutsWithData() {
+        XCTAssertTrue(CloudKitSyncManager.takesDirectUpload(completeNight()))
+
+        var failed = completeNight()
+        failed.state = .failed
+        XCTAssertFalse(CloudKitSyncManager.takesDirectUpload(failed), "a failed night was taken")
+
+        let collecting = HRVSession(sessionType: .overnight)
+        XCTAssertEqual(collecting.state, .collecting)
+        XCTAssertFalse(CloudKitSyncManager.takesDirectUpload(collecting), "a collecting night was taken")
+
+        var partialWorkout = HRVSession(sessionType: .workout)
+        partialWorkout.state = .failed
+        partialWorkout.workoutMetadata = WorkoutMetadata(sport: .run)
+        XCTAssertTrue(CloudKitSyncManager.takesDirectUpload(partialWorkout), "a workout with data was left out")
+        partialWorkout.workoutMetadata = nil
+        XCTAssertFalse(CloudKitSyncManager.takesDirectUpload(partialWorkout))
+
+        var breathe = completeNight()
+        breathe.sessionType = .breathe
+        XCTAssertFalse(CloudKitSyncManager.takesDirectUpload(breathe), "a session from Apple Health was taken")
+    }
+
+    func testUploadSkipsFailedSession() async throws {
+        var session = completeNight()
+        session.state = .failed
+        try archive.archive(session)
+        settings.settings.hasCompletedOnboarding = true
+        XCTAssertTrue(manager.cloudUploadsAllowed, "Sanity: only the session's state can stop this upload")
 
         let before = manager.syncState
         await manager.uploadSession(session)
-        XCTAssertEqual(manager.syncState, before, "Should not attempt sync for collecting session")
+
+        assertUntouched(session.id, stateBefore: before)
+    }
+
+    func testUploadSkipsCollectingSession() async throws {
+        let session = HRVSession(sessionType: .overnight)
+        XCTAssertEqual(session.state, .collecting)
+        settings.settings.hasCompletedOnboarding = true
+        XCTAssertTrue(manager.cloudUploadsAllowed, "Sanity: only the session's state can stop this upload")
+
+        let before = manager.syncState
+        await manager.uploadSession(session)
+
+        assertUntouched(session.id, stateBefore: before)
     }
 
     // MARK: - Sync Disabled Tests
 
-    /// Turning sync off must leave the manager idle rather than showing a
-    /// stale error.
-    ///
-    /// `performFullSync` has two early returns ABOVE the disabled guard —
-    /// `schemaUnavailable`, and an already-`.syncing` state. Neither is what
-    /// this test is about, and both are singleton state that a test running
-    /// beside it can set. Asserting `.idle` or "unchanged" from an unknown
-    /// starting state describes whichever early return happened to run, not
-    /// the disabled guard.
-    ///
-    /// Starting from a known state removes the ambiguity. From `.idle`, all
-    /// three paths — schema unavailable, already syncing, sync disabled — end
-    /// idle, so the assertion holds whichever one runs, and it still pins the
-    /// property that matters to a user: switching sync off does not strand an
-    /// error on screen.
+    /// Turning sync off leaves the manager idle rather than showing a stale
+    /// error: from an error on screen, a full sync with the setting off
+    /// clears it.
     func testFullSyncReturnsIdleWhenDisabled() async {
-        let manager = CloudKitSyncManager.shared
-
-        // Temporarily disable sync
-        let originalSetting = SettingsManager.shared.settings.iCloudSyncEnabled
-        SettingsManager.shared.settings.iCloudSyncEnabled = false
-        manager.resetLocalSyncState()
+        settings.settings.iCloudSyncEnabled = false
+        manager.showSyncStopped("A stale error")
+        XCTAssertNotEqual(manager.syncState, .idle, "Sanity: the test starts from an error")
 
         await manager.performFullSync()
 
-        // Unlike the upload paths below, this one is NOT state-neutral by
-        // design: CloudKitSyncManager.swift:581 sets `.idle` explicitly when
-        // the setting is off, so that turning sync off clears a stale error
-        // rather than leaving it on screen. Asserting "unchanged" here would
-        // depend on whatever state ran before it.
         XCTAssertEqual(manager.syncState, .idle, "Disabling sync must normalise the state to idle")
-
-        // Restore setting
-        SettingsManager.shared.settings.iCloudSyncEnabled = originalSetting
     }
 
-    func testUploadSessionNoOpWhenDisabled() async {
-        let manager = CloudKitSyncManager.shared
-
-        let originalSetting = SettingsManager.shared.settings.iCloudSyncEnabled
-        SettingsManager.shared.settings.iCloudSyncEnabled = false
-
-        let session = HRVSession(
-            id: UUID(),
-            startDate: Date(),
-            endDate: Date(),
-            state: .complete,
-            sessionType: .overnight,
-            rrSeries: nil,
-            analysisResult: nil,
-            artifactFlags: nil
-        )
+    func testUploadSessionNoOpWhenDisabled() async throws {
+        settings.settings.iCloudSyncEnabled = false
+        settings.settings.hasCompletedOnboarding = true
+        let session = completeNight()
+        try archive.archive(session)
+        XCTAssertTrue(CloudKitSyncManager.takesDirectUpload(session), "Sanity: only the setting can stop this upload")
+        XCTAssertFalse(manager.cloudUploadsAllowed)
 
         let before = manager.syncState
         await manager.uploadSession(session)
-        XCTAssertEqual(manager.syncState, before, "Upload should be no-op when sync disabled")
 
-        SettingsManager.shared.settings.iCloudSyncEnabled = originalSetting
+        assertUntouched(session.id, stateBefore: before)
     }
 
     /// The sync toggle defaults to on, and onboarding asks about iCloud only on
     /// its backup page. Nothing may be uploaded before the user gets there.
     func testUploadsWaitForOnboarding() {
-        let manager = CloudKitSyncManager.shared
-        let original = SettingsManager.shared.settings
-        defer {
-            SettingsManager.shared.settings.iCloudSyncEnabled = original.iCloudSyncEnabled
-            SettingsManager.shared.settings.hasCompletedOnboarding = original.hasCompletedOnboarding
-        }
-
-        SettingsManager.shared.settings.iCloudSyncEnabled = true
-        SettingsManager.shared.settings.hasCompletedOnboarding = false
+        settings.settings.iCloudSyncEnabled = true
+        settings.settings.hasCompletedOnboarding = false
         XCTAssertFalse(manager.cloudUploadsAllowed, "Uploads allowed before onboarding asked about iCloud")
 
-        SettingsManager.shared.settings.hasCompletedOnboarding = true
+        settings.settings.hasCompletedOnboarding = true
         XCTAssertTrue(manager.cloudUploadsAllowed)
 
-        SettingsManager.shared.settings.iCloudSyncEnabled = false
+        settings.settings.iCloudSyncEnabled = false
         XCTAssertFalse(manager.cloudUploadsAllowed, "Uploads allowed with iCloud sync off")
     }
 
     func testUploadDeletionNoOpWhenDisabled() async {
-        let manager = CloudKitSyncManager.shared
-
-        let originalSetting = SettingsManager.shared.settings.iCloudSyncEnabled
-        SettingsManager.shared.settings.iCloudSyncEnabled = false
+        settings.settings.iCloudSyncEnabled = false
+        let id = UUID()
 
         let before = manager.syncState
-        await manager.uploadDeletion(UUID())
-        XCTAssertEqual(manager.syncState, before, "Delete sync should be no-op when sync disabled")
+        await manager.uploadDeletion(id)
 
-        SettingsManager.shared.settings.iCloudSyncEnabled = originalSetting
+        assertUntouched(id, stateBefore: before)
+        XCTAssertFalse(manager.state.recordVersions.keys.contains(id))
     }
 
     // MARK: - Error Message Formatting Tests
@@ -168,7 +181,6 @@ final class CloudKitSyncManagerTests: XCTestCase {
     /// `cloudKitErrorMessage` maps the CloudKit codes a user can act on to
     /// plain sentences and passes anything else through as its description.
     func testCloudKitErrorMessages() {
-        let manager = CloudKitSyncManager.shared
         let genericError = NSError(domain: "test", code: 0, userInfo: [NSLocalizedDescriptionKey: "Test error"])
         XCTAssertEqual(manager.cloudKitErrorMessage(genericError), "Test error", "A non-CloudKit error keeps its own description")
 
@@ -414,19 +426,16 @@ final class CloudKitSyncManagerTests: XCTestCase {
         let initializedKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized"
         let legacyRemainingKey = "FlowRecovery.cloudkit.hkSanitizeReupload.v3.remaining"
         let defaults = UserDefaults.standard
-        let priorRemaining = defaults.stringArray(forKey: remainingKey)
-        let priorInitialized = defaults.object(forKey: initializedKey)
-        defer {
-            // Restore whatever the test host had so we don't perturb other tests.
-            if let priorRemaining { defaults.set(priorRemaining, forKey: remainingKey) }
-            if let priorInitialized { defaults.set(priorInitialized, forKey: initializedKey) }
-        }
+        // The host's values of all three, the legacy one included, go back
+        // afterwards, and a key the host did not have is removed again.
+        let host = HostDefaults.setAside([remainingKey, initializedKey, legacyRemainingKey])
+        defer { host.restore() }
 
         defaults.set([UUID().uuidString], forKey: remainingKey)
         defaults.set(true, forKey: initializedKey)
         defaults.set([UUID().uuidString], forKey: legacyRemainingKey)
 
-        CloudKitSyncManager.shared.clearSanitizeDripState()
+        manager.clearSanitizeDripState()
 
         XCTAssertNil(defaults.stringArray(forKey: legacyRemainingKey),
                      "The v3 drip's list must go too")
@@ -442,18 +451,10 @@ final class CloudKitSyncManagerTests: XCTestCase {
     /// in iCloud leaves the list without being marked, and a second pass
     /// changes nothing.
     func testHealthScrubDripMarksEachUploadedRecordOnce() async {
-        let manager = CloudKitSyncManager.shared
         let scrub = manager.healthScrub
         let defaults = UserDefaults.standard
-        let priorRemaining = defaults.stringArray(forKey: CloudHealthScrubCoordinator.remainingKey)
-        let priorInitialized = defaults.object(forKey: CloudHealthScrubCoordinator.initializedKey)
         let uploaded = UUID()
         let notInCloud = UUID()
-        defer {
-            manager.state.markDeleted(uploaded)
-            defaults.set(priorRemaining, forKey: CloudHealthScrubCoordinator.remainingKey)
-            defaults.set(priorInitialized, forKey: CloudHealthScrubCoordinator.initializedKey)
-        }
         manager.state.markUploaded(uploaded)
         defaults.set(true, forKey: CloudHealthScrubCoordinator.initializedKey)
         defaults.set([notInCloud.uuidString, uploaded.uuidString], forKey: CloudHealthScrubCoordinator.remainingKey)
@@ -470,22 +471,14 @@ final class CloudKitSyncManagerTests: XCTestCase {
 
     /// The first pass lists every record this device uploaded.
     func testHealthScrubListStartsFromTheUploadedSet() async {
-        let manager = CloudKitSyncManager.shared
         let defaults = UserDefaults.standard
-        let priorRemaining = defaults.stringArray(forKey: CloudHealthScrubCoordinator.remainingKey)
-        let priorInitialized = defaults.object(forKey: CloudHealthScrubCoordinator.initializedKey)
         let uploaded = UUID()
-        defer {
-            manager.state.markDeleted(uploaded)
-            defaults.set(priorRemaining, forKey: CloudHealthScrubCoordinator.remainingKey)
-            defaults.set(priorInitialized, forKey: CloudHealthScrubCoordinator.initializedKey)
-        }
         manager.state.markUploaded(uploaded)
         manager.healthScrub.clear()
 
         let listed = await manager.healthScrub.remainingIds()
 
-        XCTAssertTrue(listed.contains(uploaded.uuidString))
+        XCTAssertEqual(listed, [uploaded.uuidString], "the list is this manager's uploaded set")
         XCTAssertTrue(defaults.bool(forKey: CloudHealthScrubCoordinator.initializedKey))
     }
 
@@ -501,20 +494,21 @@ final class CloudKitSyncManagerTests: XCTestCase {
         // Verify its observable contract: syncState idle, lastSyncDate gone,
         // zone-created flag cleared so the next sync cycle recreates the zone
         // from scratch.
+        // On the test's own manager: the host's lists stay as they are, and
+        // the defaults the reset clears were set aside in `setUp`.
         let defaults = UserDefaults.standard
-        let priorZoneCreated = defaults.bool(forKey: UserDefaultsKeys.cloudKitZoneCreated)
-        let priorLastSync = defaults.object(forKey: UserDefaultsKeys.cloudKitLastSyncDate)
-        defer {
-            defaults.set(priorZoneCreated, forKey: UserDefaultsKeys.cloudKitZoneCreated)
-            if let priorLastSync { defaults.set(priorLastSync, forKey: UserDefaultsKeys.cloudKitLastSyncDate) }
-        }
-
         defaults.set(true, forKey: UserDefaultsKeys.cloudKitZoneCreated)
+        let uploaded = UUID()
+        let pending = UUID()
+        manager.state.markUploaded(uploaded)
+        manager.state.markRemoved(pending)
+        manager.showSyncStopped("A stale error")
 
-        let manager = CloudKitSyncManager.shared
         manager.resetLocalSyncState()
 
         XCTAssertEqual(manager.syncState, .idle, "Reset must land in .idle")
+        XCTAssertTrue(manager.state.uploadedSessionIds.isEmpty, "the uploaded list survived the reset")
+        XCTAssertTrue(manager.state.pendingUploadIds.isEmpty, "the pending queue survived the reset")
         XCTAssertNil(manager.lastSyncDate, "lastSyncDate must clear — 'Up to date' after a wipe would be a lie")
         XCTAssertNil(defaults.object(forKey: UserDefaultsKeys.cloudKitLastSyncDate),
                      "Persisted last-sync stamp must clear too")

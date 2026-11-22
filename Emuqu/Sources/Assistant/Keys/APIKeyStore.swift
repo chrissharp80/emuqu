@@ -7,14 +7,19 @@ import Security
 /// never synced to iCloud, never written to disk in plaintext. One entry per
 /// provider, keyed by `ProviderID`.
 ///
-/// Singleton because there's only ever one keychain.
+/// The app uses `shared`, whose items are under the app's Keychain service.
+/// A test builds its own under another service, so it never reads or removes
+/// the app's keys.
 /// Stateless: every call goes to the Keychain, so it is `Sendable`.
 final class APIKeyStore: Sendable {
-    static let shared = APIKeyStore()
+    static let shared = APIKeyStore(keychainService: "com.chrissharp.flowrecovery.assistant.apikey")
 
-    private static let service = "com.chrissharp.flowrecovery.assistant.apikey"
+    /// The Keychain service every item of this store is filed under.
+    private let keychainService: String
 
-    private init() {}
+    init(keychainService: String) {
+        self.keychainService = keychainService
+    }
 
     // MARK: - Public API
 
@@ -131,7 +136,7 @@ final class APIKeyStore: Sendable {
     private func secret(account: String) -> String? {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
+            kSecAttrService: keychainService,
             kSecAttrAccount: account,
             kSecReturnData: true,
             kSecMatchLimit: kSecMatchLimitOne
@@ -158,7 +163,7 @@ final class APIKeyStore: Sendable {
         guard let data = trimmed.data(using: .utf8) else { return false }
         let baseQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
+            kSecAttrService: keychainService,
             kSecAttrAccount: account
         ]
         let attributes: [CFString: Any] = [
@@ -184,7 +189,7 @@ final class APIKeyStore: Sendable {
     private func removeSecret(account: String) -> Bool {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Self.service,
+            kSecAttrService: keychainService,
             kSecAttrAccount: account
         ]
         let status = SecItemDelete(query as CFDictionary)

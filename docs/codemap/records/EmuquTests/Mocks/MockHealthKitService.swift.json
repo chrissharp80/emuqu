@@ -1,12 +1,13 @@
 {
  "file": "EmuquTests/Mocks/MockHealthKitService.swift",
- "hash": "d3f9c6feb05e5630",
- "role": "Test double conforming to HealthKitServiceProtocol with only its requirements: every query answers \"no HealthKit data\" (empty sleep, no Watch HR estimate, zero training load, nil vitals, exports succeed); daytimeRestingHR is the one settable answer (HRVAnalysisPipelineTests). Used by MorningProcessingServiceTests, HRVAnalysisPipelineTests, ReanalysisServiceTests, SleepBoundaryResolverTests, SessionImmutabilityTests, DemoSessionSeederTests.",
+ "hash": "84377b79de5207eb",
+ "role": "Test double conforming to HealthKitServiceProtocol with only its requirements: every query answers \"no HealthKit data\" (empty sleep, no Watch HR estimate, zero training load, nil vitals, exports succeed); daytimeRestingHR (HRVAnalysisPipelineTests) and trainingLoadMetrics (CollectorMigrationParityTests) are the settable answers. Used by MorningProcessingServiceTests, HRVAnalysisPipelineTests, ReanalysisServiceTests, SleepBoundaryResolverTests, SessionImmutabilityTests, DemoSessionSeederTests.",
  "types": [
   "MockHealthKitService: class — @MainActor final HealthKitServiceProtocol mock"
  ],
  "state": [
-  "mem:MockHealthKitService.daytimeRestingHR (nil by default)"
+  "mem:MockHealthKitService.daytimeRestingHR (nil by default)",
+  "mem:MockHealthKitService.trainingLoadMetrics (nil by default: no training load)"
  ],
  "toplevel": "No top-level code. fetchDaytimeNapMinutes and estimateSleepFromRR are not implemented, so the protocol extension defaults (0 nap minutes; HealthKitManager.estimateSleepFromHR on the RR series) are used.",
  "units": [
@@ -47,13 +48,15 @@
   },
   {
    "key": "func MockHealthKitService.calculateTrainingLoad(relativeTo:)",
-   "hash": "d8d13a2d000d9fe0",
-   "does": "Returns a zero TrainingLoad: no VO2max, no workouts, weekly load 0, no days-since-hard-workout, no ACR, no metrics.",
+   "hash": "157a5b1e53ced99b",
+   "does": "Returns a TrainingLoad with no VO2max, no workouts, weekly load 0, no days-since-hard-workout, no ACR, and `trainingLoadMetrics` as its metrics (nil by default, so no training context can be built from it).",
    "entry": "Protocol witness for HealthKitServiceProtocol (Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift); invoked through the protocol by production code under test (MorningProcessingService, HRVAnalysisPipeline, ReanalysisService, SleepBoundaryResolver, DemoSessionSeeder, SessionImmutability tests).",
    "calls": [
     "Emuqu/Sources/Collection/TrainingLoad.swift::init TrainingLoad(vo2Max:recentWorkouts:weeklyLoadScore:daysSinceHardWorkout:acuteChronicRatio:metrics:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:MockHealthKitService.trainingLoadMetrics"
+   ],
    "writes": [],
    "branches": [],
    "deps": {

@@ -167,8 +167,8 @@
   },
   {
    "key": "func SleepScienceAnalyzerTests.testIncompleteCycleHasNoREM()",
-   "hash": "702a816da1259d18",
-   "does": "Core+deep without REM: if a cycle is returned asserts it is incomplete with 0 REM.",
+   "hash": "3c6f60974dc1cbd1",
+   "does": "Core+deep without REM (90 min): asserts exactly one cycle is returned and it is incomplete, with 0 REM and 90 NREM minutes.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
@@ -176,13 +176,7 @@
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+10",
-     "cond": "cycles.first exists",
-     "effect": "true: asserts isComplete false and remMinutes 0; false: no assertion runs"
-    }
-   ],
+   "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "bd1c38b549a45fb4",
     "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
@@ -454,8 +448,8 @@
   },
   {
    "key": "func SleepScienceAnalyzerTests.testFullAnalysisWithStages()",
-   "hash": "cc66145679ef24b2",
-   "does": "Asserts analyze on the standard night with age 35 returns a result with score in (0,100] and age norms for 35.",
+   "hash": "7dc6b05e33b4e216",
+   "does": "Unwraps analyze on the standard night with age 35 and asserts five complete cycles (six detected, the last NREM-only), a score in (0,100] and age norms for 35.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()",
@@ -463,15 +457,11 @@
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+8",
-     "cond": "result is non-nil",
-     "effect": "true: runs the field assertions; false: only the earlier XCTAssertNotNil fails"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.ageNorms(userAge:sleepData:)": "9c3243fa2fb60671",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "23c89fed3f3a35fe",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.enhancedScore(of:sleepData:typicalSleepHours:)": "e39de52cb4050595",
     "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()": "82715bb060599ff5"
    }
   },

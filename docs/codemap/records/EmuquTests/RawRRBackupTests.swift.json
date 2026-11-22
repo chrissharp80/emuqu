@@ -239,17 +239,27 @@
   },
   {
    "key": "func RawRRBackupTests.testMarkAsArchived_nonExistentSession_doesNotCrash()",
-   "hash": "50bd8ca247febe72",
-   "does": "Calls markAsArchived on an unknown id with no assertion (only checks it does not crash).",
+   "hash": "62c53c567064a330",
+   "does": "Backs up another session, marks an id with no backup as archived, and asserts no index row was added for that id and the other backup is still the only unarchived one.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.markAsArchived(_:)"
+    "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.markAsArchived(_:)",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedSessionIds"
    ],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/ (the test's backup store + backup_index.json)"
+   ],
+   "writes": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/ (the test's backup store + backup_index.json)"
+   ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.markAsArchived(_:)": "bd07a0cd0d67f397"
+    "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.markAsArchived(_:)": "bd07a0cd0d67f397",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "0241edd84800b1f0",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedSessionIds": "7ba9734539de9ba7",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
    }
   },
   {
@@ -1103,8 +1113,8 @@
   },
   {
    "key": "func RawRRBackupTests.testReencryptionRemovesASupersededPlaintextFile()",
-   "hash": "5f31ecd319b0e643",
-   "does": "Backs up 50 points, drops an older plain one-shot file of 40 beats for the same session that the index does not name, queues the session and runs the sealer's reencrypt (backup.sealer.reencrypt); asserts the older file is gone, the id cleared when the key is available, and the backup still reads 50 points. Clears its own id from the ledger afterwards.",
+   "hash": "93ed45cc6d23aeb9",
+   "does": "Backs up 50 points, drops an older plain one-shot file of 40 beats for the same session that the index does not name, queues the session and runs the sealer's reencrypt (backup.sealer.reencrypt); asserts the older file is gone, then requires the encryption key (failing without it) and asserts the id left the queue and the backup still reads 50 points. Clears its own id from the ledger afterwards.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)",
@@ -1113,9 +1123,9 @@
     "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.reencrypt(_:in:)",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)",
-    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.plainBackupFile(sessionId:beats:)"
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.plainBackupFile(sessionId:beats:)",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.requireEncryptionKey(file:line:)"
    ],
    "reads": [
     "file:<tmp>/RawRRBackupTests-<uuid>/ (the test's backup store + backup_index.json)",
@@ -1127,29 +1137,23 @@
     "mem:PendingEncryptionLedger.cache (rawBackup store)",
     "ud:storage.pendingReencryption.rawBackupIDs"
    ],
-   "branches": [
-    {
-     "at": "+11",
-     "cond": "key available",
-     "effect": "asserts the id was cleared"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
     "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.reencrypt(_:in:)": "566c7ccf61335915",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "0241edd84800b1f0",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.requireEncryptionKey(file:line:)": "c0cfdc825868f52c",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.plainBackupFile(sessionId:beats:)": "22e51ac354b7036d"
    }
   },
   {
    "key": "func RawRRBackupTests.testReencryptionAdoptsANewerFullerUnindexedFile()",
-   "hash": "18fce204cba40b17",
-   "does": "Backs up 50 points and leaves a plain 80-beat file stamped just after it; after the sealer's reencrypt (backup.sealer.reencrypt) asserts the backup reads 80 points, the file the index missed is gone, and (key available) the id left the queue.",
+   "hash": "4fa334a1372990c0",
+   "does": "Backs up 50 points and leaves a plain 80-beat file stamped just after it; after the sealer's reencrypt (backup.sealer.reencrypt) asserts the backup reads 80 points and the file the index missed is gone, then requires the encryption key (failing without it) and asserts the id left the queue.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.writeUnindexedFile(sessionId:indexedBeats:beats:offsetMs:)",
@@ -1157,7 +1161,7 @@
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable"
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.requireEncryptionKey(file:line:)"
    ],
    "reads": [
     "file:<tmp>/RawRRBackupTests-<uuid>/ (the test's backup store + backup_index.json)",
@@ -1169,19 +1173,13 @@
     "mem:PendingEncryptionLedger.cache (rawBackup store)",
     "ud:storage.pendingReencryption.rawBackupIDs"
    ],
-   "branches": [
-    {
-     "at": "+9",
-     "cond": "key available",
-     "effect": "asserts the id was cleared"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
     "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.reencrypt(_:in:)": "566c7ccf61335915",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.requireEncryptionKey(file:line:)": "c0cfdc825868f52c",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.writeUnindexedFile(sessionId:indexedBeats:beats:offsetMs:)": "6eaf54b8fb81ce1f"
    }
   },
@@ -1299,11 +1297,10 @@
   },
   {
    "key": "func RawRRBackupTests.testReencryptionAdoptsAnEncryptedUnindexedFileOfAQueuedSession()",
-   "hash": "b2be4ae109b28c90",
-   "does": "With the key available (else it returns at once): backs up 50 points with an older plain 20-beat file, writes an encrypted 80-beat file stamped after the indexed one through RawBackupSealer.writeEntry (which takes the session off the queue) and queues the session again by hand, as only a session queued for another reason is repaired; after the sealer's reencrypt (backup.sealer.reencrypt) asserts the backup reads 80 points and the older plain file is gone.",
+   "hash": "5b62f0fd6e7b264d",
+   "does": "Requires the encryption key (fails, rather than passing silently, without it): backs up 50 points with an older plain 20-beat file, writes an encrypted 80-beat file stamped after the indexed one through RawBackupSealer.writeEntry (which takes the session off the queue) and queues the session again by hand, as only a session queued for another reason is repaired; after the sealer's reencrypt (backup.sealer.reencrypt) asserts the backup reads 80 points and the older plain file is gone.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.writeUnindexedFile(sessionId:indexedBeats:beats:offsetMs:)",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)",
@@ -1312,7 +1309,8 @@
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
     "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.reencrypt(_:in:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.requireEncryptionKey(file:line:)"
    ],
    "reads": [
     "file:<tmp>/RawRRBackupTests-<uuid>/ (the test's backup store + backup_index.json)",
@@ -1324,15 +1322,8 @@
     "mem:PendingEncryptionLedger.cache (rawBackup store)",
     "ud:storage.pendingReencryption.rawBackupIDs"
    ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "key unavailable",
-     "effect": "return without asserting"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
     "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.reencrypt(_:in:)": "566c7ccf61335915",
@@ -1340,6 +1331,7 @@
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)": "1d0e34b875b01e4d",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.integrityHash(of:)": "1fb3ccef498336b3",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.requireEncryptionKey(file:line:)": "c0cfdc825868f52c",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.writeUnindexedFile(sessionId:indexedBeats:beats:offsetMs:)": "6eaf54b8fb81ce1f"
    }
