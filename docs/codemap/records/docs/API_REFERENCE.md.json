@@ -942,8 +942,8 @@
   },
   {
    "key": "§ Emuqu — API Reference > Services > ReanalysisService",
-   "hash": "49c1a870f202eced",
-   "does": "ReanalysisService @MainActor: init with archive/healthKit/pipeline/selector/detector/baseline plus provider closures (settings, scoring config, a per-session ANS config, training context) and callback closures (archive changed, session uploaded, zones stale); reanalyzeSession(method, preserveManualWindows), reanalyzeAllSessions(from,to,progress)->(updated, skipped), retroApplySleepSettings->Int, reanalyzeAtPosition, applyManualAnalysis, updateSessionSleepBoundaries, unlinkSegment; static hasInsufficientData (shared with MorningProcessingService so both paths agree) and computeFrozenReadiness(compositeScore, trainingContext). All exist (ReanalysisService.swift, +Sleep.swift). hasInsufficientData is used by MorningProcessingService, ReanalysisService and the insufficient-data migration.",
+   "hash": "e57ec01ea7009750",
+   "does": "ReanalysisService @MainActor: init with archive/healthKit/pipeline/selector/detector/baseline plus provider closures (settings, scoring config, a per-session ANS config, training context) and callback closures (archive changed, session uploaded, zones stale); reanalyzeSession(method, preserveManualWindows), reanalyzeAllSessions(from,to,progress)->(updated, skipped), retroApplySleepSettings->Int, reanalyzeAtPosition, applyManualAnalysis, updateSessionSleepBoundaries returning Task<Bool, Never> (off the main actor, edits in order, true only when stored), unlinkSegment; static hasInsufficientData (shared with MorningProcessingService so both paths agree) and computeFrozenReadiness(compositeScore, trainingContext). All exist (ReanalysisService.swift, +Sleep.swift). hasInsufficientData is used by MorningProcessingService, ReanalysisService and the insufficient-data migration.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)",
@@ -965,7 +965,7 @@
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reanalyzeAtPosition(_:targetMs:)": "6d9db5d724cc59d1",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApplySleepSettings(sessions:progress:)": "890ac26aae8abfea",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)": "a1614ff522bce952",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "bdc8d0383e8b6150",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hasInsufficientData(session:analysisResult:baselineRmssd:)": "288ffd2083f4a975",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeAllSessions(sessions:from:to:progress:)": "c1e5a11ba5b7114c",
@@ -2460,23 +2460,27 @@
   },
   {
    "key": "§ Emuqu — API Reference > Import / Export > ExportFile",
-   "hash": "9d9c24f1904d4a32",
-   "does": "ExportFile (Export/ExportFile.swift): directory tmp/Exports; write(_:named:replacingPrefix:) atomic with complete file protection, removing earlier copies by prefix; protect(_:); removeLeftovers() emptying the folder from EmuquApp.init. Prose: CSV, GPX, TCX, writeReport, log and crash exports write through it.",
+   "hash": "47704f585d09e21c",
+   "does": "ExportFile (Export/ExportFile.swift): Pending (a name and bytes built in memory, write() writing it only when shared); directory tmp/Exports; write(_:named:replacingPrefix:) atomic with complete file protection, removing earlier copies by prefix; protect(_:); removeLeftovers() emptying the folder from EmuquApp.init. Prose: CSV, GPX, TCX, writeReport, log and crash exports write through it; the workout summary's GPX/CSV/TCX are Pending exports written on share (FileShareButton), and a shared file is deleted when its share sheet closes (presentFileShareSheet).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/ExportFile.swift::var ExportFile.directory",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)",
-    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.removeLeftovers()"
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.removeLeftovers()",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentFileShareSheet(_:title:iconName:from:onClosed:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()": "1dc5315527542820",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)": "12c56ef05601a449",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.removeLeftovers()": "2938ba72f922f474",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
-    "Emuqu/Sources/Export/ExportFile.swift::var ExportFile.directory": "58f27c539a7ef13c"
+    "Emuqu/Sources/Export/ExportFile.swift::var ExportFile.directory": "58f27c539a7ef13c",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentFileShareSheet(_:title:iconName:from:onClosed:)": "1114a84169ab2526"
    }
   }
  ],

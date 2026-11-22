@@ -748,7 +748,7 @@ Each chart is downsampled to at most `maxPDFPoints` = 250 points for fast render
 
 ### Export files
 
-CSV, GPX, TCX, the report PDF (`writeReport`), the log export and the crash export are written through `ExportFile` (`Emuqu/Sources/Export/ExportFile.swift`): one folder, `tmp/Exports`, with complete file protection; each export replaces its own earlier copies, and `EmuquApp.init` empties the folder at launch. A workout's GPX and TCX track points carry the times its fixes were taken (`WorkoutMetadata.gpsFixTimes`, stored since this was added); for a workout recorded before then, the times are spread evenly over the session and the file's description says so. `WorkoutPDFReport.generate` and `HolisticDailyReport.generate` apply complete protection to their files.
+CSV, GPX, TCX, the report PDF (`writeReport`), the log export and the crash export are written through `ExportFile` (`Emuqu/Sources/Export/ExportFile.swift`): one folder, `tmp/Exports`, with complete file protection; each export replaces its own earlier copies; a file handed to the share sheet is deleted when the sheet closes, whether the user shared or cancelled (`presentFileShareSheet`, used by `FileShareButton`); the workout summary's GPX, CSV and TCX are built in memory (`ExportFile.Pending`) and written only on tap; and `EmuquApp.init` empties the folder at launch, the backstop for a sheet the app was closed under. A workout's GPX and TCX track points carry the times its fixes were taken (`WorkoutMetadata.gpsFixTimes`, stored since this was added); for a workout recorded before then, the times are spread evenly over the session and the file's description says so. `WorkoutPDFReport.generate` and `HolisticDailyReport.generate` apply complete protection to their files.
 
 ---
 

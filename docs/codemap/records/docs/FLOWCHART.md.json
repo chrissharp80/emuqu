@@ -857,8 +857,8 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 14. Sleep Timeline Editor",
-   "hash": "a40bb0f84b78faaf",
-   "does": "Claims SleepDetailV2View presents SleepTimelineEditorView: canvas bars, 5-min snapped drags with 44 pt targets, split/carve/merge/delete, long-press add, 5-entry undo; Done builds SleepData via SleepScienceAnalyzer.buildSleepDataFromTimelineState (re-splits by awake, unspecified intervals count to total only) then ReanalysisService.updateSessionSleepBoundaries(isUserAdjustment: true) sets sleepUserAdjusted, rescores, archives and fires onArchiveChanged; provenance enum .watch/.iphone/.hrvDerived/.userAdded/.userCarved. Code matches (undo limit 5, 5*60 s step, 44 pt); the provenance enum also has .userAdjusted, which the doc omits.",
+   "hash": "d220b682f1f032b8",
+   "does": "Claims SleepDetailV2View presents SleepTimelineEditorView: canvas bars, 5-min snapped drags with 44 pt targets, split/carve/merge/delete, long-press add, 5-entry undo; Done builds SleepData via SleepScienceAnalyzer.buildSleepDataFromTimelineState (re-splits by awake, unspecified intervals count to total only) then ReanalysisService.updateSessionSleepBoundaries(isUserAdjustment: true) sets sleepUserAdjusted, waits for the previous edit, reads the session off the main actor, captures the rescore inputs on the main actor, and SleepBoundaryWrite.write applies the boundaries and rescores the stored copy under the archive lock when its inputs still match (else writes nothing and retries from it), then fires onArchiveChanged; provenance enum .watch/.iphone/.hrvDerived/.userAdded/.userAdjusted/.userCarved. Code matches (undo limit 5, 5*60 s step, 44 pt).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)",
@@ -875,12 +875,11 @@
    "deps": {
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "f562d71e0976d991",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)": "9637915119e4cfec",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "52f58f127571dcae",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "bdc8d0383e8b6150",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.pop()": "0e686a3cd95461fd",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)": "6e1479fda55a8f9e",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.runSleepBoundaryUpdate(sessionId:sleepData:isUserAdjustment:)": "1098b7a8ceef473c",
-    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)": "1690d85f4141cc0b"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "bdc8d0383e8b6150",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)": "fce749cb526b6ad8",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.pop()": "0e686a3cd95461fd",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)": "6e1479fda55a8f9e"
    }
   },
   {
