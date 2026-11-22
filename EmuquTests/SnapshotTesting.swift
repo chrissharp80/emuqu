@@ -190,6 +190,34 @@ extension SnapshotTesting {
     }
 }
 
+// MARK: - Renders kept for inspection
+
+extension SnapshotTesting {
+    /// Where a render that did not match, or was recorded, is written as a
+    /// reference file would hold it: the `SNAPSHOT_RENDER_DIR` directory, when
+    /// the run sets one. CI sets it (as `TEST_RUNNER_SNAPSHOT_RENDER_DIR`) and
+    /// uploads the folder, so the render of a failed snapshot can be looked at,
+    /// and once checked against the intended change, committed as its new
+    /// reference. Without the variable nothing is written.
+    static var renderDirectory: URL? {
+        guard let path = ProcessInfo.processInfo.environment["SNAPSHOT_RENDER_DIR"], !path.isEmpty else { return nil }
+        return URL(fileURLWithPath: path, isDirectory: true)
+    }
+
+    /// Write `bytes` (a reference file's contents) to `renderDirectory` as
+    /// `<name>.raw`. A failed write is reported in the log and changes no
+    /// result: the snapshot has already failed for its own reason.
+    static func keepRender(_ bytes: Data, named name: String) {
+        guard let dir = renderDirectory else { return }
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try bytes.write(to: dir.appendingPathComponent("\(name).raw"))
+        } catch {
+            print("snapshot '\(name)': could not keep the render in \(dir.path): \(error)")
+        }
+    }
+}
+
 // MARK: - The assertion
 
 extension XCTestCase {
@@ -258,6 +286,7 @@ extension XCTestCase {
                         file: file, line: line)
                 return
             }
+            SnapshotTesting.keepRender(header, named: name)
             // Recording is never a pass. A run that wrote its own expectations
             // has verified nothing, and must not report success.
             XCTFail(
@@ -279,6 +308,7 @@ extension XCTestCase {
         let dims = String(data: stored[..<nl], encoding: .utf8) ?? ""
         let expectedDims = "\(shot.width)x\(shot.height)"
         guard dims == expectedDims else {
+            SnapshotTesting.keepRender(header, named: name)
             XCTFail(
                 "snapshot '\(name)': size changed — reference is \(dims), "
                 + "rendered \(expectedDims)",
@@ -299,6 +329,7 @@ extension XCTestCase {
             return
         }
         if diff.changedPixels > SnapshotTesting.maxChangedPixels {
+            SnapshotTesting.keepRender(header, named: name)
             let pct = String(format: "%.2f%%", diff.fraction * 100)
             XCTFail(
                 "snapshot '\(name)': \(diff.changedPixels) pixels changed, "
