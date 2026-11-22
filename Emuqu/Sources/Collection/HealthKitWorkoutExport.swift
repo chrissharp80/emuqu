@@ -51,6 +51,11 @@ enum HealthKitWorkoutExport {
     /// so a failed save leaves them in Health. A failed delete throws after
     /// the new workout is saved: the caller then leaves the session
     /// unstamped, and the next export finds and deletes both earlier copies.
+    /// A locked phone refuses Health reads but still takes writes (a stop
+    /// from the Watch or the lock screen): the workout is saved without the
+    /// earlier copies, which replace themselves through their sync identifier
+    /// where they share it, and the rest are deleted on the next return to
+    /// the app (`PendingWorkoutReplacements`).
     ///
     /// Heart rate goes with the workout only when `writesHeartRate` is true,
     /// which by default is the Apple Health export setting with its heart-rate
@@ -85,7 +90,7 @@ enum HealthKitWorkoutExport {
             throw ExportError.authorizationNotGranted
         }
         let sampleStore = healthKit.sampleReplacer.store
-        let earlier = try await EarlierExport.find(sessionId: session.id, startDate: session.startDate, in: sampleStore)
+        let earlier = try await EarlierExport.findUnlessLocked(sessionId: session.id, startDate: session.startDate, in: sampleStore)
         let stamp = ExportStamp(sessionId: session.id, version: HealthExportIdentity.nextSyncVersion())
         let saved = try await saveWorkout(
             metadata: metadata, startDate: session.startDate, endDate: endDate,
@@ -93,8 +98,24 @@ enum HealthKitWorkoutExport {
             stamp: stamp, store: store
         )
         let routeSaved = await attachRouteToSavedWorkout(session: session, metadata: metadata, workout: saved.workout, stamp: stamp, store: store)
-        try await earlier.delete(keeping: saved.syncIds.union(routeSaved ? [stamp.routeIdentity] : []), from: sampleStore)
-        debugLog("[HKExport] saved workout \(session.id) as HKWorkout (sport=\(metadata.sport.rawValue), duration=\(Int(session.duration ?? 0))s), replacing \(earlier.workouts.count) earlier")
+        let keeping = saved.syncIds.union(routeSaved ? [stamp.routeIdentity] : [])
+        try await replaceEarlier(earlier, keeping: keeping, of: session, sport: metadata.sport, in: sampleStore)
+    }
+
+    /// Deletes what the earlier exports saved, keeping `keeping` (HealthKit
+    /// replaced those). With none read (a locked phone), notes the session
+    /// so the next backfill deletes them (`PendingWorkoutReplacements`).
+    @MainActor
+    private static func replaceEarlier(
+        _ earlier: EarlierExport?, keeping: Set<String>, of session: HRVSession, sport: Sport, in sampleStore: any HealthSampleStore
+    ) async throws {
+        guard let earlier else {
+            PendingWorkoutReplacements.note(sessionId: session.id, startDate: session.startDate)
+            debugLog("[HKExport] saved workout \(session.id) as HKWorkout (sport=\(sport.rawValue)) while Health could not be read; earlier copies are deleted on the next return to the app")
+            return
+        }
+        try await earlier.delete(keeping: keeping, from: sampleStore)
+        debugLog("[HKExport] saved workout \(session.id) as HKWorkout (sport=\(sport.rawValue), duration=\(Int(session.duration ?? 0))s), replacing \(earlier.workouts.count) earlier")
     }
 
     /// Delete every workout this app exported for a session deleted forever,
@@ -109,6 +130,7 @@ enum HealthKitWorkoutExport {
         let sampleStore = healthKit.sampleReplacer.store
         let earlier = try await EarlierExport.find(sessionId: sessionId, startDate: startDate, in: sampleStore)
         try await earlier.delete(keeping: [], from: sampleStore)
+        PendingWorkoutReplacements.clear(sessionId: sessionId)
         debugLog("[HKExport] removed \(earlier.workouts.count) exported workout(s) of \(sessionId.uuidString.prefix(8))")
     }
 
@@ -168,7 +190,7 @@ enum HealthKitWorkoutExport {
         /// as if there were nothing to replace.
         static func find(sessionId: UUID, startDate: Date, in store: any HealthSampleStore) async throws -> EarlierExport {
             let timeout = HealthKitManager.backgroundAggregateQueryTimeoutSec
-            let span = DateInterval(start: startDate.addingTimeInterval(-searchPadding), end: startDate.addingTimeInterval(searchPadding))
+            let span = searchSpan(around: startDate)
             let workouts = try await store.ownSamples(
                 of: HKObjectType.workoutType(), in: span, timeout: timeout, label: "earlier workout export"
             ).compactMap { $0 as? HKWorkout }.filter { workout in
@@ -186,6 +208,55 @@ enum HealthKitWorkoutExport {
                 }
             }
             return EarlierExport(workouts: workouts, samples: samples)
+        }
+
+        /// What `find` reaches, and the samples of the session's workout
+        /// series (`HealthExportIdentity.isSeriesMember`) in the same span: a
+        /// workout saved without `find` replaced the earlier one through its
+        /// sync identifier, and what that one held beyond the new copy's
+        /// samples is saved with no workout now.
+        static func findAfterLockedSave(sessionId: UUID, startDate: Date, in store: any HealthSampleStore) async throws -> EarlierExport {
+            let found = try await find(sessionId: sessionId, startDate: startDate, in: store)
+            var seen = Set((found.samples + found.workouts.map { $0 as HKSample }).map(\.uuid))
+            var series: [HKSample] = []
+            for (type, _) in HealthKitManager.workoutExportSampleTypes {
+                let own = try await store.ownSamples(
+                    of: type, in: searchSpan(around: startDate),
+                    timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec, label: "earlier workout series"
+                )
+                series += own.filter { isSeriesMember($0, of: sessionId) && seen.insert($0.uuid).inserted }
+            }
+            return EarlierExport(workouts: found.workouts, samples: found.samples + series)
+        }
+
+        /// Whether a sample carries a member identity of the session's
+        /// workout series (`HealthExportIdentity.isSeriesMember`).
+        nonisolated private static func isSeriesMember(_ sample: HKSample, of sessionId: UUID) -> Bool {
+            guard let externalUUID = sample.metadata?[HKMetadataKeyExternalUUID] as? String else { return false }
+            return HealthExportIdentity.isSeriesMember(externalUUID, sessionId: sessionId, metric: .workout)
+        }
+
+        /// The span `find` searches, `searchPadding` either side of `startDate`.
+        private static func searchSpan(around startDate: Date) -> DateInterval {
+            DateInterval(start: startDate.addingTimeInterval(-searchPadding), end: startDate.addingTimeInterval(searchPadding))
+        }
+
+        /// `find`, or nil when Health refuses the read because the phone is
+        /// locked (`errorDatabaseInaccessible`; writes still go through).
+        /// Every other error is thrown.
+        static func findUnlessLocked(sessionId: UUID, startDate: Date, in store: any HealthSampleStore) async throws -> EarlierExport? {
+            do {
+                return try await find(sessionId: sessionId, startDate: startDate, in: store)
+            } catch let error where isLockedRead(error) {
+                debugLog("[HKExport] earlier exports of \(sessionId.uuidString.prefix(8)) not readable while the phone is locked", level: .warning)
+                return nil
+            }
+        }
+
+        /// Whether Health refused a read because protected data is locked.
+        nonisolated static func isLockedRead(_ error: Error) -> Bool {
+            let nsError = error as NSError
+            return nsError.domain == HKErrorDomain && nsError.code == HKError.Code.errorDatabaseInaccessible.rawValue
         }
 
         /// Whether a workout this app saved is an export of the session: it
@@ -222,6 +293,20 @@ enum HealthKitWorkoutExport {
                 }
             }
             if let firstError { throw firstError }
+        }
+
+        /// Delete everything found but the objects of the newest export: the
+        /// highest sync version any found object carries. A workout saved
+        /// while the earlier copies could not be read is the newest; what an
+        /// earlier export left beside it carries a lower version, or none.
+        /// Nothing is deleted when no found object carries a version, since
+        /// then the newest copy is not among them.
+        func deleteSuperseded(from store: any HealthSampleStore) async throws {
+            let found = samples + workouts.map { $0 as HKSample }
+            guard let newest = found.compactMap(HealthExportIdentity.syncVersion(of:)).max() else { return }
+            let keeping = Set(found.filter { HealthExportIdentity.syncVersion(of: $0) == newest }
+                .compactMap(HealthExportIdentity.syncIdentifier(of:)))
+            try await delete(keeping: keeping, from: store)
         }
 
         /// The objects grouped by type, workouts last, so a workout is never
@@ -591,6 +676,65 @@ enum HealthKitWorkoutExport {
             case .workoutNotSaved: return String(localized: "Apple Health finished the workout without saving it.", bundle: LanguageManager.appBundle)
             }
         }
+    }
+}
+
+// MARK: - Replacements left for later
+
+/// Sessions whose workout was saved while Health refused reads (a locked
+/// phone), so the earlier copies it replaces could not be found. Kept in
+/// `UserDefaults` (swept by Delete All My Data) as each session's start,
+/// which `EarlierExport.find` needs, by session id.
+@MainActor
+enum PendingWorkoutReplacements {
+    private static let key = "hkPendingWorkoutReplacements"
+
+    static func pending() -> [String: Double] {
+        UserDefaults.standard.dictionary(forKey: key) as? [String: Double] ?? [:]
+    }
+
+    static func note(sessionId: UUID, startDate: Date) {
+        var entries = pending()
+        entries[sessionId.uuidString] = startDate.timeIntervalSince1970
+        UserDefaults.standard.set(entries, forKey: key)
+    }
+
+    static func clear(sessionId: UUID) {
+        var entries = pending()
+        guard entries.removeValue(forKey: sessionId.uuidString) != nil else { return }
+        UserDefaults.standard.set(entries, forKey: key)
+    }
+
+    /// For each pending session that no export holds
+    /// (`HealthExportClaims`), find its exports (`EarlierExport.findAfterLockedSave`)
+    /// and delete all but the newest (`EarlierExport.deleteSuperseded`), then
+    /// forget it. A session
+    /// whose read or delete fails stays pending for the next call.
+    static func finish(in store: any HealthSampleStore) async {
+        for (key, start) in pending() {
+            guard let sessionId = UUID(uuidString: key) else {
+                forget(key)
+                continue
+            }
+            guard HealthExportClaims.claim(sessionId) else { continue }
+            defer { HealthExportClaims.release(sessionId) }
+            do {
+                let earlier = try await HealthKitWorkoutExport.EarlierExport.findAfterLockedSave(
+                    sessionId: sessionId, startDate: Date(timeIntervalSince1970: start), in: store
+                )
+                try await earlier.deleteSuperseded(from: store)
+                clear(sessionId: sessionId)
+            } catch {
+                debugLog("[HKExport] earlier copies of \(key.prefix(8)) still to delete: \(error.localizedDescription)", level: .warning)
+            }
+        }
+    }
+
+    /// Drop an entry whose key is not a session id.
+    private static func forget(_ entry: String) {
+        var entries = pending()
+        entries.removeValue(forKey: entry)
+        UserDefaults.standard.set(entries, forKey: key)
     }
 }
 

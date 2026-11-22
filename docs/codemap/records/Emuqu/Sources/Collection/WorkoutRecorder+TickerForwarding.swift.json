@@ -90,23 +90,6 @@
    }
   },
   {
-   "key": "func WorkoutRecorder.liveProjectedMinutesUntilFade()",
-   "hash": "ff2b778e171708dc",
-   "does": "Forwards to WorkoutTicker.liveProjectedMinutesUntilFade.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.liveProjectedMinutesUntilFade()",
-    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.liveProjectedMinutesUntilFade()": "fbad93f9a4889bab",
-    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "0f973f8e3bac44f6"
-   }
-  },
-  {
    "key": "func WorkoutRecorder.liveRecoveryHoursNeeded()",
    "hash": "134c452811108510",
    "does": "Forwards to WorkoutTicker.liveRecoveryHoursNeeded.",
@@ -120,6 +103,42 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.liveRecoveryHoursNeeded()": "560bb8f74ff3a4b5",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "0f973f8e3bac44f6"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.liveZoneBreakdown()",
+   "hash": "9a0ef7116eb5e3b0",
+   "does": "Forwards to the ticker's liveZoneBreakdown (the tally's zone breakdown of workoutSamples).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.liveZoneBreakdown()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutRecorder.liveTrendTally"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.liveZoneBreakdown()": "82efafad13851c2c",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "0f973f8e3bac44f6"
+   }
+  },
+  {
+   "key": "func WorkoutRecorder.syncedLiveTrends()",
+   "hash": "4adbe4717424fb20",
+   "does": "Forwards to the ticker's syncedLiveTrends (the live trend tally synced to workoutSamples).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.syncedLiveTrends()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WorkoutRecorder.liveTrendTally"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.syncedLiveTrends()": "3c7fdd92e700fd7f",
     "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "0f973f8e3bac44f6"
    }
   },

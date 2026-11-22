@@ -1,15 +1,15 @@
 {
  "file": "EmuquTests/HealthSampleFactoryTests.swift",
- "hash": "d37ee31a7952d176",
+ "hash": "3935de1361a815ef",
  "role": "XCTest suite for what Emuqu may write into Apple Health: HealthSampleFactory interval/value validation, sleep export dropping backwards intervals, resting HR exported only from overnight readings, the resting-HR summary ExternalUUID check, the HRV export shapes and their sync metadata, and the shared replacement over an in-memory store that replaces by sync identifier as HealthKit does (failed save, failed delete, re-export through the sync identifier, overlapping exports, removal during an export, removal of every metric a session exported).",
  "types": [
   "HealthSampleFactoryTests: class — @MainActor XCTestCase over HealthSampleFactory, HealthWriteAndObserve and HeartRateHealthQueries static helpers",
-  "InMemoryHealthSampleStore: class (private, @MainActor) — HealthSampleStore in memory whose calls yield first, replacing a stored sample on a save with the same sync identifier and a higher version, with one-shot save/delete failures and a save that can be held open"
+  "InMemoryHealthSampleStore: class (internal, @MainActor; also used by HealthWorkoutReplacementTests) — HealthSampleStore in memory whose calls yield first, replacing a stored sample on a save with the same sync identifier and a higher version, keeping each workout with the samples saved with it, recording the type of each delete, with one-shot save/delete/read failures and a save that can be held open"
  ],
  "state": [
   "mem:HealthSampleFactoryTests.start (fixed Date 1_700_000_000)",
   "mem:HealthSampleFactoryTests.bpm (HKUnit count/min)",
-  "mem:InMemoryHealthSampleStore.samples / replaced / deletedReplacedSamples / failNextSave / failNextDelete / holdNextSave / heldSave"
+  "mem:InMemoryHealthSampleStore.samples / replaced / deletedReplacedSamples / deletedTypes / savedWithWorkout / failNextSave / failNextDelete / failNextRead / holdNextSave / heldSave"
  ],
  "toplevel": "Stored fixtures start and bpm.",
  "units": [
@@ -264,8 +264,8 @@
   },
   {
    "key": "func HealthSampleFactoryTests.testOverlappingExportsOfOneSessionLeaveOneSet()",
-   "hash": "ca3120a76ba410b7",
-   "does": "Starts two concurrent exportHeartRateSeries calls for the same 10-minute session on an in-memory store whose calls yield, and asserts the store ends with one sample per minute, once.",
+   "hash": "a94f23a698f757fd",
+   "does": "Starts two concurrent exportHeartRateSeries calls for the same session on an in-memory store whose calls yield, the first over 10 minutes of beats and the second over 6 (a trimmed recording), and asserts the store ends with the second's 6 samples: a second export that read before the first saved would have left the first's last 4 minutes.",
    "entry": "XCTest",
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.exportHeartRateSeries(from:sessionStart:sessionId:)",
@@ -425,8 +425,8 @@
   },
   {
    "key": "func InMemoryHealthSampleStore.ownSamples(of:in:timeout:label:)",
-   "hash": "7add772081450f97",
-   "does": "Test store: yields, then returns its samples of the type whose start lies in the span (all when nil).",
+   "hash": "fb4851c47cac04ae",
+   "does": "Test store: yields, then throws once when failNextRead is set (clearing it), else returns its samples of the type whose start lies in the span (all when nil).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -434,6 +434,11 @@
    "branches": [
     {
      "at": "+3",
+     "cond": "failNextRead set",
+     "effect": "clears it and throws it"
+    },
+    {
+     "at": "+8",
      "cond": "span nil",
      "effect": "every sample of the type"
     }
@@ -442,14 +447,36 @@
   },
   {
    "key": "func InMemoryHealthSampleStore.ownSamples(of:savedWith:timeout:label:)",
-   "hash": "97c1ac17ab417a60",
-   "does": "Test store: yields, then returns no samples (the in-memory store holds no workouts).",
+   "hash": "7fba308fa37f4ec1",
+   "does": "Test store: yields, then returns its stored samples of the type that were saved with that workout (saveWorkout, matched by identity).",
    "entry": null,
    "calls": [],
-   "reads": [],
+   "reads": [
+    "mem:InMemoryHealthSampleStore.samples",
+    "mem:InMemoryHealthSampleStore.savedWithWorkout"
+   ],
    "writes": [],
    "branches": [],
    "deps": {}
+  },
+  {
+   "key": "func InMemoryHealthSampleStore.saveWorkout(_:with:)",
+   "hash": "49d0aa28dfee57bc",
+   "does": "Test store: saves a workout and the samples that go with it as a builder does, each replacing a stored object by sync identifier (saveReplacingBySync), and remembers each sample as saved with that workout.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.saveReplacingBySync(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:InMemoryHealthSampleStore.samples",
+    "mem:InMemoryHealthSampleStore.replaced",
+    "mem:InMemoryHealthSampleStore.savedWithWorkout"
+   ],
+   "branches": [],
+   "deps": {
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.saveReplacingBySync(_:)": "1663db0e204a9a7f"
+   }
   },
   {
    "key": "func InMemoryHealthSampleStore.save(_:)",
@@ -509,14 +536,15 @@
   },
   {
    "key": "func InMemoryHealthSampleStore.delete(_:)",
-   "hash": "fb4abfca6ad928a4",
-   "does": "Test store: yields, then throws once when failNextDelete is set (clearing it), else counts how many of the given samples a save had already replaced and removes the given samples by identity.",
+   "hash": "46c1588a880658e6",
+   "does": "Test store: yields, then throws once when failNextDelete is set (clearing it), else counts how many of the given samples a save had already replaced, records the first sample's type (deletedTypes) and removes the given samples by identity.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [
     "mem:InMemoryHealthSampleStore.samples",
-    "mem:InMemoryHealthSampleStore.deletedReplacedSamples"
+    "mem:InMemoryHealthSampleStore.deletedReplacedSamples",
+    "mem:InMemoryHealthSampleStore.deletedTypes"
    ],
    "branches": [
     {

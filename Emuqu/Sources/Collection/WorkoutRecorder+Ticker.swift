@@ -729,11 +729,20 @@ extension WorkoutTicker {
         return Date().timeIntervalSince(last)
     }
 
-    private func liveZoneBreakdown() -> WorkoutZoneBreakdown {
-        WorkoutZoneBreakdown.compute(
-            samples: recorder.workoutSamples,
+    /// Time in zone of the buffer for the user's max HR, from the tally
+    /// (`WorkoutLiveTrends.Tally.zoneBreakdown`).
+    func liveZoneBreakdown() -> WorkoutZoneBreakdown {
+        recorder.liveTrendTally.catchUp(to: recorder.workoutSamples)
+        return recorder.liveTrendTally.zoneBreakdown(
+            of: recorder.workoutSamples,
             userMaxHR: recorder.settingsProvider().effectiveMaxHR
         )
+    }
+
+    /// The live trend tally brought up to the sample buffer.
+    func syncedLiveTrends() -> WorkoutLiveTrends.Tally {
+        recorder.liveTrendTally.catchUp(to: recorder.workoutSamples)
+        return recorder.liveTrendTally
     }
 
     /// Cardinal derived from GPS course so the AI can
@@ -765,7 +774,8 @@ extension WorkoutTicker {
     /// The live trends, historical baselines and readiness
     /// fields carry the same data fed to the voice path, mirrored here so
     /// chat-mode tool calls (`workout.live.snapshot`) see what voice's
-    /// `asFactSheet` sees.
+    /// `asFactSheet` sees. The trends come from the tally kept as the buffer
+    /// grows (`syncedLiveTrends`), read after `liveZoneBreakdown` updated it.
     private func buildBrokerSnapshot(
         sport: Sport,
         loc: CLLocation?,
@@ -775,7 +785,7 @@ extension WorkoutTicker {
         strapSilent: Double?,
         liveZoneBreakdown: WorkoutZoneBreakdown
     ) -> AssistantContext.LiveWorkoutSnapshot {
-        let road = AppDependencies.current.location.roadGeocodingService.current
+        let (road, trends) = (AppDependencies.current.location.roadGeocodingService.current, syncedLiveTrends())
         return AssistantContext.LiveWorkoutSnapshot(
             sport: sport.displayName, snapshotAt: Date(), sessionStartAt: recorder.sessionStartDate ?? Date(), elapsedSeconds: recorder.elapsedSeconds, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: recorder.settingsProvider().effectiveMaxHR,
             beatCount: recorder.beatCount, distanceMeters: recorder.distanceMeters, stepCount: recorder.stepCount, cadenceStepsPerMin: recorder.cadenceStepsPerMin, elevationGainMeters: recorder.elevationGainMeters, alpha1: recorder.dfa.currentAlpha1,
@@ -785,9 +795,9 @@ extension WorkoutTicker {
             currentGradePercent: recorder.computeCurrentGradePercent(), unitsPreference: UnitsPreferenceStore.current.rawValue, targetZone: recorder.targetZone, recognizedRouteName: recorder.plannedRoute?.name, recognizedRouteWasAutoDetected: recorder.plannedRouteWasAutoDetected,
             recognizedRouteDirection: recognizedRouteDirectionLabel(), routeTotalDistanceMeters: recorder.plannedRoute?.totalDistanceMeters, routeClimbCount: recorder.plannedRoute?.climbs.count, currentRoadName: road?.road, currentLocality: road?.locality,
             currentAdministrativeArea: road?.administrativeArea, currentCountry: road?.country, currentCountryCode: road?.countryCode, currentCompactAddress: road?.compactAddress, currentNearestCrossStreet: road?.nearestCrossStreet,
-            routeTopology: recorder.liveRouteTopologySnapshot(currentLocation: loc), weather: recorder.liveWeatherSnapshot(), reverseSplitDeltaSecPerKm: WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples: recorder.workoutSamples),
-            liveHRDriftPercent: WorkoutLiveTrends.hrDriftPercent(samples: recorder.workoutSamples), aerobicDecouplingPercent: WorkoutLiveTrends.aerobicDecouplingPercent(samples: recorder.workoutSamples), cadenceDriftSpm: WorkoutLiveTrends.cadenceDriftSpm(samples: recorder.workoutSamples),
-            gradeAdjustedPaceSecPerKm: liveGradeAdjustedPace(), recentSplitGradeAdjustedPaces: WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples: recorder.workoutSamples), projectedMinutesUntilFade: liveProjectedMinutesUntilFade(),
+            routeTopology: recorder.liveRouteTopologySnapshot(currentLocation: loc), weather: recorder.liveWeatherSnapshot(), reverseSplitDeltaSecPerKm: trends.reverseSplitDeltaSecPerKm,
+            liveHRDriftPercent: trends.hrDriftPercent, aerobicDecouplingPercent: trends.aerobicDecouplingPercent, cadenceDriftSpm: trends.cadenceDriftSpm,
+            gradeAdjustedPaceSecPerKm: liveGradeAdjustedPace(), recentSplitGradeAdjustedPaces: trends.recentSplitGradeAdjustedPaces, projectedMinutesUntilFade: trends.projectedMinutesUntilFade,
             historicalSportAvgPaceSecPerKm: recorder.cachedHistoricalBaselines.avgPaceSecPerKm, historicalSportAvgHR: recorder.cachedHistoricalBaselines.avgHR, historicalSportAvgAlpha1: recorder.cachedHistoricalBaselines.avgAlpha1,
             historicalSportSampleCount: recorder.cachedHistoricalBaselines.sampleCount, todayRecoveryScore: recorder.cachedTodayReadiness.recoveryScore, todayTrainingReadiness: recorder.cachedTodayReadiness.trainingReadiness, todayATL: recorder.cachedTodayReadiness.atl,
             todayCTL: recorder.cachedTodayReadiness.ctl, todayTSB: recorder.cachedTodayReadiness.tsb, projectedDaysUntilFresh: recorder.cachedTrainingProjection.daysUntilFresh, projectedTSBTomorrowSteadyState: recorder.cachedTrainingProjection.tsbTomorrowSteadyState,
@@ -808,13 +818,6 @@ extension WorkoutTicker {
         WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(
             pace: recorder.currentPaceSecPerKm,
             gradePercent: recorder.computeCurrentGradePercent()
-        )
-    }
-
-    func liveProjectedMinutesUntilFade() -> Double? {
-        WorkoutLiveTrends.projectedMinutesUntilFade(
-            samples: recorder.workoutSamples,
-            currentDriftPercent: WorkoutLiveTrends.hrDriftPercent(samples: recorder.workoutSamples)
         )
     }
 
