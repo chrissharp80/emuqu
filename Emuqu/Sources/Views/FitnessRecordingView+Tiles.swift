@@ -109,7 +109,7 @@ extension FitnessRecordingView {
     /// they do not show "—" all session.
     @ViewBuilder
     private var liveTrendTiles: some View {
-        if let drift = WorkoutLiveTrends.hrDriftPercent(samples: recorder.samplesView) {
+        if let drift = liveTally.hrDriftPercent {
             metricTile(
                 icon: "waveform.path.ecg",
                 label: labels.hrDrift,
@@ -122,7 +122,7 @@ extension FitnessRecordingView {
 
     @ViewBuilder
     private var decouplingTile: some View {
-        if let dec = WorkoutLiveTrends.aerobicDecouplingPercent(samples: recorder.samplesView) {
+        if let dec = liveTally.aerobicDecouplingPercent {
             metricTile(
                 icon: "arrow.down.right.circle",
                 label: labels.decoupling,
@@ -374,10 +374,16 @@ extension FitnessRecordingView {
     /// Average HR over the captured samples. Live-computed so it reflects
     /// "the workout so far" not the current-beat number on the hero card.
     var avgHRLabel: String {
-        let hrValues = recorder.samplesView.compactMap(\.heartRate)
-        guard !hrValues.isEmpty else { return "—" }
-        let mean = Double(hrValues.reduce(0, +)) / Double(hrValues.count)
+        guard let mean = liveTally.sessionAverageHR else { return "—" }
         return "\(Int(mean.rounded()))"
+    }
+
+    /// The recorder's live trend tally (`WorkoutLiveTrends.Tally`), brought up
+    /// to its sample buffer: kept as the buffer grows, so a tick does not
+    /// rescan every sample. Reading the buffer here keeps the tiles observing
+    /// it as before.
+    var liveTally: WorkoutLiveTrends.Tally {
+        recorder.syncedLiveTrends()
     }
 
     var peakHRCaption: String? {

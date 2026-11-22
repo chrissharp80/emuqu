@@ -350,7 +350,10 @@ struct ReportsListView: View {
         Task.detached(priority: .utility) { Self.removeLeftoverPDFs() }
     }
 
-    /// Every `emuqu-report-*.pdf` in tmp (the names `generationInputs` gives).
+    /// Every `emuqu-reports-*.pdf` in tmp: the names `generationInputs` gives,
+    /// and only those. The Send Report PDFs of `MainTabView` are named
+    /// `emuqu-report-…`, which this prefix does not match, so one still on its
+    /// way to the mail composer is never swept from here.
     nonisolated private static func removeLeftoverPDFs() {
         let tmp = FileManager.default.temporaryDirectory
         guard let names = attempt("ReportsListView.listTemporaryPDFs", { try FileManager.default.contentsOfDirectory(atPath: tmp.path) }) else { return }
@@ -359,7 +362,7 @@ struct ReportsListView: View {
         }
     }
 
-    nonisolated private static let reportFilePrefix = "emuqu-report-"
+    nonisolated private static let reportFilePrefix = "emuqu-reports-"
 
     /// Everything the detached render needs, captured on the main actor before
     /// it starts so the task never reaches back into view state.

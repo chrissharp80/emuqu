@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/FootPodManager.swift",
- "hash": "45f7d1b31be31c28",
+ "hash": "98cba24e4beb6533",
  "role": "Declares the BLEPeripheralConnecting protocol (shared connect-by-id handshake for FootPodManager and Concept2Manager) and FootPodManager, a CoreBluetooth client for standard RSC foot pods, Cycling Power meters (incl. Stryd) and FTMS indoor bikes, publishing speed, cadence, stride, odometer and power for WorkoutRecorder.",
  "types": [
   "BLEPeripheralConnecting: protocol (@MainActor) — central/centralIfCreated/pendingReconnectId/attach/startScanning/stopScanning + shared connect(deviceId:)",
@@ -20,6 +20,7 @@
   "mem:FootPodManager.powerMeasuredAt (ObservationIgnored, when the power reading arrived)",
   "FootPodManager.powerStaleAfter = 5 s (static)",
   "mem:FootPodManager.knownDevices",
+  "mem:FootPodManager.linkedDeviceId (the linked or linking peripheral id; set by attach, cleared on disconnect)",
   "mem:FootPodManager.discoveredDevices",
   "mem:FootPodManager.lastStatusLine",
   "mem:FootPodManager.pendingReconnectId",
@@ -39,8 +40,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "b67228b9048bd099",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "450ff9c58b878202"
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "ac810793d101d3ff",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "2255f6f9bc04f0b7"
    }
   },
   {
@@ -349,7 +350,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "070c1af607be2e91"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6b322a39f65dbf16"
    }
   },
   {
@@ -371,8 +372,8 @@
   },
   {
    "key": "func FootPodManager.attach(peripheral:)",
-   "hash": "a48c456f890767ad",
-   "does": "Makes the peripheral active with self as delegate, sets .connecting and status, calls central.connect.",
+   "hash": "c2446824fe2d9e87",
+   "does": "Makes the peripheral active with self as delegate, records its id as linkedDeviceId, sets .connecting and status, calls central.connect.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central",
@@ -380,12 +381,13 @@
    ],
    "reads": [],
    "writes": [
+    "mem:FootPodManager.linkedDeviceId",
     "mem:FootPodManager.connectionState",
     "mem:FootPodManager.lastStatusLine"
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "peripheral name nil",
      "effect": "uses 'foot pod'"
     }
@@ -397,12 +399,13 @@
   },
   {
    "key": "func FootPodManager.cleanupAfterDisconnect()",
-   "hash": "e78f6120b116b93a",
-   "does": "Clears active peripheral, characteristic refs, speed, cadence, stride, power and its arrival time; clears the pod odometer only when no workout holds the link; sets .disconnected.",
+   "hash": "1cddb54c5a246e0b",
+   "does": "Clears the active peripheral and linkedDeviceId, characteristic refs, speed, cadence, stride, power and its arrival time; clears the pod odometer only when no workout holds the link; sets .disconnected.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [
+    "mem:FootPodManager.linkedDeviceId",
     "mem:FootPodManager.instantaneousSpeedMS",
     "mem:FootPodManager.cadenceStepsPerMin",
     "mem:FootPodManager.instantaneousPowerWatts",
@@ -412,7 +415,7 @@
    ],
    "branches": [
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "no workout holds the link",
      "effect": "podReportedDistanceMeters = nil; mid-workout it is kept so the workout baseline still applies"
     }
@@ -556,7 +559,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "070c1af607be2e91",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6b322a39f65dbf16",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.drainPendingReconnect()": "99c2587a6870e420",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parkReconnectIfMidWorkout()": "f84a56ec79e16d59",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()": "5dd3aa1b11ece94c",
@@ -661,7 +664,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "450ff9c58b878202",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "2255f6f9bc04f0b7",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.stopScanning()": "32ea45fa6507f3d1"
    }
   },
@@ -716,7 +719,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "070c1af607be2e91",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6b322a39f65dbf16",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.retryConnect(_:)": "a3dd2c88b2868351",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -743,7 +746,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "450ff9c58b878202",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "2255f6f9bc04f0b7",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
@@ -771,8 +774,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "450ff9c58b878202",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "070c1af607be2e91",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "2255f6f9bc04f0b7",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6b322a39f65dbf16",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }

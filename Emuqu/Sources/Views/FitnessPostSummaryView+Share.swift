@@ -22,6 +22,8 @@ extension FitnessSummaryCards {
         defer { recapGenerating = false }
         let meta = session.workoutMetadata
         let mapImage = await renderTrackImage()
+        // Closed while the map rendered: write no file for nobody to delete.
+        guard reportShare.summaryOnScreen else { return }
         let card = recapCard(meta: meta, routeMap: mapImage)
         guard let img = card.renderImage() else {
             reportShare.error = String(localized: "Couldn't build recap card. Try again.", bundle: LanguageManager.appBundle)
@@ -315,7 +317,7 @@ extension FitnessSummaryCards {
             pdfMailError = String(localized: "Mail isn't set up on this device. Use Share PDF Report and pick Mail from the share sheet to compose without a Emuqu default account.", bundle: LanguageManager.appBundle)
             return
         }
-        let outcome = await cachedOrRenderedPDF()
+        guard let outcome = await cachedOrRenderedPDF() else { return }
         switch outcome {
         case .success(let url):
             reportShare.presentedURL = url
@@ -326,7 +328,7 @@ extension FitnessSummaryCards {
     }
 
     func generateAndShowPDFShare() async {
-        let outcome = await cachedOrRenderedPDF()
+        guard let outcome = await cachedOrRenderedPDF() else { return }
         switch outcome {
         case .success(let url):
             reportShare.presentedURL = url
@@ -340,8 +342,9 @@ extension FitnessSummaryCards {
     /// for this session and not invalidated), else a fresh render. The fresh
     /// file is cached only when no archive refresh invalidated the cache
     /// while it rendered — it was drawn from the pre-refresh session, so it
-    /// is shown this once but never reused.
-    private func cachedOrRenderedPDF() async -> Result<URL, Error> {
+    /// is shown this once but never reused. Nil when the summary closed
+    /// while it rendered: the file is deleted and nothing is presented.
+    private func cachedOrRenderedPDF() async -> Result<URL, Error>? {
         if let url = pdfURL, FileManager.default.fileExists(atPath: url.path) {
             return .success(url)
         }
@@ -349,6 +352,10 @@ extension FitnessSummaryCards {
         pdfGenerating = true
         let outcome = await renderWorkoutPDF()
         pdfGenerating = false
+        guard reportShare.summaryOnScreen else {
+            removeClosedSummaryPDF(outcome)
+            return nil
+        }
         if case .success(let url) = outcome, generation == reportShare.cacheGeneration {
             pdfURL = url
         }
@@ -573,4 +580,11 @@ private func shareRowCaption(title: String, subtitle: String) -> some View {
             .foregroundStyle(AppTheme.textTertiary)
             .lineLimit(1)
     }
+}
+
+/// The PDF a render wrote after the summary closed: nothing will show it.
+/// At file scope: it reads nothing of the view.
+private func removeClosedSummaryPDF(_ outcome: Result<URL, Error>) {
+    guard case .success(let url) = outcome else { return }
+    attempt("FitnessSummaryCards.removeClosedSummaryPDF") { try FileManager.default.removeItem(at: url) }
 }

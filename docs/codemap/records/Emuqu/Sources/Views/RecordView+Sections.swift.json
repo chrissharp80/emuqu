@@ -40,7 +40,52 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()": "d8f3cad6c16f3e7f",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.readingDiscardButton": "73b6c165e807da4f"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.readingDiscardButton": "7bd5c8e6fe5228a9"
+   }
+  },
+  {
+   "key": "var RecordView.readingDiscardMessage",
+   "hash": "1215d1331b2999e4",
+   "does": "The one message for discarding a reading awaiting review (rejectSession): it is discarded and left out of the baseline; if it was already saved it moves to the Trash, restorable from Settings → iCloud & Data → Trash; a night that was in the history before this recording stays as it was. Used by the acceptance card and the morning report's Discard.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
+   "key": "var RecordView.readingDiscardButton",
+   "hash": "2874b221a577c6af",
+   "does": "Red bordered destructive 'Discard' that sets confirmingReadingDiscard; the confirmation ('Discard this reading?', with readingDiscardMessage) calls rejectSession on its destructive Discard.",
+   "entry": "Button tap by user; Discard in the confirmation",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.rejectSession()",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.readingDiscardMessage",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:RecordView.confirmingReadingDiscard"
+   ],
+   "writes": [
+    "mem:RecordView.confirmingReadingDiscard"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "user confirms Discard",
+     "effect": "rejectSession; Cancel does nothing"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.rejectSession()": "934cd4dfc89f5418",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.readingDiscardMessage": "f1f549b1deafb8ab"
    }
   },
   {
@@ -527,6 +572,29 @@
    }
   },
   {
+   "key": "var RecordView.verificationLimits",
+   "hash": "7be319819bbc2d66",
+   "does": "The Verification.Config the shown result was verified against: the collector's relaxed streaming verifier's config for a quick reading (only quick streaming verifies .quick sessions, RRCollector+Streaming), otherwise the overnight verifier's config.",
+   "entry": "SwiftUI evaluates it as part of verificationSectionIfPending",
+   "calls": [],
+   "reads": [
+    "mem:SessionState.currentSession",
+    "mem:RRCollector.streamingVerification",
+    "mem:RRCollector.verification"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentSession?.sessionType == .quick",
+     "effect": "true: streamingVerification.config (120 beats, warn 10%); false: verification.config (default, 300 beats, warn 5%)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def"
+   }
+  },
+  {
    "key": "var RecordView.morningResultsPreviewSection",
    "hash": "7cc033770dcc7bde",
    "does": "For a non-overnight/non-nap session awaiting acceptance with a result, shows morningResultsPreview.",
@@ -696,8 +764,8 @@
   },
   {
    "key": "func RecordView.morningResults(_:)",
-   "hash": "40f622375df91dab",
-   "does": "Builds MorningResultsView for the presentation with cached recent sessions and callbacks: discard (its confirmation says the night is rejected, left out of the baseline, and moved to the Trash if it was saved), reanalyze (the saved-session reanalysis), the report's Tags & Notes edits (saveReportTags: onto the in-memory reading and its archived copy), reanalyze at position, apply manual result, update sleep and unlink segment (the reanalysis service), adjust sleep (with failure alert), and the linked segments read off-main when the report was presented (presentation.linkedSegments).",
+   "hash": "30dbf7c527c71b02",
+   "does": "Builds MorningResultsView for the presentation with cached recent sessions and callbacks: discard (its confirmation is readingDiscardMessage, the acceptance card's words for the same rejectSession), reanalyze (the saved-session reanalysis), the report's Tags & Notes edits (saveReportTags: onto the in-memory reading and its archived copy), reanalyze at position, apply manual result, update sleep and unlink segment (the reanalysis service), adjust sleep (with failure alert), and the linked segments read off-main when the report was presented (presentation.linkedSegments).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
@@ -712,7 +780,8 @@
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.adjustMorningSleep(_:for:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)",
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveReportTags(_:notes:sessionId:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.readingDiscardMessage"
    ],
    "reads": [],
    "writes": [
@@ -733,7 +802,8 @@
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveReportTags(_:notes:sessionId:)": "3c7ea38bb5e18007",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.adjustMorningSleep(_:for:)": "87fe2794c991bf3a",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.applyManualMorningResult(_:to:)": "bf5b06b1f22382fa",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.dismissMorningReading()": "4a52c5031c6078d5"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.dismissMorningReading()": "4a52c5031c6078d5",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.readingDiscardMessage": "f1f549b1deafb8ab"
    }
   },
   {
@@ -1051,57 +1121,6 @@
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.discardRecoveredWorkout(sessionId:)": "808a11a06b8d3994",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
-   }
-  },
-  {
-   "key": "var RecordView.readingDiscardButton",
-   "hash": "ff85f87a1103cd7c",
-   "does": "Red bordered destructive 'Discard' that sets confirmingReadingDiscard; the confirmation ('Discard this reading?': not saved to history, cannot be undone) calls rejectSession on its destructive Discard.",
-   "entry": "Button tap by user; Discard in the confirmation",
-   "calls": [
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.rejectSession()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:RecordView.confirmingReadingDiscard"
-   ],
-   "writes": [
-    "mem:RecordView.confirmingReadingDiscard"
-   ],
-   "branches": [
-    {
-     "at": "+11",
-     "cond": "user confirms Discard",
-     "effect": "rejectSession; Cancel does nothing"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.rejectSession()": "934cd4dfc89f5418"
-   }
-  },
-  {
-   "key": "var RecordView.verificationLimits",
-   "hash": "7be319819bbc2d66",
-   "does": "The Verification.Config the shown result was verified against: the collector's relaxed streaming verifier's config for a quick reading (only quick streaming verifies .quick sessions, RRCollector+Streaming), otherwise the overnight verifier's config.",
-   "entry": "SwiftUI evaluates it as part of verificationSectionIfPending",
-   "calls": [],
-   "reads": [
-    "mem:SessionState.currentSession",
-    "mem:RRCollector.streamingVerification",
-    "mem:RRCollector.verification"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "currentSession?.sessionType == .quick",
-     "effect": "true: streamingVerification.config (120 beats, warn 10%); false: verification.config (default, 300 beats, warn 5%)"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def"
    }
   }
  ],
