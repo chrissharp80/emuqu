@@ -209,6 +209,11 @@ final class EncryptionManagerTests: XCTestCase {
         let box = try sealedBox(of: Data("old".utf8))
         XCTAssertNil(try EncryptionManager.shared.reEncryptIfNeeded(Data([1]) + box), "a v1 blob was re-encrypted")
         XCTAssertNil(try EncryptionManager.shared.reEncryptIfNeeded(box), "a bare blob was re-encrypted")
+        // A bare blob whose first nonce byte reads as another version (2-127,
+        // not the "FR" magic) still opens with the v1 key, so it is current.
+        let misread = try bareBlob { (2 ... 127).contains($0) && $0 != 0x46 }
+        XCTAssertNil(try EncryptionManager.shared.reEncryptIfNeeded(misread),
+                     "a bare blob starting \(misread[0]) was re-encrypted")
 
         let unknownVersion: UInt8 = 0x7E
         let future = Data([0x46, 0x52, unknownVersion]) + box
@@ -216,6 +221,18 @@ final class EncryptionManagerTests: XCTestCase {
         XCTAssertThrowsError(try EncryptionManager.shared.decrypt(future))
         XCTAssertEqual(keychainStatus(account: "session-encryption-key-v\(unknownVersion)"), errSecItemNotFound,
                        "decrypting a blob of an unknown version created a key for it")
+    }
+
+    /// A bare blob (`sealedBox`) whose first, random nonce byte satisfies
+    /// `firstByte`, sealed again until one does (at most 2,000 tries).
+    private func bareBlob(where firstByte: (UInt8) -> Bool) throws -> Data {
+        for index in 0 ..< 2_000 {
+            let blob = try sealedBox(of: Data("old \(index)".utf8))
+            if firstByte(blob[0]) { return blob }
+        }
+        struct NoSuchBlob: Error {}
+        XCTFail("no bare blob with the wanted first byte in 2,000 seals")
+        throw NoSuchBlob()
     }
 
     /// The key is stored backup-eligible (`kSecAttrAccessibleAfterFirstUnlock`,
