@@ -1634,7 +1634,7 @@ final class SessionRecoveryService {
     func permanentlyDelete(
         _ ids: [UUID], removeHealthSamples: (UUID, ClosedRange<Date>) async -> Bool
     ) async -> TrashDeletionOutcome
-    func deleteLostSessions(_ sessionIds: [UUID])
+    func deleteLostSessions(_ sessionIds: [UUID]) -> Set<UUID>  // the ids whose mark was stored
 
     // Backup Recovery
 

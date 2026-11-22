@@ -11,10 +11,11 @@
  "units": [
   {
    "key": "func SessionArchive.repairArchive()",
-   "hash": "3180052cd77d2001",
-   "does": "Under the lock: lists the archive directory, rebuilds the index from UUID-named *.json files (excluding index/deleted.json, tombstoned ids; preserving existing entries for unreadable files), sorts newest-first, drops the derived caches, saves the index (failure logged), returns the entry count. Files with other extensions (*.encrypted) are left untouched. Triggered from Settings/diagnostics Repair Archive buttons.",
+   "hash": "d46308e249a20689",
+   "does": "Under the lock: lists the archive directory, rebuilds the index from UUID-named *.json files (excluding index/deleted.json, tombstoned ids; preserving existing entries for unreadable files), sorts newest-first, drops the derived caches, saves the index, returns the entry count. Throws when the listing fails (nothing changed) or the index save fails (memory holds the rebuilt index, the file the old one); both are logged first. Files with other extensions (*.encrypted) are left untouched. Triggered from the diagnostics Repair Archive button.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.archiveFiles()",
     "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.rebuiltIndex(from:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -32,19 +33,44 @@
    ],
    "branches": [
     {
-     "at": "+6",
-     "cond": "catch: contentsOfDirectory threw",
-     "effect": "log, return 0 (no change)"
+     "at": "+4",
+     "cond": "archiveFiles threw",
+     "effect": "rethrow (no change)"
     },
     {
-     "at": "+17",
+     "at": "+12",
      "cond": "catch: saveIndex threw",
-     "effect": "log; in-memory index replaced (caches already dropped), returns its count"
+     "effect": "log, rethrow; in-memory index already replaced (caches dropped)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "2d06ba44e8e8015c",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "bc9f8909df43d2dd",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.archiveFiles()": "e60eae376fb8d9b0",
     "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.rebuiltIndex(from:)": "0153a84b167d324f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionArchive.archiveFiles()",
+   "hash": "e5b3f2e630cf8949",
+   "does": "Lists the archive directory's entries; a listing that throws is logged and rethrown. Caller holds archiveLock.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.contentsOfDirectory"
+   ],
+   "reads": [
+    "file:<archiveDirectory> listing"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "catch: contentsOfDirectory threw",
+     "effect": "log, rethrow"
+    }
+   ],
+   "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

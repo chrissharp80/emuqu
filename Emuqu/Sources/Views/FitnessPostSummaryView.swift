@@ -387,7 +387,7 @@ struct FitnessPostSummaryView: View {
     }
 
     private var deleteWorkoutMessage: some View {
-        Text(String(localized: "This removes the session from history and iCloud.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "This moves the reading to the Trash. You can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle))
     }
 
     /// Prime the refresh so any saved-while-open changes from a previous open

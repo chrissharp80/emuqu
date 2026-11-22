@@ -361,6 +361,7 @@ extension RecordView {
             result: presentation.result,
             recentSessions: cachedRecentSessions,
             onDiscard: { dismissMorningReading() },
+            discardMessage: String(localized: "This rejects the night: it is left out of your baseline, and if it was already saved it moves to the Trash, where you can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle),
             onReanalyze: { await dependencies.collection.sessionReanalysis.reanalyzeSession($0, method: $1) },
             onUpdateTags: { saveReportTags($0, notes: $1, sessionId: session.id) },
             onReanalyzeAt: { await dependencies.collection.reanalysisService.reanalyzeAtPosition(session, targetMs: $0) },
@@ -425,6 +426,7 @@ extension RecordView {
             result: presentation.result,
             recentSessions: cachedRecentSessions,
             onDiscard: { discardQuickReading(session) },
+            discardMessage: String(localized: "This moves the reading to the Trash. You can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle),
             onUpdateTags: { saveReportTags($0, notes: $1, sessionId: session.id) },
             onUpdateSleep: { dependencies.collection.reanalysisService.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) }
         )

@@ -627,7 +627,7 @@ extension FitnessStrapSection {
 
     private func deleteWorkoutButton(_ entry: SessionArchiveEntry, title: String) -> some View {
         Button(role: .destructive) {
-            deleteWorkout(entry.sessionId)
+            requestDeleteWorkout(entry.sessionId)
         } label: {
             Label(title, systemImage: "trash")
         }

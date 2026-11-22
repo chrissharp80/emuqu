@@ -430,27 +430,24 @@
   },
   {
    "key": "var MorningResultsView.doneButton",
-   "hash": "194ac922b10619f4",
-   "does": "Button labelled 'Done' (checkmark) when onDelete exists, else 'Discard' (xmark, terracotta). Done hands changed tags/notes to onUpdateTags (saveTagsAndNotesIfChanged); Discard drops them instead, recording the current edits as handled (savedTagsAndNotes) so neither the button nor the sheet's onDisappear hands a save off for a reading about to be rejected or deleted. Then calls onDiscard().",
+   "hash": "56818dd29a5a103f",
+   "does": "Button labelled 'Done' (checkmark) when onDelete exists, else 'Discard' (xmark, terracotta). Done hands changed tags/notes to onUpdateTags (saveTagsAndNotesIfChanged) and calls onDiscard(). Discard only opens the 'Discard this reading?' confirmation (showingDiscardConfirmation); its Discard action drops the edits and calls onDiscard.",
    "entry": "Button action on user tap",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.saveTagsAndNotesIfChanged()",
-    "closure:onDiscard — set by callers (RecordView dismissMorningReading, HistoryView clears selectedSession, ImportDataView discardImport, RecordView discardQuickReading)",
+    "closure:onDiscard — set by callers (HistoryView clears selectedSession; the Discard callers run it from discardReadingActions)",
     "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "mem:MorningResultsViewModel.selectedTags",
-    "mem:MorningResultsViewModel.notes"
-   ],
+   "reads": [],
    "writes": [
-    "mem:MorningResultsView.savedTagsAndNotes (Discard)"
+    "mem:MorningResultsView.showingDiscardConfirmation (Discard)"
    ],
    "branches": [
     {
      "at": "+2",
      "cond": "onDelete != nil",
-     "effect": "true → saveTagsAndNotesIfChanged; false → savedTagsAndNotes = current edits (dropped, not handed off)"
+     "effect": "true → saveTagsAndNotesIfChanged then onDiscard(); false → showingDiscardConfirmation = true"
     },
     {
      "at": "+9",

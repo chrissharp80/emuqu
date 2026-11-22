@@ -120,9 +120,15 @@ struct FitnessTabView: View {
     @State var latestWorkoutLoadFailed = false
     /// A tapped Recent workout couldn't be read; drives the load-failure alert.
     @State var recentWorkoutLoadFailed = false
-    /// A workout could not be moved to the Trash; drives the alert on its
-    /// summary sheet.
+    /// A workout could not be moved to the Trash from its summary sheet;
+    /// drives the alert on that sheet.
     @State var workoutDeleteFailed = false
+    /// The Recent workout whose context-menu Delete is waiting for the
+    /// confirmation; nil when none is.
+    @State var pendingRecentDeleteId: UUID?
+    /// A Recent workout could not be moved to the Trash from the list (no
+    /// sheet open); drives the tab's own alert, not the sheet's.
+    @State var recentWorkoutDeleteFailed = false
 
     /// Unit preference shortcut, read from UnitsPreferenceStore on every
     /// access. Every distance on the tab formats through this, so a km/mi
@@ -239,8 +245,17 @@ struct FitnessTabView: View {
     }
 
     private func deleteFromSummary(_ item: WorkoutSummaryItem) {
-        guard deleteWorkout(item.session.id) else { return }
+        guard deleteWorkout(item.session.id) else {
+            workoutDeleteFailed = true
+            return
+        }
         if item.isJustCompleted { recorderBox.recorder?.acknowledgeFinished() }
+    }
+
+    /// The confirmed context-menu delete from the Recent list. A failure
+    /// raises the tab's alert, so it shows now and never later on a sheet.
+    func deleteRecentWorkout(_ id: UUID) {
+        if !deleteWorkout(id) { recentWorkoutDeleteFailed = true }
     }
 
     private var startErrorBinding: Binding<Bool> {
@@ -391,10 +406,11 @@ struct FitnessTabView: View {
         getMeBackCard
     }
 
-    /// Title, accessibility handle, toolbar, the two tab-lifecycle hooks, and
-    /// the alert for a Recent workout that couldn't be read.
+    /// Title, accessibility handle, toolbar, the two tab-lifecycle hooks, the
+    /// alert for a Recent workout that couldn't be read, and the Recent list's
+    /// delete confirmation and its failure alert.
     private func withFitnessChrome(_ content: some View) -> some View {
-        content
+        withRecentDeleteDialogs(content)
             .sheet(isPresented: Bindable(planModel).sensorSheetPresented) { sensorSheet }
             .task { await loadFitnessHomeData() }
             .navigationTitle(String(localized: "Fitness", bundle: LanguageManager.appBundle))
@@ -403,6 +419,35 @@ struct FitnessTabView: View {
             .alert(String(localized: "Couldn't load this workout.", bundle: LanguageManager.appBundle), isPresented: $recentWorkoutLoadFailed) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) { recentWorkoutLoadFailed = false }
             }
+    }
+
+    /// The Recent list's context-menu delete asks first; a failed delete is
+    /// alerted from the tab, where the user is.
+    private func withRecentDeleteDialogs(_ content: some View) -> some View {
+        content
+            .confirmationDialog(
+                String(localized: "Delete this workout?", bundle: LanguageManager.appBundle),
+                isPresented: recentDeleteBinding,
+                titleVisibility: .visible,
+                presenting: pendingRecentDeleteId
+            ) { id in
+                Button(String(localized: "Delete Workout", bundle: LanguageManager.appBundle), role: .destructive) {
+                    deleteRecentWorkout(id)
+                }
+                Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
+            } message: { _ in
+                Text(String(localized: "This moves the reading to the Trash. You can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle))
+            }
+            .alert(String(localized: "Couldn't delete this reading. Try again.", bundle: LanguageManager.appBundle), isPresented: $recentWorkoutDeleteFailed) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) { recentWorkoutDeleteFailed = false }
+            }
+    }
+
+    private var recentDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { pendingRecentDeleteId != nil },
+            set: { if !$0 { pendingRecentDeleteId = nil } }
+        )
     }
 
     /// Sensor-management sheet — opens when the user taps the
@@ -581,15 +626,14 @@ struct FitnessTabView: View {
 
     /// Moves the workout to the Trash the way History does
     /// (`SessionTrash.move`) and closes its summary sheet. False when the
-    /// archive could not move it: the sheet stays open and an alert says so
-    /// (`workoutDeleteFailed`).
-    @discardableResult
+    /// archive could not move it; the caller raises the alert where the user
+    /// is (the sheet's `workoutDeleteFailed`, or the tab's
+    /// `recentWorkoutDeleteFailed`).
     func deleteWorkout(_ id: UUID) -> Bool {
         do {
             try SessionTrash.move(id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
         } catch {
             debugLog("[Fitness] Failed to delete workout \(id): \(error)", level: .error)
-            workoutDeleteFailed = true
             return false
         }
         if selectedHistorySession?.id == id { selectedHistorySession = nil }

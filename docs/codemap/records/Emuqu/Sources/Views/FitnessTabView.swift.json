@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/FitnessTabView.swift",
- "hash": "1e0fff2488e5bae1",
+ "hash": "471c5cc0a95d46bf",
  "role": "Root view of the Fitness tab: routes between the recording screen and the default dashboard by recorder phase, owns the summary sheet, GPX export/preview/share, GPX and Apple Health import entry points, workout delete, and workout start; also declares WorkoutSummaryItem, PhaseObservingStateBody and the shared RecorderBox.",
  "types": [
   "WorkoutSummaryItem: struct — Identifiable sheet item (session + isJustCompleted)",
@@ -12,7 +12,7 @@
   "static RecorderBox.shared (FitnessTabView.swift:786)",
   "mem:RecorderBox.recorder (FitnessTabView.swift:787)",
   "ud:fitness.getMeBack.disclaimerSeenV1 — FitnessTabView.getMeBackDisclaimerSeenKey (FitnessTabView.swift:107; read/written in FitnessTabView+Sections.swift:49,61)",
-  "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, gpxShareURL (set only while a share is pending or shown), gpxSharePresented, gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutLoadFailed, recentWorkoutLoadFailed, workoutDeleteFailed"
+  "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, gpxShareURL (set only while a share is pending or shown), gpxSharePresented, gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutLoadFailed, recentWorkoutLoadFailed, workoutDeleteFailed (the summary sheet's delete alert), pendingRecentDeleteId (the Recent workout awaiting delete confirmation), recentWorkoutDeleteFailed (the tab's delete alert)"
  ],
  "toplevel": "Stored @State initialisers: planModel = WorkoutPlanModel(), all others empty/false/nil/0. Environment: dependencies, RRCollector, ArchiveSignal, VoiceConversationController, SettingsManager. RecorderBox.shared is a static singleton constructed lazily; the header and PhaseObservingStateBody comments say the recorder lives in that app-wide box and that both WorkoutRecorder and WorkoutLifecycle are @Observable.",
  "units": [
@@ -256,7 +256,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "e09ba5b8b6a1747e",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteFromSummary(_:)": "e5e276e6db9489f7",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteFromSummary(_:)": "e2280567f8199cc8",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.dismissSummary(_:)": "92a5834cf8a75cd6"
    }
   },
@@ -288,8 +288,8 @@
   },
   {
    "key": "func FitnessTabView.deleteFromSummary(_:)",
-   "hash": "0fdf0c4c3813522b",
-   "does": "Moves the item's workout to the Trash (deleteWorkout) and, only when that worked and the item was just completed, acknowledges the recorder. A failed delete leaves the sheet open with its alert.",
+   "hash": "2437c68d72beb88c",
+   "does": "Moves the item's workout to the Trash (deleteWorkout). When that failed, sets workoutDeleteFailed so the sheet's alert shows and stops; otherwise, when the item was just completed, acknowledges the recorder.",
    "entry": "closure:onDelete from FitnessPostSummaryView",
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)",
@@ -297,25 +297,50 @@
    ],
    "reads": [],
    "writes": [
+    "mem:FitnessTabView.workoutDeleteFailed",
     "mem:WorkoutLifecycle.phase"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "the delete failed",
-     "effect": "return; nothing acknowledged"
+     "effect": "workoutDeleteFailed = true, return; nothing acknowledged"
     },
     {
-     "at": "+2",
+     "at": "+5",
      "cond": "item.isJustCompleted",
      "effect": "true → acknowledgeFinished(); false → nothing more"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "72c2dde3f0758689",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)": "525046ea6f053f3b",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)": "9098cf44ce5c336e",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
+   }
+  },
+  {
+   "key": "func FitnessTabView.deleteRecentWorkout(_:)",
+   "hash": "0e1f158cca2c5781",
+   "does": "The confirmed context-menu delete from the Recent list: moves the workout to the Trash (deleteWorkout) and, when that failed, sets recentWorkoutDeleteFailed so the tab's own alert shows at once.",
+   "entry": "Recent-workout delete confirmation's 'Delete Workout' button (withRecentDeleteDialogs)",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:FitnessTabView.recentWorkoutDeleteFailed"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "deleteWorkout returned false",
+     "effect": "recentWorkoutDeleteFailed = true"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)": "9098cf44ce5c336e",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var WorkoutSummaryItem.id": "aa23ed1e162665a0"
    }
   },
   {
@@ -431,7 +456,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessChrome(_:)": "f0b1041acc3c21e9",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessChrome(_:)": "29701bf0b1d72214",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessImports(_:)": "31a6b87b98c8abe8",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withGPXSheets(_:)": "ce5e70f20dcbc9ac",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeScroll": "d2b3fbe6ff051039"
@@ -544,13 +569,15 @@
   },
   {
    "key": "func FitnessTabView.withFitnessChrome(_:)",
-   "hash": "95aff1eb4b62a70c",
-   "does": "Adds the sensor-management sheet (planModel.sensorSheetPresented), the .task running loadFitnessHomeData, nav title 'Fitness', accessibility id fitness.root, the toolbar, and the \"Couldn't load this workout.\" alert bound to recentWorkoutLoadFailed (OK clears it).",
+   "hash": "e56943360dd62447",
+   "does": "Wraps content in withRecentDeleteDialogs, then adds the sensor-management sheet (planModel.sensorSheetPresented), the .task running loadFitnessHomeData, nav title 'Fitness', accessibility id fitness.root, the toolbar, and the \"Couldn't load this workout.\" alert bound to recentWorkoutLoadFailed (OK clears it).",
    "entry": "SwiftUI .task on tab appear",
    "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withRecentDeleteDialogs(_:)",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.sensorSheet",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.loadFitnessHomeData()",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessToolbar"
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessToolbar",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [
@@ -560,9 +587,55 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.loadFitnessHomeData()": "ddf9f7c637731c2b",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withRecentDeleteDialogs(_:)": "5645c76f0d1c8031",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessToolbar": "4df35ee440c87c09",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.sensorSheet": "1567a8d782f45e0b"
    }
+  },
+  {
+   "key": "func FitnessTabView.withRecentDeleteDialogs(_:)",
+   "hash": "5f4c0c2f92c4d703",
+   "does": "Attaches the 'Delete this workout?' confirmation presenting pendingRecentDeleteId (message: it moves to the Trash and can be restored from Settings → iCloud & Data → Trash; 'Delete Workout' runs deleteRecentWorkout, Cancel closes) and the \"Couldn't delete this reading. Try again.\" alert bound to recentWorkoutDeleteFailed (OK clears it).",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recentDeleteBinding",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteRecentWorkout(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:FitnessTabView.pendingRecentDeleteId"
+   ],
+   "writes": [
+    "mem:FitnessTabView.recentWorkoutDeleteFailed"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteRecentWorkout(_:)": "d0b2df2c80f6b89b",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recentDeleteBinding": "eb8f5603bd71dd2d",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var WorkoutSummaryItem.id": "aa23ed1e162665a0"
+   }
+  },
+  {
+   "key": "var FitnessTabView.recentDeleteBinding",
+   "hash": "e502a244243f5f24",
+   "does": "Bool binding for the Recent-workout delete confirmation: true while pendingRecentDeleteId is set; setting false clears it.",
+   "entry": "SwiftUI reads/writes it through the confirmationDialog",
+   "calls": [],
+   "reads": [
+    "mem:FitnessTabView.pendingRecentDeleteId"
+   ],
+   "writes": [
+    "mem:FitnessTabView.pendingRecentDeleteId"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "set to false",
+     "effect": "pendingRecentDeleteId = nil"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "var FitnessTabView.sensorSheet",
@@ -846,8 +919,8 @@
   },
   {
    "key": "func FitnessTabView.deleteWorkout(_:)",
-   "hash": "330f49986f2530f2",
-   "does": "Moves the workout to the Trash through SessionTrash.move (archive delete, archive-changed notice, iCloud deletion in a Task) and closes the summary if it was showing that session; returns true. When the archive could not move it, logs at .error, sets workoutDeleteFailed (the summary sheet's alert) and returns false.",
+   "hash": "5adc1482383fd9be",
+   "does": "Moves the workout to the Trash through SessionTrash.move (archive delete, archive-changed notice, iCloud deletion in a Task) and closes the summary if it was showing that session; returns true. When the archive could not move it, logs at .error and returns false; the caller raises the alert.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)",
@@ -859,23 +932,22 @@
     "archive:SessionArchive.delete",
     "notif:archive changed (RRCollector.notifyArchiveChanged)",
     "ck:session deletion",
-    "mem:FitnessTabView.workoutDeleteFailed",
     "mem:FitnessTabView.selectedHistorySession",
     "mem:FitnessTabView.lastCompletedSession"
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+3",
      "cond": "SessionTrash.move threw",
-     "effect": "log at .error, workoutDeleteFailed = true, return false"
+     "effect": "log at .error, return false"
     },
     {
-     "at": "+9",
+     "at": "+7",
      "cond": "selectedHistorySession id == deleted id",
      "effect": "true → clears it"
     },
     {
-     "at": "+10",
+     "at": "+8",
      "cond": "lastCompletedSession id == deleted id",
      "effect": "true → clears it"
     }

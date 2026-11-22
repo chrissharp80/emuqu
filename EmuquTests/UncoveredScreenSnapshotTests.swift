@@ -221,7 +221,9 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
             manualResult: .constant(nil),
             manualPickMessage: .constant(nil),
             strapMergeWorking: .constant(false),
-            strapMergeMessage: .constant(nil)
+            strapMergeMessage: .constant(nil),
+            pendingWindowMethod: .constant(nil),
+            reanalysisDeclined: .constant(false)
         )
         assertSnapshot(of: hosted(controls.windowSelectionMethodSection), named: "uncovered-reanalysis-controls")
     }

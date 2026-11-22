@@ -1601,15 +1601,16 @@
   },
   {
    "key": "§ Emuqu User Manual > Detailed Report View (MorningResultsView) > Analysis Window",
-   "hash": "71aeb46bc22e9b63",
-   "does": "Claims window method picker (Best Recovery default, Highest RMSSD/SDNN, Highest Total Power using SDNN so it picks the Highest SDNN window) re-running this night's analysis; the pick is stored as settings.defaultWindowSelectionMethod, seeds every later report's picker (MorningResultsViewModel.init) and the Dashboard re-analyze (refreshDashboard), while new recordings always use Best Recovery; manual Choose Window mode with Auto/Yours/Diff compare banner; Apply replaces the night's analysis while keeping the auto pick.",
+   "hash": "ffdcdb014ff48fc2",
+   "does": "Claims window method picker (Best Recovery default, Highest RMSSD/SDNN, Highest Total Power using SDNN so it picks the Highest SDNN window): a pick asks for confirmation (it replaces the saved score), then re-runs this night's analysis; a declined re-analysis alerts and keeps the score; a pick on today's report is stored as settings.defaultWindowSelectionMethod, seeds every later report's picker (MorningResultsViewModel.init) and the Dashboard re-analyze (refreshDashboard), while a past night's pick re-scores that night only and new recordings always use Best Recovery; manual Choose Window mode with Auto/Yours/Diff compare banner; Apply replaces the night's analysis while keeping the auto pick.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.interChartSections(_:)",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowSelectionMethodSection",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodOptions",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.selectWindowMethod(_:)",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reanalyzeWithMethod(_:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyWindowMethod(_:)",
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.windowMethodMessage(_:)",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.chooseYourOwnButton",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.toggleManualWindowMode()",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.handleManualReanalysis(timestampMs:)",
@@ -1631,19 +1632,20 @@
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)": "3328bd556097b83d",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.refreshDashboard()": "af3851fdab986533",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyManualWindowChoice(_:)": "ca3dfe5528d7d9e4",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyWindowMethod(_:)": "a27609dfa26cebe2",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishManualApply(_:)": "f9c1896d1e3e6a68",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.handleManualReanalysis(timestampMs:)": "9817c039174cf23a",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.manualComparisonBanner(manual:)": "9b71ec099a5cecda",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.manualWindowActions(_:)": "1c388bc08ba73493",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.persistentWindowComparisonBanner()": "6874c778cf1a4509",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reanalyzeWithMethod(_:)": "29dc4f30f97f1771",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.selectWindowMethod(_:)": "df6fe5b78ce0b1be",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.selectWindowMethod(_:)": "26cb1cdb31be34d5",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.toggleManualWindowMode()": "5ad94178ea1e1277",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.chooseYourOwnButton": "c1e53b4865747302",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.provenanceView": "3628b57ffb57ddb3",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowMethodOptions": "a6d7e2f4bc542330",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowSelectionMethodSection": "a9f2b613e2953a07",
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.interChartSections(_:)": "86503bd84b66f603"
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.interChartSections(_:)": "86503bd84b66f603",
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.windowMethodMessage(_:)": "e729ac440cea8b07"
    }
   },
   {
@@ -1727,8 +1729,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Detailed Report View (MorningResultsView) > Notes Section",
-   "hash": "d80d47d9bd35b8b3",
-   "does": "Claims notes and tag changes are saved on Done or when the report closes, swipe included (saveTagsAndNotesIfChanged from the Done button and .onDisappear, only when they differ from what was last stored), and that Discard throws the reading away with its tag and note changes (the Discard button marks the edits handled instead of handing them off).",
+   "hash": "4e7b773830fccd41",
+   "does": "Claims notes and tag changes are saved on Done or when the report closes, swipe included (saveTagsAndNotesIfChanged from the Done button and .onDisappear, only when they differ from what was last stored), and that Discard asks for confirmation naming what is lost (night: out of the baseline and to the Trash; quick reading: to the Trash; import: dropped unsaved) and then throws the reading away with its tag and note changes (the confirmation marks the edits handled instead of handing them off).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.body",
@@ -1736,17 +1738,25 @@
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)",
-    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.saveTagsAndNotesIfChanged()"
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.saveTagsAndNotesIfChanged()",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.discardReadingActions",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResults(_:)",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)",
+    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.importedResults(session:result:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "d173acbc448c38ce",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)": "5966eba117260034",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)": "8c4313a682c4d2b7",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)": "d6a61ae080d291f8",
+    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.importedResults(session:result:)": "cae8f2687018e300",
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.saveTagsAndNotesIfChanged()": "2c5f703bd5447e26",
-    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.doneButton": "df3ed4b0c5cd0fb7",
+    "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.doneButton": "ae5b4a39b8f5a6d7",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.discardReadingActions": "1bbcdf8840958020",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResults(_:)": "66e0ffcd11bbb291",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)": "4c6676e8480b66ea",
     "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.body": "05e9d4a856b601bf"
    }
   },
@@ -2954,13 +2964,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.body": "cfb3c4eddd439b05"
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.body": "7cec1942d36ef1c8"
    }
   },
   {
    "key": "§ Emuqu User Manual > Lost Sessions View > Features",
-   "hash": "5f3861bbc36550dc",
-   "does": "Claims lost-session list with Recover All, multi-select delete and swipe delete with confirmation.",
+   "hash": "2861efa719ee1a47",
+   "does": "Claims lost-session list with date and beat count, Recover All, multi-select delete and swipe delete, each behind a confirmation saying the session is no longer offered for recovery and its backup files stay; a deletion that cannot be saved stays listed with an alert.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.body",
@@ -2970,23 +2980,25 @@
     "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoverAllSessions()",
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.editButton",
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteSelectedButton",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogActions",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessionsAtOffsets(_:)",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSelectedSessions()"
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.confirmDeleteAtOffsets(_:)",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteDialogActions(_:)",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogMessage",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessions(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSelectedSessions()": "35273f69d78fe299",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessionsAtOffsets(_:)": "68d51bd7991dd6b5",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoverAllSessions()": "a4842dc1b106ade2",
-    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.sessionRow(_:)": "80f6898f324394f2",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.body": "cfb3c4eddd439b05",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogActions": "cc80e9747f59df18",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteSelectedButton": "35fdb98ee3b74c77",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.confirmDeleteAtOffsets(_:)": "10484adbde5120ea",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteDialogActions(_:)": "917aa3734bb66600",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.deleteSessions(_:)": "c54ee04a8f300f3d",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.recoverAllSessions()": "744a963b9ff2c6cd",
+    "Emuqu/Sources/Views/LostSessionsView.swift::func LostSessionsView.sessionRow(_:)": "8b15a31403bd1f7f",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.body": "7cec1942d36ef1c8",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteDialogMessage": "a2b345a985987225",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.deleteSelectedButton": "38819fd407d7af86",
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.editButton": "ef2884b2ca754b8b",
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsListSection": "41461199b75c9d34",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.lostSessionsListSection": "61c7cb640a52dc14",
     "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.recoverAllButton": "f0eb1242d8c09d50"
    }
   },
@@ -3203,7 +3215,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.body": "cfb3c4eddd439b05",
+    "Emuqu/Sources/Views/LostSessionsView.swift::var LostSessionsView.body": "7cec1942d36ef1c8",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.recoverRRData()": "0c8514a11751ef83",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.recoverRRDataButton": "1e757fb06b3b5e2c",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.sessionRecoveryLink": "1b27797a4fb367a2"

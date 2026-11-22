@@ -101,7 +101,9 @@ extension SessionRecoveryCoordinator {
         }
     }
 
-    func deleteLostSessions(_ sessionIds: [UUID]) {
+    /// The ids whose deletion mark was stored.
+    @discardableResult
+    func deleteLostSessions(_ sessionIds: [UUID]) -> Set<UUID> {
         recoveryService.deleteLostSessions(sessionIds)
     }
 
