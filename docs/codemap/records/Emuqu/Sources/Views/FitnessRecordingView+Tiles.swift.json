@@ -1278,15 +1278,15 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.toggle()": "e3d50db69eedc7d3",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.voiceButtonColor": "56be76938f44493e",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.voiceButtonIcon": "7d13fd3347f2fe95",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.voiceButtonLabel": "f77a9fcbcb57580c"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.toggle()": "2f6796df66c0742e",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.voiceButtonColor": "687824080bdbe5b6",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.voiceButtonIcon": "62f6e72b3ef84a0c",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var FitnessRecordingView.voiceButtonLabel": "b0685bcb5b976a2e"
    }
   },
   {
    "key": "var FitnessRecordingView.voiceButtonIcon",
-   "hash": "5ee1f2c58bc58dba",
+   "hash": "5aee2bd8fecd482a",
    "does": "SF Symbol name for each voice state.",
    "entry": null,
    "calls": [],
@@ -1310,16 +1310,11 @@
     },
     {
      "at": "+5",
-     "cond": "thinking",
-     "effect": "ellipsis.circle.fill"
-    },
-    {
-     "at": "+6",
      "cond": "speaking",
      "effect": "speaker.wave.3.fill"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "triggerSpeaking",
      "effect": "exclamationmark.circle.fill"
     }
@@ -1328,7 +1323,7 @@
   },
   {
    "key": "var FitnessRecordingView.voiceButtonLabel",
-   "hash": "c3053f9e45f860da",
+   "hash": "565f94276ab2266f",
    "does": "Localized button text for each voice state.",
    "entry": null,
    "calls": [
@@ -1354,18 +1349,13 @@
     },
     {
      "at": "+5",
-     "cond": "thinking",
-     "effect": "'Thinking…' (tap interrupts, per toggle())"
-    },
-    {
-     "at": "+6",
      "cond": "speaking",
      "effect": "'Tap to interrupt'"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "triggerSpeaking",
-     "effect": "'Alert' (tap ignored by toggle())"
+     "effect": "'Alert' (a tap lets the line finish; with voice off it starts voice afterwards, per toggle())"
     }
    ],
    "deps": {
@@ -1374,7 +1364,7 @@
   },
   {
    "key": "var FitnessRecordingView.voiceButtonColor",
-   "hash": "7ac8d49c2664acdd",
+   "hash": "58fa8f45ee2af868",
    "does": "Background colour for each voice state.",
    "entry": null,
    "calls": [],
@@ -1398,16 +1388,11 @@
     },
     {
      "at": "+5",
-     "cond": "thinking",
-     "effect": "mist"
-    },
-    {
-     "at": "+6",
      "cond": "speaking",
      "effect": "dustyRose"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "triggerSpeaking",
      "effect": "fitnessAccent"
     }

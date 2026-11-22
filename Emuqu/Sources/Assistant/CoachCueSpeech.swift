@@ -9,7 +9,7 @@ import Foundation
 /// `BackgroundAudioManager` asks of every spoken workout cue: `beginCue()`
 /// runs off the main actor (activation can block for seconds after a phone
 /// call), the line is handed to the synthesizer once the session is up, and
-/// the line's finish or cancel callback ends its hold (`finished(_:)`). With
+/// the line's finish or cancel callback ends its hold (`lineEnded(_:)`). With
 /// voice chat idle that activates the session for the line and deactivates
 /// it afterwards, so other apps' audio is told to resume; with voice chat on,
 /// its `.playAndRecord` claim keeps the category and the session stays up.
@@ -94,7 +94,7 @@ final class CoachCueSpeech {
             var speakErr: NSError?
             guard !FRSafeSpeak(synthesizer, line.utterance, &speakErr) else { continue }
             debugLog("[VoiceConv] synthesizer.speak failed (skipping coach line): \(speakErr?.localizedDescription ?? "?")", level: .warning)
-            finished(ObjectIdentifier(line.utterance))
+            lineEnded(ObjectIdentifier(line.utterance))
             line.onUnqueued()
         }
         isClaiming = false
@@ -102,7 +102,7 @@ final class CoachCueSpeech {
 
     /// The line with this identity finished or was cancelled: end its hold.
     /// Lines this object never handed to the synthesizer are ignored.
-    func finished(_ utterance: ObjectIdentifier) {
+    func lineEnded(_ utterance: ObjectIdentifier) {
         guard let line = held.removeValue(forKey: utterance) else { return }
         line.audio.endCue(line.token)
     }

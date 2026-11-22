@@ -91,7 +91,6 @@ final class VoiceConversationController: NSObject {
         case idle
         case starting   // sheet just opened, audio + permissions warming up
         case listening
-        case thinking
         case speaking
         case triggerSpeaking
 
@@ -103,7 +102,6 @@ final class VoiceConversationController: NSObject {
             case .idle: return "idle"
             case .starting: return "starting"
             case .listening: return "listening"
-            case .thinking: return "thinking"
             case .speaking: return "speaking"
             case .triggerSpeaking: return "alert"
             }
@@ -212,6 +210,8 @@ final class VoiceConversationController: NSObject {
         synthesizer.delegate = self
         return synthesizer
     }()
+    /// The audio-session claim of each coach line, and an AI line's scripted fallback.
+    @ObservationIgnored lazy var coachCue = CoachCueSpeech(synthesizer: synthesizer)
     /// The conversation's voice (`ConversationVoicePicker`), looked up off
     /// the main actor at each voice start (`refreshLanguageForSession`). Nil
     /// until the first lookup lands, when the system default voice speaks.
@@ -437,12 +437,12 @@ final class VoiceConversationController: NSObject {
     //      path for foreground audio to continue into background.
     //   2) Audio-session interruption handling — phone calls, alarms, and Siri
     //      can yank the session out from under us; `interruptionObserver`
-    //      drops the recognition task when the interruption begins and ends
-    //      the conversation when it ends, so the user re-taps to resume
-    //      rather than voice silently reopening the mic.
+    //      ends the conversation when the interruption begins (no `.ended`
+    //      is promised), so the user re-taps to resume rather than voice
+    //      sitting dead or silently reopening the mic.
     // Voice chat never begins a BackgroundAudioManager cue; only spoken
-    // workout cues do, and each releases its own hold, so stop() never
-    // touches it.
+    // workout cues do (`coachCue` for the coach lines it speaks), and each
+    // releases its own hold when its line finishes or is stopped.
 
     /// NotificationCenter observer for AVAudioSession interruptions.
     /// Retained so we can remove it on stop().
@@ -521,47 +521,76 @@ final class VoiceConversationController: NSObject {
 /// the AI is busy and drain when the current response finishes (synth + LLM
 /// both idle), so the user's answer always completes before the coaching
 /// alert plays. When the AI is idle, triggers fire immediately.
+///
+/// A route line (a turn alert or a post-turn split) is about where the user
+/// is now: a newer one replaces any still queued, and one queued longer than
+/// `routeLineMaxAge` is dropped rather than played after the turn has passed.
 struct VoiceTriggerQueue {
     enum Trigger {
         /// `.spoken` tier — message is the literal phrase to TTS.
         case spokenLiteral(String)
-        /// A PROMPT for the model, whose reply is spoken (the workout
-        /// start readout and post-workout summary).
-        case aiPrompt(String)
+        /// A PROMPT for the model, whose reply is spoken (an interval call,
+        /// the post-workout summary), and the scripted line said instead
+        /// when the reply fails or is empty (`CoachCueSpeech.fallback`).
+        case aiPrompt(String, fallback: String?)
+    }
+
+    private struct Entry {
+        let trigger: Trigger
+        let isRouteLine: Bool
+        let queuedAt: Date
+
+        var isScriptedLine: Bool {
+            if case .spokenLiteral = trigger { return true }
+            return false
+        }
     }
 
     /// If the user holds a long chat turn while triggers fire faster than
     /// they can drain, the queue would grow unbounded — each entry holds a
-    /// full prompt string. Past this the oldest are dropped: by the time we
-    /// drain, anything more than ~8 alerts old is stale anyway.
+    /// full prompt string. Past this the oldest scripted lines are dropped
+    /// first: by the time we drain, anything more than ~8 alerts old is
+    /// stale anyway, while a queued AI prompt is the only copy of its call.
     static let capacity = 8
 
-    private var items: [Trigger] = []
+    /// How long a route line may wait before it no longer describes where
+    /// the user is: at running pace, "in 60 meters" is the turn itself
+    /// about 15 s later.
+    static let routeLineMaxAge: TimeInterval = 10
+
+    private var items: [Entry] = []
 
     var isEmpty: Bool { items.isEmpty }
     var count: Int { items.count }
 
-    /// Appends `trigger`, then drops the oldest entries over `capacity`;
-    /// returns how many were dropped.
-    mutating func enqueue(_ trigger: Trigger) -> Int {
-        items.append(trigger)
-        let drop = max(0, items.count - Self.capacity)
-        items.removeFirst(drop)
-        return drop
+    /// Appends `trigger` (replacing any queued route line when it is one),
+    /// then drops entries over `capacity`, the oldest scripted line first and
+    /// the oldest AI prompt only when nothing else is left; returns how many
+    /// were dropped, replaced route lines included.
+    mutating func enqueue(_ trigger: Trigger, isRouteLine: Bool = false, now: Date = Date()) -> Int {
+        let before = items.count
+        if isRouteLine { items.removeAll { $0.isRouteLine } }
+        var dropped = before - items.count
+        items.append(Entry(trigger: trigger, isRouteLine: isRouteLine, queuedAt: now))
+        while items.count > Self.capacity {
+            items.remove(at: items.firstIndex(where: { $0.isScriptedLine }) ?? 0)
+            dropped += 1
+        }
+        return dropped
     }
 
-    /// The oldest trigger, removed; nil when the queue is empty.
-    mutating func popFirst() -> Trigger? {
-        items.isEmpty ? nil : items.removeFirst()
+    /// The oldest trigger still worth saying, removed; route lines that
+    /// waited past `routeLineMaxAge` are dropped on the way. Nil when none
+    /// is left.
+    mutating func popFirst(now: Date = Date()) -> Trigger? {
+        items.removeAll { $0.isRouteLine && now.timeIntervalSince($0.queuedAt) > Self.routeLineMaxAge }
+        return items.isEmpty ? nil : items.removeFirst().trigger
     }
 
     mutating func removeAll() { items.removeAll() }
 
     /// Removes every `.spokenLiteral`; queued AI prompts stay.
     mutating func discardSpokenLines() {
-        items.removeAll { trigger in
-            if case .spokenLiteral = trigger { return true }
-            return false
-        }
+        items.removeAll { $0.isScriptedLine }
     }
 }
