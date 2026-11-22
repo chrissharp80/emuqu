@@ -648,8 +648,8 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 12. Key Files Reference",
-   "hash": "8a512a6f2ccb6067",
-   "does": "Key-files table mapping pipeline responsibilities to files. All listed files exist, but several mappings are stale: gatherOvernightData is in RRCollector+OvernightGather.swift (not +OvernightStreaming), RRPoint creation is in PolarManager+Streaming.swift, and the HRVSession struct is declared in SessionMetadata.swift (HRVSession.swift holds decoding support).",
+   "hash": "31c5fc571be66197",
+   "does": "Key-files table mapping pipeline responsibilities to files: streamed RRPoint creation in PolarManager+Streaming.swift (appendStreamedBeat), RR models, the HRVSession model in SessionMetadata.swift (HRVSession.swift holds its decoding support), overnight start/stop and mergeParentSessionData in RRCollector+OvernightStreaming.swift, gatherOvernightData in RRCollector+OvernightGather.swift, pause/resume, morning processing, device recording, the recovery score (v3.3.nov2026), sleep staging and merging, boundary resolution, overnight charts, the sleep editor and its model, the narrative generator, the insufficient-data migration and morning feeling tags. All listed files exist.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()",
@@ -897,8 +897,8 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 16. Archive Status Visibility",
-   "hash": "b1b51d3c5ca16fcd",
-   "does": "Claims an interrupted recording surfaces as the launch 'Session Interrupted' alert, checked after the archive's launch boot (LaunchArchiveBoot), raised only with no launch modal on screen and re-run when the score-architecture cover closes (handleLaunchModalChange), with Save/Resume claiming the session from launch auto-recovery (InterruptedWorkoutAutoRecovery.claim); Resume / Save as Complete / Dismiss, or Save to Archive / Dismiss; Dismiss keeps the backup for Recover Lost Sessions; no dashboard banner; the dashboard shows ScoreChangedBanner (≥ 3 points, recordPendingScoreChangeIfMeaningful) and an ArchiveStatusLine pill; Settings → iCloud & Data storage summary and Force iCloud Sync; Repair Training History behind Advanced Diagnostics, also run once at launch via runTrimpRepairMigrationIfNeeded. Code: EmuquApp.swift, AppLaunchRecovery.swift, SessionReanalysisCoordinator+Listeners.swift.",
+   "hash": "bb802cc4d8adb110",
+   "does": "Claims an interrupted recording surfaces as the launch 'Session Interrupted' alert, checked after the archive's launch boot (LaunchArchiveBoot), raised only with no launch modal on screen and re-run when the score-architecture cover closes (handleLaunchModalChange), with Save/Resume claiming the session from launch auto-recovery (InterruptedWorkoutAutoRecovery.claim); Resume / Save as Complete / Dismiss, or Save to Archive / Dismiss; Dismiss keeps the backup for Recover Lost Sessions; no dashboard banner; the dashboard shows ScoreChangedBanner (≥ 3 points, recordPendingScoreChangeIfMeaningful); Settings → iCloud & Data storage summary and Force iCloud Sync; Repair Training History behind Advanced Diagnostics, also run once at launch via runTrimpRepairMigrationIfNeeded. Code: EmuquApp.swift, AppLaunchRecovery.swift, SessionReanalysisCoordinator+Listeners.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.scoreChangedBanner(_:)",
@@ -906,7 +906,6 @@
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.body",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairTrainingSnapshots()",
     "Emuqu/EmuquApp.swift::func EmuquApp.interruptedSessionAlerts(_:)",
     "Emuqu/EmuquApp.swift::func EmuquApp.resumableInterruptionAlert(_:)",
@@ -924,12 +923,11 @@
     "Emuqu/EmuquApp.swift::func EmuquApp.unresumableInterruptionAlert(_:)": "0cf6b05edb721b07",
     "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "aba3fe476d6810c5",
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "0027892fb9448542",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.claimRecovery(_:)": "e27bb5aebc2784f9",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.claimRecovery(_:)": "a545ae83f0dd2f05",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "8256130028c86fa4",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()": "cfd622cc48144dac",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()": "c15f55dd92f347d8",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)": "4476c41e93b017fe",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.body": "cd40e86fced6ab09",
     "Emuqu/Sources/Views/DashboardV2View+Cards.swift::func DashboardV2View.scoreChangedBanner(_:)": "c716b6c6cfc491c9",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.repairTrainingSnapshots()": "bb650566dace2687"
    }

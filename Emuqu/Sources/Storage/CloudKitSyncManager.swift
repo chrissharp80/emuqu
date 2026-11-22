@@ -267,7 +267,7 @@ final class CloudKitSyncManager {
             // Unconfirmed at once, before the status check: nothing is read
             // or written until the new account has been checked.
             CloudAccountIdentity.noteAccountChanged()
-            Task { @MainActor [weak self] in await self?.handleAccountChange() }
+            Task { @MainActor [weak self] in await self?.accountChange.handle() }
         })
     }
 
@@ -281,76 +281,6 @@ final class CloudKitSyncManager {
             object: nil,
             queue: .main
         ) { _ in handler() }
-    }
-
-    /// Re-check the CloudKit account status after `.CKAccountChanged` and
-    /// reflect it in sync state. A signed-out / restricted account surfaces
-    /// as `.error` (read by the same UI as every other sync error) rather
-    /// than failing silently; a recovered `.available` account clears the
-    /// not-signed-in error and runs a sync, which starts by checking the
-    /// account (`resumeSyncForAvailableAccount`): the Apple ID sync was
-    /// enabled for syncs on, and a different one stops sync before anything
-    /// is read or written.
-    ///
-    /// `.temporarilyUnavailable` is transient (iCloud briefly unreachable) so
-    /// it stamps no permanent error — the next sync retries. It is handled
-    /// explicitly because it's a KNOWN case: `@unknown default` covers only
-    /// future/unknown values, so leaving it out tripped "switch must be
-    /// exhaustive" (a warning under Swift 5, a hard error under stricter
-    /// concurrency settings).
-    private func handleAccountChange() async {
-        let status: CKAccountStatus
-        do {
-            status = try await container.accountStatus()
-        } catch {
-            debugLog("[CloudKit] Account change: status check failed: \(error.localizedDescription)", level: .warning)
-            return
-        }
-        switch status {
-        case .available:
-            await resumeSyncForAvailableAccount()
-        case .noAccount, .restricted, .couldNotDetermine:
-            pauseSyncForUnusableAccount(status)
-        case .temporarilyUnavailable:
-            debugLog("[CloudKit] Account change: iCloud temporarily unavailable — will retry on next sync", level: .warning)
-        @unknown default:
-            break
-        }
-    }
-
-    /// Clear the not-signed-in error, matched in any language the app ships
-    /// (`CloudSyncMessages.isNotSignedIn`), then refresh. Any other error
-    /// (a failed push or pull, the schema pause) is not about the account and
-    /// stays until a sync clears it.
-    ///
-    /// The bookkeeping is not wiped here: `.CKAccountChanged` also fires on a
-    /// transient drop and reconnect of the SAME account. Which account is
-    /// signed in is decided by the account check every sync starts with
-    /// (`CloudAccountGuard.confirmAccount`): the same account syncs on, and a
-    /// different one stops sync before anything is read or written. With sync
-    /// off, the check runs on its own, so a switched account is caught before
-    /// the user turns sync on again.
-    private func resumeSyncForAvailableAccount() async {
-        debugLog("[CloudKit] Account change: iCloud account available — checking it and refreshing sync")
-        if case let .error(message) = syncState, CloudSyncMessages.isNotSignedIn(message) { syncState = .idle }
-        if CloudSyncMessages.isNotSignedIn(lastPermanentErrorMessage) { lastPermanentErrorMessage = nil }
-        guard settings.iCloudSyncEnabled else {
-            guard settings.hasCompletedOnboarding else { return }
-            await syncSerializer.run { [self] in _ = await accountGuard.confirmAccount() }
-            return
-        }
-        await performFullSync()
-    }
-
-    /// Surface via the same `syncState`/error path the rest of the UI reads,
-    /// and stamp the permanent-error field so Settings shows why sync stopped
-    /// instead of silently no-op'ing.
-    private func pauseSyncForUnusableAccount(_ status: CKAccountStatus) {
-        let message = CloudSyncMessages.notSignedIn
-        debugLog("[CloudKit] Account change: no usable iCloud account (\(status.rawValue)) — pausing sync", level: .warning)
-        syncState = .error(message)
-        lastPermanentErrorMessage = message
-        syncingStartedAt = nil
     }
 
     /// Cold-start: post-first-frame catch-up. Loads
@@ -397,11 +327,27 @@ final class CloudKitSyncManager {
         !state.uploadedSessionIds.isEmpty || zoneCreated || lastSyncDate != nil
     }
 
-    /// Show why the app stopped sync, as `pauseSyncForUnusableAccount` does.
+    /// Show why sync stopped or paused (another account, deleted iCloud
+    /// data, no usable account): as the sync state Settings reads, and as the
+    /// permanent-error line, so the reason stays on screen. Ends any sync the
+    /// stuck-sync timer was watching.
     func showSyncStopped(_ message: String) {
         syncState = .error(message)
         lastPermanentErrorMessage = message
         syncingStartedAt = nil
+    }
+
+    /// Clear the not-signed-in line wherever it shows, matched in any
+    /// language the app ships (`CloudSyncMessages.isNotSignedIn`). Any other
+    /// error is not about the account and stays until a sync clears it.
+    func clearNotSignedInError() {
+        if case let .error(message) = syncState, CloudSyncMessages.isNotSignedIn(message) { syncState = .idle }
+        if CloudSyncMessages.isNotSignedIn(lastPermanentErrorMessage) { lastPermanentErrorMessage = nil }
+    }
+
+    /// Reacts to `.CKAccountChanged`; built on each access.
+    var accountChange: CloudAccountChangeHandler {
+        CloudAccountChangeHandler(manager: self)
     }
 
     // MARK: - Upload Session
