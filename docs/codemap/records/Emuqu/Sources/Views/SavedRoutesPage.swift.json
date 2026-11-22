@@ -1,14 +1,15 @@
 {
  "file": "Emuqu/Sources/Views/SavedRoutesPage.swift",
- "hash": "89a09ebe437e3a34",
- "role": "Settings → My Routes screen listing SavedRouteStore routes with swipe-to-delete, swipe-to-rename alert, a failure alert when the store cannot save a rename or delete, OSM attribution footer, and an explanatory empty state.",
+ "hash": "67415c21c1621462",
+ "role": "Settings → My Routes screen listing SavedRouteStore routes with swipe-to-delete (confirmed first), swipe-to-rename alert, a failure alert when the store cannot save a rename or delete, OSM attribution footer, and an explanatory empty state.",
  "types": [
   "SavedRoutesPage: struct (View) — My Routes list; pushed from SettingsView.swift:257 and SettingsSearchIndex.swift:190"
  ],
  "state": [
   "mem:SavedRoutesPage.renamingRoute (@State SavedRoute?)",
   "mem:SavedRoutesPage.renameText (@State String)",
-  "mem:SavedRoutesPage.showSaveFailed (@State Bool: a rename or delete the store could not save)"
+  "mem:SavedRoutesPage.showSaveFailed (@State Bool: a rename or delete the store could not save)",
+  "mem:SavedRoutesPage.deletingRoute (@State SavedRoute?: a swipe Delete waiting for confirmation)"
  ],
  "toplevel": "Environment dependencies; no other top-level code.",
  "units": [
@@ -31,10 +32,11 @@
   },
   {
    "key": "var SavedRoutesPage.body",
-   "hash": "92ed979ba2b2f9b4",
-   "does": "Body: empty state or route list, nav title 'My Routes', a 'Rename route' alert presented while renamingRoute is non-nil, and the \"Your change couldn't be saved. Try again.\" alert bound to showSaveFailed.",
+   "hash": "df5c2e781e7cf529",
+   "does": "Body: empty state or route list wrapped in the delete confirmation, nav title 'My Routes', a 'Rename route' alert presented while renamingRoute is non-nil, and the \"Your change couldn't be saved. Try again.\" alert bound to showSaveFailed.",
    "entry": "SwiftUI body",
    "calls": [
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.withDeleteConfirmation(_:)",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.emptyState",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.routeList",
@@ -63,6 +65,7 @@
    "deps": {
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.withDeleteConfirmation(_:)": "c38bedbcad3e20ce",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.emptyState": "8f2e4150436187f5",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.renameDialogActions": "3e4e3b2e3e44b41e",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.routeList": "ce7ab1f8d16aa5f4",
@@ -84,6 +87,61 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.commitRename()": "c4995e95857639ed"
+   }
+  },
+  {
+   "key": "func SavedRoutesPage.withDeleteConfirmation(_:)",
+   "hash": "9c01633040d6e0a4",
+   "does": "Attaches 'Delete this route?' (the route's name is removed from your routes, the coach stops recognising it, cannot be undone), shown while deletingRoute is set; its destructive Delete runs deleteRoute, dismissal clears deletingRoute.",
+   "entry": "SwiftUI view composition from body",
+   "calls": [
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.deleteRoute(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SavedRoutesPage.deletingRoute"
+   ],
+   "writes": [
+    "mem:SavedRoutesPage.deletingRoute"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "deletingRoute != nil",
+     "effect": "dialog shown"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.deleteRoute(_:)": "f4d4beb76b0a6f23"
+   }
+  },
+  {
+   "key": "func SavedRoutesPage.deleteRoute(_:)",
+   "hash": "8fe43f8fd114c13d",
+   "does": "Clears deletingRoute and removes the route from the store (persisted), setting showSaveFailed when the store could not save it.",
+   "entry": "The confirmation's Delete",
+   "calls": [
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.remove(id:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SavedRoutesPage.deletingRoute",
+    "mem:SavedRouteStore.routes",
+    "file:saved_routes.json (App Group container)",
+    "mem:SavedRoutesPage.showSaveFailed"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "store.remove returned false",
+     "effect": "showSaveFailed = true"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.remove(id:)": "c6be49cb3ab1ced2",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store": "622a2304cd5a2035"
    }
   },
   {
@@ -204,38 +262,26 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.routeRow(_:)": "0724200a5de4f095",
-    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.swipeActions(for:)": "e28f5bde317137ec"
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.swipeActions(for:)": "2dd5113c11362e36"
    }
   },
   {
    "key": "func SavedRoutesPage.swipeActions(for:)",
-   "hash": "9b00dd8abdacbed6",
-   "does": "Swipe actions: Delete removes the route immediately (no confirmation/undo) and persists, or sets showSaveFailed when the store could not save it; Rename sets renamingRoute and prefills renameText.",
+   "hash": "378ce430079b6edd",
+   "does": "Swipe actions: Delete sets deletingRoute so the user confirms first (the delete itself runs in deleteRoute); Rename sets renamingRoute and prefills renameText.",
    "entry": "Swipe action button taps",
    "calls": [
-    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.remove(id:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [
-    "mem:SavedRouteStore.routes",
-    "file:saved_routes.json (App Group container)",
-    "mem:SavedRoutesPage.renamingRoute",
-    "mem:SavedRoutesPage.showSaveFailed"
+    "mem:SavedRoutesPage.deletingRoute",
+    "mem:SavedRoutesPage.renamingRoute"
    ],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "store.remove returned false",
-     "effect": "showSaveFailed = true"
-    }
-   ],
+   "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.remove(id:)": "c6be49cb3ab1ced2",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.store": "622a2304cd5a2035"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {

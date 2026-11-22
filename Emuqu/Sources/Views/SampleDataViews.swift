@@ -29,6 +29,21 @@ final class SampleDataModel {
         isPresent = library.isPresent
     }
 
+    /// The last presence read and the archive version it was read at. Not
+    /// observed: it is written while a body is evaluated.
+    @ObservationIgnored private var presenceCache: (archiveVersion: Int, isPresent: Bool)?
+
+    /// Presence as of `archiveVersion`, read once per archive change rather
+    /// than on every evaluation of a body that draws it: the read decodes the
+    /// ledger and scans every archive entry. Load and removal both change the
+    /// archive, which is when the answer can change.
+    func presence(_ library: SampleDataLibrary, archiveVersion: Int) -> Bool {
+        if let cached = presenceCache, cached.archiveVersion == archiveVersion { return cached.isPresent }
+        let present = library.isPresent
+        presenceCache = (archiveVersion, present)
+        return present
+    }
+
     func load(_ library: SampleDataLibrary) async {
         phase = .loading(built: 0, total: DemoSessionSeeder.defaultNightCount)
         failure = nil
@@ -151,10 +166,10 @@ struct SampleDataBanner: View {
     /// Presence is read in `body`, not refreshed from a `.task`: while there
     /// is no sample data this view draws nothing, and a task attached to
     /// nothing never runs. Reading `archiveVersion` here re-evaluates the body
-    /// on every archive change, which is when the answer can change.
+    /// on every archive change, which is when the answer can change; between
+    /// changes the model returns the answer it already read.
     var body: some View {
-        let _ = collector.archiveVersion
-        if model.isWorking || library.isPresent {
+        if model.isWorking || model.presence(library, archiveVersion: collector.archiveVersion) {
             banner.modifier(SampleDataRemovalConfirmation(isPresented: $confirmingRemoval, onConfirm: remove))
         }
     }

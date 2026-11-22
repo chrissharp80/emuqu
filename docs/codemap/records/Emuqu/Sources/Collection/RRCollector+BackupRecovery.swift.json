@@ -379,8 +379,8 @@
   },
   {
    "key": "func SessionRecoveryCoordinator.retrimRecoveredWorkout(sessionId:endSec:)",
-   "hash": "73c35adde12089ab",
-   "does": "Review/trim card Save: reads the archived workout, clips its RR series at endSec and re-finalizes it through WorkoutRecoveryService (discarding backups). An archive read that throws logs an error and leaves the card up and the session unreviewed. With <30 beats left (including a session no longer in the archive) it keeps the workout untrimmed and closes the review (marked reviewed). When the re-finalize returns nil or is not archived it logs an error and leaves the card up and the session unreviewed, so the trim can be saved again; once archived it bumps the archive signal and closes the review.",
+   "hash": "3e91affc9602f5e3",
+   "does": "Review/trim card Save: reads the archived workout, clips its RR series at endSec and re-finalizes it through WorkoutRecoveryService (discarding backups). Returns true when the card closed, false when it stays up with nothing saved (discardable). An archive read that throws logs an error and returns false, leaving the card up and the session unreviewed. With <30 beats left (including a session no longer in the archive) it keeps the workout untrimmed, closes the review (marked reviewed) and returns true. When the re-finalize returns nil or is not archived it logs an error and returns false, leaving the card up and the session unreviewed so the trim can be saved again; once archived it bumps the archive signal, closes the review and returns true.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.archivedBeats(of:upTo:)",
@@ -403,22 +403,22 @@
     {
      "at": "+1",
      "cond": "archivedBeats returned nil (archive read threw)",
-     "effect": "returns; card stays, session not marked reviewed"
+     "effect": "returns false; card stays, session not marked reviewed"
     },
     {
      "at": "+2",
      "cond": "clipped.count < 30 (session not in the archive or without beats included)",
-     "effect": "closes the review (marked reviewed) and returns"
+     "effect": "closes the review (marked reviewed) and returns true"
     },
     {
-     "at": "+9",
+     "at": "+12",
      "cond": "WorkoutRecoveryService.recover returned nil or outcome.wasArchived is false",
-     "effect": "logs; card stays, session not marked reviewed"
+     "effect": "logs; returns false; card stays, session not marked reviewed"
     },
     {
-     "at": "+13",
+     "at": "+16",
      "cond": "re-finalized and archived",
-     "effect": "notifies archive signal, closes the review"
+     "effect": "notifies archive signal, closes the review, returns true"
     }
    ],
    "deps": {
@@ -481,8 +481,8 @@
   },
   {
    "key": "func SessionRecoveryCoordinator.discardRecoveredWorkout(sessionId:)",
-   "hash": "82bc22e9a7c7b92e",
-   "does": "Review card Discard: deletes the archived recovered workout (failure logged via attempt). Only when the delete landed does it bump the archive signal and close the review; a failed delete leaves the card up and the session unreviewed so Discard can be retried. The raw backup is kept either way.",
+   "hash": "345a38df7a66b194",
+   "does": "Review card Discard: deletes the archived recovered workout (failure logged via attempt). Only when the delete landed does it bump the archive signal, close the review and return true; a failed delete returns false and leaves the card up and the session unreviewed so Discard can be retried (discardable result). The raw backup is kept either way.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
@@ -499,9 +499,9 @@
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "delete threw (attempt returned nil)",
-     "effect": "returns; card stays"
+     "effect": "returns false; card stays"
     }
    ],
    "deps": {

@@ -202,9 +202,10 @@ extension SleepTimelineEditorView {
         let order: [HealthKitManager.SleepStageProvenance] = [.watch, .iphone, .hrvDerived, .userAdded, .userCarved, .userAdjusted]
         let names: [String] = order.filter(provs.contains).map {
             switch $0 {
-            case .watch: "Watch"
+            case .watch: String(localized: "Apple Watch", bundle: LanguageManager.appBundle)
+            // A product name, the same in every language.
             case .iphone: "iPhone"
-            case .hrvDerived: "HRV"
+            case .hrvDerived: String(localized: "HRV", bundle: LanguageManager.appBundle)
             case .userAdded: String(localized: "You (added)", bundle: LanguageManager.appBundle)
             case .userCarved: String(localized: "You (awake)", bundle: LanguageManager.appBundle)
             case .userAdjusted: String(localized: "You (edited)", bundle: LanguageManager.appBundle)
@@ -316,6 +317,57 @@ extension SleepTimelineEditorView {
         Array(state.edits.dropFirst(originalSleepData.edits.count))
     }
 
+    /// Something Done would keep that closing would lose: an edit made this
+    /// visit, or a refresh from Apple Health.
+    var hasUnsavedChanges: Bool {
+        !editsThisVisit.isEmpty || refreshedFromHealth
+    }
+
+    /// Cancel over unsaved changes, and Refresh over this visit's edits, each
+    /// go ahead only once confirmed.
+    func withDiscardConfirmations(_ content: some View) -> some View {
+        content
+            .confirmationDialog(
+                String(localized: "Discard your sleep changes?", bundle: LanguageManager.appBundle),
+                isPresented: $confirmingDiscardEdits,
+                titleVisibility: .visible
+            ) {
+                discardEditsActions
+            } message: {
+                Text(String(localized: "The changes you made here haven't been saved.", bundle: LanguageManager.appBundle))
+            }
+            .confirmationDialog(
+                String(localized: "Replace your edits with Apple Health's sleep?", bundle: LanguageManager.appBundle),
+                isPresented: $confirmingRefresh,
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "Refresh", bundle: LanguageManager.appBundle), role: .destructive, action: startRefresh)
+            } message: {
+                Text(String(localized: "The edits you made here are discarded and can't be undone.", bundle: LanguageManager.appBundle))
+            }
+    }
+
+    @ViewBuilder
+    private var discardEditsActions: some View {
+        Button(String(localized: "Discard Changes", bundle: LanguageManager.appBundle), role: .destructive) { dismiss() }
+        Button(String(localized: "Keep Editing", bundle: LanguageManager.appBundle), role: .cancel) {}
+    }
+
+    /// Cancel closes at once with nothing to lose, and asks first otherwise.
+    func cancelEditing() {
+        if hasUnsavedChanges { confirmingDiscardEdits = true } else { dismiss() }
+    }
+
+    /// Refresh runs at once over no edits from this visit, and asks first
+    /// otherwise: it replaces them and clears undo.
+    func requestRefresh() {
+        if editsThisVisit.isEmpty { startRefresh() } else { confirmingRefresh = true }
+    }
+
+    private func startRefresh() {
+        Task { await runRefreshFromHealthKit() }
+    }
+
     func editKindCounts(_ edits: [SleepEditRecord]) -> [SleepEditRecord.Kind: Int] {
         var counts: [SleepEditRecord.Kind: Int] = [:]
         for edit in edits { counts[edit.kind, default: 0] += 1 }
@@ -390,9 +442,7 @@ extension SleepTimelineEditorView {
     }
 
     private var refreshButton: some View {
-        Button {
-            Task { await runRefreshFromHealthKit() }
-        } label: {
+        Button(action: requestRefresh) {
             Label(String(localized: "Refresh", bundle: LanguageManager.appBundle), systemImage: "arrow.clockwise")
                 .font(.caption.weight(.semibold))
         }

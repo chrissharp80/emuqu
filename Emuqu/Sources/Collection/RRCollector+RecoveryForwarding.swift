@@ -55,11 +55,13 @@ extension RRCollector {
         return await recovery.recoverFromBackup(sessionId, recordedType: recordedType)
     }
 
-    func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async {
+    @discardableResult
+    func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async -> Bool {
         await recovery.retrimRecoveredWorkout(sessionId: sessionId, endSec: endSec)
     }
 
-    func discardRecoveredWorkout(sessionId: UUID) {
+    @discardableResult
+    func discardRecoveredWorkout(sessionId: UUID) -> Bool {
         recovery.discardRecoveredWorkout(sessionId: sessionId)
     }
 

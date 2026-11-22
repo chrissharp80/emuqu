@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift",
- "hash": "1d13f5c5c869bd99",
+ "hash": "e92d8a88295ccf52",
  "role": "SwiftUI sheet for editing a night's sleep as segments on a timeline: summary (total + delta), canvas with bars/handles/ticks, inspector or hint, edits summary, refresh card; Done saves via buildSleepDataFromTimelineState.",
  "types": [
   "SleepTimelineEditorView: struct View — the editor"
@@ -13,6 +13,7 @@
   "@State originalSleepData",
   "@State refreshing / refreshError",
   "@State refreshedFromHealth",
+  "@State confirmingDiscardEdits / confirmingRefresh (Cancel and Refresh waiting for confirmation)",
   "@State pendingAdd / pendingCarve / pendingSplit",
   "let onRefreshAccepted: ((SleepData) -> Void)?"
  ],
@@ -69,15 +70,17 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.editorScroll": "dec4e63a00fc5ad2"
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.editorScroll": "09d59637eb681f19"
    }
   },
   {
    "key": "var SleepTimelineEditorView.editorScroll",
-   "hash": "c9e78f03e47d2a7a",
-   "does": "ScrollView of the editor stack with title \"Edit Sleep\", toolbar and three sheets bound to pendingAdd/pendingCarve/pendingSplit.",
+   "hash": "f69ae7a1958dfc80",
+   "does": "ScrollView of the editor stack wrapped in the discard and refresh confirmations, with swipe-to-dismiss disabled while there are unsaved changes, title \"Edit Sleep\", toolbar and three sheets bound to pendingAdd/pendingCarve/pendingSplit.",
    "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
    "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.withDiscardConfirmations(_:)",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.hasUnsavedChanges",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.editorStack",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.editorToolbar",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::func SleepTimelineEditorView.addSleepSheet(_:)",
@@ -89,11 +92,13 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.withDiscardConfirmations(_:)": "f6972b7a57f19eb7",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.hasUnsavedChanges": "16249570913c35ff",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::func SleepTimelineEditorView.addSleepSheet(_:)": "b2ec2e093b2de97a",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::func SleepTimelineEditorView.carveAwakeSheet(_:)": "be9e074586d9ba03",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::func SleepTimelineEditorView.splitSegmentSheet(_:)": "5c24981961f8cc9c",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.editorStack": "a967d6548c4d1f4b",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.editorToolbar": "dab49a6dd969c312",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.editorToolbar": "7d1c4cd60cdffff8",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
@@ -195,10 +200,11 @@
   },
   {
    "key": "var SleepTimelineEditorView.editorToolbar",
-   "hash": "c93a425047727ee0",
-   "does": "Toolbar: Cancel (dismiss, discarding edits), Undo, Done (commit).",
+   "hash": "4ab3d27f2ca2d392",
+   "does": "Toolbar: Cancel (cancelEditing: dismisses, or confirms first over unsaved changes), Undo, Done (commit).",
    "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199); button taps",
    "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.cancelEditing()",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.undoButton",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.commit()"
    ],
@@ -207,7 +213,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.commit()": "55001168c33b6638",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.cancelEditing()": "aae592a177b1215c",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.commit()": "a89583689417a046",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.undoButton": "915fe0b5c002a095"
    }
   },

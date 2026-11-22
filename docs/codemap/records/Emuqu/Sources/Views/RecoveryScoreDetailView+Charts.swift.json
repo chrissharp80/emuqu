@@ -410,13 +410,13 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.runInlineReanalysis()": "780ebb124eb0dd0c"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::func RecoveryScoreCharts.runInlineReanalysis()": "a3eeebfdf3d7a286"
    }
   },
   {
    "key": "func RecoveryScoreCharts.runInlineReanalysis()",
-   "hash": "d13db5087117706a",
-   "does": "Commits the slider position (previewWindowMs, or the recording midpoint the untouched slider shows): marks windowChangedHere, then in a Task sets isReanalyzing, awaits onReanalyzeAt(target), clears the preview and isReanalyzing.",
+   "hash": "3c0426a5c33a7938",
+   "does": "Commits the slider position (previewWindowMs, or the recording midpoint the untouched slider shows): marks windowChangedHere, then in a Task sets isReanalyzing, clears reanalysisFailed, awaits onReanalyzeAt(target); when it stored a result the preview clears, when it stored nothing the slider stays and reanalysisFailed is set; isReanalyzing clears.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Charts.swift::var RecoveryScoreCharts.pickWindowMidpointMs",
@@ -426,13 +426,19 @@
    "writes": [
     "mem:RecoveryScoreDetailView.windowChangedHere",
     "mem:RecoveryScoreDetailView.isReanalyzing",
-    "mem:RecoveryScoreDetailView.previewWindowMs"
+    "mem:RecoveryScoreDetailView.previewWindowMs",
+    "mem:RecoveryScoreDetailView.reanalysisFailed"
    ],
    "branches": [
     {
      "at": "+3",
      "cond": "onReanalyzeAt non-nil and a target (preview or midpoint)",
      "effect": "false: returns; true: reanalysis task runs"
+    },
+    {
+     "at": "+9",
+     "cond": "onReanalyzeAt returned true",
+     "effect": "preview cleared; false: preview kept, reanalysisFailed = true"
     }
    ],
    "deps": {

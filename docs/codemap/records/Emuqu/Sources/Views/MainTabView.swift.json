@@ -421,16 +421,16 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "ea6ad7424667b139",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "69a10b530dba329d",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReport(_:method:)": "5568f1332bfb0774",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReportAt(_:targetMs:)": "73bdab59c3608238",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "7b44e54e8cb657d9"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "d01d388b13fd04b5",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReport(_:method:)": "6b148ad56fdfac9b",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReportAt(_:targetMs:)": "c86d9f079584b589",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "918c7b0844ad58f0"
    }
   },
   {
    "key": "func MainTabView.rescoreReport(_:method:)",
-   "hash": "1f3fc4c90a463411",
-   "does": "Re-analyzes the session with the chosen window method via collector and, if it returns a session, replaces selectedReportSession so the sheet re-renders.",
+   "hash": "7012380408e2d011",
+   "does": "Re-analyzes the session with the chosen window method via collector and, if it returns a session, replaces selectedReportSession so the sheet re-renders and returns true; returns false when nothing came back, so the detail screen can say the re-analysis stored nothing.",
    "entry": "onReanalyze closure from RecoveryScoreDetailView.",
    "calls": [
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reanalyzeSession(_:method:)"
@@ -441,19 +441,24 @@
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "reanalyzeSession returned a session",
-     "effect": "assign to selectedReportSession; nil: sheet keeps the old copy, no message"
+     "at": "+6",
+     "cond": "reanalyzeSession returned nil",
+     "effect": "returns false; sheet keeps the old copy"
+    },
+    {
+     "at": "+7",
+     "cond": "a session came back",
+     "effect": "selectedReportSession = updated; returns true"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reanalyzeSession(_:method:)": "a69a07bd40986858"
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reanalyzeSession(_:method:)": "e8ad9f5791361164"
    }
   },
   {
    "key": "func MainTabView.rescoreReportAt(_:targetMs:)",
-   "hash": "d7f85a0f03f23f97",
-   "does": "Manual-window reanalysis at targetMs through the reanalysis service: reanalyzeAtPosition then applyManualAnalysis; on success writes the updated session back to the sheet.",
+   "hash": "d9abc4a6ca474a7b",
+   "does": "Manual-window reanalysis at targetMs through the reanalysis service: reanalyzeAtPosition then applyManualAnalysis; on success writes the updated session back to the sheet and returns true, otherwise returns false.",
    "entry": "onReanalyzeAt closure from RecoveryScoreDetailView.",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
@@ -469,7 +474,7 @@
     {
      "at": "+2",
      "cond": "both reanalyzeAtPosition and applyManualAnalysis return non-nil",
-     "effect": "selectedReportSession = updated"
+     "effect": "selectedReportSession = updated, true; otherwise false"
     }
    ],
    "deps": {

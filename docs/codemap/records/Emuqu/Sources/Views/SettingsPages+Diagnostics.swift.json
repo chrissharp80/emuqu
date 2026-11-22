@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift",
- "hash": "9e6ec5c941bb8e2e",
+ "hash": "e3018195a5a81900",
  "role": "TroubleshootingPage struct: consumer problem/crash read-outs, and (behind Advanced Diagnostics) keyboard capture, archive read health, AI cache telemetry, prompt audit, pre-score and usage telemetry; plus the reanalysis/repair worker methods.",
  "types": [
   "TroubleshootingPage: struct (View) — Settings › Troubleshooting"
  ],
  "state": [
   "ud:debugModeEnabled (@AppStorage, default false)",
-  "mem:TroubleshootingPage @State: logCopiedConfirmation, crashReportCleared, logsClearFailed, showingTrainingRepairAlert, showingTrainingRepairConfirm, trainingRepairMessage, isRepairingTraining, isRebuildingLoad, trainingRepairProgress/Total, isReanalyzing, reanalyzeMessage, showingReanalyzeAlert, reanalyzeStopped, reanalyzeProgress/Total, reanalyzeTask, showingReanalyzeConfirm, reanalyzeDateRange, reanalyzeFromDate (now − 2 weeks), reanalyzeToDate (now)"
+  "mem:TroubleshootingPage @State: logCopiedConfirmation, crashReportCleared, logsClearFailed, confirmingClearProblems, confirmingClearCrashReport, confirmingClearAllLogs (the three clears waiting for confirmation), showingTrainingRepairAlert, showingTrainingRepairConfirm, trainingRepairMessage, isRepairingTraining, isRebuildingLoad, trainingRepairProgress/Total, isReanalyzing, reanalyzeMessage, showingReanalyzeAlert, reanalyzeStopped, reanalyzeProgress/Total, reanalyzeTask, showingReanalyzeConfirm, reanalyzeDateRange, reanalyzeFromDate (now − 2 weeks), reanalyzeToDate (now)"
  ],
  "toplevel": "@State initializers: reanalyzeFromDate = now minus 2 weeks (?? now), reanalyzeToDate = now, evaluated when the view value is created. reanalyzeTask is not cancelled when the page is dismissed, so a running reanalysis continues in the background.",
  "units": [

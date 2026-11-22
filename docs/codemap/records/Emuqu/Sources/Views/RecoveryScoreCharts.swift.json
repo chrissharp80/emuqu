@@ -1,20 +1,20 @@
 {
  "file": "Emuqu/Sources/Views/RecoveryScoreCharts.swift",
- "hash": "6a9cd9776c9f0441",
+ "hash": "573a836e2f79eb0f",
  "role": "Declares the RecoveryScoreCharts value type (inputs + bindings for the overnight HRV/HR charts of RecoveryScoreDetailView) and the RecoveryScoreDetailView extension that builds it from live view state and forwards the chart views and series builders. Chart bodies live in RecoveryScoreDetailView+Charts.swift.",
  "types": [
   "RecoveryScoreCharts: struct (@MainActor, not a View) — chart inputs and @Binding back-channels",
   "extension RecoveryScoreDetailView — forwarders"
  ],
  "state": [
-  "RecoveryScoreCharts stored lets: session, result, onReanalyzeAt closure, hrChartSeries, rmssdChartSeries, organizedZoneRanges, recordingStartMs/EndMs, analysisWindowDateRange",
-  "@Binding: hrHoverDate, hrvHoverDate, previewWindowMs, selectedWindowSegment, segmentBeforePick, restoringSegment, windowChangedHere, isReanalyzing, didCompleteInitialLoad, fallbackHRSamples (all RecoveryScoreDetailView @State)"
+  "RecoveryScoreCharts stored lets: session, result, onReanalyzeAt closure (returns whether a result was stored), hrChartSeries, rmssdChartSeries, organizedZoneRanges, recordingStartMs/EndMs, analysisWindowDateRange",
+  "@Binding: hrHoverDate, hrvHoverDate, previewWindowMs, selectedWindowSegment and segmentBeforePick (both optional), restoringSegment, windowChangedHere, isReanalyzing, reanalysisFailed, didCompleteInitialLoad, fallbackHRSamples (all RecoveryScoreDetailView @State)"
  ],
  "toplevel": "Struct declaration with memberwise init only; doc says it is deliberately not a View so SwiftUI identity/@State stay with RecoveryScoreDetailView.",
  "units": [
   {
    "key": "var RecoveryScoreDetailView.charts",
-   "hash": "ed32007011c295ab",
+   "hash": "9ccf17a7cee54946",
    "does": "Builds a fresh RecoveryScoreCharts from the view's current properties and @State bindings on every access.",
    "entry": null,
    "calls": [],

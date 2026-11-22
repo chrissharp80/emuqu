@@ -33,7 +33,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsPenalizeMissingSleepOnEntry": "74c4d6066324bd1a",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsSleepHrvAugmentationOnEntry": "5b7551142406db80",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsSleepIntegrationOnEntry": "4b1b88b90fa73cae",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsZwiftBroadcastOnEntry": "c8083c3485314742",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.appSettingsZwiftBroadcastOnEntry": "ab152d74169a2b17",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::var AppSettingsNamespace.trainingLoadIntegrationOnEntry": "931d214b661b3a8f"
    }
   },
@@ -111,20 +111,23 @@
   },
   {
    "key": "var AppSettingsNamespace.appSettingsZwiftBroadcastOnEntry",
-   "hash": "f2aa72768fa1db5e",
-   "does": "Declares always-available fixed fact app.settings.zwift_broadcast_on = .boolean(settings().enableZwiftBroadcast).",
+   "hash": "1ff0dd3ccc117201",
+   "does": "Declares always-available fixed fact app.settings.zwift_broadcast_on = .boolean(BroadcasterDisclosure.allowsBroadcast(settingEnabled: settings().enableZwiftBroadcast)): what Settings → Wearables shows on this device, true only when the setting is on and this device accepted the broadcaster disclosure.",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
-    "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build"
+    "closure:settings — @Sendable () -> UserSettings injected by AppFactResolverFactory.build",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)"
    ],
    "reads": [
-    "mem:UserSettings.enableZwiftBroadcast"
+    "mem:UserSettings.enableZwiftBroadcast",
+    "ud:settings.broadcaster.acknowledged"
    ],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)": "cf774c1bba4c4382"
    }
   },
   {

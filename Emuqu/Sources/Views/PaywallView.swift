@@ -82,17 +82,18 @@ struct PaywallView: View {
             .background(AppTheme.background.ignoresSafeArea())
             .onAppear { debugLog("[Paywall] onAppear — paywall visible (isGate=\(isGate))") }
             .task { await loadProducts() }
+            // On the page, not on `legalLinks`, which `bottomSection` can
+            // hold two copies of.
+            .sheet(isPresented: $showTermsOfUse) { termsOfUseSheet }
+            .sheet(isPresented: $showPrivacyPolicy) { privacyPolicySheet }
+            .sheet(isPresented: $showYourData) { yourDataSheet }
             .alert(
-                String(localized: "Error", bundle: LanguageManager.appBundle),
-                isPresented: Binding(
-                    get: { storeKit.errorMessage != nil },
-                    set: { if !$0 { storeKit.errorMessage = nil } }
-                )
-            ) {
-                paywallErrorActions
-            } message: {
-                paywallErrorMessage
-            }
+                pendingMessage?.title ?? "",
+                isPresented: Binding(get: { pendingMessage != nil }, set: { if !$0 { dismissMessage() } }),
+                presenting: pendingMessage
+            ) { _ in
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), action: dismissMessage)
+            } message: { Text($0.text) }
     }
 
     private func loadProducts() async {
@@ -101,15 +102,43 @@ struct PaywallView: View {
         debugLog("[Paywall] loadProducts() returned")
     }
 
-    @ViewBuilder
-    private var paywallErrorMessage: some View {
-        if let msg = storeKit.errorMessage {
-            Text(msg)
+    /// One alert for the page, not one per button. Two alerts on one screen
+    /// can show only one: a purchase that sets both an error and a notice
+    /// lost one. And `bottomSection` can hold two copies of the buttons
+    /// (`ViewThatFits`), each carrying its own alert. Messages show one at a
+    /// time, the StoreKit error first, and each is cleared as it is
+    /// dismissed, which presents the next.
+    private enum PaywallMessage {
+        case error(String), purchase(String), restore(String)
+
+        var title: String {
+            switch self {
+            case .error: String(localized: "Error", bundle: LanguageManager.appBundle)
+            case .purchase: String(localized: "Purchase", bundle: LanguageManager.appBundle)
+            case .restore: String(localized: "Restore Purchases", bundle: LanguageManager.appBundle)
+            }
+        }
+
+        var text: String {
+            switch self {
+            case let .error(text), let .purchase(text), let .restore(text): text
+            }
         }
     }
 
-    private var paywallErrorActions: some View {
-        Button(String(localized: "OK", bundle: LanguageManager.appBundle)) { storeKit.errorMessage = nil }
+    private var pendingMessage: PaywallMessage? {
+        if let error = storeKit.errorMessage { return .error(error) }
+        if let notice = storeKit.purchaseNotice { return .purchase(notice) }
+        return restoreNotice.map(PaywallMessage.restore)
+    }
+
+    private func dismissMessage() {
+        switch pendingMessage {
+        case .error: storeKit.errorMessage = nil
+        case .purchase: storeKit.purchaseNotice = nil
+        case .restore: restoreNotice = nil
+        case nil: break
+        }
     }
 
     // MARK: - Header
@@ -374,9 +403,6 @@ struct PaywallView: View {
 
             yourDataLink
         }
-        .sheet(isPresented: $showTermsOfUse) { termsOfUseSheet }
-        .sheet(isPresented: $showPrivacyPolicy) { privacyPolicySheet }
-        .sheet(isPresented: $showYourData) { yourDataSheet }
     }
 
     /// On the gate only. After the trial the gate covers the whole app, and
@@ -535,16 +561,6 @@ struct PaywallView: View {
         .accessibilityIdentifier("paywall.purchase")
         .accessibilityLabel(String(localized: "Purchase Emuqu", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Buy the full app — one time purchase, no subscriptions", bundle: LanguageManager.appBundle))
-        .alert(
-            String(localized: "Purchase", bundle: LanguageManager.appBundle),
-            isPresented: Binding(
-                get: { storeKit.purchaseNotice != nil },
-                set: { if !$0 { storeKit.purchaseNotice = nil } }
-            ),
-            presenting: storeKit.purchaseNotice
-        ) { _ in
-            Button(String(localized: "OK", bundle: LanguageManager.appBundle)) { storeKit.purchaseNotice = nil }
-        } message: { Text($0) }
     }
 
     private var purchaseButtonLabel: some View {
@@ -572,16 +588,6 @@ struct PaywallView: View {
         .accessibilityLabel(String(localized: "Restore Purchases", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Restore a previous purchase from your Apple ID", bundle: LanguageManager.appBundle))
         .accessibilityIdentifier("paywall.restore")
-        .alert(
-            String(localized: "Restore Purchases", bundle: LanguageManager.appBundle),
-            isPresented: Binding(
-                get: { restoreNotice != nil },
-                set: { if !$0 { restoreNotice = nil } }
-            ),
-            presenting: restoreNotice
-        ) { _ in
-            Button(String(localized: "OK", bundle: LanguageManager.appBundle)) { restoreNotice = nil }
-        } message: { Text($0) }
     }
 
     /// A visible escape for anyone who still has access.

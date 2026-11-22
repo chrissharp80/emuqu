@@ -183,9 +183,9 @@ Tap **Adjust** on the Sleep Detail View (or **Edit sleep** in its options menu) 
 - **Long-press the timeline** to add sleep the recording missed. Sleep you add counts toward your total but has no stage detail (no deep or REM).
 - **Stage pills** (Deep, Light, REM, Asleep, Awake) recompute live as you drag.
 - The **Total Sleep** summary shows your adjusted total and a signed change from where you started (for example "+12m").
-- **Undo** steps back through your last 5 edits; **Reset** returns to where you started; **Refresh from Apple Health** pulls the latest sleep from Health and discards your current edits.
+- **Undo** steps back through your last 5 edits; **Reset** returns to where you started; **Refresh from Apple Health** pulls the latest sleep from Health and discards your current edits (it asks first when you have made any).
 
-Tap **"Done"** to accept your adjustments or **"Cancel"** to discard them. **Saving an adjustment automatically rescores the session** — your recovery score updates to reflect the new sleep boundaries.
+Tap **"Done"** to accept your adjustments or **"Cancel"** to discard them (it asks first when there is anything to lose, and the sheet cannot be swiped away then). **Saving an adjustment automatically rescores the session** — your recovery score updates to reflect the new sleep boundaries.
 
 > Opening the app does not rewrite historical sessions' sleep data. Only sessions you explicitly edit here are mutated.
 
@@ -397,7 +397,9 @@ After recording completes, shows:
 **If your device has stored data from a previous session:**
 - "Data Found on [Device Name]" alert appears
 - **"Recover Data"**: Downloads and analyzes the stored session
-- **"Discard & Start Fresh"**: Clears device memory to start new recording
+- **"Delete from [Device Name]"**: Deletes the recording from the device, after
+  you confirm. The app never saved it, so this removes the only copy; a
+  recording still running is stopped first.
 
 **If fetch fails:**
 - "Data Fetch Failed" alert
@@ -1152,7 +1154,8 @@ suggestions ("you're already 80 % VO2max in 92 °F heat, ease back").
 ### Zwift / TrainerRoad / Rouvy broadcaster
 
 When the `enableZwiftBroadcast` toggle is on (**Settings → Wearables**, with a first-enable explainer
-sheet), Emuqu advertises itself as a standard Heart Rate Service +
+sheet that each device has to accept: a setting restored from iCloud on a new
+device stays off there until you accept it), Emuqu advertises itself as a standard Heart Rate Service +
 Cycling Power Service peripheral. Lets a user who's already paired their strap
 + Stryd / bike trainer to Emuqu share that data with their
 indoor-trainer game without re-pairing each device. Off by default —

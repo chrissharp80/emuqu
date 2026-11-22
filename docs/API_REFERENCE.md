@@ -3300,7 +3300,9 @@ final class ZwiftPeripheralBroadcaster: NSObject {
 
 `CBPeripheralManager` advertising Heart Rate Service (`0x180D`) +
 Cycling Power Service (`0x1818`). Off by default — gated on
-`UserSettings.enableZwiftBroadcast`. `WorkoutRecorder` starts advertising
+`UserSettings.enableZwiftBroadcast` and on this device's acceptance of the
+broadcaster disclosure (`BroadcasterDisclosure.allowsBroadcast`), which is kept
+outside the iCloud settings backup. `WorkoutRecorder` starts advertising
 shortly after a workout starts (`deferZwiftBroadcast`) and stops it at the
 end; every recorder tick (`pushZwiftBroadcasterUpdate`, ~1 Hz) calls
 `update(heartRate:powerWatts:)` with the live HR and power, which notifies

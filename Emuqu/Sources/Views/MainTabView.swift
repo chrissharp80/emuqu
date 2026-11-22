@@ -289,24 +289,25 @@ struct MainTabView: View {
     /// rendering the pre-reanalyze score and window even after
     /// ReanalysisService rewrote the archive ("reanalyze doesn't work" meaning
     /// "the screen doesn't update"). Writing the updated session back rebuilds
-    /// the sheet against the new value.
-    private func rescoreReport(_ session: HRVSession, method: WindowSelectionMethod) async {
+    /// the sheet against the new value. False when nothing was stored, so
+    /// the screen can say so.
+    private func rescoreReport(_ session: HRVSession, method: WindowSelectionMethod) async -> Bool {
         // Write the updated session back to `selectedReportSession`
         // so SwiftUI rebuilds the sheet against the new value and
         // the new score / window / breakdown all render. Same
         // pattern in the manual-window path below.
-        if let updated = await reanalyzeSession(session, method: method) {
-            selectedReportSession = updated
-        }
+        guard let updated = await reanalyzeSession(session, method: method) else { return false }
+        selectedReportSession = updated
+        return true
     }
 
     /// Same fix as `rescoreReport`, for the manual-window path.
-    private func rescoreReportAt(_ session: HRVSession, targetMs: Int64) async {
+    private func rescoreReportAt(_ session: HRVSession, targetMs: Int64) async -> Bool {
         let reanalysis = dependencies.collection.reanalysisService
-        if let manual = await reanalysis.reanalyzeAtPosition(session, targetMs: targetMs),
-           let updated = await reanalysis.applyManualAnalysis(session, result: manual) {
-            selectedReportSession = updated
-        }
+        guard let manual = await reanalysis.reanalyzeAtPosition(session, targetMs: targetMs),
+              let updated = await reanalysis.applyManualAnalysis(session, result: manual) else { return false }
+        selectedReportSession = updated
+        return true
     }
 
     private var reportDoneToolbar: some ToolbarContent {

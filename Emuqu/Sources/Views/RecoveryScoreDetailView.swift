@@ -50,22 +50,24 @@ struct RecoveryScoreDetailView: View {
     let totalSessionCount: Int
     /// Optional Re-analyze hook. When supplied the Analysis Window picker
     /// becomes interactive; nil hides the picker (e.g. for read-only
-    /// History views).
-    var onReanalyze: ((WindowSelectionMethod) async -> Void)?
+    /// History views). Both hooks return true when a new result was stored.
+    var onReanalyze: ((WindowSelectionMethod) async -> Bool)?
     /// Optional positional Re-analyze hook (Pick Window / Last 5 min).
     /// `targetMs` is the window-midpoint timestamp relative to session start.
-    var onReanalyzeAt: ((Int64) async -> Void)?
+    var onReanalyzeAt: ((Int64) async -> Bool)?
 
     @Environment(RRCollector.self) var collector
     var settingsManager: SettingsManager { dependencies.app.settingsManager }
     @State var expandedFactor: String?
-    @State var selectedWindowSegment: AnalysisWindowSegment = .bestRecovery
+    /// Nil while no segment names the shown window (`initialSegment`).
+    @State var selectedWindowSegment: AnalysisWindowSegment?
     /// Until set, the "Window method" row describes the stored session.
     @State var windowChangedHere = false
     /// Pick Window's Cancel restores this without re-running an analysis.
-    @State var segmentBeforePick: AnalysisWindowSegment = .bestRecovery
+    @State var segmentBeforePick: AnalysisWindowSegment?
     @State var restoringSegment = false
     @State var isReanalyzing = false
+    @State var reanalysisFailed = false
 
     /// Fresh vitals fetched from HealthKit on appear. Apple writes RR /
     /// SpO2 / wrist-temp some minutes AFTER the recording session ends,
@@ -132,8 +134,8 @@ struct RecoveryScoreDetailView: View {
         recentSessions: [HRVSession],
         baselineStats: BaselineTracker.RecoveryBaselineStats?,
         totalSessionCount: Int,
-        onReanalyze: ((WindowSelectionMethod) async -> Void)? = nil,
-        onReanalyzeAt: ((Int64) async -> Void)? = nil
+        onReanalyze: ((WindowSelectionMethod) async -> Bool)? = nil,
+        onReanalyzeAt: ((Int64) async -> Bool)? = nil
     ) {
         self.session = session
         self.result = result
@@ -142,6 +144,7 @@ struct RecoveryScoreDetailView: View {
         self.totalSessionCount = totalSessionCount
         self.onReanalyze = onReanalyze
         self.onReanalyzeAt = onReanalyzeAt
+        _selectedWindowSegment = State(initialValue: RecoveryDetailCopy.initialSegment(forWindowReason: result.windowSelectionReason))
     }
 
     // MARK: - Computed score / breakdown

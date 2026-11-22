@@ -51,8 +51,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearCrashReportButton": "5023a7910e24a680",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearProblemsButton": "f406f2c2fe6d7bf1",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearCrashReportButton": "6b117c3506992cce",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearProblemsButton": "7109263a016f7430",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.copyLogButton": "0e2e2dc0a5eb3b50",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "4253edeec26ecd94"
    }
@@ -123,22 +123,21 @@
   },
   {
    "key": "var TroubleshootingPage.clearProblemsButton",
-   "hash": "2018ce2e08d35503",
-   "does": "Destructive \"Clear Problems\" button (clears in-memory errorCatalog), shown only with Advanced Diagnostics on and a non-empty catalog — when the problems are listed.",
+   "hash": "2c59f8098e6353ac",
+   "does": "Destructive \"Clear Problems\" button, shown only with Advanced Diagnostics on and a non-empty catalog (when the problems are listed). A tap asks first with the Error Catalog's wording ('Clear All Errors?', N error records permanently deleted); its 'Clear N Errors' clears the in-memory errorCatalog.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearProblemsAlertActions",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger"
    ],
    "reads": [
     "mem:DebugLogger.errorCatalog",
-    "ud:debugModeEnabled (@AppStorage)"
+    "ud:debugModeEnabled (@AppStorage)",
+    "mem:TroubleshootingPage.confirmingClearProblems"
    ],
    "writes": [
-    "mem:DebugLogger.errorCatalog"
+    "mem:TroubleshootingPage.confirmingClearProblems"
    ],
    "branches": [
     {
@@ -149,31 +148,26 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "7a67c7397d8585c2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()": "17d3df8b6493db40",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearProblemsAlertActions": "aa53319dd689a64a",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger": "3f764ad9025fc5f1"
    }
   },
   {
    "key": "var TroubleshootingPage.clearCrashReportButton",
-   "hash": "1e4a8b9230835926",
-   "does": "Destructive \"Clear Crash Report\" button shown while hasCrashReport; deletes previous_crash.txt and sets crashReportCleared so the button and the Crash Report section disappear at once.",
+   "hash": "a72c6bb6adaa4ca6",
+   "does": "Destructive \"Clear Crash Report\" button shown while hasCrashReport. A tap asks first with the Crash Report screen's wording ('Delete Crash Report?'); its Delete deletes previous_crash.txt and sets crashReportCleared so the button and the Crash Report section disappear at once.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearCrashReportAlertActions",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()"
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport"
    ],
    "reads": [
-    "file:previous_crash.txt"
+    "file:previous_crash.txt",
+    "mem:TroubleshootingPage.confirmingClearCrashReport"
    ],
    "writes": [
-    "file:previous_crash.txt",
-    "mem:TroubleshootingPage.crashReportCleared"
+    "mem:TroubleshootingPage.confirmingClearCrashReport"
    ],
    "branches": [
     {
@@ -184,10 +178,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "d874529ff05bd756",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()": "d266947c5401e5ec",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearCrashReportAlertActions": "8498e1f21a8e6b30",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport": "f6ab44db9fa9cb0f"
    }
   },
@@ -429,7 +420,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugLogLink": "51af2af875708fa8",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugResetButton": "f6821773eb632f01"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugResetButton": "03fa4334c270711f"
    }
   },
   {
@@ -496,18 +487,20 @@
   },
   {
    "key": "var TroubleshootingPage.debugResetButton",
-   "hash": "262a33edc1663dbc",
-   "does": "Destructive \"Clear All Logs\" button running clearAllLogs(), with a 'Some logs couldn't be deleted. Try again.' alert shown while logsClearFailed is set.",
+   "hash": "27c356d290031aee",
+   "does": "Destructive \"Clear All Logs\" button that asks first ('Clear All Logs?': the debug log and every crash log, the last crash report included, cannot be undone); its Clear runs clearAllLogs(). A 'Some logs couldn't be deleted. Try again.' alert shows while logsClearFailed is set.",
    "entry": "SwiftUI Button action",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func TroubleshootingPage.clearAllLogs()"
    ],
    "reads": [
-    "mem:TroubleshootingPage.logsClearFailed"
+    "mem:TroubleshootingPage.logsClearFailed",
+    "mem:TroubleshootingPage.confirmingClearAllLogs"
    ],
    "writes": [
-    "mem:TroubleshootingPage.logsClearFailed"
+    "mem:TroubleshootingPage.logsClearFailed",
+    "mem:TroubleshootingPage.confirmingClearAllLogs"
    ],
    "branches": [],
    "deps": {
@@ -786,6 +779,59 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "7a67c7397d8585c2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFileAsync()": "387ef887798c24ed"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.clearProblemsAlertActions",
+   "hash": "a2b8dbcd8c433fc5",
+   "does": "Cancel, and destructive 'Clear N Errors' that clears the debug logger's error catalog.",
+   "entry": "Alert buttons",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "7a67c7397d8585c2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()": "17d3df8b6493db40",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger": "3f764ad9025fc5f1"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.clearCrashReportAlertActions",
+   "hash": "181fca7d857d0755",
+   "does": "Cancel, and destructive Delete that deletes previous_crash.txt and sets crashReportCleared.",
+   "entry": "Alert buttons",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()"
+   ],
+   "reads": [],
+   "writes": [
+    "file:previous_crash.txt",
+    "mem:TroubleshootingPage.crashReportCleared"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "d874529ff05bd756",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()": "d266947c5401e5ec"
    }
   }
  ],
