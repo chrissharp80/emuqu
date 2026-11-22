@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 // MARK: - EmailContact + EmailContactStore
 //
@@ -82,6 +83,11 @@ final class EmailContactStore {
     /// writers.
     private let writer: LatestWinsFileWriter<[EmailContact]>
 
+    /// Reads the book again once the device is unlocked, when the launch read
+    /// was blocked (a background launch before first unlock), as
+    /// `SavedRouteStore` does.
+    @ObservationIgnored private var protectedDataObserver: NSObjectProtocol?
+
     /// `storeURL` is injectable so a test can use its own file. Without it,
     /// every `EmailContactStore()` shares one on-disk book: contacts written by
     /// one test persist into the next run, and a name that resolved cleanly the
@@ -105,6 +111,18 @@ final class EmailContactStore {
             label: "emailContacts"
         )
         load()
+        if loadFailed { installProtectedDataObserver() }
+    }
+
+    private func installProtectedDataObserver() {
+        guard protectedDataObserver == nil else { return }
+        protectedDataObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.retryLoadIfBlocked() }
+        }
     }
 
     /// False, adding nothing, while the contacts file still cannot be read
@@ -140,7 +158,11 @@ final class EmailContactStore {
     /// — multiple-match handling is the caller's job (the AI resolver
     /// surfaces an `invalidParameter` to ask the user which "Chris" they
     /// meant).
+    ///
+    /// A book that could not be read at launch is read again first, so a
+    /// name is not reported unknown only because the file was locked then.
     func find(name: String) -> [EmailContact] {
+        retryLoadIfBlocked()
         let target = name.trimmingCharacters(in: .whitespaces)
         return contacts.filter { $0.name.caseInsensitiveCompare(target) == .orderedSame }
     }
@@ -248,9 +270,11 @@ final class EmailContactStore {
     }
 
     /// A file that was unreadable at launch (file protection before first
-    /// unlock) is read again before the next edit, so the edit applies to
-    /// the real list. Contacts added while it was unreadable are kept: they
-    /// exist only in memory, and the reload would otherwise drop them.
+    /// unlock) is read again before the next edit or lookup, and on unlock,
+    /// so each applies to the real list. Contacts added while it was
+    /// unreadable are kept: they exist only in memory, and the reload would
+    /// otherwise drop them. Once the read succeeds the unlock observer is
+    /// removed.
     private func retryLoadIfBlocked() {
         guard loadFailed else { return }
         let addedWhileBlocked = contacts
@@ -258,6 +282,8 @@ final class EmailContactStore {
         guard !loadFailed else { return }
         let known = Set(contacts.map(\.id))
         contacts.append(contentsOf: addedWhileBlocked.filter { !known.contains($0.id) })
+        if let protectedDataObserver { NotificationCenter.default.removeObserver(protectedDataObserver) }
+        protectedDataObserver = nil
     }
 
     private func save() {
