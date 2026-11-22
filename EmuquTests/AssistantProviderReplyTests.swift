@@ -175,3 +175,28 @@ final class AppleReplyTrimmerTests: XCTestCase {
         XCTAssertLessThan(AppleContextCompactor.estimateTokens(AppleReplyTrimmer.lengthRule), 60)
     }
 }
+
+// MARK: - The request audit's streamed response
+
+@MainActor
+final class LLMRequestAuditResponseTests: XCTestCase {
+    override func tearDown() {
+        LLMRequestAudit.shared.clear()
+        super.tearDown()
+    }
+
+    /// A streamed reply keeps its full text up to the cap plus the slack,
+    /// then is cut back to its last 60,000 characters, the kept count in
+    /// step with the text.
+    func testALongReplyIsCutBackToItsNewestText() {
+        let audit = LLMRequestAudit.shared
+        let id = audit.record(provider: "test", model: "m", systemPrompt: "", messagesJSON: "", toolsJSON: "")
+        for _ in 0 ..< 6 { audit.append(textDelta: String(repeating: "a", count: 10_000), to: id) }
+        XCTAssertEqual(audit.entries.first?.responseText.count, 60_000)
+        audit.append(textDelta: String(repeating: "b", count: 10_001), to: id)
+        let entry = audit.entries.first
+        XCTAssertEqual(entry?.responseText.count, 60_000)
+        XCTAssertEqual(entry?.responseCharacterCount, 60_000)
+        XCTAssertEqual(entry?.responseText.suffix(10_001), Substring(String(repeating: "b", count: 10_001)))
+    }
+}

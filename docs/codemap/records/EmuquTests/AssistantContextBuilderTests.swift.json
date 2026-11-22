@@ -411,6 +411,82 @@
    }
   },
   {
+   "key": "func AssistantContextBuilderTests.testCompactRenderHeadsTheLatestSessionWithItsDay()",
+   "hash": "6dc9d051e19dd2a2",
+   "does": "Builds a context from one overnight and asserts compactSessionHeader reads '--- Session — TODAY ---' on its wake day and, four days later, carries '4 days ago' and no TODAY.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactSessionHeader(_:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "context.today nil",
+     "effect": "XCTFail and return"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactSessionHeader(_:now:)": "df1b94ac1155b4bc",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)": "f38121fb871a7d7b",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)": "33492d3a0cd841b8",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeUserSettings()": "084e9fc41e52a76d",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)": "4c7cb00791dbfc8f"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testTheAppManualIsReachedThroughARealTool()",
+   "hash": "79394d7283815d7c",
+   "does": "Asserts referenceCompact names `lookup_fact` and app.help.lookup(navigation), and that the compact read tools include lookup_fact.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()"
+   ],
+   "reads": [
+    "mem:AppKnowledgeBase.referenceCompact"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()": "38222fdfbe00c8b7"
+   }
+  },
+  {
+   "key": "func AssistantContextBuilderTests.testTheNewestScoreCarriesItsAge()",
+   "hash": "1ac2fabb6f0edcda",
+   "does": "Asserts latestScoreRecord gives days_ago 4 / is_today false four days after the wake day, and is_today true on it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.latestScoreRecord(for:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "not a record",
+     "effect": "XCTFail and return"
+    },
+    {
+     "at": "+6",
+     "cond": "days_ago / is_today not 4 / false",
+     "effect": "XCTFail and return"
+    },
+    {
+     "at": "+9",
+     "cond": "today's record not is_today true",
+     "effect": "XCTFail and return"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.latestScoreRecord(for:now:)": "7b37a0abe1c91c19",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.makeSession(id:startOffset:sessionType:recoveryScore:sleep:training:tags:morningFeeling:state:)": "33492d3a0cd841b8",
+    "EmuquTests/AssistantContextBuilderTests.swift::func AssistantContextBuilderTests.session(daysAgo:frozen:)": "4c7cb00791dbfc8f"
+   }
+  },
+  {
    "key": "func AssistantContextBuilderTests.testCapabilityIndexListsCoreDataToolsAndInstructsToolUse()",
    "hash": "6003295fc3cb36e3",
    "does": "Asserts the capability index lists get_recovery/hrv/sleep/vitals/training_load/workout and carries the 'CALL the matching tool' and 'Never claim you don't have the data' instructions.",

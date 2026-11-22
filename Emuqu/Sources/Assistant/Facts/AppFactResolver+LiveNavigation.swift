@@ -650,7 +650,7 @@ extension WorkoutLiveCoachingNamespace {
         guard let currentLoc = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60) else {
             return .missing(reason: .notRecorded, detail: "no current location fix — open the app foreground or start a workout to warm up the GPS pipeline")
         }
-        guard let step = AppDependencies.current.location.activeRouteSession.currentStep(for: currentLoc) else {
+        guard let step = AppDependencies.current.location.activeRouteSession.peekStep(for: currentLoc) else {
             return .missing(reason: .notRecorded, detail: "route engaged but step lookup returned nothing — try directions.routeTo again")
         }
         return .record(nextStepRecord(session: session, step: step))

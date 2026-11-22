@@ -362,7 +362,7 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
 
     @MainActor private func addActiveRouteField(_ rec: inout [String: FactValue], at cached: CLLocation) {
         guard AppDependencies.current.location.activeRouteSession.snapshot() != nil,
-              let route = AppDependencies.current.location.activeRouteSession.currentStep(for: cached)
+              let route = AppDependencies.current.location.activeRouteSession.peekStep(for: cached)
         else { return }
         rec["active_route"] = .record([
             "destination_label": .string(route.destinationLabel),

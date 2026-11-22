@@ -1221,26 +1221,28 @@
   },
   {
    "key": "§ Emuqu — API Reference > Services > ActiveRouteSession",
-   "hash": "2afe0c4047156e17",
-   "does": "ActiveRouteSession singleton holding an MKRoute and sticky step index: engage/disengage/snapshot/currentStep(for:), Snapshot and StepResult structs; currentStep walks forward only, returns upcoming instruction, distances and arrival. Confirmed ActiveRouteSession.swift:31-260 (advanceStepIndex only increases index, lookahead 5 steps at :221-236).",
+   "hash": "bb09c8a82c2ba8a6",
+   "does": "ActiveRouteSession singleton holding an MKRoute and sticky step index: engage/disengage/snapshot/currentStep(for:)/peekStep(for:), Snapshot and StepResult structs; currentStep walks forward only (advancedStepIndex never returns a lower index, lookahead 5 steps) and returns upcoming instruction, distances and arrival; peekStep answers the same without moving the index.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engage(route:destinationLabel:destinationCoord:)",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.peekStep(for:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advancedStepIndex(for:hasLeftEnd:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:progress:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)": "b380341ce3776347",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "2681f2bbcbb3c4af",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advancedStepIndex(for:hasLeftEnd:)": "4bd48ca53627eff2",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "d736716cefd0973e",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "4dcb1fe75435621b",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engage(route:destinationLabel:destinationCoord:)": "0e28ca3dd0310c0e",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)": "0d408a76713550e0",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:progress:)": "1e24bcc2297745b5",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.peekStep(for:)": "a8daeda3eb90fea8",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "236e3a0832306138"
    }
   },

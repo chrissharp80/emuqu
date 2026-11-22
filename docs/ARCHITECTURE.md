@@ -1015,7 +1015,11 @@ Holds an `MKRoute` + sticky step index in memory. `currentStep(for:)`
 walks forward from the sticky index (never back, so GPS jitter can't
 bounce the user backwards through the route), returns the upcoming
 instruction + distance to the next turn + total remaining + an
-`arrived` flag (true within 25 m of destination).
+`arrived` flag (true within 25 m of destination). The voice coach's
+per-tick call is the one that moves the index; assistant reads
+(`location.situation`, `directions.next_step`) use `peekStep(for:)`,
+which answers for a fix without moving it, so a stale or coarse fix
+can't skip the coach past a turn.
 
 Offline-once-engaged: the `MKDirections.calculate()` round-trip happens
 once when `directions.routeTo` engages a route; subsequent

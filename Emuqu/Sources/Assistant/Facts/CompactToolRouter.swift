@@ -394,7 +394,8 @@ struct CompactToolRouter {
             // 21. lookup_fact (universal fallback)
             spec("lookup_fact", """
                 Long-tail fact lookup by raw fact-catalog key. Use this only when no other tool fits — most needs are covered by the typed tools above. Example keys: 'recovery.today.full', 'session.latest.id', 'training.load.acwr'. Pass `key` as the \
-                dotted path. Parameterised keys take their parameter inline like 'session.by_date(2026-04-21)'.
+                dotted path. Parameterised keys take their parameter inline like 'session.by_date(2026-04-21)'. The app manual is here too: \
+                'app.help.lookup(<topic>)' returns one section (topics are listed in the app reference).
                 """, [
                 ("key", "Dotted fact-catalog key")
             ], required: ["key"])

@@ -166,22 +166,61 @@ final class ActiveRouteSession: @unchecked Sendable {
     /// traversing — that's the instruction they need ("turn right onto
     /// Oak in 200 ft"). On the last step, that IS the destination, and the
     /// distance to it is the distance to the route's end.
+    ///
+    /// This is the voice coach's call: the step index and the departure
+    /// flag move with `location`. A reader that only reports the route (an
+    /// assistant tool) uses `peekStep(for:)`.
     func currentStep(for location: CLLocation) -> StepResult? {
         lock.lock()
         defer { lock.unlock() }
-        guard !_steps.isEmpty, let lastStep = _steps.last else { return nil }
-        noteDeparture(from: location, lastStep: lastStep)
-        advanceStepIndex(for: location)
-        let upcomingStep = _steps[min(_currentStepIndex + 1, _steps.count - 1)]
-        let ahead = distancesAhead(of: location)
+        guard let progress = fixProgress(at: location) else { return nil }
+        _currentStepIndex = progress.stepIndex
+        _hasLeftEnd = progress.hasLeftEnd
+        return stepResult(at: location, progress: progress)
+    }
+
+    /// `currentStep(for:)` without moving the route: the result is computed
+    /// as if the user stood at `location`, and the step index and departure
+    /// flag stay as the voice coach left them. An assistant read uses this:
+    /// its fix can be a minute old and as coarse as the ambient service's,
+    /// and a sticky index moved past a turn by it would never come back, so
+    /// that turn's alert would never play.
+    func peekStep(for location: CLLocation) -> StepResult? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let progress = fixProgress(at: location) else { return nil }
+        return stepResult(at: location, progress: progress)
+    }
+
+    /// Where the user is along the route: the step index and whether they
+    /// have been away from the route's end.
+    private struct Progress {
+        let stepIndex: Int
+        let hasLeftEnd: Bool
+    }
+
+    /// The progress the stored one moves to at `location`: departure noted
+    /// first, then the step index advanced. Nil with no route. Must be
+    /// called with `lock` held.
+    private func fixProgress(at location: CLLocation) -> Progress? {
+        guard let lastStep = _steps.last else { return nil }
+        let hasLeftEnd = departed(from: location, lastStep: lastStep)
+        return Progress(stepIndex: advancedStepIndex(for: location, hasLeftEnd: hasLeftEnd), hasLeftEnd: hasLeftEnd)
+    }
+
+    /// Must be called with `lock` held.
+    private func stepResult(at location: CLLocation, progress: Progress) -> StepResult {
+        let index = progress.stepIndex
+        let upcomingStep = _steps[min(index + 1, _steps.count - 1)]
+        let ahead = distancesAhead(of: location, progress: progress)
         return StepResult(
-            currentStepIndex: _currentStepIndex,
-            currentInstruction: _steps[_currentStepIndex].instructions,
+            currentStepIndex: index,
+            currentInstruction: _steps[index].instructions,
             upcomingInstruction: upcomingStep.instructions,
             distanceToUpcomingStepMeters: ahead.toUpcoming,
             remainingDistanceMeters: ahead.remaining,
             destinationLabel: _destinationLabel,
-            arrived: hasArrived(at: location, lastStep: lastStep)
+            arrived: hasArrived(at: location, progress: progress)
         )
     }
 
@@ -193,30 +232,33 @@ final class ActiveRouteSession: @unchecked Sendable {
     /// single-step loop, at its start) the step's full length counts instead,
     /// so its end is not mistaken for the finish. Must be called with `lock`
     /// held.
-    private func distancesAhead(of location: CLLocation) -> (toUpcoming: Double, remaining: Double) {
-        let current = _steps[_currentStepIndex]
-        let isLast = _currentStepIndex == _steps.count - 1
+    private func distancesAhead(of location: CLLocation, progress: Progress) -> (toUpcoming: Double, remaining: Double) {
+        let index = progress.stepIndex
+        let current = _steps[index]
+        let isLast = index == _steps.count - 1
         let end = isLast ? routeEnd(current) : stepEnd(current)
         let toEnd = end.map { Self.distance(from: location, to: $0) } ?? current.distance
-        guard !isLast else { return (toEnd, _hasLeftEnd ? toEnd : current.distance) }
-        let later = _steps.dropFirst(_currentStepIndex + 1).reduce(0.0) { $0 + $1.distance }
-        let toNext = polylineDistance(from: location, to: _steps[_currentStepIndex + 1].polyline, preferStart: true)
+        guard !isLast else { return (toEnd, progress.hasLeftEnd ? toEnd : current.distance) }
+        let later = _steps.dropFirst(index + 1).reduce(0.0) { $0 + $1.distance }
+        let toNext = polylineDistance(from: location, to: _steps[index + 1].polyline, preferStart: true)
         return (toNext, toEnd + later)
     }
 
     /// Within 25 m of the route's end, on its last step, after the user has
     /// been away from the end — so a loop doesn't arrive at its start. Must
     /// be called with `lock` held.
-    private func hasArrived(at location: CLLocation, lastStep: InternalStep) -> Bool {
-        guard _hasLeftEnd, _currentStepIndex == _steps.count - 1,
-              let end = routeEnd(lastStep) else { return false }
+    private func hasArrived(at location: CLLocation, progress: Progress) -> Bool {
+        guard progress.hasLeftEnd, progress.stepIndex == _steps.count - 1,
+              let lastStep = _steps.last, let end = routeEnd(lastStep) else { return false }
         return Self.distance(from: location, to: end) <= 25
     }
 
-    /// Must be called with `lock` held.
-    private func noteDeparture(from location: CLLocation, lastStep: InternalStep) {
-        guard !_hasLeftEnd, let end = routeEnd(lastStep) else { return }
-        _hasLeftEnd = Self.distance(from: location, to: end) > Self.departureMeters
+    /// Whether the user has been away from the route's end, counting a fix
+    /// at `location`: once true, it stays true. Must be called with `lock`
+    /// held.
+    private func departed(from location: CLLocation, lastStep: InternalStep) -> Bool {
+        guard !_hasLeftEnd, let end = routeEnd(lastStep) else { return _hasLeftEnd }
+        return Self.distance(from: location, to: end) > Self.departureMeters
     }
 
     /// Where the route ends: the last point of the last step's polyline, else
@@ -241,12 +283,13 @@ final class ActiveRouteSession: @unchecked Sendable {
     /// turn. Must be called with `lock` held.
     ///
     /// The last step is out of reach until the user has been away from the
-    /// route's end: on a loop the finish is the start, and proximity alone
-    /// would put the user on the last step at the first fix.
-    private func advanceStepIndex(for location: CLLocation) {
-        let lastEnterable = _hasLeftEnd ? _steps.count - 1 : max(0, _steps.count - 2)
+    /// route's end (`hasLeftEnd`): on a loop the finish is the start, and
+    /// proximity alone would put the user on the last step at the first fix.
+    /// Returns the index; the caller decides whether to store it.
+    private func advancedStepIndex(for location: CLLocation, hasLeftEnd: Bool) -> Int {
+        let lastEnterable = hasLeftEnd ? _steps.count - 1 : max(0, _steps.count - 2)
         let lookahead = min(lastEnterable, _currentStepIndex + 5)
-        guard _currentStepIndex <= lookahead else { return }
+        guard _currentStepIndex <= lookahead else { return _currentStepIndex }
         var bestIndex = _currentStepIndex
         var bestDistance = Double.greatestFiniteMagnitude
         for i in _currentStepIndex ... lookahead {
@@ -256,9 +299,7 @@ final class ActiveRouteSession: @unchecked Sendable {
                 bestIndex = i
             }
         }
-        if bestIndex > _currentStepIndex {
-            _currentStepIndex = bestIndex
-        }
+        return max(bestIndex, _currentStepIndex)
     }
 
     private static func distance(from location: CLLocation, to coord: CLLocationCoordinate2D) -> CLLocationDistance {

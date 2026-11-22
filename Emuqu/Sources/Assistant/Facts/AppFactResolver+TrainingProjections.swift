@@ -175,17 +175,24 @@ extension TrainingLoadNamespace {
     }
 
     /// Race predictions from the sport's efforts. RaceTimePrediction uses
-    /// the last 90 days when they hold a basis and all history otherwise, so
-    /// older workouts are loaded only when the window gives no prediction.
+    /// the last 90 days when they hold a basis and older history otherwise,
+    /// so older workouts are loaded only when the window gives no
+    /// prediction, and then only the newest `olderWorkoutScanLimit` of them:
+    /// `training.race_predictions` resolves on the main actor, mid-workout
+    /// too, and decoding a years-deep archive there stalls the recorder.
     private func racePredictions(for sport: Sport) -> [Double: RaceTimePrediction.Prediction] {
         let workouts = archive.entries.filter { $0.sessionType == .workout }
         let cutoff = Date().addingTimeInterval(-RaceTimePrediction.recentWindowDays * 86_400)
         let recent = loadSessions(workouts.filter { $0.date >= cutoff })
         let fromRecent = RaceTimePrediction.predictWithBasis(from: recent, sport: sport)
         guard fromRecent.isEmpty else { return fromRecent }
-        let older = loadSessions(workouts.filter { $0.date < cutoff })
-        return RaceTimePrediction.predictWithBasis(from: recent + older, sport: sport)
+        let older = workouts.filter { $0.date < cutoff }.sorted { $0.date > $1.date }.prefix(Self.olderWorkoutScanLimit)
+        return RaceTimePrediction.predictWithBasis(from: recent + loadSessions(Array(older)), sport: sport)
     }
+
+    /// Most workouts from before the 90-day window decoded for a prediction
+    /// basis, newest first; the same bound the other archive scans use.
+    private static let olderWorkoutScanLimit = 120
 
     private func loadSessions(_ entries: [SessionArchiveEntry]) -> [HRVSession] {
         entries.compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
@@ -199,15 +206,16 @@ extension TrainingLoadNamespace {
         ])
     }
 
+    /// Resolved off the main actor: its race predictions decode workouts.
     private var trainingPaceZonesEntry: FactEntry {
-        .fixed(
+        .fixedAsync(
             key: "training.pace_zones",
             description: """
             Daniels-style training pace zones derived from the user's running 5K race prediction. Returns sec/km per zone: easy (long-run / base, ×1.30), marathon (steady race pace, ×1.15), threshold (tempo, ×1.06), interval (VO2max, \
             ×1.00), repetition (speed work, ×0.93). Use to answer 'what pace should I hold for an easy run today?'. Returns notRecorded when no run history exists yet.
             """,
             valueType: "Record"
-        ) { self.resolveTrainingPaceZones() }
+        ) { await Task.detached(priority: .userInitiated) { self.resolveTrainingPaceZones() }.value }
     }
 
     private func resolveTrainingPaceZones() -> FactValue {

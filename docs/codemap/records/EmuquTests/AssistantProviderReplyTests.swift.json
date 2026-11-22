@@ -1,11 +1,12 @@
 {
  "file": "EmuquTests/AssistantProviderReplyTests.swift",
- "hash": "60f2173720c0db37",
- "role": "Three XCTest suites for what reaches the user from an AI provider: out-of-credit detection and purchase-free error text (App Store 3.1.1), Apple Intelligence tool ranking/fitting within a 1,024-token tool budget, and trimming of Apple replies that hit the token cap (AppleReplyTrimmer/AppleReplyRelay).",
+ "hash": "fba8469ccd24c892",
+ "role": "Four XCTest suites for what reaches the user from an AI provider: out-of-credit detection and purchase-free error text (App Store 3.1.1), Apple Intelligence tool ranking/fitting within a 1,024-token tool budget, and trimming of Apple replies that hit the token cap (AppleReplyTrimmer/AppleReplyRelay), and how the request audit keeps a long streamed reply (LLMRequestAudit).",
  "types": [
   "ProviderAccountReplyTests: class — XCTestCase for credit-failure detection and error copy",
   "AppleToolRankingTests: class — XCTestCase for ToolRetriever ranking/fitting",
-  "AppleReplyTrimmerTests: class — XCTestCase for AppleReplyTrimmer and AppleReplyRelay"
+  "AppleReplyTrimmerTests: class — XCTestCase for AppleReplyTrimmer and AppleReplyRelay",
+  "LLMRequestAuditResponseTests: class (@MainActor) — XCTestCase for LLMRequestAudit.append's cut-back"
  ],
  "state": [],
  "toplevel": "AppleToolRankingTests.budget = 1024; AppleReplyTrimmerTests.longBody = a sentence repeated 60 times. appleCost has an #if canImport(FoundationModels) / #available(iOS 26) branch.",
@@ -328,6 +329,50 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c"
+   }
+  },
+  {
+   "key": "func LLMRequestAuditResponseTests.tearDown()",
+   "hash": "9455ed73e379a126",
+   "does": "Clears the shared request audit after each test.",
+   "entry": "XCTest runner: per-test tearDown",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.clear()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.clear()": "f49f85de829c8255"
+   }
+  },
+  {
+   "key": "func LLMRequestAuditResponseTests.testALongReplyIsCutBackToItsNewestText()",
+   "hash": "b7186ba6ff570f99",
+   "does": "Records an entry and streams six 10,000-character deltas (kept whole at 60,000), then one of 10,001: the reply is cut back to its last 60,000 characters, the kept count matches, and the newest delta is the tail.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.record(provider:model:systemPrompt:messagesJSON:toolsJSON:)",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.append(textDelta:to:)"
+   ],
+   "reads": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "writes": [
+    "mem:LLMRequestAudit.entries"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for 6 deltas",
+     "effect": "append 10,000 characters"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.append(textDelta:to:)": "a164d71f71c23f37",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.record(provider:model:systemPrompt:messagesJSON:toolsJSON:)": "54b70891909d3d9d"
    }
   }
  ],

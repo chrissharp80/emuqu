@@ -1883,6 +1883,7 @@ final class ActiveRouteSession: @unchecked Sendable {
     func disengage()
     func snapshot() -> Snapshot?
     func currentStep(for location: CLLocation) -> StepResult?
+    func peekStep(for location: CLLocation) -> StepResult?
 }
 ```
 
@@ -1890,7 +1891,8 @@ Continuous turn-by-turn for the AI. Holds an `MKRoute` + sticky step
 index in memory. `currentStep(for:)` walks forward from the sticky
 index (never back, so GPS jitter can't bounce backwards), returns
 the upcoming instruction + distance + remaining + arrival state.
-Offline-once-engaged.
+`peekStep(for:)` answers the same for a fix without moving the
+index (assistant reads). Offline-once-engaged.
 
 ### AudioSessionCoordinator
 **File**: `Emuqu/Sources/Services/AudioSessionCoordinator.swift`
