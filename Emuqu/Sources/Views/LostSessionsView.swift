@@ -16,13 +16,23 @@ struct LostSessionsView: View {
     @State private var showingResult = false
     @State private var resultMessage = ""
     @State private var selectedSessions: Set<UUID> = []
-    @State private var showingDeleteConfirmation = false
+    /// The rows a swipe or the multi-select Delete asked to delete, waiting
+    /// for the confirmation; nil when none is open. The dialog presents this
+    /// set, so its Delete acts on exactly the rows it named.
+    @State private var pendingDeleteIds: Set<UUID>?
+    /// How many of the last confirmed deletions could not be stored; those
+    /// rows stay in the list and the alert says so.
+    @State private var deleteFailedCount = 0
 
     private var isEditing: Bool {
         editMode?.wrappedValue.isEditing ?? false
     }
 
     var body: some View {
+        withDeleteDialogs(lostSessionsList)
+    }
+
+    private var lostSessionsList: some View {
         List(selection: $selectedSessions) { lostSessionsContent }
             .zenFormBackground()
             .navigationTitle(String(localized: "Lost Sessions", bundle: LanguageManager.appBundle))
@@ -34,11 +44,42 @@ struct LostSessionsView: View {
                 String(localized: "Recovery Complete", bundle: LanguageManager.appBundle),
                 isPresented: $showingResult
             ) { recoveryCompleteActions } message: { recoveryCompleteMessage }
+    }
+
+    /// The delete confirmation, presenting exactly the rows it names, and the
+    /// alert for deletions that could not be stored.
+    private func withDeleteDialogs(_ content: some View) -> some View {
+        content
             .confirmationDialog(
-                String(localized: "Delete \(selectedSessions.count) Sessions?", bundle: LanguageManager.appBundle),
-                isPresented: $showingDeleteConfirmation,
-                titleVisibility: .visible
-            ) { deleteDialogActions } message: { deleteDialogMessage }
+                String(localized: "Delete \(pendingDeleteIds?.count ?? 0) Sessions?", bundle: LanguageManager.appBundle),
+                isPresented: deleteConfirmationBinding,
+                titleVisibility: .visible,
+                presenting: pendingDeleteIds
+            ) { ids in
+                deleteDialogActions(ids)
+            } message: { _ in
+                deleteDialogMessage
+            }
+            .alert(
+                String(localized: "Couldn't delete \(deleteFailedCount) sessions. They are still in the list; try again.", bundle: LanguageManager.appBundle),
+                isPresented: deleteFailedBinding
+            ) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+            }
+    }
+
+    private var deleteConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { pendingDeleteIds != nil },
+            set: { if !$0 { pendingDeleteIds = nil } }
+        )
+    }
+
+    private var deleteFailedBinding: Binding<Bool> {
+        Binding(
+            get: { deleteFailedCount > 0 },
+            set: { if !$0 { deleteFailedCount = 0 } }
+        )
     }
 
     @ViewBuilder
@@ -147,7 +188,7 @@ struct LostSessionsView: View {
                     // row swiped away meanwhile would still be recovered.
                     .deleteDisabled(isRecovering)
             }
-            .onDelete(perform: deleteSessionsAtOffsets)
+            .onDelete(perform: confirmDeleteAtOffsets)
         }
     }
 
@@ -266,7 +307,7 @@ struct LostSessionsView: View {
     private var deleteSelectedButton: some View {
         if isEditing, !selectedSessions.isEmpty {
             Button(role: .destructive) {
-                showingDeleteConfirmation = true
+                pendingDeleteIds = selectedSessions
             } label: {
                 Label(String(localized: "Delete \(selectedSessions.count) Selected", bundle: LanguageManager.appBundle), systemImage: "trash")
             }
@@ -274,15 +315,15 @@ struct LostSessionsView: View {
     }
 
     @ViewBuilder
-    private var deleteDialogActions: some View {
+    private func deleteDialogActions(_ ids: Set<UUID>) -> some View {
         Button(String(localized: "Delete", bundle: LanguageManager.appBundle), role: .destructive) {
-            deleteSelectedSessions()
+            deleteSessions(ids)
         }
         Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
     }
 
     private var deleteDialogMessage: some View {
-        Text(String(localized: "These sessions will be removed from the lost sessions list. Their raw backup data stays on this device.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "These sessions leave this list and are no longer offered for recovery. Their raw backup files stay on this device.", bundle: LanguageManager.appBundle))
     }
 
     private func loadLostSessions() async {
@@ -297,18 +338,20 @@ struct LostSessionsView: View {
         isLoading = false
     }
 
-    private func deleteSessionsAtOffsets(_ offsets: IndexSet) {
-        let idsToDelete = offsets.map { lostSessions[$0].id }
-        collector.deleteLostSessions(idsToDelete)
-        lostSessions.remove(atOffsets: offsets)
+    /// A swipe only asks; the rows go once the confirmation is accepted.
+    private func confirmDeleteAtOffsets(_ offsets: IndexSet) {
+        pendingDeleteIds = Set(offsets.map { lostSessions[$0].id })
     }
 
-    private func deleteSelectedSessions() {
-        let idsToDelete = Array(selectedSessions)
-        collector.deleteLostSessions(idsToDelete)
-        lostSessions.removeAll { selectedSessions.contains($0.id) }
-        selectedSessions.removeAll()
-        editMode?.wrappedValue = .inactive
+    /// Removes from the list only the rows whose deletion mark was stored;
+    /// the rest stay, selected rows stay selected, and the alert counts them.
+    private func deleteSessions(_ idsToDelete: Set<UUID>) {
+        pendingDeleteIds = nil
+        let deleted = collector.deleteLostSessions(Array(idsToDelete))
+        lostSessions.removeAll { deleted.contains($0.id) }
+        selectedSessions.subtract(deleted)
+        deleteFailedCount = idsToDelete.count - deleted.count
+        if selectedSessions.isEmpty { editMode?.wrappedValue = .inactive }
     }
 
     private func recoverAllSessions() {

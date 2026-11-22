@@ -205,9 +205,9 @@ extension FitnessStrapSection {
         VStack(alignment: .leading, spacing: 14) {
             heroTopRow(sport: facts.sport, latest: latest)
             heroHeadline(facts: facts)
-            // Mini polyline preview when we have GPS
-            if let polyline = facts.polyline {
-                heroPolylinePreview(polyline: polyline, startDate: session.startDate, duration: session.duration)
+            // Mini polyline preview: the route `loadLatestWorkoutSession` decoded.
+            if facts.polyline != nil {
+                heroPolylinePreview(route: latestWorkoutRoute)
             }
             // Badges — a compact "why this workout mattered" row
             heroBadgesRow(
@@ -267,7 +267,7 @@ extension FitnessStrapSection {
         return HeroFacts(
             sport: meta?.sport,
             distance: meta?.distanceMeters.map { units.formatDistance(meters: $0) } ?? "—",
-            duration: Self.heroDurationString(session.duration),
+            duration: Self.heroDurationString(WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: session.duration)),
             pace: heroPaceString(session: session, meta: meta),
             peakHR: meta?.samples?.compactMap { $0.heartRate }.max().map { String(localized: "\($0) bpm", bundle: LanguageManager.appBundle) },
             alpha1Avg: Self.heroAlpha1Average(meta: meta),
@@ -286,8 +286,10 @@ extension FitnessStrapSection {
         return String(format: "%d:%02d", m, sec)
     }
 
+    /// Active (un-paused) time over distance, as the summary hero computes it.
     private func heroPaceString(session: HRVSession, meta: WorkoutMetadata?) -> String? {
-        guard let d = meta?.distanceMeters, d > 100, let dur = session.duration, dur > 10 else { return nil }
+        guard let d = meta?.distanceMeters, d > 100,
+              let dur = WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: session.duration), dur > 10 else { return nil }
         return units.formatPace(elapsedSec: Int(dur), distanceMeters: d)
     }
 
@@ -331,10 +333,9 @@ extension FitnessStrapSection {
     /// every hero render); a quick line trace communicates "you ran a
     /// loop / out-and-back / point-to-point" at a glance.
     @ViewBuilder
-    func heroPolylinePreview(polyline: Data, startDate: Date, duration: TimeInterval?) -> some View {
-        let decoded = GPXExporter.decode(polyline: polyline, startDate: startDate, duration: duration)
-        if decoded.count >= 2 {
-            polylineTrace(coords: decoded.map(\.coordinate))
+    func heroPolylinePreview(route: [CLLocation]) -> some View {
+        if route.count >= 2 {
+            polylineTrace(coords: route.map(\.coordinate))
         }
     }
 
@@ -483,10 +484,13 @@ extension FitnessStrapSection {
 
     /// Awaited inside `.task(id:)`, so a load superseded by a newer key is
     /// dropped instead of overwriting the newer result. A nil read marks the
-    /// load failed, which swaps the placeholder spinner for a message.
+    /// load failed, which swaps the placeholder spinner for a message. The
+    /// GPS polyline is decoded in the same detached read, so the hero's route
+    /// trace never decodes in `body`.
     func loadLatestWorkoutSession() async {
         guard let first = recentWorkoutEntries().first else {
             latestWorkoutSession = nil
+            latestWorkoutRoute = []
             latestWorkoutLoadFailed = false
             return
         }
@@ -496,12 +500,20 @@ extension FitnessStrapSection {
         let archive = collector.archive
         let sessionId = first.sessionId
         latestWorkoutLoadFailed = false
-        let full = await Task.detached(priority: .userInitiated) {
-            archive.retrieveLightweightOrLog(sessionId, caller: "Fitness.loadLatest")
+        let (full, route) = await Task.detached(priority: .userInitiated) { () -> (HRVSession?, [CLLocation]) in
+            let session = archive.retrieveLightweightOrLog(sessionId, caller: "Fitness.loadLatest")
+            return (session, session.map(Self.decodedRoute) ?? [])
         }.value
         guard !Task.isCancelled else { return }
         latestWorkoutSession = full
+        latestWorkoutRoute = route
         latestWorkoutLoadFailed = full == nil
+    }
+
+    /// The session's GPS polyline as locations; empty without one.
+    nonisolated private static func decodedRoute(_ session: HRVSession) -> [CLLocation] {
+        guard let polyline = session.workoutMetadata?.gpsPolyline else { return [] }
+        return GPXExporter.decode(polyline: polyline, startDate: session.startDate, duration: session.duration)
     }
 
     @ViewBuilder
@@ -627,7 +639,7 @@ extension FitnessStrapSection {
 
     private func deleteWorkoutButton(_ entry: SessionArchiveEntry, title: String) -> some View {
         Button(role: .destructive) {
-            deleteWorkout(entry.sessionId)
+            requestDeleteWorkout(entry.sessionId)
         } label: {
             Label(title, systemImage: "trash")
         }

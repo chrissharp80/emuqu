@@ -5,10 +5,7 @@ import Foundation
 extension SessionArchive {
     /// Repair a corrupted archive by rebuilding the index from the .json files.
     /// Call this manually from Settings > Debug when needed
-    /// - Returns: The rebuilt index's size
-    /// - Throws: When the archive folder cannot be listed, or the rebuilt
-    ///   index cannot be saved. A count returned over a failed save read as a
-    ///   repair, while the rebuilt index was gone at the next launch.
+    /// - Returns: Number of sessions recovered
     ///
     /// Files with other extensions (`*.encrypted`, which no current writer
     /// produces) are left alone: the repair never deletes a file it has not
@@ -23,11 +20,16 @@ extension SessionArchive {
     /// vanish from the user's timeline even though its file was sitting right
     /// there, intact. Only genuinely missing files (no entry to fall back to)
     /// get dropped.
+    ///
+    /// Throws when the directory cannot be listed (nothing was changed) or
+    /// when the rebuilt index cannot be saved (memory holds the rebuilt index,
+    /// the file still holds the old one), so the caller never reports a
+    /// repair that did not land as complete.
     @discardableResult
     func repairArchive() throws -> Int {
         archiveLock.lock()
         defer { archiveLock.unlock() }
-        let files = try archiveFolderContents()
+        let files = try archiveFiles()
         index = rebuiltIndex(from: files).sorted { $0.date > $1.date }
         // Dropped now, not by `saveIndex`: a save that fails before it gets
         // there would leave them serving the index this repair replaced.
@@ -42,9 +44,9 @@ extension SessionArchive {
         return index.count
     }
 
-    /// The files in the archive folder; the listing's failure is logged and
-    /// thrown.
-    private func archiveFolderContents() throws -> [URL] {
+    /// The archive directory's entries; a listing that fails is logged and
+    /// rethrown. Caller holds `archiveLock`.
+    private func archiveFiles() throws -> [URL] {
         do {
             return try fileManager.contentsOfDirectory(at: archiveDirectory, includingPropertiesForKeys: nil)
         } catch {

@@ -47,7 +47,7 @@ struct EntryHistoryRow: View {
         VStack(alignment: .leading, spacing: 4) {
             timeRow
 
-            Text(entry.displayDate, style: .date)
+            Text(entry.displayDate.formatted(Date.FormatStyle(date: .long, time: .omitted).locale(LanguageManager.appLocale)))
                 .font(.caption)
                 .foregroundColor(AppTheme.textSecondary)
 
@@ -93,7 +93,7 @@ struct EntryHistoryRow: View {
 
     private var timeRow: some View {
         HStack(spacing: 6) {
-            Text(entry.displayDate, style: .time)
+            Text(entry.displayDate.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(LanguageManager.appLocale)))
                 .font(.headline)
 
             // Show "Nap" label for nap sessions

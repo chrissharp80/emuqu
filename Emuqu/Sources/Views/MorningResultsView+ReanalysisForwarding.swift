@@ -25,7 +25,9 @@ extension MorningResultsView {
             manualResult: $manualResult,
             manualPickMessage: $manualPickMessage,
             strapMergeWorking: $strapMergeWorking,
-            strapMergeMessage: $strapMergeMessage
+            strapMergeMessage: $strapMergeMessage,
+            pendingWindowMethod: $pendingWindowMethod,
+            reanalysisDeclined: $reanalysisDeclined
         )
     }
 

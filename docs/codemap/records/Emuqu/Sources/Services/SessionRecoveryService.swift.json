@@ -718,8 +718,8 @@
   },
   {
    "key": "func SessionRecoveryService.deleteLostSessions(_:)",
-   "hash": "47923afa4c635031",
-   "does": "Marks each id as deleted in the archive (failures logged) and logs the requested count.",
+   "hash": "9d63f8b485ea6997",
+   "does": "Marks each id as deleted in the archive and returns the set of ids whose mark was stored; a failed mark is logged and left out. Logs how many of the requested ids were marked.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.markAsDeleted(_:)",
@@ -731,14 +731,14 @@
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+3",
      "cond": "for each id",
-     "effect": "markAsDeleted"
+     "effect": "markAsDeleted; on success the id joins the returned set"
     },
     {
-     "at": "+4",
+     "at": "+7",
      "cond": "catch: markAsDeleted threw",
-     "effect": "logged; the summary log still counts it as marked"
+     "effect": "logged; the id is not returned"
     }
    ],
    "deps": {

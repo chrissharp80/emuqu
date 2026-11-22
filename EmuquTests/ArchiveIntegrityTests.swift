@@ -346,6 +346,24 @@ final class ArchiveIntegrityTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: deletedFile), unreadable)
     }
 
+    /// A deletion mark that cannot be saved is taken back out of memory, so a
+    /// lost session the user tried to dismiss is still offered for recovery.
+    func testADeletionMarkThatCannotBeSavedIsNotKept() throws {
+        let id = UUID()
+        // Built (and its directory made) before the directory is locked.
+        XCTAssertTrue(archive.entries.isEmpty)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: archiveDirectory.path)
+        defer {
+            attempt("test.unlockArchiveDirectory") {
+                try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: archiveDirectory.path)
+            }
+        }
+
+        XCTAssertThrowsError(try archive.markAsDeleted(id))
+
+        XCTAssertFalse(archive.wasIntentionallyDeleted(id))
+    }
+
     /// Puts a folder at every name the set-aside of `file` can take from a
     /// second ago to half a minute ahead, so its move fails.
     private func occupySetAsideNames(of file: URL) throws {
@@ -610,6 +628,22 @@ final class ArchiveIntegrityTests: XCTestCase {
         let retrieved = try cold.retrieve(session.id)
         XCTAssertNotNil(retrieved, "Repair should have rebuilt a usable index for the encrypted file")
         XCTAssertEqual(retrieved?.id, session.id)
+    }
+
+    /// A repair whose rebuilt index cannot be written throws, so the
+    /// diagnostics page reports the failure instead of "Repair complete".
+    func testRepairThrowsWhenTheRebuiltIndexCannotBeSaved() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: archiveDirectory.path)
+        defer {
+            attempt("test.unlockArchiveDirectory") {
+                try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: archiveDirectory.path)
+            }
+        }
+
+        XCTAssertThrowsError(try archive.repairArchive())
     }
 
     /// Test detecting nearby sessions

@@ -76,16 +76,46 @@ extension MorningReanalysisControls {
         }
     }
 
-    /// Persist the pick so the next session opens with the user's most recent
-    /// choice — without this it was view-local only and got lost when the sheet
-    /// closed.
+    /// Picking a method re-scores and re-saves the reading, so the pick only
+    /// asks: the view's confirmation runs `applyWindowMethod`.
     private func selectWindowMethod(_ method: WindowSelectionMethod) {
         guard vm.selectedMethod != method else { return }
+        pendingWindowMethod = method
+    }
+
+    /// The confirmed pick. Re-scores the reading with `method`. Once that
+    /// lands, a reading that is not a past night also makes `method` the
+    /// default, so the next session opens with the user's most recent choice;
+    /// a past night's pick re-scores that night only. A declined re-analysis
+    /// puts the previous method back and raises `reanalysisDeclined`.
+    func applyWindowMethod(_ method: WindowSelectionMethod) {
+        guard let onReanalyze else { return }
+        let previous = vm.selectedMethod
+        let becomesDefault = !vm.isHistoricalSession
         vm.selectedMethod = method
-        AppDependencies.current.app.settingsManager.settings.defaultWindowSelectionMethod = method
         isManualWindowMode = false
         manualResult = nil
-        reanalyzeWithMethod(method)
+        vm.isReanalyzing = true
+        Task {
+            let updatedSession = await onReanalyze(vm.displaySession, method)
+            await MainActor.run {
+                finishWindowMethod(updatedSession, method: method, previous: previous, becomesDefault: becomesDefault)
+            }
+        }
+    }
+
+    /// A declined re-analysis puts the previous method back; one that landed
+    /// makes `method` the default when the reading is not a past night.
+    @MainActor
+    private func finishWindowMethod(
+        _ updatedSession: HRVSession?, method: WindowSelectionMethod, previous: WindowSelectionMethod, becomesDefault: Bool
+    ) {
+        if updatedSession == nil {
+            vm.selectedMethod = previous
+        } else if becomesDefault {
+            AppDependencies.current.app.settingsManager.settings.defaultWindowSelectionMethod = method
+        }
+        applyReanalyzedSession(updatedSession)
     }
 
     /// A bigger chevron and a bordered, button-like surface make the
@@ -536,7 +566,7 @@ extension MorningReanalysisControls {
             let endDate = series.wallClockTime(forTMs: endTime)
             provenanceRow(
                 glyph: "waveform.path.ecg",
-                text: String(localized: "Window: \(startDate.formatted(date: .omitted, time: .shortened)) – \(endDate.formatted(date: .omitted, time: .shortened))", bundle: LanguageManager.appBundle)
+                text: String(localized: "Window: \(Self.clockTime(startDate)) – \(Self.clockTime(endDate))", bundle: LanguageManager.appBundle)
             )
         }
     }
@@ -771,21 +801,15 @@ extension MorningReanalysisControls {
         }
     }
 
-    func reanalyzeWithMethod(_ method: WindowSelectionMethod) {
-        guard let onReanalyze else { return }
-        vm.isReanalyzing = true
-        Task {
-            let updatedSession = await onReanalyze(vm.displaySession, method)
-            await MainActor.run { applyReanalyzedSession(updatedSession) }
-        }
-    }
-
     /// A nil result means the reanalysis declined (no RR data, in-flight
-    /// duplicate); the displayed session stays as it was.
+    /// duplicate); the displayed session stays as it was and
+    /// `reanalysisDeclined` tells the user so.
     @MainActor
     private func applyReanalyzedSession(_ updatedSession: HRVSession?) {
         if let updatedSession {
             vm.reanalyzedSession = updatedSession
+        } else {
+            reanalysisDeclined = true
         }
         vm.isReanalyzing = false
     }
@@ -826,22 +850,28 @@ extension MorningReanalysisControls {
 
     /// Writes the CSV to tmp and opens it; `onFailure` receives the
     /// user-facing reason when there is no series or the write fails.
-    func exportRRData(onFailure: @MainActor (String) -> Void) {
+    /// The rows of a full night (tens of thousands of beats) are built and
+    /// written on a detached task; the header and file name, which read the
+    /// view model, are made here first.
+    func exportRRData(onFailure: @escaping @MainActor (String) -> Void) {
         let failure = String(localized: "Couldn't create the CSV file.", bundle: LanguageManager.appBundle)
         guard let series = vm.displaySession.rrSeries else {
             debugLog("[MorningResultsView] ERROR: No rrSeries in vm.displaySession")
             return onFailure(failure)
         }
         debugLog("[MorningResultsView] Exporting RR data: \(series.points.count) points")
-        let csv = rrExportHeader(series: series) + rrCSVRows(points: series.points)
+        let header = rrExportHeader(series: series)
+        let points = series.points
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(rrExportFilename())
-        do {
-            try csv.write(to: tempURL, atomically: true, encoding: .utf8)
-            debugLog("[MorningResultsView] RR data exported to: \(tempURL.path)")
-            exportURL = IdentifiableURL(url: tempURL)
-        } catch {
-            debugLog("[MorningResultsView] Failed to write RR data: \(error)")
-            onFailure(failure)
+        Task {
+            let written = await Task.detached(priority: .userInitiated) {
+                writeRRCSV(header: header, points: points, to: tempURL)
+            }.value
+            if written {
+                exportURL = IdentifiableURL(url: tempURL)
+            } else {
+                onFailure(failure)
+            }
         }
     }
 
@@ -862,6 +892,11 @@ extension MorningReanalysisControls {
         }
         csv += "#\n"
         return csv
+    }
+
+    /// A time of day in the app language.
+    private static func clockTime(_ date: Date) -> String {
+        date.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(LanguageManager.appLocale))
     }
 
     private func rrExportFilename() -> String {
@@ -958,6 +993,19 @@ private func provenanceRow(glyph: String, text: String) -> some View {
         Text(text)
             .font(.caption)
             .foregroundColor(AppTheme.textTertiary)
+    }
+}
+
+/// Writes the header and the rows to `url`; false (logged) when the write
+/// throws. Off the main actor.
+private func writeRRCSV(header: String, points: [RRPoint], to url: URL) -> Bool {
+    do {
+        try (header + rrCSVRows(points: points)).write(to: url, atomically: true, encoding: .utf8)
+        debugLog("[MorningResultsView] RR data exported to: \(url.path)")
+        return true
+    } catch {
+        debugLog("[MorningResultsView] Failed to write RR data: \(error)")
+        return false
     }
 }
 

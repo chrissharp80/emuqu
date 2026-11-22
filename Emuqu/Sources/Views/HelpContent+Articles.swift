@@ -467,7 +467,7 @@ extension HelpContent {
                         A streaming-only reading leaves nothing on the strap to recover.
                         """),
                     .heading("Session Missing from History"),
-                    .text("Go to Settings → iCloud & Data → Recover Lost Sessions. This scans the raw backup directory for sessions that have backup files but aren't in the main archive. Tap \"Recover All\" to restore them, or tap Edit to delete backups you don't need."),
+                    .text("Go to Settings → iCloud & Data → Recover Lost Sessions. This scans the raw backup directory for sessions that have backup files but aren't in the main archive. Tap \"Recover All\" to restore them, or tap Edit to take the ones you don't want off the list; their backup files stay on the device."),
                     .heading("Accidentally Deleted a Session"),
                     .text("Go to Settings → iCloud & Data → Trash. Deleted sessions are kept for 90 days and can be restored with a single tap."),
                     .heading("Device Has Stored Data"),

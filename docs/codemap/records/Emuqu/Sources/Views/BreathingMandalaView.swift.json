@@ -1,28 +1,29 @@
 {
  "file": "Emuqu/Sources/Views/BreathingMandalaView.swift",
- "hash": "1e71743780744e5c",
+ "hash": "fe5b31b13d1facd3",
  "role": "Animated breathing-guide mandala for HRV recordings: three rotating petal rings that expand on inhale and contract on exhale, with 'Breathe in/out' text and a per-frame phase callback driving spoken cues.",
  "types": [
-  "BreathingMandalaView: struct View — mandala + 60 Hz timer-driven phase",
+  "BreathingMandalaView: struct View — mandala + ~60 Hz task-driven phase while animating",
   "PetalLayer: struct View (private) — one ring of petals",
   "Petal: struct View (private) — gradient ellipse",
   "BreathingMandalaView: extension — slowPacedBreathing preset"
  ],
  "state": [
   "mem:BreathingMandalaView.maxTickGap = 1.0 s",
-  "mem:BreathingMandalaView.rotationDegreesPerSecond = 1.25"
+  "mem:BreathingMandalaView.rotationDegreesPerSecond = 1.25",
+  "mem:BreathingMandalaView.tickInterval = 16 ms"
  ],
- "toplevel": "Stored property initializers: petalColors (6 HSB colours) and `@State timer = Timer.publish(every: 0.016, on: .main, in: .common).autoconnect()`, kept once per view identity (later inits' copies are discarded unsubscribed). #Preview at the end renders slowPacedBreathing at 250×250.",
+ "toplevel": "Stored property initializers: petalColors (6 HSB colours) and the static 16 ms tickInterval. #Preview at the end renders slowPacedBreathing at 250×250.",
  "units": [
   {
    "key": "var BreathingMandalaView.body",
-   "hash": "cde186c663263631",
-   "does": "GeometryReader centring the mandala layers at the smaller dimension; accessibility label 'Breathing guide: <text>' with updatesFrequently trait; ticks on the 16 ms timer.",
-   "entry": "SwiftUI body; .onReceive(timer) fires every 16 ms on the main run loop.",
+   "hash": "3ad65bc4190b14be",
+   "does": "GeometryReader centring the mandala layers at the smaller dimension; accessibility label 'Breathing guide: <text>' with updatesFrequently trait; a .task keyed on isAnimating runs runTicks, so it restarts when animation starts or stops and ends with the view.",
+   "entry": "SwiftUI body; .task(id: isAnimating)",
    "calls": [
     "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.mandalaLayers(size:)",
     "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathGuideText",
-    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.tick()",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.runTicks()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -31,8 +32,41 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.mandalaLayers(size:)": "634772fcba2f6d68",
-    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.tick()": "1eddd5e76bae3b63",
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.runTicks()": "eb969e81efe2d79d",
     "Emuqu/Sources/Views/BreathingMandalaView.swift::var BreathingMandalaView.breathGuideText": "957db0da89c85aa6"
+   }
+  },
+  {
+   "key": "func BreathingMandalaView.runTicks()",
+   "hash": "1518d454f39e5e0c",
+   "does": "When not animating, ticks once (tick forgets the last tick time) and returns. While animating, ticks and sleeps 16 ms in a loop until the task is cancelled; a cancelled sleep ends it.",
+   "entry": "BreathingMandalaView.body .task(id: isAnimating)",
+   "calls": [
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.tick()",
+    "ext:Task.sleep(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not animating",
+     "effect": "one tick, return"
+    },
+    {
+     "at": "+5",
+     "cond": "while not cancelled",
+     "effect": "tick, sleep"
+    },
+    {
+     "at": "+9",
+     "cond": "sleep threw (cancelled)",
+     "effect": "return"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.tick()": "1eddd5e76bae3b63",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {

@@ -130,21 +130,74 @@
     "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.automaticMethods": "ff1a53c77beb6126",
     "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.displayName": "faab647035dd2bf8",
     "Emuqu/Sources/Models/WindowSelectionMethod.swift::var WindowSelectionMethod.icon": "ab0c899a4489e316",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.selectWindowMethod(_:)": "df6fe5b78ce0b1be"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.selectWindowMethod(_:)": "26cb1cdb31be34d5"
    }
   },
   {
    "key": "func MorningReanalysisControls.selectWindowMethod(_:)",
-   "hash": "cd17fc893261df14",
-   "does": "On a different method: sets vm.selectedMethod, persists it as the global defaultWindowSelectionMethod in SettingsManager.settings (didSet -> save to user_settings.json), leaves manual mode, clears manualResult, and re-runs analysis with that method.",
+   "hash": "249ff5a31774298a",
+   "does": "On a different method, sets pendingWindowMethod so the view asks for confirmation (picking re-scores and re-saves the reading); nothing else changes until the confirmation runs applyWindowMethod.",
    "entry": "Menu item button action (windowMethodOptions).",
+   "calls": [],
+   "reads": [
+    "mem:MorningResultsViewModel.selectedMethod"
+   ],
+   "writes": [
+    "mem:MorningResultsView.pendingWindowMethod"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "vm.selectedMethod == method",
+     "effect": "true: return without doing anything; false: ask"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func MorningReanalysisControls.applyWindowMethod(_:)",
+   "hash": "777fa603ab570f9d",
+   "does": "The confirmed Analysis Window pick: notes the previous method and whether the reading is a past night, sets vm.selectedMethod, leaves manual mode, clears manualResult, sets isReanalyzing and re-runs analysis with the method through onReanalyze, then hands the result to finishWindowMethod on the main actor.",
+   "entry": "Window-method confirmation 'Re-analyze' (MorningResultsView.windowMethodActions)",
    "calls": [
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reanalyzeWithMethod(_:)"
+    "closure:onReanalyze — set by RecordView+Sections (sessionReanalysis.reanalyzeSession) and HistoryView (forwarded onReanalyze)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.isHistoricalSession",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishWindowMethod(_:method:previous:becomesDefault:)"
    ],
    "reads": [
     "mem:MorningResultsViewModel.selectedMethod"
    ],
+   "writes": [
+    "mem:MorningResultsViewModel.selectedMethod",
+    "mem:MorningResultsViewModel.isReanalyzing",
+    "mem:MorningResultsView.isManualWindowMode",
+    "mem:MorningResultsView.manualResult",
+    "archive:SessionArchive.archive (via ReanalysisService.persist)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "onReanalyze == nil",
+     "effect": "return; nothing happens"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.isHistoricalSession": "fd060d68fe3d0332",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.finishWindowMethod(_:method:previous:becomesDefault:)": "5be0d0bbf316eb2f"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.finishWindowMethod(_:method:previous:becomesDefault:)",
+   "hash": "d5781c041a47edee",
+   "does": "Main actor: on a nil result puts the previous method back; on a session, when becomesDefault (not a past night), persists the method as the global defaultWindowSelectionMethod (SettingsManager.settings didSet saves user_settings.json). Then applyReanalyzedSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyReanalyzedSession(_:)"
+   ],
+   "reads": [],
    "writes": [
     "mem:MorningResultsViewModel.selectedMethod",
     "mem:SettingsManager.settings.defaultWindowSelectionMethod",
@@ -153,16 +206,21 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "vm.selectedMethod == method",
-     "effect": "true: return without doing anything; false: apply and reanalyze"
+     "at": "+4",
+     "cond": "updatedSession == nil",
+     "effect": "restore the previous method"
+    },
+    {
+     "at": "+6",
+     "cond": "a session came back and becomesDefault",
+     "effect": "persist the method as the default"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reanalyzeWithMethod(_:)": "29dc4f30f97f1771"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyReanalyzedSession(_:)": "ab23549b2bcad0e6"
    }
   },
   {
@@ -890,19 +948,20 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.segmentProvenanceRow": "751b886d0c828117",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowProvenanceRow": "7fbe253801a4591a"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowProvenanceRow": "9d8ddb73050a0743"
    }
   },
   {
    "key": "var MorningReanalysisControls.windowProvenanceRow",
-   "hash": "f506e6448810b6d1",
-   "does": "'Window: start – end' row using wall-clock times from the RR series for the result's windowStartMs/EndMs.",
+   "hash": "bf65eee2f7e3e708",
+   "does": "'Window: start – end' row using wall-clock times (in the app language) from the RR series for the result's windowStartMs/EndMs.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
     "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func provenanceRow(glyph:text:)"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func provenanceRow(glyph:text:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.clockTime(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -916,9 +975,9 @@
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8bb45fe780498d77",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "f3821e0d2328a0ed",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.clockTime(_:)": "8a23b1ac72c0f055",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func provenanceRow(glyph:text:)": "631e6372bcf48c5c"
    }
   },
@@ -1335,52 +1394,26 @@
    ],
    "deps": {
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyReanalyzedSession(_:)": "9f7f36cd29df9b29"
-   }
-  },
-  {
-   "key": "func MorningReanalysisControls.reanalyzeWithMethod(_:)",
-   "hash": "45deb64857929629",
-   "does": "Same as performReanalysis but with an explicit method.",
-   "entry": null,
-   "calls": [
-    "closure:onReanalyze — collector.reanalyzeSession(_:method:) from RecordView+Sections / HistoryView",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyReanalyzedSession(_:)",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:MorningResultsViewModel.isReanalyzing",
-    "archive:SessionArchive.archive (via ReanalysisService.persist)"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "onReanalyze == nil",
-     "effect": "return"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyReanalyzedSession(_:)": "9f7f36cd29df9b29"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.applyReanalyzedSession(_:)": "ab23549b2bcad0e6"
    }
   },
   {
    "key": "func MorningReanalysisControls.applyReanalyzedSession(_:)",
-   "hash": "1dd9b3635da249a4",
-   "does": "Adopts a non-nil reanalyzed session into vm.reanalyzedSession and clears isReanalyzing.",
+   "hash": "30ebe68f724da6b3",
+   "does": "Adopts a non-nil reanalyzed session into vm.reanalyzedSession, or sets reanalysisDeclined so the view alerts that the score is unchanged; clears isReanalyzing.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [
     "mem:MorningResultsViewModel.reanalyzedSession",
+    "mem:MorningResultsView.reanalysisDeclined",
     "mem:MorningResultsViewModel.isReanalyzing"
    ],
    "branches": [
     {
      "at": "+2",
      "cond": "updatedSession != nil",
-     "effect": "true: assign; false: keep current session (declined: no RR data / analysis failed / persist failed) with no user message"
+     "effect": "true: assign; false: keep current session (declined: no RR data / analysis failed / persist failed) and set reanalysisDeclined"
     }
    ],
    "deps": {}
@@ -1435,16 +1468,17 @@
   },
   {
    "key": "func MorningReanalysisControls.exportRRData(onFailure:)",
-   "hash": "df7967ea1361448b",
-   "does": "Writes the displayed session's RR series as a CSV (rrExportHeader provenance comments + rrCSVRows) to tmp under rrExportFilename and sets exportURL to preview/share it (MorningResultsView deletes the file when the sheet closes). With no series, or when the write throws, logs and calls onFailure with 'Couldn't create the CSV file.'",
+   "hash": "b865d1da5f288585",
+   "does": "Builds the provenance header (rrExportHeader) and the tmp file name (rrExportFilename) on the main actor, then builds the rows and writes the CSV on a detached task (writeRRCSV); on success sets exportURL to preview/share it (MorningResultsView deletes the file when the sheet closes). With no series, or when the write fails, calls onFailure with 'Couldn't create the CSV file.'",
    "entry": "Export RR button, via the MorningResultsView forwarder",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportHeader(series:)",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func writeRRCSV(header:points:to:)",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportFilename()",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
     "closure:onFailure — sets MorningResultsView.exportErrorMessage",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
@@ -1458,9 +1492,9 @@
      "effect": "log, onFailure, return"
     },
     {
-     "at": "+13",
-     "cond": "write throws",
-     "effect": "log, onFailure"
+     "at": "+14",
+     "cond": "written",
+     "effect": "exportURL set; else onFailure"
     }
    ],
    "deps": {
@@ -1469,7 +1503,7 @@
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportFilename()": "92d2a35ab0172a81",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportHeader(series:)": "531e8f9668b44379",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)": "0cecab337fcf1bcd",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func writeRRCSV(header:points:to:)": "bc335ada0ee29295",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
@@ -1504,6 +1538,22 @@
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "b8e2a1bd40019ca9",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.clockTime(_:)",
+   "hash": "45a502f6da6397cc",
+   "does": "A time of day, short style, in the app language.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -1619,6 +1669,31 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
+   }
+  },
+  {
+   "key": "func writeRRCSV(header:points:to:)",
+   "hash": "659f583aa2386411",
+   "does": "Writes header + rrCSVRows(points) to the URL atomically as UTF-8 and logs; false (logged) when the write throws. Runs off the main actor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/Emuqu_RR_<date>.csv"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "write threw",
+     "effect": "log, false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)": "0cecab337fcf1bcd"
    }
   },
   {

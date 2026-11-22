@@ -198,7 +198,7 @@ struct MainTabView: View {
         tabsWithObservers
             .sheet(item: $pendingReportMailURL) { reportMailSheet($0) }
             .onChange(of: pendingReportMailURL) { sent, next in discardReportPDF(sent, next: next) }
-            .alert(String(localized: "Couldn't prepare report", bundle: LanguageManager.appBundle), isPresented: .constant(reportPrepError != nil)) {
+            .alert(String(localized: "Couldn't prepare report", bundle: LanguageManager.appBundle), isPresented: reportPrepErrorBinding) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {
                     reportPrepError = nil
                 }
@@ -206,6 +206,11 @@ struct MainTabView: View {
                 Text(reportPrepError ?? "")
             }
             .sheet(item: $selectedReportSession) { reportSheet($0) }
+    }
+
+    /// Shown while `reportPrepError` is set; a dismissal clears it.
+    private var reportPrepErrorBinding: Binding<Bool> {
+        Binding(get: { reportPrepError != nil }, set: { if !$0 { reportPrepError = nil } })
     }
 
     /// Send-report mail composer. The PDF renders off-main, then

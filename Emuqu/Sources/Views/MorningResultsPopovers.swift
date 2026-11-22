@@ -169,12 +169,12 @@ struct MetricExplanationPopover: View {
         "LF n.u.": { (
             String(localized: "Low Frequency (Normalized Units)", bundle: LanguageManager.appBundle),
             String(localized: "LF power as a percentage of total LF+HF power. Removes the influence of VLF and normalizes for comparison.", bundle: LanguageManager.appBundle),
-            String(localized: "Typical range: 30-70%. Higher values suggest relative sympathetic predominance.", bundle: LanguageManager.appBundle)
+            String(localized: "Typical range: 30-70%. Read it next to HF n.u. and your own baseline: like LF power, it is not a measure of sympathetic activity on its own (Billman 2013).", bundle: LanguageManager.appBundle)
         ) },
         "HF n.u.": { (
             String(localized: "High Frequency (Normalized Units)", bundle: LanguageManager.appBundle),
             String(localized: "HF power as a percentage of total LF+HF power. Removes VLF influence and normalizes for comparison.", bundle: LanguageManager.appBundle),
-            String(localized: "Typical range: 30-70%. Higher values suggest relative parasympathetic predominance and better recovery.", bundle: LanguageManager.appBundle)
+            String(localized: "Typical range: 30-70%. Breathing rate moves it as much as vagal activity does: breathing slower than about 9 breaths a minute lowers it.", bundle: LanguageManager.appBundle)
         ) },
         "LF/HF": { (
             String(localized: "LF/HF Ratio", bundle: LanguageManager.appBundle),
@@ -232,7 +232,7 @@ struct MetricExplanationPopover: View {
         "Stress Index": { (
             String(localized: "Baevsky's Stress Index", bundle: LanguageManager.appBundle),
             String(localized: "Derived from the geometric properties of RR interval distribution. Reflects sympathetic nervous system load.", bundle: LanguageManager.appBundle),
-            String(localized: "Low (<100): Relaxed. Moderate (100-200): Normal. Elevated (200-300): Stressed. High (>300): Significant strain.", bundle: LanguageManager.appBundle)
+            String(localized: "Below 50: the low end, typical of good sleep. 50-100: the usual resting range. 100-150: somewhat above it. 150-300: well above it. Above 300: far above it.", bundle: LanguageManager.appBundle)
         ) },
         // The detail line says whose index this is.
         // Emuqu's PNS/SNS share Kubios' published inputs and Nunan 2010 norms,

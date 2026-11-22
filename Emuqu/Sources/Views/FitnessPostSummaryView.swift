@@ -130,6 +130,13 @@ struct FitnessPostSummaryView: View {
     @State var routeHistory: FitnessSummaryCards.RouteHistorySummary?
     /// Bumped by every route-history load; only the newest load's result lands.
     @State var routeHistoryGeneration = 0
+    /// For a session saved before analysis snapshots existed: the snapshot
+    /// built off the main actor by `backfillAnalysisSnapshotIfNeeded`, shown
+    /// until (or instead of, when the write is declined) the stored one, so
+    /// no render iterates the samples. Nil until it lands.
+    @State var builtAnalysis: WorkoutAnalysisSnapshot?
+    /// Bumped by every backfill; only the newest build lands in `builtAnalysis`.
+    @State var analysisGeneration = 0
 
     var track: [CLLocation] { cachedTrack }
     /// The splits card's rows and unit, resolved with the track.
@@ -154,6 +161,24 @@ struct FitnessPostSummaryView: View {
             // refresh here propagates everywhere.
             .onChange(of: archiveSignal.version) { _, _ in reloadFromArchive() }
             .onAppear { primeSummary() }
+            .onDisappear { removeTemporaryExports() }
+    }
+
+    /// The GPX / CSV / TCX / PDF / recap files are plaintext health data (GPS
+    /// and heart rate) in tmp. They go when the summary closes, and the state
+    /// that pointed at them is reset, so a summary shown again rebuilds them
+    /// (`applyReload` treats it as a first build).
+    private func removeTemporaryExports() {
+        for url in [gpxURL, csvURL, tcxURL, pdfURL, recapImageURL].compactMap({ $0 }) {
+            attempt("FitnessPostSummaryView.removeTemporaryExport") { try FileManager.default.removeItem(at: url) }
+        }
+        gpxURL = nil
+        csvURL = nil
+        tcxURL = nil
+        pdfURL = nil
+        recapImageURL = nil
+        exportsReady = false
+        summaryPrepared = false
     }
 
     private var summaryScroll: some View {
@@ -387,17 +412,16 @@ struct FitnessPostSummaryView: View {
     }
 
     private var deleteWorkoutMessage: some View {
-        Text(String(localized: "This removes the session from history and iCloud.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "This moves the reading to the Trash. You can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle))
     }
 
     /// Prime the refresh so any saved-while-open changes from a previous open
     /// of this session take effect immediately — its first landing also
-    /// builds the exports and route-history baseline, once — and kick the
-    /// one-shot legacy snapshot backfill (a no-op once the session has a
-    /// snapshot).
+    /// builds the exports and route-history baseline, once. The legacy
+    /// snapshot backfill runs from `invalidateCachedExports`, against the
+    /// copy that reload applied.
     private func primeSummary() {
         reloadFromArchive()
-        Task { await backfillAnalysisSnapshotIfNeeded() }
     }
 
     /// Fired both from `.onAppear` and from every
@@ -459,6 +483,10 @@ struct FitnessPostSummaryView: View {
         exportsReady = false
         Task { await generateExportsInBackground() }
         Task { await loadRouteHistorySummary() }
+        // A new copy may carry other samples: the analysis built for the old
+        // one no longer applies, and is rebuilt off the main actor.
+        builtAnalysis = nil
+        Task { await backfillAnalysisSnapshotIfNeeded() }
     }
 
     /// Decode the track once and write GPX/CSV/TCX to temp files on a

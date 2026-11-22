@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift",
- "hash": "46a2883cc6e823c0",
+ "hash": "831969fe5934c544",
  "role": "Extension of FitnessRecordingView with the metric tile grid, α1 physiology card, map card, derived label formatters, hold-to-end stop button and voice bar; plus the private StableMapCard map view.",
  "types": [
   "FitnessRecordingView: extension — tiles, physiology, controls; static α1 bar geometry alpha1BarMax (1.5) and the Hard/Threshold and Threshold/Easy cuts from HRVConstants.DFA",
@@ -9,7 +9,8 @@
  "state": [
   "static FitnessRecordingView.alpha1BarMax = 1.5, alpha1HardCut = 0.50/1.5, alpha1EasyCut = 0.75/1.5",
   "StableMapCard @State position: MapCameraPosition (.automatic)",
-  "StableMapCard @State lastFramedCount"
+  "StableMapCard @State lastFramedCount",
+  "StableMapCard @State coordinates (the track's coordinates, kept in step by syncCoordinates)"
  ],
  "toplevel": "Static α1 bar constants derived from HRVConstants.DFA.alpha1AnaerobicThreshold/alpha1AerobicThreshold.",
  "units": [
@@ -1404,15 +1405,15 @@
   },
   {
    "key": "var StableMapCard.body",
-   "hash": "fa0bf9c846f371e7",
-   "does": "180 pt map card: a constant backdrop, then the waiting placeholder when the track is empty or the live map otherwise. Overlays the GPS accuracy badge; reframes the camera on appear and whenever the newest fix changes (its timestamp), so a track already present at mount and a replaced seed fix are framed too.",
+   "hash": "1dcc143a6d4c470c",
+   "does": "180 pt map card: a constant backdrop, then the waiting placeholder when the track is empty or the live map otherwise. Overlays the GPS accuracy badge; on appear and whenever the newest fix changes (its timestamp) runs trackChanged, so the coordinates follow the track and a track already present at mount and a replaced seed fix are framed too.",
    "entry": "SwiftUI body; .onChange(of: track.last?.timestamp); .onAppear",
    "calls": [
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.mapBackdrop",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.waitingForFixPlaceholder",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.liveRouteMap",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.gpsAccuracyBadge",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.reframe()"
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.trackChanged()"
    ],
    "reads": [],
    "writes": [],
@@ -1424,9 +1425,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.reframe()": "91a87b9617a8c9f9",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.trackChanged()": "8c1d761cee022452",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.gpsAccuracyBadge": "e45e58e153526caf",
-    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.liveRouteMap": "4729207750db56ea",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.liveRouteMap": "12568facbc9635bd",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.mapBackdrop": "abad1aa6bf6051e8",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::var StableMapCard.waitingForFixPlaceholder": "6fb97c559d49d172"
    }
@@ -1464,27 +1465,29 @@
   },
   {
    "key": "var StableMapCard.liveRouteMap",
-   "hash": "e06db4482c259768",
-   "does": "Maps the track to coordinates once, then a single Map bound to @State position: a polyline once there are ≥2 points and a marker at the latest point (primary tint with ≥2 points, sage with 1).",
+   "hash": "5e7cb7af8c884461",
+   "does": "A single Map bound to @State position over the cached coordinates: a polyline once there are ≥2 points and a marker at the latest point (primary tint with ≥2 points, sage with 1).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:StableMapCard.coordinates"
+   ],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "coordinates.count >= 2",
      "effect": "true: MapPolyline drawn; false: none"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "last point exists",
      "effect": "true: Marker at last point"
     },
     {
-     "at": "+9",
+     "at": "+8",
      "cond": "count >= 2",
      "effect": "marker tint primary vs sage"
     }
@@ -1520,15 +1523,16 @@
   },
   {
    "key": "func StableMapCard.reframe()",
-   "hash": "3556d89083c15a77",
-   "does": "When the track is non-empty and shouldReframe says so, records the count and moves the camera: to the region around the whole track with ≥2 points, else a 200 m region on the single point.",
+   "hash": "b20a645c97cb523b",
+   "does": "When the track is non-empty and shouldReframe says so, records the count and moves the camera: to the region around the cached coordinates with ≥2 points, else a 200 m region on the single point.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.shouldReframe(count:lastFramed:)",
     "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.regionForTrack(_:)"
    ],
    "reads": [
-    "mem:StableMapCard.lastFramedCount"
+    "mem:StableMapCard.lastFramedCount",
+    "mem:StableMapCard.coordinates"
    ],
    "writes": [
     "mem:StableMapCard.lastFramedCount",
@@ -1576,6 +1580,44 @@
    "deps": {
     "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)": "9d9f61a1de8a5dfe"
    }
+  },
+  {
+   "key": "func StableMapCard.trackChanged()",
+   "hash": "f447d98060a8a8cd",
+   "does": "syncCoordinates, then reframe.",
+   "entry": "StableMapCard.body .onChange(of: track.last?.timestamp) and .onAppear",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.syncCoordinates()",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.reframe()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.reframe()": "1f201c0425d43492",
+    "Emuqu/Sources/Views/FitnessRecordingView+Tiles.swift::func StableMapCard.syncCoordinates()": "3bd4b25ddfee6eb8"
+   }
+  },
+  {
+   "key": "func StableMapCard.syncCoordinates()",
+   "hash": "9d2a3b7a420be8eb",
+   "does": "With two or more coordinates already mapped and a longer track, appends only the new tail's coordinates; otherwise (a first fix replacing the seed, a track that did not grow or shrank) maps the whole track.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:StableMapCard.coordinates"
+   ],
+   "writes": [
+    "mem:StableMapCard.coordinates"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "coordinates.count > 1 and track grew",
+     "effect": "append the tail; else remap whole"
+    }
+   ],
+   "deps": {}
   }
  ],
  "deps": {}

@@ -703,7 +703,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.heroHeadlineRow": "e17de1cb3352100f",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.heroSubtitle": "944602bf231ba4c3",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.heroSubtitle": "ee3be06edce60aea",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
@@ -752,8 +752,8 @@
   },
   {
    "key": "var HRVDetailV2View.heroSubtitle",
-   "hash": "89c7625acb740d0c",
-   "does": "One-sentence interpretation: generic copy without a baseline; else percent deviation of RMSSD from exp(lnMean) phrased per verdict.",
+   "hash": "9107ec11b9123b78",
+   "does": "One-sentence interpretation: generic copy unless the baseline has a mean and an SD above zero (the case the verdict compares against the baseline); else percent deviation of RMSSD from exp(lnMean) phrased per verdict.",
    "entry": "SwiftUI view-tree evaluation (re-evaluated on every body recompute of HRVDetailV2View)",
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.verdict",
@@ -764,26 +764,26 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "baselineStats?.lnRmssdMean non-nil and > 0",
+     "cond": "baselineStats lnRmssdMean > 0 and lnRmssdSD > 0 (the verdict also used the baseline)",
      "effect": "false: generic 'Today's RMSSD...' sentence; true: computes pct vs exp(mean)"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "verdict .excellent",
      "effect": "'N% above your baseline'"
     },
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "verdict .good",
      "effect": "'Within your usual range'"
     },
     {
-     "at": "+15",
+     "at": "+16",
      "cond": "verdict .fair",
      "effect": "'N% below your baseline'"
     },
     {
-     "at": "+17",
+     "at": "+18",
      "cond": "verdict .low",
      "effect": "'Well below your baseline'"
     }

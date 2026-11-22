@@ -38,6 +38,9 @@ struct GetMeBackView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var showClearConfirm = false
+    /// The arrow's drawn angle, unwrapped: it moves to each new heading the
+    /// short way round, so crossing ±180° turns it 2°, not 358°.
+    @State private var displayedArrowDegrees: Double = 0
     @State private var showSOSConfirm = false
     /// The number the SOS confirmation shows, fixed when SOS is tapped so the
     /// call goes to the number the user confirmed even if a geocode lands
@@ -157,6 +160,18 @@ struct GetMeBackView: View {
         let mod = (raw.truncatingRemainder(dividingBy: 360) + 360)
             .truncatingRemainder(dividingBy: 360)
         return mod > 180 ? mod - 360 : mod
+    }
+
+    private func turnArrow(to target: Double) {
+        displayedArrowDegrees = Self.continuousAngle(from: displayedArrowDegrees, to: target)
+    }
+
+    /// `target` (any angle) expressed as the angle nearest `current`, so an
+    /// animation from `current` turns at most 180° either way.
+    static func continuousAngle(from current: Double, to target: Double) -> Double {
+        let delta = (target - current).truncatingRemainder(dividingBy: 360)
+        let shortest = delta > 180 ? delta - 360 : (delta <= -180 ? delta + 360 : delta)
+        return current + shortest
     }
 
     /// Latest accuracy. Nil when there is no fix — handled in `accuracyState`.
@@ -491,9 +506,10 @@ struct GetMeBackView: View {
             // origin to point at: an arrow pointing "up" would send the user
             // the wrong way.
             CompassArrow(opacity: accuracyState.arrowOpacity, fuzz: accuracyState.fuzzRadius)
-                .rotationEffect(.degrees(arrowRotationDegrees))
+                .rotationEffect(.degrees(displayedArrowDegrees))
                 .opacity(showsArrow ? 1 : 0)
-                .animation(.zenInterface(.easeOut(duration: 0.3), reduceMotion: reduceMotion), value: arrowRotationDegrees)
+                .animation(.zenInterface(.easeOut(duration: 0.3), reduceMotion: reduceMotion), value: displayedArrowDegrees)
+                .onChange(of: arrowRotationDegrees) { _, target in turnArrow(to: target) }
             if accuracyState == .waiting || (trail != nil && originFix == nil) {
                 ProgressView().controlSize(.large)
             } else if !hasValidHeading {

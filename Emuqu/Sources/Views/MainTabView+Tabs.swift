@@ -169,7 +169,8 @@ extension MainTabView {
     func buildDashboardSnapshot(from sessions: [HRVSession]) -> UIStateCache.DashboardSnapshot {
         let cal = Calendar.current
         let overnight = DashboardSessionPolicy.latestOvernightComplete(in: sessions, calendar: cal)
-        let hero = overnight?.recoveryScore.map { ScoreVerdict.safeDisplayScore($0 * 10) }
+        // Same legacy fallback as the hero (`DashboardV2View.displayedScore`).
+        let hero = (overnight?.recoveryScore ?? overnight?.readinessScore).map { ScoreVerdict.safeDisplayScore($0 * 10) }
         let hrv = overnight?.analysisResult.map { Int($0.timeDomain.rmssd.rounded()) }
         let sleepMin = (overnight?.sleepSnapshot ?? DashboardSessionPolicy.latestWithSleep(in: sessions)?.sleepSnapshot)?.totalSleepIncludingNapMinutes
         let recent = DashboardSessionPolicy.recentDays(from: sessions, today: Date(), calendar: cal)

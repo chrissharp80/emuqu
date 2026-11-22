@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/DiscoverTrailsView.swift",
- "hash": "057528bc9abde1b8",
+ "hash": "35e8403c7283ab36",
  "role": "Sheet opened from the Fitness tab route picker: 'My routes' lists SavedRouteStore routes with length/ascent/name filters; 'Find new' runs an OSM Overpass trail search near a one-shot location fix and, on pick, saves the trail to the library and hands a Route back. Also defines OpenStreetMapAttribution, SavedRouteRow, TrailRow and SearchLocationProbe (CLLocationManager wrapper).",
  "types": [
   "DiscoverTrailsView: struct (View) — the route picker sheet",
@@ -26,7 +26,8 @@
   "mem:SearchLocationProbe.currentLocation / isDenied / gaveUp (observed)",
   "mem:SearchLocationProbe.retryCount / retryTask (ignored)",
   "mem:SearchLocationProbe.maxRetries (static 5)",
-  "static lengthStepperMaxKm = 100 (max-length stepper top = no max), ascentSliderMaxMeters = 2000 (max-ascent slider edge = no max)"
+  "static lengthStepperMaxKm = 100 (max-length stepper top = no max), ascentSliderMaxMeters = 2000 (max-ascent slider edge = no max)",
+  "mem:DiscoverTrailsView.searchTask (@State, the running search; cancelled by a new search and on disappear)"
  ],
  "toplevel": "Header (8-24) describes a two-phase UX whose results list shows 'name + length + ascent + difficulty + distance' and says picking saves to SavedRouteStore. @preconcurrency import CoreLocation. Presented only by WorkoutPreflightView.withRouteImporters as a sheet (WorkoutPreflightView.swift:569-572, onTrailPicked sets plan.selectedRoute) and hosted by RemainingScreenSnapshotTests.swift:66; FitnessTabView does not present it.",
  "units": [
@@ -96,13 +97,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.trailsScroll": "6c7ecfd8863d9b9d"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.trailsScroll": "a92b81b99643720b"
    }
   },
   {
    "key": "var DiscoverTrailsView.trailsScroll",
-   "hash": "f71653087c2e3fa8",
-   "does": "ScrollView with title 'Pick a route', Cancel toolbar; starts the location probe on appear and stops it on disappear.",
+   "hash": "8c4b1ea4433814c0",
+   "does": "ScrollView with title 'Pick a route', Cancel toolbar; starts the location probe on appear; on disappear stops it and cancels the running search.",
    "entry": "SwiftUI body; .onAppear / .onDisappear lifecycle.",
    "calls": [
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.trailsStack",
@@ -112,7 +113,9 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:DiscoverTrailsView.searchTask"
+   ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
@@ -241,7 +244,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.runSearch()": "92c70fad81f4e6ce",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.runSearch()": "b76c158e800eafdd",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.bodyLabel": "54abbb39bbe62021"
    }
   },
@@ -1025,8 +1028,8 @@
   },
   {
    "key": "func DiscoverTrailsView.runSearch()",
-   "hash": "e546844c2957c620",
-   "does": "Without a fix, sets an error message; otherwise snapshots service filters, clears error/results, sets isSearching and starts a detached task running searchAndPublish.",
+   "hash": "e464b7331909aea1",
+   "does": "Without a fix, sets an error message; otherwise snapshots service filters, clears error/results, sets isSearching, cancels any running search and starts a new searchTask running searchAndPublish on the main actor.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.serviceFilters()",
@@ -1039,7 +1042,8 @@
    "writes": [
     "mem:DiscoverTrailsView.errorText",
     "mem:DiscoverTrailsView.results",
-    "mem:DiscoverTrailsView.isSearching"
+    "mem:DiscoverTrailsView.isSearching",
+    "mem:DiscoverTrailsView.searchTask"
    ],
    "branches": [
     {
@@ -1050,14 +1054,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.searchAndPublish(near:filters:)": "a4dcd27b8db69be2",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.searchAndPublish(near:filters:)": "038981437cec8e42",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.serviceFilters()": "712e7ba044027b54"
    }
   },
   {
    "key": "func DiscoverTrailsView.searchAndPublish(near:filters:)",
-   "hash": "9ed3664b96a62d5d",
-   "does": "Runs TrailDiscoveryService.search; on success publishes trails, on error publishes the LocalizedError description (or localizedDescription).",
+   "hash": "023345dd11825823",
+   "does": "Reads the trail service on the main actor, awaits TrailDiscoveryService.search; unless the task was cancelled meanwhile, publishes the trails, or on error the LocalizedError description (or localizedDescription). A cancelled search publishes nothing.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.trailDiscoveryService",
@@ -1072,18 +1076,23 @@
    "branches": [
     {
      "at": "+4",
-     "cond": "search throws",
-     "effect": "catch: message from errorDescription"
+     "cond": "cancelled after the search",
+     "effect": "return; nothing published"
     },
     {
-     "at": "+5",
+     "at": "+6",
+     "cond": "search throws",
+     "effect": "catch: unless cancelled, message from errorDescription"
+    },
+    {
+     "at": "+8",
      "cond": "error is not LocalizedError",
-     "effect": "?? error.localizedDescription (e.g. CancellationError's generic text)"
+     "effect": "?? error.localizedDescription"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.search(near:filters:)": "35266d7cbd6d4547",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.SearchError.errorDescription": "2ee98853de64c6ca",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.search(near:filters:)": "f4970339e84691d6",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.SearchError.errorDescription": "b26b56212bbe48cf",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.trailDiscoveryService": "1b044d57dedd2c76",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.finishSearch(trails:error:)": "ba3e7052b2f4792c"
    }

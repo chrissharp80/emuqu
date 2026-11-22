@@ -127,6 +127,7 @@ struct ImportDataView: View {
             result: result,
             recentSessions: cachedRecentSessions,
             onDiscard: { discardImport() },
+            discardMessage: String(localized: "This drops the imported reading without saving it. The file you imported is not changed.", bundle: LanguageManager.appBundle),
             onUpdateTags: { applyReportTags($0, notes: $1, sessionId: session.id) },
             onUpdateSleep: { importedSleep = $0 }
         )

@@ -66,5 +66,9 @@ struct FitnessSummaryCards {
         /// A failed PDF or recap-card render, shown in its own alert so an
         /// export-file rebuild (which rewrites `exportError`) cannot erase it.
         var error: String?
+        /// The coach report was asked for: its button shows that it is being
+        /// prepared and does nothing more, so repeated taps cannot stage
+        /// several email drafts.
+        var coachReportRequested = false
     }
 }

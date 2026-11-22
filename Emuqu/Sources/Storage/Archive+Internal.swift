@@ -815,12 +815,24 @@ extension ArchiveStore {
 
     /// Mark a session as intentionally deleted (for lost sessions that user wants to dismiss)
     /// This adds the ID to the deleted tracking without requiring the session to be in the archive
+    ///
+    /// A save that throws takes a mark this call added back out of memory,
+    /// so the session is not hidden for the rest of the run while the file
+    /// says it is not deleted.
     func markAsDeleted(_ id: UUID) throws {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
-        archive.deletedSessionIds.insert(id)
+        let added = archive.deletedSessionIds.insert(id).inserted
         Self.recordDeletionTime(id)
-        try archive.saveDeletedIndex()
+        do {
+            try archive.saveDeletedIndex()
+        } catch {
+            if added {
+                archive.deletedSessionIds.remove(id)
+                Self.forgetDeletionTime(id)
+            }
+            throw error
+        }
     }
 
     // MARK: - Deletion times

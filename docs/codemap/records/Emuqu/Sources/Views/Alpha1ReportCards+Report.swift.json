@@ -70,7 +70,7 @@
    "deps": {
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Chart(alphaPoints:ectopicShadows:)": "4355e75cc161153e",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Hero(stats:)": "de5240a854e5912c",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)": "59975878cd5d95a7",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)": "06fd49f3265d876e",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1StatsRow(stats:sampleCount:)": "aeaff67619e9b4ce",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func ectopicShadowFooter(_:)": "f27b4c13d00a4498",
@@ -402,7 +402,7 @@
   {
    "key": "func Alpha1ReportCards.alpha1Stats(samples:)",
    "hash": "29f9ed305470fa3d",
-   "does": "Memoized α1 stats: builds a key from session id + sample shape; returns the cached value on a key match, else computes shadows, band totals/first crossing, shadow-cleaned min/max/avg, logs MIN provenance (DEBUG) and stores in the single-entry Alpha1StatsCache. The key carries no α1 values; FitnessSummaryCards.persistReanalyzedSamples, the one in-place α1 rewriter, clears the cache when it publishes re-analysed samples.",
+   "does": "Memoized α1 stats: builds a key from session id, sample shape and a hash of the α1 values; returns the cached value on a key match, else computes shadows, band totals/first crossing, shadow-cleaned min/max/avg, logs MIN provenance (DEBUG) and stores in the single-entry Alpha1StatsCache. Rewritten α1 values give a new key, so no writer has to clear the cache.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1CacheKey(sessionId:samples:)",
@@ -436,7 +436,7 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.alpha1StatsCache": "f1b54711087a1c5b",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "5a6901efb47d64c5",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1CacheKey(sessionId:samples:)": "2ccd96fe02154610",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1CacheKey(sessionId:samples:)": "37b4d5882e9967ed",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func cleanMinMaxAvg(values:)": "36271bd753530c3e",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func collectCleanAlpha1Values(samples:shadows:)": "f8437a1e19b42775",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func logAlpha1MinProvenance(min:samples:shadows:cleanCount:)": "6af2170b272fe733",
@@ -646,14 +646,16 @@
   },
   {
    "key": "func Alpha1ReportCards.alpha1RouteColoredCard(track:)",
-   "hash": "71acf1e4babfc2ed",
-   "does": "Route card: computes α1-band route segments from GPS track and samples; renders title, banded map and legend only when ≥2 segments.",
+   "hash": "98ce0f9e300ea94e",
+   "does": "Route card: computes α1-band route segments from GPS track and samples; renders title, banded map and legend only when ≥2 segments. The map is one accessibility element whose label gives the time in each band (alpha1Stats.distributionLabel), since the bands are colours only.",
    "entry": "SwiftUI body evaluation of FitnessPostSummaryView (via FitnessPostSummaryView+Alpha1Forwarding) when the GPS track is non-empty (FitnessPostSummaryView.swift:248)",
    "calls": [
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteSegments(track:samples:startDate:)",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteMap(segments:coords:)",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1BandLegend",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.distributionLabel"
    ],
    "reads": [],
    "writes": [],
@@ -673,6 +675,8 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteMap(segments:coords:)": "e53488f2a888744e",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteSegments(track:samples:startDate:)": "4458ef57b885a7d1",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)": "06fd49f3265d876e",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.distributionLabel": "4c3d0bcd00ff2964",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1BandLegend": "76961cc9f19c3309",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
@@ -985,14 +989,16 @@
   },
   {
    "key": "func alpha1CacheKey(sessionId:samples:)",
-   "hash": "ea33ee89b6896b21",
-   "does": "Builds Alpha1StatsCache.Key from session id, sample count, first/last α1 offsets and α1 sample count.",
+   "hash": "2a82484a0533847e",
+   "does": "Builds Alpha1StatsCache.Key from session id, sample count, first/last α1 offsets, α1 sample count and a hash of every α1 value in order, so rewritten values give a new key.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "617bf2c6974d2d39"
+   }
   },
   {
    "key": "func logAlpha1MinProvenance(min:samples:shadows:cleanCount:)",
