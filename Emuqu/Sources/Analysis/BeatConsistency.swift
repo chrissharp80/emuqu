@@ -324,6 +324,36 @@ enum BeatConsistency {
         )
     }
 
+    // MARK: - Sleep window
+
+    /// A session's stored sleep window — milliseconds after `sessionStart`
+    /// on the wall clock, as the HealthKit dates behind `sleepStartMs` and
+    /// `sleepEndMs` are — on the beats' `t_ms` axis, the axis `score`
+    /// enumerates its windows on. Streamed `t_ms` is the sum of the
+    /// intervals and falls behind the wall clock after a Bluetooth drop, so
+    /// each bound is shifted by the drift (`t_ms` minus wall clock) of the
+    /// beat nearest to it in wall-clock time. A beat without a wall-clock
+    /// stamp has no drift, and a missing bound is the series' start or end.
+    /// Every night, the scored one and the baseline's, is placed the same
+    /// way, so a night with dropouts is not scored on a shifted window.
+    static func sleepWindowOnBeatClock(
+        sleepStartMs: Int64?, sleepEndMs: Int64?, series: RRSeries, sessionStart: Date
+    ) -> (startMs: Int64, endMs: Int64) {
+        let start = sleepStartMs.map { beatClockOffset($0, series: series, sessionStart: sessionStart) } ?? 0
+        let end = sleepEndMs.map { beatClockOffset($0, series: series, sessionStart: sessionStart) } ?? Int64(series.durationMs)
+        return (start, end)
+    }
+
+    /// `offsetMs` after `sessionStart` moved onto the series' `t_ms` axis by
+    /// the drift of the beat nearest to that moment.
+    private static func beatClockOffset(_ offsetMs: Int64, series: RRSeries, sessionStart: Date) -> Int64 {
+        let date = sessionStart.addingTimeInterval(TimeInterval(offsetMs) / 1000)
+        guard let index = series.indexClosestToWallClock(date),
+              let wallMs = series.points[index].wallClockMs else { return offsetMs }
+        let seriesShiftMs = MillisecondOffset.between(series.startDate, and: sessionStart, fallback: 0)
+        return offsetMs + series.points[index].t_ms - (wallMs + seriesShiftMs)
+    }
+
     // MARK: - Window enumeration
 
     /// Walk forward from sleep start, one non-overlapping 30 s window at a
@@ -370,7 +400,7 @@ enum BeatConsistency {
         let endMs = startMs + config.windowLengthMs
         let windowRR = inWindow(rr: rr, cleanMask: cleanMask, startMs: startMs, endMs: min(endMs, sleepEndMs))
         let isValid = validateWindow(
-            rrInWindow: windowRR,
+            rrInWindow: (windowRR.intervals, windowRR.span),
             expectedLengthMs: config.windowLengthMs,
             toleranceMs: config.windowSpanToleranceMs,
             minN: config.minValidRRPerWindow
@@ -378,23 +408,29 @@ enum BeatConsistency {
         return Window(
             startMs: startMs, endMs: endMs,
             rrIntervals: windowRR.intervals,
-            features: isValid ? computeFeatures(rrIntervals: windowRR.intervals) : nil,
+            features: isValid
+                ? computeFeatures(rrIntervals: windowRR.intervals, followsPrevious: windowRR.followsPrevious)
+                : nil,
             isValid: isValid
         )
     }
 
     /// Extract the RR intervals that fall inside [startMs, endMs) and
-    /// pass the clean mask. Returns the intervals plus the span (last
-    /// minus first `t_ms`) for the validity check. `rr` is in time order,
-    /// so the scan starts at the first beat at or after `startMs` (binary
-    /// search) instead of rescanning the night from the first beat.
+    /// pass the clean mask. Returns the intervals, whether each one directly
+    /// follows the one before it in the series (false after a removed beat,
+    /// and for the first), and the span (last minus first `t_ms`) for the
+    /// validity check. `rr` is in time order, so the scan starts at the first
+    /// beat at or after `startMs` (binary search) instead of rescanning the
+    /// night from the first beat.
     private static func inWindow(
         rr: [RRPoint],
         cleanMask: [Bool],
         startMs: Int64,
         endMs: Int64
-    ) -> (intervals: [Int], span: Int64) {
+    ) -> (intervals: [Int], followsPrevious: [Bool], span: Int64) {
         var intervals: [Int] = []
+        var followsPrevious: [Bool] = []
+        var lastKept: Int?
         var firstT: Int64?
         var lastT: Int64?
         for i in firstIndex(in: rr, atOrAfter: startMs) ..< rr.count {
@@ -402,11 +438,13 @@ enum BeatConsistency {
             guard point.t_ms < endMs else { break }
             guard i < cleanMask.count, cleanMask[i] else { continue }
             intervals.append(point.rr_ms)
+            followsPrevious.append(lastKept.map { $0 == i - 1 } ?? false)
+            lastKept = i
             if firstT == nil { firstT = point.t_ms }
             lastT = point.t_ms
         }
         let span: Int64 = if let firstT, let lastT { lastT - firstT } else { 0 }
-        return (intervals, span)
+        return (intervals, followsPrevious, span)
     }
 
     /// Index of the first beat with `t_ms >= ms`, or `rr.count` when none.
@@ -442,21 +480,29 @@ enum BeatConsistency {
     /// so this is defensive — the floor on `count < 2` keeps the
     /// pNN50 denominator and SD math safe).
     static func computeFeatures(rrIntervals: [Int]) -> Features {
+        computeFeatures(rrIntervals: rrIntervals, followsPrevious: rrIntervals.indices.map { $0 > 0 })
+    }
+
+    /// `computeFeatures(rrIntervals:)` with the successive differences
+    /// (pNN50, SD1) taken only between intervals that were neighbours in the
+    /// series (`followsPrevious`): across a removed artifact beat the two
+    /// kept intervals are not successive, and differencing them would count
+    /// the removed beat's gap as beat-to-beat variability. A window with no
+    /// adjacent pair has no successive differences and reads 0 for both.
+    static func computeFeatures(rrIntervals: [Int], followsPrevious: [Bool]) -> Features {
         let n = rrIntervals.count
-        guard n >= 2 else { return .zero }
+        guard n >= 2, followsPrevious.count == n else { return .zero }
         let rrDoubles = rrIntervals.map(Double.init)
-        var nn50Count = 0
-        for i in 1 ..< n where abs(rrDoubles[i] - rrDoubles[i - 1]) > 50 {
-            nn50Count += 1
-        }
+        let diffs = (1 ..< n).filter { followsPrevious[$0] }.map { rrDoubles[$0] - rrDoubles[$0 - 1] }
+        let nn50Count = diffs.filter { abs($0) > 50 }.count
         // Population variance (divisor N) throughout: "Use
         // population stddev, be consistent across all three features".
         let mean = rrDoubles.reduce(0, +) / Double(n)
         let variance = populationVariance(rrDoubles, mean: mean)
         return Features(
-            pNN50: 100.0 * Double(nn50Count) / Double(n - 1),
+            pNN50: diffs.isEmpty ? 0 : 100.0 * Double(nn50Count) / Double(diffs.count),
             cvRR: mean > 0 ? sqrt(variance) / mean : 0,
-            ratio: poincareRatio(rrDoubles, variance: variance)
+            ratio: diffs.isEmpty ? 0 : poincareRatio(diffs: diffs, variance: variance)
         )
     }
 
@@ -464,10 +510,9 @@ enum BeatConsistency {
         values.reduce(0.0) { acc, v in acc + (v - mean) * (v - mean) } / Double(values.count)
     }
 
-    /// SD1 / SD2 (Poincaré). When `2*var - SD1^2 <= 0` the ratio
-    /// is 0 — no NaN, no crash.
-    private static func poincareRatio(_ rrDoubles: [Double], variance: Double) -> Double {
-        let diffs = (1 ..< rrDoubles.count).map { rrDoubles[$0] - rrDoubles[$0 - 1] }
+    /// SD1 / SD2 (Poincaré) from the window's successive differences. When
+    /// `2*var - SD1^2 <= 0` the ratio is 0 — no NaN, no crash.
+    private static func poincareRatio(diffs: [Double], variance: Double) -> Double {
         let diffMean = diffs.reduce(0, +) / Double(diffs.count)
         let sd1 = sqrt(populationVariance(diffs, mean: diffMean)) / sqrt(2)
         let sd2Squared = 2 * variance - sd1 * sd1

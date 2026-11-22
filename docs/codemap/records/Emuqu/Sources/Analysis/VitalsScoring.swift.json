@@ -384,13 +384,14 @@
   },
   {
    "key": "func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)",
-   "hash": "0812be1edac96816",
-   "does": "Returns the frozen breakdown unchanged unless freshVitals carries a respiratory rate and a 'Vitals' factor reports no respiration; then replaces that factor (detail + sub-score) with one rebuilt from freshVitals while keeping composite, tier, penalties, spo2 flag and scoringVersion.",
+   "hash": "149172eeae8da45f",
+   "does": "Returns the frozen breakdown unchanged unless freshVitals carries a respiratory rate and a 'Vitals' factor reports no respiration; then replaces that factor (detail + sub-score) with one rebuilt from freshVitals while keeping composite, tier, penalties, spo2 flag and scoringVersion, and records in refreshedFactorShift how far the refresh moved the factors' weighted sum, so gapFromFactors stays the frozen gap.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.reportsNoRespiration(_:)",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.refreshedVitalsFactor(_:fresh:baselineStats:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.contributionSum(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -408,13 +409,29 @@
     {
      "at": "+12",
      "cond": "no factor changed",
-     "effect": "return original breakdown; else return a new ScoreBreakdown with refreshed factors"
+     "effect": "return original breakdown; else a new ScoreBreakdown with refreshed factors and the shift"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.contributionSum(_:)": "113026070c23ef66",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.refreshedVitalsFactor(_:fresh:baselineStats:)": "4a3a7a2d5b9c3d8c",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.reportsNoRespiration(_:)": "a7bd77bcfbf2dc54"
+   }
+  },
+  {
+   "key": "func VitalsScoring.contributionSum(_:)",
+   "hash": "9c4db3ca257c1196",
+   "does": "Sum of the factors' weighted contributions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution": "f095427b34b57411"
    }
   },
   {

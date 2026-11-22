@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Analysis/Verification.swift",
- "hash": "b332b87f1e315e80",
- "role": "Verification: per-session data-quality report (point count, duration, max gap, RR drift, artifact %, ectopy %, out-of-range %) producing pass/fail, rejection reasons, localized errors/warnings and metrics. A report, not a gate: analysis runs regardless; the result is stored on SessionState.verificationResult for the record view's badge and its summary goes to the diagnostic log.",
+ "hash": "37e6948fc6bf3e53",
+ "role": "Verification: per-session data-quality report (point count, duration, max gap, RR drift, artifact %, ectopy %, out-of-range %) producing pass/fail (RR drift only ever warns), rejection reasons, localized errors/warnings and metrics. A report, not a gate: analysis runs regardless; the result is stored on SessionState.verificationResult for the record view's badge and its summary goes to the diagnostic log.",
  "types": [
   "Verification: struct — verifier with Config",
   "Verification.RejectionReason: enum String Codable — the seven failure modes the checks produce",
@@ -107,7 +107,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkDuration(_:reasons:errors:)": "9b6559826388ee1c",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkSignalQuality(maxGapMs:rrDrift:reasons:errors:warnings:)": "d2c1e584b56810a2",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.checkSignalQuality(maxGapMs:rrDrift:reasons:errors:warnings:)": "34bb503d631ead63",
     "Emuqu/Sources/Analysis/Verification.swift::func Verification.runThresholdChecks(artifacts:pointCount:reasons:errors:warnings:)": "885f7883f1378ff3"
    }
   },
@@ -315,8 +315,8 @@
   },
   {
    "key": "func Verification.checkSignalQuality(maxGapMs:rrDrift:reasons:errors:warnings:)",
-   "hash": "19e18e7c6ad2a36b",
-   "does": "maxGap > 5000 ms → signalLoss + error; |drift| > 200 ms → warning; |drift| > 400 ms → excessiveDrift + error.",
+   "hash": "728877796398ad0d",
+   "does": "maxGap > 5000 ms → signalLoss + error; |drift| > 200 ms → warning only (drift never rejects: an overnight's own HR fall exceeds any fixed limit).",
    "entry": null,
    "calls": [
     "ext:String(localized:bundle:)"
@@ -330,14 +330,9 @@
      "effect": "signalLoss + error"
     },
     {
-     "at": "+11",
+     "at": "+15",
      "cond": "|drift| > 200",
      "effect": "warning"
-    },
-    {
-     "at": "+14",
-     "cond": "|drift| > 400",
-     "effect": "excessiveDrift + error"
     }
    ],
    "deps": {

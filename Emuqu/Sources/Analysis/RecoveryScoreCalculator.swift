@@ -129,6 +129,12 @@ enum RecoveryScoreCalculator {
         /// defaults differ, and why that difference is the point.
         var scoringVersion: String = ScoringVersion.current
 
+        /// How far a display-time refresh moved the factors' weighted sum
+        /// after the composite was frozen (`VitalsScoring.breakdownRefreshingVitalsFactor`).
+        /// Not stored: it exists only on the refreshed copy, so the gap
+        /// between factors and composite stays the one scoring produced.
+        var refreshedFactorShift: Double = 0
+
         private enum CodingKeys: String, CodingKey {
             case compositeScore, tier, factors, penalties, spo2PenaltyApplied, scoringVersion
         }
@@ -171,8 +177,11 @@ enum RecoveryScoreCalculator {
 
         /// The gap between the weighted factor average and the composite. A
         /// positive gap means something outside the factors pulled the score down.
+        /// A refreshed factor's shift is taken back out: the composite was not
+        /// rescored, so the refresh is not a gap (a penalty, or baselines that
+        /// moved since the night).
         var gapFromFactors: Double {
-            factors.reduce(0.0) { $0 + $1.contribution } - compositeScore
+            factors.reduce(0.0) { $0 + $1.contribution } - refreshedFactorShift - compositeScore
         }
     }
 

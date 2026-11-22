@@ -97,6 +97,14 @@ enum TrendAnalyzer {
 
         /// Current value vs baseline
         let deviationFromBaseline: Double?
+
+        /// Whether the latest reading sits outside the smallest worthwhile
+        /// change of the readings in the seven days before it: more than
+        /// `TrendVerdict.swcSDMultiple` widened SDs of their ln values from
+        /// their ln mean, the method the recovery score uses. False with
+        /// fewer than three earlier readings, or a value that is not
+        /// positive, so a percentage alone never reads as a change.
+        var deviationBeyondSWC = false
     }
 
     /// Trend direction
@@ -318,8 +326,24 @@ enum TrendAnalyzer {
             percentile75: sorted[Swift.min(Int(Double(n) * 0.75), n - 1)],
             trend: direction(of: TrendVerdict.evaluate(values: values, dates: dates, scale: rule.scale), rule: rule),
             trendSlope: linearRegressionSlope(values: values, dates: dates), coefficientOfVariation: cv,
-            baseline: latest.baseline, deviationFromBaseline: latest.deviation
+            baseline: latest.baseline, deviationFromBaseline: latest.deviation,
+            deviationBeyondSWC: latestBeyondSWC(values: values, dates: dates)
         )
+    }
+
+    /// Whether the last value is outside the SWC band of the readings in the
+    /// seven days before it, on the ln scale (`deviationBeyondSWC`). The SD
+    /// is widened while the window is short and floored, as the recovery
+    /// score's baseline SD is (`BaselineTracker.widenedLnSD`).
+    /// Internal so the narrative gate can be tested directly.
+    static func latestBeyondSWC(values: [Double], dates: [Date]) -> Bool {
+        guard values.count == dates.count, let last = values.indices.last, values[last] > 0,
+              let windowStart = Calendar.current.date(byAdding: .day, value: -7, to: dates[last]) else { return false }
+        let earlier = (0 ..< last).filter { dates[$0] >= windowStart && dates[$0] < dates[last] }.map { values[$0] }
+        guard earlier.count >= BaselineTracker.RecoveryBaselineStats.minimumDays, earlier.allSatisfy({ $0 > 0 }) else { return false }
+        let lnEarlier = earlier.map { log($0) }
+        let sd = max(BaselineTracker.widenedLnSD(lnEarlier), BaselineConstants.lnRmssdSDFloor)
+        return abs(log(values[last]) - lnEarlier.mean) > TrendVerdict.swcSDMultiple * sd
     }
 
     /// The latest reading's 7-day baseline — the mean of the readings in the
@@ -410,7 +434,9 @@ enum TrendAnalyzer {
         if rmssd.coefficientOfVariation > 25 {
             out.append(String(localized: "Your HRV varies a lot day-to-day. This could mean inconsistent sleep or recovery patterns.", bundle: LanguageManager.appBundle))
         }
-        out += baselineDeviationInsights(rmssd.deviationFromBaseline, latestReading: latestReading)
+        out += baselineDeviationInsights(
+            rmssd.deviationFromBaseline, beyondSWC: rmssd.deviationBeyondSWC, latestReading: latestReading
+        )
         return out
     }
 
@@ -420,8 +446,13 @@ enum TrendAnalyzer {
     /// called out when that reading is last night's — one dated today or
     /// yesterday (an overnight is dated by its start). An older latest reading
     /// (a period that ends before today) says nothing about today.
-    private static func baselineDeviationInsights(_ deviation: Double?, latestReading: Date?) -> [String] {
-        guard let deviation, let latestReading,
+    ///
+    /// A 15% gap from a raw seven-day mean is not enough on its own: the
+    /// reading also has to lie outside the smallest worthwhile change
+    /// (`beyondSWC`), or the line would advise a rest day for a morning the
+    /// recovery score, with its ±0.5 SD deadband, reads as unchanged.
+    private static func baselineDeviationInsights(_ deviation: Double?, beyondSWC: Bool, latestReading: Date?) -> [String] {
+        guard let deviation, beyondSWC, let latestReading,
               Calendar.current.isDateInToday(latestReading) || Calendar.current.isDateInYesterday(latestReading)
         else { return [] }
         if deviation < -15 {

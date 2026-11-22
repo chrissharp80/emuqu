@@ -284,7 +284,7 @@ enum VitalsScoring {
             return refreshedVitalsFactor(factor, fresh: fresh, baselineStats: baselineStats)
         }
         guard changed else { return breakdown }
-        return RecoveryScoreCalculator.ScoreBreakdown(
+        var result = RecoveryScoreCalculator.ScoreBreakdown(
             compositeScore: breakdown.compositeScore,
             tier: breakdown.tier,
             factors: refreshed,
@@ -292,6 +292,15 @@ enum VitalsScoring {
             spo2PenaltyApplied: breakdown.spo2PenaltyApplied,
             scoringVersion: breakdown.scoringVersion
         )
+        // The composite is frozen: record how far the refresh moved the factors,
+        // so the advice does not read it as baselines that improved since.
+        result.refreshedFactorShift = breakdown.refreshedFactorShift + contributionSum(refreshed) - contributionSum(breakdown.factors)
+        return result
+    }
+
+    /// The factors' weighted sum.
+    private static func contributionSum(_ factors: [RecoveryScoreCalculator.ScoreFactor]) -> Double {
+        factors.reduce(0.0) { $0 + $1.contribution }
     }
 
     /// The respiratory clause when there is no rate.

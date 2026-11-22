@@ -134,12 +134,14 @@ enum WorkoutAlpha1Reanalyzer {
     /// from a clean one, which `applyReadings` then writes over the archived
     /// session. The guard is on the corrected FRACTION, at the same
     /// threshold the live analyzer uses — which is the point, since this type
-    /// exists to reproduce the live path offline.
+    /// exists to reproduce the live path offline. The beats a dropout lost
+    /// count as corrected too: the window is cleaned on the gap-corrected
+    /// timeline (`LiveDFAAnalyzer.cleanRRForDFA(_: [RRPoint])`), as live.
     private static func fit(
         _ windowPoints: [RRPoint], atOffsetSec t: Double, cadenceSec: Int, minBeatsForFit: Int
     ) -> Reading? {
         guard windowPoints.count >= minBeatsForFit else { return nil }
-        let cleaned = LiveDFAAnalyzer.cleanRRForDFA(windowPoints.map { Double($0.rr_ms) })
+        let cleaned = LiveDFAAnalyzer.cleanRRForDFA(windowPoints)
         guard cleaned.correctedFraction <= LiveDFAAnalyzer.maxCorrectedFraction,
               let result = DFAAnalyzer.compute(cleaned.values) else {
             return nil

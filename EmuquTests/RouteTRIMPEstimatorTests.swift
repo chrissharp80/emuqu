@@ -215,4 +215,18 @@ final class RouteTRIMPEstimatorTests: XCTestCase {
         dropout.workoutMetadata?.extrapolationConfidence = 0.7
         XCTAssertFalse(RouteTRIMPEstimator.isCleanPrior(dropout, sport: .run, before: workoutStart))
     }
+
+    /// The backfill reads each prior once into a `PriorRun` and estimates
+    /// every workout from those, so the run must carry what the estimate
+    /// reads: its window, sport, load trust and TRIMP per metre.
+    func testAPriorRunCarriesWhatTheEstimateReads() throws {
+        var session = prior(endingAt: workoutStart.addingTimeInterval(-86_400), luciaTRIMP: 60)
+        session.workoutMetadata?.distanceMeters = 6_000
+        let run = try XCTUnwrap(RouteTRIMPEstimator.PriorRun(session: session))
+        XCTAssertEqual(run.sessionId, session.id)
+        XCTAssertEqual(run.end, session.endDate)
+        XCTAssertEqual(run.sport, .run)
+        XCTAssertTrue(run.hasTrustworthyLoad)
+        XCTAssertEqual(try XCTUnwrap(run.trimpPerMetre), 0.01, accuracy: 1e-12)
+    }
 }

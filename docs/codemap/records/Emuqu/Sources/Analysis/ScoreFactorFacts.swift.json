@@ -206,7 +206,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvBaseClause(rmssd:z:baseScore:)": "8de57556869faffa",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.hrvDetailSentence(base:adjustments:)": "87aa0b1a51722f18",
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Adjustment.phrase": "d2609f86ea9a1327",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::var ScoreFactorFacts.Adjustment.phrase": "46ee62697ffb38b2",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "4f13d7a441167394",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)": "a15b86cd98df1261"
    }
@@ -315,8 +315,8 @@
   },
   {
    "key": "var ScoreFactorFacts.Adjustment.phrase",
-   "hash": "209bf74d185d6bb3",
-   "does": "Localised lowercase phrase per adjustment kind.",
+   "hash": "495160c01aba9642",
+   "does": "Localised lowercase phrase per adjustment kind, naming the measure rather than an autonomic state: the DFA α1 adjustments say where α1 sits against the app's reference range.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.Adjustment.restingHRPhrase(_:)",
@@ -369,7 +369,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.Adjustment.autonomicBalancePhrase(_:)": "be0a67259f76bde7",
+    "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.Adjustment.autonomicBalancePhrase(_:)": "510511cce6f48ad3",
     "Emuqu/Sources/Analysis/ScoreFactorFacts.swift::func ScoreFactorFacts.Adjustment.restingHRPhrase(_:)": "f8710d10a59fdfe0",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)": "4f13d7a441167394",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
@@ -400,8 +400,8 @@
   },
   {
    "key": "func ScoreFactorFacts.Adjustment.autonomicBalancePhrase(_:)",
-   "hash": "3e160a00c0bf3abe",
-   "does": "Autonomic balance phrase: toward rest when points>0, else toward stress.",
+   "hash": "422e6d8a57500f59",
+   "does": "PNS–SNS gap phrase: above its usual range when points>0, else below.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.integer(_:)",
@@ -413,7 +413,7 @@
     {
      "at": "+2",
      "cond": "points > 0",
-     "effect": "rest vs stress wording"
+     "effect": "above vs below wording"
     }
    ],
    "deps": {

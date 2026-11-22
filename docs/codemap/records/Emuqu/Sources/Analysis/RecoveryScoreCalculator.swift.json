@@ -6,7 +6,7 @@
   "RecoveryScoreCalculator: enum — namespace for recovery scoring",
   "RecoveryScoreCalculator.ScoreFactor: struct (Identifiable, Codable) — one breakdown row with label/detail/score/weight/impact/facts",
   "RecoveryScoreCalculator.ScoreFactor.Impact: enum — positive/neutral/negative",
-  "RecoveryScoreCalculator.ScoreBreakdown: struct (Codable) — composite, tier, factors, penalties, spo2PenaltyApplied, scoringVersion",
+  "RecoveryScoreCalculator.ScoreBreakdown: struct (Codable) — composite, tier, factors, penalties, spo2PenaltyApplied, scoringVersion, plus the unstored refreshedFactorShift of a display-time vitals refresh",
   "RecoveryScoreCalculator.ScoringConfiguration: struct — settings injected by callers",
   "RecoveryScoreCalculator.ScoringParameters: struct (Equatable) — versioned z-score band table",
   "RecoveryScoreCalculator.ScoreInputs: struct — physiological inputs of one scoring pass",
@@ -149,8 +149,8 @@
   },
   {
    "key": "var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors",
-   "hash": "d15be5ba7d1b1c78",
-   "does": "Sum of factor contributions minus compositeScore (positive = something outside the factors pulled the composite down).",
+   "hash": "10cfe30f4cc1d823",
+   "does": "Sum of factor contributions minus refreshedFactorShift (the move a display-time vitals refresh made) minus compositeScore (positive = something outside the factors pulled the composite down).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution"

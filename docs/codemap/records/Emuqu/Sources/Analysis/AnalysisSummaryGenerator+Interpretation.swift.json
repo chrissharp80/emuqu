@@ -783,15 +783,16 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalBaselineFindings(rmssd:)": "4e1e305bada19ed3",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.recentAverageFindings(rmssdPct:)": "34b6c97251870398",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.recentAverageFindings(rmssdPct:)": "02929de70637fca1",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.restingHRFindings": "bb1eef95e1e5e045",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sevenDayTrendFindings": "b69efef014e41b9d"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.sevenDayTrendFindings": "b69efef014e41b9d",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "745128b24479ceaf"
    }
   },
   {
    "key": "func AnalysisSummaryGenerator.recentAverageFindings(rmssdPct:)",
-   "hash": "747487ae54e878ce",
-   "does": "One sentence on RMSSD vs the recent average by averageBand: wellAbove → the trend card's 'well above your average… read a jump this large alongside how you feel and your recent training' (no 'excellent recovery'), above → good recovery, wellBelow → may be compromised, below → below usual range; consistent or edge → none.",
+   "hash": "3f35975fa8b12873",
+   "does": "One sentence on RMSSD vs the recent average by averageBand: wellAbove → the trend card's 'well above your average… read a jump this large alongside how you feel and your recent training' (no 'excellent recovery'), above → good recovery, wellBelow → 'significantly below' as an observation (no recovery verdict), below → below usual range; consistent or edge → none.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.number(_:decimals:)",
@@ -1097,8 +1098,8 @@
   },
   {
    "key": "var AnalysisSummaryGenerator.heartRhythmFindings",
-   "hash": "2536ee96a594f544",
-   "does": "DFA α1 sentence: >1.35 accumulated fatigue; >1.2 fatigue unless strong vagal tone; [0.75,1.0] in reference range; [0.60,0.75) less organized; else none. Strong vagal tone needs a measured pNN50 (an estimate counts as 0).",
+   "hash": "90dcdd30c47e112b",
+   "does": "DFA α1 sentence stating where the value sits against the app's reference range, never a fatigue or organisation verdict: >1.35 well above; >1.2 above unless strong vagal tone ('within normal variation'); [0.75,1.0] within; [0.60,0.75) below; else none. Strong vagal tone needs a measured pNN50 (an estimate counts as 0).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
@@ -1122,17 +1123,17 @@
     {
      "at": "+6",
      "cond": "alpha > 1.35",
-     "effect": "accumulated-fatigue sentence"
+     "effect": "'well above the reference range' sentence"
     },
     {
      "at": "+8",
      "cond": "alpha > 1.2",
-     "effect": "fatigue branch"
+     "effect": "above-range branch"
     },
     {
      "at": "+9",
      "cond": "strong vagal tone",
-     "effect": "'within normal variation'; else 'carrying some fatigue'"
+     "effect": "'within normal variation'; else 'above the reference range'"
     },
     {
      "at": "+14",
@@ -1142,12 +1143,13 @@
     {
      "at": "+16",
      "cond": "0.60 <= alpha < 0.75",
-     "effect": "less-organized sentence; else [] (1.0-1.2 and <0.60 silent)"
+     "effect": "'below the reference range' sentence; else [] (1.0-1.2 and <0.60 silent)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "afa703aacc2a5146",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)": "74b253b4ff4a78e2"
    }
   },
   {

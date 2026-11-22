@@ -123,10 +123,10 @@ extension CoachReportGenerator {
         guard let a = avgAlpha else { return nil }
         let alpha = decimal(a, digits: 2)
         if a >= 0.75 {
-            return String(localized: "Your DFA α1 sat at \(alpha) — that's textbook below-AT1, the kind of session that builds aerobic base without taxing recovery.", bundle: LanguageManager.appBundle)
+            return String(localized: "Your DFA α1 sat at \(alpha) — in the easy band (0.75 or above), an estimate of work below the aerobic threshold.", bundle: LanguageManager.appBundle)
         }
         if a >= 0.50 {
-            return String(localized: "DFA α1 averaged \(alpha), which puts you between AT1 and AT2 — meaningful tempo work.", bundle: LanguageManager.appBundle)
+            return String(localized: "DFA α1 averaged \(alpha), in the threshold band (0.50–0.75) — a directional sign of tempo-level work.", bundle: LanguageManager.appBundle)
         }
         return String(localized: "DFA α1 averaged \(alpha) — the hard efforts pulled it below 0.50, so this counts as a hard day.", bundle: LanguageManager.appBundle)
     }
@@ -206,8 +206,10 @@ extension CoachReportGenerator {
 
         init(secPerKm: Double, units: UnitsPreference) {
             self.secPerKm = secPerKm
-            let seconds = abs(Int((units == .imperial ? secPerKm * 1.609344 : secPerKm).rounded()))
-            text = units == .imperial
+            // `.auto` follows the locale, as every other pace does.
+            let imperial = units.resolved == .imperial
+            let seconds = abs(Int((imperial ? secPerKm * 1.609344 : secPerKm).rounded()))
+            text = imperial
                 ? String(localized: "\(seconds) sec/mi", bundle: LanguageManager.appBundle)
                 : String(localized: "\(seconds) sec/km", bundle: LanguageManager.appBundle)
         }
@@ -289,7 +291,7 @@ extension CoachReportGenerator {
             return [String(localized: "First (or near-first) outing on \(routeName) — once you have 3-4 sessions there, route-specific comparisons get reliable.", bundle: LanguageManager.appBundle)]
         }
         guard let dist = meta.distanceMeters, dist > 100,
-              let dur = session.duration, dur > 60,
+              let dur = session.activeWorkoutSeconds, dur > 60,
               let routeAvgPace = averageRoutePace(Array(routePeers))
         else { return [] }
         return [routeLapSentence(
@@ -313,7 +315,7 @@ extension CoachReportGenerator {
         var totalDur: Double = 0
         for prior in routePeers {
             guard let pd = prior.workoutMetadata?.distanceMeters, pd > 100,
-                  let pdur = prior.duration, pdur > 60 else { continue }
+                  let pdur = prior.activeWorkoutSeconds, pdur > 60 else { continue }
             totalDist += pd
             totalDur += pdur
         }
@@ -387,7 +389,7 @@ extension CoachReportGenerator {
         var paceDelta: Double?
         if let p = baselines.avgPaceSecPerKm,
            let dist = meta.distanceMeters, dist > 100,
-           let dur = session.duration, dur > 60 {
+           let dur = session.activeWorkoutSeconds, dur > 60 {
             todayPace = dur * 1_000.0 / dist
             paceDelta = (todayPace ?? 0) - p
         }
@@ -400,7 +402,12 @@ extension CoachReportGenerator {
               let one = hrr.bestAtOneMinute
         else { return nil }
         let (drop, peak, after) = (one.drop, one.peakHR, one.hr)
-        let measured: String = if let two = hrr.bestAtTwoMinutes {
+        // Apple's one-minute value is measured from its own end-of-workout
+        // reference, so the stop-rate pair this capture never measured is not
+        // quoted with it.
+        let measured: String = if one.provenance == .healthKitComputed {
+            String(localized: "**Recovery:** Apple Health recorded a \(drop) bpm drop in the first minute after the workout.", bundle: LanguageManager.appBundle)
+        } else if let two = hrr.bestAtTwoMinutes {
             String(localized: "**Recovery:** Your heart rate dropped \(drop) bpm in the first minute after you stopped (\(peak) → \(after)) and \(two.drop) bpm by two minutes.", bundle: LanguageManager.appBundle)
         } else {
             String(localized: "**Recovery:** Your heart rate dropped \(drop) bpm in the first minute after you stopped (\(peak) → \(after)).", bundle: LanguageManager.appBundle)
@@ -409,7 +416,11 @@ extension CoachReportGenerator {
     }
 
     /// How to read a one-minute heart-rate-recovery drop. The 25 / 18 / 12 bpm
-    /// cutoffs are the conventional clinical/athletic ones.
+    /// cutoffs are the conventional clinical/athletic ones. The 12 bpm one is
+    /// Cole 1999 (NEJM): after symptom-limited maximal testing, against a
+    /// mortality endpoint. A self-paced session is not that test, so the line
+    /// under it states that context instead of naming causes (science
+    /// register: `hrr-12bpm-band`).
     private static func hrrRecoverySentence(oneMinuteDrop drop: Int) -> String {
         switch drop {
         case 25...:
@@ -419,7 +430,7 @@ extension CoachReportGenerator {
         case 12 ..< 18:
             String(localized: "That's moderate recovery — there's headroom to improve aerobic conditioning.", bundle: LanguageManager.appBundle)
         default:
-            String(localized: "That's limited recovery — fatigue, dehydration, or detraining are the usual culprits when 1-min HRR is under 12 bpm.", bundle: LanguageManager.appBundle)
+            String(localized: "That's under 12 bpm. Cole (1999) set that cut-off after maximal treadmill tests, so after a self-paced session compare it with your usual drop rather than read it as a verdict.", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -452,16 +463,19 @@ extension CoachReportGenerator {
         case .aboveUsual:
             return String(localized: "Recent training is running above your usual range. One more easy day this week before the next quality session.", bundle: LanguageManager.appBundle)
         case .maintenance, .inRange:
-            return String(localized: "Recent training is within your usual range. Current volume is sustainable; planned hard sessions are safe to execute.", bundle: LanguageManager.appBundle)
+            return String(localized: "Recent training is within your usual range. The plan for your next sessions can stay as it is.", bundle: LanguageManager.appBundle)
         case .belowUsual:
             return String(localized: "Recent training is below your usual range. Room to add quality this week.", bundle: LanguageManager.appBundle)
         }
     }
 
     /// Nil in the neutral band, where TSB says nothing worth a sentence.
+    /// "Tired" starts where the training advice gate's heavy accumulated
+    /// fatigue does (`TrainingAdviceGate.heavyFatigueTSB`, −15), so the coach
+    /// never prescribes recovery-only for a load the gate calls clear.
     static func freshnessAdvice(tsb: Double) -> String? {
         let value = decimal(tsb, digits: 0, signed: true)
-        if tsb < -10 {
+        if tsb < TrainingAdviceGate.heavyFatigueTSB {
             return String(localized: "TSB is \(value) — meaningfully tired. Tomorrow should be aerobic recovery only.", bundle: LanguageManager.appBundle)
         }
         if tsb > 5 {

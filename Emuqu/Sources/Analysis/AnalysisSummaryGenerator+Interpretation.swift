@@ -346,7 +346,7 @@ extension AnalysisSummaryGenerator {
         case .above?:
             return [String(localized: "HRV is above your recent baseline of \(avg)ms (+\(pct)%) — good recovery", bundle: NarrativeLanguage.bundle)]
         case .wellBelow?:
-            return [String(localized: "HRV is significantly below your recent baseline of \(avg)ms (\(pct)%) — recovery may be compromised", bundle: NarrativeLanguage.bundle)]
+            return [String(localized: "HRV is significantly below your recent baseline of \(avg)ms (\(pct)%)", bundle: NarrativeLanguage.bundle)]
         case .below?:
             return [String(localized: "HRV is below your recent baseline of \(avg)ms (\(pct)%) — below your usual range", bundle: NarrativeLanguage.bundle)]
         case .consistent?, nil:
@@ -459,17 +459,17 @@ extension AnalysisSummaryGenerator {
         let hasStrongVagalTone = pnn50 > HRVThresholds.pnn50Moderate && rmssd >= HRVThresholds.rmssdModerate
         guard let alpha = result.nonlinear.dfaAlpha1 else { return [] }
         if alpha > HRVThresholds.dfaAlpha1ClearlyElevated {
-            return [String(localized: "Your heart rhythm pattern suggests accumulated fatigue — consider extra rest today", bundle: NarrativeLanguage.bundle)]
+            return [String(localized: "DFA α1 was well above the app's reference range last night", bundle: NarrativeLanguage.bundle)]
         } else if alpha > HRVThresholds.dfaAlpha1Fatigue {
             if hasStrongVagalTone {
                 return [String(localized: "Heart rhythm patterns are within normal variation", bundle: NarrativeLanguage.bundle)]
             } else {
-                return [String(localized: "Your heart rhythm suggests you may be carrying some fatigue — don't overdo it", bundle: NarrativeLanguage.bundle)]
+                return [String(localized: "DFA α1 was above the app's reference range last night", bundle: NarrativeLanguage.bundle)]
             }
         } else if alpha >= HRVThresholds.dfaAlpha1OptimalLower, alpha <= HRVThresholds.dfaAlpha1OptimalUpper {
             return [String(localized: "DFA α1 was within the app's reference range last night", bundle: NarrativeLanguage.bundle)]
         } else if alpha < HRVThresholds.dfaAlpha1OptimalLower, alpha >= HRVThresholds.dfaAlpha1FlexibleLower {
-            return [String(localized: "Your heart rhythm is less organized than usual — this often improves with consistent sleep", bundle: NarrativeLanguage.bundle)]
+            return [String(localized: "DFA α1 was below the app's reference range last night", bundle: NarrativeLanguage.bundle)]
         }
         return []
     }

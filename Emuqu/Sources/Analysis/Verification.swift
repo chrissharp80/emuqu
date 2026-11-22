@@ -21,7 +21,10 @@ struct Verification {
         // Quality failures
         case excessiveArtifacts = "excessive_artifacts" // Artifact % above threshold
         case excessiveEctopy = "excessive_ectopy" // Too many ectopic beats
-        case excessiveDrift = "excessive_drift" // RR intervals drifting unrealistically
+        /// No longer produced: an overnight's own fall in heart rate drifts the
+        /// RR intervals by more than any fixed limit, so drift is reported
+        /// as a warning only. Kept so results stored with it still decode.
+        case excessiveDrift = "excessive_drift"
         case signalLoss = "signal_loss" // Gaps in data suggesting sensor issues
         case outOfBoundsIntervals = "out_of_bounds" // Too many physiologically impossible values
     }
@@ -288,12 +291,12 @@ struct Verification {
             reasons.append(.signalLoss)
             errors.append(String(localized: "Signal gap detected: \(Self.decimal(Double(maxGapMs) / 1000.0, digits: 1))s", bundle: LanguageManager.appBundle))
         }
+        // Drift is a warning, never a rejection: falling asleep and the
+        // nadir of the night routinely lengthen the RR intervals by more than
+        // 400 ms between the first and last tenth of a recording, and the
+        // mean of each tenth cannot tell that from electrode movement.
         if abs(rrDrift) > HRVThresholds.verificationDriftWarnMs {
             warnings.append(String(localized: "RR drift detected: \(Self.decimal(rrDrift, digits: 0))ms", bundle: LanguageManager.appBundle))
-        }
-        if abs(rrDrift) > HRVThresholds.verificationDriftRejectMs {
-            reasons.append(.excessiveDrift)
-            errors.append(String(localized: "Excessive RR drift: \(Self.decimal(rrDrift, digits: 0))ms (electrode movement suspected)", bundle: LanguageManager.appBundle))
         }
     }
 
