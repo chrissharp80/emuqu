@@ -542,7 +542,11 @@ app does:
    - turns iCloud sync off;
    - deletes the app's CloudKit zones (`HRVSessions`, `UserSettings`) from the
      user's private database, first, through
-     `CloudKitSyncManager.deleteAllRemoteData()`;
+     `CloudKitSyncManager.deleteAllRemoteData()`, but only in the iCloud
+     account this device synced with (or, with none recorded, the signed-in
+     one, unless sync was stopped because it is a different account): in any
+     other account, or when the account cannot be checked, nothing there is
+     deleted and the remote step reports failure;
    - wipes the local archive, backups, workout tracks and breadcrumbs, and
      sweeps every other file in the app's containers;
    - removes the AI provider API keys from the Keychain;
@@ -558,7 +562,7 @@ app does:
    The trial and purchase record (`EntitlementAnchor`) is kept on purpose: a
    wipe is not a refund.
 
-   If the remote delete fails (offline, signed out of iCloud), the local wipe
+   If the remote delete fails (offline, signed out of iCloud, another account), the local wipe
    still runs and the report says `remoteDeleted: false`, so the user can run
    it again with a connection. Re-running is safe. The fallbacks are iCloud
    storage management on the device (Settings → [Your name] → iCloud → Manage

@@ -100,8 +100,8 @@
   },
   {
    "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Step 3 — CloudKit private-DB deletion",
-   "hash": "ba3ab80d2965c8ae",
-   "does": "Claims the purge awaits CloudKitSyncManager.deleteAllRemoteData, which deletes zones HRVSessions and UserSettings before the local wipe (after PurgeGate closes and sync is turned off); other devices on the account are not wiped: each finds the zones gone, CloudAccountGuard.zoneWasDeleted → stopSync turns its sync off with a notice, keeps local data and uploads nothing, so the user runs the delete on each; offline/signed-out failure still completes the local wipe and reports remoteDeleted false, surfaced as a retry prompt; re-running is idempotent (zone-already-gone counts as success, 30 s timeout, Report.remoteLine).",
+   "hash": "e9d1d3753abf0df7",
+   "does": "Claims the purge awaits CloudKitSyncManager.deleteAllRemoteData, which deletes zones HRVSessions and UserSettings before the local wipe (after PurgeGate closes and sync is turned off); the zones are deleted only in the account synced with, or with none recorded the signed-in one unless sync was stopped for a different account, else nothing is deleted and failure reported (mayDeleteInSignedInAccount); other devices on the account are not wiped: each finds the zones gone, CloudAccountGuard.zoneWasDeleted → stopSync turns its sync off with a notice, keeps local data and uploads nothing, so the user runs the delete on each; offline/signed-out failure still completes the local wipe and reports remoteDeleted false, surfaced as a retry prompt; re-running is idempotent (zone-already-gone counts as success, 30 s timeout, Report.remoteLine).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)",
@@ -109,7 +109,8 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()",
     "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.remoteLine",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.mayDeleteInSignedInAccount()"
    ],
    "reads": [],
    "writes": [],
@@ -117,9 +118,10 @@
    "deps": {
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)": "6fe62cc8633e3cad",
     "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.remoteLine": "15d3197c746bfd63",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "12d14f68b1fd137f",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "42ad9add2c66cf12",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "4d2df9370d22b5f6",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "733581b41076e82a",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()": "ab412e737e713464",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.mayDeleteInSignedInAccount()": "0e40963c396ef1ac",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.deleteAllRemoteData()": "0c3f26786ca478b4"
    }
   },

@@ -225,7 +225,7 @@ A **7-page** onboarding wizard then walks you through initial setup:
 1. **Welcome** — Brand splash + "Get started" CTA
 2. **What Emuqu does** — Three-card carousel explaining the app's value
 3. **Profile** — Birthday, biological sex and body weight, all optional
-4. **Sensor** — Scan and pair your Polar device (H10 chest strap or Verity Sense optical sensor — same UI handles both; the Record tab uses whichever you paired). "I'll do this later" skip is supported.
+4. **Sensor** — Scan and pair your Polar device (H10 chest strap or Verity Sense optical sensor — same UI handles both; the Record tab uses whichever you paired). **Skip** moves on without pairing.
 5. **Apple Health** — A dedicated permission-priming page. Tapping **Connect** fires the system permission sheet inline; the page handles partial-grant and full-deny states with explicit status cards. Swiping past it counts as skipping.
 6. **Backup** — Turn on iCloud sync if you want it (off by default)
 7. **You're In** — 14-day calibration messaging + "Take a reading" / "Skip — show me around" buttons.

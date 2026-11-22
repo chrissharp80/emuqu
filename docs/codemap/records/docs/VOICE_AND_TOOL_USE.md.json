@@ -123,8 +123,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)": "f27518b86dbe85fa",
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "7716bbd58cb2dd39"
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)": "8d58df70465717c5",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "c74b7f5f64f2ae07"
    }
   },
   {
@@ -142,7 +142,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)": "be5aa3e059590e1a",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)": "8432a1cca189e61c",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.providerSupportsTools(_:)": "f1b46d5c0e8c1812",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.actionIntentOverride(inputs:stage:mapping:logLines:)": "a8869f9eabad73ec",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)": "b0800daf5a464141"
@@ -208,7 +208,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "e621833a515b3262",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e"
    }
   },
   {
@@ -230,8 +230,8 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > AFM prewarm",
-   "hash": "8c7153085787683e",
-   "does": "Claims AppleFoundationProvider.prewarm() (idempotent, detached, .utility) runs on the first send when routing might land on Apple: Quick/Auto, or Manual with Apple selected. Code calls it on every send when mode != .deep and (mode != .manual or active is Apple) (AssistantViewModel.swift:480-489).",
+   "hash": "e88ff6493f3d0671",
+   "does": "Claims AppleFoundationProvider.prewarm() (idempotent, detached, .utility) runs on a send when Apple Intelligence is the selected model and the routing mode is not Deep (AssistantViewModel.dispatchToProvider), warming the model's shared assets with a throwaway session; the turn's own session, built with the real instructions and tools, still processes its prefix on the first send.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prewarm()",
@@ -241,8 +241,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prewarm()": "889410db7635f17e",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.dispatchToProvider(_:fromVoice:)": "8c62009b2ebea89e"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.prewarm()": "53dbb6a2ef4c477c",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.dispatchToProvider(_:fromVoice:)": "649a71fb21a349a1"
    }
   },
   {
@@ -277,9 +277,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.perProviderSummary()": "88bb6c6496ef3fde",
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.recentHitRatio(turns:)": "5be1d23804d6795a",
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)": "985f1c3e8c95f8e0",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.perProviderSummary()": "7646663bf4474cd3",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.recentHitRatio(turns:)": "3edab872b0aba2a8",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)": "428e7594139dea5d",
     "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.reset()": "9eb136c617078983"
    }
   },
@@ -316,10 +316,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "d3863d8890919dcd",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "a26db50852d1a413",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)": "6ee535086f75f636",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "51c429d7c3e8b857",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)": "2bf558b2e56f8b39",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "08e15dc41d4b0890",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d7b1be0c3dfd3ecb"
    }
   },
@@ -446,8 +446,8 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > Voice conversation flow > Barge-in (interrupting the AI)",
-   "hash": "97d1a903dd635d17",
-   "does": "Claims four gates all required for barge-in: 600 ms grace, RMS above threshold sustained 300 ms, >= 2 new recognized words, Jaccard echo rejection; plus a Send now push-to-talk button. Verified checkForBargeIn (Speech.swift:524-537) with bargeInGracePeriodSec 0.6, bargeInSustainedSec 0.3, bargeInMinNewWords 2 and VoiceEchoHeuristics.isEchoOfInFlightResponse; it additionally requires state == .speaking and synthesizer.isSpeaking.",
+   "hash": "aae79207bd82d8c7",
+   "does": "Claims four gates all required for barge-in: 600 ms grace, RMS above threshold sustained 300 ms, >= 2 new recognized words, echo rejection when the new words overlap what has streamed by >= 0.65 (VoiceEchoHeuristics.isEchoOfInFlightResponse); plus a Send now push-to-talk button. checkForBargeIn with bargeInGracePeriodSec 0.6, bargeInSustainedSec 0.3, bargeInMinNewWords 2.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.checkForBargeIn()",
@@ -460,7 +460,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.checkForBargeIn()": "22f098e4cff3f543",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.isLikelyEchoOfCurrentResponse(_:)": "57da48812b9ae597",
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)": "569fcd25ef98ac93"
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isEchoOfInFlightResponse(candidate:streamedSoFar:)": "7143410834207142"
    }
   },
   {
@@ -477,15 +477,15 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "51c429d7c3e8b857",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "08e15dc41d4b0890",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.cancelLLM()": "96e4b90ab7e3f620",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "6da990bdd4545968"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "89dce1ce746e3a16"
    }
   },
   {
    "key": "§ Voice Conversation & Tool Use > Voice conversation flow > Turn timeouts",
-   "hash": "59e693df04daffa6",
-   "does": "Claims 30 s max turn, 3 s no-growth commit when >= 4 chars captured, 1.2 s end-of-turn silence. Verified maxTurnDurationSec 30, stalledTranscriptCommitSec 3.0, stalledTranscriptMinChars 4, endOfTurnSilenceSec 1.2 (VoiceConversationController.swift:334-348).",
+   "hash": "2102f42d21cac914",
+   "does": "Claims 30 s max turn (not for a silent turn on a live mic, which is left to the 45 s long-idle recognizer restart; hitMaxTurnDuration/isSilentTurnOnLiveMic), 3 s no-growth commit when >= 4 chars captured, 1.2 s end-of-turn silence. maxTurnDurationSec 30, stalledTranscriptCommitSec 3.0, stalledTranscriptMinChars 4, endOfTurnSilenceSec 1.2, longIdleRestartSec 45.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.silenceTimerTick()",
@@ -497,7 +497,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.commitTurnIfSettled()": "ac0af1bfbfbc9737",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.hitMaxTurnDuration()": "9cafd6c68dafdefc",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.hitMaxTurnDuration()": "800c6f01da59e5b4",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.silenceTimerTick()": "32a5e89dbf1be1fe"
    }
   },
@@ -527,7 +527,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.compose(userFacts:priorSummary:contextRendered:includeAppReference:compactAppReference:voiceMode:toolMode:)": "3076f7a8acac00e5",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "529dfa81bc2427f6",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "465411f5e2ccd482",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.toolModeSections(toolMode:)": "2e705b336e3ba79a"
    }
   },
@@ -560,7 +560,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "a9293788382bb14c",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "529dfa81bc2427f6"
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "465411f5e2ccd482"
    }
   },
   {
