@@ -98,12 +98,19 @@ final class EncryptionManager: Sendable {
     /// AES-GCM authentication makes a wrong reading fail rather than return
     /// wrong bytes, and when both fail the first reading's error is thrown.
     func decrypt(_ encryptedData: Data) throws -> Data {
+        try openReportingVersion(encryptedData).plaintext
+    }
+
+    /// The plaintext, and the key version that actually opened it: the
+    /// version the blob's prefix names, or 1 when the framed reading failed
+    /// and the whole blob opened as bare legacy data.
+    private func openReportingVersion(_ encryptedData: Data) throws -> (plaintext: Data, version: UInt8) {
         let (version, payload) = extractVersion(from: encryptedData)
         do {
-            return try openSealed(payload, version: version)
+            return (try openSealed(payload, version: version), version)
         } catch {
             guard payload.count < encryptedData.count else { throw error }
-            return try openAsBare(encryptedData, otherwise: error)
+            return (try openAsBare(encryptedData, otherwise: error), 1)
         }
     }
 
@@ -134,15 +141,21 @@ final class EncryptionManager: Sendable {
 
     /// Re-encrypt data from any key version to the current key version.
     /// Returns nil if the data is already encrypted with the current version.
+    ///
+    /// The version that counts is the one whose key opened the blob, not the
+    /// one its first bytes appear to name: a bare legacy blob whose random
+    /// first nonce byte reads as another version (2-127) opens with the v1
+    /// key, so it is already under the current key and is left as it is.
     /// - Parameter encryptedData: Previously encrypted data (any version)
     /// - Returns: Re-encrypted data with current key version, or nil if already current
     func reEncryptIfNeeded(_ encryptedData: Data) throws -> Data? {
         let (version, _) = extractVersion(from: encryptedData)
         guard version != Self.currentKeyVersion else { return nil }
 
-        // Decrypt with old key, re-encrypt with current key
-        let plaintext = try decrypt(encryptedData)
-        return try encrypt(plaintext)
+        // Decrypt with the key that opens it; re-encrypt only off an old key.
+        let opened = try openReportingVersion(encryptedData)
+        guard opened.version != Self.currentKeyVersion else { return nil }
+        return try encrypt(opened.plaintext)
     }
 
     // MARK: - Version Extraction

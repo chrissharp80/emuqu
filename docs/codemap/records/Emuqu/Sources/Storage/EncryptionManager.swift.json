@@ -73,8 +73,39 @@
   },
   {
    "key": "func EncryptionManager.decrypt(_:)",
-   "hash": "64610fe84f62964e",
+   "hash": "f751f300f7d349bb",
    "does": "Decrypts any of the three formats: opens with the extracted version's key; on failure, if any framing was stripped (FR magic or legacy version byte), retries the whole blob as bare with the v1 key via openAsBare, which rethrows the first error if that also fails; an unframed blob's error is rethrown directly.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openReportingVersion(_:)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "writes": [
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "openSealed threw",
+     "effect": "enter fallback check"
+    },
+    {
+     "at": "+5",
+     "cond": "payload shorter than input (blob was parsed as framed)",
+     "effect": "openAsBare(whole blob); else rethrow original error"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openReportingVersion(_:)": "ef65af53de90d0bc"
+   }
+  },
+  {
+   "key": "func EncryptionManager.openReportingVersion(_:)",
+   "hash": "a14d77eb990bd3a0",
+   "does": "Opens any of the three formats and returns the plaintext with the key version that opened it: opens with the extracted version's key and returns that version; on failure, if any framing was stripped (FR magic or legacy version byte), retries the whole blob as bare with the v1 key via openAsBare (which rethrows the first error if that also fails) and returns version 1; an unframed blob's error is rethrown directly.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
@@ -97,7 +128,7 @@
     {
      "at": "+5",
      "cond": "payload shorter than input (blob was parsed as framed)",
-     "effect": "openAsBare(whole blob); else rethrow original error"
+     "effect": "openAsBare(whole blob) and report version 1; else rethrow original error"
     }
    ],
    "deps": {
@@ -177,12 +208,12 @@
   },
   {
    "key": "func EncryptionManager.reEncryptIfNeeded(_:)",
-   "hash": "19cd5f4db3c62c54",
-   "does": "Returns data re-encrypted under the current key when its extracted version differs, nil when already current.",
+   "hash": "fbf783f8a1239e35",
+   "does": "Returns data re-encrypted under the current key when the key that opens it is an older version, nil when already current: nil at once when the extracted version is current; otherwise opens it (openReportingVersion(_:)) and returns nil when the key that opened it is the current one (a bare blob whose first nonce byte reads as another version opens with v1), else encrypts the plaintext under the current key. Throws when no key opens it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openReportingVersion(_:)",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)"
    ],
    "reads": [
@@ -194,14 +225,19 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "version == currentKeyVersion",
-     "effect": "return nil (also for legacy version-prefixed v1 and bare blobs, which are never re-framed)"
+     "cond": "extracted version == currentKeyVersion",
+     "effect": "return nil (also for legacy version-prefixed v1 blobs and bare blobs read as v1, which are never re-framed)"
+    },
+    {
+     "at": "+6",
+     "cond": "the version that opened the blob == currentKeyVersion",
+     "effect": "return nil (a bare blob misread as another version)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "23819ca6a7583ff6"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "23819ca6a7583ff6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openReportingVersion(_:)": "ef65af53de90d0bc"
    }
   },
   {
