@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/FitnessTabView.swift",
- "hash": "2f68aa47a308c0f8",
+ "hash": "cdd26b90df3c155c",
  "role": "Root view of the Fitness tab: routes between the recording screen and the default dashboard by recorder phase, owns the summary sheet, GPX export/preview/share, GPX and Apple Health import entry points, workout delete, and workout start; also declares WorkoutSummaryItem, PhaseObservingStateBody and the shared RecorderBox.",
  "types": [
   "WorkoutSummaryItem: struct — Identifiable sheet item (session + isJustCompleted)",
@@ -13,7 +13,7 @@
   "static RecorderBox.shared (FitnessTabView.swift:786)",
   "mem:RecorderBox.recorder (FitnessTabView.swift:787)",
   "ud:fitness.getMeBack.disclaimerSeenV1 — FitnessTabView.getMeBackDisclaimerSeenKey (FitnessTabView.swift:107; read/written in FitnessTabView+Sections.swift:49,61)",
-  "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, interruptedScanGeneration (newest interrupted-recording scan wins), gpxShareURL (set only while a share is pending or shown), gpxSharePresented, gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutRoute (its decoded GPS route), latestWorkoutLoadFailed, recentWorkoutLoadFailed, workoutDeleteFailed (the summary sheet's delete alert), pendingRecentDeleteId (the Recent workout awaiting delete confirmation), recentWorkoutDeleteFailed (the tab's delete alert)"
+  "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, interruptedScanGeneration (newest interrupted-recording scan wins), gpxFile (the written GPX file while its preview is up or its share is pending), gpxSendTapped (Send was tapped in the preview), gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutRoute (its decoded GPS route), latestWorkoutLoadFailed, recentWorkoutLoadFailed, workoutDeleteFailed (the summary sheet's delete alert), pendingRecentDeleteId (the Recent workout awaiting delete confirmation), recentWorkoutDeleteFailed (the tab's delete alert)"
  ],
  "toplevel": "Stored @State initialisers: planModel = WorkoutPlanModel(), all others empty/false/nil/0. Environment: dependencies, RRCollector, ArchiveSignal, VoiceConversationController, SettingsManager. RecorderBox.shared is a static singleton constructed lazily; the header and PhaseObservingStateBody comments say the recorder lives in that app-wide box and that both WorkoutRecorder and WorkoutLifecycle are @Observable.",
  "units": [
@@ -459,7 +459,7 @@
    "deps": {
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessChrome(_:)": "29701bf0b1d72214",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessImports(_:)": "31a6b87b98c8abe8",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withGPXSheets(_:)": "ce5e70f20dcbc9ac",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withGPXSheets(_:)": "0c54aaa455b9d5c7",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeScroll": "d2b3fbe6ff051039"
    }
   },
@@ -717,27 +717,23 @@
   },
   {
    "key": "func FitnessTabView.withGPXSheets(_:)",
-   "hash": "a4663f160004265a",
-   "does": "Adds the GPX share sheet (presented through gpxShareBinding; its dismissal clears gpxShareURL), the GPX preview sheet (item; its dismissal calls presentPendingGPXShare) and an 'Export' alert bound to exportMessage.",
+   "hash": "fc0d1b7c9ef0b2ea",
+   "does": "Adds the GPX preview sheet (item; its dismissal calls presentPendingGPXShare, which shares or deletes the file) and an 'Export' alert bound to exportMessage.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareBinding",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareSheet",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.gpxPreviewSheet(_:)",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.presentPendingGPXShare()"
    ],
    "reads": [],
-   "writes": [
-    "mem:FitnessTabView.gpxShareURL"
-   ],
+   "writes": [],
    "branches": [
     {
-     "at": "+12",
+     "at": "+10",
      "cond": "alert binding set to false",
      "effect": "clears exportMessage"
     },
     {
-     "at": "+16",
+     "at": "+14",
      "cond": "exportMessage non-nil",
      "effect": "true → message text shown"
     }
@@ -745,40 +741,8 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.gpxPreviewSheet(_:)": "36c6010a6bf7204c",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.presentPendingGPXShare()": "8a4e5da3cfa1f490",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareBinding": "699b7835e139a713",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareSheet": "27c63295ad6dd484"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.presentPendingGPXShare()": "810fc67c5cfb556c"
    }
-  },
-  {
-   "key": "var FitnessTabView.gpxShareBinding",
-   "hash": "9fc89237b94e2e29",
-   "does": "Share-sheet presentation binding: true only while gpxSharePresented AND gpxShareURL is set; set writes gpxSharePresented.",
-   "entry": "SwiftUI .sheet(isPresented:) in withGPXSheets",
-   "calls": [],
-   "reads": [],
-   "writes": [
-    "mem:FitnessTabView.gpxSharePresented"
-   ],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "var FitnessTabView.gpxShareSheet",
-   "hash": "ee06f8a418e97f7a",
-   "does": "ShareSheet for gpxShareURL when set; empty otherwise (not reachable while presented: gpxShareBinding presents only with a URL).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "gpxShareURL non-nil",
-     "effect": "false → empty sheet content"
-    }
-   ],
-   "deps": {}
   },
   {
    "key": "func FitnessTabView.gpxPreviewSheet(_:)",
@@ -792,18 +756,19 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.shareGPXAfterPreview(_:)": "12451a46595479d5"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.shareGPXAfterPreview(_:)": "61b305580be15ce3"
    }
   },
   {
    "key": "func FitnessTabView.shareGPXAfterPreview(_:)",
-   "hash": "fe96a140925f17c0",
-   "does": "Send tapped in the preview: stores the payload URL in gpxShareURL and clears the preview payload (dismissing the preview); the share sheet is presented from the preview's onDismiss (presentPendingGPXShare), not after a fixed delay.",
+   "hash": "dda7f98aec9f9651",
+   "does": "Send tapped in the preview: keeps the payload's file in gpxFile, sets gpxSendTapped and clears the preview payload (dismissing the preview); the share sheet is presented from the preview's onDismiss (presentPendingGPXShare), not after a fixed delay.",
    "entry": "closure:onSend from GPXPreviewSheet",
    "calls": [],
    "reads": [],
    "writes": [
-    "mem:FitnessTabView.gpxShareURL",
+    "mem:FitnessTabView.gpxFile",
+    "mem:FitnessTabView.gpxSendTapped",
     "mem:FitnessTabView.gpxPreviewPayload"
    ],
    "branches": [],
@@ -811,24 +776,40 @@
   },
   {
    "key": "func FitnessTabView.presentPendingGPXShare()",
-   "hash": "664c70018687d90c",
-   "does": "After the preview sheet has finished dismissing: presents the share sheet when Send stored a URL; a plain dismissal (no URL) does nothing.",
+   "hash": "b88f7b89db6df9e5",
+   "does": "After the preview sheet has finished dismissing: takes the written GPX file and the Send flag and clears both; after Send presents the system share sheet (presentFileShareSheet), which deletes the file once it closes; after a plain dismissal, or with no presenter, deletes the file at once.",
    "entry": "GPX preview sheet onDismiss (withGPXSheets)",
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentFileShareSheet(_:title:iconName:from:onClosed:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
    "reads": [
-    "mem:FitnessTabView.gpxShareURL"
+    "mem:FitnessTabView.gpxFile",
+    "mem:FitnessTabView.gpxSendTapped"
    ],
    "writes": [
-    "mem:FitnessTabView.gpxSharePresented"
+    "mem:FitnessTabView.gpxFile",
+    "mem:FitnessTabView.gpxSendTapped",
+    "file:tmp/Exports/<sport>-<date>.gpx (deleted)"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "a share is pending",
-     "effect": "gpxSharePresented = true"
+     "cond": "no file",
+     "effect": "return"
+    },
+    {
+     "at": "+5",
+     "cond": "Send not tapped, or no presenter",
+     "effect": "delete the file, return; else share it"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentFileShareSheet(_:title:iconName:from:onClosed:)": "1114a84169ab2526",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()": "a3d510a9337700d2"
+   }
   },
   {
    "key": "func FitnessTabView.withFitnessImports(_:)",
@@ -963,8 +944,8 @@
   },
   {
    "key": "func FitnessTabView.exportLatestGPX()",
-   "hash": "6cbd1fbcf6ef8da4",
-   "does": "GPX export: finds the newest of the last 20 workouts with a GPS polyline (off-main), writes a temp GPX file, and opens the preview sheet; sets an Export alert message when there are no workouts, no tracked workout, or decode/write failed.",
+   "hash": "dd011ec5942d6120",
+   "does": "GPX export: finds the newest of the last 20 workouts with a GPS polyline (off-main), writes a GPX file to tmp/Exports, keeps it in gpxFile (Send not yet tapped) and opens the preview sheet; sets an Export alert message when there are no workouts, no tracked workout, or decode/write failed.",
    "entry": "Toolbar menu button in FitnessTabView+DataMenu.swift:53",
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()",
@@ -975,7 +956,10 @@
     "archive:SessionArchive.retrieveLightweight"
    ],
    "writes": [
-    "file:temp GPX file (GPXExporter.writeToTempFile)"
+    "file:tmp/Exports GPX file (GPXExporter.writeToTempFile)",
+    "mem:FitnessTabView.gpxFile",
+    "mem:FitnessTabView.gpxSendTapped",
+    "mem:FitnessTabView.gpxPreviewPayload"
    ],
    "branches": [
     {
@@ -991,7 +975,7 @@
     {
      "at": "+12",
      "cond": "written URL non-nil",
-     "effect": "false → exportMessage 'Couldn't decode GPS track for export.' (also used when the file write threw), return; true → gpxPreviewPayload set"
+     "effect": "false → exportMessage 'Couldn't decode GPS track for export.' (also used when the file write threw), return; true → gpxFile and gpxPreviewPayload set"
     }
    ],
    "deps": {
@@ -1067,7 +1051,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "40d04f34ec0697be",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.writeToTempFile(session:track:)": "45d5df9683ec825d",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.writeToTempFile(session:track:)": "a4527cf869d12829",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },

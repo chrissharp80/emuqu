@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Analysis/TCXExporter.swift",
  "hash": "19bebba22b26853c",
- "role": "TCX v2 writer: one Activity/Lap with total time, distance, Calories 0, mean HR, and trackpoints (position, altitude when stored, cumulative distance, median-smoothed HR) or time+HR-only points every 5 s for indoor sessions; writes to the temp directory. The summary line reuses the GPX export's totals.",
+ "role": "TCX v2 writer: one Activity/Lap with total time, distance, Calories 0, mean HR, and trackpoints (position, altitude when stored, cumulative distance, median-smoothed HR) or time+HR-only points every 5 s for indoor sessions; handed to the share sheet as an in-memory ExportFile.Pending that is written only when shared. The summary line reuses the GPX export's totals.",
  "types": [
   "TCXExporter: enum — TCX builder",
   "HRTrack: struct (private) — HR series by wall-clock offset (RR beats preferred, else 1 Hz samples) with ±3 s median lookup"
@@ -251,22 +251,18 @@
    "deps": {}
   },
   {
-   "key": "func TCXExporter.writeToTempFile(session:track:)",
-   "hash": "5f4700569e4f8070",
-   "does": "Renders the TCX, names it '<sport>-<UTC yyyyMMdd-HHmmss>.tcx' and writes it to the export folder through ExportFile.write (atomic, complete file protection; the same session's file is overwritten on the next export), logs the byte count and returns the URL; throws an NSError if UTF-8 encoding fails, and rethrows a write failure.",
+   "key": "func TCXExporter.pendingFile(session:track:)",
+   "hash": "515f66b1de791e13",
+   "does": "Renders the TCX in memory and names it '<sport>-<UTC yyyyMMdd-HHmmss>.tcx' (POSIX, Gregorian), returning it as an ExportFile.Pending that is written only when shared; throws an NSError if UTF-8 encoding fails.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)",
-    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
    ],
-   "writes": [
-    "file:tmp/Exports/<sport>-<yyyyMMdd-HHmmss>.tcx"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
@@ -276,14 +272,12 @@
     {
      "at": "+9",
      "cond": "UTF-8 encoding nil",
-     "effect": "throws NSError (cannot happen for a Swift String); otherwise writes"
+     "effect": "throws NSError (cannot happen for a Swift String); otherwise returns the pending export"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "e8b07f9f7230410e",
-    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {

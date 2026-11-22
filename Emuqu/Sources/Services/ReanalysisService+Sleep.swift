@@ -128,7 +128,7 @@ extension ReanalysisService {
     /// start, so the recording runs to the last beat's end, as on the morning
     /// path — not the first-to-last span, which is short when the first beat
     /// is not at 0.
-    private static func recordingDurationMs(of session: HRVSession) -> Int64 {
+    nonisolated static func recordingDurationMs(of session: HRVSession) -> Int64 {
         guard let last = session.rrSeries?.points.last else {
             let seconds = (session.endDate ?? session.startDate).timeIntervalSince(session.startDate)
             return Int64(max(0, seconds) * 1000)
@@ -251,72 +251,98 @@ extension ReanalysisService {
         }
     }
 
-    /// Returns `true` only when the updated session was actually
-    /// persisted. Returning `Void` would let a user's manual timeline edit
-    /// die in the catch below while the editor UI confirms
-    /// success. User-adjustment call sites must check the result and
-    /// surface failure; automatic callers may ignore it (discardable).
+    /// Update a session's sleep from `sleepData`, off the main actor. The
+    /// returned task's value is `true` only when the updated session was
+    /// actually persisted. A `Void` result would let a user's manual timeline
+    /// edit die in a log line while the editor UI confirms success.
+    /// User-adjustment call sites must check the value and surface failure;
+    /// automatic callers may ignore it (discardable).
+    ///
+    /// Edits run one after another in the order they were made: each waits
+    /// for the one before (`pendingSleepEdit`), so a slow earlier edit never
+    /// lands over a later one.
     @discardableResult
-    func updateSessionSleepBoundaries(sessionId: UUID, sleepData: SleepData, isUserAdjustment: Bool = false) -> Bool {
-        guard let sleepStart = sleepData.sleepStart, let sleepEnd = sleepData.sleepEnd else {
+    func updateSessionSleepBoundaries(sessionId: UUID, sleepData: SleepData, isUserAdjustment: Bool = false) -> Task<Bool, Never> {
+        let previous = pendingSleepEdit
+        let edit = Task<Bool, Never> {
+            _ = await previous?.value
+            return await self.runSleepBoundaryUpdate(sessionId: sessionId, sleepData: sleepData, isUserAdjustment: isUserAdjustment)
+        }
+        pendingSleepEdit = edit
+        return edit
+    }
+
+    /// One sleep edit: the session is read off the main actor, then written
+    /// (`writeUntilCurrent`). False on missing start or end, a session not
+    /// in the archive, an automatic update that does not apply, inputs that
+    /// kept changing, or an error (logged at `.error`).
+    private func runSleepBoundaryUpdate(sessionId: UUID, sleepData: SleepData, isUserAdjustment: Bool) async -> Bool {
+        guard let edit = SleepBoundaryWrite.Edit(sleepData: sleepData, isUserAdjustment: isUserAdjustment) else {
             debugLog("[UpdateSleepBounds] Bailed: sleepStart or sleepEnd is nil")
             return false
         }
+        let archive = archive
         do {
-            guard let session = try archive.retrieve(sessionId) else {
+            guard let read = try await Task.detached(priority: .userInitiated, operation: { try archive.retrieve(sessionId) }).value else {
                 debugLog("[UpdateSleepBounds] Bailed: session \(sessionId.uuidString.prefix(8)) not in archive")
                 return false
             }
-            return try applySleepBoundaries(
-                to: session, sleepData: sleepData, sleepStart: sleepStart,
-                sleepEnd: sleepEnd, isUserAdjustment: isUserAdjustment
-            )
+            guard let landed = try await writeUntilCurrent(edit, from: read) else { return false }
+            reportSleepUpdate(landed.session, sleepData: sleepData, oldMinutes: landed.oldMinutes, isUserAdjustment: isUserAdjustment)
+            return true
         } catch {
             debugLog("[ReanalysisService] Failed to update sleep boundaries for \(sessionId.uuidString.prefix(8)): \(error)", level: .error)
             return false
         }
     }
 
-    /// Compute the new offsets clamped to the recording, decide on the
-    /// session as read whether they apply, then write them on the archived
-    /// copy. False means the update was rejected by a gate.
-    private func applySleepBoundaries(
-        to session: HRVSession,
-        sleepData: SleepData,
-        sleepStart: Date,
-        sleepEnd: Date,
-        isUserAdjustment: Bool
-    ) throws -> Bool {
-        let newStartMs = max(0, MillisecondOffset.between(sleepStart, and: session.startDate, fallback: 0))
-        let newEndMs = MillisecondOffset.between(sleepEnd, and: session.startDate, fallback: 0)
-        logBoundaryUpdate(
-            session: session, sleepStart: sleepStart, sleepEnd: sleepEnd, newStartMs: newStartMs,
-            newEndMs: newEndMs, sleepData: sleepData, isUserAdjustment: isUserAdjustment
-        )
-        let offsets = Self.clampedOffsets(startMs: newStartMs, endMs: newEndMs, of: session)
-        let newDuration = offsets.endMs - offsets.startMs
-        guard isUserAdjustment || shouldApplyAutomaticUpdate(to: session, sleepData: sleepData, newDuration: newDuration) else {
-            return false
+    /// Writes `edit` from `read` (`writeSleepEdit`); when an input changed
+    /// since the read (`.inputsChanged`), runs again from the stored copy, up
+    /// to `RescoreWrite.runs` times. The session as written and the night
+    /// minutes of the copy it was written from; nil when the edit was
+    /// declined, the session is no longer archived, or the inputs kept
+    /// changing (logged).
+    private func writeUntilCurrent(
+        _ edit: SleepBoundaryWrite.Edit, from read: HRVSession
+    ) async throws -> (session: HRVSession, oldMinutes: Int)? {
+        var current = read
+        for _ in 1 ... RescoreWrite.runs {
+            let outcome = try await writeSleepEdit(edit, readFrom: current)
+            if case .inputsChanged(let stored) = outcome {
+                current = stored
+                continue
+            }
+            guard let written = outcome.written else { return nil }
+            return (written, current.sleepSnapshot?.nightSleepMinutes ?? 0)
         }
-        let updated = try writeSleepUpdate(offsets, sleepData: sleepData, onto: session, isUserAdjustment: isUserAdjustment)
-        reportSleepUpdate(updated, sleepData: sleepData, oldMinutes: session.sleepSnapshot?.nightSleepMinutes ?? 0, isUserAdjustment: isUserAdjustment)
-        return true
+        debugLog("[UpdateSleepBounds] Inputs kept changing while the sleep edit ran — giving up")
+        return nil
     }
 
-    /// Write the boundaries, segments and snapshot, re-classify and re-score
-    /// on the archived copy under the archive lock (`SessionArchive.update`),
-    /// so an edit landing since the session was read is kept rather than
-    /// overwritten. Returns the session as written.
-    private func writeSleepUpdate(
-        _ offsets: (startMs: Int64, endMs: Int64), sleepData: SleepData, onto session: HRVSession, isUserAdjustment: Bool
-    ) throws -> HRVSession {
-        var written = session
-        try archive.update(session.id, requestingReupload: isUserAdjustment) { stored in
-            applyBoundaries(to: &stored, sleepData: sleepData, offsets: offsets, isUserAdjustment: isUserAdjustment)
-            rescoreAfterSleepChange(&stored, sessionEnd: stored.endDate ?? stored.startDate)
-            written = stored
-        }
-        return written
+    /// One write: the re-score inputs captured here, on the main actor
+    /// (`sleepRescoreInputs`, anchored to `endDate ?? startDate`), then
+    /// `SleepBoundaryWrite.write` on a detached task.
+    private func writeSleepEdit(
+        _ edit: SleepBoundaryWrite.Edit, readFrom read: HRVSession
+    ) async throws -> SleepBoundaryWrite.Outcome {
+        let inputs = sleepRescoreInputs(for: read, sessionEnd: read.endDate ?? read.startDate)
+        let archive = archive
+        return try await Task.detached(priority: .userInitiated) {
+            try SleepBoundaryWrite.write(edit, readFrom: read, inputs: inputs, to: archive)
+        }.value
+    }
+
+    /// What a sleep re-score of `session` reads from the main actor: the
+    /// baseline, typical sleep and scoring config (`rescoreContext`), and
+    /// the training context built for `sessionEnd`, asked for only when the
+    /// session has an analysis but no training context of its own.
+    func sleepRescoreInputs(for session: HRVSession, sessionEnd: Date) -> SleepBoundaryWrite.Inputs {
+        let needsFallback = session.analysisResult != nil
+            && session.trainingSnapshot == nil && session.analysisResult?.trainingContext == nil
+        return SleepBoundaryWrite.Inputs(
+            context: rescoreContext(for: session),
+            fallbackTraining: needsFallback ? trainingContextProvider(sessionEnd) : nil
+        )
     }
 
     private func reportSleepUpdate(
@@ -328,109 +354,12 @@ extension ReanalysisService {
         Task { self.onSessionUploaded(sessionToUpload) }
     }
 
-    private func logBoundaryUpdate(
-        session: HRVSession,
-        sleepStart: Date,
-        sleepEnd: Date,
-        newStartMs: Int64,
-        newEndMs: Int64,
-        sleepData: SleepData,
-        isUserAdjustment: Bool
-    ) {
-        debugLog("[UpdateSleepBounds] session.startDate=\(session.startDate) sleepStart=\(sleepStart) sleepEnd=\(sleepEnd)")
-        debugLog("[UpdateSleepBounds] newStartMs=\(newStartMs) newEndMs=\(newEndMs) oldStartMs=\(session.sleepStartMs ?? -1) oldEndMs=\(session.sleepEndMs ?? -1)")
-        debugLog("[UpdateSleepBounds] newData: totalMin=\(sleepData.totalSleepIncludingNapMinutes) nightMin=\(sleepData.nightSleepMinutes) segments=\(sleepData.segments.count) isUserAdj=\(isUserAdjustment)")
-    }
-
-    /// User adjustments (exclude/boundary changes) always apply. Automatic
-    /// HealthKit updates only apply if they bring more data.
-    ///
-    /// Never let an automatic update overwrite a user-adjusted
-    /// timeline, regardless of "more data" (FLOWCHART §13.2: user edits are
-    /// the source of truth). The callers' own guards can read a stale
-    /// `session` captured at view presentation; this is the last gate before
-    /// the archived copy is rewritten, so it checks the freshly-retrieved
-    /// session. Snapshot-nil sessions are exempt: CloudKit uploads strip
-    /// HK-derived snapshots (5.1.3), so a user-adjusted session pulled onto a
-    /// second device needs its first local fill.
-    ///
-    /// An automatic sleep block that doesn't physically overlap
-    /// the recording is rejected (see `SleepData.plausiblyBelongsToRecording`).
-    private func shouldApplyAutomaticUpdate(
-        to session: HRVSession, sleepData: SleepData, newDuration: Int64
-    ) -> Bool {
-        guard session.sleepUserAdjusted != true || session.sleepSnapshot == nil else {
-            debugLog("[UpdateSleepBounds] Bailed: session has user-adjusted sleep; auto update discarded")
-            return false
-        }
-        let recordingEnd = session.endDate ?? session.startDate
-        guard sleepData.plausiblyBelongsToRecording(start: session.startDate, end: recordingEnd) else {
-            debugLog("[UpdateSleepBounds] Bailed: \(sleepData.nightSleepMinutes)m sleep window does not overlap the \(Int(recordingEnd.timeIntervalSince(session.startDate) / 60))m recording — implausible auto attach")
-            return false
-        }
-        let storedDuration = (session.sleepEndMs ?? 0) - (session.sleepStartMs ?? 0)
-        let snapshotMinutes = session.sleepSnapshot?.nightSleepMinutes ?? 0
-        return newDuration > storedDuration || sleepData.nightSleepMinutes > snapshotMinutes
-    }
-
-    /// The boundaries clamped to the strap recording, as the live write
-    /// paths clamp them: the bounds `SleepBoundaryResolver.clamp` applies
-    /// (0 ... recording length), for offsets that are always present. The
-    /// "more data" test and the stored offsets both use these, so an end
-    /// past the recording does not count as new data on every refresh.
-    private static func clampedOffsets(startMs: Int64, endMs: Int64, of session: HRVSession) -> (startMs: Int64, endMs: Int64) {
-        let limit = recordingDurationMs(of: session)
-        return (max(0, min(startMs, limit)), max(0, min(endMs, limit)))
-    }
-
-    /// Write the clamped boundaries, segments and frozen snapshot onto the session.
-    private func applyBoundaries(
-        to session: inout HRVSession,
-        sleepData: SleepData,
-        offsets: (startMs: Int64, endMs: Int64),
-        isUserAdjustment: Bool
-    ) {
-        session.sleepStartMs = offsets.startMs
-        session.sleepEndMs = offsets.endMs
-        if sleepData.segments.count > 1 {
-            let start = session.startDate
-            session.sleepSegments = sleepData.segments.map { seg in
-                HRVSession.SleepSegmentMs(
-                    startMs: MillisecondOffset.between(seg.sleepStart, and: start, fallback: 0),
-                    endMs: MillisecondOffset.between(seg.sleepEnd, and: start, fallback: 0)
-                )
-            }
-        } else {
-            // Single-segment night: drop any stale multi-segment array so
-            // it can't disagree with the freshly-written snapshot.
-            session.sleepSegments = nil
-        }
-        // Also update the frozen snapshot so history shows the complete data
-        session.sleepSnapshot = sleepData
-        if isUserAdjustment {
-            session.sleepUserAdjusted = true
-        }
-    }
-
-    /// Recalculate the recovery score when the session's sleep snapshot
-    /// changed (a sleep edit, an automatic update or a retro-apply), so the
-    /// score reflects excluded/adjusted segments. The session is classified
-    /// again first: whether the recording overlaps sleep is decided from the
-    /// sleep, so an edit can set or clear `.preSleep`. The score is
-    /// `rescoredBreakdown` against the frozen training context, anchored to
-    /// `sessionEnd`.
+    /// Recalculate the recovery score after a retro-apply changed the
+    /// session's sleep: `SleepBoundaryWrite.rescore` with the inputs captured
+    /// here (`sleepRescoreInputs`), anchored to `sessionEnd`.
     private func rescoreAfterSleepChange(_ session: inout HRVSession, sessionEnd: Date) {
-        guard let result = session.analysisResult else { return }
-        reclassifyHRVQuality(of: &session, result: result)
-        let trainingContext = session.trainingSnapshot ?? result.trainingContext
-            ?? trainingContextProvider(sessionEnd)
-        let breakdown = rescoredBreakdown(
-            of: session, result: result, training: trainingContext, referenceDate: sessionEnd
-        )
-        session.recoveryScore = RecoveryScoreCalculator.toTenScale(breakdown.compositeScore)
-        session.scoreBreakdown = breakdown
-        session.frozenReadiness = Self.computeFrozenReadiness(compositeScore: breakdown.compositeScore, trainingContext: trainingContext)
-        debugLog("[ReanalysisService] Recalculated recovery score after sleep adjustment: \(String(format: "%.1f", session.recoveryScore ?? 0))")
+        let inputs = sleepRescoreInputs(for: session, sessionEnd: sessionEnd)
+        SleepBoundaryWrite.rescore(&session, sessionEnd: sessionEnd, inputs: inputs)
     }
 
     /// Diagnostic result from training snapshot repair.

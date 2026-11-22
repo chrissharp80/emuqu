@@ -67,7 +67,7 @@ final class SessionAcceptanceService {
         }
     }
 
-    static func classifyHRVQuality(
+    nonisolated static func classifyHRVQuality(
         result: HRVAnalysisResult,
         sleepData: SleepData?,
         baselineStats: BaselineTracker.RecoveryBaselineStats?,
@@ -97,7 +97,7 @@ final class SessionAcceptanceService {
     }
 
     /// No sleep data means we cannot determine overlap — trust the HRV as-is.
-    private static func overlapsSleep(
+    nonisolated private static func overlapsSleep(
         _ sleepData: SleepData?, recordingStart: Date, recordingEnd: Date
     ) -> Bool {
         guard let sleepStart = sleepData?.sleepStart, let sleepEnd = sleepData?.sleepEnd else {
@@ -112,7 +112,7 @@ final class SessionAcceptanceService {
     /// to trust, or a session that never reached its recovery zone, both
     /// count as insufficient when the RMSSD also came in under baseline. With
     /// no window (full-session analysis) the analysed span is the session.
-    static func isInsufficientData(
+    nonisolated static func isInsufficientData(
         result: HRVAnalysisResult, baselineRmssd: Double, sessionDuration: TimeInterval
     ) -> Bool {
         guard result.timeDomain.rmssd < baselineRmssd else { return false }
@@ -124,14 +124,14 @@ final class SessionAcceptanceService {
     }
 
     /// The analysis window's length, or the session's when there is none.
-    private static func analysedSpanMs(of result: HRVAnalysisResult, sessionDuration: TimeInterval) -> Int64 {
+    nonisolated private static func analysedSpanMs(of result: HRVAnalysisResult, sessionDuration: TimeInterval) -> Int64 {
         guard let wsMs = result.windowStartMs, let weMs = result.windowEndMs else { return Int64(sessionDuration * 1000) }
         return weMs - wsMs
     }
 
     /// Rule 1 as a decision, with the reason logged. Nil means the data is
     /// good enough to judge normally. `rmssd` is the result's own RMSSD.
-    private static func insufficientDataDecision(
+    nonisolated private static func insufficientDataDecision(
         result: HRVAnalysisResult, rmssd: Double, baselineRmssd: Double, sessionDuration: TimeInterval
     ) -> HRVQualityDecision? {
         guard rmssd < baselineRmssd,

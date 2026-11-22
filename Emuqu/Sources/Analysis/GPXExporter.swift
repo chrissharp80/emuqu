@@ -161,6 +161,15 @@ enum GPXExporter {
     /// protection) and return the resulting file URL. Caller is responsible
     /// for presenting a share sheet.
     static func writeToTempFile(session: HRVSession, track: [CLLocation]) throws -> URL {
+        let file = try pendingFile(session: session, track: track)
+        let url = try file.write()
+        debugLog("[GPXExporter] wrote \(file.data.count) bytes to \(url.path) (track=\(track.count) points)")
+        return url
+    }
+
+    /// The GPX export in memory, named `<sport>-<UTC start>.gpx`, for writing
+    /// when the user shares it. Throws when the text cannot be encoded.
+    static func pendingFile(session: HRVSession, track: [CLLocation]) throws -> ExportFile.Pending {
         let gpx = export(session: session, track: track)
         let sport = session.workoutMetadata?.sport.rawValue ?? "workout"
         // Safe filename: YYYYMMDD-HHMMSS, no colons (share-sheet quirks), in
@@ -176,9 +185,7 @@ enum GPXExporter {
                 NSLocalizedDescriptionKey: String(localized: "Couldn't create the GPX file.", bundle: LanguageManager.appBundle)
             ])
         }
-        let url = try ExportFile.write(data, named: filename)
-        debugLog("[GPXExporter] wrote \(data.count) bytes to \(url.path) (track=\(track.count) points)")
-        return url
+        return ExportFile.Pending(name: filename, data: data)
     }
 
     // MARK: - Polyline decode

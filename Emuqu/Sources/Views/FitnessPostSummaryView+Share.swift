@@ -391,25 +391,24 @@ extension FitnessSummaryCards {
         }.value
     }
 
-    /// Native `ShareLink` row. We hand it a pre-written URL so the share sheet
-    /// opens instantly — UIActivityViewController-via-.sheet-item hangs for
-    /// 1–2 minutes cold-starting its extension scan; ShareLink sidesteps that
-    /// entirely. Disabled + dimmed until the
-    /// background file-write finishes (usually <100ms, visible only for very
-    /// long tracks).
+    /// Share row for an export built in memory when the summary opened. The
+    /// file is written only when the row is tapped and deleted when the share
+    /// sheet closes (`FileShareButton`), so the GPS track and heart rate are
+    /// not left in tmp. The sheet is presented straight from the topmost view
+    /// controller: a `UIActivityViewController` in a SwiftUI `.sheet(item:)`
+    /// hangs for 1–2 minutes cold-starting its extension scan. Disabled +
+    /// dimmed until the background build finishes (usually <100ms, visible
+    /// only for very long tracks).
     @ViewBuilder
-    func shareRow(icon: String, title: String, subtitle: String, url: URL?) -> some View {
-        if let url {
-            // ShareLink with preview so Strava / Garmin Connect / TrainingPeaks
-            // — all of which register as handlers for .gpx / .tcx — appear
-            // directly in the share sheet without the "More…" dance. The
-            // preview title is what shows at the top of the system sheet;
+    func shareRow(icon: String, title: String, subtitle: String, export: ExportFile.Pending?) -> some View {
+        if let export {
+            // The file itself is shared, so Strava / Garmin Connect /
+            // TrainingPeaks — all of which register as handlers for .gpx /
+            // .tcx — appear directly in the share sheet without the "More…"
+            // dance. The title is what shows at the top of the system sheet;
             // keeping it short + recognisable ("Emuqu · Walk · 2.3 mi")
             // reads better than the raw filename.
-            ShareLink(
-                item: url,
-                preview: SharePreview(previewTitle(title: title), icon: Image(systemName: icon))
-            ) {
+            FileShareButton(title: previewTitle(title: title), iconName: icon, makeFile: { try export.write() }) {
                 shareRowLabel(icon: icon, title: title, subtitle: subtitle)
             }
             .buttonStyle(.plain)
