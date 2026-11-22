@@ -25,6 +25,14 @@
 #    algorithms under one version string — the failure the version stamp exists
 #    to prevent.
 #
+#    The baseline must match both the current version and the current hash, so
+#    a version bump is refreshed into it in the same change. Accepting any
+#    version other than the recorded one let one bump that left the baseline
+#    alone switch the check off for good: every later constant change passed,
+#    bump or not. Each hashed file and enum must also yield at least one
+#    constant; a refactor the pattern no longer matches (`static var`, computed
+#    values) would otherwise hash nothing and never move.
+#
 # Exit 0 clean, 1 on a violation, 2 on config error.
 
 set -uo pipefail
@@ -73,7 +81,11 @@ for name in SCORING_SOURCES:
     # Comments are stripped so rewording a rationale never looks like a
     # scoring change — only the numbers count.
     source = re.sub(r"//[^\n]*", "", path.read_text(encoding="utf-8"))
-    for symbol, value in sorted(CONST_RE.findall(source)):
+    found = sorted(CONST_RE.findall(source))
+    if not found:
+        sys.stderr.write(f"check_scoring_governance: no scoring constants matched in {name}\n")
+        raise SystemExit(2)
+    for symbol, value in found:
         digest.update(f"{name}:{symbol}={value}\n".encode())
         seen += 1
 
@@ -92,7 +104,11 @@ for name, enums in SCORING_ENUMS.items():
         if not block:
             sys.stderr.write(f"check_scoring_governance: enum {enum} not found in {name}\n")
             raise SystemExit(2)
-        for symbol, value in sorted(CONST_RE.findall(block.group(0))):
+        found = sorted(CONST_RE.findall(block.group(0)))
+        if not found:
+            sys.stderr.write(f"check_scoring_governance: no scoring constants matched in {enum} ({name})\n")
+            raise SystemExit(2)
+        for symbol, value in found:
             digest.update(f"{name}:{enum}.{symbol}={value}\n".encode())
             seen += 1
 
@@ -109,13 +125,23 @@ if not baseline_path.is_file():
     sys.stderr.write(f"check_scoring_governance: missing {baseline_path}\n")
     raise SystemExit(2)
 
-recorded_version, recorded_hash = baseline_path.read_text(encoding="utf-8").split()
+fields = baseline_path.read_text(encoding="utf-8").split()
+if len(fields) != 2:
+    sys.stderr.write(f"check_scoring_governance: {baseline_path} must hold '<version> <hash>'\n")
+    raise SystemExit(2)
+recorded_version, recorded_hash = fields
 if current_hash != recorded_hash and version == recorded_version:
     problems.append(
         f"scoring constants changed ({recorded_hash} -> {current_hash}) while "
         f"ScoringVersion.current stayed {version!r}. Bump the version and update "
         f"{baseline_path}, so stored scores stay attributable to the algorithm "
         "that produced them."
+    )
+elif (version, current_hash) != (recorded_version, recorded_hash):
+    problems.append(
+        f"{baseline_path} records {recorded_version} {recorded_hash}, but the code is "
+        f"{version} {current_hash}. Write '{version} {current_hash}' to it in the same "
+        "change as the version bump, or the next constant change goes unchecked."
     )
 
 for problem in problems:

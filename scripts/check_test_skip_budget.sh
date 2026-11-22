@@ -13,7 +13,17 @@ set -euo pipefail
 # So the count is budgeted like every other debt here. It ratchets down.
 
 SKIP_BUDGET_FILE="${SKIP_BUDGET_FILE:-.ci/test_skip_budget.txt}"
-TEST_DIRS=("${@:-EmuquTests EmuquUITests}")
+TEST_DIRS=("$@")
+if (( ${#TEST_DIRS[@]} == 0 )); then
+    TEST_DIRS=(EmuquTests EmuquUITests)
+fi
+# A missing directory would count no skips and read as clean.
+for dir in "${TEST_DIRS[@]}"; do
+    if [[ ! -d "$dir" ]]; then
+        echo "Test directory not found: $dir" >&2
+        exit 66
+    fi
+done
 
 read_budget() {
     local file="$1"
@@ -39,7 +49,7 @@ skip_count=0
 while IFS= read -r file; do
     count="$(grep -cE '(^|[^/[:alnum:]_])(try +)?(throw +)?XCTSkip(Unless|If)?\(' "$file" || true)"
     skip_count=$((skip_count + count))
-done < <(find EmuquTests EmuquUITests -name '*.swift' 2>/dev/null | sort)
+done < <(find "${TEST_DIRS[@]}" -name '*.swift' | sort)
 
 echo "Test skip sites: ${skip_count} (budget: ${budget}; ratchet toward 0)"
 
@@ -49,7 +59,7 @@ if (( skip_count > budget )); then
     echo "A skip is a test that passes without asserting. If the precondition is" >&2
     echo "real, make the test set it up; if it is not, delete the guard." >&2
     echo >&2
-    grep -rnE '(^|[^/[:alnum:]_])(try +)?(throw +)?XCTSkip(Unless|If)?\(' EmuquTests EmuquUITests --include='*.swift' >&2 || true
+    grep -rnE '(^|[^/[:alnum:]_])(try +)?(throw +)?XCTSkip(Unless|If)?\(' "${TEST_DIRS[@]}" --include='*.swift' >&2 || true
     exit 1
 fi
 

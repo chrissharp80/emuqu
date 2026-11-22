@@ -67,7 +67,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.resetTimeoutCount()": "95470dbd9135991a",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.resetTimeoutCount()": "58cc07749a0d90b4",
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.latestWatchHR": "cc77ca20f9a80dea"
    }
   },
@@ -226,8 +226,8 @@
   },
   {
    "key": "func WatchConnectivityBridge.acceptsQueuedIntent(_:)",
-   "hash": "3c3f142cb987ffaf",
-   "does": "Queued-intent filter: rejects a ts not newer than lastProcessedContextTimestamp (updating it otherwise), intents past expiresAt or (except a stamped End, kept for its 12 h stamp) older than 120 s, and stop/pause/resume stamped before the current workout started.",
+   "hash": "7582a44c5467ad24",
+   "does": "Queued-intent filter: rejects a ts not newer than lastProcessedContextTimestamp, intents past expiresAt or (except a stamped End, kept for its 12 h stamp) older than 120 s, and stop/pause/resume stamped before the current workout started; only an intent that passes records its ts as last processed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.isStale(_:ts:)",
@@ -254,18 +254,18 @@
     },
     {
      "at": "+3",
-     "cond": "ts > 0",
-     "effect": "records ts as last processed (before the stale/expiry checks)"
-    },
-    {
-     "at": "+4",
      "cond": "isStale (expired, or >120 s old unless a stamped End)",
      "effect": "logs warning and returns false"
     },
     {
-     "at": "+8",
+     "at": "+7",
      "cond": "workout control predating current workout",
-     "effect": "logs warning and returns false; else true"
+     "effect": "logs warning and returns false"
+    },
+    {
+     "at": "+11",
+     "cond": "ts > 0 (intent accepted)",
+     "effect": "records ts as last processed; returns true"
     }
    ],
    "deps": {
@@ -491,7 +491,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cachedLiveState()": "883b53af3296043d",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transportLiveStatePayload(_:)": "2fc788d7975459bf"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transportLiveStatePayload(_:)": "a8e982079ade6921"
    }
   },
   {
@@ -614,7 +614,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "d92c799989b389ef"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "e3f4efb247943cfd"
    }
   },
   {
@@ -842,12 +842,12 @@
   },
   {
    "key": "func WatchConnectivityBridge.pushVoiceChatState(_:)",
-   "hash": "81ef76d970ee25d1",
-   "does": "Pushes the voice-chat state label (with ts) to the Watch once: when WC is supported and activated, by sendMessage if reachable, falling back to transferUserInfo when the send fails; by transferUserInfo alone when unreachable.",
+   "hash": "063c82e1ce8862c9",
+   "does": "Pushes the voice-chat state label (with ts) to the Watch once: when WC is supported and activated, by sendMessage if reachable, falling back to transferLatestUserInfo when the send fails; by transferLatestUserInfo alone when unreachable. transferLatestUserInfo cancels an older queued voiceChatState first.",
    "entry": null,
    "calls": [
     "ext:WCSession.sendMessage",
-    "ext:WCSession.transferUserInfo"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)"
    ],
    "reads": [],
    "writes": [
@@ -867,10 +867,12 @@
     {
      "at": "+10",
      "cond": "Watch not reachable",
-     "effect": "transferUserInfo, return; else sendMessage whose error handler queues transferUserInfo"
+     "effect": "transferLatestUserInfo, return; else sendMessage whose error handler queues with transferLatestUserInfo"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)": "f576289459eed74f"
+   }
   },
   {
    "key": "func WatchConnectivityBridge.sendCoachAlertHaptic(urgent:)",

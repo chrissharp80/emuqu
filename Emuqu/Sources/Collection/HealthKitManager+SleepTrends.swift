@@ -303,7 +303,7 @@ extension HealthWriteAndObserve {
         manager.healthStore.execute(query)
         // A failed registration (entitlement missing, access denied) means
         // the overnight cache warm and wake push only run while the app does.
-        manager.healthStore.enableBackgroundDelivery(for: sleepType, frequency: .immediate) { success, error in
+        manager.healthStore.enableBackgroundDelivery(for: sleepType, frequency: .immediate) { @Sendable success, error in
             guard !success else { return }
             debugLog("[SleepObserver] Background delivery for sleep was not enabled: \(error?.localizedDescription ?? "no error given")", level: .warning)
         }

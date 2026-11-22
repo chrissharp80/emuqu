@@ -21,6 +21,12 @@ if [[ ! -f "$BUDGET_FILE" ]]; then
     exit 2
 fi
 budget="$(tr -d '[:space:]' < "$BUDGET_FILE")"
+# A whole number only: `(( count > budget ))` with an empty or decimal budget is
+# a bash error, which `if` reads as false, so the gate would pass.
+if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
+    echo "check_dated_comment_budget: $BUDGET_FILE is not a whole number" >&2
+    exit 2
+fi
 count="$(grep -rhE '(^\s*(///?|/\*|\*)\s.*|//.*)\b20[0-9]{2}-[0-9]{2}-[0-9]{2}\b' Emuqu "EmuquWatch Watch App" EmuquTests EmuquUITests --include='*.swift' 2>/dev/null | wc -l | tr -d ' ')"
 echo "Dated comment lines: ${count} (budget: ${budget}; ratchet toward 0)"
 if (( count > budget )); then
