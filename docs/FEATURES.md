@@ -65,7 +65,7 @@ project is in one screen. For how each feature is built, start with [`MAINTAINER
 - **Heart Rate Recovery** — 1-min and 2-min HR drops captured in a 120 s post-stop window. Three-tier fallback (strap / Watch HR samples / HealthKit-computed). `stopStreaming()` is deferred until after the capture window so strap Tier-1 sampling actually runs. Strap auto-disconnects after the HRR window completes (regardless of voice-chat state — chat continues without live HR). Summary sheet refreshes when the detached task writes samples back.
 - **Live α1 diagnostics** — if α1 isn't updating, the tile explicitly says why (warming up X%, strap silent Ns, fit failed).
 - **Structured Interval Plans** — Pick a plan before starting; the coach announces each step as you hit it.
-- **Unit-aware exports** — CSV, PDF fully imperial for imperial users (mi / ft / min-per-mi column headers). GPX / TCX stay spec-compliant metric in the payload (required by Strava / Garmin schemas) with human-readable imperial summaries in `<desc>` / `<Notes>`.
+- **Unit-aware exports** — CSV, PDF fully imperial for imperial users (mi / ft / min-per-mi column headers). GPX / TCX stay spec-compliant metric in the payload (required by Strava / Garmin schemas) with human-readable imperial summaries in `<desc>` / `<Notes>`. Their track points carry the time each GPS fix was taken, for workouts recorded since that was stored.
 
 ### Sleep Integration
 - **Sleep Score** — Weighted quality assessment (0-100) from duration, efficiency, deep sleep, and REM, enhanced with sleep science analysis (fragmentation, cycles, architecture, age-adjusted norms) when stage data is available
@@ -95,7 +95,7 @@ project is in one screen. For how each feature is built, start with [`MAINTAINER
 - **Multi-Device Management** — Maintain a list of known Polar devices, switch between H10 and Verity Sense
 - **Optional iCloud Sync** — Off until you turn it on. Sessions and settings sync, encrypted on the iPhone, to your own private CloudKit database; nothing read from Apple Health is uploaded, and sample nights never are. Sync belongs to the iCloud account it was turned on for: on a different account, or after Emuqu's iCloud data is deleted, it turns itself off with a notice under the switch and uploads nothing until you turn it on again
 - **Apple Health export** — HRV, heart rate, resting heart rate, fill-in sleep and the workouts Emuqu records. A workout's active energy is written net of resting metabolism. Exporting a session again, from this device or another, replaces Emuqu's earlier copy (never another source's samples), and a permanent delete from the Trash removes everything the session wrote
-- **Data Recovery** — Recover stranded data from H10 internal memory after app crashes or disconnections. Dashboard banner offers Resume / Save as is / **Dismiss** (the Dismiss path requires explicit confirmation because it discards the backed-up beats — Save as is keeps them).
+- **Data Recovery** — Recover stranded data from H10 internal memory after app crashes or disconnections. After a crash mid-recording, a **Session Interrupted** alert at the next launch offers Resume, Save as Complete (Save to Archive when it can't be resumed) and Dismiss; Dismiss deletes nothing, and the backup stays in Settings → iCloud & Data → Recover Lost Sessions. An interrupted workout the app is already recovering on its own is waited for, up to two and a half minutes.
 
 ### History & Trends
 - **Session Archive** — Complete history with search, filtering, and score breakdowns, paginated for fast loading (10 sessions at a time)
@@ -138,7 +138,7 @@ The chat tab is named **Flo** (not "AI Assistant" or "Coach"; the audible mid-wo
 - **Token-Aware Truncation + Auto-Summarization** — Long conversations stay responsive; older turns get summarized into a context preamble rather than dropped
 - **Anthropic Prompt Caching** — Repeat sends in a chat run at ~10% of the first-send cost
 - **Dashboard ✨ Quick Actions** — One-tap shortcuts to common questions ("Why is my score this?", "Should I train today?", "What changed from yesterday?", plus an Open-Flo entry that just navigates without sending)
-- **Regenerate, Copy, Remember this** — Long-press any chat bubble
+- **Regenerate, Copy, Share, Send email, Remember this, Report response** — Long-press any chat bubble
 - **Subsystem badges on chat bubbles** — Each assistant turn shows which subsystem produced it: **Flo** (sparkles, primary tint) for the chat tab, **Coach** (running figure, fitness accent) for mid-workout voice triggers, **Flo** (waveform) for hands-free voice conversation, **Flo Report** (envelope, secondary tint) for the auto-generated email staged after each workout (when "Email after each workout" is on). Voice subsystems also self-announce on their first utterance ("Flo here." / "Coach here.") so AirPods users can tell who's speaking.
 - **Keychain Key Storage** — API keys live in iOS Keychain, encrypted, never synced to iCloud, scoped to this app
 - **Privacy-First Disclaimer** — One-time disclosure spelling out which provider receives what data
@@ -160,7 +160,7 @@ The chat tab is named **Flo** (not "AI Assistant" or "Coach"; the audible mid-wo
 
 ### Onboarding
 - **Health Disclaimer first** — the full disclaimer, with the age confirmation, is agreed to before the wizard starts.
-- **7-Page Wizard** — Welcome → Value Prop (3-card carousel) → Profile (birthday, biological sex, body weight; all optional) → Sensor (pair your Polar strap, "I'll do this later" skip) → **Apple Health** (dedicated permission-priming page; system sheet fires inline on the page's Connect button, so the auth prompt doesn't race the splash transition) → Backup (iCloud sync) → "You're In" (14-day calibration note + "Take a reading" / "Skip — show me around", fully localized).
+- **7-Page Wizard** — Welcome → Value Prop (3-card carousel) → Profile (birthday, biological sex, body weight; all optional) → Sensor (pair your Polar strap, or Skip) → **Apple Health** (dedicated permission-priming page; system sheet fires inline on the page's Connect button, so the auth prompt doesn't race the splash transition) → Backup (iCloud sync) → "You're In" (14-day calibration note + "Take a reading" / "Skip — show me around", fully localized).
 - Every wizard page before "You're In" is skippable; core biometrics (max HR, resting HR, LTHR, body weight, **home address**) can be set or revised any time in Settings → Biometrics, and units in Settings → Profile → Units. The home address is optional — only used by Flo's "lead me home" routing — stored device-local + iCloud (same surface as the rest of your Settings).
 - Health Disclaimer acceptance is device-local (not iCloud-synced) — restoring onto a new phone re-prompts.
 

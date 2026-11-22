@@ -268,7 +268,10 @@ the one place both the dashboard and the AI read from, so they can't disagree:
 - A HealthKit workout query that fails or times out publishes nothing: the
   last result and series stay, still due for a rebuild, and the next refresh
   asks again, so a locked store never publishes a load without the Watch and
-  Strava workouts.
+  Strava workouts. A query HealthKit refuses because workouts were never
+  authorized, or were denied (`TrainingHealthQueries.isUnauthorizedAnswer`),
+  is an answer, not a failure: it reads as no HealthKit workouts, and the load
+  is built from the archive alone.
 - `.flowRecoveryArchiveChanged` invalidates only when the archived workout set
   changed (a fingerprint of each workout's id and file hash); HRV writes don't
   touch training load and are ignored.

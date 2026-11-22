@@ -189,11 +189,14 @@ and render no dot.
 ### AFM prewarm
 
 `AppleFoundationProvider.prewarm()` (idempotent, detached, `.utility`
-priority) runs on the first send, not in `AssistantViewModel.init`, when
-routing might land on Apple — Quick / Auto, OR Manual with the Apple
-provider selected. The model starts loading while the fact registry
-and system prompt are built; first-answer latency drops from ~1.5 s to ~300 ms
-on A17 / M-series.
+priority) runs on a send, not in `AssistantViewModel.init`, when Apple
+Intelligence is the selected model and the routing mode is not Deep
+(`dispatchToProvider`; a selected cloud model answers itself). It warms
+the model's shared assets (weights, tokenizer) with a throwaway session
+while the fact registry and system prompt are built; the session the turn
+uses is built with the real instructions and tools, whose prefix is still
+processed on that first send. First-answer latency drops from ~1.5 s to
+~300 ms on A17 / M-series.
 
 ### Voice preamble names the model
 
@@ -657,9 +660,10 @@ speaking:
    the critical gate. Wind and passing traffic produce sustained
    loud RMS but decode to zero words; "hey stop" decodes to two.
    If you want to interrupt, say at least two words.
-4. **Echo rejection**: if the "new words" Jaccard-overlap with what
-   the AI just said (above a length-sensitive threshold), we treat
-   them as mic leakage and ignore.
+4. **Echo rejection**: if the "new words" overlap what the AI has
+   streamed so far by 0.65 or more
+   (`VoiceEchoHeuristics.isEchoOfInFlightResponse`), we treat them as
+   mic leakage and ignore them.
 
 Push-to-talk fallback: there's a **Send now** button in the voice
 status pill (visible whenever the controller is listening). Tap it
@@ -682,7 +686,9 @@ do **not** throw `CancellationError` on `Task.cancel()` by default.
 
 - **30 s max turn**: `SFSpeechRecognizer` can silently stall in
   sustained noise. At 30 s we force-finalize whatever transcript
-  exists.
+  exists. A silent turn on a live mic (audio arriving, no voice, no
+  transcript) is not finalised empty every 30 s; it is left to the 45 s
+  recognizer restart, so a few quiet minutes do not end voice.
 - **3 s no-partial activity**: if the recognizer has gone 3 s without
   new partials but we have ≥ 4 characters captured, commit. Catches
   the case where ambient noise keeps VAD alive but actual speech

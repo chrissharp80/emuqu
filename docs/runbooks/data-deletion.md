@@ -115,6 +115,12 @@ own iCloud sync off when it next finds the zones gone, with a notice under the
 iCloud Sync switch, keeps its local copy and does not upload it again. To
 remove those copies, the user runs Delete All My Data on each device.
 
+It deletes the zones only in the iCloud account this device synced with (or,
+when none is recorded, the signed-in one, unless sync was stopped because it
+is a different account). Signed into another account, or with the account
+unchecked, it deletes nothing there and reports failure; the user signs back
+into their own account and runs it again.
+
 It can fail when the device is offline or signed out of iCloud. The local wipe
 still completes, and the result reports `remoteDeleted: false`, which the UI
 surfaces as a prompt to run the purge again with connectivity. Re-running is
