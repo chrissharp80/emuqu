@@ -387,6 +387,9 @@ private struct KnownDeviceRow: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .accessibilityLabel(String(localized: "Remove Device", bundle: LanguageManager.appBundle))
+        // Behind the row until a swipe reveals it: VoiceOver reaches Remove
+        // through the row's own action instead.
+        .accessibilityHidden(!revealed)
         .frame(width: deleteWidth)
         .background(Color.red)
         .cornerRadius(10)
@@ -410,6 +413,7 @@ private struct KnownDeviceRow: View {
         .offset(x: offset)
         .onTapGesture { handleTap() }
         .gesture(swipeToDelete)
+        .modifier(KnownDeviceAccessibility(onRemove: onRemove))
     }
 
     private var deviceRowText: some View {
@@ -491,5 +495,19 @@ private struct KnownDeviceRow: View {
         } label: {
             Label(String(localized: "Remove Device", bundle: LanguageManager.appBundle), systemImage: "trash")
         }
+    }
+}
+
+/// A known-device row for VoiceOver: one button that connects, with Remove
+/// Device as its named action (the swipe-revealed button stays hidden).
+private struct KnownDeviceAccessibility: ViewModifier {
+    let onRemove: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(Text(String(localized: "Connects to this device", bundle: LanguageManager.appBundle)))
+            .accessibilityAction(named: Text(String(localized: "Remove Device", bundle: LanguageManager.appBundle))) { onRemove() }
     }
 }

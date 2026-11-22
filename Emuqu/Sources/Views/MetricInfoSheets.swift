@@ -213,8 +213,8 @@ struct MetricInfoSheet: View {
 
     private static func hfPowerEntry() -> Entry {
         Entry(
-            short: String(localized: "High-frequency band power (0.15–0.4 Hz) — almost pure parasympathetic.", bundle: LanguageManager.appBundle),
-            body: String(localized: "Tracks respiratory sinus arrhythmia. Rises when you're calm and breathing slowly; collapses under stress. Pairs well with RMSSD for vagal-tone reads.", bundle: LanguageManager.appBundle),
+            short: String(localized: "High-frequency band power (0.15–0.4 Hz) — the band most closely tied to parasympathetic activity.", bundle: LanguageManager.appBundle),
+            body: String(localized: "Tracks respiratory sinus arrhythmia at ordinary breathing rates, about 9 to 24 breaths a minute, and tends to fall under stress. Breathing slower than that, as the breathing mandala paces you, moves the power into LF, so HF drops. Pairs well with RMSSD for vagal-tone reads.", bundle: LanguageManager.appBundle),
             typicalRange: String(localized: "Resting: 100–1,500 ms².", bundle: LanguageManager.appBundle)
         )
     }
@@ -239,14 +239,14 @@ struct MetricInfoSheet: View {
         Entry(
             short: String(localized: "Baevsky's stress index — a Russian-physiology integral measure.", bundle: LanguageManager.appBundle),
             body: String(localized: "Combines mode, mode amplitude, and variation range into a single number that rises with sympathetic load and drops with parasympathetic dominance. Useful in trend, less so as an isolated value.", bundle: LanguageManager.appBundle),
-            typicalRange: String(localized: "Resting: 50–150. Stressed: 200+.", bundle: LanguageManager.appBundle)
+            typicalRange: String(localized: "Usual resting range: 50–100. 100–150 is somewhat above it, 150–300 well above it.", bundle: LanguageManager.appBundle)
         )
     }
 
     private static func readinessEntry() -> Entry {
         Entry(
             short: String(localized: "Composite 1–10 readiness from the HRV pipeline.", bundle: LanguageManager.appBundle),
-            body: String(localized: "Built from RMSSD plus DFA α1 banding and autonomic balance, scaled to your aerobic capacity. It reads CAPACITY — how much your system can handle — so it can sit high even on a day your Recovery score is low. Recovery answers a different question: today vs YOUR recent baseline. When the two diverge, trust Recovery for whether to go hard today, and Readiness for your underlying fitness ceiling.", bundle: LanguageManager.appBundle),
+            body: String(localized: "Starts at a neutral 5 and rewards being near your own norm: RMSSD close to your usual level, DFA α1 in its resting band, and the PNS/SNS balance. Recent hard training lifts it, since low HRV is expected then. Because it rewards nearness rather than height, a night well above your usual HRV can still score low. Recovery answers a different question, today against your recent baseline, so the two can diverge.", bundle: LanguageManager.appBundle),
             typicalRange: String(localized: "7–10: Ready. 4.5–7: Moderate. 2–4.5: Fatigued. Below 2: Rest.", bundle: LanguageManager.appBundle)
         )
     }

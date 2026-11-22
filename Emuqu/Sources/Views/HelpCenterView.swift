@@ -10,19 +10,34 @@ struct HelpCenterView<Header: View>: View {
     @State private var searchText = ""
     @Environment(SettingsManager.self) var settingsManager
     private let header: Header
+    /// The localized corpus and its lowered search text, built once per age
+    /// and language (`.task(id: corpusKey)`), not on every access and
+    /// keystroke.
+    @State private var cachedCorpus: HelpCorpus?
 
     init(@ViewBuilder header: () -> Header) {
         self.header = header()
     }
 
+    private var corpusKey: String {
+        "\(settingsManager.settings.age.map(String.init) ?? "-")|\(LanguageManager.appLocale.identifier)"
+    }
+
+    /// The cached corpus when it was built for the current age and language;
+    /// otherwise (before the first `.task` lands) a fresh one.
+    private var corpus: HelpCorpus {
+        if let cachedCorpus, cachedCorpus.key == corpusKey { return cachedCorpus }
+        return HelpCorpus(key: corpusKey, age: settingsManager.settings.age)
+    }
+
     private var categories: [HelpCategory] {
-        HelpContent.categories(forAge: settingsManager.settings.age)
+        corpus.categories
     }
 
     private var searchResults: [HelpArticle] {
         guard !searchText.isEmpty else { return [] }
         let query = searchText.lowercased()
-        return categories.flatMap(\.articles).filter { $0.searchableText.contains(query) }
+        return corpus.searchIndex.filter { $0.text.contains(query) }.map(\.article)
     }
 
     private var isSearching: Bool {
@@ -55,6 +70,7 @@ struct HelpCenterView<Header: View>: View {
         .searchable(text: $searchText, prompt: Text("Search help articles", bundle: LanguageManager.appBundle))
         .zenBackground()
         .navigationTitle(String(localized: "Help & Learn", bundle: LanguageManager.appBundle))
+        .task(id: corpusKey) { cachedCorpus = HelpCorpus(key: corpusKey, age: settingsManager.settings.age) }
     }
 
     // MARK: - Hero Card
@@ -144,9 +160,8 @@ struct HelpCenterView<Header: View>: View {
 
     // MARK: - Search Results
 
-    /// The corpus is localized and scanned once per render (`searchResults`
-    /// rebuilds every category and lowercases every article), then the one
-    /// result list feeds the empty check, the count and the links.
+    /// The cached corpus is scanned once per render (`searchResults`), then
+    /// the one result list feeds the empty check, the count and the links.
     private var searchResultsView: some View {
         let results = searchResults
         return VStack(alignment: .leading, spacing: 12) {
@@ -370,4 +385,20 @@ private struct ArticleRow: View {
         HelpCenterView()
     }
     .environment(AppDependencies.current.app.settingsManager)
+}
+
+/// The Help Center's categories for one age and language, localized, with
+/// each article's search text (`HelpArticle.searchableText`, lowered) worked
+/// out once.
+@MainActor
+private struct HelpCorpus {
+    let key: String
+    let categories: [HelpCategory]
+    let searchIndex: [(article: HelpArticle, text: String)]
+
+    init(key: String, age: Int?) {
+        self.key = key
+        categories = HelpContent.categories(forAge: age)
+        searchIndex = categories.flatMap(\.articles).map { (article: $0, text: $0.searchableText) }
+    }
 }

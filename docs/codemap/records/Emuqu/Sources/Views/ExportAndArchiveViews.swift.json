@@ -238,8 +238,8 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.firstRecordingSection(_:)": "4f6dd4e634fd47e3",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.latestRecordingSection(_:)": "775f184a0cb6d7d8",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.firstRecordingSection(_:)": "36e7700ca844e903",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.latestRecordingSection(_:)": "8a5ae4452b9064f0",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.totalSessionsSection(_:)": "1216d7db45de4c39"
    }
   },
@@ -261,11 +261,12 @@
   },
   {
    "key": "func ExportDataView.firstRecordingSection(_:)",
-   "hash": "65b1b46714e15b7e",
-   "does": "Row 'First Recording' using entries.last (oldest, since entries are sorted date-descending).",
+   "hash": "cfb74f72201a645e",
+   "does": "Row 'First Recording' with the date of entries.last (oldest, since entries are sorted date-descending) as a long date in the app language.",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
    "reads": [],
    "writes": [],
@@ -278,16 +279,19 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
    "key": "func ExportDataView.latestRecordingSection(_:)",
-   "hash": "c4dc632f629dd53b",
-   "does": "Row 'Latest Recording' using entries.first (newest).",
+   "hash": "7621853b7e7c0205",
+   "does": "Row 'Latest Recording' with the date of entries.first (newest) as a long date in the app language.",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
    "reads": [],
    "writes": [],
@@ -300,6 +304,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
@@ -317,7 +323,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.beginExport()": "fa6801bcd0fe3a46",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.runRRCSVExport()": "8f8b555347cd66af"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.runRRCSVExport()": "47d2ffe6f2d44de0"
    }
   },
   {
@@ -404,8 +410,8 @@
   },
   {
    "key": "func ExportDataView.runRRCSVExport()",
-   "hash": "79d362a6ae9c3a91",
-   "does": "Snapshots archive.entries once (walk and total), builds tmp URL Emuqu_RR_<timestamp>.csv, runs streamRRCSV over that snapshot in a detached userInitiated task, then on main sets exportShortfall (total - unreadable vs total) and finishExport; on throw logs, deletes the file and failExport.",
+   "hash": "38802cb2c9a8ed17",
+   "does": "Snapshots archive.entries once (walk and total), builds tmp URL Emuqu_RR_<timestamp>.csv, runs streamRRCSV over that snapshot on a detached task cancelled with this one (cancellableDetached), so closing the screen stops it, then on main sets exportShortfall (total - unreadable vs total) and finishExport; on throw logs, deletes the file and failExport.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
@@ -415,7 +421,8 @@
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.finishExport(url:)",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.failExport(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.cancellableDetached(_:)"
    ],
    "reads": [
     "archive:SessionArchive.entries"
@@ -435,13 +442,28 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.cancellableDetached(_:)": "fa43bf13abda5ab6",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.failExport(_:)": "1d3bed29aec8114f",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.finishExport(url:)": "7230cb9b095327f7",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.shortfallNote(written:total:)": "b2681cc261618b4c",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.streamRRCSV(to:archive:entries:)": "b0d566c4a0e8178a",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.streamRRCSV(to:archive:entries:)": "71ca0cf3382f2226",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.timestampedName(prefix:ext:)": "369ece98013a204a",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
+  },
+  {
+   "key": "func ExportDataView.cancellableDetached(_:)",
+   "hash": "e2531cc2490d3554",
+   "does": "Runs the work on a userInitiated detached task and awaits it inside a cancellation handler that cancels that task when the calling task (exportTask) is cancelled, so the work's Task.checkCancellation stops it.",
+   "entry": null,
+   "calls": [
+    "ext:Task.detached",
+    "ext:withTaskCancellationHandler"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "func ExportDataView.timestampedName(prefix:ext:)",
@@ -471,8 +493,8 @@
   },
   {
    "key": "func ExportDataView.streamRRCSV(to:archive:entries:)",
-   "hash": "9e232b796b984b2e",
-   "does": "Creates the tmp file, writes header 'session_date,timestamp_ms,rr_ms,session_type', then for each entry of the given snapshot (inside autoreleasepool) writes its RR rows; counts unreadable sessions and beats, logs, returns unreadable count. Handle close failure is logged via attempt.",
+   "hash": "3631d973532fd640",
+   "does": "Creates the tmp file, writes header 'session_date,timestamp_ms,rr_ms,session_type', then for each entry of the given snapshot (inside autoreleasepool) writes its RR rows; counts unreadable sessions and beats, logs, returns unreadable count. Handle close failure is logged via attempt. Checks for cancellation before each session and throws CancellationError once cancelled.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
@@ -494,7 +516,12 @@
      "effect": "each entry written; loop ends after last"
     },
     {
-     "at": "+12",
+     "at": "+9",
+     "cond": "task cancelled",
+     "effect": "throw CancellationError"
+    },
+    {
+     "at": "+13",
      "cond": "writeRRRows returned a beat count",
      "effect": "non-nil: add to pointCount; nil: unreadable += 1"
     }
@@ -726,13 +753,13 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.beginExport()": "fa6801bcd0fe3a46",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.runFullExport()": "c1e2a48044393f9a"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.runFullExport()": "b540c52cc4b8fd2c"
    }
   },
   {
    "key": "func ExportDataView.runFullExport()",
-   "hash": "ef2fb7d425e4c5d6",
-   "does": "Snapshots archive entries and the user's AI memory facts (on main), streams the JSON export to tmp Emuqu_Export_<timestamp>.json in a detached task, then sets shortfall note and finishExport; on throw logs, deletes partial file and failExport.",
+   "hash": "aafb46a2d0c6973b",
+   "does": "Snapshots archive entries and the user's AI memory facts (on main), streams the JSON export to tmp Emuqu_Export_<timestamp>.json on a detached task cancelled with this one (cancellableDetached), so closing the screen stops it, then sets shortfall note and finishExport; on throw logs, deletes partial file and failExport.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
@@ -743,7 +770,8 @@
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.finishExport(url:)",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.failExport(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.cancellableDetached(_:)"
    ],
    "reads": [
     "archive:SessionArchive.entries",
@@ -756,7 +784,7 @@
    "branches": [
     {
      "at": "+14",
-     "cond": "streamExport threw (create/open/header/trailer write)",
+     "cond": "streamExport threw (create/open/header/trailer write, or cancelled)",
      "effect": "catch: log, remove temp file, failExport; else shortfall + finish"
     }
    ],
@@ -766,10 +794,11 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.cancellableDetached(_:)": "fa43bf13abda5ab6",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.failExport(_:)": "1d3bed29aec8114f",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.finishExport(url:)": "7230cb9b095327f7",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.shortfallNote(written:total:)": "b2681cc261618b4c",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.streamExport(to:archive:entries:userFacts:)": "e277192cf75d27ea",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.streamExport(to:archive:entries:userFacts:)": "d789ecad60ed7618",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.timestampedName(prefix:ext:)": "369ece98013a204a",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
@@ -814,8 +843,8 @@
   },
   {
    "key": "func ExportDataView.streamExport(to:archive:entries:userFacts:)",
-   "hash": "a165c8c43f63adfe",
-   "does": "Creates tmp file, writes the envelope header (without closing brace), ',\"sessions\":[', each session (lightweight, no rrSeries) via writeSessions, then trailer with sessionsWritten and skippedSessionIds; returns written count. Handle close errors are discarded with try?.",
+   "hash": "a753f4236c313fd5",
+   "does": "Creates tmp file, writes the envelope header (without closing brace), ',\"sessions\":[', each session (lightweight, no rrSeries) via writeSessions, then trailer with sessionsWritten and skippedSessionIds; returns written count. Handle close errors are discarded with try?. Throws CancellationError when the export is cancelled between sessions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.envelopeHeader(encoder:count:userFacts:)",
@@ -833,7 +862,7 @@
     "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.envelopeHeader(encoder:count:userFacts:)": "8a582bad0d2a9e2f",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.writeSessions(_:archive:encoder:handle:)": "93c2a952c196ed81"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.writeSessions(_:archive:encoder:handle:)": "5f3cad9ed134e1f2"
    }
   },
   {
@@ -860,8 +889,8 @@
   },
   {
    "key": "func ExportDataView.writeSessions(_:archive:encoder:handle:)",
-   "hash": "23027c082e96675b",
-   "does": "For each entry, in an autoreleasepool, writes the session (comma-prefixed after the first written) and collects ids that failed; returns skipped ids.",
+   "hash": "af637d42640f1765",
+   "does": "For each entry, after checking for cancellation (throws CancellationError), writes the session in an autoreleasepool (comma-prefixed after the first written) and collects ids that failed; returns skipped ids.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.writeOneSession(_:archive:encoder:handle:isFirst:)"
@@ -879,13 +908,19 @@
      "effect": "each entry attempted"
     },
     {
-     "at": "+7",
+     "at": "+4",
+     "cond": "task cancelled",
+     "effect": "throw CancellationError"
+    },
+    {
+     "at": "+8",
      "cond": "writeOneSession returned true",
      "effect": "true: written += 1; false: id appended to skipped"
     }
    ],
    "deps": {
     "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.writeOneSession(_:archive:encoder:handle:isFirst:)": "02e0ba9c64f7f113"
    }
   },

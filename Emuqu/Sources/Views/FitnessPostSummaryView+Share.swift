@@ -45,19 +45,21 @@ extension FitnessSummaryCards {
         ))
     }
 
-    /// Seconds of elapsed workout, floored at zero.
-    private var recapElapsedSeconds: TimeInterval {
-        max(0, (session.endDate ?? session.startDate).timeIntervalSince(session.startDate))
+    /// Seconds of active (un-paused) workout, floored at zero: the figure the
+    /// summary hero shows (`WorkoutActiveTime`), so a paused workout's recap
+    /// card carries the same duration and pace.
+    private var recapActiveSeconds: TimeInterval {
+        max(0, WorkoutActiveTime.seconds(samples: session.workoutMetadata?.samples, wallClock: session.duration) ?? 0)
     }
 
     private func recapDuration() -> String {
-        let secs = recapElapsedSeconds
+        let secs = recapActiveSeconds
         guard secs > 0 else { return "—" }
         return LocalizedDuration.hoursMinutes(minutes: Int(secs / 60))
     }
 
     private func recapPace(meta: WorkoutMetadata?) -> String {
-        let secs = recapElapsedSeconds
+        let secs = recapActiveSeconds
         guard let m = meta?.distanceMeters, m > 0, secs > 0 else { return "—" }
         return UnitsPreferenceStore.current.formatPace(secondsPerMeter: secs / m) ?? "—"
     }
@@ -300,8 +302,8 @@ extension FitnessSummaryCards {
     }
 
     var pdfMailSubject: String {
-        let dateStr = session.startDate.formatted(date: .abbreviated, time: .omitted)
-        let sport = session.workoutMetadata?.sport.localizedName ?? "Workout"
+        let dateStr = session.startDate.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(LanguageManager.appLocale))
+        let sport = session.workoutMetadata?.sport.localizedName ?? String(localized: "Workout", bundle: LanguageManager.appBundle)
         return "Emuqu — \(sport), \(dateStr)"
     }
 

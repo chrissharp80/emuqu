@@ -72,37 +72,35 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.recapDuration()": "bef8f59ce959b30a",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.recapPace(meta:)": "87abf9f2beaaa498",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.recapDuration()": "31e7329b129bb273",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.recapPace(meta:)": "3275b3390117acc4",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.recapSummary(meta:)": "488598e6a7503d59",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func recapDistance(meta:)": "c7cd0043b23d9864",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func recapVerdict(meta:)": "e1a15dcf6a57288f"
    }
   },
   {
-   "key": "var FitnessSummaryCards.recapElapsedSeconds",
-   "hash": "0149335275edb162",
-   "does": "Elapsed seconds endDate (or startDate) minus startDate, floored at 0.",
+   "key": "var FitnessSummaryCards.recapActiveSeconds",
+   "hash": "442950462e8837bc",
+   "does": "Active (un-paused) workout seconds as WorkoutActiveTime gives them (last sample offset, else wall-clock duration), floored at zero; 0 with neither.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)"
+   ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "endDate nil",
-     "effect": "`??` startDate -> 0 s"
-    }
-   ],
-   "deps": {}
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "2ab0c1cf6cea2ea6"
+   }
   },
   {
    "key": "func FitnessSummaryCards.recapDuration()",
-   "hash": "032cb0acbf788627",
-   "does": "Elapsed time as localized hours/minutes, '—' when zero.",
+   "hash": "a2f11731711c0397",
+   "does": "Active (un-paused) time as localized hours/minutes, the summary hero's figure; '—' when zero.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapElapsedSeconds",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapActiveSeconds",
     "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
    ],
    "reads": [],
@@ -115,17 +113,17 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapElapsedSeconds": "f1931bc214bed285",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapActiveSeconds": "56b9ccf1eac97b56",
     "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
    "key": "func FitnessSummaryCards.recapPace(meta:)",
-   "hash": "834d2419df216fd7",
-   "does": "Pace from elapsed seconds / distance in the user's units; '—' without distance/time or when formatting fails.",
+   "hash": "e3907934c18d6fe1",
+   "does": "Pace from active (un-paused) seconds / distance in the user's units, as the summary hero computes it; '—' without distance/time or when formatting fails.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapElapsedSeconds",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapActiveSeconds",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)"
    ],
@@ -148,7 +146,7 @@
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapElapsedSeconds": "f1931bc214bed285"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapActiveSeconds": "56b9ccf1eac97b56"
    }
   },
   {
@@ -328,7 +326,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.pdfMailSubject": "5c0d2031045ce376",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.pdfMailSubject": "3c271c3121f7b09e",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailCC": "ab549c69588f39e6",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailRecipients": "a14d4ac26c6e7e75"
    }
@@ -602,11 +600,13 @@
   },
   {
    "key": "var FitnessSummaryCards.pdfMailSubject",
-   "hash": "10fbeefe74e51ca4",
-   "does": "'Emuqu — <sport>, <abbreviated date>' mail subject.",
+   "hash": "183cea78313e62dd",
+   "does": "'Emuqu — <sport>, <abbreviated date in the app language>' mail subject.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
@@ -614,11 +614,13 @@
     {
      "at": "+2",
      "cond": "workoutMetadata nil",
-     "effect": "`??` 'Workout'"
+     "effect": "`??` localized 'Workout'"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "7ee167777e5501ae",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },

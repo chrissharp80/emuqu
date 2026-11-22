@@ -768,6 +768,10 @@ private struct StableMapCard: View {
     /// when the track grows meaningfully, not every tick. Keeps the map
     /// from panning with every GPS sample.
     @State private var lastFramedCount: Int = 0
+    /// The track's coordinates, kept in step with `track` by `syncCoordinates`
+    /// on each new fix, so a body pass (about once a second) does not remap
+    /// the whole route.
+    @State private var coordinates: [CLLocationCoordinate2D] = []
 
     var body: some View {
         ZStack {
@@ -784,8 +788,24 @@ private struct StableMapCard: View {
         // Keyed on the newest fix, not the count: a seed fix replaced by the
         // first accurate one keeps the count at 1 but must still reframe.
         // `.onAppear` frames a track that is already there when the card mounts.
-        .onChange(of: track.last?.timestamp) { _, _ in reframe() }
-        .onAppear { reframe() }
+        .onChange(of: track.last?.timestamp) { _, _ in trackChanged() }
+        .onAppear { trackChanged() }
+    }
+
+    private func trackChanged() {
+        syncCoordinates()
+        reframe()
+    }
+
+    /// The track only grows once it has two fixes, so only the new tail is
+    /// mapped then; a first fix replacing the seed, or a track that did not
+    /// grow, is mapped whole.
+    private func syncCoordinates() {
+        if coordinates.count > 1, track.count > coordinates.count {
+            coordinates.append(contentsOf: track[coordinates.count...].map(\.coordinate))
+        } else {
+            coordinates = track.map(\.coordinate)
+        }
     }
 
     /// Always present so the card height never shifts while GPS is still
@@ -816,8 +836,7 @@ private struct StableMapCard: View {
     }
 
     private var liveRouteMap: some View {
-        let coordinates = track.map(\.coordinate)
-        return Map(position: $position) {
+        Map(position: $position) {
             if coordinates.count >= 2 {
                 MapPolyline(coordinates: coordinates)
                     .stroke(AppTheme.fitnessAccent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
@@ -857,7 +876,7 @@ private struct StableMapCard: View {
         guard newCount > 0, Self.shouldReframe(count: newCount, lastFramed: lastFramedCount) else { return }
         lastFramedCount = newCount
         if newCount >= 2 {
-            position = .region(Self.regionForTrack(track.map(\.coordinate)))
+            position = .region(Self.regionForTrack(coordinates))
         } else if let last = track.last?.coordinate {
             position = .region(MKCoordinateRegion(
                 center: last,

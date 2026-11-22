@@ -91,9 +91,12 @@ struct HistoryCalendarView: View {
     /// Horizontal swipe changes months. The chevrons stay for
     /// users who do not discover the gesture. The 80 pt threshold is roomy
     /// enough not to fight a vertical scroll intent from the outer ScrollView.
+    ///
+    /// Simultaneous, not exclusive: the enclosing ScrollView keeps vertical
+    /// drags that start on the card.
     private func withMonthSwipe(_ content: some View) -> some View {
         content
-            .gesture(
+            .simultaneousGesture(
                 DragGesture(minimumDistance: 30)
                     .onEnded { value in
                         guard abs(value.translation.width) > 80,
@@ -682,7 +685,7 @@ private struct DaySummarySheet: View {
                 .padding(18)
         }
         .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle(Text(date, style: .date))
+        .navigationTitle(Text(date.formatted(Date.FormatStyle(date: .long, time: .omitted).locale(LanguageManager.appLocale))))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { doneToolbarItem }
     }

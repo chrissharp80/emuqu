@@ -1313,12 +1313,13 @@
   },
   {
    "key": "func ArchiveStore.markAsDeleted(_:)",
-   "hash": "43bf706968117c9e",
-   "does": "Takes the lock; inserts a tombstone for the id (need not be archived), records its deletion time and saves deleted.json (throws).",
+   "hash": "21d9ce565ee0a797",
+   "does": "Takes the lock; inserts a tombstone for the id (need not be archived), records its deletion time and saves deleted.json. When the save throws and this call added the tombstone, removes it and forgets the deletion time again, then rethrows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)"
    ],
    "reads": [
     "mem:SessionArchive.deletedSessionIds"
@@ -1328,9 +1329,16 @@
     "ud:archive.deletionTimes",
     "file:<archiveDirectory>/deleted.json"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "catch: saveDeletedIndex threw",
+     "effect": "rethrow; first, if the id was newly inserted, remove it and forget its deletion time"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)": "081a68f3d50e3c17",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "458c4130b9c80d9d"
    }
   },

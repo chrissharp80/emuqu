@@ -488,7 +488,7 @@ extension HRVDetailV2View {
                 Text(String(localized: "Frequency analysis unavailable", bundle: LanguageManager.appBundle))
                     .font(.system(size: dt14, weight: .semibold))
                     .foregroundStyle(AppTheme.textPrimary)
-                Text(String(localized: "Reading too short — Frequency analysis needs ≥256 clean beats. The Time Domain tab still has the standard HRV metrics.", bundle: LanguageManager.appBundle))
+                Text(String(localized: "Reading too short — Frequency analysis needs ≥60 clean beats. The Time Domain tab still has the standard HRV metrics.", bundle: LanguageManager.appBundle))
                     .font(.system(size: dt12))
                     .foregroundStyle(AppTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

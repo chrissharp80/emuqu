@@ -549,6 +549,10 @@ private var thresholdRules: some ChartContent {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textSecondary)
                 alpha1RouteMap(segments: segments, coords: track.map(\.coordinate))
+                    // The bands are colours on a map; VoiceOver gets the time
+                    // in each band instead.
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(String(localized: "Route coloured by α1 band. \(alpha1Stats(samples: samples).distributionLabel)", bundle: LanguageManager.appBundle)))
                 alpha1BandLegend
             }
             .padding(14)
@@ -766,12 +770,15 @@ private func alpha1StatBlock(label: String, value: String) -> some View {
 }
 
 private func alpha1CacheKey(sessionId: UUID, samples: [WorkoutSample]) -> Alpha1StatsCache.Key {
-    Alpha1StatsCache.Key(
+    var values = Hasher()
+    for alpha1 in samples.lazy.compactMap(\.alpha1) { values.combine(alpha1) }
+    return Alpha1StatsCache.Key(
         sessionId: sessionId,
         count: samples.count,
         firstAlphaOffset: samples.first(where: { $0.alpha1 != nil })?.offsetSec,
         lastAlphaOffset: samples.last(where: { $0.alpha1 != nil })?.offsetSec,
-        alphaSampleCount: samples.lazy.compactMap { $0.alpha1 }.count
+        alphaSampleCount: samples.lazy.compactMap { $0.alpha1 }.count,
+        alphaValuesHash: values.finalize()
     )
 }
 

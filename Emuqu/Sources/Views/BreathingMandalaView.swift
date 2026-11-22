@@ -39,10 +39,8 @@ struct BreathingMandalaView: View {
         Color(hue: 0.85, saturation: 0.35, brightness: 0.90) // Pink-lavender
     ]
 
-    /// Held in `@State` so it is created once per view identity: a plain stored
-    /// `let` built a new autoconnected publisher on every parent re-render, and
-    /// `onReceive` resubscribed each time.
-    @State private var timer = Timer.publish(every: 0.016, on: .main, in: .common).autoconnect()
+    /// About 60 ticks a second while animating (`runTicks`).
+    private static let tickInterval: Duration = .milliseconds(16)
 
     var body: some View {
         GeometryReader { geometry in
@@ -54,7 +52,26 @@ struct BreathingMandalaView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(String(localized: "Breathing guide: \(breathGuideText)", bundle: LanguageManager.appBundle))
         .accessibilityAddTraits(.updatesFrequently)
-        .onReceive(timer) { _ in tick() }
+        // Restarted when `isAnimating` changes: nothing wakes while the
+        // mandala is still, and the task ends with the view.
+        .task(id: isAnimating) { await runTicks() }
+    }
+
+    /// While animating, ticks until the task is cancelled; otherwise one tick,
+    /// which forgets the last tick time so a restart does not jump.
+    private func runTicks() async {
+        guard isAnimating else {
+            tick()
+            return
+        }
+        while !Task.isCancelled {
+            tick()
+            do {
+                try await Task.sleep(for: Self.tickInterval)
+            } catch {
+                return
+            }
+        }
     }
 
     private func mandalaLayers(size: CGFloat) -> some View {

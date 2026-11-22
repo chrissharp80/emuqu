@@ -190,10 +190,12 @@ struct DashboardV2View: View {
     /// The medallion stays frozen at morning recovery by design; this
     /// is what powers "Your moderate 37-min walk is the day's main event"
     /// when today has a story to tell. Nil-tolerant to keep the hero
-    /// rendering when training metrics haven't synced.
+    /// rendering when training metrics haven't synced. A night saved before
+    /// scores were persisted falls back to `readinessScore`, as the hero does
+    /// (`displayedScore`), so the two never disagree.
     var liveReadiness: LiveReadiness? {
         guard let session = latestOvernightComplete,
-              let score01 = session.recoveryScore else { return nil }
+              let score01 = session.recoveryScore ?? session.readinessScore else { return nil }
         return LiveReadiness.compute(
             recoveryScore: score01 * 10,
             morningSession: session,
