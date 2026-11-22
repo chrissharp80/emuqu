@@ -1585,12 +1585,15 @@ final class ReanalysisService {
         result: HRVAnalysisResult
     ) async -> HRVSession?
 
+    /// Runs off the main actor, one edit after another in the order made;
+    /// the task's value is true only when the update was stored. A user
+    /// adjustment's caller reports a false value; an automatic one may not.
     @discardableResult
     func updateSessionSleepBoundaries(
         sessionId: UUID,
         sleepData: SleepData,
         isUserAdjustment: Bool = false
-    ) -> Bool
+    ) -> Task<Bool, Never>
 
     @discardableResult
     func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) -> Bool
@@ -2385,6 +2388,12 @@ final class PDFReportGenerator {
 
 ```swift
 enum ExportFile {
+    /// An export built in memory, written only when the user shares it.
+    struct Pending: Sendable {
+        let name: String
+        let data: Data
+        func write() throws -> URL               // ExportFile.write(data, named: name)
+    }
     static var directory: URL                     // tmp/Exports
     /// Atomic, complete file protection; earlier copies whose names start
     /// with `replacingPrefix` are removed first.
@@ -2395,7 +2404,10 @@ enum ExportFile {
 ```
 
 CSV, GPX and TCX exports, the report PDF (`writeReport`), the log export and the
-crash export are written through it.
+crash export are written through it. The workout summary builds its GPX, CSV and
+TCX as `Pending` exports and writes one only when it is shared
+(`FileShareButton`); a shared file is deleted when its share sheet closes,
+shared or cancelled (`presentFileShareSheet`).
 
 ---
 

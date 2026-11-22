@@ -1288,15 +1288,17 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Storage & Sync > Export files",
-   "hash": "f1bc0678f2951265",
-   "does": "Claims CSV, GPX, TCX, writeReport, log and crash exports go through ExportFile: one tmp/Exports folder, complete file protection, each export replacing its earlier copies, the folder emptied at launch by EmuquApp.init; WorkoutPDFReport.generate and HolisticDailyReport.generate apply complete protection; GPX and TCX points carry the recorded fix times (WorkoutMetadata.gpsFixTimes via GPXExporter.recordedFixTimes/timedAsRecorded), else evenly spread times noted in the file's description.",
+   "hash": "d3f90391ff071f7d",
+   "does": "Claims CSV, GPX, TCX, writeReport, log and crash exports go through ExportFile: one tmp/Exports folder, complete file protection, each export replacing its earlier copies, a file handed to the share sheet deleted when the sheet closes (presentFileShareSheet, used by FileShareButton), the workout summary's GPX/CSV/TCX built in memory (ExportFile.Pending) and written only on tap, the folder emptied at launch by EmuquApp.init as the backstop; WorkoutPDFReport.generate and HolisticDailyReport.generate apply complete protection; GPX and TCX points carry the recorded fix times (WorkoutMetadata.gpsFixTimes via GPXExporter.recordedFixTimes/timedAsRecorded), else evenly spread times noted in the file's description.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.removeLeftovers()",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.recordedFixTimes(_:count:)",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.timedAsRecorded(_:metadata:)"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.timedAsRecorded(_:metadata:)",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentFileShareSheet(_:title:iconName:from:onClosed:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()"
    ],
    "reads": [],
    "writes": [],
@@ -1304,9 +1306,11 @@
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.recordedFixTimes(_:count:)": "7f999ee4492b1930",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.timedAsRecorded(_:metadata:)": "0f36649205f7793e",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()": "1dc5315527542820",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)": "12c56ef05601a449",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.removeLeftovers()": "2938ba72f922f474",
-    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c"
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentFileShareSheet(_:title:iconName:from:onClosed:)": "1114a84169ab2526"
    }
   },
   {

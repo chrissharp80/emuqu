@@ -893,8 +893,12 @@ SleepTimelineEditorView
       reanalysisService.updateSessionSleepBoundaries(sessionId, sleepData,
                                                      isUserAdjustment: true)
         ├─ Sets sleepUserAdjusted = true (blocks retroApplySleepSettings)
-        ├─ Rescores via RecoveryScoreCalculator
-        ├─ archive.archive(updatedSession)
+        ├─ Waits for the previous sleep edit, reads the session off the main
+        │  actor, captures the rescore inputs on the main actor
+        ├─ SleepBoundaryWrite.write (off the main actor), under the archive
+        │  lock: when the stored copy still has the inputs the edit was
+        │  decided on, applies the boundaries and rescores the stored copy
+        │  (RecoveryScoreCalculator); else writes nothing and retries from it
         └─ Fires onArchiveChanged → dashboard + history propagate
 
 SleepData.edits: [SleepEditRecord]   ← audit trail (addSegment, split,
@@ -902,7 +906,7 @@ SleepData.edits: [SleepEditRecord]   ← audit trail (addSegment, split,
                                      ← shown in "View changes" disclosure
 
 Provenance on SleepStageInterval:
-  .watch / .iphone / .hrvDerived / .userAdded / .userCarved
+  .watch / .iphone / .hrvDerived / .userAdded / .userAdjusted / .userCarved
   Rendered as stroke style in the timeline (dashed for user-added,
   glyph for user-carved) — colors stay semantic to stage.
 ```
