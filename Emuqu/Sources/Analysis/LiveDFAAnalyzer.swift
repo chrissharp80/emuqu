@@ -56,10 +56,11 @@ import Foundation
 // these same cuts, so one α1 value never reads as two bands.
 //
 // What α1 is NOT used for in this app:
-//   • Secretly rewriting TRIMP / hrTSS. TRIMP uses published Banister
-//     formula with the user's configured LTHR. α1 neither feeds into the
-//     calculation nor suggests an LTHR value — LT1 is a different, lower
-//     anchor than LTHR. Validated methods in, validated methods out.
+//   • Secretly rewriting TRIMP / hrTSS. TRIMP uses the published Banister
+//     formula on the user's resting and max HR (Edwards' zones without
+//     them), and hrTSS the user's LTHR. α1 feeds neither calculation nor
+//     suggests an LTHR value — LT1 is a different, lower anchor than LTHR.
+//     Validated methods in, validated methods out.
 // ─────────────────────────────────────────────────────────────────
 //
 // The UI surfaces the raw α1 plus a coarse band (belowAeT / nearAeT /
@@ -339,7 +340,7 @@ final class LiveDFAAnalyzer {
             refreshStatus(now: now)
             return
         }
-        let cleaned = Self.cleanRRForDFA(rollingBuffer.map { Double($0.rr_ms) })
+        let cleaned = Self.cleanRRForDFA(rollingBuffer)
         guard let result = fitOrExplain(cleaned) else { return }
         currentAlpha1 = result.alpha1
         fitQuality = result.alpha1R2
@@ -447,8 +448,58 @@ final class LiveDFAAnalyzer {
     /// `nonisolated` because this is a pure value transform with no
     /// instance state — lets the re-analyzer run on a background task.
     nonisolated static func cleanRRForDFA(_ rrs: [Double]) -> CleanedSeries {
-        guard rrs.count >= 8 else { return CleanedSeries(values: rrs, correctedCount: 0) }
-        let isArtifact = artifactMask(rrs)
+        cleaned(rrs, missing: Array(repeating: false, count: rrs.count))
+    }
+
+    /// `cleanRRForDFA(_:)` over beats on a gap-corrected clock (the live
+    /// `BeatClock`, or `WorkoutAnalyzer.gapCorrectedOffsetsMs` offline), with
+    /// the beats a Bluetooth dropout lost put back in.
+    ///
+    /// On those clocks a dropout shows as a beat starting later than the one
+    /// before it ended, so the beats either side of it are not neighbours:
+    /// the beats that fell in the gap are missing (`beatsLost`). Each is put
+    /// back as a beat to interpolate, so DFA's beat index stays true, and
+    /// counted as corrected, so a window that lost more than
+    /// `maxCorrectedFraction` of its beats is rejected rather than fitted as
+    /// if it were clean. Both the live analyzer and the offline re-analyzer
+    /// clean their windows with this.
+    nonisolated static func cleanRRForDFA(_ points: [RRPoint]) -> CleanedSeries {
+        var rrs: [Double] = []
+        var missing: [Bool] = []
+        rrs.reserveCapacity(points.count)
+        missing.reserveCapacity(points.count)
+        for index in points.indices {
+            if index > points.startIndex {
+                let lost = beatsLost(between: points[index - 1], and: points[index])
+                rrs.append(contentsOf: Array(repeating: 0, count: lost))
+                missing.append(contentsOf: Array(repeating: true, count: lost))
+            }
+            rrs.append(Double(points[index].rr_ms))
+            missing.append(false)
+        }
+        return cleaned(rrs, missing: missing)
+    }
+
+    /// How many beats fell between `previous` and `next`: the time between the
+    /// end of `previous` and the start of `next`, in beats of their mean
+    /// length. A shortfall of less than `1 - ectopicThresholdPercent` of a beat
+    /// is the clock's jitter (beats arrive in notification batches), not a
+    /// lost beat.
+    nonisolated static func beatsLost(between previous: RRPoint, and next: RRPoint) -> Int {
+        let gapMs = Double(next.t_ms - previous.t_ms - Int64(previous.rr_ms))
+        let typicalRR = Double(previous.rr_ms + next.rr_ms) / 2
+        guard gapMs > 0, typicalRR > 0 else { return 0 }
+        return Int((gapMs / typicalRR + HRVThresholds.ectopicThresholdPercent).rounded(.down))
+    }
+
+    /// The series with every artifact beat, and every beat marked `missing`,
+    /// interpolated, and how many that was. Under 8 beats nothing is
+    /// corrected beyond the missing beats, which are still counted.
+    nonisolated private static func cleaned(_ rrs: [Double], missing: [Bool]) -> CleanedSeries {
+        guard rrs.count >= 8 else {
+            return CleanedSeries(values: rrs, correctedCount: missing.lazy.filter { $0 }.count)
+        }
+        let isArtifact = artifactMask(rrs, missing: missing)
         return CleanedSeries(
             values: interpolatingArtifacts(rrs, isArtifact: isArtifact),
             correctedCount: isArtifact.lazy.filter { $0 }.count
@@ -473,12 +524,13 @@ final class LiveDFAAnalyzer {
 
     /// Pass 1: mark artifact indices using a trailing median (a 5-beat window
     /// of recent clean values). Out-of-range beats (>200 bpm / <30 bpm) are
-    /// rejected outright — they can't come from a healthy heart during exercise.
-    nonisolated private static func artifactMask(_ rrs: [Double]) -> [Bool] {
+    /// rejected outright — they can't come from a healthy heart during
+    /// exercise — and a beat a dropout lost (`missing`) is marked as it is.
+    nonisolated private static func artifactMask(_ rrs: [Double], missing: [Bool]) -> [Bool] {
         var isArtifact = Array(repeating: false, count: rrs.count)
         var recentClean: [Double] = []
         for i in 0 ..< rrs.count {
-            isArtifact[i] = isArtifactBeat(rrs[i], recentClean: recentClean)
+            isArtifact[i] = missing[i] || isArtifactBeat(rrs[i], recentClean: recentClean)
             guard !isArtifact[i] else { continue }
             recentClean.append(rrs[i])
             if recentClean.count > 5 { recentClean.removeFirst() }

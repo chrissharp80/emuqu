@@ -18,7 +18,9 @@ import Foundation
 /// (`lastRunRouteIdsKey`) — so it is skipped once converged and re-runs
 /// when the saved-route library changes. O(N) over recent workouts; each step is an
 /// archive read and polyline decode off the main actor plus a
-/// polyline-shape match on it.
+/// polyline-shape match on it. The year of earlier workouts the estimates
+/// draw their priors from is read once per scan, off the main actor
+/// (`RouteTRIMPEstimator.priorRuns`), not once per workout.
 @MainActor
 enum WorkoutLoadBackfill {
     /// UserDefaults key that records when the scan last ran. Used to
@@ -33,6 +35,11 @@ enum WorkoutLoadBackfill {
 
     /// Run the backfill if it hasn't run recently. Safe to call on
     /// every launch — the gate keeps it cheap.
+    ///
+    /// The scan is stamped as run only when it completed: a workout or a
+    /// prior that could not be read, or an estimate that could not be
+    /// written, leaves the stamp as it was, so the next launch scans again
+    /// instead of skipping that workout for a week.
     static func runIfNeeded(
         archive: SessionArchive,
         savedRouteStore: SavedRouteStore,
@@ -42,8 +49,11 @@ enum WorkoutLoadBackfill {
         let routeIds = routeFingerprint(savedRouteStore.routes)
         guard !ranRecently(defaults: defaults, routeIds: routeIds) else { return }
 
-        await run(archive: archive, savedRouteStore: savedRouteStore, lookbackDays: lookbackDays)
-
+        let complete = await run(archive: archive, savedRouteStore: savedRouteStore, lookbackDays: lookbackDays)
+        guard complete else {
+            debugLog("[WorkoutLoadBackfill] Scan incomplete — not stamped, so the next launch scans again.", level: .warning)
+            return
+        }
         defaults.set(Date(), forKey: lastRunDefaultsKey)
         defaults.set(routeIds, forKey: lastRunRouteIdsKey)
     }
@@ -70,27 +80,65 @@ enum WorkoutLoadBackfill {
     /// run off the main actor; only the route match (which reads the
     /// main-actor saved-route library) runs on it, one entry at a time with a
     /// yield in between, so a long history doesn't hitch the UI after launch.
+    /// The prior runs are read once, off the main actor, before the walk; a
+    /// session given an estimate here replaces its run, so a later workout
+    /// does not take it as a clean prior. True when every workout and prior
+    /// was read and every estimate written.
     private static func run(
         archive: SessionArchive,
         savedRouteStore: SavedRouteStore,
         lookbackDays: Int
-    ) async {
+    ) async -> Bool {
         let calendar = Calendar.current
         let endDate = Date()
         guard let startDate = calendar.date(
             byAdding: .day, value: -lookbackDays, to: calendar.startOfDay(for: endDate)
-        ) else { return }
+        ) else { return true }
         let entries = archive.entries(from: startDate, to: endDate).filter { $0.sessionType == .workout }
         guard !entries.isEmpty else {
             debugLog("[WorkoutLoadBackfill] No workout entries in the last \(lookbackDays) days — nothing to backfill.")
-            return
+            return true
         }
-        var updated = 0
+        let priors = await Task.detached(priority: .utility) {
+            RouteTRIMPEstimator.priorRuns(archive: archive, from: startDate, to: endDate)
+        }.value
+        var scan = Scan(priorRuns: priors.runs, complete: priors.complete)
         for entry in entries {
-            if await backfill(entry, archive: archive, savedRouteStore: savedRouteStore) { updated += 1 }
+            await backfill(entry, archive: archive, savedRouteStore: savedRouteStore, scan: &scan)
             await Task.yield()
         }
-        debugLog("[WorkoutLoadBackfill] Scan complete — \(entries.count) workouts checked, \(updated) updated with route-heuristic load.")
+        debugLog("[WorkoutLoadBackfill] Scan complete — \(entries.count) workouts checked, \(scan.updated) updated with route-heuristic load.")
+        return scan.complete
+    }
+
+    /// What a scan carries from one workout to the next.
+    private struct Scan {
+        /// The workouts the estimates draw their priors from, most recent
+        /// first.
+        var priorRuns: [RouteTRIMPEstimator.PriorRun]
+        /// False once a workout or prior could not be read or an estimate
+        /// could not be written.
+        var complete: Bool
+        var updated = 0
+
+        /// What one write did: a written session counts as updated and takes
+        /// its new run's place; a failed write leaves the scan incomplete.
+        mutating func record(_ outcome: Persisted) {
+            switch outcome {
+            case let .written(session):
+                updated += 1
+                replaceRun(of: session)
+            case .alreadyEstimated: break
+            case .failed: complete = false
+            }
+        }
+
+        /// A session just given an estimate takes its new run's place.
+        mutating func replaceRun(of session: HRVSession) {
+            guard let index = priorRuns.firstIndex(where: { $0.sessionId == session.id }),
+                  let run = RouteTRIMPEstimator.PriorRun(session: session) else { return }
+            priorRuns[index] = run
+        }
     }
 
     /// A session that may need a route-heuristic estimate, with its decoded track.
@@ -100,24 +148,52 @@ enum WorkoutLoadBackfill {
         let track: [CLLocation]
     }
 
-    /// One entry. Returns true when a new estimate was written.
+    /// One entry: an estimate from the scan's prior runs, written back. A
+    /// session that could not be read or written marks the scan incomplete;
+    /// one given an estimate replaces its run among the priors.
     private static func backfill(
         _ entry: SessionArchiveEntry,
         archive: SessionArchive,
-        savedRouteStore: SavedRouteStore
-    ) async -> Bool {
-        guard let candidate = await loadCandidate(entry.sessionId, archive: archive) else { return false }
+        savedRouteStore: SavedRouteStore,
+        scan: inout Scan
+    ) async {
+        let candidate: Candidate
+        switch await loadCandidate(entry.sessionId, archive: archive) {
+        case let .candidate(loaded): candidate = loaded
+        case .noBackfillNeeded: return
+        case .unreadable:
+            scan.complete = false
+            return
+        }
         let meta = candidate.meta
         guard let estimate = RouteTRIMPEstimator.estimate(
             track: candidate.track, sport: meta.sport, recordedTRIMP: meta.luciaTRIMP,
             recordedDistance: meta.distanceMeters,
             distanceMayBeTruncated: RouteTRIMPEstimator.recordingMayBeTruncated(meta),
-            archive: archive, savedRouteStore: savedRouteStore
-        ) else { return false }
+            priorRuns: scan.priorRuns, savedRouteStore: savedRouteStore
+        ) else { return }
         let extrapolation = Extrapolation(
             trimp: estimate.estimatedTRIMP, confidence: estimate.confidence, routeName: estimate.routeName
         )
-        return await persist(extrapolation, entry: entry, archive: archive)
+        scan.record(await persist(extrapolation, entry: entry, archive: archive))
+    }
+
+    /// What reading one entry found.
+    private enum Loaded: Sendable {
+        case candidate(Candidate)
+        /// Already estimated, carrying power TSS, or without GPS, or gone.
+        case noBackfillNeeded
+        /// The session could not be read.
+        case unreadable
+    }
+
+    /// What writing one estimate did.
+    private enum Persisted: Sendable {
+        case written(HRVSession)
+        /// The session was gone or had been estimated meanwhile.
+        case alreadyEstimated
+        /// It could not be read again or written.
+        case failed
     }
 
     /// The three fields the backfill writes.
@@ -127,20 +203,27 @@ enum WorkoutLoadBackfill {
         let routeName: String
     }
 
-    /// Reads and decodes one session off the main actor. Nil when it needs no
-    /// backfill: sessions that already carry a route extrapolation, or a
-    /// non-trivial powerTSS, are left alone — `preferredTrainingLoad` will
-    /// already pick the right number for those — as are sessions without GPS.
-    private static func loadCandidate(_ id: UUID, archive: SessionArchive) async -> Candidate? {
-        await Task.detached(priority: .utility) { () -> Candidate? in
-            guard let session = archive.retrieveOrLog(id, caller: "WorkoutLoadBackfill"),
-                  let meta = session.workoutMetadata,
+    /// Reads and decodes one session off the main actor. No backfill is
+    /// needed for sessions that already carry a route extrapolation, or a
+    /// non-trivial powerTSS — `preferredTrainingLoad` will already pick the
+    /// right number for those — for sessions without GPS, or for one deleted
+    /// meanwhile. A read that throws is `.unreadable` (logged).
+    private static func loadCandidate(_ id: UUID, archive: SessionArchive) async -> Loaded {
+        await Task.detached(priority: .utility) { () -> Loaded in
+            let read: HRVSession?
+            do {
+                read = try archive.retrieve(id)
+            } catch {
+                debugLog("[WorkoutLoadBackfill] \(id.uuidString.prefix(8)) could not be read: \(error)", level: .warning)
+                return .unreadable
+            }
+            guard let session = read, let meta = session.workoutMetadata,
                   meta.extrapolatedTRIMP == nil,
                   !(meta.powerTSS.map { $0 > 5 } ?? false),
                   let polyline = meta.gpsPolyline
-            else { return nil }
+            else { return .noBackfillNeeded }
             let track = GPXExporter.decode(polyline: polyline, startDate: session.startDate)
-            return track.isEmpty ? nil : Candidate(session: session, meta: meta, track: track)
+            return track.isEmpty ? .noBackfillNeeded : .candidate(Candidate(session: session, meta: meta, track: track))
         }.value
     }
 
@@ -148,23 +231,24 @@ enum WorkoutLoadBackfill {
     /// right before the write and only the three extrapolation fields are
     /// changed, so an edit or a CloudKit pull that landed on it while the
     /// route match ran is kept rather than overwritten with the copy read at
-    /// the start. A write failure is logged and reported as "not updated"
-    /// rather than thrown — one bad entry must not abort the whole sweep.
+    /// the start. A read or write failure is logged and reported as
+    /// `.failed` rather than thrown — one bad entry must not abort the whole
+    /// sweep, but it does keep the scan from being stamped done.
     private static func persist(
         _ extrapolation: Extrapolation,
         entry: SessionArchiveEntry,
         archive: SessionArchive
-    ) async -> Bool {
+    ) async -> Persisted {
         let sessionId = entry.sessionId
-        return await Task.detached(priority: .utility) { () -> Bool in
-            guard var session = archive.retrieveOrLog(sessionId, caller: "WorkoutLoadBackfill"),
-                  var meta = session.workoutMetadata, meta.extrapolatedTRIMP == nil
-            else { return false }
+        return await Task.detached(priority: .utility) { () -> Persisted in
+            guard let read = archive.retrieveOrLog(sessionId, caller: "WorkoutLoadBackfill") else { return .failed }
+            var session = read
+            guard var meta = session.workoutMetadata, meta.extrapolatedTRIMP == nil else { return .alreadyEstimated }
             meta.extrapolatedTRIMP = extrapolation.trimp
             meta.extrapolationConfidence = extrapolation.confidence
             meta.extrapolationRouteName = extrapolation.routeName
             session.workoutMetadata = meta
-            return write(session, sport: meta.sport, archive: archive)
+            return write(session, sport: meta.sport, archive: archive) ? .written(session) : .failed
         }.value
     }
 

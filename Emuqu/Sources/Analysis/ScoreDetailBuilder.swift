@@ -170,7 +170,8 @@ enum ScoreDetailBuilder {
     /// Without a usable RMSSD, `calculateTier1` scores from the readiness
     /// score or falls back to neutral; the note then says whether a baseline
     /// exists, so a night with a baseline but no HRV reading is never called
-    /// "No baseline yet".
+    /// "No baseline yet". A reading with no baseline yet is scored on the
+    /// absolute RMSSD bands, and its note says only that.
     ///
     /// The base score is rounded, not truncated, so base + shown adjustments
     /// land within a point or two of the factor score. They are not an exact
@@ -189,9 +190,7 @@ enum ScoreDetailBuilder {
         guard let r = rmssd, r > 0 else {
             return .note(missingReadingNote(hasBaseline: baselineStats != nil, usesReadiness: hrvReadiness != nil))
         }
-        guard let stats = baselineStats else {
-            return .note(hrvReadiness != nil ? .hrvNoBaselineUsingReadiness : .hrvNoBaseline)
-        }
+        guard let stats = baselineStats else { return .note(.hrvNoBaseline) }
         let z = (log(r) - stats.lnRmssdMean) / stats.lnRmssdSD
         let baseScore = Int(RecoveryScoreCalculator.zToRecoveryScore(z).rounded())
         var adjustments = restingHRAdjustments(meanHR: meanHR, stats: stats)

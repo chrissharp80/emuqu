@@ -267,6 +267,11 @@ enum WorkoutLiveTrends {
 /// Lets the AI answer "what zone has most of this run been in?"
 /// mid-workout. Cheap (single linear pass over `samples` — typical
 /// session is a few thousand entries).
+///
+/// Each sample stands for the seconds since the previous one, at most
+/// `Alpha1ReportCards.maxSampleGapSec` (5), as in the finished workout's
+/// zone time (`WorkoutPDFRenderer.hrZoneSeconds`), so a strap dropout or a
+/// pause is not credited to the zone of the sample after it.
 struct WorkoutZoneBreakdown: Equatable {
     let z1Sec: Int
     let z2Sec: Int
@@ -287,7 +292,7 @@ struct WorkoutZoneBreakdown: Equatable {
         var secs = [0, 0, 0, 0, 0]
         var prevOffset = 0
         for s in samples {
-            let dt = max(0, s.offsetSec - prevOffset)
+            let dt = min(max(0, s.offsetSec - prevOffset), Alpha1ReportCards.maxSampleGapSec)
             prevOffset = s.offsetSec
             guard let hr = s.heartRate,
                   let zone = zoneIndex(fractionOfMax: Double(hr) / Double(userMaxHR))
@@ -312,6 +317,18 @@ struct WorkoutZoneBreakdown: Equatable {
         case ..<0.90: 3
         default: 4
         }
+    }
+}
+
+extension HRVSession {
+    /// The workout's moving time in seconds: its wall-clock duration less
+    /// the pauses it recorded (`WorkoutMetadata.pauseSpans`). Pace
+    /// comparisons and race predictions read this, so a coffee stop mid-run
+    /// is not counted as running. Nil without a duration.
+    var activeWorkoutSeconds: Double? {
+        guard let duration, duration > 0 else { return nil }
+        let paused = workoutMetadata?.pauseSpans?.reduce(0.0) { $0 + $1.seconds } ?? 0
+        return max(duration - paused, 0)
     }
 }
 
@@ -398,7 +415,7 @@ enum RaceTimePrediction {
     private static func candidatePool(from sessions: [HRVSession], sport: Sport, now: Date) -> [Basis] {
         let all: [Basis] = sessions.compactMap { s in
             guard s.workoutMetadata?.sport == sport,
-                  let dur = s.duration, dur > 0,
+                  let dur = s.activeWorkoutSeconds, dur > 0,
                   let dist = s.workoutMetadata?.distanceMeters, dist >= minimumBasisMeters
             else { return nil }
             return Basis(distanceMeters: dist, durationSec: dur, date: s.startDate)
@@ -618,7 +635,7 @@ struct WorkoutHistoryBaselines: Equatable {
         var totalDur: Double = 0
         for s in matches {
             guard let dist = s.workoutMetadata?.distanceMeters, dist > 100,
-                  let dur = s.duration, dur > 60 else { continue }
+                  let dur = s.activeWorkoutSeconds, dur > 60 else { continue }
             totalDist += dist
             totalDur += dur
         }

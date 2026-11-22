@@ -258,4 +258,24 @@ final class VitalsScoringTests: XCTestCase {
         XCTAssertEqual(refreshed.factors.first?.score ?? .nan, expected ?? .nan, accuracy: 0.0001)
         XCTAssertEqual(refreshed.compositeScore, 70, accuracy: 0.0001)
     }
+
+    /// Before, a refreshed Vitals factor raised the factors' sum over the
+    /// frozen composite, and the advice said baselines had improved since the
+    /// night. The refresh's move is not a gap.
+    func testARefreshedVitalsFactorLeavesTheFrozenGapAsItWas() {
+        let frozen = RecoveryScoreCalculator.ScoreBreakdown(
+            compositeScore: 70, tier: 3,
+            factors: [
+                .init(label: "HRV", detail: "", score: 70, weight: 0.6, impact: .neutral),
+                .init(label: "Sleep", detail: "", score: 70, weight: 0.25, impact: .neutral),
+                .init(label: "Vitals", detail: "RR — no data", score: 30, weight: 0.15, impact: .negative)
+            ],
+            penalties: []
+        )
+        let refreshed = VitalsScoring.breakdownRefreshingVitalsFactor(
+            frozen, freshVitals: tempVitals(reading: 1.5, baseline: 1.4), baselineStats: nil
+        )
+        XCTAssertNotEqual(refreshed.factors.last?.score ?? .nan, 30, "the test needs the refresh to move the factor")
+        XCTAssertEqual(refreshed.gapFromFactors, frozen.gapFromFactors, accuracy: 1e-9)
+    }
 }

@@ -190,11 +190,12 @@
   },
   {
    "key": "func GPXExporter.writeToTempFile(session:track:)",
-   "hash": "d68303a7c46b679d",
-   "does": "Renders the GPX, writes it atomically to '<sport>-<UTC yyyyMMdd-HHmmss>.gpx' in the temp directory, logs size and point count; throws NSError if UTF-8 encoding fails.",
+   "hash": "821db410953dc7f2",
+   "does": "Renders the GPX, names it '<sport>-<UTC yyyyMMdd-HHmmss>.gpx' and writes it to the export folder through ExportFile.write (atomic, complete file protection; the same session's file is overwritten on the next export), logs the byte count and returns the URL; throws an NSError if UTF-8 encoding fails, and rethrows a write failure.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -202,25 +203,25 @@
     "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
    ],
    "writes": [
-    "file:tmp/<sport>-<yyyyMMdd-HHmmss>.gpx"
+    "file:tmp/Exports/<sport>-<yyyyMMdd-HHmmss>.gpx"
    ],
    "branches": [
     {
      "at": "+2",
      "cond": "workoutMetadata nil",
-     "effect": "sport part 'workout'"
+     "effect": "filename sport part 'workout'"
     },
     {
-     "at": "+12",
+     "at": "+11",
      "cond": "UTF-8 encoding nil",
-     "effect": "throws NSError 'Couldn't create the GPX file.'; else writes"
+     "effect": "throws NSError (cannot happen for a Swift String); otherwise writes"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {

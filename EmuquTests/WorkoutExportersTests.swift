@@ -155,6 +155,25 @@ final class WorkoutExportersTests: XCTestCase {
         XCTAssertTrue(csv.contains("# RMSSD (ms):"))
     }
 
+    /// Before, a fix with no altitude was exported as elevation 0.0, which a
+    /// spreadsheet reads as sea level.
+    func testAFixWithoutAltitudeLeavesTheElevationCellEmpty() throws {
+        let latitude: CLLocationDegrees = 0.7806
+        let longitude: CLLocationDegrees = -0.6507
+        let altitude: CLLocationDistance = 0
+        let horizontal: CLLocationAccuracy = 5
+        let vertical: CLLocationAccuracy = -1
+        let fix = CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
+            altitude: altitude, horizontalAccuracy: horizontal, verticalAccuracy: vertical,
+            timestamp: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+        let csv = CSVExporter.export(session: makeSession(), track: [fix])
+        let rows = csv.split(separator: "\n").filter { !$0.hasPrefix("#") }
+        let row = try XCTUnwrap(rows.dropFirst().first)
+        XCTAssertEqual(row.components(separatedBy: ",")[4], "")
+    }
+
     func testCSVWithEmptyTrackStillProducesHeader() {
         let csv = CSVExporter.export(session: makeSession(), track: [])
         XCTAssertTrue(csv.contains("# Emuqu workout export"))

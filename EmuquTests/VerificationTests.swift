@@ -224,8 +224,10 @@ final class VerificationTests: XCTestCase {
 
     // MARK: - Excessive Drift
 
-    func testExcessiveDriftRejection() {
-        // First 10% at 600ms, last 10% at 1100ms → drift of 500ms > 400ms threshold
+    /// Before, a 500 ms drift rejected the recording as electrode movement,
+    /// though a night's own heart-rate fall drifts that far. It warns now.
+    func testALargeDriftWarnsButDoesNotReject() {
+        // First 10% at 600ms, last 10% at 1100ms → drift of 500ms
         let verification = Verification()
         let count = 500
         var points = [RRPoint]()
@@ -246,7 +248,8 @@ final class VerificationTests: XCTestCase {
 
         let result = verification.verify(series, flags: flags)
 
-        XCTAssertTrue(result.isRejectedFor(.excessiveDrift))
+        XCTAssertFalse(result.isRejectedFor(.excessiveDrift))
+        XCTAssertTrue(result.warnings.contains(where: { $0.contains("drift") }))
     }
 
     func testModerateDriftWarningOnly() {

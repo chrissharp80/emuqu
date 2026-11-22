@@ -132,13 +132,15 @@ final class HolisticDailyReport: Sendable {
     /// continuous PDF.
     ///
     /// Each temp is removed as soon as it exists, whatever fails after it:
-    /// the workout PDF can hold the GPS track and health data.
+    /// the workout PDF can hold the GPS track and health data. The temps and
+    /// the combined report get complete file protection (`ExportFile`).
     func generate(to url: URL) async throws {
         let workoutTempURL = try await renderWorkoutPDF()
         defer { Self.removeTemp(workoutTempURL) }
         let coverTempURL = try renderCoverPDF()
         defer { Self.removeTemp(coverTempURL) }
         try mergePDFs(cover: coverTempURL, workout: workoutTempURL, to: url)
+        ExportFile.protect(url)
     }
 
     private static func removeTemp(_ url: URL) {
@@ -183,6 +185,7 @@ final class HolisticDailyReport: Sendable {
             Self.removeTemp(coverTempURL)
             throw error
         }
+        ExportFile.protect(coverTempURL)
         return coverTempURL
     }
 

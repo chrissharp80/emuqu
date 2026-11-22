@@ -363,15 +363,23 @@ final class DebugLogger {
 
     // MARK: - PHI scrub
 
-    /// Replace numeric values that look like HRV / HR / sleep / location
-    /// readings, with any unit that follows, by `<redacted>`, keeping the
-    /// metric name and its separator. Conservative: only matches well-formed `<key>: <number>
-    /// <unit>` patterns common in our log lines, plus bare-number RMSSD
-    /// / SDNN sweeps. False positives would degrade triage usefulness;
-    /// false negatives leak PHI. The current pattern set was chosen by
-    /// grep'ing 100% of debugLog call sites for value emissions.
+    /// Replace the health values in a log line by `<redacted>`, keeping the
+    /// names and separators so the line still reads.
+    ///
+    /// Default-deny for named values: every `key=<number>` or
+    /// `key: <number>` is redacted unless the key's last word is on
+    /// `loggableKeyWords`, a short allow-list of counts and identifiers
+    /// (`beatCount=`, `attempt=`, `schemaVersion=`). A key nobody listed
+    /// (`nadir=`, `perceivedReadiness=`, `restingHR=`, `total=` sleep
+    /// minutes) is redacted without anyone having to name it. Prose forms
+    /// with no `=`/`:` ("RMSSD 42ms < baseline 55ms") are caught by metric
+    /// name (`metricValuePattern`), and any number followed by `bpm` by its
+    /// unit. Numbers chained to a redacted one ("42.0→51.3", "[42, 51]")
+    /// go with it, and coordinates last.
     nonisolated static func scrubPHI(_ line: String) -> String {
         var out = replacing(line, metricValuePattern, with: "$1<redacted>")
+        out = redactUnlistedKeyValues(in: out)
+        out = replacing(out, heartRateUnitPattern, with: "<redacted>$1")
         out = redactValueChains(in: out)
         // Bare lat/lon coordinate pairs (lat=37.123 lon=-122.456 etc.)
         return replacing(
@@ -384,7 +392,9 @@ final class DebugLogger {
     /// Health-metric names. `baseline` and `readiness` are included because
     /// they name a health value in our logs. `\w*score` covers bare `score=`
     /// and camel-case names such as `frozenScore=` (recovery-score values).
-    nonisolated private static let metricPattern = #"(?:RMSSD|SDNN|pNN50|HRV|RHR|resting\s*HR|heart\s*rate|HR|alpha1|DFA|SpO2|respiratory\s*rate|respiration|temperature|wrist\s*temp|breath|composite|recovery\s*score|readiness|sleep\s*score|\w*score|baseline|TSB|ATL|CTL|hrTSS|TRIMP)"#
+    /// The names matter for prose ("nadir 48", "sleep 412 min", "RR 850ms");
+    /// a named `key=value` is redacted by default (`keyValuePattern`).
+    nonisolated private static let metricPattern = #"(?:RMSSD|SDNN|pNN50|HRV|RHR|resting\s*HR|heart\s*rate|HR|alpha1|DFA|SpO2|respiratory\s*rate|respiration|temperature|wrist\s*temp|breath|composite|recovery\s*score|readiness|sleep\s*score|\w*score|baseline|TSB|ATL|CTL|hrTSS|TRIMP|RR|nadir|sleep|deep|REM|weight|VO2\s*max|FTP|LTHR|calories)"#
 
     nonisolated private static let unitPattern = #"(?:\s*(?:ms|bpm|BPM|%|°[CF]|min|h|points?))?"#
 
@@ -401,9 +411,65 @@ final class DebugLogger {
         "(?i)(\\b\(metricPattern)\\b\(separatorPattern))[-+]?\\d+(?:\\.\\d+)?\(unitPattern)"
 
     /// A number joined to an already-redacted value by an arrow, comparator,
-    /// `to`, `vs`, comma or slash; `redactValueChains` replaces the number.
+    /// `to`, `vs`, comma, slash or range dash; `redactValueChains` replaces
+    /// the number.
     nonisolated static let valueChainPattern =
-        "(?i)(<redacted>\\s*(?:->|→|<|>|to|vs\\.?|,|/)\\s*)[-+]?\\d+(?:\\.\\d+)?\(unitPattern)"
+        "(?i)(<redacted>\\s*(?:->|→|<|>|to|vs\\.?|,|/|-|–)\\s*)[-+]?\\d+(?:\\.\\d+)?\(unitPattern)"
+
+    /// A named value: group 1 the key, group 2 the number with any unit
+    /// letters glued to it. The key starts with a letter and follows no word
+    /// character or dot; the number may sit after `Optional(` or `[`, and
+    /// must not run on into more of a word, a decimal, or a UUID's next
+    /// group (`12345678-ABCD-`), so an identifier is not cut in half.
+    nonisolated static let keyValuePattern =
+        #"(?<![\w.])([A-Za-z_][A-Za-z0-9_]*)\s*[:=]\s*(?:Optional\()?\[?([-+]?\d+(?:\.\d+)?[A-Za-z%°]*)(?![\w]|\.\d|-[0-9A-Fa-f]{4}-)"#
+
+    /// Any number or range ("60-70") given in beats per minute, whatever
+    /// names it: the numbers go, the unit (group 1) stays.
+    nonisolated static let heartRateUnitPattern = #"(?<![\w.])[-+]?\d+(?:\.\d+)?(?:\s*[-–]\s*\d+(?:\.\d+)?)?(\s*(?:bpm|BPM))\b"#
+
+    /// Key words whose numbers are counts, identifiers or timing, not a
+    /// health value, matched against a key's last word, lower-cased
+    /// (`lastKeyWord`). Every other named number is redacted.
+    nonisolated static let loggableKeyWords: Set<String> = [
+        "count", "counts", "n", "attempt", "attempts", "retry", "retries", "tries", "failures",
+        "generation", "gen", "version", "versions", "schema", "code", "status", "build",
+        "bytes", "kb", "mb", "size", "index", "idx", "indices", "page", "pages", "batch", "limit", "cap",
+        "queue", "pending", "tick", "ticks", "depth", "latency", "timeout", "delay",
+        "session", "sessions", "id", "ids", "file", "files", "entry", "entries", "records", "items", "rows",
+        "segments", "chunks", "points", "samples", "beats", "fixes", "buffers", "frames", "channels",
+        "devices", "recordings", "copies", "backups", "uploaded", "deleted", "pushed", "saved", "saves",
+        "removed", "written", "rewritten", "fetched", "received", "dropped", "skipped", "merged",
+        "restored", "reported", "streamed"
+    ]
+
+    /// The last word of a camelCase or snake_case key, lower-cased:
+    /// `beatCount` → `count`, `rr_points` → `points`, `maxHR` → `hr`.
+    nonisolated static func lastKeyWord(_ key: String) -> String {
+        let tail = key.split(separator: "_").last.map(String.init) ?? key
+        let start = tail.indices.last { index in
+            tail[index].isUppercase && (index == tail.startIndex || !tail[tail.index(before: index)].isUppercase)
+        }
+        return String(tail[(start ?? tail.startIndex)...]).lowercased()
+    }
+
+    /// Redacts the number of every named value whose key is not loggable.
+    /// A value in brackets is a list of readings and is redacted whatever
+    /// its key. Matches are replaced from the last back, so the ranges of
+    /// the earlier ones stay valid.
+    nonisolated private static func redactUnlistedKeyValues(in line: String) -> String {
+        guard let regex = compiledPattern(keyValuePattern) else { return line }
+        let text = line as NSString
+        let result = NSMutableString(string: text)
+        let matches = regex.matches(in: line, options: [], range: NSRange(location: 0, length: text.length))
+        for match in matches.reversed() {
+            let key = text.substring(with: match.range(at: 1))
+            let isList = text.substring(with: match.range).contains("[")
+            guard isList || !loggableKeyWords.contains(lastKeyWord(key)) else { continue }
+            result.replaceCharacters(in: match.range(at: 2), with: "<redacted>")
+        }
+        return result as String
+    }
 
     /// Value chains: a further number joined to an already-redacted value by
     /// an arrow / comparator (e.g. "RMSSD 42.0→51.3" or "prior 55 → new 61").
@@ -458,7 +524,8 @@ final class DebugLogger {
         return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: template)
     }
 
-    /// If the log file exceeds `maxFileSize`, keep only the second half (most recent)
+    /// If the log file exceeds `maxFileSize`, keep only the second half (most recent).
+    /// The atomic rewrite is a new file, so its protection class is set again.
     nonisolated private func rotateIfNeeded() {
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: logFileURL.path),
               let size = attrs[.size] as? Int, size > Self.maxFileSize else { return }
@@ -469,6 +536,7 @@ final class DebugLogger {
         let trimmed = lines[keepFrom...].joined(separator: "\n")
         do {
             try trimmed.write(to: logFileURL, atomically: true, encoding: .utf8)
+            Self.relaxFileProtection(at: logFileURL)
         } catch {
             // Same reentrancy reasoning as the flush path above. A failed trim
             // means the log file keeps growing past `maxFileSize`, which is
@@ -576,7 +644,15 @@ final class DebugLogger {
         guard persistentBox.withLock({ $0 }) else { return exportMemoryLogs() }
         flushToDiskSync()
         // Read directly from disk for completeness — memory may be a subset
-        let diskContent = (try? String(contentsOf: logFileURL, encoding: .utf8)) ?? ""
+        let rawContent = (try? String(contentsOf: logFileURL, encoding: .utf8)) ?? ""
+        // Scrubbed again on the way out: lines an earlier build flushed went
+        // through its narrower scrubber. Redaction is idempotent, so a line
+        // already scrubbed comes through unchanged. Off the main thread, as
+        // every caller is.
+        let diskContent = rawContent
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { Self.scrubPHI(String($0)) }
+            .joined(separator: "\n")
 
         // Count newlines instead of `components(separatedBy:)`
         // which builds an array of every line (1MB log → 14k+ String
@@ -653,42 +729,25 @@ final class DebugLogger {
     /// iOS-internal share-sheet noise unrelated to our file and are not
     /// something app code can suppress; the openability failure above is
     /// the part that actually blocked the share, and that's what this fixes.
+    ///
+    /// The temporary folder is the export folder (`ExportFile`): the file
+    /// gets complete protection like every export (the share sheet reads it
+    /// while the phone is unlocked), each export replaces the previous one,
+    /// and the next launch removes the last. Nil, logged, when the file
+    /// cannot be written.
     nonisolated func exportToFile() -> URL? {
-        let fileName = "hrv_debug_log_\(Int(Date().timeIntervalSince1970)).txt"
-        let dir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("log-export", isDirectory: true)
-        do {
-            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        } catch {
-            NSLog("[DebugLogger] creating the export directory failed: %@", error.localizedDescription)
-        }
-        let fileURL = dir.appendingPathComponent(fileName)
+        let fileName = "\(Self.exportFilePrefix)\(Int(Date().timeIntervalSince1970)).txt"
         guard let data = exportLogs().data(using: .utf8) else { return nil }
         do {
-            try data.write(to: fileURL, options: .atomic)
+            return try ExportFile.write(data, named: fileName, replacingPrefix: Self.exportFilePrefix)
         } catch {
+            NSLog("[DebugLogger] writing the log export failed: %@", error.localizedDescription)
             return nil
         }
-        Self.dropFileProtection(at: fileURL)
-        return fileURL
     }
 
-    /// Belt-and-suspenders on top of the location fix: set protection
-    /// EXPLICITLY rather than trusting a write-option (which didn't
-    /// take before). Scrubbed diagnostic text carries no health values — the
-    /// metric values are redacted; session IDs are random UUIDs and are
-    /// kept, since they tie lines to a session — so `.none` is safe and
-    /// guarantees sharingd can open it regardless of lock state.
-    nonisolated private static func dropFileProtection(at fileURL: URL) {
-        do {
-            try FileManager.default.setAttributes(
-                [.protectionKey: FileProtectionType.none],
-                ofItemAtPath: fileURL.path
-            )
-        } catch {
-            NSLog("[DebugLogger] dropping export file protection failed: %@", error.localizedDescription)
-        }
-    }
+    /// The start of every log export's file name.
+    nonisolated private static let exportFilePrefix = "hrv_debug_log_"
 
     /// Async export. The sync version runs all work on
     /// the calling thread (typically main): a 14k-line log is a

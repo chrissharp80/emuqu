@@ -50,6 +50,12 @@ extension HealthKitManager {
         await training.fetchWorkoutsExtended(days: days, relativeTo: referenceDate)
     }
 
+    func fetchWorkoutsExtendedIfAnswered(
+        days: Int, relativeTo referenceDate: Date
+    ) async -> [HealthKitManager.WorkoutSummary]? {
+        await training.fetchWorkoutsExtendedIfAnswered(days: days, relativeTo: referenceDate)
+    }
+
     func trainingHeartRateAnchors() async -> TrainingLoadSeries.HeartRateAnchors {
         await training.trainingHeartRateAnchors()
     }

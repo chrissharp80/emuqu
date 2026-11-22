@@ -1,12 +1,12 @@
 {
  "file": "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift",
- "hash": "955ecefa2777f0fc",
+ "hash": "b92a52a2c136acba",
  "role": "Core recovery-score calculator: score breakdown model types (ScoreFactor, ScoreBreakdown), configuration, z-score→score mapping with versioned band tables, input sanitising, the two calculateWithBreakdown entry points, perceived-readiness blending and final composition (missing-sleep deduction, clamp, SpO2 override).",
  "types": [
   "RecoveryScoreCalculator: enum — namespace for recovery scoring",
   "RecoveryScoreCalculator.ScoreFactor: struct (Identifiable, Codable) — one breakdown row with label/detail/score/weight/impact/facts",
   "RecoveryScoreCalculator.ScoreFactor.Impact: enum — positive/neutral/negative",
-  "RecoveryScoreCalculator.ScoreBreakdown: struct (Codable) — composite, tier, factors, penalties, spo2PenaltyApplied, scoringVersion",
+  "RecoveryScoreCalculator.ScoreBreakdown: struct (Codable) — composite, tier, factors, penalties, spo2PenaltyApplied, scoringVersion, plus the unstored refreshedFactorShift of a display-time vitals refresh",
   "RecoveryScoreCalculator.ScoringConfiguration: struct — settings injected by callers",
   "RecoveryScoreCalculator.ScoringParameters: struct (Equatable) — versioned z-score band table",
   "RecoveryScoreCalculator.ScoreInputs: struct — physiological inputs of one scoring pass",
@@ -18,8 +18,19 @@
   "mem:RecoveryScoreCalculator.defaultScoringParameters = scoringParametersV2",
   "archive:ScoreBreakdown Codable keys compositeScore,tier,factors,penalties,spo2PenaltyApplied,scoringVersion (persisted inside HRVSession.scoreBreakdown)"
  ],
- "toplevel": "Static lets scoringParametersV1/V2/defaultScoringParameters (V1 is referenced only by EmuquTests/ScoringCharacterizationTests.swift:589). ScoreBreakdown.scoringVersion stored-property default ScoringVersion.current. ScoreFactor and ScoreFactorFacts use synthesized Codable; ScoreBreakdown has custom decode and synthesized encode via CodingKeys.",
+ "toplevel": "Static lets scoringParametersV1/V2/defaultScoringParameters (V1 is referenced only by EmuquTests/ScoringCharacterizationTests.swift:589). ScoreBreakdown.scoringVersion stored-property default ScoringVersion.current. ScoreFactor and ScoreFactorFacts use synthesized Codable (Impact's own init(from:) reads an unknown case as .neutral); ScoreBreakdown has custom decode and synthesized encode via CodingKeys.",
  "units": [
+  {
+   "key": "init RecoveryScoreCalculator.ScoreFactor.Impact(from:)",
+   "hash": "9cf4972be782b3e9",
+   "does": "Single-value decode of the raw string; an impact this build does not know reads as .neutral.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
   {
    "key": "init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
    "hash": "d0b2fa8516266dba",
@@ -138,8 +149,8 @@
   },
   {
    "key": "var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors",
-   "hash": "d15be5ba7d1b1c78",
-   "does": "Sum of factor contributions minus compositeScore (positive = something outside the factors pulled the composite down).",
+   "hash": "10cfe30f4cc1d823",
+   "does": "Sum of factor contributions minus refreshedFactorShift (the move a display-time vitals refresh made) minus compositeScore (positive = something outside the factors pulled the composite down).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreFactor.contribution"

@@ -35,28 +35,28 @@
    }
   },
   {
-   "key": "func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)",
-   "hash": "22bf0797408190da",
-   "does": "Rebuild rule: true when no result or lastUpdated nil, or settings changed; otherwise true once the result is older than 300 s (observed change) or 1800 s (no observed change).",
+   "key": "func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)",
+   "hash": "eb3be9b8fb280d2a",
+   "does": "Pure rebuild rule: true when there is no result or lastUpdated is nil (dirty); true at once when the load settings or the day changed (dayChanged defaults to false); otherwise true when the result's age exceeds burstThrottleSec (300 s) if the archived workouts changed, else unchangedMaxAgeSec (1800 s).",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+7",
-     "cond": "lastUpdated set and hasResult",
-     "effect": "false: true (rebuild)"
-    },
-    {
      "at": "+8",
-     "cond": "settingsChanged",
-     "effect": "true: rebuild immediately"
+     "cond": "lastUpdated nil or no result",
+     "effect": "true"
     },
     {
-     "at": "+10",
+     "at": "+9",
+     "cond": "settingsChanged or dayChanged",
+     "effect": "true"
+    },
+    {
+     "at": "+11",
      "cond": "observedChange",
-     "effect": "threshold 300 s; else 1800 s"
+     "effect": "age compared with burstThrottleSec; else with unchangedMaxAgeSec"
     }
    ],
    "deps": {}

@@ -92,7 +92,7 @@ import Foundation
 //   • Lucia (and validation gap): https://www.trainingimpulse.com/lucias-trimp-0
 //   • Manzi TRIMPi: https://pubmed.ncbi.nlm.nih.gov/19812506/
 //   • Rogers & Gronwald α1 2021: https://pmc.ncbi.nlm.nih.gov/articles/PMC7845545/
-//   • 2024 α1 replication:       https://www.frontiersin.org/journals/physiology/articles/10.3389/fphys.2024.1329360/full
+//   • 2024 α1 reliability study: https://www.frontiersin.org/journals/physiology/articles/10.3389/fphys.2024.1329360/full
 //   • Friel LTHR protocol:       https://www.trainingpeaks.com/learn/articles/joe-friel-s-quick-guide-to-setting-zones/
 // ─────────────────────────────────────────────────────────────────
 enum WorkoutAnalyzer {

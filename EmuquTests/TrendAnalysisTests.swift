@@ -455,4 +455,26 @@ final class TrendAnalysisTests: XCTestCase {
         XCTAssertNil(result.dataPoints.last?.sdnn, "The newest reading's SDNN is an estimate")
         XCTAssertEqual(TrendAnalyzer.chartData(from: result.dataPoints, metric: .sdnn).count, 3)
     }
+
+    // MARK: - The baseline-deviation line needs a worthwhile change
+
+    private func consecutiveDays(_ count: Int) -> [Date] {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        return (0 ..< count).map { start.addingTimeInterval(Double($0) * 86_400) }
+    }
+
+    /// Before, 16% under a noisy week's raw mean advised a rest day while the
+    /// score's ±0.5 SD deadband read the morning as unchanged. 42 ms after
+    /// 30/70/35/65 is inside the smallest worthwhile change.
+    func testAFixedPercentageInsideTheWorthwhileChangeIsNotADeviation() {
+        XCTAssertFalse(TrendAnalyzer.latestBeyondSWC(values: [30, 70, 35, 65, 42], dates: consecutiveDays(5)))
+    }
+
+    func testADropBeyondTheWorthwhileChangeIsADeviation() {
+        XCTAssertTrue(TrendAnalyzer.latestBeyondSWC(values: [50, 51, 49, 50, 40], dates: consecutiveDays(5)))
+    }
+
+    func testTwoEarlierReadingsAreTooFewToCallADeviation() {
+        XCTAssertFalse(TrendAnalyzer.latestBeyondSWC(values: [50, 51, 30], dates: consecutiveDays(3)))
+    }
 }

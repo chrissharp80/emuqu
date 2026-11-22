@@ -1,4 +1,5 @@
 @testable import Emuqu
+import CryptoKit
 import HealthKit
 import XCTest
 
@@ -112,7 +113,7 @@ final class TrainingLoadConsistencyTests: XCTestCase {
         XCTAssertTrue(needsRebuild(age: 5, settings: true))
     }
 
-    func testAWorkoutOrDayChangeRecomputesAfterTheBurstThrottle() {
+    func testAWorkoutChangeRecomputesAfterTheBurstThrottle() {
         XCTAssertFalse(needsRebuild(age: 60, observed: true))
         XCTAssertTrue(needsRebuild(age: TrainingMetricsCache.burstThrottleSec + 1, observed: true))
     }
@@ -198,5 +199,63 @@ final class TrainingLoadConsistencyTests: XCTestCase {
 
         XCTAssertThrowsError(try TrainingMetricsCache.writeSnapshot(snapshot(ctl: 70), to: file, seal: LockedKeySeal().fileSeal))
         XCTAssertEqual(try Data(contentsOf: file), sealedBytes, "The file changed while the key was locked")
+    }
+
+    // MARK: - A cache built from fakes
+
+    /// Stands in for the settings manager.
+    @MainActor
+    private final class SettingsBox {
+        var settings = UserSettings()
+    }
+
+    /// Keeps the JSON as it is, so the test needs no key.
+    private static let plainSeal = JSONFileSeal(seal: { $0 }, open: { $0 })
+
+    /// Before, the cache read its archive and settings from
+    /// `AppDependencies.current` and its file from Application Support. Built
+    /// from an empty archive in a temporary directory, a settings box and a
+    /// snapshot file of its own, it restores that file, reuses the result while
+    /// the archive and settings it was given match it, and rebuilds once the
+    /// given settings change.
+    @MainActor
+    func testACacheBuiltFromFakesReadsOnlyWhatItWasGiven() throws {
+        let file = try snapshotFile()
+        let archive = SessionArchive(
+            directory: file.deletingLastPathComponent().appendingPathComponent("archive", isDirectory: true),
+            sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
+            sessionMergeModeProvider: { .defaultGap },
+            mergeGapProvider: { 4.5 * 3600 }
+        )
+        let box = SettingsBox()
+        box.settings.userRestingHR = 48
+        let now = Date()
+        let today = calendar.startOfDay(for: now)
+        let noWorkouts = SHA256().finalize().map { String(format: "%02x", $0) }.joined()
+        let saved = TrainingMetricsCache.PersistedCache(
+            current: TrainingMetrics.empty, dailySeries: [today: .init(date: today, atl: 40, ctl: 55, trimp: 80)],
+            fingerprint: noWorkouts, computedDay: today, savedAt: now,
+            loadSettings: TrainingMetricsCache.LoadSettings(box.settings)
+        )
+        try TrainingMetricsCache.writeSnapshot(saved, to: file, seal: Self.plainSeal)
+
+        let cache = TrainingMetricsCache(
+            archive: { archive }, settings: { box.settings }, persistenceURL: file, seal: Self.plainSeal
+        )
+
+        XCTAssertEqual(cache.sampleOn(date: now)?.ctl, 55, "The snapshot was not read from the file the cache was given")
+        XCTAssertFalse(cache.needsRebuild(reference: now), "The given archive and settings match the snapshot")
+        box.settings.userRestingHR = 52
+        XCTAssertTrue(cache.needsRebuild(reference: now), "A change to the given settings must rebuild")
+    }
+
+    /// Before, a compute shortly before midnight was reused for up to five
+    /// minutes into the new day, so the load shown was yesterday's.
+    func testANewDayRecomputesAtOnce() {
+        let now = Date()
+        XCTAssertTrue(TrainingMetricsCache.needsRebuild(
+            lastUpdated: now.addingTimeInterval(-60), hasResult: true,
+            observedChange: false, settingsChanged: false, dayChanged: true, reference: now
+        ))
     }
 }

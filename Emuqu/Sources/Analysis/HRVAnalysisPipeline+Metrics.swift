@@ -110,8 +110,12 @@ extension HRVAnalysisPipeline {
         snsIndex: Double?,
         config: ANSConfiguration?
     ) -> Double? {
-        // Without a configuration there is no baseline: the score uses the
-        // absolute RMSSD bands rather than an invented one.
+        // The app always passes a configuration (`SessionScoringContext.ansConfig`),
+        // whose baseline falls back from the tracker's to the settings' and
+        // then the population baseline. Only a caller with none (a test) gets
+        // the readiness score's own absolute RMSSD bands. The recovery
+        // score reads this score only for a night without a usable RMSSD
+        // (`RecoveryScoreCalculator.calculateTier1`).
         StressAnalyzer.computeReadinessScore(
             rmssd: timeDomain.rmssd,
             baselineRMSSD: config?.baselineRMSSD,
@@ -142,7 +146,10 @@ extension HRVAnalysisPipeline {
     /// to physiologically impossible values. The nadir (and the minimum) is
     /// the lowest `nadirWindowMs` rolling mean, not the slowest single beat:
     /// one long interval from a breathing swing or an unflagged pause would
-    /// otherwise read several bpm low. `nadirTimeMs` is on the series' own
+    /// otherwise read several bpm low. The maximum is taken the same way, the
+    /// highest `nadirWindowMs` rolling mean, so the range shown is the
+    /// smoothed nadir to the smoothed peak rather than a smoothed low against
+    /// one fast beat. `nadirTimeMs` is on the series' own
     /// `t_ms` timeline (the middle of that window); pair with
     /// `series.wallClockTime(forTMs:)` for clock time.
     static func attachOvernightHRStats(_ result: inout HRVAnalysisResult, series: RRSeries, flags: [ArtifactFlags]) {
@@ -178,16 +185,18 @@ extension HRVAnalysisPipeline {
             if idx < flags.count, flags[idx].isArtifact { return nil }
             return plausibleHR(of: point).map { CleanBeat(tMs: point.t_ms, hr: $0) }
         }
-        guard let maxHR = beats.map(\.hr).max(), let slowest = beats.min(by: { $0.hr < $1.hr }) else { return nil }
+        guard let fastest = beats.map(\.hr).max(), let slowest = beats.min(by: { $0.hr < $1.hr }) else { return nil }
         let meanHR = beats.reduce(0.0) { $0 + $1.hr } / Double(beats.count)
-        let nadir = smoothedNadir(beats) ?? (hr: slowest.hr, tMs: slowest.tMs)
-        return OvernightHRStats(minHR: nadir.hr, maxHR: maxHR, meanHR: meanHR, nadirTimeMs: nadir.tMs)
+        let nadir = smoothedExtreme(beats, lowest: true) ?? (hr: slowest.hr, tMs: slowest.tMs)
+        let peak = smoothedExtreme(beats, lowest: false)?.hr ?? fastest
+        return OvernightHRStats(minHR: nadir.hr, maxHR: peak, meanHR: meanHR, nadirTimeMs: nadir.tMs)
     }
 
-    /// The lowest mean HR over any `nadirWindowMs` stretch of clean beats, and
-    /// the middle of that stretch. A window counts once it spans at least half
-    /// its width. Nil for a recording too short to fill one.
-    private static func smoothedNadir(_ beats: [CleanBeat]) -> (hr: Double, tMs: Int64)? {
+    /// The lowest (or, with `lowest` false, the highest) mean HR over any
+    /// `nadirWindowMs` stretch of clean beats, and the middle of that
+    /// stretch. A window counts once it spans at least half its width. Nil
+    /// for a recording too short to fill one.
+    private static func smoothedExtreme(_ beats: [CleanBeat], lowest: Bool) -> (hr: Double, tMs: Int64)? {
         var best: (hr: Double, tMs: Int64)?
         var start = 0
         var sum = 0.0
@@ -199,7 +208,8 @@ extension HRVAnalysisPipeline {
             }
             let span = beat.tMs - beats[start].tMs
             let mean = sum / Double(end - start + 1)
-            if span >= nadirWindowMs / 2, mean < (best?.hr ?? .infinity) {
+            let isBetter = best.map { lowest ? mean < $0.hr : mean > $0.hr } ?? true
+            if span >= nadirWindowMs / 2, isBetter {
                 best = (mean, beats[start].tMs + span / 2)
             }
         }

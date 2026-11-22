@@ -163,7 +163,10 @@ extension PDFReportGenerator {
     }
 
     /// Draw Page 2: visualizations (overnight HR chart, Poincare, PSD, tachogram)
-    /// for the report's RR series.
+    /// for the report's RR series. The six blocks are taller together than one
+    /// page, so each after the first makes room for its own height first
+    /// (`ensureSpace`) and continues on a new page when it would reach the
+    /// footer.
     @discardableResult
     func drawPage2_Visualizations(
         _ inputs: ReportInputs,
@@ -174,22 +177,34 @@ extension PDFReportGenerator {
         PDFReadingDirection.beginPage(context)
         var y = config.margins.top
         y = drawOvernightHRChart(series: series, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
+        y = ensureSpace(needed: 220, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         y = drawPoincarePlot(series: series, flags: inputs.artifactFlags, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
 
         if let fd = inputs.result.frequencyDomain {
             let window = inputs.result.windowStart ..< max(inputs.result.windowStart, inputs.result.windowEnd)
+            y = ensureSpace(needed: 150, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
             y = drawPSDGraph(series: series, flags: inputs.artifactFlags, fd: fd, window: window, yPosition: y, in: context, pageRect: pageRect)
         }
 
+        y = ensureSpace(needed: 115, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         y = drawTachogram(series: series, flags: inputs.artifactFlags, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
-        y = drawQualitySection(inputs.result, session: inputs.session, yPosition: y, in: context, pageRect: pageRect)
-
-        if inputs.result.windowStartMs != nil || inputs.result.windowSelectionReason != nil {
-            y = drawWindowSelectionSection(result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
-        }
+        y = drawQualityAndWindow(inputs, series: series, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
         drawFooter(pageNumber: pageNumber, in: context, pageRect: pageRect)
         pageNumber += 1
         return y
+    }
+
+    /// The Data Quality block and, when the result has window info, the
+    /// Analysis Window card, each after making room for its height.
+    private func drawQualityAndWindow(
+        _ inputs: ReportInputs, series: RRSeries, y: CGFloat, pageNumber: inout Int,
+        in context: UIGraphicsPDFRendererContext, pageRect: CGRect
+    ) -> CGFloat {
+        var y = ensureSpace(needed: 78, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        y = drawQualitySection(inputs.result, session: inputs.session, yPosition: y, in: context, pageRect: pageRect)
+        guard inputs.result.windowStartMs != nil || inputs.result.windowSelectionReason != nil else { return y }
+        y = ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        return drawWindowSelectionSection(result: inputs.result, series: series, yPosition: y, in: context, pageRect: pageRect)
     }
 
     /// Draw deep-dive analysis pages and analysis summary
@@ -307,7 +322,8 @@ extension PDFReportGenerator {
         return writeReport(data, for: session)
     }
 
-    /// Writes the rendered PDF to a timestamped temp file. Returns nil (and
+    /// Writes the rendered PDF to a timestamped file in the export folder
+    /// (`ExportFile`: atomic, complete file protection). Returns nil (and
     /// logs) rather than throwing, because every caller treats a failed export
     /// as "no share sheet" rather than an error to surface.
     func writeReport(_ data: Data, for session: HRVSession) -> URL? {
@@ -318,10 +334,8 @@ extension PDFReportGenerator {
         dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
         let reportDate = session.endDate ?? session.startDate
         let filename = "Emuqu_Recovery_\(dateFormatter.string(from: reportDate)).pdf"
-        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         do {
-            try data.write(to: fileURL)
-            return fileURL
+            return try ExportFile.write(data, named: filename)
         } catch {
             debugLog("[PDFReportGenerator] Failed to write PDF: \(error)")
             return nil

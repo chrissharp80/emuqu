@@ -144,7 +144,7 @@
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawSplitsHeaderRow(colWs:y:bundle:)": "67c2510e9b39b44b",
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawText(_:at:font:color:)": "3b9318f0a80f73e1",
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.ensureSplitsPageSpace(_:y:ctx:)": "8b6ff59412841796",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.resolvedSplitsForPDF()": "fe651dc63f30e470",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.resolvedSplitsForPDF()": "419e8b41cfd65542",
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.splitUnitLabel(_:bundle:)": "edc0fccefaa40a75",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
@@ -492,30 +492,53 @@
   },
   {
    "key": "func WorkoutPDFRenderer.avgPaceString()",
-   "hash": "2564a9b82913626c",
-   "does": "Returns average pace from session distance and duration formatted by units, or '—' when distance ≤100 m or duration ≤10 s or formatting fails.",
+   "hash": "e99ea3c7e351a6c2",
+   "does": "Average pace from session distance over moving time (movingSeconds), formatted by units; '—' when distance ≤100 m, moving time ≤10 s or formatting fails.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.movingSeconds()",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "distance > 100 and duration > 10",
+     "at": "+2",
+     "cond": "distance > 100 and moving time > 10",
      "effect": "false: '—'"
     },
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "formatPace nil (?? '—')",
      "effect": "'—'"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.movingSeconds()": "44573b1dec671de2",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "9f6523aed76afcae"
+   }
+  },
+  {
+   "key": "func WorkoutPDFRenderer.movingSeconds()",
+   "hash": "347729730f800f04",
+   "does": "The session's moving seconds (WorkoutMetadata.movingSeconds over its wall-clock duration), or the wall-clock duration when the session has no workout metadata.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no metadata, or movingSeconds nil",
+     "effect": "?? session.duration"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)": "7ba0583eb19458f3"
    }
   },
   {
@@ -542,11 +565,11 @@
   },
   {
    "key": "func WorkoutPDFRenderer.calorieString()",
-   "hash": "4c81e2fa48f4eae5",
-   "does": "Estimates calories as mean sample METs × 3.5 × current settings body weight × minutes / 200, formatted 'N kcal'; '—' without samples, duration or METs.",
+   "hash": "e16cb53fcd0111ec",
+   "does": "Estimates calories as mean sample METs × 3.5 × current settings body weight × moving minutes (movingSeconds) / 200, formatted 'N kcal'; '—' without samples, moving time or METs.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.movingSeconds()",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
@@ -560,19 +583,19 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "samples and duration present",
+     "at": "+3",
+     "cond": "samples and moving time present",
      "effect": "false: '—'"
     },
     {
-     "at": "+4",
+     "at": "+6",
      "cond": "any METs",
      "effect": "false: '—'"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.movingSeconds()": "44573b1dec671de2",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "a1abab14c1ff8f17",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "f13b6ef4aa525d0f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
@@ -610,7 +633,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.resolvedSplitsForPDF()": "fe651dc63f30e470",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.resolvedSplitsForPDF()": "419e8b41cfd65542",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0"
    }
   },
@@ -670,12 +693,12 @@
   },
   {
    "key": "func WorkoutPDFRenderer.resolvedSplitsForPDF()",
-   "hash": "c0c21d9b49b32984",
-   "does": "Returns stored splits when they exist and match the unit preference (judged by first split > 1500 m), else recomputes splits from the GPS track at 1 mile or 1 km, falling back to stored when no track or recomputation is empty.",
+   "hash": "f47cc14982829d94",
+   "does": "Returns stored splits when they exist and match the unit preference (judged by first split > 1500 m); otherwise re-buckets the per-second samples at 1 mile or 1 km (splitsFromSamples, moving time), never the evenly-timed decoded track; falls back to stored when that is empty.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeSplits(track:rrPoints:startDate:splitDistanceMeters:pauses:)"
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.splitsFromSamples(_:startDate:splitDistanceMeters:)"
    ],
    "reads": [],
    "writes": [],
@@ -696,29 +719,76 @@
      "effect": "returns stored"
     },
     {
-     "at": "+7",
-     "cond": "track non-empty",
-     "effect": "false: returns stored (possibly wrong unit or empty)"
-    },
-    {
-     "at": "+8",
+     "at": "+10",
      "cond": "wantsMile",
      "effect": "bucket 1609.344 m else 1000 m"
     },
     {
-     "at": "+11",
-     "cond": "rrSeries nil (?? [])",
-     "effect": "splits computed without HR"
-    },
-    {
-     "at": "+15",
-     "cond": "recomputed empty",
+     "at": "+12",
+     "cond": "recomputed empty (no sample carries a distance)",
      "effect": "returns stored else recomputed"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeSplits(track:rrPoints:startDate:splitDistanceMeters:pauses:)": "581dbe0fc260078f",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.splitsFromSamples(_:startDate:splitDistanceMeters:)": "f2776413ea5a1a1d",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197"
+   }
+  },
+  {
+   "key": "func WorkoutPDFRenderer.splitsFromSamples(_:startDate:splitDistanceMeters:)",
+   "hash": "c769b46d93cf00a4",
+   "does": "Full splits of splitDistanceMeters from the samples that carry a cumulative distance, in offset order: a split closes at the first sample whose distance from the split's first sample reaches the bucket, and the next starts there; a partial tail is left out. Empty when no sample carries a distance or the bucket is not positive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.sampleSplit(index:window:startDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no sample with a distance, or bucket ≤ 0",
+     "effect": "[]"
+    },
+    {
+     "at": "+8",
+     "cond": "distance since the split start below the bucket",
+     "effect": "keep extending; otherwise close the split"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.sampleSplit(index:window:startDate:)": "e4e2d8cf4e37441d"
+   }
+  },
+  {
+   "key": "func WorkoutPDFRenderer.sampleSplit(index:window:startDate:)",
+   "hash": "3db8c77f415ed95c",
+   "does": "One Split over the window: distance and moving seconds between its first and last samples, mean heart rate of the readings after the first, pace sec/km, elevation gain through BarometricAltitudeProcessor (window min(15, n)) when 3 or more samples carry an altitude, α1 nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "no heart rate in the window",
+     "effect": "averageHR nil"
+    },
+    {
+     "at": "+13",
+     "cond": "seconds and distance positive",
+     "effect": "pace; else nil"
+    },
+    {
+     "at": "+14",
+     "cond": "fewer than 3 altitude readings",
+     "effect": "elevationGainMeters nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "ad1f23d4e060bae9"
    }
   },
   {

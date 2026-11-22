@@ -385,8 +385,10 @@ struct HRVDetailV2View: View {
         guard let series = effectiveRRSeries, !series.points.isEmpty else { return nil }
         let rr = series.points
         let bcFlags = session.artifactFlags ?? []
-        let sleepStart = session.sleepStartMs ?? 0
-        let sleepEnd = session.sleepEndMs ?? Int64(series.durationMs)
+        let sleep = BeatConsistency.sleepWindowOnBeatClock(
+            sleepStartMs: session.sleepStartMs, sleepEndMs: session.sleepEndMs, series: series, sessionStart: session.startDate
+        )
+        let (sleepStart, sleepEnd) = (sleep.startMs, sleep.endMs)
         return await Task.detached(priority: .userInitiated) {
             let baseline = BeatConsistency.buildBaseline(priorNights: priors)
             return BeatConsistency.score(

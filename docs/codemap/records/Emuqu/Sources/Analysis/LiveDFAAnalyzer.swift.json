@@ -295,7 +295,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)": "676680ac154602e1",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()": "aef805d5536d10f8",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)": "5fca7cd82bbc2c26",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)": "9757298ca8201c4c",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)": "1d627eb70c2a16d6",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()": "2757c9537436562d"
    }
@@ -357,13 +357,13 @@
   },
   {
    "key": "func LiveDFAAnalyzer.recompute(now:)",
-   "hash": "2ce1261495779520",
-   "does": "If the window is full, cleans the RR series, fits DFA via fitOrExplain and publishes alpha1, R2, band and lastComputeAt, then refreshes status.",
+   "hash": "02b400b0266f8b02",
+   "does": "If the window is full, cleans the rolling buffer's beats on the beat clock (cleanRRForDFA over the RR points, so beats a dropout lost count as corrected), fits DFA via fitOrExplain and publishes alpha1, R2, band and lastComputeAt, then refreshes status.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_: [RRPoint])",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)"
    ],
@@ -390,7 +390,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.Band.display(alpha1:)": "f4cb0f82e172153d",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "5656cbdeb6baee1a",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_: [RRPoint])": "89264b646221538e",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleaned(_:missing:)": "39c095617251857e",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.fitOrExplain(_:)": "42bfd0d80823e319",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)": "1d627eb70c2a16d6",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit": "397d5d3ebb82f8f2"
@@ -423,7 +424,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleaned(_:missing:)": "39c095617251857e",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.logWindow(cleaned:result:)": "494bd3e78cd85665",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markFitFailed()": "226e8241ddf9387f",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.markTooNoisy(correctedFraction:)": "48d8f8c6dae6fccb",
@@ -537,17 +539,78 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleaned(_:missing:)": "39c095617251857e",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "743d503c699a2b99",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
-   "key": "func LiveDFAAnalyzer.cleanRRForDFA(_:)",
-   "hash": "c1c67d07fee215ee",
-   "does": "Static nonisolated Kubios-style cleaner: for >=8 beats builds an artifact mask (out of 300-2000 ms or >20% off trailing 5-beat clean median) and linearly interpolates flagged beats in place, returning values plus corrected count. Shared with WorkoutAlpha1Reanalyzer.",
+   "key": "func LiveDFAAnalyzer.cleanRRForDFA(_: [Double])",
+   "hash": "a5702cd52ede2de1",
+   "does": "Static nonisolated Kubios-style cleaner over plain intervals: `cleaned` with no beat marked missing — for >=8 beats an artifact mask (out of 300-2000 ms or >20% off the trailing 5-beat clean median) and linear interpolation of flagged beats in place, returning values plus corrected count.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleaned(_:missing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleaned(_:missing:)": "39c095617251857e"
+   }
+  },
+  {
+   "key": "func LiveDFAAnalyzer.cleanRRForDFA(_: [RRPoint])",
+   "hash": "09fd28b4b61dc688",
+   "does": "The cleaner over beats on a gap-corrected clock (the live BeatClock, or WorkoutAnalyzer.gapCorrectedOffsetsMs offline): between each pair of consecutive beats inserts the beats a dropout lost (beatsLost) as placeholders marked missing, then `cleaned` interpolates them with the artifacts and counts them as corrected, so DFA's beat index stays true and a window that lost more than maxCorrectedFraction is rejected. Used by recompute and WorkoutAlpha1Reanalyzer.fit.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.beatsLost(between:and:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleaned(_:missing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each beat",
+     "effect": "appends it, after the placeholders for any beats lost before it"
+    },
+    {
+     "at": "+6",
+     "cond": "not the first beat",
+     "effect": "counts beats lost since the previous beat"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.beatsLost(between:and:)": "fddee7ac66aa6c04",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleaned(_:missing:)": "39c095617251857e"
+   }
+  },
+  {
+   "key": "func LiveDFAAnalyzer.beatsLost(between:and:)",
+   "hash": "5af72a413f40b5be",
+   "does": "Beats that fell between two consecutive beats on a gap-corrected clock: the gap from the end of `previous` to the start of `next` divided by their mean interval, plus ectopicThresholdPercent (0.2), rounded down — so batching jitter under 0.8 of a beat is no lost beat. 0 for no gap or a non-positive interval.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no gap or non-positive mean interval",
+     "effect": "0"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func LiveDFAAnalyzer.cleaned(_:missing:)",
+   "hash": "3b50e540d26b3afe",
+   "does": "Shared core: under 8 values returns them unchanged with the missing count as corrected; otherwise builds the artifact mask (missing beats marked) and returns the series with every marked beat interpolated plus the marked count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:missing:)",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)"
    ],
    "reads": [],
@@ -555,12 +618,12 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "rrs.count < 8",
-     "effect": "return input unchanged with correctedCount 0 (no artifact screening at all)"
+     "cond": "fewer than 8 values",
+     "effect": "returns them unchanged, corrected = missing count (no artifact screening)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:)": "3ce7b6dd20570573",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.artifactMask(_:missing:)": "53a2a1d3be2c3c10",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)": "4be8b34262c0d6e2"
    }
   },
@@ -582,9 +645,9 @@
    "deps": {}
   },
   {
-   "key": "func LiveDFAAnalyzer.artifactMask(_:)",
-   "hash": "ace3bc6c98c7084f",
-   "does": "Walks the series flagging each beat via isArtifactBeat against a trailing window of up to 5 clean beats; clean beats are appended to that window.",
+   "key": "func LiveDFAAnalyzer.artifactMask(_:missing:)",
+   "hash": "b4142caca7c8dd12",
+   "does": "Walks the series flagging each beat that is marked missing or that isArtifactBeat flags against a trailing window of up to 5 clean beats; clean beats are appended to that window.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.isArtifactBeat(_:recentClean:)"
@@ -596,6 +659,11 @@
      "at": "+3",
      "cond": "for each index",
      "effect": "evaluates every beat"
+    },
+    {
+     "at": "+4",
+     "cond": "beat marked missing",
+     "effect": "flagged without testing it"
     },
     {
      "at": "+5",

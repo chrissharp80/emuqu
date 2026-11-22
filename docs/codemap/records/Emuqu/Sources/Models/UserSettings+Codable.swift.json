@@ -68,8 +68,8 @@
   },
   {
    "key": "init UserSettings(from:)",
-   "hash": "c8d785d6bcb83b34",
-   "does": "Decodable init: starts from UserSettings() defaults, opens the keyed container (throws only if the top level is not a keyed object), runs every domain decoder, then decodes profileFieldsFromHealth last (default []) so property didSets during decode cannot strip the markers.",
+   "hash": "04dcad15ae344507",
+   "does": "Decodable init: starts from UserSettings() defaults, opens the keyed container (throws only if the top level is not a keyed object), runs every domain decoder, then decodes profileFieldsFromHealth last (decodedHealthProfileFields: unknown markers dropped one by one, default []) so property didSets during decode cannot strip the markers.",
    "entry": "Codable synthesis use: JSONDecoder.decode(UserSettings.self) in SettingsManager.load/restoreFromJSON and CloudSettingsRecord (CloudKitSyncSupport.swift:391,414).",
    "calls": [
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
@@ -83,7 +83,7 @@
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)"
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodedHealthProfileFields(from:)"
    ],
    "reads": [],
    "writes": [],
@@ -93,14 +93,29 @@
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeCoachAutomation(from:)": "b623285b51ef4f7a",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeEmailDefaults(from:)": "c03531db52238926",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeExportAndPerformance(from:)": "feb80f72ae1285e9",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)": "69f107097d073e48",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeFitnessMarkers(from:)": "74d9f35d46fa4710",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeNotifications(from:)": "6a1605535e6b2a77",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeOnboarding(from:)": "4690a326221ecdc9",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeProfile(from:)": "d5c79b2be263baa4",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeRoutingMode(from:)": "2ffbfdc43a0ca67b",
     "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodeTrainingState(from:)": "78ab528deaa0261e",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "04aff72ec0c0c502",
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decodedHealthProfileFields(from:)": "7bee4250cebe1a09",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6"
+   }
+  },
+  {
+   "key": "func UserSettings.decodedHealthProfileFields(from:)",
+   "hash": "98b788fbb390484d",
+   "does": "Decodes profileFieldsFromHealth as strings (default [] when absent or unreadable) and keeps those that are HealthProfileField cases, so a field a newer build added is dropped on its own instead of emptying the set.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::func UserSettings.decoded(_:_:from:default:)": "04aff72ec0c0c502"
    }
   },
   {

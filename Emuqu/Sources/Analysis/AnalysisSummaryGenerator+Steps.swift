@@ -230,7 +230,7 @@ extension AnalysisSummaryGenerator {
     // to stack more on top of an already-spiked acute load.
     private func appendHighHRVBlockedReason(_ steps: inout [String], gates: PushGates) {
         if gates.cumulativeLoadElevated {
-            steps.append(String(localized: "HRV came in strong, but recent training is well above your usual range — easy or moderate today, save the push for after acute load settles. Hammering a body that's still absorbing risks the spike-injury window.", bundle: NarrativeLanguage.bundle))
+            steps.append(String(localized: "HRV came in strong, but recent training is well above your usual range — easy or moderate today, save the push for after acute load settles.", bundle: NarrativeLanguage.bundle))
         } else if let hold = gates.loadHoldReason {
             steps.append(hold)
         } else {
@@ -274,7 +274,7 @@ extension AnalysisSummaryGenerator {
 
     private func appendScoreSteps(_ steps: inout [String], score: Double, gates: PushGates) {
         if score >= HRVThresholds.scoreWellRecovered {
-            appendWellRecoveredSteps(&steps, gates: gates)
+            appendWellRecoveredSteps(&steps, score: score, gates: gates)
         } else if score >= HRVThresholds.scoreAdequateRecovery {
             appendAdequateRecoverySteps(&steps, gates: gates)
         } else if score >= HRVThresholds.scoreIncompleteRecovery {
@@ -284,13 +284,18 @@ extension AnalysisSummaryGenerator {
         }
     }
 
-    private func appendWellRecoveredSteps(_ steps: inout [String], gates: PushGates) {
+    /// High intensity is suggested only for an Excellent score (`ScoreVerdict`),
+    /// the band where the score's own message says "Go hard"; a Good score
+    /// (80–89) reads as normal training, as its verdict does.
+    private func appendWellRecoveredSteps(_ steps: inout [String], score: Double, gates: PushGates) {
         let isGoodSleep = gates.isGoodSleep
         if gates.shouldNotPush {
             appendCapacityWithoutReadinessSteps(&steps, gates: gates)
         } else {
             // Consolidated recovery = safe to push
-            steps.append(String(localized: "Great day for high-intensity training or challenging activities", bundle: NarrativeLanguage.bundle))
+            steps.append(ScoreVerdict(score: score) == .excellent
+                ? String(localized: "Great day for high-intensity training or challenging activities", bundle: NarrativeLanguage.bundle)
+                : String(localized: "A good score — normal training fits today.", bundle: NarrativeLanguage.bundle))
             steps.append(String(localized: "Your recovery is consolidated — your body can handle physical and mental demands", bundle: NarrativeLanguage.bundle))
             if isGoodSleep {
                 steps.append(String(localized: "Good sleep is supporting your recovery — maintain this pattern", bundle: NarrativeLanguage.bundle))

@@ -137,6 +137,11 @@ struct EmuquApp: App {
     @State var dataLoaded = false
     @State var interruptedSessionAlert: InterruptedSessionInfo?
     @State var recoveryResultMessage: String?
+    /// Set when the scene goes to the background, cleared once it is active
+    /// again. A return goes background → inactive → active, so the
+    /// transition `handleScenePhaseChange` sees on arrival starts at
+    /// `.inactive`; this remembers where it came from.
+    @State private var returningFromBackground = false
     @Environment(\.scenePhase) private var scenePhase
 
     // MARK: Launch diagnostics
@@ -169,6 +174,10 @@ struct EmuquApp: App {
         NSLog("[App][launch] EmuquApp.init() — entry")
         debugLog("[App][launch] EmuquApp.init() entry", level: .info)
         Self.observeMemoryWarnings()
+        // A share sheet from the previous run may have left its export file
+        // (`ShareLink` reports no completion); nothing can still read it now.
+        // A few files in tmp, removed before any export of this run exists.
+        ExportFile.removeLeftovers()
         NSLog("[App][launch] EmuquApp.init() — exit")
         debugLog("[App][launch] EmuquApp.init() exit; the stored-property singletons are already built", level: .info)
     }
@@ -407,14 +416,14 @@ struct EmuquApp: App {
     /// Everything the app does on a foreground/background transition.
     ///
     /// Each step is its own method below; they are unrelated to one another and
-    /// share only a trigger.
+    /// share only a trigger. The return-from-background steps (sync, the
+    /// entitlement re-check) key off `returningFromBackground`, not
+    /// `oldPhase`, which is `.inactive` by the time the scene is active.
     private func handleScenePhaseChange(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
         if newPhase == .background {
+            returningFromBackground = true
             autoArchivePendingSession()
             AppDependencies.current.location.ambientLocationService.stop()
-        }
-        if newPhase == .active && oldPhase == .background {
-            resumeSyncOnForeground()
         }
         if newPhase == .active && oldPhase != .active {
             startAmbientLocationOnForeground()
@@ -424,9 +433,17 @@ struct EmuquApp: App {
         if settingsManager.settings.hasCompletedOnboarding {
             refreshHealthKitWriteAuthorization()
         }
-        if oldPhase == .background {
-            recheckEntitlementOnForeground()
+        if returningFromBackground {
+            resumeAfterBackground()
         }
+    }
+
+    /// The first active phase after a background: clears the mark, resumes
+    /// sync and re-checks the entitlement.
+    private func resumeAfterBackground() {
+        returningFromBackground = false
+        resumeSyncOnForeground()
+        recheckEntitlementOnForeground()
     }
 
     /// A trial ends, or a refund lands, while the process stays alive: an

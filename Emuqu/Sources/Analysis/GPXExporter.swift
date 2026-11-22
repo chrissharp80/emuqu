@@ -109,8 +109,9 @@ enum GPXExporter {
         return xml
     }
 
-    /// Write a GPX export to the app's temporary directory and return the
-    /// resulting file URL. Caller is responsible for presenting a share sheet.
+    /// Write a GPX export to the export folder (`ExportFile`, complete file
+    /// protection) and return the resulting file URL. Caller is responsible
+    /// for presenting a share sheet.
     static func writeToTempFile(session: HRVSession, track: [CLLocation]) throws -> URL {
         let gpx = export(session: session, track: track)
         let sport = session.workoutMetadata?.sport.rawValue ?? "workout"
@@ -122,13 +123,12 @@ enum GPXExporter {
         fmt.dateFormat = "yyyyMMdd-HHmmss"
         fmt.timeZone = TimeZone(secondsFromGMT: 0)
         let filename = "\(sport)-\(fmt.string(from: session.startDate)).gpx"
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         guard let data = gpx.data(using: .utf8) else {
             throw NSError(domain: "GPXExporter", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: String(localized: "Couldn't create the GPX file.", bundle: LanguageManager.appBundle)
             ])
         }
-        try data.write(to: url, options: .atomic)
+        let url = try ExportFile.write(data, named: filename)
         debugLog("[GPXExporter] wrote \(data.count) bytes to \(url.path) (track=\(track.count) points)")
         return url
     }

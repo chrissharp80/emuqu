@@ -356,12 +356,13 @@
   },
   {
    "key": "func WorkoutPDFRenderer.drawColouredPolyline(_:in:)",
-   "hash": "4c747e8b6ef17a46",
-   "does": "Overlays the GPS track on the drawn map, scaling snapshot-projected points into rect and stroking each segment in the α1-band colour of the nearest preceding α1 sample at that point's time offset.",
+   "hash": "bcc37860261fa90e",
+   "does": "Overlays the GPS track on the drawn map, scaling snapshot-projected points into rect and stroking each segment in the α1-band colour of the nearest preceding α1 sample at its fix's pause-excluded second (activeSecond).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.point(_:)",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.alphaBandLookup()",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.activeSecond(of:)",
     "ext:UIGraphicsGetCurrentContext"
    ],
    "reads": [],
@@ -375,10 +376,11 @@
     {
      "at": "+13",
      "cond": "for each segment i in 1..<count",
-     "effect": "colour by band of point i offset; strokes segment"
+     "effect": "colour by band of point i's active second; strokes segment"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.activeSecond(of:)": "77f4d15ebc326c71",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.alphaBandLookup()": "5933f734bbd486eb",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.point(_:)": "42158da9be36058e",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "6ac5b02917da2d08"
@@ -394,6 +396,27 @@
    "writes": [],
    "branches": [],
    "deps": {}
+  },
+  {
+   "key": "func WorkoutPDFRenderer.activeSecond(of:)",
+   "hash": "319e4bfebfbfd8f1",
+   "does": "The fix's wall-clock offset from the session start moved onto the pause-excluded clock (WorkoutMetadata.activeOffset); the rounded wall offset without workout metadata.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no workout metadata",
+     "effect": "rounded wall-clock seconds"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)": "275752e584c9eee3"
+   }
   },
   {
    "key": "func WorkoutPDFRenderer.alphaBandLookup()",

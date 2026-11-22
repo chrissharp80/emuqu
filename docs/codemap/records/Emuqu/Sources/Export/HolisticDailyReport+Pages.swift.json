@@ -326,7 +326,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawFooter(pageNumber:)": "894873dc1d8aeb24",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawFooter(pageNumber:)": "9f0316d8d458abd5",
     "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawText(_:at:font:color:)": "f4c871343e3fde1d",
     "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawTomorrowAction(y:contentW:)": "32cf74a61e4aafc4",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
@@ -892,7 +892,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawFooter(pageNumber:)": "894873dc1d8aeb24",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawFooter(pageNumber:)": "9f0316d8d458abd5",
     "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawHelpingHurtingSection(title:points:limit:bulletColour:y:contentW:)": "e8cad25959c961a2",
     "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.whatsHelpingPoints()": "8e22def66eb1de82",
     "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.whatsHurtingPoints()": "749e287bf1b85888",
@@ -1000,12 +1000,13 @@
   },
   {
    "key": "func HolisticDailyReport.drawFooter(pageNumber:)",
-   "hash": "dbdab84b41a94a75",
-   "does": "Draws the shared footer (PDFPagePrimitives.drawFooter) with the line \"Emuqu · Daily Report · Page N · <ISO-8601 generation time>\": thin divider at pageHeight−margin+6, the line, then the wellness/not-a-medical-device disclaimer.",
+   "hash": "be6e43af1ffb256b",
+   "does": "Draws the shared footer (PDFPagePrimitives.drawFooter) with the line \"Emuqu · Daily Report · Page N · <generation time, medium date and short time in the app locale>\": thin divider at pageHeight−margin+6, the line, then the wellness/not-a-medical-device disclaimer.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawFooter(_:page:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
    "reads": [],
    "writes": [],
@@ -1013,6 +1014,7 @@
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func PDFPagePrimitives.drawFooter(_:page:)": "e7b70a981074cfe3",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Views/ReadinessExplainView.swift::var ReadinessExplainView.divider": "4e79ddb163cbdfc0",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"

@@ -676,7 +676,7 @@
    "deps": {
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.heartRateCue(currentValue:)": "06a7f300184bfc52",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.intensityCue()": "6fe0ade5bbfa77f1",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.progressCue()": "83ff3d7616d881f6",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.progressCue()": "f6045287740db606",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
@@ -801,61 +801,134 @@
   },
   {
    "key": "func WorkoutThreshold.progressCue()",
-   "hash": "b498c220ff890fad",
-   "does": "Progress cues for distance, elapsed time, elevation gain and grade, worded by condition; nil for others. Distance/elevation always phrased in metres.",
+   "hash": "d9dac4a5aa99216d",
+   "does": "Progress cues for distance, elapsed time, elevation gain and grade, worded by condition; nil for others. Distance and climb are in miles and feet for an imperial units preference (imperialDistanceCue / imperialClimbCue), else metres.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.imperialDistanceCue()",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.imperialClimbCue()"
    ],
    "reads": [
-    "mem:LanguageManager.shared.bundle"
+    "mem:LanguageManager.shared.bundle",
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+3",
      "cond": ".distanceMeters",
      "effect": "distance cue"
     },
     {
-     "at": "+3",
+     "at": "+4",
+     "cond": "imperial",
+     "effect": "imperialDistanceCue"
+    },
+    {
+     "at": "+5",
      "cond": "condition gt",
      "effect": "'Hit N meters'; else 'Under N meters'"
     },
     {
-     "at": "+4",
+     "at": "+6",
      "cond": ".elapsedSec",
      "effect": "elapsed cue in whole minutes"
     },
     {
-     "at": "+6",
+     "at": "+8",
      "cond": "condition gt",
      "effect": "'N minutes in'; else 'Less than N minutes'"
     },
     {
-     "at": "+7",
+     "at": "+9",
      "cond": ".elevationGainMeters",
      "effect": "climb cue"
     },
     {
-     "at": "+8",
+     "at": "+10",
+     "cond": "imperial",
+     "effect": "imperialClimbCue"
+    },
+    {
+     "at": "+11",
      "cond": "condition gt",
      "effect": "'Climbed N meters'; else 'Under N meters of climb'"
     },
     {
-     "at": "+9",
+     "at": "+12",
      "cond": ".gradePercent",
      "effect": "grade cue"
     },
     {
-     "at": "+10",
+     "at": "+13",
      "cond": "condition gt",
      "effect": "'Steeper than N percent'; else 'Grade easing'"
     },
     {
-     "at": "+11",
+     "at": "+14",
      "cond": "other metric",
      "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.imperialClimbCue()": "3cfb7f57d3ed7d2a",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.imperialDistanceCue()": "49f71b037220840e",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
+   "key": "func WorkoutThreshold.imperialDistanceCue()",
+   "hash": "c4e22c9b8618cbbe",
+   "does": "'Hit N miles' (condition gt) or 'Under N miles': the threshold metres in miles, rounded to a tenth and printed whole when it is whole, in the app locale.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "rounded value is whole",
+     "effect": "no decimals; else one"
+    },
+    {
+     "at": "+5",
+     "cond": "condition gt",
+     "effect": "'Hit'; else 'Under'"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
+   }
+  },
+  {
+   "key": "func WorkoutThreshold.imperialClimbCue()",
+   "hash": "5beae7d838a792b5",
+   "does": "'Climbed N feet' (condition gt) or 'Under N feet of climb': the threshold metres in whole feet.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "condition gt",
+     "effect": "'Climbed'; else 'Under … of climb'"
     }
    ],
    "deps": {

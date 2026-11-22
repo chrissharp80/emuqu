@@ -255,17 +255,17 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.overnightHRStats(points:flags:)": "242fb4259ba6563f"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.overnightHRStats(points:flags:)": "e487fb766efea6b5"
    }
   },
   {
    "key": "func HRVAnalysisPipeline.overnightHRStats(points:flags:)",
-   "hash": "74063f068753160c",
-   "does": "Collects non-artifact beats with plausible HR, returns max, mean and the smoothed 30 s nadir (falling back to the slowest single beat when the recording cannot fill half a window); nil when no beat survives.",
+   "hash": "eb23c99e9e0eecf9",
+   "does": "Collects non-artifact beats with plausible HR, returns mean, the smoothed 30 s nadir (falling back to the slowest single beat when the recording cannot fill half a window) and the smoothed 30 s peak as max (falling back to the fastest beat); nil when no beat survives.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.plausibleHR(of:)",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.smoothedNadir(_:)"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.smoothedExtreme(_:lowest:)"
    ],
    "reads": [],
    "writes": [],
@@ -282,46 +282,39 @@
     },
     {
      "at": "+12",
-     "cond": "smoothedNadir ?? slowest beat",
-     "effect": "nil smoothed nadir: uses the single slowest beat"
+     "cond": "smoothed nadir/peak nil",
+     "effect": "single slowest / fastest beat"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.plausibleHR(of:)": "63176150e0b23a6e",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.smoothedNadir(_:)": "171863825d2e7f21"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.smoothedExtreme(_:lowest:)": "6ecb133206721611",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.tMs(forSessionOffset:series:sessionStart:)": "9c707793f56baa4c"
    }
   },
   {
-   "key": "func HRVAnalysisPipeline.smoothedNadir(_:)",
-   "hash": "b40f2abd036c079c",
-   "does": "Sliding 30 s window over clean beats: the lowest mean HR among windows spanning >= 15 s, with the midpoint time; nil when no window spans 15 s.",
+   "key": "func HRVAnalysisPipeline.smoothedExtreme(_:lowest:)",
+   "hash": "fcff1580d0c3e368",
+   "does": "The lowest (lowest true) or highest mean HR over any nadirWindowMs (30 s) stretch of clean beats that spans at least half the window, with the middle of that stretch; nil for a recording too short to fill one.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "for each beat",
-     "effect": "extends window"
-    },
-    {
      "at": "+6",
-     "cond": "while span > 30 s",
-     "effect": "drops oldest beats"
+     "cond": "window wider than 30 s",
+     "effect": "drop the oldest beat"
     },
     {
-     "at": "+12",
-     "cond": "span >= 15 s && mean < best",
-     "effect": "true: records new best"
-    },
-    {
-     "at": "+12",
-     "cond": "best?.hr ?? .infinity",
-     "effect": "no best yet: any qualifying window wins"
+     "at": "+13",
+     "cond": "half-full window with a lower (or higher) mean",
+     "effect": "becomes the best"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.tMs(forSessionOffset:series:sessionStart:)": "9c707793f56baa4c"
+   }
   },
   {
    "key": "func HRVAnalysisPipeline.plausibleHR(of:)",

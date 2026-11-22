@@ -29,6 +29,10 @@ import Foundation
 /// was deleted) the cached estimate is cleared rather than kept: an
 /// old number would keep scaling every power-TSS. The scan time is
 /// stamped either way, so a fruitless scan isn't repeated every launch.
+/// A scan that could not read every workout in the window is not a
+/// verdict: it never clears or lowers the estimate (the best effort may be
+/// in the workout it could not read), raises it only when it found a
+/// better effort, and is not stamped, so the next launch scans again.
 /// The weekly throttle is skipped when a workout was added since the last
 /// scan or the anchoring workout is no longer in the archive, so the next
 /// launch scan picks up a new best effort or drops a deleted anchor.
@@ -112,8 +116,30 @@ enum FTPAutoEstimator {
     /// Scan synchronously on the caller's thread. Reads are lightweight (no
     /// RR series), and only workouts inside the lookback window are decoded.
     static func recompute(archive: SessionArchive, now: Date = Date()) {
-        let effort = bestEffort(in: recentRunningWorkouts(archive: archive, now: now))
+        let scan = recentRunningWorkouts(archive: archive, now: now)
+        let effort = bestEffort(in: scan.sessions)
+        guard scan.complete else { return keepUnlessBetter(effort) }
         persist(effort, at: now)
+    }
+
+    /// What an incomplete scan stores: a found effort only when its FTP is
+    /// above the cached one; never a clear, and no stamp.
+    static func incompleteScanStores(_ effort: Effort?, cachedFTP: Int?) -> Bool {
+        guard let effort else { return false }
+        return ftp(for: effort) > (cachedFTP ?? 0)
+    }
+
+    /// An incomplete scan (`incompleteScanStores`): stores a better effort
+    /// without stamping the scan, else keeps the cached estimate as it is.
+    private static func keepUnlessBetter(_ effort: Effort?) {
+        guard incompleteScanStores(effort, cachedFTP: cachedRunningFTP), let effort else {
+            debugLog("[FTPAutoEstimator] Some workouts could not be read — estimate kept, scan not stamped, retried next launch.", level: .warning)
+            return
+        }
+        let defaults = UserDefaults.standard
+        defaults.set(ftp(for: effort), forKey: cachedFTPKey)
+        defaults.set(effort.sessionId.uuidString, forKey: cachedSourceSessionKey)
+        debugLog("[FTPAutoEstimator] Some workouts could not be read — a better effort was found, FTP raised to \(ftp(for: effort)) W; scan not stamped, retried next launch.", level: .warning)
     }
 
     /// Estimated FTP for an effort: 95 % of its 20-minute mean power.
@@ -181,13 +207,31 @@ enum FTPAutoEstimator {
         }
     }
 
-    /// Running-family workouts that started inside the lookback window.
-    private static func recentRunningWorkouts(archive: SessionArchive, now: Date) -> [HRVSession] {
+    /// Running-family workouts that started inside the lookback window, and
+    /// whether every workout there could be read (a read that throws is
+    /// logged and makes the scan incomplete).
+    private static func recentRunningWorkouts(archive: SessionArchive, now: Date) -> (sessions: [HRVSession], complete: Bool) {
         let cutoff = now.addingTimeInterval(-Double(lookbackDays) * 86_400)
-        return archive.entries
-            .filter { $0.sessionType == .workout && $0.date >= cutoff && $0.date <= now }
-            .compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "FTPAutoEstimator") }
-            .filter { isRunningFamily($0.workoutMetadata?.sport) }
+        let entries = archive.entries.filter { $0.sessionType == .workout && $0.date >= cutoff && $0.date <= now }
+        var sessions: [HRVSession] = []
+        var complete = true
+        for entry in entries {
+            let outcome = readSession(entry, archive: archive)
+            complete = complete && outcome.read
+            if let session = outcome.session, isRunningFamily(session.workoutMetadata?.sport) { sessions.append(session) }
+        }
+        return (sessions, complete)
+    }
+
+    /// One entry's session, lightweight, and whether it could be read: a
+    /// read that throws is logged and returns (nil, false).
+    private static func readSession(_ entry: SessionArchiveEntry, archive: SessionArchive) -> (session: HRVSession?, read: Bool) {
+        do {
+            return (try archive.retrieveLightweight(entry.sessionId), true)
+        } catch {
+            debugLog("[FTPAutoEstimator] \(entry.sessionId.uuidString.prefix(8)) could not be read: \(error)", level: .warning)
+            return (nil, false)
+        }
     }
 
     private static func isRunningFamily(_ sport: Sport?) -> Bool {

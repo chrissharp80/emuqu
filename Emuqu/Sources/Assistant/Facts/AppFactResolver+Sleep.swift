@@ -661,7 +661,7 @@ struct VitalsNamespace: FactNamespaceResolver {
 
 // MARK: - recovery.* namespace
 //
-// Recovery score — the 0-100 composite of HRV, sleep, vitals (v3.2.oct2026; training load lives on the parallel Load & Trajectory surface).
+// Recovery score — the 0-100 composite of HRV, sleep, vitals (v3.3.nov2026; training load lives on the parallel Load & Trajectory surface).
 // The score is the user-facing summary; this namespace exposes it + its
 // day-over-day history so the AI can explain trend questions.
 
@@ -824,7 +824,7 @@ struct RecoveryNamespace: FactNamespaceResolver {
             key: "recovery.score.latest",
             description: """
             Today's recovery score (0–100) plus its context: training_readiness (0–10, separate from the score), data_quality (good / preSleep / insufficient — cite this to caveat a poor reading), morning_feeling (1–5, what the user \
-            SAID before seeing the score), morning_feeling_tags (e.g. infection/hangover/sore), perceived_readiness (0–1), and notes. Composite of HRV 60% / Sleep 25% / Vitals 15% (v3.2.oct2026); comeback mode shifts a Tier 3 score to 80/20/0. Training \
+            SAID before seeing the score), morning_feeling_tags (e.g. infection/hangover/sore), perceived_readiness (0–1), and notes. Composite of HRV 60% / Sleep 25% / Vitals 15% (v3.3.nov2026); comeback mode shifts a Tier 3 score to 80/20/0. Training \
             load lives on the Load & Trajectory page, not in the score. Source of truth for 'how recovered am I?', 'am I ready to train?', and 'did I say I felt bad this morning?'.
             """,
             valueType: "Record",

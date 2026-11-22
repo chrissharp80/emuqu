@@ -90,15 +90,26 @@ final class HeatAcclimationCache {
         Self.clearPersistedData()
     }
 
+    /// The readout is derived from workout weather and heart rate, so it is
+    /// sealed with the app's key before it goes into UserDefaults, as the
+    /// other health caches are. A readout that cannot be sealed (no key
+    /// reachable) is not stored at all, never in the clear; the next compute
+    /// tries again.
     private static func persistReadout(_ readout: Readout) {
-        if let data = attempt("heatAcclimation.encode", { try JSONEncoder().encode(readout) }) {
-            UserDefaults.standard.set(data, forKey: readoutKey)
+        do {
+            let sealed = try JSONFileSeal.app.sealJSON(readout, with: JSONEncoder())
+            UserDefaults.standard.set(sealed, forKey: readoutKey)
+        } catch {
+            debugLog("[HeatAcclimationCache] readout not persisted (it could not be sealed): \(error)", level: .warning)
         }
     }
 
+    /// The stored readout, opened with the app's key: sealed, or plain JSON
+    /// from a build that did not seal it (replaced sealed by the next
+    /// write). Nil, logged, when it cannot be opened or decoded.
     private static func loadPersistedReadout() -> Readout? {
         guard let data = UserDefaults.standard.data(forKey: readoutKey) else { return nil }
-        return try? JSONDecoder().decode(Readout.self, from: data)
+        return attempt("heatAcclimation.load") { try JSONFileSeal.app.openJSON(Readout.self, from: data, with: JSONDecoder()) }
     }
 
     /// Everything a surface needs to render the heat readout.
@@ -169,10 +180,13 @@ final class HeatAcclimationCache {
         }
         if refreshTask != nil { return }
         refreshTask = Task { [weak self] in
-            defer { self?.refreshTask = nil }
             guard let self else { return }
             let computed = await self.computeStatus()
+            // A task `clear()` cancelled leaves the registration alone:
+            // `clear()` already dropped it, and a refresh started since owns
+            // it now.
             guard !Task.isCancelled else { return }
+            self.refreshTask = nil
             self.status = computed
             self.cacheIfSettled(computed)
         }

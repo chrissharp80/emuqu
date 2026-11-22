@@ -125,11 +125,24 @@ final class HRRCaptureService {
     /// session. Surfacing it as a Problem makes the troubleshooting list look
     /// broken to the user every time they finish a walk.
     private func finalise(_ samples: [HRRSample]) -> [HRRSample] {
-        let final = Self.enforceMonotonicDrop(samples.sorted { $0.offsetSec < $1.offsetSec })
+        let final = Self.enforceMonotonicDrop(Self.withoutRises(samples).sorted { $0.offsetSec < $1.offsetSec })
         if final.isEmpty {
             debugLog("[HRRCaptureService] all 3 tiers empty — see tier-by-tier logs above for cause")
         }
         return final
+    }
+
+    /// Samples whose heart rate is above the rate at Stop: the user kept
+    /// moving or stood up, so the reading measures that, not recovery. Stored,
+    /// a negative "drop" reads as the worst possible recovery against the
+    /// 12 bpm cut-off. Logged and left out. Static and nonisolated, like
+    /// `enforceMonotonicDrop`, so tests reach it directly.
+    nonisolated static func withoutRises(_ samples: [HRRSample]) -> [HRRSample] {
+        samples.filter { sample in
+            guard sample.drop < 0 else { return true }
+            debugLog("[HRRCaptureService] dropping +\(sample.offsetSec)s sample (provenance=\(sample.provenance)) — HR rose \(-sample.drop) bpm above the rate at Stop; not a recovery reading.")
+            return false
+        }
     }
 
     /// Drop later samples whose `drop` from the stop rate is *smaller* than an
@@ -254,7 +267,7 @@ final class HRRCaptureService {
         }
 
         guard let hr = currentHRFromBuffer() else {
-            debugLog("[HRRCaptureService] tier 1 — strap streaming but RR buffer empty/invalid at +\(target)s (buffer count=\(polarManager.streamedRRPoints.count)), breaking", level: .warning)
+            debugLog("[HRRCaptureService] tier 1 — strap streaming but RR buffer empty/invalid at +\(target)s (buffer count=\(polarManager.streamedRRPoints.count)), breaking")
             return nil
         }
         return hr

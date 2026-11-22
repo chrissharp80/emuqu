@@ -219,6 +219,18 @@ extension WorkoutMetadata {
         }
         return Double(activeOffset) + pausedBefore
     }
+
+    /// Seconds of the workout spent moving, the clock pace, calories and a
+    /// TCX lap's timer time are measured on: the last per-second sample's
+    /// offset (the ticker records none while paused), else
+    /// `wallClockDuration` less the recorded pauses. Nil when neither is
+    /// known.
+    func movingSeconds(wallClockDuration: Double?) -> Double? {
+        if let moving = totalDurationSec(), moving > 0 { return moving }
+        guard let wallClockDuration else { return nil }
+        let paused = (pauseSpans ?? []).reduce(0.0) { $0 + $1.seconds }
+        return max(0, wallClockDuration - paused)
+    }
 }
 
 // MARK: - HRR Sample

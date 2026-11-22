@@ -139,6 +139,12 @@ final class BaselineTracker: @unchecked Sendable {
     /// when the file could not be read at load or a save could not be sealed.
     private let unlockObservers = NotificationTokens()
 
+    /// Set under `lock` when a change was committed; `notifyIfChanged()`
+    /// runs the callback for it once the lock is released, so the callback
+    /// (which syncs the settings) never runs while this tracker's lock is
+    /// held and cannot deadlock against a thread waiting for it.
+    private var changedSinceNotify = false
+
     /// Data point for baseline calculation. Internal rather than `private`
     /// so `BaselineTracker+NightReplacement.swift` can name it.
     struct BaselineDataPoint: Codable {
@@ -147,6 +153,10 @@ final class BaselineTracker: @unchecked Sendable {
         /// Session end, for the morning-reading rule. Nil on points saved
         /// before it was recorded; those fall back to `date`.
         let endDate: Date?
+        /// The session the reading came from, so a re-analysis of that
+        /// session replaces or removes it (`isReading(_:of:)`). Nil on points
+        /// saved before it was recorded; those are matched by `date`.
+        let sessionId: UUID?
         let rmssd: Double
         let sdnn: Double
         let meanHR: Double
@@ -219,7 +229,7 @@ final class BaselineTracker: @unchecked Sendable {
         if saveHold == .fileNotRead { observeUnlock() }
         recalculateBaseline()
         // Sync loaded baseline on startup
-        notifyBaselineChanged()
+        notify(currentBaseline)
         debugLog("[Baseline] Loaded \(historicalData.count) data points, baseline: \(currentBaseline != nil ? "available" : "not yet established")")
     }
 
@@ -306,7 +316,11 @@ final class BaselineTracker: @unchecked Sendable {
             lnRmssdSD: max(Self.widenedLnSD(lnValues), BaselineConstants.lnRmssdSDFloor), // Floor SD to prevent division by zero
             lnRmssdCV7Day: sevenDayCV(recentData),
             meanHRBaseline: hrValues.mean,
-            meanHRSD: max(hrValues.sampleSD, BaselineConstants.meanHRSDFloor), // Floor SD
+            // Widened like the ln(RMSSD) SD: three similar nights give a
+            // sample SD near the floor, and a 2 bpm rise would read as a
+            // several-SD elevation in both the Tier-1 resting-HR adjustment
+            // and the vitals sleep-HR sub-score.
+            meanHRSD: max(hrValues.sampleSD * Self.smallSampleWidening(count: hrValues.count), BaselineConstants.meanHRSDFloor),
             daysInWindow: lnValues.count,
             lastDataPointDate: recentData.last?.date
         )
@@ -339,11 +353,16 @@ final class BaselineTracker: @unchecked Sendable {
     /// Worthwhile Change band — across the daily-loop analysis's -0.5 boundary
     /// and print "below baseline" next to a score that says otherwise.
     static func widenedLnSD(_ lnValues: [Double]) -> Double {
+        lnValues.sampleSD * smallSampleWidening(count: lnValues.count)
+    }
+
+    /// The factor a baseline SD over `count` nights is widened by: 1 from the
+    /// 7-night baseline length up, √(7/n) below it (≈1.53 at 3 nights). The
+    /// ln(RMSSD) SD (`widenedLnSD`) and the resting-HR SD both use it, so the
+    /// two z-scores shrink toward 0 alike while the baseline is short.
+    static func smallSampleWidening(count: Int) -> Double {
         let confidenceFloor = Self.baselineWindowDays // 7
-        let widening = lnValues.count >= confidenceFloor
-            ? 1.0
-            : sqrt(Double(confidenceFloor) / Double(lnValues.count))
-        return lnValues.sampleSD * widening
+        return count >= confidenceFloor ? 1.0 : sqrt(Double(confidenceFloor) / Double(count))
     }
 
     /// 7-day CV of ln(RMSSD) — Plews: reduced CV signals overreaching. The
@@ -376,6 +395,7 @@ final class BaselineTracker: @unchecked Sendable {
             return
         }
         debugLog("[Baseline] Rebuilding from \(validSessions.count) archived sessions")
+        defer { notifyIfChanged() }
         lock.lock()
         defer { lock.unlock() }
         lastSleepSchedule = sleepSchedule
@@ -476,8 +496,13 @@ final class BaselineTracker: @unchecked Sendable {
     /// - Parameters:
     ///   - session: Completed session with analysis results
     ///   - sleepSchedule: User's sleep schedule (provided by caller from SettingsManager)
-    /// Only overnight readings contribute, one per night.
+    /// Only overnight readings contribute, one per night. A session already
+    /// in the baseline (re-analysed, or its window re-picked by hand) takes
+    /// its own reading's place whatever the replacement rule would say, and
+    /// leaves the baseline when it no longer passes the gates (`merge`).
+    /// The callback runs after the lock is released (`notifyIfChanged()`).
     func update(with session: HRVSession, sleepSchedule: SleepSchedule) {
+        defer { notifyIfChanged() }
         lock.lock()
         defer { lock.unlock() }
         lastSleepSchedule = sleepSchedule
@@ -486,23 +511,44 @@ final class BaselineTracker: @unchecked Sendable {
         commitChanges()
     }
 
-    /// Admits `session` into its night's slot when it passes the gates.
-    /// False when it was turned away. Caller holds `lock`.
+    /// Drops the reading `session` put in the baseline before, then admits
+    /// the session into its night's slot when it passes the gates. A newer
+    /// analysis of the same session is not a rival for its night: it
+    /// replaces the old reading outright, and one the gates now turn away
+    /// (`.preSleep`, `.insufficient`, a window too short) takes the old
+    /// reading out rather than leave a value the session no longer supports.
+    /// False when nothing changed. Caller holds `lock`.
     private func merge(_ session: HRVSession, sleepSchedule: SleepSchedule) -> Bool {
-        guard let result = session.analysisResult, admitsToBaseline(session, result: result) else { return false }
+        let storedBefore = historicalData.count
+        historicalData.removeAll { Self.isReading($0, of: session) }
+        let removedOwnReading = historicalData.count != storedBefore
+        guard let result = session.analysisResult, admitsToBaseline(session, result: result) else {
+            if removedOwnReading {
+                debugLog("[Baseline] Removed the earlier reading of session \(session.id.uuidString.prefix(8)) — it no longer passes the baseline gates")
+            }
+            return removedOwnReading
+        }
         Self.mergeIntoNight(Self.dataPoint(session: session, result: result), into: &historicalData, sleepSchedule: sleepSchedule)
         return true
     }
 
-    /// Sorts and trims the stored nights, then recalculates, publishes and
-    /// writes the baseline. Caller holds `lock`.
+    /// Whether `point` is a reading of `session`: by session id, or, for a
+    /// point saved before ids were recorded, by the session's start.
+    private static func isReading(_ point: BaselineDataPoint, of session: HRVSession) -> Bool {
+        guard let id = point.sessionId else { return point.date == session.startDate }
+        return id == session.id
+    }
+
+    /// Sorts and trims the stored nights, then recalculates and writes the
+    /// baseline and marks it for the callback (`notifyIfChanged()`). Caller
+    /// holds `lock`.
     private func commitChanges() {
         historicalData.sort { $0.date < $1.date }
         if historicalData.count > Self.maxHistoricalPoints {
             historicalData = Array(historicalData.suffix(Self.maxHistoricalPoints))
         }
         recalculateBaseline()
-        notifyBaselineChanged()
+        changedSinceNotify = true
         save()
     }
 
@@ -549,6 +595,7 @@ final class BaselineTracker: @unchecked Sendable {
         BaselineDataPoint(
             date: session.startDate,
             endDate: session.endDate,
+            sessionId: session.id,
             rmssd: result.timeDomain.rmssd,
             sdnn: result.timeDomain.sdnn,
             meanHR: result.timeDomain.meanHR,
@@ -565,9 +612,23 @@ final class BaselineTracker: @unchecked Sendable {
         )
     }
 
-    /// Notify the caller that the baseline changed (via injected callback).
-    private func notifyBaselineChanged() {
-        guard let baseline = currentBaseline, baseline.sampleCount >= Baseline.minimumSamples else {
+    /// Runs the callback for a change committed since the last call, with
+    /// the baseline as it stands. Takes `lock` only to read and clear the
+    /// mark: the callback itself runs with the lock released. Caller must not
+    /// hold `lock`.
+    private func notifyIfChanged() {
+        lock.lock()
+        let changed = changedSinceNotify
+        changedSinceNotify = false
+        let baseline = currentBaseline
+        lock.unlock()
+        guard changed else { return }
+        notify(baseline)
+    }
+
+    /// Hands `baseline` to the injected callback once it has enough nights.
+    private func notify(_ baseline: Baseline?) {
+        guard let baseline, baseline.sampleCount >= Baseline.minimumSamples else {
             return
         }
         onBaselineUpdated?(baseline.rmssd, baseline.meanHR)
@@ -785,8 +846,11 @@ final class BaselineTracker: @unchecked Sendable {
     }
 
     /// Notification entry: `reloadAfterUnlock()` (a no-op once the hold is
-    /// gone), then a save of nights a sealed save could not write yet.
+    /// gone), then a save of nights a sealed save could not write yet. A
+    /// merge the reload committed reaches the callback once the lock is
+    /// released.
     private func retryAfterUnlock() {
+        defer { notifyIfChanged() }
         lock.lock()
         defer { lock.unlock() }
         reloadAfterUnlock()

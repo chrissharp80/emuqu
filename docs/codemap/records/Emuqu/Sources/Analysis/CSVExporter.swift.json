@@ -238,8 +238,8 @@
   },
   {
    "key": "func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)",
-   "hash": "c66e81b1d82a46f6",
-   "does": "Formats one CSV row: ISO timestamp, wall-clock seconds from start, lat/lon (6dp), altitude and cumulative distance in user units, and HR/pace/cadence/METs/power/DFA α1 from the sample nearest the fix on the pause-excluded sample clock (sample(at:of:in:); within 5 s, empty cells otherwise).",
+   "hash": "715f8559a96e49ba",
+   "does": "Formats one CSV row: ISO timestamp, wall-clock seconds from start, lat/lon (6dp), altitude (empty when the fix has no altitude, negative vertical accuracy) and cumulative distance in user units, and HR/pace/cadence/METs/power/DFA α1 from the sample nearest the fix on the pause-excluded sample clock (sample(at:of:in:); within 5 s, empty cells otherwise).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.sample(at:of:in:)"
@@ -248,6 +248,11 @@
    "writes": [],
    "branches": [
     {
+     "at": "+16",
+     "cond": "fix.verticalAccuracy >= 0",
+     "effect": "altitude cell; else ''"
+    },
+    {
      "at": "+18",
      "cond": "matched sample has heartRate",
      "effect": "HR cell else ''"
@@ -255,7 +260,7 @@
     {
      "at": "+19",
      "cond": "matched has paceSecPerKm",
-     "effect": "pace in sec per user unit (%.0f) else ''"
+     "effect": "pace else ''"
     },
     {
      "at": "+20",
@@ -265,7 +270,7 @@
     {
      "at": "+21",
      "cond": "matched has mets",
-     "effect": "METs %.1f else ''"
+     "effect": "METs else ''"
     },
     {
      "at": "+22",
@@ -275,7 +280,7 @@
     {
      "at": "+25",
      "cond": "matched has alpha1",
-     "effect": "α1 %.3f else '' (most rows empty since α1 is ~20 s cadence)"
+     "effect": "α1 else ''"
     }
    ],
    "deps": {
@@ -420,11 +425,12 @@
   },
   {
    "key": "func CSVExporter.writeToTempFile(session:track:)",
-   "hash": "191db0c70e9d6ca2",
-   "does": "Renders the CSV, names it '<sport>-<UTC yyyyMMdd-HHmmss>.csv' in the temp directory, writes it atomically and logs the byte count; throws an NSError if UTF-8 encoding fails.",
+   "hash": "c099a6517e1882e2",
+   "does": "Renders the CSV, names it '<sport>-<UTC yyyyMMdd-HHmmss>.csv' and writes it to the export folder through ExportFile.write (atomic, complete file protection; the same session's file is overwritten on the next export), logs the byte count and returns the URL; throws an NSError if UTF-8 encoding fails, and rethrows a write failure.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -432,7 +438,7 @@
     "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
    ],
    "writes": [
-    "file:tmp/<sport>-<yyyyMMdd-HHmmss>.csv"
+    "file:tmp/Exports/<sport>-<yyyyMMdd-HHmmss>.csv"
    ],
    "branches": [
     {
@@ -441,16 +447,16 @@
      "effect": "filename sport part 'workout'"
     },
     {
-     "at": "+12",
-     "cond": "csv.data(using: .utf8) nil",
-     "effect": "throws NSError 'Couldn't create the CSV file.' (cannot happen for a Swift String); otherwise writes"
+     "at": "+11",
+     "cond": "UTF-8 encoding nil",
+     "effect": "throws NSError (cannot happen for a Swift String); otherwise writes"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "1f14580a45612a69",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "f33db81e1f47f34a",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

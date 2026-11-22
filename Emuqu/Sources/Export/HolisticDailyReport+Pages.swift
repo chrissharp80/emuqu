@@ -532,12 +532,16 @@ extension HolisticDailyReport {
         )
     }
 
-    /// Page footer: the shared rule, page line and wellness disclaimer.
+    /// Page footer: the shared rule, page line and wellness disclaimer. The
+    /// generation time is local and in the app's language, as the other
+    /// reports print it.
     func drawFooter(pageNumber: Int) {
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime]
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = LanguageManager.appLocale
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .short
         PDFPagePrimitives.drawFooter(
-            String(localized: "Emuqu · Daily Report · Page \(pageNumber) · \(iso.string(from: Date()))", bundle: LanguageManager.appBundle),
+            String(localized: "Emuqu · Daily Report · Page \(pageNumber) · \(dateFormatter.string(from: Date()))", bundle: LanguageManager.appBundle),
             page: PDFPagePrimitives.PageStyle(
                 pageSize: config.pageSize, margin: config.margin, captionFont: config.captionFont,
                 primary: config.primary, divider: config.divider, textTertiary: config.textTertiary
