@@ -144,7 +144,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.applyRoundEndTextPolicy(thisRound:budgetExhausted:buffer:turnID:)": "06d1c4ea1ac14161",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.consumeStreamRound(_:state:buffer:)": "7ecf0c2beb07ad4d",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordResolutions(_:factRegistry:state:)": "7c199c76dae2b980",
-    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::func GrokQuirkPolicy.announceWithoutCallNudge(outbound:buffer:)": "24edf7c8d1304c1a"
+    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::func GrokQuirkPolicy.announceWithoutCallNudge(outbound:buffer:)": "839830b12eb83dbd"
    }
   },
   {
@@ -604,7 +604,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "bfc847dc4f3c5957",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "ffc30173b428d779",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.settle(_:after:failedPartial:providerID:modelID:)": "74b2074aed20c5ee"
    }
   },
@@ -642,7 +642,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)": "c75ff2d872f46944",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "bfc847dc4f3c5957"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "ffc30173b428d779"
    }
   },
   {
@@ -728,8 +728,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "bfc847dc4f3c5957",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)": "6ede6bd02eba5633"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "ffc30173b428d779",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)": "14614c335ff42412"
    }
   },
   {
@@ -770,7 +770,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endFailedFallback(_:ending:provider:turnID:)": "2ea331e1b52cf360",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endFailedFallback(_:ending:provider:turnID:)": "d13b39da0aa0fe96",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "ffc30173b428d779",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endingOfFinishedFallback(provider:turnID:)": "b7811a618f3fa367",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.isStop(_:)": "9cc3fabb176d76be",
@@ -809,7 +809,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackOutbound(for:turnID:primaryOutbound:)": "2ca381f5c67de8e8",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackSystemPrompt(provider:supportsTools:voiceMode:)": "a7a8b2019cbe14bb",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "466acc0532c80c31",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "20d2e837dc8e8c64",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -869,7 +869,7 @@
   {
    "key": "func AssistantToolRunner.endFailedFallback(_:ending:provider:turnID:)",
    "hash": "c7fb1f6489654966",
-   "does": "Ends a fallback that threw, after its own partial text has gone and the failed provider's partial reply is back: for .blocked logs, shows the refusal through handleStreamFailure (banner; the partial reply is marked incomplete) and returns .blocked so the chain stops and the request is never sent to the next vendor; otherwise logs and returns .failed.",
+   "does": "Ends a fallback that threw, after its own partial text has gone and the failed provider's partial reply is back: for .blocked (a safety stop, or a failure after the fallback ran a mutating tool) logs that the fallback ended the chain, shows the error through handleStreamFailure (banner; the partial reply is marked incomplete) and returns .blocked so the chain stops and the request is never sent to the next vendor; otherwise logs and returns .failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)",
@@ -889,7 +889,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "bfc847dc4f3c5957",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "ffc30173b428d779",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)": "1752a15105b1d89f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -994,7 +994,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
