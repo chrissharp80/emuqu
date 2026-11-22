@@ -313,11 +313,15 @@ extension SessionArchive {
         return attempt("Archive.preserveDeletedIndex") { try fileManager.moveItem(at: deletedIndexFile, to: aside) } != nil
     }
 
+    /// While "Delete All My Data" runs the save throws `PurgeGate.Refused`
+    /// and writes nothing (`PurgeGate`).
     func saveDeletedIndex() throws {
-        try mergeDeletedIndexThatFailedToLoad()
-        let uuidStrings = deletedSessionIds.map(\.uuidString)
-        let data = try Self.indexEncoder.encode(uuidStrings)
-        try data.write(to: deletedIndexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        try PurgeGate.admitWrite {
+            try mergeDeletedIndexThatFailedToLoad()
+            let uuidStrings = deletedSessionIds.map(\.uuidString)
+            let data = try Self.indexEncoder.encode(uuidStrings)
+            try data.write(to: deletedIndexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        }
     }
 
     /// Entries a newer build wrote are written back as they were read
@@ -648,12 +652,15 @@ private struct LenientIndexEntry: Decodable {
 /// Rewrite the file with the explicit protection-class option.
 /// `Data.write(to:options:)` honors
 /// `completeFileProtectionUntilFirstUserAuthentication` even when
-/// `setAttributes` cannot.
+/// `setAttributes` cannot. While "Delete All My Data" runs the rewrite is
+/// refused (`PurgeGate`), logged like any failed write.
 private func rewriteWithProtection(at path: String) {
     guard let bytes = attempt("archive.protectionUpgrade.read", {
         try Data(contentsOf: URL(fileURLWithPath: path))
     }) else { return }
     attempt("archive.protectionUpgrade.write") {
-        try bytes.write(to: URL(fileURLWithPath: path), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        try PurgeGate.admitWrite {
+            try bytes.write(to: URL(fileURLWithPath: path), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        }
     }
 }

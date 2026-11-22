@@ -141,7 +141,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "d317df901d63fcf3"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "1950daacbf3c5684"
    }
   },
   {
@@ -522,16 +522,18 @@
   },
   {
    "key": "func CloudKitSyncManagerTests.testResetLocalSyncStateReturnsToCleanState()",
-   "hash": "8a2a569e96cb53d8",
-   "does": "Sets zoneCreated true, calls resetLocalSyncState on the shared manager and asserts syncState .idle, lastSyncDate nil (in memory and UserDefaults) and zoneCreated false; restores zoneCreated and any prior lastSyncDate.",
+   "hash": "016bc88ecd4507bd",
+   "does": "Arranges for the session and settings zone flags and the last-sync date to be put back at teardown (preserveTheZoneFlagsAndLastSync), sets both zone flags true, calls resetLocalSyncState on the shared manager and asserts syncState .idle, lastSyncDate nil (in memory and UserDefaults), and both zone flags false.",
    "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.resetAll()"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.resetAll()",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.preserveTheZoneFlagsAndLastSync()"
    ],
    "reads": [
     "ud:UserDefaultsKeys.cloudKitZoneCreated",
-    "ud:UserDefaultsKeys.cloudKitLastSyncDate"
+    "ud:UserDefaultsKeys.cloudKitLastSyncDate",
+    "ud:cloudkit.settingsZoneCreated"
    ],
    "writes": [
     "ud:UserDefaultsKeys.cloudKitZoneCreated",
@@ -539,19 +541,79 @@
     "ud:UserDefaultsKeys.cloudKitChangeToken",
     "file:<appgroup>/<archiveDir>/sync_state.json (deleted)",
     "file:<appgroup>/<archiveDir>/record_versions.json (deleted)",
-    "mem:CloudKitSyncManager.syncState"
+    "mem:CloudKitSyncManager.syncState",
+    "ud:cloudkit.settingsZoneCreated"
    ],
-   "branches": [
-    {
-     "at": "+10",
-     "cond": "a prior lastSyncDate existed",
-     "effect": "restores it in defer; otherwise it stays removed"
-    }
-   ],
+   "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "0750c9995bad9e7d",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "2d613940641c274b",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.resetAll()": "19822b9fc7849f95"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.resetAll()": "19822b9fc7849f95",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.preserveTheZoneFlagsAndLastSync()": "dd68fa3f0a6b7510"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.preserveTheZoneFlagsAndLastSync()",
+   "hash": "e6ee64c9360cbb3f",
+   "does": "Reads the session zone flag, the settings zone flag and the last-sync date from UserDefaults and registers a teardown block that writes each back, or removes it when it was absent.",
+   "entry": null,
+   "calls": [
+    "ext:XCTestCase.addTeardownBlock"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.cloudKitZoneCreated",
+    "ud:cloudkit.settingsZoneCreated",
+    "ud:UserDefaultsKeys.cloudKitLastSyncDate"
+   ],
+   "writes": [
+    "ud:UserDefaultsKeys.cloudKitZoneCreated",
+    "ud:cloudkit.settingsZoneCreated",
+    "ud:UserDefaultsKeys.cloudKitLastSyncDate"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "a zone flag was stored before",
+     "effect": "written back; else removed"
+    },
+    {
+     "at": "+13",
+     "cond": "a last-sync date was stored before",
+     "effect": "written back; else removed"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testTheUploadQueueIsNotAccountBookkeeping()",
+   "hash": "3f0b22e679f26e5f",
+   "does": "With the zone flags and last-sync date restored at teardown: resets the shared manager's sync state, queues an upload (markRemoved) and asserts hasAccountBookkeeping is false, then marks a session uploaded and asserts it is true; resets again on exit.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.preserveTheZoneFlagsAndLastSync()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.hasAccountBookkeeping"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "ud:UserDefaultsKeys.cloudKitZoneCreated"
+   ],
+   "writes": [
+    "mem:CloudKitSyncState (reset)",
+    "file:<appgroup>/<archiveDir>/sync_state.json (deleted)",
+    "ud:UserDefaultsKeys.cloudKitZoneCreated",
+    "ud:cloudkit.settingsZoneCreated",
+    "ud:UserDefaultsKeys.cloudKitLastSyncDate"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "0750c9995bad9e7d",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.hasAccountBookkeeping": "7ed5783b84a3bf90",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "98960771cca73957",
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.preserveTheZoneFlagsAndLastSync()": "dd68fa3f0a6b7510"
    }
   },
   {
@@ -581,7 +643,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.verdict(recorded:current:syncEnabled:stoppedByApp:accountChangedThisLaunch:hasBookkeeping:)": "e242752a275058fb"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.verdict(recorded:current:syncEnabled:stoppedByApp:accountChangedThisLaunch:hasBookkeeping:)": "4550605a5ad52f37"
    }
   },
   {
@@ -601,8 +663,23 @@
   },
   {
    "key": "func CloudKitSyncManagerTests.testAnUnrecordedAccountIsAdoptedOnlyWhenTheBookkeepingCanBeAttributed()",
-   "hash": "a627d8aa83a6ff3f",
-   "does": "With no recorded account: adopt without an account change, adopt after one when no bookkeeping is held, differentAccount after one with bookkeeping.",
+   "hash": "24bb67dbe8d662da",
+   "does": "With no recorded account: adopt without an account change, adopt after one when no bookkeeping is held, attributeBookkeeping after one with bookkeeping.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.verdict(recorded:current:syncEnabled:stoppedByApp:accountChanged:hasBookkeeping:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.verdict(recorded:current:syncEnabled:stoppedByApp:accountChanged:hasBookkeeping:)": "163c97aa28b9dea9"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManagerTests.testWithSyncOffNothingIsAdoptedWithoutBookkeeping()",
+   "hash": "d97d8981f33d3d3c",
+   "does": "With no recorded account and sync off: awaitingOptIn without bookkeeping (with or without an account change), adopt with bookkeeping; with sync on and no bookkeeping, adopt.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/CloudKitSyncManagerTests.swift::func CloudKitSyncManagerTests.verdict(recorded:current:syncEnabled:stoppedByApp:accountChanged:hasBookkeeping:)"
@@ -631,43 +708,23 @@
   },
   {
    "key": "func CloudKitSyncManagerTests.testAnAccountChangeUnconfirmsTheAccount()",
-   "hash": "a07c58867dd85cb0",
-   "does": "Saves and restores the recorded account and stop reason; adopts account-a (confirmed), notes an account change (unconfirmed), a confirmation from the stale generation is refused, one from the current generation confirms; confirming another account than the recorded one leaves it unconfirmed.",
+   "hash": "6753297b77d67911",
+   "does": "On a LaunchState value of its own (the process state is untouched): confirms account-a, an account change unconfirms it and sets accountChanged, a confirmation from the stale generation is refused and one from the current generation confirms; confirming another name leaves account-a unconfirmed; nothing recorded is never confirmed; a revoked confirmation refuses its earlier generation.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.recordedAccount",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.checkGeneration",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.noteAccountChanged()",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.confirm(_:generation:)",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.revokeConfirmation()"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.confirm(_:generation:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.isConfirmed(recorded:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.noteAccountChanged()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.revokeConfirmation()"
    ],
-   "reads": [
-    "ud:cloudkit.accountIdentity",
-    "ud:cloudkit.syncStoppedReason",
-    "mem:CloudAccountIdentity.launch"
-   ],
-   "writes": [
-    "ud:cloudkit.accountIdentity",
-    "ud:cloudkit.syncStoppedReason",
-    "mem:CloudAccountIdentity.launch"
-   ],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "a recorded account / stop reason existed before",
-     "effect": "written back; else removed / left"
-    }
-   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)": "8c186f87dafb7746",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.confirm(_:generation:)": "8eecb1373730b7ef",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.noteAccountChanged()": "7b24435bef3aa51d",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.revokeConfirmation()": "8858e858273751c6",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.checkGeneration": "07eb5568ecc6505d",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "be903b8b907a5e7c",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.recordedAccount": "4a51e9149b349214"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.confirm(_:generation:)": "ab02af366f397c81",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.isConfirmed(recorded:)": "bb5a9b1e5848b1f6",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.noteAccountChanged()": "802641f78e02a9d4",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.revokeConfirmation()": "222562537f10d182"
    }
   },
   {

@@ -163,7 +163,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func rewriteWithProtection(at:)": "e8a97c0c9d12d0f3",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func rewriteWithProtection(at:)": "e5001aadff7043e9",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.protectionAttributes": "90bfb89d8d932951",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)": "4011267e08da02e8",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "3a3880893754edfe",
@@ -527,15 +527,17 @@
   },
   {
    "key": "func SessionArchive.saveDeletedIndex()",
-   "hash": "a44cac0beeea716b",
-   "does": "First merges a deleted.json that failed to load (throws while it still cannot be read, so the partial set never overwrites it), then encodes deletedSessionIds as UUID strings and writes atomically with completeUntilFirstUserAuthentication.",
+   "hash": "c6ecbcf5c715c7e7",
+   "does": "Through PurgeGate.admitWrite (throws PurgeGate.Refused and writes nothing while Delete All My Data runs): first merges a deleted.json that failed to load (throws while it still cannot be read, so the partial set never overwrites it), then encodes deletedSessionIds as UUID strings and writes atomically with completeUntilFirstUserAuthentication.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeDeletedIndexThatFailedToLoad()"
    ],
    "reads": [
     "mem:SessionArchive.deletedSessionIds",
-    "mem:SessionArchive.deletedIndexReadFailed"
+    "mem:SessionArchive.deletedIndexReadFailed",
+    "mem:PurgeGate.state"
    ],
    "writes": [
     "file:<deletedIndexFile>",
@@ -543,6 +545,7 @@
    ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeDeletedIndexThatFailedToLoad()": "69d3c72f9def1bbd",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "0dea00d1e12c27f4"
    }
@@ -988,14 +991,16 @@
   },
   {
    "key": "func rewriteWithProtection(at:)",
-   "hash": "795d9500cfcbab7c",
-   "does": "Reads the file and rewrites it atomically with completeUntilFirstUserAuthentication protection; logs and returns on either failure.",
+   "hash": "59e52bfc66fe3eae",
+   "does": "Reads the file and rewrites it atomically with completeUntilFirstUserAuthentication protection through PurgeGate.admitWrite (refused while Delete All My Data runs); logs and returns on either failure, the refusal included.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)"
    ],
    "reads": [
-    "file:<archiveDirectory>/<file>"
+    "file:<archiveDirectory>/<file>",
+    "mem:PurgeGate.state"
    ],
    "writes": [
     "file:<archiveDirectory>/<file>"
@@ -1008,6 +1013,7 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   }

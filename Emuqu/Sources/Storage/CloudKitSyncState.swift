@@ -136,20 +136,26 @@ struct CloudKitSyncState {
     // MARK: - Save
     //
     // Both saves are offered in async (preferred) and sync flavors. The async
-    // variants snapshot the relevant IDs on the calling actor and queue the
-    // JSON encode + atomic write on `writeQueue`; the sync variants write on
-    // the same queue and wait for it.
+    // variants run on the main actor, where every caller is: they snapshot
+    // the relevant IDs and queue the JSON encode + atomic write on
+    // `writeQueue` there, then wait for it. The sync variants write on the
+    // same queue and wait for it.
 
     /// One serial queue for every write of these files, so they land in the
     /// order they were made. A write from its own detached task had no order:
     /// an older snapshot could land last and undo a mark in the file (a Trash
     /// restore's re-upload request, say), and after a relaunch the session
     /// counted as uploaded. Each save takes its snapshot and queues its write
-    /// without suspending in between, so the queue's order is the order of
-    /// the snapshots.
+    /// on the main actor without suspending in between (a nonisolated async
+    /// save would first hop to the global executor, where two saves could
+    /// queue in either order), so the queue's order is the order of the
+    /// snapshots.
     private static let writeQueue = DispatchQueue(label: "com.emuqu.cloudkit.syncstate.write", qos: .utility)
 
-    /// Queue `write` on `writeQueue` and return once it has run.
+    /// Queue `write` on `writeQueue`, before the first suspension, and return
+    /// once it has run. On the main actor, as its callers are, so the write
+    /// is queued in the order they call.
+    @MainActor
     private static func enqueueWrite(_ write: @escaping @Sendable () -> Void) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             writeQueue.async {
@@ -168,6 +174,7 @@ struct CloudKitSyncState {
         }
     }
 
+    @MainActor
     func saveSyncStateAsync() async {
         guard isLoaded else { return Self.logSkippedSave("sync state") }
         let snapshot = uploadedSessionIds
@@ -186,6 +193,7 @@ struct CloudKitSyncState {
         Self.writeQueue.sync { Self.writeUUIDsSync(snapshot, to: url, label: "pending queue") }
     }
 
+    @MainActor
     func savePendingQueueAsync() async {
         guard isLoaded else { return Self.logSkippedSave("pending queue") }
         let snapshot = pendingUploadIds
@@ -201,6 +209,7 @@ struct CloudKitSyncState {
         Self.writeQueue.sync { Self.writeUUIDsSync(snapshot, to: url, label: "quarantine queue") }
     }
 
+    @MainActor
     func saveQuarantineQueueAsync() async {
         guard isLoaded else { return Self.logSkippedSave("quarantine queue") }
         let snapshot = quarantinedSessionIds
@@ -210,6 +219,7 @@ struct CloudKitSyncState {
         }
     }
 
+    @MainActor
     func saveLocalOnlyAsync() async {
         guard isLoaded else { return Self.logSkippedSave("local-only list") }
         let snapshot = localOnlySessionIds

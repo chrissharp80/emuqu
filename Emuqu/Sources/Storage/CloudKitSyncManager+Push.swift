@@ -138,7 +138,10 @@ extension CloudKitSyncManager {
     ///
     /// A save that returns after the watchdog fired marks nothing: the next
     /// sync already owns the state, and uploads the session again over its own
-    /// record.
+    /// record. Nor does one that returns once the account is no longer
+    /// confirmed (sync stopped meanwhile, which reset the bookkeeping, or the
+    /// account changed): the cycle ends, and the session is not marked
+    /// uploaded into the reset state.
     ///
     /// The record's temp asset file is removed only once this session is done
     /// with — a conflict re-save reuses the same file.
@@ -146,7 +149,7 @@ extension CloudKitSyncManager {
         defer { cleanupTempAsset(for: prepared.record) }
         do {
             let saved = try await privateDB.save(prepared.record)
-            guard !Task.isCancelled else { return true }
+            guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return true }
             state.markUploaded(sessionId)
             state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
             trashRestore.clear(sessionId)
@@ -252,7 +255,8 @@ extension CloudKitSyncManager {
     /// (`CloudKitSyncManager.resolveDirectConflict`), which persists the state
     /// afterwards. Always returns false: a conflict never stops the cycle. A
     /// re-save that returns after the stall watchdog fired marks nothing, as
-    /// in `pushOne`.
+    /// in `pushOne`. The server copy's edit stamp counts as seen
+    /// (`CloudKitSessionFreshness.noteSeen`).
     func resolveConflict(
         _ error: CKError, prepared: PreparedUpload, sessionId: UUID
     ) async -> Bool {
@@ -260,6 +264,7 @@ extension CloudKitSyncManager {
             noteConflictUnresolved(sessionId, reason: "no server record in the error")
             return false
         }
+        CloudKitSessionFreshness.noteSeen(CloudKitSessionFreshness.modifiedAt(of: serverRecord))
         let serverFlag = serverRecord["isDeleted"] as? Int64 ?? 0
         if serverFlag == 1, !trashRestore.isRestored(sessionId) {
             pull.applyDeletionMetDuringUpload(sessionId)
@@ -277,11 +282,12 @@ extension CloudKitSyncManager {
     }
 
     /// Save the server record with this device's fields on it. One that
-    /// returns after the stall watchdog fired marks nothing.
+    /// returns after the stall watchdog fired, or once the account is no
+    /// longer confirmed, marks nothing.
     private func saveResolved(_ serverRecord: CKRecord, sessionId: UUID) async {
         do {
             let saved = try await privateDB.save(serverRecord)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return }
             state.markUploaded(sessionId)
             state.noteRecordVersion(saved.recordChangeTag, of: sessionId)
             trashRestore.clear(sessionId)

@@ -1,0 +1,626 @@
+{
+ "file": "Emuqu/Sources/Storage/CloudSessionPayload.swift",
+ "hash": "c7b360a24350c610",
+ "role": "CloudSessionPayload, which strips (upload) and restores (pull) every HealthKit-derived reading in an HRVSession, and the copy-with-one-field helpers on HRVAnalysisResult, ANSMetrics, Split and Lap it uses. Moved out of CloudKitSyncSupport.swift.",
+ "types": [
+  "CloudSessionPayload: enum — HealthKit-reading stripping/restoring for session payloads",
+  "HRVAnalysisResult / ANSMetrics / Split / Lap: extension — copy-with-one-field helpers"
+ ],
+ "state": [
+  "mem:CloudSessionPayload.healthKitDeviceIds {healthkit-import, healthkit-rebuild}, appleWatchDeviceId \"apple-watch\", heartRateContextKeys {hr, peak_hr}, healthKitFactorLabels {Sleep, Vitals}"
+ ],
+ "toplevel": "None: declarations only.",
+ "units": [
+  {
+   "key": "func CloudSessionPayload.isHealthKitSourced(_:)",
+   "hash": "934f89c999caf632",
+   "does": "True when the session is a Watch Breathe session or its deviceProvenance.deviceId is healthkit-import/healthkit-rebuild.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sessionType == .breathe",
+     "effect": "return true"
+    },
+    {
+     "at": "+2",
+     "cond": "deviceProvenance.deviceId present",
+     "effect": "check membership; else false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.hasAppleWatchHeartRate(_:)",
+   "hash": "3e33fa98d050a74d",
+   "does": "True when deviceProvenance.deviceId == \"apple-watch\".",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudSessionPayload.uploadable(_:)",
+   "hash": "93a5cf0e147ae1a0",
+   "does": "Returns a copy of the session for upload with sleep snapshot/boundaries/segments/adjusted flag, vitals snapshot, auto-window result/score cleared, and training snapshot, analysis result, score breakdown and workout metadata stripped of HealthKit readings; for Apple-Watch-HR workouts also removes hr/peak_hr from aiContext.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.analysisWithoutHealthKitReadings(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "workout HR is Apple Watch",
+     "effect": "filter hr/peak_hr keys out of aiContext; else aiContext uploaded unchanged"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "a0e51cc84d1b105c",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.analysisWithoutHealthKitReadings(_:)": "138b9027d206a355",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)": "ed6371892926c7d4",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "4b039aada6505d8e",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)": "bc7707c0df3bc036",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)": "d5e70ae5b6d19198"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoringLocalOnlyFields(into:from:)",
+   "hash": "851b838f59a2d6d6",
+   "does": "Merges into a newer iCloud copy the local HealthKit-derived fields the upload dropped: vitals snapshot (if remote nil), training context VO2max/workouts, analysis daytime RHR/segment label, score-breakdown Sleep/Vitals text and SpO2 penalty, aiContext HR keys, workout HR data.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: TrainingContext?, from: TrainingContext?)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: HRVAnalysisResult, from: HRVAnalysisResult?)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringHeartRateContext(_:from:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: WorkoutMetadata, from: WorkoutMetadata?)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "merged.vitalsSnapshot nil",
+     "effect": "?? uses local vitalsSnapshot"
+    },
+    {
+     "at": "+6",
+     "cond": "merged has workoutMetadata",
+     "effect": "restore its HR fields from local; else leave nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "a0e51cc84d1b105c",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: HRVAnalysisResult, from: HRVAnalysisResult?)": "5d6a37367a7bdee4",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)": "d4baec961cf7b79f",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: TrainingContext?, from: TrainingContext?)": "61610206de4fa6dd",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: WorkoutMetadata, from: WorkoutMetadata?)": "7e6c907de60e1099",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringHeartRateContext(_:from:)": "a0a1d058a5130ddc"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)",
+   "hash": "36e55c0c81428511",
+   "does": "Rebuilds TrainingContext keeping atl/ctl/tsb/yesterdayTrimp/daysSinceHardWorkout and setting vo2Max and recentWorkouts nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "a9d6ffe38efc1df5",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "cc26a08289fff8fb",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.analysisWithoutHealthKitReadings(_:)",
+   "hash": "495e2c1d0f894e6a",
+   "does": "Copies the analysis result with ansMetrics.daytimeRestingHR nil (when set), trainingContext stripped, and analysisSegmentLabel nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func HRVAnalysisResult.withANSMetrics(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func ANSMetrics.withDaytimeRestingHR(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "ansMetrics present with daytimeRestingHR",
+     "effect": "rebuild via withANSMetrics(nil RHR); else keep metrics"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func ANSMetrics.withDaytimeRestingHR(_:)": "a09c4315df83de13",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)": "bc7707c0df3bc036",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func HRVAnalysisResult.withANSMetrics(_:)": "826f7c9201a59e0d"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.breakdownWithoutHealthKitReadings(_:)",
+   "hash": "62824f0ca9d2e470",
+   "does": "Rebuilds the score breakdown with Sleep/Vitals factor details emptied and facts nil, the SpO2 penalty line removed and spo2PenaltyApplied false; composite, tier and sub-scores kept.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.withDetail(_:facts:on:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.penaltiesWithoutSpO2(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "factor label is Sleep or Vitals",
+     "effect": "replace detail with \"\" and facts nil; else keep factor"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.penaltiesWithoutSpO2(_:)": "42a3f0696149018e",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.withDetail(_:facts:on:)": "ab852f14aaabcf98"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.penaltiesWithoutSpO2(_:)",
+   "hash": "9654ebebf78548cc",
+   "does": "Removes the SpO2 penalty line: the English-prefixed line if found, else the first line.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "spo2PenaltyApplied and lines non-empty",
+     "effect": "remove a line; else return unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "no English SpO2 line found",
+     "effect": "no English SpO2 line found => ?? removes lines[startIndex]; scoring lists the vitals (SpO2) penalty first (RecoveryScoreCalculator.swift:663, VitalsScoring.swift:349-351 returns only the SpO2 line)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.listsEnglishSpO2Penalty(_:)": "3c05a01a02ab05c3"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.workoutWithoutHealthKitReadings(_:watchHR:)",
+   "hash": "723a3a96e41151f8",
+   "does": "Strips workout metadata: HRR samples kept only if strap-measured, per-second HR cleared on healthKitHROffsets rows; for Apple-Watch-HR workouts also clears split averageHR and lap average/max HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.strapMeasured(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.withoutHealthKitHR(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func Split.withAverageHR(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func Lap.withHeartRate(average:max:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "watchHR",
+     "effect": "also clear split/lap HR; else return after samples/HRR"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.strapMeasured(_:)": "3e45b77ea309256b",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.withoutHealthKitHR(_:)": "5027bec8c5593e57",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func Lap.withHeartRate(average:max:)": "8de8cc29a2f38924",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func Split.withAverageHR(_:)": "13aa269f07e29dab"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.strapMeasured(_:)",
+   "hash": "ac1d4a63dbfa2b3f",
+   "does": "Filters HRR samples to provenance .strap; nil if none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "samples nil",
+     "effect": "?? [] — treated as empty"
+    },
+    {
+     "at": "+2",
+     "cond": "strap list empty",
+     "effect": "return nil; else the list"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CloudSessionPayload.withoutHealthKitHR(_:)",
+   "hash": "8aef5144219a7fc1",
+   "does": "Returns per-second samples with heartRate cleared on rows whose offset is in healthKitHROffsets.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutSample.withHeartRate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "metadata.samples nil",
+     "effect": "return nil"
+    },
+    {
+     "at": "+2",
+     "cond": "healthKitHROffsets nil",
+     "effect": "?? [] — no offsets"
+    },
+    {
+     "at": "+3",
+     "cond": "offsets empty",
+     "effect": "return samples unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "row offset in offsets",
+     "effect": "withHeartRate(nil); else row unchanged"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutSample.withHeartRate(_:)": "03bc0ce07cc10a0c"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.withDetail(_:facts:on:)",
+   "hash": "d3c2a28f4bd73588",
+   "does": "Builds a ScoreFactor copy with detail and facts replaced, label/score/weight/impact kept.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudSessionPayload.restoring(_: TrainingContext?, from: TrainingContext?)",
+   "hash": "5f02331f07391133",
+   "does": "Restores local VO2max and recentWorkouts onto the remote training context when remote lacks both.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote nil",
+     "effect": "return local"
+    },
+    {
+     "at": "+2",
+     "cond": "local present and remote has neither vo2Max nor recentWorkouts",
+     "effect": "rebuild with local values; else return remote"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "a9d6ffe38efc1df5",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "cc26a08289fff8fb",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoring(_: HRVAnalysisResult, from: HRVAnalysisResult?)",
+   "hash": "893ae38a4efc2685",
+   "does": "Merges analysis: local training context restored; when analysisDate and windowStart match, local analysisSegmentLabel and daytimeRestingHR are put back.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: TrainingContext?, from: TrainingContext?)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func HRVAnalysisResult.withANSMetrics(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func ANSMetrics.withDaytimeRestingHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "local nil",
+     "effect": "return remote"
+    },
+    {
+     "at": "+4",
+     "cond": "same analysisDate and windowStart",
+     "effect": "continue restoring label/RHR; else return merged with only training context"
+    },
+    {
+     "at": "+5",
+     "cond": "remote label nil",
+     "effect": "?? local label"
+    },
+    {
+     "at": "+6",
+     "cond": "remote ansMetrics without RHR and local has RHR",
+     "effect": "withANSMetrics(local RHR); else unchanged"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func ANSMetrics.withDaytimeRestingHR(_:)": "a09c4315df83de13",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: TrainingContext?, from: TrainingContext?)": "61610206de4fa6dd",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func HRVAnalysisResult.withANSMetrics(_:)": "826f7c9201a59e0d"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoring(_: RecoveryScoreCalculator.ScoreBreakdown?, from: RecoveryScoreCalculator.ScoreBreakdown?)",
+   "hash": "8d2a1c727d111ed2",
+   "does": "Merges score breakdowns: emptied factor details refilled from the local factor with the same label and score; local SpO2 penalty lines/flag restored when local had it, remote does not, and composite scores match.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.withDetail(_:facts:on:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "remote or local nil",
+     "effect": "return remote"
+    },
+    {
+     "at": "+5",
+     "cond": "factor detail empty and local factor with same label+score exists",
+     "effect": "restore detail/facts; else keep"
+    },
+    {
+     "at": "+13",
+     "cond": "heldSpO2",
+     "effect": "use local penalties; else remote penalties"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.withDetail(_:facts:on:)": "ab852f14aaabcf98"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoringHeartRateContext(_:from:)",
+   "hash": "6b6c68503cbaa44f",
+   "does": "Copies local hr/peak_hr entries into remote aiContext where remote lacks them.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote or local nil",
+     "effect": "return remote"
+    },
+    {
+     "at": "+2",
+     "cond": "key missing in remote",
+     "effect": "copy local value (may be nil)"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CloudSessionPayload.restoring(_: WorkoutMetadata, from: WorkoutMetadata?)",
+   "hash": "027e7d8cbdcc43c9",
+   "does": "Merges workout metadata: HRR samples, healthKitHROffsets (remote ?? local), per-second HR, split and lap HR restored from local.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: [HRRSample]?, from: [HRRSample]?)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringHealthKitHR(_:from:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringHR(_: [Split]?, from: [Split]?)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringHR(_: [Lap]?, from: [Lap]?)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "remote healthKitHROffsets nil",
+     "effect": "?? local list, so the next upload strips those rows"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoring(_: [HRRSample]?, from: [HRRSample]?)": "b14d09913ce64f3f",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringHR(_: [Lap]?, from: [Lap]?)": "94dedab7d250e717",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringHR(_: [Split]?, from: [Split]?)": "886a5b1be07b38cb",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringHealthKitHR(_:from:)": "97554326a06157c0"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoringHealthKitHR(_:from:)",
+   "hash": "879eaee9d08cc23b",
+   "does": "Puts local heart rate back on remote per-second rows listed in healthKitHROffsets that arrived with nil HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutSample.withHeartRate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote samples nil",
+     "effect": "return nil"
+    },
+    {
+     "at": "+2",
+     "cond": "offsets nil",
+     "effect": "?? []"
+    },
+    {
+     "at": "+3",
+     "cond": "offsets empty or no local samples",
+     "effect": "return remote samples"
+    },
+    {
+     "at": "+6",
+     "cond": "row HR nil, offset listed, local HR exists",
+     "effect": "withHeartRate(local); else row unchanged"
+    },
+    {
+     "at": "+6",
+     "cond": "localHR lookup (?? nil)",
+     "effect": "missing key or nil HR → no restore"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutSample.withHeartRate(_:)": "03bc0ce07cc10a0c"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoringHR(_: [Split]?, from: [Split]?)",
+   "hash": "77ead3c03b3c2067",
+   "does": "Restores split averageHR from the local split with same index and duration when the remote split has none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func Split.withAverageHR(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote or local nil",
+     "effect": "return remote"
+    },
+    {
+     "at": "+3",
+     "cond": "averageHR nil and matching local split",
+     "effect": "set local averageHR; else keep"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "651b546e1fa68836",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func Split.withAverageHR(_:)": "13aa269f07e29dab"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoringHR(_: [Lap]?, from: [Lap]?)",
+   "hash": "89506f38266d23b3",
+   "does": "Restores lap average/max HR from the local lap with same index and start offset when remote has neither.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func Lap.withHeartRate(average:max:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote or local nil",
+     "effect": "return remote"
+    },
+    {
+     "at": "+3",
+     "cond": "avg and max nil and matching local lap",
+     "effect": "set local HR; else keep"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func Lap.withHeartRate(average:max:)": "8de8cc29a2f38924"
+   }
+  },
+  {
+   "key": "func CloudSessionPayload.restoring(_: [HRRSample]?, from: [HRRSample]?)",
+   "hash": "db20815429c8e22b",
+   "does": "Merges HRR samples: if remote has only strap samples, appends local non-strap samples; nil when empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "remote nil",
+     "effect": "?? []"
+    },
+    {
+     "at": "+2",
+     "cond": "remote contains a non-strap sample",
+     "effect": "return remote (old record carried them)"
+    },
+    {
+     "at": "+3",
+     "cond": "local nil",
+     "effect": "?? []"
+    },
+    {
+     "at": "+4",
+     "cond": "combined empty",
+     "effect": "nil; else combined"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HRVAnalysisResult.withANSMetrics(_:)",
+   "hash": "121c7d9e93eb9d04",
+   "does": "Copy of HRVAnalysisResult with ansMetrics replaced, all other fields (estimatedMetrics included) passed through the memberwise init.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ANSMetrics.withDaytimeRestingHR(_:)",
+   "hash": "30788f6bbddc6e48",
+   "does": "Copy of ANSMetrics with daytimeRestingHR replaced; nocturnalHRDip kept.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func Split.withAverageHR(_:)",
+   "hash": "995647054d1cc593",
+   "does": "Copy of Split with averageHR replaced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func Lap.withHeartRate(average:max:)",
+   "hash": "10bfb3ec71889e8c",
+   "does": "Copy of Lap with averageHR/maxHR replaced.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "7ea5065b3ceba069"
+   }
+  }
+ ],
+ "deps": {}
+}
