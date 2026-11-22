@@ -406,10 +406,13 @@ struct EmuquApp: App {
     }
 
     /// The launch gate stops at the paywall or the trial reminder before it
-    /// checks for an interrupted recording, so that check runs once the gate
-    /// closes instead: when either modal is dismissed with nothing after it.
+    /// checks for an interrupted recording, and the check holds its alert
+    /// while the score-architecture disclosure is on screen, so that check
+    /// runs once the gate closes instead: when any of those is dismissed with
+    /// nothing after it.
     private func handleLaunchModalChange(from oldModal: LaunchModal?, to newModal: LaunchModal?) {
-        guard newModal == nil, oldModal == .paywall || oldModal == .trialReminder else { return }
+        guard newModal == nil,
+              oldModal == .paywall || oldModal == .trialReminder || oldModal == .scoreArchitectureChange else { return }
         checkForInterruptedSession()
     }
 
@@ -694,8 +697,7 @@ struct EmuquApp: App {
         // built synchronously before first paint) so a full-directory
         // scan + per-orphan decode does not block launch. Runs
         // off-main; SessionArchive is a plain class (not @MainActor).
-        let archiveForBoot = collector.archive
-        Task.detached(priority: .utility) { archiveForBoot.boot() }
+        LaunchArchiveBoot.start(collector.archive)
     }
 
     /// Prewarm `AVSpeechSynthesisVoice.speechVoices()` on a detached task.

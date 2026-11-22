@@ -64,8 +64,9 @@ protocol HealthKitServiceProtocol: Sendable {
 
     /// Sleep boundaries inferred from the strap's own RR series — the
     /// fallback when HealthKit has no sleep for the night. The default calls
-    /// `HealthKitManager.estimateSleepFromHR`; a test mock can stub it.
-    func estimateSleepFromRR(rrPoints: [RRPoint], recordingStart: Date) -> SleepData?
+    /// `HealthKitManager.estimateSleepFromHR` off the main actor (it walks
+    /// every beat of the night); a test mock can stub it.
+    func estimateSleepFromRR(rrPoints: [RRPoint], recordingStart: Date) async -> SleepData?
 
     // MARK: - Apple Health Export
 
@@ -130,8 +131,10 @@ extension HealthKitServiceProtocol {
         await calculateTrainingLoad(relativeTo: Date())
     }
 
-    func estimateSleepFromRR(rrPoints: [RRPoint], recordingStart: Date) -> SleepData? {
-        HealthKitManager.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: recordingStart)
+    func estimateSleepFromRR(rrPoints: [RRPoint], recordingStart: Date) async -> SleepData? {
+        await Task.detached(priority: .userInitiated) {
+            HealthKitManager.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: recordingStart)
+        }.value
     }
 
     func estimateSleepFromHealthKitHR(windowStart: Date, windowEnd: Date) async -> SleepData? {

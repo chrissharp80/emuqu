@@ -16,8 +16,8 @@
  "units": [
   {
    "key": "init AmbientLocationService()",
-   "hash": "c1905a8bf07429cf",
-   "does": "Sets itself as delegate and configures 100 m accuracy, 50 m distance filter, activity .other, auto-pause on.",
+   "hash": "c1a14dc35952f246",
+   "does": "Sets itself as delegate and configures 100 m accuracy, 50 m distance filter, activity .other, automatic pause off (iOS does not resume a paused stream, and nothing here would restart it while the app stays in the foreground).",
    "entry": "Lazy static AmbientLocationService.shared via AppDependencies.location.ambientLocationService.",
    "calls": [
     "ext:CLLocationManager"

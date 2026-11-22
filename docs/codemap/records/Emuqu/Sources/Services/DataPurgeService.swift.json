@@ -1,19 +1,19 @@
 {
  "file": "Emuqu/Sources/Services/DataPurgeService.swift",
- "hash": "abc0ebd4ba3ebb2e",
+ "hash": "b9b97d400cc5ece2",
  "role": "'Delete All My Data' orchestrator: refuses while a recording is under way or a reading is waiting to be accepted, otherwise awaits CloudKit zone deletion, sweeps every file in App Group/Application Support/Documents/Caches/tmp and every UserDefaults key (minus keep-lists), then resets named stores (archive dirs, keychain, AI stores, settings, breadcrumbs, caches, notifications) and returns a localized Report. The stores it clears beyond its named parameters come from the Stores set its caller passes (AppDependencies.purgeStores in the app), never from AppDependencies.current.",
  "types": [
   "DataPurgeService: enum (@MainActor) — static purge steps",
   "DataPurgeService.Report: struct — per-step booleans (profileReset among them), residual counts, errors, localized text",
   "DataPurgeService.Report.Outcome: enum — removed|cleared|reset",
-  "DataPurgeService.Refusal: enum (Error, LocalizedError) — why a purge did not start: recordingInProgress",
+  "DataPurgeService.Refusal: enum (Error, LocalizedError) — why a purge did not run or stopped before the local wipe: recordingInProgress, recordingStartedDuringDelete",
   "DataPurgeService.FallibleSteps: struct — debug/crash log outcomes",
   "DataPurgeService.ReadBack: struct — the outcomes read back from the stores after the steps",
   "DataPurgeService.PurgeScope: struct (@MainActor) — where a purge sweeps files and preferences: App Group container, sandbox roots, preference suites; .device in production",
-  "DataPurgeService.Stores: struct (extension) — resolvers for every service the purge clears or reads back beyond the named parameters: recorderBox plus the Assistant, Location and Device groups (nested structs), built by AppDependencies.purgeStores"
+  "DataPurgeService.Stores: struct (extension) — resolvers for every service the purge clears or reads back beyond the named parameters: recorderBox plus the Assistant, Location (trails, routes, ambient location, road geocoding, weather, nearby places) and Device groups (nested structs), built by AppDependencies.purgeStores"
  ],
  "state": [
-  "mem:DataPurgeService.defaultsKeepList = entitlement.anchor.v1, storekit.lastKnownPurchased, storekit.lastKnownTestFlight, storekit.verifiedProductionInstall, storekit.verifiedXcodeInstall",
+  "mem:DataPurgeService.defaultsKeepList = entitlement.anchor.account, entitlement.anchor.v1, storekit.lastKnownPurchased, storekit.lastKnownTestFlight, storekit.verifiedProductionInstall, storekit.verifiedXcodeInstall",
   "mem:DataPurgeService.systemOwnedPrefixes (Apple, NS, com.apple., WebKit, AK, PK, MSV, INNext, CarCapabilities, ADPrivacy, METAL, GEO, TVRemote, SU)",
   "file:<sharedContainer>/debug_log.txt (referenced)",
   "ud:AssistantViewModel.disclaimerKey (assistant.disclaimerAccepted, referenced)"
@@ -295,8 +295,8 @@
   },
   {
    "key": "var DataPurgeService.Refusal.errorDescription",
-   "hash": "36dd18a6768247be",
-   "does": "Localized explanation of a refusal. .recordingInProgress: stop the recording in progress, or accept or discard the reading that is waiting for review, first, because otherwise its data would be saved again after the delete.",
+   "hash": "b5ca6a77cebbcea5",
+   "does": "Localized explanation of a refusal. .recordingInProgress: stop the recording in progress, or accept or discard the reading that is waiting for review, first, because otherwise its data would be saved again after the delete. .recordingStartedDuringDelete: a recording started while the data was being deleted, so nothing on this device was deleted; iCloud sync is now off; stop the recording and run Delete All My Data again.",
    "entry": "LocalizedError.localizedDescription, read by DeleteAllDataPage.recordingFooter and by the catch in DeleteAllDataPage.runPurge",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -308,6 +308,11 @@
      "at": "+2",
      "cond": ".recordingInProgress",
      "effect": "the stop-the-recording-first explanation"
+    },
+    {
+     "at": "+4",
+     "cond": ".recordingStartedDuringDelete",
+     "effect": "the nothing-on-this-device-was-deleted explanation"
     }
    ],
    "deps": {
@@ -445,11 +450,13 @@
   },
   {
    "key": "func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
-   "hash": "0d6d7362615a8858",
-   "does": "First asks whether a recording is under way or a reading is waiting to be accepted (recordingInProgress when passed, else appIsRecording over RRCollector.current and the workout recorder in stores.recorderBox) and, if one is, throws Refusal.recordingInProgress before anything is deleted, iCloud included. Otherwise runs the purge: remote CloudKit deletion (awaited), container file sweep (keeping only the live settings file, settingsManager.settingsURL) + in-memory archive reset, UserDefaults sweep, named directory/store resets, a reset of the personal baseline tracker (the one passed, else RRCollector.current's), debug/crash log purge, then reads the settings file back (readBackProfile) and every other store whose clear reports no failure (readBackClearedStores) and returns a Report whose per-step booleans are those results. The file and preference sweeps and the archive/backup directory resets run in `scope` (default .device, the app's own containers and suites; tests pass temporary ones); settings and CloudKit local state are the instances passed by name, and every other store the steps clear or read back (keychain, assistant stores, breadcrumbs, routes, caches, logs, workout track backups, notifications) is the one `stores` resolves.",
+   "hash": "dd68171c56302690",
+   "does": "First asks whether a recording is under way or a reading is waiting to be accepted (recordingInProgress when passed, else appIsRecording over RRCollector.current and the workout recorder in stores.recorderBox) and, if one is, throws Refusal.recordingInProgress before anything is deleted, iCloud included. Otherwise closes PurgeGate for the whole purge (beginPurge waits for the archive writes already in flight; endPurge on every exit), so every archive write and CloudKit upload or full sync is refused while it runs; turns iCloud sync off; then awaits the remote CloudKit deletion. Asks about a recording again: one started during that wait throws Refusal.recordingStartedDuringDelete and nothing on the device is wiped. Otherwise runs the local purge: container file sweep (keeping only the live settings file, settingsManager.settingsURL) + in-memory archive reset, UserDefaults sweep, named directory/store resets, a reset of the personal baseline tracker (the one passed, else RRCollector.current's), debug/crash log purge, then reads the settings file back (readBackProfile) and every other store whose clear reports no failure (readBackClearedStores) and returns the Report built from those results (report). The file and preference sweeps and the archive/backup directory resets run in `scope` (default .device, the app's own containers and suites; tests pass temporary ones); settings and CloudKit local state are the instances passed by name, and every other store the steps clear or read back (keychain, assistant stores, breadcrumbs, routes, location caches, logs, workout track backups, notifications) is the one `stores` resolves.",
    "entry": "DeleteAllDataPage.runPurge (the button task); DataPurgeServiceTests",
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.appIsRecording(recorderBox:)",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.beginPurge()",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.endPurge()",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:liveSettingsFile:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)",
@@ -457,26 +464,38 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(_:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:stores:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:stores:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.report(remoteDeleted:swept:directories:steps:errors:)",
+    "closure:recordingInProgress test seam (DataPurgeServiceTests)"
    ],
    "reads": [
     "mem:SettingsManager.settingsURL",
-    "mem:RRCollector.current"
+    "mem:RRCollector.current",
+    "mem:PurgeGate.state"
    ],
-   "writes": [],
+   "writes": [
+    "mem:PurgeGate.state",
+    "mem:UserSettings.iCloudSyncEnabled",
+    "file:user_settings.json"
+   ],
    "branches": [
     {
      "at": "+11",
      "cond": "recordingInProgress passed",
-     "effect": "its answer decides; nil: appIsRecording"
+     "effect": "its answer decides (both checks); nil: appIsRecording"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "a recording is under way",
-     "effect": "throws Refusal.recordingInProgress; nothing is deleted and the remote deletion is not attempted"
+     "effect": "throws Refusal.recordingInProgress; nothing is changed or deleted and the remote deletion is not attempted"
     },
     {
-     "at": "+17",
+     "at": "+18",
+     "cond": "a recording started while the remote deletion ran",
+     "effect": "throws Refusal.recordingStartedDuringDelete; iCloud sync stays off, the remote deletion has run, the device is not wiped; the gate opens"
+    },
+    {
+     "at": "+22",
      "cond": "baselineTracker passed",
      "effect": "that tracker is reset; nil: RRCollector.current's tracker, or none when there is no collector"
     }
@@ -488,10 +507,13 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)": "6fe62cc8633e3cad",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:stores:)": "1ecf1d91803ce6f2",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)": "e29a678403bf0b1c",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.report(remoteDeleted:swept:directories:steps:errors:)": "84ad75841c1136ef",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)": "6175290b41cbe774",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)": "a58902c80a499460",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:liveSettingsFile:errors:)": "6515236adac11044",
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "41e46af4db9cc30a"
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "41e46af4db9cc30a",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.beginPurge()": "2ab1219114a4f254",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.endPurge()": "728b8ead464f4367"
    }
   },
   {
@@ -1026,7 +1048,7 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "136e4673c9e1eea5",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.eraseArchive()": "8fd51e619c625f9f",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.forgetInMemoryStores(_:)": "030a5735434650f2",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.forgetInMemoryStores(_:)": "d31b385b2b57c931",
     "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "41e46af4db9cc30a",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "0750c9995bad9e7d",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.purgeAll()": "6c7f3904c6f61f72",
@@ -1052,14 +1074,17 @@
   },
   {
    "key": "func DataPurgeService.forgetInMemoryStores(_:)",
-   "hash": "08a9d36e091ce742",
-   "does": "On the stores `stores` resolves: disengages the ActiveRouteSession (memory-only turn-by-turn route), then calls forgetAfterPurge on SavedRouteStore, BreadcrumbRecorder, AmbientLocationService, EmailContactStore, AssistantArtifactStore, UIStateCache and TrainingMetricsCache, then revokes assistant agreements.",
+   "hash": "2f6890491975d0a9",
+   "does": "On the stores `stores` resolves: disengages the ActiveRouteSession (memory-only turn-by-turn route), then calls forgetAfterPurge on SavedRouteStore, BreadcrumbRecorder, AmbientLocationService, RoadGeocodingService (road context and its coordinate), WeatherService (snapshot, forecast and its coordinate), SurroundingsPOIService (nearby-places cache), EmailContactStore, AssistantArtifactStore, UIStateCache and TrainingMetricsCache, then revokes assistant agreements.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.forgetAfterPurge()",
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.forgetAfterPurge()",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.forgetAfterPurge()",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.forgetAfterPurge()",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.forgetAfterPurge()",
+    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.forgetAfterPurge()",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.forgetAfterPurge()",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.forgetAfterPurge()",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.forgetAfterPurge()",
@@ -1069,6 +1094,11 @@
    ],
    "reads": [],
    "writes": [
+    "mem:RoadGeocodingService.current",
+    "mem:RoadGeocodingService.lastLookupCoord",
+    "mem:WeatherService.snapshot",
+    "mem:WeatherService.fetchedAtCoord",
+    "mem:SurroundingsPOIService.cacheStorage",
     "mem:UIStateCache.dashboard",
     "mem:UIStateCache.fitness",
     "file:ApplicationSupport/UIStateCache.json",
@@ -1088,7 +1118,10 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.forgetAssistantAgreements(_:)": "fa935b4655ac8c8f",
     "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "41e46af4db9cc30a",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.forgetAfterPurge()": "05fed673b7a814f3",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.forgetAfterPurge()": "e2b9b6232577551c",
+    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.forgetAfterPurge()": "81b80bb365a0d890",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.forgetAfterPurge()": "8c18dc8d366c5f96"
    }
   },
   {
@@ -1225,6 +1258,19 @@
     "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.clear()": "ab1a448079777787",
     "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.clear()": "cccce7040c2e0f3b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab"
+   }
+  },
+  {
+   "key": "func DataPurgeService.report(remoteDeleted:swept:directories:steps:errors:)",
+   "hash": "4e7e1bd6e8486b8e",
+   "does": "Builds the Report from each step's result: the remote outcome, the archive/backup/keychain results, the read-back stores, the profile read-back, the log steps, the residual file and key counts and the errors.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.files(of:in:)": "c41df8bafc601514"
    }
   }
  ],

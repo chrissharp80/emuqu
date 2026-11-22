@@ -33,6 +33,10 @@ enum CloudSyncError: LocalizedError {
 enum CloudUploadExclusion: Error {
     /// Read out of Apple Health whole (`CloudSessionPayload.isHealthKitSourced`).
     case healthKitSourced
+    /// A sample night (`DemoSessionSeeder.isSampleData`). Its removal and the
+    /// baseline it fed are this device's only, so in iCloud it would score
+    /// other devices' nights against synthetic data nothing removes there.
+    case sampleData
 }
 
 extension CloudKitSyncManager {
@@ -355,7 +359,8 @@ extension CloudKitSyncManager {
         return archive.repairSessionHashIfDecodable(sessionId: sessionId)
     }
 
-    /// A session read out of Apple Health whole stays on this device. One this
+    /// A session excluded from upload (`CloudUploadExclusion`: read out of
+    /// Apple Health whole, or a sample night) stays on this device. One this
     /// device had uploaded or queued may have an iCloud copy from an earlier
     /// build; that copy's payload is removed and the record kept as a marker
     /// (`markKeptOnDevice`), not tombstoned, because a tombstone would delete
@@ -377,7 +382,7 @@ extension CloudKitSyncManager {
         }
         state.markLocalOnly(sessionId)
         await state.saveLocalOnlyAsync()
-        debugLog("[CloudKit] Push: \(sessionId.uuidString.prefix(8)) came from Apple Health — kept on this device only")
+        debugLog("[CloudKit] Push: \(sessionId.uuidString.prefix(8)) is excluded from iCloud — kept on this device only")
     }
 
     /// `isDeleted` value of a record whose session is kept on one device: no
@@ -451,10 +456,11 @@ extension CloudKitSyncManager {
     /// can run from a detached task without main-actor hops.
     ///
     /// Throws `CloudUploadExclusion` for a session read out of Apple Health
-    /// whole: this is the one builder every upload goes through, so the
-    /// refusal here covers every path.
+    /// whole, or a sample night: this is the one builder every upload goes
+    /// through, so the refusal here covers every path.
     nonisolated static func buildSessionRecord(from session: HRVSession, zoneID: CKRecordZone.ID, recordTypeName: String) throws -> CKRecord {
         guard !CloudSessionPayload.isHealthKitSourced(session) else { throw CloudUploadExclusion.healthKitSourced }
+        guard !DemoSessionSeeder.isSampleData(session.tags) else { throw CloudUploadExclusion.sampleData }
         let recordID = CKRecord.ID(recordName: session.id.uuidString, zoneID: zoneID)
         let record = CKRecord(recordType: recordTypeName, recordID: recordID)
         record["sessionId"] = session.id.uuidString as CKRecordValue

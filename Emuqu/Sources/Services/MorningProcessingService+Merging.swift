@@ -161,12 +161,12 @@ extension MorningProcessingService {
         sleepSchedule: SleepSchedule,
         sessionMergeMode: SessionMergeMode = .defaultGap,
         mergeGapSeconds: TimeInterval? = nil
-    ) -> MergeResult {
+    ) async -> MergeResult {
         let series = RRSeries(points: points, sessionId: baseSession.id, startDate: baseSession.startDate)
         guard baseSession.sessionType == .overnight, sessionMergeMode != .off else {
             return MergeResult(series: series, effectiveStartDate: baseSession.startDate, sameNightLinks: [])
         }
-        let sameNight = sameNightSegments(
+        let sameNight = await sameNightSegments(
             baseSession: baseSession, points: points, sleepSchedule: sleepSchedule,
             mergeGap: Self.mergeGap(mode: sessionMergeMode, seconds: mergeGapSeconds)
         )
@@ -203,17 +203,22 @@ extension MorningProcessingService {
     /// one's series (a resumed recording carries the paused one's), so it is
     /// skipped: merging it again would put the same beats in twice, out of
     /// time order.
+    ///
+    /// Each same-night recording is read whole (decrypted and decoded, every
+    /// beat) off the main actor.
     func sameNightSegments(
         baseSession: HRVSession, points: [RRPoint], sleepSchedule: SleepSchedule, mergeGap: TimeInterval
-    ) -> (segments: [NightSegment], links: [UUID]) {
+    ) async -> (segments: [NightSegment], links: [UUID]) {
         let sameNightEntries = sameNightEntries(of: baseSession, sleepSchedule: sleepSchedule)
         let alreadyLinked = Set(baseSession.linkedSessionIds ?? [])
             .union(sameNightEntries.flatMap { $0.linkedSessionIds ?? [] })
         let base = NightSegment(startDate: baseSession.startDate, points: points)
-        let candidates = [base] + sameNightEntries
-            .filter { !alreadyLinked.contains($0.sessionId) }
-            .compactMap { mergeableSegment($0) }
-        let segments = Self.segmentsWithinGap(candidates, gap: mergeGap)
+        let toRead = sameNightEntries.filter { !alreadyLinked.contains($0.sessionId) }
+        let archive = archive
+        let others = await Task.detached(priority: .userInitiated) {
+            toRead.compactMap { Self.mergeableSegment($0, in: archive) }
+        }.value
+        let segments = Self.segmentsWithinGap([base] + others, gap: mergeGap)
         return (segments, segments.compactMap(\.sessionId))
     }
 
@@ -231,7 +236,7 @@ extension MorningProcessingService {
     /// The archived recording behind `entry` as a segment, or nil when it has
     /// no beats or is very short (< 30 min) — likely a quick test, demo, or
     /// accidental recording that shouldn't contaminate overnight data.
-    private func mergeableSegment(_ entry: SessionArchiveEntry) -> NightSegment? {
+    nonisolated private static func mergeableSegment(_ entry: SessionArchiveEntry, in archive: SessionArchive) -> NightSegment? {
         guard let archived = archive.retrieveOrLog(entry.sessionId),
               let archivedSeries = archived.rrSeries, !archivedSeries.points.isEmpty
         else { return nil }
@@ -296,7 +301,8 @@ extension MorningProcessingService {
     /// Run HRV analysis using selected window or full series fallback. The
     /// sync full-series paths cannot read HealthKit, so the daytime resting
     /// HR is fetched here for the nocturnal HR dip, as the window path does
-    /// for itself.
+    /// for itself. They analyse the whole night, so they run off the main
+    /// actor.
     func runAnalysis(
         analyzingSession: HRVSession,
         series: RRSeries,
@@ -315,16 +321,31 @@ extension MorningProcessingService {
         let daytimeHR = await analysisPipeline.fetchDaytimeRestingHR(
             for: analyzingSession.startDate, sessionId: analyzingSession.id
         )
-        if let peakCapacity = windowResult?.peakCapacity {
-            return analysisPipeline.analyzeFullSeriesWithCapacity(
-                series: series, flags: flags, peakCapacity: peakCapacity,
-                trainingContext: trainingContext, ansConfig: ansConfig, daytimeRestingHR: daytimeHR
-            )
-        }
-        return analysisPipeline.analyzeFullSeries(
-            series: series, flags: flags,
+        return await analyzeFullSeriesOffMain(
+            series: series, flags: flags, peakCapacity: windowResult?.peakCapacity,
             trainingContext: trainingContext, ansConfig: ansConfig, daytimeRestingHR: daytimeHR
         )
+    }
+
+    /// The full-series analysis, around the peak-capacity window when there
+    /// is one, on a background task.
+    private func analyzeFullSeriesOffMain(
+        series: RRSeries, flags: [ArtifactFlags], peakCapacity: PeakCapacity?,
+        trainingContext: TrainingContext?, ansConfig: HRVAnalysisPipeline.ANSConfiguration, daytimeRestingHR: Double?
+    ) async -> HRVAnalysisResult? {
+        let pipeline = analysisPipeline
+        return await Task.detached(priority: .userInitiated) { () -> HRVAnalysisResult? in
+            guard let peakCapacity else {
+                return pipeline.analyzeFullSeries(
+                    series: series, flags: flags,
+                    trainingContext: trainingContext, ansConfig: ansConfig, daytimeRestingHR: daytimeRestingHR
+                )
+            }
+            return pipeline.analyzeFullSeriesWithCapacity(
+                series: series, flags: flags, peakCapacity: peakCapacity,
+                trainingContext: trainingContext, ansConfig: ansConfig, daytimeRestingHR: daytimeRestingHR
+            )
+        }.value
     }
 
     /// Build the final HRVSession from all analysis results.

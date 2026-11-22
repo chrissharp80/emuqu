@@ -149,7 +149,7 @@
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.refreshHealthSnapshots(on:result:sleepSchedule:)",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.reArchive(_:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.reArchive(_:scoredFrom:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
@@ -169,23 +169,59 @@
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "a41f1bac098eee8d",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)": "542e749e4faa8030",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.reArchive(_:)": "66f998ba558e92c1",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.reArchive(_:scoredFrom:)": "2efd51af725bd369",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.refreshHealthSnapshots(on:result:sleepSchedule:)": "97bf9f616f31f0c5",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.refreshedUseBaselineHRV(on:result:baselineStats:)": "2927c1a1fb36d874",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "9c1c51ce35bf3a6b",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.updateCompositeRecoveryScore(for:scoringConfig:trainingContext:baselineStats:typicalSleepHours:sleepSchedule:exportMetrics:enableHealthKitExport:)": "65162ed5143af414",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.updateCompositeRecoveryScore(for:scoringConfig:trainingContext:baselineStats:typicalSleepHours:sleepSchedule:exportMetrics:enableHealthKitExport:)": "b25f7b1779017004",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)": "955073b942718ab5",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()": "f7b072a559ef78a5",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "21d7d6755a44a229",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "fdbbc520aa4c0476",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.compositeScore(rmssd:useBaselineHRV:)": "f010f3e10c768607",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.depressedResult()": "5a2f5a8f302dd9b8",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.session(quality:)": "06dda41495621e72",
     "EmuquTests/SessionImmutabilityTests.swift::var SessionImmutabilityTests.baselineStats": "88ddb503345bb468",
     "EmuquTests/SessionImmutabilityTests.swift::var SessionImmutabilityTests.config": "c04ac7dd9ee6da10"
+   }
+  },
+  {
+   "key": "func SessionImmutabilityTests.testTheArchivedScoreUpdateKeepsWhatWasSavedWhileItRan()",
+   "hash": "9e9d590ae59fada0",
+   "does": "Applies an update carrying a new score and a tag onto an archived copy that gained a morning feeling meanwhile (SessionAcceptanceService.applyUpdate) and asserts the score and tag land and the feeling stays.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.session(quality:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyUpdate(_:scoredFrom:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyUpdate(_:scoredFrom:to:)": "c2c3c3cbcf9ad83c",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.session(quality:)": "06dda41495621e72"
+   }
+  },
+  {
+   "key": "func SessionImmutabilityTests.testAScoreComputedBeforeASleepEditIsNotWrittenOverIt()",
+   "hash": "50cbd6d0e2c9e386",
+   "does": "Applies an update carrying a new score and a tag onto an archived copy whose sleep start and score changed meanwhile and asserts the stored score and sleep start stay while the tag lands.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.session(quality:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyUpdate(_:scoredFrom:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyUpdate(_:scoredFrom:to:)": "c2c3c3cbcf9ad83c",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.session(quality:)": "06dda41495621e72"
    }
   },
   {

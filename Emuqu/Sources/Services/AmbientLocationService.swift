@@ -91,13 +91,21 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
     /// (a real crash, not a hypothetical).
     private var _latestRoadContext: RoadGeocodingService.RoadContext?
 
+    /// Updates are never paused automatically. iOS pauses a stream it judges
+    /// idle (a user sitting still) and does not resume it: the app has to
+    /// start it again, and nothing here would have, because the service
+    /// still counted itself running, so `startIfAuthorized()` did nothing and
+    /// the cached fix went stale for as long as the app stayed in the
+    /// foreground. The stream runs only in the foreground (`stop()` on
+    /// background), at a hundred metres' accuracy behind a 50 m filter, so a
+    /// still user costs little.
     override private init() {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         manager.distanceFilter = 50
         manager.activityType = .other
-        manager.pausesLocationUpdatesAutomatically = true
+        manager.pausesLocationUpdatesAutomatically = false
     }
 
     /// Start streaming, asking for permission first if the user has never

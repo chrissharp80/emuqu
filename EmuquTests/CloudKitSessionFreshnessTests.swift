@@ -290,6 +290,20 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         XCTAssertFalse(CloudSessionPayload.isHealthKitSourced(makeSession()))
     }
 
+    /// Sample nights stay on the device that made them: the builder refuses
+    /// them, so the push keeps them local-only.
+    func testSampleNightsAreNeverBuiltIntoARecord() {
+        var sample = makeSession()
+        sample.tags = [DemoSessionSeeder.demoTag]
+        let zone = CKRecordZone.ID(zoneName: "FreshnessTests", ownerName: CKCurrentUserDefaultName)
+        XCTAssertThrowsError(try CloudKitSyncManager.buildSessionRecord(from: sample, zoneID: zone, recordTypeName: "HRVSession")) {
+            guard case CloudUploadExclusion.sampleData? = $0 as? CloudUploadExclusion else {
+                return XCTFail("expected the sample-data exclusion, got \($0)")
+            }
+        }
+        XCTAssertFalse(DemoSessionSeeder.isSampleData(makeSession().tags))
+    }
+
     /// The ids the importer stamps are the ones the upload refuses.
     @MainActor
     func testHealthKitDeviceIdsMatchTheImporter() {
