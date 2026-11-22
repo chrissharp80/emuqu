@@ -1,11 +1,12 @@
 {
  "file": "Emuqu/Sources/Assistant/CoachVoiceGuard.swift",
- "hash": "6539a974a8094c68",
+ "hash": "ed39c3e375035fc2",
  "role": "Request-time output filter for LLM assistant replies: rewrites any sentence matching a MedicalTermLexicon concept (diagnosis, referral, AFib, overtraining, cure, etc.) or an OffensiveTermLexicon slur/sexual term into a neutral localized deflection, and provides the sentence-segmentation helpers the streaming buffer uses to hold back incomplete sentences.",
  "types": [
   "CoachVoiceGuard: enum — namespace for scrub rules, deflection copy, sentence splitting and the scrub/containsProhibitedLanguage API",
   "CoachVoiceGuard.Rule: struct — a MedicalTermLexicon.Concept plus audit reason; deflection resolved at read time",
   "CoachVoiceGuard.Result: struct — scrubbed text + triggers audit list + didIntercept flag",
+  "CoachVoiceGuard.SafetyCopyProgress: struct (Equatable, Sendable) — how far a reply has followed one of the canned safety replies (candidate replies as sentence keys + sentences matched), carried between the pieces of one reply",
   "OffensiveTermLexicon: enum — English slur/explicit-term concepts (every-reply list and English-only list) and NLLanguageRecognizer-based reply-language gate"
  ],
  "state": [
@@ -25,7 +26,7 @@
   "mem:OffensiveTermLexicon.minimumLanguageConfidence = 0.6",
   "mem:OffensiveTermLexicon.minimumWordsToDetect = 3"
  ],
- "toplevel": "Static lets are lazily initialised on first access: rules maps MedicalTermLexicon.scrubFromOutput to Rule(reason 'Coach output: <id>.') — one rule per scrubbed concept, and a concept without a specific deflection falls back to observationFallback (the comment on rules says so); medicalEntries/offensiveEntry/englishOnlyOffensiveEntry compile each rule via entry(for:), which logs an error naming any rule whose pattern fails to compile before compactMap drops it. everyReplyEntries = medical entries then the offensive entry. Callers: AssistantViewModel+Context.swift (stream flush), AssistantViewModel+Routing.swift (post-stream whole message), VoiceConversationController+Speech.swift (every spoken utterance), VoiceConversationController+Control.swift (interjection text).",
+ "toplevel": "Static lets are lazily initialised on first access: rules maps MedicalTermLexicon.scrubFromOutput to Rule(reason 'Coach output: <id>.') — one rule per scrubbed concept, and a concept without a specific deflection falls back to observationFallback (the comment on rules says so); medicalEntries/offensiveEntry/englishOnlyOffensiveEntry compile each rule via entry(for:), which logs an error naming any rule whose pattern fails to compile before compactMap drops it. everyReplyEntries = medical entries then the offensive entry. Callers: AssistantViewModel+Context.swift (stream flush, scrub(_:continuing:) with the round's progress), AssistantViewModel+Routing.swift (post-stream whole message), VoiceConversationController+Speech.swift (every spoken utterance, scrub(_:continuing:) with the chunker's progress), VoiceConversationController+Control.swift (interjection text).",
  "units": [
   {
    "key": "var CoachVoiceGuard.Rule.id",
@@ -306,45 +307,105 @@
   },
   {
    "key": "func CoachVoiceGuard.scrub(_:)",
-   "hash": "e0ad9b532937203f",
-   "does": "Scrubs a reply: selects active rules and returns the input unchanged if it is empty or no rule matches anywhere. Otherwise splits it into sentence segments once; a segment that is a sentence of the app's own safety copy (its safetyCopyKey is in safetyCopySentences) is passed through byte-identical, and the runs of segments between such sentences are each scrubbed by scrubRun (per-sentence rewrite, straddling-match fallback). Returns the rebuilt text with every run's triggers. Called from AssistantViewModel+Context.swift, AssistantViewModel+Routing.swift, VoiceConversationController+Speech.swift, VoiceConversationController+Control.swift and tests.",
+   "hash": "1a9346883b567073",
+   "does": "Scrubs a whole reply that starts with no canned safety reply under way: returns the input unchanged if it is empty or no active rule matches anywhere (incl. emphasis-stripped); otherwise runs scrub(_:continuing:) with a fresh SafetyCopyProgress, so the app's canned safety copy passes only where it appears as the canned reply (opening sentence first, then its sentences in order). Called from AssistantViewModel+Routing.swift (post-stream pass), VoiceConversationController+Control.swift (interjection text) and tests.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.safetyCopySentences",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::init CoachVoiceGuard.SafetyCopyProgress()",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:continuing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "output is empty OR no active rule matches the whole text (incl. emphasis-stripped)",
+     "effect": "true: return Result(scrubbed: output, triggers: []) unchanged; false: scrub(_:continuing:) from a fresh progress"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:continuing:)": "a1527d95f2031cb1",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::init CoachVoiceGuard.SafetyCopyProgress()": "538511165af05fc1"
+   }
+  },
+  {
+   "key": "init CoachVoiceGuard.SafetyCopyProgress()",
+   "hash": "03b89b2f9e0c7a5d",
+   "does": "A progress with no canned safety reply under way: no candidates, nothing matched.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func CoachVoiceGuard.scrub(_:continuing:)",
+   "hash": "7ced31989a32d184",
+   "does": "Scrubs one piece of a reply, carrying `progress` from the pieces before it. Empty input returns unchanged without touching progress. Otherwise selects the active rules, builds the canned replies' sentence keys (safetyCopyReplies), and walks the sentence segments once: a segment whose key is non-empty and continuesSafetyCopy accepts (the opening sentence of a canned reply, or the next sentence of the one under way) is appended byte-identical after the run before it is scrubbed (scrubRun); every other segment, a whitespace-only one included, joins the current run, and any non-empty one that is not canned copy ends the canned reply under way. The last run is scrubbed too. Returns the rebuilt text with every run's triggers; progress is left where the piece ended. Runs on clean text as well, so callers that feed a reply in pieces send every piece.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.safetyCopyReplies",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.safetyCopyKey(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.continuesSafetyCopy(_:progress:replies:)",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrubRun(_:among:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "output is empty OR no active rule matches the whole text (incl. emphasis-stripped)",
-     "effect": "true: return Result(scrubbed: output, triggers: []) unchanged; false: continue"
+     "at": "+1",
+     "cond": "output is empty",
+     "effect": "return it unchanged, progress untouched"
+    },
+    {
+     "at": "+7",
+     "cond": "for each sentence segment",
+     "effect": "canned-copy sentence or part of the current run"
     },
     {
      "at": "+9",
-     "cond": "for each sentence segment",
-     "effect": "safety-copy sentence or part of the current run"
-    },
-    {
-     "at": "+10",
-     "cond": "segment is not a sentence of the app's safety copy",
-     "effect": "true: added to the current run; false: the run so far is scrubbed (scrubRun), then the segment is appended unchanged and a new run starts"
+     "cond": "key is empty (whitespace only) OR continuesSafetyCopy rejects it",
+     "effect": "true: added to the current run; false: the run so far is scrubbed (scrubRun), the segment is appended unchanged and a new run starts"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.continuesSafetyCopy(_:progress:replies:)": "acfb3160f3ef2654",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.safetyCopyKey(_:)": "793af889cc4063c9",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrubRun(_:among:)": "454b90ca8c6e7020",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.safetyCopySentences": "c2fe3273f33045b3",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.safetyCopyReplies": "2ca9b62a09f80c1a",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
+  },
+  {
+   "key": "func CoachVoiceGuard.continuesSafetyCopy(_:progress:replies:)",
+   "hash": "6d8abf658dcc0206",
+   "does": "Pure state step: advances `progress` over the sentence with this key. Keeps the candidate replies whose sentence at the matched position equals the key and counts one more matched; when none does, restarts from the replies whose opening sentence equals the key (matched 1), or clears progress when none opens with it. Returns whether any candidate remains, i.e. the sentence is canned safety copy in its place.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "no candidate continues with this key",
+     "effect": "true: candidates = replies opening with the key, matched = 1 (or 0 with none); false: candidates = the continuing ones, matched + 1"
+    },
+    {
+     "at": "+9",
+     "cond": "no reply opens with the key (?:)",
+     "effect": "matched = 0"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func CoachVoiceGuard.scrubRun(_:among:)",
@@ -455,9 +516,9 @@
    }
   },
   {
-   "key": "var CoachVoiceGuard.safetyCopySentences",
-   "hash": "1e14eef381eb1ce1",
-   "does": "Every sentence of MedicalQueryGuard.cannedReplies, read once in the in-app language and once in English (NarrativeLanguage.english, the copy rule B of the system prompt quotes), split with sentenceSegments and keyed by safetyCopyKey, as a Set. Rebuilt on each read; scrub reads it only after a rule has matched.",
+   "key": "var CoachVoiceGuard.safetyCopyReplies",
+   "hash": "8944f93a9effedbc",
+   "does": "MedicalQueryGuard.cannedReplies in the in-app language, then the same replies in English (NarrativeLanguage.english), each as its ordered list of non-empty sentence keys (sentenceSegments then safetyCopyKey). Rebuilt on every read so it follows the in-app language.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.cannedReplies",
@@ -465,15 +526,13 @@
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.safetyCopyKey(_:)"
    ],
-   "reads": [
-    "mem:LanguageManager.shared.bundle"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.safetyCopyKey(_:)": "793af889cc4063c9",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.cannedReplies": "fd3737a40f20234e",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.cannedReplies": "f600d126adfd8560",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b"
    }
   },
@@ -495,7 +554,7 @@
   {
    "key": "func CoachVoiceGuard.containsProhibitedLanguage(_:)",
    "hash": "155cd2128dd0e5d9",
-   "does": "Cheap pre-check: true when any active rule (per entries(for:)) matches the text as written or with inline emphasis removed. Used by streaming flush, post-stream pass and voice speak path before calling scrub.",
+   "does": "Cheap pre-check: true when any active rule (per entries(for:)) matches the text as written or with inline emphasis removed. Used by the post-stream whole-message pass (AssistantTurnRouter.scrubForCoachVoice) before calling scrub.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",

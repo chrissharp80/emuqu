@@ -283,25 +283,57 @@ enum CoachVoiceGuard {
     /// fixed sentence list terminates by construction, so there is nothing
     /// to cap; it is also linear in the input rather than quadratic.
     ///
-    /// The app's own safety replies are never rewritten. Each sentence of the
-    /// replies `MedicalQueryGuard` gives (`safetyCopySentences`) is passed
-    /// through byte-identical, and the rules run on the text between them.
-    /// Rule B of the system prompt tells the model to give the same reply, so
-    /// without this the scrub turned "Talk to your doctor about that." — the
-    /// emergency answer to chest pain — into a line saying the app can't tell
-    /// whether the user needs a professional, in both the spoken reply and the
-    /// streamed one.
+    /// The app's own safety replies are never rewritten, but only where they
+    /// appear as the reply: a sentence of `MedicalQueryGuard`'s canned copy
+    /// passes byte-identical when it is that reply's opening sentence, or the
+    /// next sentence of a canned reply whose earlier sentences came straight
+    /// before it, in order (`continuesSafetyCopy`). The rules run on the text
+    /// between such runs. Rule B of the system prompt tells the model to give
+    /// the same reply, so without this the scrub turned "Talk to your doctor
+    /// about that." — the emergency answer to chest pain — into a line saying
+    /// the app can't tell whether the user needs a professional, in both the
+    /// spoken reply and the streamed one. The same sentence after the model's
+    /// own reasoning ("Your HRV has dropped three days running. Talk to your
+    /// doctor about that.") is not the canned reply and is scrubbed.
+    ///
+    /// Each call starts with no canned reply under way. Text that reaches the
+    /// guard in pieces (streamed flushes, spoken chunks) uses
+    /// `scrub(_:continuing:)` so a canned reply split across pieces is still
+    /// recognised.
     static func scrub(_ output: String) -> Result {
-        let active = entries(for: output)
-        guard !output.isEmpty, firstMatchingEntry(in: output, among: active) != nil else {
+        guard !output.isEmpty, firstMatchingEntry(in: output, among: entries(for: output)) != nil else {
             return Result(scrubbed: output, triggers: [])
         }
-        let safetyCopy = safetyCopySentences
+        var progress = SafetyCopyProgress()
+        return scrub(output, continuing: &progress)
+    }
+
+    /// Where a reply stands in the app's canned safety copy, carried from one
+    /// piece of a reply to the next. A fresh value means no canned reply is
+    /// under way; start one for each new reply.
+    struct SafetyCopyProgress: Equatable, Sendable {
+        /// The canned replies (as sentence keys) the reply has followed so far.
+        fileprivate var candidates: [[String]] = []
+        /// How many sentences of `candidates` have been matched.
+        fileprivate var matched = 0
+
+        init() {}
+    }
+
+    /// `scrub` on one piece of a reply, where `progress` says how the pieces
+    /// before it ended, and is advanced over this one. Every piece of the
+    /// reply must go through here, the clean ones too, or a canned reply's
+    /// opening sentence is missed and its later sentences are scrubbed.
+    static func scrub(_ output: String, continuing progress: inout SafetyCopyProgress) -> Result {
+        guard !output.isEmpty else { return Result(scrubbed: output, triggers: []) }
+        let active = entries(for: output)
+        let replies = safetyCopyReplies
         var scrubbed = ""
         var triggers: [(reason: String, originalSentence: String)] = []
         var run = ""
         for segment in sentenceSegments(of: output) {
-            guard safetyCopy.contains(safetyCopyKey(segment)) else {
+            let key = safetyCopyKey(segment)
+            guard !key.isEmpty, continuesSafetyCopy(key, progress: &progress, replies: replies) else {
                 run += segment
                 continue
             }
@@ -312,6 +344,27 @@ enum CoachVoiceGuard {
         }
         let last = scrubRun(run, among: active)
         return Result(scrubbed: scrubbed + last.scrubbed, triggers: triggers + last.triggers)
+    }
+
+    /// Advance `progress` over the sentence with this key. True when the
+    /// sentence is the next one of a canned reply already under way, or the
+    /// opening sentence of one (which starts it). Any other sentence ends the
+    /// canned reply under way.
+    private static func continuesSafetyCopy(
+        _ key: String,
+        progress: inout SafetyCopyProgress,
+        replies: [[String]]
+    ) -> Bool {
+        let position = progress.matched
+        let continuing = progress.candidates.filter { position < $0.count && $0[position] == key }
+        if continuing.isEmpty {
+            progress.candidates = replies.filter { $0.first == key }
+            progress.matched = progress.candidates.isEmpty ? 0 : 1
+        } else {
+            progress.candidates = continuing
+            progress.matched = position + 1
+        }
+        return !progress.candidates.isEmpty
     }
 
     /// `scrub` on text that holds no sentence of the app's safety copy.
@@ -387,14 +440,13 @@ enum CoachVoiceGuard {
         return replaced ? rebuilt : nil
     }
 
-    /// Every sentence of the app's canned safety replies, in the in-app
-    /// language and in English, keyed by `safetyCopyKey`. English as well
-    /// because rule B quotes the English text and a model may answer in it.
-    /// Read only once a rule has matched, so the clean majority of sentences
-    /// never builds it.
-    private static var safetyCopySentences: Set<String> {
+    /// The app's canned safety replies, in the in-app language and in
+    /// English, each as its sentences in order, keyed by `safetyCopyKey`.
+    /// English as well because rule B quotes the English text and a model may
+    /// answer in it. Rebuilt on each read so it follows the in-app language.
+    private static var safetyCopyReplies: [[String]] {
         let replies = MedicalQueryGuard.cannedReplies + NarrativeLanguage.english { MedicalQueryGuard.cannedReplies }
-        return Set(replies.flatMap { sentenceSegments(of: $0) }.map(safetyCopyKey))
+        return replies.map { reply in sentenceSegments(of: reply).map(safetyCopyKey).filter { !$0.isEmpty } }
     }
 
     /// A sentence as compared with the safety copy: inline emphasis removed,
@@ -409,8 +461,10 @@ enum CoachVoiceGuard {
     }
 
     /// Cheap pre-check: does this text contain anything at all worth rewriting?
-    /// Lets the streaming path skip the rewrite machinery on the overwhelming
-    /// majority of sentences, which are clean.
+    /// Lets a whole-message pass skip the rewrite machinery on the
+    /// overwhelming majority of replies, which are clean. Text fed to the
+    /// guard in pieces goes to `scrub(_:continuing:)` without it, since every
+    /// piece has to advance the safety-copy progress.
     ///
     /// Shares `entries(for:)` and `firstMatchingEntry` with `scrub`, so the
     /// pre-check and the scrub cannot disagree about what counts as prohibited.

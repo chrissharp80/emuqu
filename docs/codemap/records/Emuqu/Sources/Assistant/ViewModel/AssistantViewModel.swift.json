@@ -197,7 +197,7 @@
   {
    "key": "init AssistantViewModel(registry:store:contextSource:factsStore:)",
    "hash": "dfd4c3e88a8e5bc2",
-   "does": "Initializer: resolves registry (argument or AppDependencies provider registry), stores store/contextSource/factsStore, loads turns from ConversationStore, reads the disclaimer flag from UserDefaults and the prior summary from the sealed summary file (ConversationStore.loadSummary, which moves a plain summary an older build left in UserDefaults into the file), deletes any chat export left by an earlier run (removeChatExports), then wires archive-change invalidation, protected-data recovery observers and composer-state observation. Only called by `static let shared`.",
+   "does": "Initializer: resolves registry (argument or AppDependencies provider registry), stores store/contextSource/factsStore, loads turns from ConversationStore, reads the disclaimer flag from UserDefaults and the prior summary from the sealed summary file (ConversationStore.loadSummary, which moves a plain summary an older build left in UserDefaults into the file, or removes it when the sealed file is already there), deletes any chat export left by an earlier run (removeChatExports), then wires archive-change invalidation, protected-data recovery observers and composer-state observation. Called by `static let shared`, and by tests with stores in a temporary directory.",
    "entry": "Lazy static initialisation of AssistantViewModel.shared on first access",
    "calls": [
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()",
@@ -232,7 +232,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "65338e15c91cf183",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)": "5ceea34e9a17e550",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)": "5127c454d7e61491",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "aae2d41709b8e22b",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()": "f70f24b77a45fe36",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.wireArchiveInvalidation()": "f1e954dd18e433c7",
@@ -281,42 +281,54 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.recoverAfterUnlock()": "117d99b428aa7748"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.recoverAfterUnlock()": "b4ed7fdd903cce5e"
    }
   },
   {
    "key": "func AssistantViewModel.recoverAfterUnlock()",
-   "hash": "04d26fb7d732779e",
-   "does": "Calls UserFactsStore.recoverAfterUnlock, then if ConversationStore flags unread on-disk history and the merge succeeds (acknowledging), replaces turns with the merged history and saves it.",
+   "hash": "0c72cc7d51287511",
+   "does": "Calls UserFactsStore.recoverAfterUnlock; while no summary is held and the store says the sealed one was unreadable (summaryNeedsReload), reads it again into priorSummary (loadSummary, migrating from UserDefaults.standard); then if ConversationStore flags unread on-disk history and the merge succeeds (acknowledging), replaces turns with the merged history and saves it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.recoverAfterUnlock()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.summaryNeedsReload",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.needsReloadFromDisk",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)"
    ],
    "reads": [
     "file:conversation.json",
-    "mem:AssistantViewModel.turns"
+    "file:<AppGroup|Documents|tmp>/Assistant/conversation_summary.json (sealed, completeFileProtectionUnlessOpen)",
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantViewModel.priorSummary"
    ],
    "writes": [
     "mem:AssistantViewModel.turns",
+    "mem:AssistantViewModel.priorSummary",
     "file:conversation.json",
     "file:user_facts.json"
    ],
    "branches": [
     {
      "at": "+2",
+     "cond": "priorSummary == nil AND store.summaryNeedsReload",
+     "effect": "priorSummary = store.loadSummary(...)"
+    },
+    {
+     "at": "+5",
      "cond": "store.needsReloadFromDisk AND mergedWithDisk(turns, acknowledging:true) returns non-nil",
      "effect": "true: turns = merged; store.save(turns); false: returns (file still unreadable or nothing to reload)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)": "5127c454d7e61491",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.needsReloadFromDisk": "b7c9c8390d25c7ff",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.summaryNeedsReload": "843e481ff9ffac7b",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.recoverAfterUnlock()": "786b93b80d7ccf98",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "d6551226cbf3089d"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "aae2d41709b8e22b"
    }
   },
   {

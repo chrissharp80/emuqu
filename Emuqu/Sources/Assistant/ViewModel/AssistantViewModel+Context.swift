@@ -585,6 +585,10 @@ final class StreamTextBuffer {
     private var pendingChunks = ""
     private var lastPublishAt = Date.distantPast
     private let publishIntervalMs: Double = 33
+    /// How far this round's published text has followed one of the app's
+    /// canned safety replies, so a reply split across flushes is still
+    /// recognised as the reply (`CoachVoiceGuard.scrub(_:continuing:)`).
+    private var safetyCopy = CoachVoiceGuard.SafetyCopyProgress()
 
     init(owner: AssistantViewModel, turnID: UUID) {
         self.owner = owner
@@ -668,12 +672,13 @@ final class StreamTextBuffer {
         return scrubbing(split.complete)
     }
 
-    /// Scrub, and record any interception so the incident is auditable. The
-    /// cheap `containsProhibitedLanguage` pre-check keeps the overwhelmingly
-    /// common clean case to one regex sweep instead of a rewrite pass.
+    /// Scrub, and record any interception so the incident is auditable.
+    /// Every published piece goes through the guard, clean ones included, so
+    /// `safetyCopy` sees each sentence in order: the app's canned safety
+    /// reply passes only as that reply, opening sentence first, however the
+    /// flushes cut it.
     private func scrubbing(_ text: String) -> String {
-        guard CoachVoiceGuard.containsProhibitedLanguage(text) else { return text }
-        let result = CoachVoiceGuard.scrub(text)
+        let result = CoachVoiceGuard.scrub(text, continuing: &safetyCopy)
         for trigger in result.triggers {
             owner.recordCoachVoiceInterception(reason: trigger.reason)
         }
@@ -697,6 +702,8 @@ final class StreamTextBuffer {
     /// round's tool decision, and voice (which tracks what it has spoken)
     /// would skip it.
     func rewindToRoundStart() {
+        // The withdrawn text no longer leads into anything published next.
+        safetyCopy = CoachVoiceGuard.SafetyCopyProgress()
         // Resolve the live turn by id.
         guard let index = currentIndex else { return }
         if let cursor = owner.speakableTextCursor[turnID], cursor > roundStartTextLen {
