@@ -73,7 +73,7 @@ final class LiveDFAAnalyzerTests: XCTestCase {
     }
 
     func testEmptySeriesIsSafe() {
-        XCTAssertEqual(LiveDFAAnalyzer.cleanRRForDFA([]).values, [])
+        XCTAssertEqual(LiveDFAAnalyzer.cleanRRForDFA([Double]()).values, [])
     }
 
     // MARK: - Artifacts at the edges
@@ -157,7 +157,7 @@ final class LiveDFAAnalyzerTests: XCTestCase {
         // `correctedFraction` is compared against a threshold. A NaN here would
         // make both `<=` and `>` false and send the caller down whichever
         // branch it happened to write first.
-        let fraction = LiveDFAAnalyzer.cleanRRForDFA([]).correctedFraction
+        let fraction = LiveDFAAnalyzer.cleanRRForDFA([Double]()).correctedFraction
         XCTAssertFalse(fraction.isNaN)
         XCTAssertEqual(fraction, 0)
     }
