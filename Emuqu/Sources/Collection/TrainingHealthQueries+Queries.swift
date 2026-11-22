@@ -6,15 +6,16 @@ import os
 // MARK: - Training Load & Fitness Data
 
 extension TrainingHealthQueries {
-    /// VO2max trend over the last `days` days. Returns
+    /// VO2max trend over the `days` days up to `referenceDate`. Returns
     /// (latest, oldestInWindow, sampleCount). Latest is the most-recent
     /// sample value; oldestInWindow is the earliest sample within the
     /// window so the caller (or AI) can compute change = latest -
-    /// oldestInWindow. nil tuple when the user has zero samples.
-    func fetchVO2MaxTrend(days: Int = 30) async -> (latest: Double, oldestInWindow: Double, sampleCount: Int)? {
+    /// oldestInWindow. nil tuple when the user has zero samples. A past
+    /// `referenceDate` (a reanalysis) reads the trend as it stood then.
+    func fetchVO2MaxTrend(days: Int = 30, relativeTo referenceDate: Date = Date()) async -> (latest: Double, oldestInWindow: Double, sampleCount: Int)? {
         guard manager.isHealthKitAvailable, let vo2Type = HKTypes.quantity(.vo2Max) else { return nil }
-        let windowStart = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
-        let predicate = HKQuery.predicateForSamples(withStart: windowStart, end: Date(), options: [])
+        let windowStart = Calendar.current.date(byAdding: .day, value: -days, to: referenceDate) ?? referenceDate
+        let predicate = HKQuery.predicateForSamples(withStart: windowStart, end: referenceDate, options: [])
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
         return await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
@@ -457,46 +458,51 @@ extension TrainingHealthQueries {
         await queryWorkouts(days: days, relativeTo: referenceDate)
     }
 
-    /// Fetch Apple's computed resting heart rate from HealthKit.
+    /// Fetch Apple's computed resting heart rate from HealthKit, as it stood
+    /// at `referenceDate`.
     /// This is a daily metric derived by Apple Watch from all-day HR monitoring,
     /// more stable than instantaneous minimum HR for TRIMP calculations.
-    /// Only a sample from the last `WorkoutLoadRestingHR.maxAgeDays` counts:
+    /// Only a sample from the `WorkoutLoadRestingHR.maxAgeDays` before
+    /// `referenceDate` counts:
     /// a value from a Watch the user stopped wearing months ago must not
     /// anchor every HR-only TRIMP, so with none that recent this returns nil
     /// and the anchors fall back to the resting-HR setting.
+    /// The app's own resting-HR exports are left out
+    /// (`hrReadExcludingOwnWrites`): reading the nocturnal median Emuqu wrote
+    /// back as Apple's value would anchor training load to the app's own
+    /// output.
     /// Internal (not private) so `TrainingMetricsCache.buildDailySeries` resolves
     /// resting HR the SAME way as `calculateTrainingMetrics` — see the note
     /// there. Both must use one source or their HR-backed TRIMP diverges.
-    func fetchAppleRestingHR() async -> Double? {
+    func fetchAppleRestingHR(relativeTo referenceDate: Date = Date()) async -> Double? {
         guard manager.isHealthKitAvailable else { return nil }
         guard let rhrType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else {
             debugLog("[HealthKitManager] Resting heart rate type unavailable")
             return nil
         }
-        let since = Calendar.current.date(byAdding: .day, value: -WorkoutLoadRestingHR.maxAgeDays, to: Date())
-        let latest = await latestQuantitySample(rhrType, unit: HKUnit.count().unitDivided(by: .minute()), since: since)
+        let since = Calendar.current.date(byAdding: .day, value: -WorkoutLoadRestingHR.maxAgeDays, to: referenceDate)
+        let latest = await latestQuantitySample(
+            rhrType, unit: HKUnit.count().unitDivided(by: .minute()), since: since, until: referenceDate
+        )
         if let latest { WorkoutLoadRestingHR.record(latest.value, measuredAt: latest.date) }
         return latest?.value
     }
 
-    /// Fetch latest VO2max from HealthKit
-    func fetchVO2Max() async -> Double? {
+    /// Fetch the latest VO2max from HealthKit as of `referenceDate`.
+    func fetchVO2Max(relativeTo referenceDate: Date = Date()) async -> Double? {
         guard manager.isHealthKitAvailable, let vo2Type = HKTypes.quantity(.vo2Max) else { return nil }
-        let vo2 = await latestQuantityValue(vo2Type, unit: HKUnit(from: "ml/kg*min"))
+        let vo2 = await latestQuantitySample(vo2Type, unit: HKUnit(from: "ml/kg*min"), since: nil, until: referenceDate)?.value
         if vo2 == nil { debugLog("[HealthKitManager] No VO2max data found") }
         return vo2
     }
 
-    /// Most recent sample of a quantity type, in the requested unit.
-    private func latestQuantityValue(_ type: HKQuantityType, unit: HKUnit) async -> Double? {
-        await latestQuantitySample(type, unit: unit, since: nil)?.value
-    }
-
-    /// Most recent sample of a quantity type, in the requested unit, with its
-    /// end date; with `since`, only samples starting at or after it.
-    private func latestQuantitySample(_ type: HKQuantityType, unit: HKUnit, since: Date?) async -> (value: Double, date: Date)? {
+    /// Most recent sample of a quantity type that ended by `until`, in the
+    /// requested unit, with its end date; with `since`, only samples starting
+    /// at or after it. Samples this app wrote are never read back.
+    private func latestQuantitySample(_ type: HKQuantityType, unit: HKUnit, since: Date?, until: Date) async -> (value: Double, date: Date)? {
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        let predicate = since.map { HKQuery.predicateForSamples(withStart: $0, end: nil, options: .strictStartDate) }
+        let window = HKQuery.predicateForSamples(withStart: since, end: until, options: [.strictStartDate, .strictEndDate])
+        let predicate = manager.hrReadExcludingOwnWrites(dateRange: window)
         return await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
@@ -532,7 +538,7 @@ extension TrainingHealthQueries {
         additionalWorkouts: [HealthKitManager.WorkoutSummary] = [],
         preloadedHealthKitWorkouts: [HealthKitManager.WorkoutSummary]? = nil
     ) async -> HealthKitManager.TrainingMetrics {
-        let anchors = await heartRateAnchors(restingHR: restingHR, maxHR: userMaxHR)
+        let anchors = await heartRateAnchors(restingHR: restingHR, maxHR: userMaxHR, relativeTo: referenceDate)
         let allWorkouts = await mergedTrainingWorkouts(
             referenceDate: referenceDate,
             additionalWorkouts: additionalWorkouts,
@@ -548,16 +554,16 @@ extension TrainingHealthQueries {
             dailyTrimp: dailyTrimp, allWorkouts: allWorkouts, today: today,
             calendar: calendar, forMorningReading: forMorningReading
         )
-        await applyVO2Max(to: &metrics)
+        await applyVO2Max(to: &metrics, relativeTo: referenceDate)
         return metrics
     }
 
     /// The heart-rate anchors training load scores HR-only workouts against:
-    /// Apple's measured resting HR when Health has one, else the user's
-    /// resting-HR setting, and the user's max HR. The live metrics and the
-    /// cache's day-by-day series both resolve them here.
-    func trainingHeartRateAnchors() async -> TrainingLoadSeries.HeartRateAnchors {
-        let apple = await fetchAppleRestingHR()
+    /// Apple's measured resting HR as of `referenceDate` when Health has one,
+    /// else the user's resting-HR setting, and the user's max HR. The live
+    /// metrics and the cache's day-by-day series both resolve them here.
+    func trainingHeartRateAnchors(relativeTo referenceDate: Date = Date()) async -> TrainingLoadSeries.HeartRateAnchors {
+        let apple = await fetchAppleRestingHR(relativeTo: referenceDate)
         let settings = AppDependencies.current.app.settingsManager.settings
         return .resolve(
             appleRestingHR: apple, settingRestingHR: settings.effectiveRestingHR, settingMaxHR: settings.effectiveMaxHR
@@ -565,9 +571,9 @@ extension TrainingHealthQueries {
     }
 
     /// The caller's anchors, with any it left nil resolved by `trainingHeartRateAnchors`.
-    private func heartRateAnchors(restingHR: Double?, maxHR: Double?) async -> TrainingLoadSeries.HeartRateAnchors {
+    private func heartRateAnchors(restingHR: Double?, maxHR: Double?, relativeTo referenceDate: Date) async -> TrainingLoadSeries.HeartRateAnchors {
         if let restingHR, let maxHR { return .init(restingHR: restingHR, maxHR: maxHR) }
-        let resolved = await trainingHeartRateAnchors()
+        let resolved = await trainingHeartRateAnchors(relativeTo: referenceDate)
         return .init(restingHR: restingHR ?? resolved.restingHR, maxHR: maxHR ?? resolved.maxHR)
     }
 
@@ -660,10 +666,11 @@ extension TrainingHealthQueries {
     /// Fold the latest VO2max + 30-day trend into the metrics
     /// snapshot so the sync `TrainingMetricsCache.snapshot()` path makes them
     /// visible to the AI tool layer without an async hop. Both stay nil when no
-    /// HealthKit data exists.
-    private func applyVO2Max(to metrics: inout HealthKitManager.TrainingMetrics) async {
-        metrics.vo2MaxLatest = await fetchVO2Max()
-        guard let trend = await fetchVO2MaxTrend(days: 30) else { return }
+    /// HealthKit data exists. Read as of `referenceDate`, so a reanalysis of a
+    /// past day stores that day's VO2max, not today's.
+    private func applyVO2Max(to metrics: inout HealthKitManager.TrainingMetrics, relativeTo referenceDate: Date) async {
+        metrics.vo2MaxLatest = await fetchVO2Max(relativeTo: referenceDate)
+        guard let trend = await fetchVO2MaxTrend(days: 30, relativeTo: referenceDate) else { return }
         metrics.vo2MaxChange30Days = trend.latest - trend.oldestInWindow
         metrics.vo2MaxSampleCount30Days = trend.sampleCount
     }

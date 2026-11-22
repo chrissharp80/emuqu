@@ -517,6 +517,39 @@
    "deps": {
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.strokeData(from:)": "c1abfb6bfa147e3e"
    }
+  },
+  {
+   "key": "func NormalizedPowerTests.testZeroWattsCountsAndAStaleReadingDoesNot()",
+   "hash": "c02a9634fb3d92ec",
+   "does": "Asserts FootPodManager.freshPower keeps 0 W and a 2-second-old reading, drops one older than powerStaleAfter, and returns nil without a reading.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.freshPower(_:measuredAt:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.freshPower(_:measuredAt:now:)": "6cf7549cde3fc6fe"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testCoastingAtZeroWattsKeepsTheWindowsWhole()",
+   "hash": "17e03548380ab42a",
+   "does": "Asserts 30 s at 200 W then 30 s coasting at 0 W gives a normalized power (the zeros keep the windows whole) below that of 60 s at 200 W.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "a1ae537db438ff74",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)": "f615b310e85f1887",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.steady(_:seconds:from:)": "fc6983bf5ba94746"
+   }
   }
  ],
  "deps": {}

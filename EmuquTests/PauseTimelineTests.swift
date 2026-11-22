@@ -29,6 +29,27 @@ final class PauseTimelineTests: XCTestCase {
         XCTAssertEqual(timeline.wallClock(forOffset: 1_200, sessionStart: start), start.addingTimeInterval(1_200))
     }
 
+    /// The workout clock is the wall clock less the pauses, so ticks the
+    /// timer missed (the app suspended on a locked phone) are not lost.
+    func testActiveSecondsFollowTheWallClockLessPauses() {
+        var timeline = PauseTimeline()
+        XCTAssertEqual(timeline.activeSeconds(sessionStart: start, now: start.addingTimeInterval(2_700.6)), 2_700)
+        timeline.pause(atElapsed: 600, now: start.addingTimeInterval(600))
+        XCTAssertEqual(timeline.activeSeconds(sessionStart: start, now: start.addingTimeInterval(900)), 600, "stands still while paused")
+        timeline.resume(now: start.addingTimeInterval(900))
+        XCTAssertEqual(timeline.activeSeconds(sessionStart: start, now: start.addingTimeInterval(1_000)), 700)
+        XCTAssertEqual(timeline.activeSeconds(sessionStart: start, now: start.addingTimeInterval(-5)), 0)
+    }
+
+    /// A workout stopped while paused ends its pause at the stop, so the
+    /// last pause is saved with the others.
+    func testAPauseEndedAtTheStopIsSaved() {
+        var timeline = PauseTimeline()
+        timeline.pause(atElapsed: 1_800, now: start.addingTimeInterval(1_800))
+        timeline.resume(now: start.addingTimeInterval(2_100))
+        XCTAssertEqual(timeline.spans, [PauseTimeline.Span(atElapsed: 1_800, seconds: 300)])
+    }
+
     func testAResumeWithoutAPauseRecordsNothing() {
         var timeline = PauseTimeline()
         timeline.resume(now: start)

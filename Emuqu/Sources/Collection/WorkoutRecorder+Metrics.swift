@@ -229,12 +229,12 @@ extension WorkoutSessionLifecycle {
     /// Best-effort — if auth isn't granted or the API call fails,
     /// the in-app session is canonical and unaffected.
     private func exportToHealthKitIfAvailable(_ session: HRVSession) {
-        let healthStore = recorder.core.healthKit.healthStore
+        let healthKit = recorder.core.healthKit
         let weight = recorder.settingsProvider().effectiveBodyWeightKg
         let archive = recorder.core.archive
         Task(priority: .utility) {
             await Self.exportWorkoutToHealthKit(
-                session: session, store: healthStore, bodyWeightKg: weight, archive: archive
+                session: session, healthKit: healthKit, bodyWeightKg: weight, archive: archive
             )
         }
     }
@@ -257,7 +257,7 @@ extension WorkoutSessionLifecycle {
     @available(iOS 17.0, *)
     private static func exportWorkoutToHealthKit(
         session: HRVSession,
-        store: HKHealthStore,
+        healthKit: HealthKitManager,
         bodyWeightKg: Double,
         archive: SessionArchive
     ) async {
@@ -265,7 +265,7 @@ extension WorkoutSessionLifecycle {
         defer { HealthExportClaims.release(session.id) }
         do {
             try await HealthKitWorkoutExport.export(
-                session: session, store: store, bodyWeightKg: bodyWeightKg
+                session: session, healthKit: healthKit, bodyWeightKg: bodyWeightKg
             )
             stampHealthKitExport(sessionId: session.id, archive: archive)
         } catch {
@@ -285,8 +285,9 @@ extension WorkoutSessionLifecycle {
         do {
             // In place, under the archive lock: the heart-rate-recovery save
             // runs on another thread, and a read-then-write here could put
-            // back a copy without its samples.
-            try archive.update(sessionId, requestingReupload: false) { $0.healthKitExportedAt = Date() }
+            // back a copy without its samples. Uploaded to iCloud with the
+            // session, so another device does not export the workout again.
+            try archive.update(sessionId) { $0.healthKitExportedAt = Date() }
         } catch {
             debugLog("[WorkoutRecorder] HealthKit export stamp not persisted: \(error.localizedDescription)", level: .warning)
         }

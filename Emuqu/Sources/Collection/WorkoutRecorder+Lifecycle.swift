@@ -99,13 +99,13 @@ extension WorkoutFinalizer {
             sport: sport,
             rrPoints: rrPoints,
             startDate: startDate,
-            track: recorder.location.track,
+            track: recorder.startedLocation?.track ?? [],
             userMaxHR: userMaxHR,
             userRestingHR: settings.effectiveRestingHR,
             userLTHR: settings.effectiveLTHR,
             sex: Self.banisterSex(for: settings.biologicalSex),
             splitDistanceMeters: Self.splitDistanceMeters(),
-            pauses: recorder.location.trackPauses
+            pauses: recorder.startedLocation?.trackPauses ?? WorkoutAnalyzer.TrackPauses()
         )
         return FinalizeAnalysis(series: series, sport: sport, userMaxHR: userMaxHR, computed: computed)
     }
@@ -149,7 +149,7 @@ extension WorkoutFinalizer {
             return ergDistance
         }
         let paused = recorder.lifecycle.pausedMotion
-        let gpsDistance = computed.distanceMeters ?? recorder.location.distanceMeters
+        let gpsDistance = computed.distanceMeters ?? recorder.startedLocation?.distanceMeters ?? 0
         let pedometerDistance = paused.pedometerDistance(recorder.pedometer.distanceMeters)
         let footPodDistance = paused.footPodDistance(recorder.footPodDistanceMeters())
         return max(gpsDistance, pedometerDistance, footPodDistance)
@@ -171,13 +171,15 @@ extension WorkoutFinalizer {
     /// that the location manager maintained internally — less
     /// accurate but non-zero.
     private func applyElevationMetrics(to metadata: inout WorkoutMetadata) {
-        guard recorder.location.barometerAvailable, !recorder.location.barometricSamples.isEmpty else {
-            metadata.elevationGainMeters = recorder.location.elevationGainMeters
-            metadata.elevationLossMeters = recorder.location.elevationLossMeters
-            debugLog("[Elevation] no barometer available — using GPS-altitude accumulator: gain=\(Int(recorder.location.elevationGainMeters))m")
+        let started = recorder.startedLocation
+        guard let location = started, location.barometerAvailable, !location.barometricSamples.isEmpty else {
+            let gain = started?.elevationGainMeters ?? 0
+            metadata.elevationGainMeters = gain
+            metadata.elevationLossMeters = started?.elevationLossMeters ?? 0
+            debugLog("[Elevation] no barometer available — using GPS-altitude accumulator: gain=\(Int(gain))m")
             return
         }
-        let processed = BarometricAltitudeProcessor.process(samples: recorder.location.barometricSamples)
+        let processed = BarometricAltitudeProcessor.process(samples: location.barometricSamples)
         metadata.elevationGainMeters = processed.gainMeters
         metadata.elevationLossMeters = processed.lossMeters
         debugLog("[Elevation] barometric post-processed: gain=\(Int(processed.gainMeters))m, loss=\(Int(processed.lossMeters))m from \(processed.smoothedSampleCount) samples")
@@ -265,7 +267,7 @@ extension WorkoutFinalizer {
         recorder.wristHROffsets = []
         if let splits = metadata.splits, let samples = metadata.samples {
             metadata.splits = WorkoutAnalyzer.enrichSplitsWithAlpha1(
-                splits: splits, samples: samples, startDate: startDate, track: recorder.location.track
+                splits: splits, samples: samples, startDate: startDate, track: recorder.startedLocation?.track ?? []
             )
         }
     }
@@ -324,7 +326,7 @@ extension WorkoutFinalizer {
     /// HR-free intensity proxy and runs independently of this estimator.)
     private func applyRouteTRIMPEstimate(to metadata: inout WorkoutMetadata, sport: Sport) {
         guard let estimate = RouteTRIMPEstimator.estimate(
-            track: recorder.location.track,
+            track: recorder.startedLocation?.track ?? [],
             sport: sport,
             recordedTRIMP: metadata.luciaTRIMP,
             recordedDistance: metadata.distanceMeters,

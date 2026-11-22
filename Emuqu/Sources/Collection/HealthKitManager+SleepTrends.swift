@@ -45,10 +45,19 @@ extension HealthWriteAndObserve {
         }
         let samples = Self.sleepExportSamples(
             sleepData: sleepData, sleepType: sleepType, sessionId: sessionId,
-            inBedStart: sleepData.inBedStart ?? sleepStart, sleepEnd: sleepEnd
+            inBedStart: sleepData.inBedStart ?? sleepStart, sleepEnd: sleepEnd,
+            version: HealthExportIdentity.nextSyncVersion()
         )
         guard !samples.isEmpty else { return }
         try await manager.sampleReplacer.replace(samples, Self.sleepReplacement(sleepType: sleepType, sessionId: sessionId))
+    }
+
+    /// Delete the sleep a session deleted forever exported: its sleep
+    /// identity on any date, as an export replaces it, waiting for an export
+    /// of the same session still running. Errors propagate.
+    func removeExportedSleep(sessionId: UUID) async throws {
+        guard manager.isHealthKitAvailable, let sleepType = HKTypes.category(.sleepAnalysis) else { return }
+        try await manager.sampleReplacer.replace([], Self.sleepReplacement(sleepType: sleepType, sessionId: sessionId))
     }
 
     /// One replacement of the session's sleep export: this app's sleep
@@ -58,35 +67,36 @@ extension HealthWriteAndObserve {
         HealthSampleReplacement(
             type: sleepType, span: nil, timeout: HealthKitManager.sleepQueryTimeoutSec,
             label: "sleep export", serialKey: sessionId.uuidString,
-            matches: { HealthExportIdentity.belongsToSession($0, sessionId: sessionId, metric: .sleep) }
+            matches: { HealthExportIdentity.belongsToSession($0, sessionId: sessionId, metric: .sleep) },
+            writeTimeout: HealthKitManager.backgroundAggregateQueryTimeoutSec
         )
     }
 
     /// An overall inBed sample spanning the night, followed by one sample per
     /// stage interval. An interval that ends before it starts is left out
-    /// (`HealthSampleFactory`), the inBed span included.
+    /// (`HealthSampleFactory`), the inBed span included. Every sample carries
+    /// `version` as its sync version.
     nonisolated static func sleepExportSamples(
         sleepData: SleepData,
         sleepType: HKCategoryType,
         sessionId: UUID,
         inBedStart: Date,
-        sleepEnd: Date
+        sleepEnd: Date,
+        version: Int
     ) -> [HKCategorySample] {
-        let member: (String) -> String = { HealthExportIdentity.seriesMember(sessionId: sessionId, metric: .sleep, suffix: $0) }
+        let memberMetadata: (String) -> [String: Any] = {
+            HealthExportIdentity.metadata(
+                HealthExportIdentity.seriesMember(sessionId: sessionId, metric: .sleep, suffix: $0), version: version
+            )
+        }
         let inBed = HealthSampleFactory.categorySample(
-            type: sleepType,
-            value: HKCategoryValueSleepAnalysis.inBed.rawValue,
-            start: inBedStart,
-            end: sleepEnd,
-            metadata: [HKMetadataKeyExternalUUID: member("inbed"), "Source": "Emuqu"]
+            type: sleepType, value: HKCategoryValueSleepAnalysis.inBed.rawValue,
+            start: inBedStart, end: sleepEnd, metadata: memberMetadata("inbed")
         )
         let stages = sleepData.stageIntervals.enumerated().compactMap { index, interval in
             HealthSampleFactory.categorySample(
-                type: sleepType,
-                value: hkSleepValue(for: interval.stage).rawValue,
-                start: interval.start,
-                end: interval.end,
-                metadata: [HKMetadataKeyExternalUUID: member(String(index)), "Source": "Emuqu"]
+                type: sleepType, value: hkSleepValue(for: interval.stage).rawValue,
+                start: interval.start, end: interval.end, metadata: memberMetadata(String(index))
             )
         }
         return (inBed.map { [$0] } ?? []) + stages
@@ -277,9 +287,13 @@ extension HealthWriteAndObserve {
 
     // MARK: - Sleep Data Observer
 
-    /// Start observing HealthKit for new sleep data (e.g., Apple Watch sync).
-    /// Each time new sleep samples arrive, `sleepDataVersion` is incremented
-    /// so views can reactively re-fetch.
+    /// Start observing HealthKit for new sleep data (e.g., Apple Watch sync),
+    /// through `HealthSampleWatch`: an observer query that background delivery
+    /// wakes, reading what was added since the last read, across launches.
+    /// Each time other sources' sleep samples arrive, `sleepDataVersion` is
+    /// incremented so views can reactively re-fetch, the night's cache is
+    /// warmed and the wake-triggered push is considered. Starting again
+    /// replaces the running query and reads nothing twice.
     func startObservingSleepData() {
         guard manager.isHealthKitAvailable else { return }
         stopObservingSleepData()
@@ -298,11 +312,10 @@ extension HealthWriteAndObserve {
     /// The reference date is the latest sample END: a night is filed under
     /// the morning it ends on, and a start (even the median one) from before
     /// midnight resolved to the previous night. The app's own sleep exports
-    /// are ignored — they are not new data, and must not fire the wake push.
+    /// never reach here (`HealthSampleWatch.othersSamples`) — they are not
+    /// new data, and must not fire the wake push.
     fileprivate func handleSleepSamplesArrived(_ samples: [HKSample]) {
-        let ownSource = HKSource.default()
         let categorySamples = samples.compactMap { $0 as? HKCategorySample }
-            .filter { $0.sourceRevision.source != ownSource }
         guard let freshestEnd = categorySamples.map(\.endDate).max() else { return }
         scheduleSleepCacheWarm(referenceDate: freshestEnd)
         // Wake-triggered morning push. If the freshest sleep sample we just
@@ -366,39 +379,29 @@ extension HealthWriteAndObserve {
     }
 }
 
-/// The anchored query that watches for Watch-synced sleep samples.
-///
-/// Bounded to samples from the last two days, like the vitals observers: with
-/// no predicate, the initial results were every sleep sample ever recorded,
-/// read and discarded each time observation started. A night syncing late is
-/// dated inside that window, and so is everything written later.
+/// The query that watches for Watch-synced sleep samples
+/// (`HealthSampleWatch`). Samples that arrived while the app was not
+/// running, including on the background launch HealthKit makes for them,
+/// are delivered when it starts.
 ///
 /// HealthKit delivers on its own queue. The version bump and the sample
 /// handling both touch main-actor state, so they share one hop — if
 /// the bump hops and the handler does not, `sleepDataVersion`
 /// can publish before the samples it is announcing have been processed.
+@MainActor
 private func makeSleepObserverQuery(
     for sleepType: HKCategoryType,
     owner: HealthWriteAndObserve
-) -> HKAnchoredObjectQuery {
-    let recent = HKQuery.predicateForSamples(withStart: Date().addingTimeInterval(-48 * 60 * 60), end: nil, options: [])
-    let query = HKAnchoredObjectQuery(
-        type: sleepType, predicate: recent, anchor: nil,
-        limit: HKObjectQueryNoLimit
-    ) { _, _, _, _, _ in
-        // Initial results — nothing to do
-    }
+) -> HKObserverQuery {
     // The manager owns this query, so the handler holds the manager weakly and
     // rebuilds the (stateless) helper when it fires.
-    // The app's own sleep exports are not new data: filtered before the
-    // version bump, so they do not set off a re-fetch of today's sleep.
-    query.updateHandler = { [weak manager = owner.manager] _, newSamples, _, _, _ in
-        let ownSource = HKSource.default()
-        guard let manager, let samples = newSamples?.filter({ $0.sourceRevision.source != ownSource }), !samples.isEmpty else { return }
+    HealthSampleWatch.observerQuery(
+        for: sleepType, anchorKey: "HealthSampleWatch.sleepAnchor.v1", store: owner.manager.healthStore
+    ) { [weak manager = owner.manager] samples in
+        guard let manager else { return }
         Task { @MainActor in
             manager.sleepDataVersion += 1
             manager.writes.handleSleepSamplesArrived(samples)
         }
     }
-    return query
 }

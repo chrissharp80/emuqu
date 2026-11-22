@@ -60,11 +60,24 @@ extension WorkoutTicker {
     /// paused — we want the Watch to see "paused" state and for the AI context
     /// to know — but `incrementalBackupTick` itself skips sample-append when
     /// paused.
+    ///
+    /// The clock is the wall clock less the pauses
+    /// (`PauseTimeline.activeSeconds`), not a count of ticks: a repeating
+    /// `Timer` does not replay the fires it missed while the app was
+    /// suspended (a locked phone with no sensor keeping it awake) or the main
+    /// actor was busy, and counting ticks lost that time from the workout. It
+    /// moves at least one second a tick, so every tick's sample has an offset
+    /// of its own; after a gap it jumps to the real time, and the seconds in
+    /// the gap have no sample, as none was taken.
     private func runTick() {
         guard case .recording = recorder.phase else { return }
         evaluateAutoPauseResume()
         if !recorder.lifecycle.isPaused {
-            recorder.lifecycle.elapsedSeconds += 1
+            let lifecycle = recorder.lifecycle
+            let wallActive = recorder.sessionStartDate.map {
+                lifecycle.pauseTimeline.activeSeconds(sessionStart: $0, now: Date())
+            } ?? 0
+            lifecycle.elapsedSeconds = max(lifecycle.elapsedSeconds + 1, wallActive)
         }
         incrementalBackupTick()
     }
@@ -292,8 +305,8 @@ extension WorkoutTicker {
     /// the count stops changing while new rows still need backing up.
     private func persistWorkoutTrackIfChanged(session: HRVSession, sessionId: UUID) {
         guard recorder.trackBackupWatermark.advanceIfChanged(
-            trackCount: recorder.location.track.count,
-            baroCount: recorder.location.barometricSamples.count,
+            trackCount: recorder.startedLocation?.track.count ?? 0,
+            baroCount: recorder.startedLocation?.barometricSamples.count ?? 0,
             samplesCount: recorder.workoutSamples.last?.offsetSec ?? 0
         ) else { return }
         appendTrackSnapshot(session: session, sessionId: sessionId)
@@ -308,7 +321,8 @@ extension WorkoutTicker {
     private func appendTrackSnapshot(session: HRVSession, sessionId: UUID) {
         let sport = session.sport ?? .run
         let startDate = recorder.sessionStartDate ?? session.startDate
-        recorder.trackBackupRows.sync(sessionId: sessionId, track: recorder.location.track, baro: recorder.location.barometricSamples)
+        let location = recorder.startedLocation
+        recorder.trackBackupRows.sync(sessionId: sessionId, track: location?.track ?? [], baro: location?.barometricSamples ?? [])
         let fixSnapshot = recorder.trackBackupRows.fixes
         let baroSnapshot = recorder.trackBackupRows.baro
         let samplesSnapshot = recorder.workoutSamples
@@ -375,15 +389,23 @@ extension WorkoutTicker {
     /// same beats; taking the Watch's as well counted every beat twice. The
     /// queue is still drained, so beats from a stretch the phone covered are
     /// not replayed when it next drops.
+    ///
+    /// The queue is drained every tick, so what it holds arrived with the
+    /// newest batch and is placed back from that batch's arrival
+    /// (`latestWatchStrapAt`). Beats left from a batch more than 10 s old
+    /// (the ticks stopped while the app was suspended) are kept at that
+    /// batch's time and go into the series, but not into the live α1 or the
+    /// live heart rate, which they no longer describe. Left in the queue
+    /// they were placed back from the next batch's arrival instead,
+    /// minutes later than they happened.
     private func consumeWatchRoutedStrapFallback() {
-        guard let watchStrapAt = recorder.watchBridge.latestWatchStrapAt,
-              Date().timeIntervalSince(watchStrapAt) < 10
-        else { return }
+        guard let watchStrapAt = recorder.watchBridge.latestWatchStrapAt else { return }
         let drainedWatchRR = WatchPayloadBounds.plausibleRRMillis(recorder.watchBridge.drainPendingWatchStrapRR())
         guard !drainedWatchRR.isEmpty, !phoneStrapIsLive else { return }
         let newPoints = synthesizeWatchRoutedPoints(drainedWatchRR, arrivedAt: watchStrapAt)
         guard !newPoints.isEmpty else { return }
         recorder.watchRoutedRRBuffer.append(contentsOf: newPoints)
+        guard Date().timeIntervalSince(watchStrapAt) < 10 else { return }
         recorder.dfa.ingest(points: newPoints)
         applyWatchRoutedHR()
     }
@@ -540,16 +562,26 @@ extension WorkoutTicker {
             let paused = recorder.lifecycle.pausedMotion
             recorder.motion.distanceMeters = max(
                 paused.footPodDistance(recorder.footPodDistanceMeters()),
-                max(recorder.location.distanceMeters, paused.pedometerDistance(recorder.pedometer.distanceMeters))
+                max(recorder.startedLocation?.distanceMeters ?? 0, paused.pedometerDistance(recorder.pedometer.distanceMeters))
             )
         }
-        recorder.motion.elevationGainMeters = recorder.location.elevationGainMeters
-        recorder.motion.liveTrack = recorder.location.track
+        recorder.motion.elevationGainMeters = recorder.startedLocation?.elevationGainMeters ?? 0
+        mirrorLiveTrackIfChanged()
         recorder.motion.stepCount = recorder.pedometer.stepCount
         recorder.motion.cadenceStepsPerMin = (isRow ? erg?.strokeRateSPM : nil)
             ?? recorder.footPod.cadenceStepsPerMin
             ?? recorder.pedometer.cadenceStepsPerMin
-        tallyPower(isRow ? erg?.instantaneousPowerWatts : recorder.footPod.instantaneousPowerWatts)
+        tallyPower(isRow ? erg?.instantaneousPowerWatts : recorder.footPod.currentPowerWatts())
+    }
+
+    /// The map's track, set only when a fix was added or replaced: setting
+    /// the observed array each second redrew the whole polyline of a long
+    /// workout even while standing still.
+    private func mirrorLiveTrackIfChanged() {
+        let track = recorder.startedLocation?.track ?? []
+        let shown = recorder.motion.liveTrack
+        guard shown.count != track.count || shown.last !== track.last else { return }
+        recorder.motion.liveTrack = track
     }
 
     /// Power (watts). Captures running totals for the post-summary's
@@ -560,7 +592,11 @@ extension WorkoutTicker {
     ///
     /// While paused the live reading is still shown but not tallied, the
     /// same rule as the per-second samples, so an idle 0 W during a rest
-    /// stop does not dilute the stored average power.
+    /// stop does not dilute the stored average power. While recording, 0 W
+    /// (coasting) is a reading and counts; a foot-pod reading older than
+    /// `FootPodManager.powerStaleAfter` is no reading
+    /// (`FootPodManager.currentPowerWatts`), so a meter that went quiet does
+    /// not have its last watts counted every second.
     private func tallyPower(_ liveWatts: Int?) {
         guard let w = liveWatts else {
             recorder.motion.powerWatts = nil
@@ -603,7 +639,7 @@ extension WorkoutTicker {
             offsetSec: recorder.elapsedSeconds, heartRate: recorder.currentHR,
             distanceMeters: recorder.distanceMeters > 0 ? recorder.distanceMeters : nil,
             paceSecPerKm: paceSecPerKm, cadenceStepsPerMin: recorder.cadenceStepsPerMin,
-            altitudeMeters: recorder.location.currentLocation?.altitude, alpha1: recorder.dfa.currentAlpha1,
+            altitudeMeters: recorder.startedLocation?.currentLocation?.altitude, alpha1: recorder.dfa.currentAlpha1,
             mets: WorkoutRecorder.estimateMETs(
                 sport: sport, paceSecPerKm: paceSecPerKm, heartRate: recorder.currentHR,
                 userMaxHR: recorder.settingsProvider().effectiveMaxHR
@@ -664,7 +700,7 @@ extension WorkoutTicker {
     /// of state the AI might need to sound like a real coach.
     private func publishLiveWorkoutSnapshot() {
         guard let sport = recorder.currentSession?.sport else { return }
-        let loc = recorder.location.currentLocation
+        let loc = recorder.startedLocation?.currentLocation
         let heading = Self.validCourse(loc)
         AppDependencies.current.assistant.liveWorkoutBroker.publish(
             buildBrokerSnapshot(
@@ -744,7 +780,7 @@ extension WorkoutTicker {
             sport: sport.displayName, snapshotAt: Date(), sessionStartAt: recorder.sessionStartDate ?? Date(), elapsedSeconds: recorder.elapsedSeconds, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: recorder.settingsProvider().effectiveMaxHR,
             beatCount: recorder.beatCount, distanceMeters: recorder.distanceMeters, stepCount: recorder.stepCount, cadenceStepsPerMin: recorder.cadenceStepsPerMin, elevationGainMeters: recorder.elevationGainMeters, alpha1: recorder.dfa.currentAlpha1,
             alpha1Band: recorder.dfa.currentBand.label, alpha1Status: recorder.dfa.status.label, alpha1FitQualityR2: recorder.dfa.fitQuality, strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: recorder.liveTrack.count,
-            gpsAccuracyMeters: recorder.location.lastHorizontalAccuracy, currentPaceSecPerKm: recorder.currentPaceSecPerKm, currentSpeedMS: speedMS, powerWatts: recorder.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: recorder.recentSplitPacesSecPerKm(),
+            gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy, currentPaceSecPerKm: recorder.currentPaceSecPerKm, currentSpeedMS: speedMS, powerWatts: recorder.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: recorder.recentSplitPacesSecPerKm(),
             currentLatitude: loc?.coordinate.latitude, currentLongitude: loc?.coordinate.longitude, currentAltitudeMeters: loc?.altitude, currentHeadingDegrees: heading, currentHeadingCardinal: heading.map(Self.cardinal(fromCourse:)),
             currentGradePercent: recorder.computeCurrentGradePercent(), unitsPreference: UnitsPreferenceStore.current.rawValue, targetZone: recorder.targetZone, recognizedRouteName: recorder.plannedRoute?.name, recognizedRouteWasAutoDetected: recorder.plannedRouteWasAutoDetected,
             recognizedRouteDirection: recognizedRouteDirectionLabel(), routeTotalDistanceMeters: recorder.plannedRoute?.totalDistanceMeters, routeClimbCount: recorder.plannedRoute?.climbs.count, currentRoadName: road?.road, currentLocality: road?.locality,
@@ -871,7 +907,7 @@ extension WorkoutTicker {
     /// after the first one.
     private func refreshEnvironmentContextIfNeeded(sport: Sport) {
         let settings = recorder.settingsProvider()
-        let location = recorder.location.currentLocation
+        let location = recorder.startedLocation?.currentLocation
         if settings.enableAIAssistant || (settings.heatTrackingEnabled && sport.usesGPS) {
             AppDependencies.current.location.weatherService.refreshIfNeeded(for: location)
         }

@@ -375,10 +375,10 @@ ATL_m and CTL_m come from the frozen snapshot, or are 0 if it is missing. The fr
 Each 1 s tick runs three steps in order:
 
 1. **Phone strap.** New beats go to the α1 analyzer. Live HR is `60000 / median(last 8 RR > 0)`, using the middle-pair mean for an even count, and `lastStrapHRAt = now`.
-2. **Watch-relayed strap.** This step runs only if the Watch reported strap data within 10 s.
-   - The relayed RR queue is always drained and filtered to a plausible range.
+2. **Watch-relayed strap.** This step runs once the Watch has reported any strap data.
+   - The relayed RR queue is drained every tick and filtered to a plausible range.
    - The drained beats are **used** only if `lastStrapHRAt` is ≥ 5 s old or absent.
-   - Used beats get wall-clock times on the phone stream's clock, assigned backward from the batch's arrival by the cumulative interval sum. They go to a separate buffer and to the α1 analyzer. The Watch-reported strap HR is shown, and `lastWatchRoutedHRAt` is stamped.
+   - Used beats get wall-clock times on the phone stream's clock, assigned backward from the newest batch's arrival by the cumulative interval sum, and go to a separate buffer. Only when that batch arrived within 10 s do they also go to the α1 analyzer, with the Watch-reported strap HR shown and `lastWatchRoutedHRAt` stamped.
 3. **Arbitration** (a pure function, in strap mode).
    - After more than 10 s of silence on both strap channels, the app shows wrist HR received within the last 30 s. With none, it clears the HR rather than leave it stale.
    - A "strap not connected" or "strap silent" notice appears only after 15 s of recording, and only while both channels are silent.
@@ -792,7 +792,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | approachPad / recoveryPad | 60 / 120 | s | Shadow padding |
 | maxSampleGapSec | 5 | s | Per-sample time cap in band totals |
 | live HR median | 8 | beats | Display smoothing |
-| Watch strap freshness | 10 | s | Relay considered at all |
+| Watch strap freshness | 10 | s | Relayed beats feed α1 and live HR |
 | phone strap live | < 5 | s | Watch relay ignored while live |
 | wristFallbackSilenceSec | 10 | s | Fall through to wrist HR |
 | wristHRMaxAgeSec | 30 | s | Wrist HR freshness |
@@ -1010,12 +1010,13 @@ frozen(Rrec, ATL, CTL) = readiness(Rrec, 0, CTL, ATL, ATL, ATL/CTL if CTL>0 else
 # B9 Dual-path strap fusion (N13)
 tick():
   if new phone beats: dfa.ingest(new); hr = 60000/median(last 8 rr); lastStrapAt = now
-  if watchStrapAt != nil and now - watchStrapAt < 10:
+  if watchStrapAt != nil:
     q = drain(watchQueue)
     if q nonempty and not (lastStrapAt != nil and now - lastStrapAt < 5):
       wallClockMs = watchStrapAt - sum(q) (on phone stream clock)
       pts = [] ; for rr in q: pts.append(rr, wallClockMs); wallClockMs += rr
-      watchBuf += pts; dfa.ingest(pts); show watch strap HR; lastWatchAt = now
+      watchBuf += pts
+      if now - watchStrapAt < 10: dfa.ingest(pts); show watch strap HR; lastWatchAt = now
   arbitrate(silences, wristHR fresh <= 30 s)
 merge(source, phone, watch):
   base = phone if source == STRAP else []

@@ -1,12 +1,13 @@
 {
  "file": "Emuqu/Sources/Collection/WorkoutRecorder.swift",
- "hash": "e9d9f60139c74c77",
+ "hash": "c450e38c93339e69",
  "role": "The @Observable @MainActor live-workout orchestrator: owns sub-observables (lifecycle, HR, motion), DFA analyzer, interval controller, dependencies (RecordingCore, location, pedometer, foot pod, Watch bridge, voice coach, conversation) and all per-workout mutable state; forwards lifecycle work to WorkoutSessionLifecycle. Also declares FootPodOdometer.",
  "types": [
   "WorkoutRecorder: class — live workout orchestrator",
   "WorkoutRecorder.Phase: enum — idle/recording/finalizing/finished/failed",
   "WorkoutRecorder.ReadinessSnapshot: struct — morning readiness frozen at start",
   "WorkoutRecorder.TrainingProjectionSnapshot: struct — days-until-fresh / TSB forecast",
+  "WorkoutRecorder.GradeMemo: struct (+ Key) — the live grade with the fix count, newest fix time and barometer count it was worked out from",
   "FootPodOdometer: struct — workout distance from a pod's lifetime odometer, surviving pod resets",
   "typealias WorkoutRecorder.HRSource = WorkoutSessionLifecycle.HRSource"
  ],
@@ -315,7 +316,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.pause(isAuto:)": "8497b8529a9d56c9",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.pause(isAuto:)": "928e0dca6fee3060",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "847d122c6e26f24c"
    }
   },
@@ -332,7 +333,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resume()": "3bedbf4b61bdf91a",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resume()": "ee672d7bfe1742e5",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "847d122c6e26f24c"
    }
   },
@@ -433,6 +434,20 @@
    }
   },
   {
+   "key": "var WorkoutRecorder.startedLocation",
+   "hash": "e2e1d82134a49b9a",
+   "does": "The location stack if something has built it (the injected one, else the lazily built one), nil otherwise; never builds it. Pause, stop, finalize and the per-tick reads go through it so an indoor workout never builds CLLocationManager + CMAltimeter on the main thread.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WorkoutRecorder._injectedLocation",
+    "mem:WorkoutRecorder._lazyLocation"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
    "key": "var WorkoutRecorder.location",
    "hash": "6989195bd5bc855d",
    "does": "Returns the injected WorkoutLocationManager, else the cached lazy one, else constructs, caches and returns a new one (deferred so CLLocationManager/CMAltimeter are not built at tab appear).",
@@ -460,7 +475,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::init WorkoutLocationManager()": "a95fe8eb981617c6"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::init WorkoutLocationManager()": "9a1613ce604f88cd"
    }
   },
   {

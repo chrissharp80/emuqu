@@ -1,5 +1,6 @@
 import Foundation
-import HealthKit
+// `@preconcurrency`: HealthKit query and anchor types predate Sendable.
+@preconcurrency import HealthKit
 
 /// The half of HealthKit that writes and watches, rather than reads: exporting
 /// SDNN and windowed HRV back to Health, writing sleep, deleting what this app
@@ -27,6 +28,34 @@ import HealthKit
 struct HealthWriteAndObserve {
     let manager: HealthKitManager
 
+    /// Delete everything this app exported to Apple Health for a session
+    /// deleted forever: its HRV (`removeExportedHRV`), heart rate
+    /// (`HeartRateHealthQueries.removeExportedHeartRate`), resting heart rate
+    /// (`removeExportedRestingHeartRate`, dated at the end as the export
+    /// dates it), sleep (`removeExportedSleep`), and any workout with the
+    /// samples and route saved with it (`HealthKitWorkoutExport.removeExports`).
+    /// `start...end` is the recording's span. Every removal is tried whatever
+    /// the others did, and the first error is thrown afterwards, so the
+    /// caller can say samples are still in Health.
+    func removeExports(sessionId: UUID, from start: Date, to end: Date) async throws {
+        let removals: [(String, @MainActor () async throws -> Void)] = [
+            ("HRV", { try await removeExportedHRV(sessionId: sessionId, from: start, to: end) }),
+            ("heart rate", { try await manager.heartRate.removeExportedHeartRate(sessionId: sessionId, from: start, to: end) }),
+            ("resting heart rate", { try await manager.removeExportedRestingHeartRate(at: end, sessionId: sessionId) }),
+            ("sleep", { try await removeExportedSleep(sessionId: sessionId) }),
+            ("workout", { try await HealthKitWorkoutExport.removeExports(sessionId: sessionId, startDate: start, healthKit: manager) })
+        ]
+        var firstError: Error?
+        for (label, removal) in removals {
+            do {
+                try await removal()
+            } catch {
+                debugLog("[HealthKit] \(label) of \(sessionId.uuidString.prefix(8)) could not be deleted from Apple Health: \(error)", level: .warning)
+                firstError = firstError ?? error
+            }
+        }
+        if let firstError { throw firstError }
+    }
 }
 
 // MARK: - Replacing a session's exported samples
@@ -53,6 +82,11 @@ struct HealthSampleReplacement {
     let serialKey: String
     /// Whether a sample's ExternalUUID is one of those this export replaces.
     let matches: (String) -> Bool
+    /// How long the save and the delete may each take; nil gives them the
+    /// read's `timeout`. A series of hundreds of samples saved at wake, while
+    /// Health is busy with the Watch's night, needs longer than a read: one
+    /// that timed out and finished late left the earlier set beside it.
+    var writeTimeout: TimeInterval?
 }
 
 /// The three Health store calls a replacement makes. `HealthKitSampleStore`
@@ -62,6 +96,9 @@ protocol HealthSampleStore: AnyObject, Sendable {
     /// This app's own samples of `type` within `span` (all time when nil).
     /// Throws on a query error and when the read does not answer in `timeout`.
     func ownSamples(of type: HKSampleType, in span: DateInterval?, timeout: TimeInterval, label: String) async throws -> [HKSample]
+    /// This app's own samples of `type` saved with `workout`. Throws on a
+    /// query error and when the read does not answer in `timeout`.
+    func ownSamples(of type: HKSampleType, savedWith workout: HKWorkout, timeout: TimeInterval, label: String) async throws -> [HKSample]
     func save(_ samples: [HKSample]) async throws
     func delete(_ samples: [HKSample]) async throws
 }
@@ -77,8 +114,19 @@ final class HealthKitSampleStore: HealthSampleStore {
     }
 
     func ownSamples(of type: HKSampleType, in span: DateInterval?, timeout: TimeInterval, label: String) async throws -> [HKSample] {
-        let predicate = Self.ownSamplesPredicate(in: span)
-        return try await requireManager().runBoundedThrowingQuery(
+        try await ownSamples(of: type, matching: Self.ownSamplesPredicate(in: span), timeout: timeout, label: label)
+    }
+
+    func ownSamples(of type: HKSampleType, savedWith workout: HKWorkout, timeout: TimeInterval, label: String) async throws -> [HKSample] {
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForObjects(from: Set([HKSource.default()])), HKQuery.predicateForObjects(from: workout)
+        ])
+        return try await ownSamples(of: type, matching: predicate, timeout: timeout, label: label)
+    }
+
+    /// The bounded, fail-closed read both lookups run.
+    private func ownSamples(of type: HKSampleType, matching predicate: NSPredicate, timeout: TimeInterval, label: String) async throws -> [HKSample] {
+        try await requireManager().runBoundedThrowingQuery(
             timeout: timeout,
             makeQuery: { resolve in
                 HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, results, error in
@@ -117,14 +165,16 @@ final class HealthKitSampleStore: HealthSampleStore {
 /// The one way an export replaces what it wrote before, for every metric.
 ///
 /// Reads the earlier samples first, saves the new ones, then deletes exactly
-/// the earlier ones it read. A failed save leaves the earlier export in Health;
+/// the earlier ones it read that the save did not already replace through
+/// their sync identifier (`notReplacedBySync`). A failed save leaves the
+/// earlier export in Health;
 /// a failed delete throws, and the next export of the session removes both
 /// sets, since both carry the session's identity. Replacements with the same
 /// `serialKey` run one at a time, in the order they were asked for, so two
 /// exports of a session never both read the same earlier set; different keys
 /// run concurrently. The save and the delete each get the replacement's
-/// `timeout`, as the read does, so a Health call that never answers fails
-/// this replacement instead of holding its key for every later one.
+/// `writeTimeout` (else its `timeout`), so a Health call that never answers
+/// fails this replacement instead of holding its key for every later one.
 @MainActor
 final class HealthSampleReplacer {
     let store: any HealthSampleStore
@@ -155,13 +205,30 @@ final class HealthSampleReplacer {
             guard let uuid = sample.metadata?[HKMetadataKeyExternalUUID] as? String else { return false }
             return replacement.matches(uuid)
         }
+        let writeTimeout = replacement.writeTimeout ?? replacement.timeout
         if !samples.isEmpty {
-            try await Self.bounded("\(replacement.label) save", timeout: replacement.timeout) { try await self.store.save(samples) }
+            try await Self.bounded("\(replacement.label) save", timeout: writeTimeout) { try await self.store.save(samples) }
         }
-        if !prior.isEmpty {
-            try await Self.bounded("\(replacement.label) delete", timeout: replacement.timeout) { try await self.store.delete(prior) }
+        let leftOver = Self.notReplacedBySync(prior, by: samples)
+        if !leftOver.isEmpty {
+            try await Self.bounded("\(replacement.label) delete", timeout: writeTimeout) { try await self.store.delete(leftOver) }
         }
-        debugLog("[HealthKit Export] \(replacement.label) (\(replacement.serialKey.prefix(8))): wrote \(samples.count), removed \(prior.count) earlier")
+        debugLog("[HealthKit Export] \(replacement.label) (\(replacement.serialKey.prefix(8))): wrote \(samples.count), removed \(leftOver.count) earlier, \(prior.count - leftOver.count) replaced by HealthKit")
+    }
+
+    /// The earlier samples the save did not replace itself. A new sample with
+    /// an earlier one's sync identifier replaces it in the save
+    /// (`HealthExportIdentity.metadata`), or is dropped when the earlier one
+    /// is at a newer version, so the earlier one is not deleted again: one
+    /// copy with that identifier stays either way. The rest (an earlier
+    /// export with more members, or one written before sync identifiers)
+    /// are deleted.
+    static func notReplacedBySync(_ prior: [HKSample], by saved: [HKSample]) -> [HKSample] {
+        let savedIds = Set(saved.compactMap(HealthExportIdentity.syncIdentifier(of:)))
+        guard !savedIds.isEmpty else { return prior }
+        return prior.filter { sample in
+            HealthExportIdentity.syncIdentifier(of: sample).map { !savedIds.contains($0) } ?? true
+        }
     }
 
     /// `operation`, or `HealthKitError.queryTimedOut(label)` once `timeout`
@@ -187,6 +254,94 @@ final class HealthSampleReplacer {
             return .success(())
         } catch {
             return .failure(error)
+        }
+    }
+}
+
+// MARK: - Watching for samples other sources add
+
+/// Watches one sample type for samples another source (the Watch, the
+/// iPhone) adds: in the foreground, and when HealthKit wakes the app in the
+/// background for a type with background delivery on.
+///
+/// An `HKObserverQuery` hears each change, and fires once when it starts.
+/// Each time, an `HKAnchoredObjectQuery` reads what was added since the
+/// anchor kept for `anchorKey`, which is stored across launches, so samples
+/// that arrived while the app was not running are delivered on the next
+/// launch, a background one included. Without a stored anchor the read
+/// covers the last two days. The app's own samples are left out: they are
+/// not new data.
+///
+/// The observer's completion handler, which background delivery requires
+/// (HealthKit stops waking an app that never calls it), is called once the
+/// read is under way. HealthKit does not declare it `Sendable`, so it cannot
+/// be carried into the read's result handler. Nothing is lost if the app is
+/// suspended before the read answers: the anchor only moves once a read has
+/// answered, so the next fire, or the next launch, reads the same samples.
+enum HealthSampleWatch {
+    /// The observer query to execute for `type`. `deliver` gets each
+    /// non-empty batch of other sources' samples, on HealthKit's queue.
+    static func observerQuery(
+        for type: HKSampleType,
+        anchorKey: String,
+        store: HKHealthStore,
+        deliver: @escaping @Sendable ([HKSample]) -> Void
+    ) -> HKObserverQuery {
+        HKObserverQuery(sampleType: type, predicate: nil) { [weak store] _, completion, error in
+            if let error {
+                debugLog("[HealthSampleWatch] \(type.identifier) observer failed: \(error.localizedDescription)", level: .warning)
+            } else if let store {
+                readAdded(of: type, anchorKey: anchorKey, store: store, deliver: deliver)
+            }
+            completion()
+        }
+    }
+
+    /// Reads the samples of `type` added since the stored anchor, keeps the
+    /// new anchor, and hands other sources' samples to `deliver` when there
+    /// are any. A failed read keeps the old anchor, so the next one reads the
+    /// same samples again.
+    private static func readAdded(
+        of type: HKSampleType, anchorKey: String, store: HKHealthStore, deliver: @escaping @Sendable ([HKSample]) -> Void
+    ) {
+        let anchor = storedAnchor(anchorKey)
+        let recent = anchor == nil
+            ? HKQuery.predicateForSamples(withStart: Date().addingTimeInterval(-48 * 60 * 60), end: nil, options: [])
+            : nil
+        let query = HKAnchoredObjectQuery(type: type, predicate: recent, anchor: anchor, limit: HKObjectQueryNoLimit) { _, added, _, newAnchor, error in
+            if let error {
+                debugLog("[HealthSampleWatch] \(type.identifier) read failed: \(error.localizedDescription)", level: .info)
+                return
+            }
+            if let newAnchor { keepAnchor(newAnchor, key: anchorKey) }
+            let samples = othersSamples(added ?? [])
+            if !samples.isEmpty { deliver(samples) }
+        }
+        store.execute(query)
+    }
+
+    /// The samples another source wrote.
+    static func othersSamples(_ samples: [HKSample]) -> [HKSample] {
+        let ownSource = HKSource.default()
+        return samples.filter { $0.sourceRevision.source != ownSource }
+    }
+
+    private static func storedAnchor(_ key: String) -> HKQueryAnchor? {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        do {
+            return try NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: data)
+        } catch {
+            debugLog("[HealthSampleWatch] stored anchor \(key) unreadable, reading the last two days: \(error.localizedDescription)", level: .info)
+            return nil
+        }
+    }
+
+    private static func keepAnchor(_ anchor: HKQueryAnchor, key: String) {
+        do {
+            let data = try NSKeyedArchiver.archivedData(withRootObject: anchor, requiringSecureCoding: true)
+            UserDefaults.standard.set(data, forKey: key)
+        } catch {
+            debugLog("[HealthSampleWatch] anchor \(key) not kept: \(error.localizedDescription)", level: .info)
         }
     }
 }

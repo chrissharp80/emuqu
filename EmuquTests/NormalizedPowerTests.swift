@@ -177,4 +177,26 @@ final class NormalizedPowerTests: XCTestCase {
     func testAShortStrokePacketIsIgnored() {
         XCTAssertNil(Concept2Manager.strokeData(from: Data([0, 0, 0, 1, 0])))
     }
+
+    // MARK: - Foot pod and trainer power
+
+    /// Coasting reads 0 W and is a reading; a meter that has gone quiet
+    /// without dropping the link has no current reading, rather than its
+    /// last watts counted every second.
+    func testZeroWattsCountsAndAStaleReadingDoesNot() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        XCTAssertEqual(FootPodManager.freshPower(0, measuredAt: now, now: now), 0)
+        XCTAssertEqual(FootPodManager.freshPower(240, measuredAt: now.addingTimeInterval(-2), now: now), 240)
+        XCTAssertNil(FootPodManager.freshPower(240, measuredAt: now.addingTimeInterval(-(FootPodManager.powerStaleAfter + 1)), now: now))
+        XCTAssertNil(FootPodManager.freshPower(nil, measuredAt: now, now: now))
+    }
+
+    /// A coasting stretch of 0 W rows stays one run for the 30-second
+    /// windows, so normalized power counts the easy seconds as easy.
+    func testCoastingAtZeroWattsKeepsTheWindowsWhole() {
+        let np = WorkoutRecorder.computeNormalizedPower(samples: samples(Array(repeating: 200, count: 30) + Array(repeating: 0, count: 30)))
+        let steady = WorkoutRecorder.computeNormalizedPower(samples: samples(Array(repeating: 200, count: 60)))
+        XCTAssertNotNil(np)
+        XCTAssertLessThan(np ?? .infinity, steady ?? 0)
+    }
 }
