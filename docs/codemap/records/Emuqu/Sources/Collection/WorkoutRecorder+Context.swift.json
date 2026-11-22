@@ -52,8 +52,8 @@
   },
   {
    "key": "func WorkoutAIContextBuilder.buildContext(sport:)",
-   "hash": "c8e626837c873c7e",
-   "does": "Builds the full WorkoutAIContext handed to the voice coach/AI each tick: HR, peak, max HR, DFA alpha1/band/fit/status, the recorder's fused distance (max of GPS/pedometer/foot pod/erg — the number the UI, broker snapshot and thresholds show), pace/speed, cadence, power, foot pod, METs, split paces, position/heading/altitude/GPS accuracy, elevation gain, grade, upcoming climb, route topology, weather, strap state and silence, road/locality/address, session average HR, live trends (reverse split, HR drift, HR slope, decoupling, cadence drift, GAP, split GAPs), fade projection, cached historical baselines/readiness/training projection, recovery hours, zone seconds, cached race predictions, units, target zone, thresholds and breach seconds. hrDriftPercent is always nil.",
+   "hash": "68ea6676a69fad4d",
+   "does": "Builds the full WorkoutAIContext handed to the voice coach/AI each tick: HR, peak, max HR, DFA alpha1/band/fit/status, the recorder's fused distance (max of GPS/pedometer/foot pod/erg — the number the UI, broker snapshot and thresholds show), pace/speed, cadence, power, foot pod, METs, split paces, position/heading/altitude/GPS accuracy, elevation gain, grade, upcoming climb, route topology, weather, strap state and silence, whether the Watch's wrist HR is live (WorkoutTicker.freshWristHR is non-nil now), road/locality/address, session average HR, live trends (reverse split, HR drift, HR slope, decoupling, cadence drift, GAP, split GAPs), fade projection, cached historical baselines/readiness/training projection, recovery hours, zone seconds, cached race predictions, units, target zone, thresholds and breach seconds. hrDriftPercent is always nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.contextInputs()",
@@ -84,7 +84,9 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::func WorkoutRecorder.liveRecoveryHoursNeeded()",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.distanceMeters"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.distanceMeters",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.freshWristHR(now:)"
    ],
    "reads": [
     "mem:WorkoutHR.currentHR",
@@ -99,7 +101,9 @@
     "mem:WorkoutRecorder.cachedRacePredictionsByDistance",
     "mem:WorkoutRecorder.userThresholds",
     "mem:WorkoutRecorder.thresholdBreachSec",
-    "mem:WorkoutRecorder.lastRouteProgressIndex"
+    "mem:WorkoutRecorder.lastRouteProgressIndex",
+    "mem:WatchConnectivityBridge.latestWatchHR",
+    "mem:WatchConnectivityBridge.latestWatchHRAt"
    ],
    "writes": [
     "mem:WorkoutRecorder.lastRouteProgressIndex"
@@ -124,9 +128,11 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.contextInputs()": "2b2f8aff1ab15132",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.recentSplitPacesSecPerKm()": "c1ef555f2c9e082a",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sessionAverageHR()": "9f81ba23e3450366",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.freshWristHR(now:)": "63fdfd6bd8fb93ec",
     "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::func WorkoutRecorder.liveProjectedMinutesUntilFade()": "b25bdcadc1c734f4",
     "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::func WorkoutRecorder.liveRecoveryHoursNeeded()": "187eca1e9cff1ad6",
     "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::func WorkoutRecorder.strapSilentSeconds()": "cff4a5b3f0694878",
+    "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "0f973f8e3bac44f6",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentHR": "fe7838f1df850e5c",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "d4b9223cfe3622c0",

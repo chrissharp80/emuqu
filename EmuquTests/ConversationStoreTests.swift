@@ -1,5 +1,6 @@
 @testable import Emuqu
 import os
+import UIKit
 import XCTest
 
 /// Unit tests for ConversationStore — the JSON-backed persistence for the
@@ -248,6 +249,62 @@ final class ConversationStoreTests: XCTestCase {
         XCTAssertNil(defaults.string(forKey: "summary"))
         XCTAssertTrue(FileManager.default.fileExists(atPath: summaryFileURL.path))
         XCTAssertEqual(makeStore().loadSummary(migratingFrom: defaults, key: "summary"), "Training for a marathon.")
+    }
+
+    /// A plain summary still in defaults beside a sealed file (its move
+    /// failed, and a later summary was sealed) is removed on the next load,
+    /// and the sealed summary is the one returned.
+    func testAPlainSummaryBesideTheSealedFileIsRemoved() throws {
+        let defaults = try makeDefaults()
+        let store = makeStore()
+        store.saveSummary("Sealed summary.")
+        waitUntil("the summary to be written") { FileManager.default.fileExists(atPath: summaryFileURL.path) }
+        defaults.set("Plain summary, taking ibuprofen.", forKey: "summary")
+
+        XCTAssertEqual(makeStore().loadSummary(migratingFrom: defaults, key: "summary"), "Sealed summary.")
+
+        XCTAssertNil(defaults.string(forKey: "summary"), "the plain copy stayed in defaults")
+    }
+
+    /// A sealed summary that cannot be read now (here, a directory where the
+    /// file should be) is flagged for a reload; writing a summary settles it.
+    func testAnUnreadableSummaryIsFlaggedUntilASummaryIsWritten() throws {
+        let defaults = try makeDefaults()
+        try FileManager.default.createDirectory(at: summaryFileURL, withIntermediateDirectories: true)
+        let store = makeStore()
+
+        XCTAssertNil(store.loadSummary(migratingFrom: defaults, key: "summary"))
+        XCTAssertTrue(store.summaryNeedsReload)
+
+        try FileManager.default.removeItem(at: summaryFileURL)
+        store.saveSummary("Later summary.")
+        waitUntil("the summary to be written") { !store.summaryNeedsReload }
+        XCTAssertEqual(store.loadSummary(migratingFrom: defaults, key: "summary"), "Later summary.")
+        XCTAssertFalse(store.summaryNeedsReload)
+    }
+
+    /// A summary unreadable when the assistant was created is read again on
+    /// unlock, so the session's next summary builds on it rather than
+    /// replacing it.
+    @MainActor
+    func testTheAssistantReloadsASummaryThatWasUnreadableWhenItWasCreated() async throws {
+        try FileManager.default.createDirectory(at: summaryFileURL, withIntermediateDirectories: true)
+        let viewModel = AssistantViewModel(
+            store: makeStore(),
+            factsStore: UserFactsStore(fileURL: tempDir.appendingPathComponent("user_facts.json"))
+        )
+        XCTAssertNil(viewModel.priorSummary)
+
+        try FileManager.default.removeItem(at: summaryFileURL)
+        let writer = makeStore()
+        writer.saveSummary("Runner with a sore left knee.")
+        waitUntil("the summary to be written") { FileManager.default.fileExists(atPath: summaryFileURL.path) }
+        NotificationCenter.default.post(name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+        for _ in 0 ..< 300 where viewModel.priorSummary == nil {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        XCTAssertEqual(viewModel.priorSummary, "Runner with a sore left knee.")
     }
 
     /// Clear erases the summary with the history, and the chat only reads as

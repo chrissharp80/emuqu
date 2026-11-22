@@ -525,7 +525,7 @@ extension WorkoutTicker {
     /// stopped sending leaves behind; recording it every second would write a
     /// flat, false heart rate into the samples. A steady heart rate the Watch
     /// keeps sending stays fresh.
-    private func freshWristHR(now: Date) -> Int? {
+    func freshWristHR(now: Date) -> Int? {
         let bridge = recorder.watchBridge
         guard let wrist = WatchPayloadBounds.plausibleHeartRate(bridge.latestWatchHR),
               let receivedAt = bridge.latestWatchHRAt else { return nil }

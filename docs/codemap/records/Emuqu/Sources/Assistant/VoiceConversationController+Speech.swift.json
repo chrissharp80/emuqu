@@ -19,11 +19,11 @@
  "units": [
   {
    "key": "func VoiceConversationController.speak(_:voice:scripted:)",
-   "hash": "a0e24d610c9d6820",
-   "does": "Speaks a chunk: picks the override or best voice, runs CoachVoiceGuard scrub then the hallucination guard, adds the one-time 'Flo here. <Model>.' preamble unless scripted or in .triggerSpeaking, normalizes for TTS (English expansions only when the voice that will speak is English: the chosen voice's language, or the device's current language when no voice is chosen and the system default speaks) and builds the utterance. A coach line (state .triggerSpeaking) goes to coachCue.speak, which claims the workout-cue audio session off the main actor before speaking it and settles the trigger (settleUnspokenTriggerLine) if the synthesizer refuses it. Any other chunk is enqueued via FRSafeSpeak; on failure it logs, drops the chunk and calls settleUnspokenTriggerLine (a no-op outside .triggerSpeaking).",
+   "hash": "a32b181d0e04251f",
+   "does": "Speaks a chunk: picks the override or best voice, runs the CoachVoiceGuard scrub (perimeterScrubbed, advancing textChunker.safetyCopy so the app's canned safety reply spoken chunk by chunk passes only as that reply) then the hallucination guard, adds the one-time 'Flo here. <Model>.' preamble unless scripted or in .triggerSpeaking, normalizes for TTS (English expansions only when the voice that will speak is English: the chosen voice's language, or the device's current language when no voice is chosen and the system default speaks) and builds the utterance. A coach line (state .triggerSpeaking) goes to coachCue.speak, which claims the workout-cue audio session off the main actor before speaking it and settles the trigger (settleUnspokenTriggerLine) if the synthesizer refuses it. Any other chunk is enqueued via FRSafeSpeak; on failure it logs, drops the chunk and calls settleUnspokenTriggerLine (a no-op outside .triggerSpeaking).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:continuing:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.applyHallucinationGuard(to:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)",
@@ -36,11 +36,13 @@
    ],
    "reads": [
     "mem:VoiceConversationController.bestVoice",
-    "mem:VoiceConversationController.state"
+    "mem:VoiceConversationController.state",
+    "mem:SpokenTextChunker.safetyCopy"
    ],
    "writes": [
     "mem:VoiceConversationController.synthesizer queue",
-    "mem:CoachCueSpeech waiting lines / fallback (coach lines)"
+    "mem:CoachCueSpeech waiting lines / fallback (coach lines)",
+    "mem:SpokenTextChunker.safetyCopy"
    ],
    "branches": [
     {
@@ -82,7 +84,7 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.applyHallucinationGuard(to:)": "4c5214e46bad2883",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.makeUtterance(_:voice:)": "c2910e42ccbbdab3",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.settleUnspokenTriggerLine()": "f3fc0e599c47a528",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)": "f6a183eacabce379",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:continuing:)": "927a2058e2e15435",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "3aa82fe78ac5cbac",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "a1741591eec1636f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
@@ -427,7 +429,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "2a4db3fb94564d8d",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "ee286b1dae0bcd67",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.scheduleListeningRestartAfterStop()": "e5b9022c99015182",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.stopSynthesizer()": "32830b7828da130f",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "4283ff5361b1771c",
@@ -1328,32 +1330,25 @@
    "deps": {}
   },
   {
-   "key": "func perimeterScrubbed(_:)",
-   "hash": "f277f08c7dc3ad18",
-   "does": "If CoachVoiceGuard finds prohibited language, scrubs it and logs each trigger; otherwise returns text unchanged.",
+   "key": "func perimeterScrubbed(_:continuing:)",
+   "hash": "8ecf68af1a29fcfd",
+   "does": "Scrubs one utterance through CoachVoiceGuard.scrub(_:continuing:) with the reply's safety-copy progress (every utterance, clean ones too), logs each trigger as a warning, and returns the scrubbed text.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:continuing:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "no prohibited language",
-     "effect": "return text"
-    },
-    {
-     "at": "+3",
+     "at": "+2",
      "cond": "for each trigger",
      "effect": "log warning"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "b9254c0b8e1b4c88",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:continuing:)": "a1527d95f2031cb1",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }

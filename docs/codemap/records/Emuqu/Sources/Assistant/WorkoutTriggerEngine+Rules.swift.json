@@ -735,14 +735,14 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.cadenceConsistencyDropRule()": "f9f8a39db749986e",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentStrapDownRule()": "65a8a0e8edf955f5",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentStrapDownRule()": "ea97bd0d0db08c8e",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachRule()": "8fb5dbb458e3135a"
    }
   },
   {
    "key": "func WorkoutTriggerEngine.equipmentStrapDownRule()",
-   "hash": "39554a52fe415958",
-   "does": "Builds rule equipment.strapDown (.haptic, urgent, 60 s cooldown) with a fresh StrapLinkState: fires on the workout second the strap goes from connected to not connected (strapDroppedCondition), so a strapless workout never fires; message says the strap went quiet and HR switches to the Watch; reset clears the link state.",
+   "hash": "4bbe92c25fc76ce2",
+   "does": "Builds rule equipment.strapDown (.haptic, urgent, 60 s cooldown) with a fresh StrapLinkState: fires on the workout second the strap goes from connected to not connected (strapDroppedCondition), so a strapless workout never fires. Its message (spoken as well as felt) says the strap went quiet and HR is switching to the Watch only while the context's wristHeartRateLive is true; otherwise it says the strap went quiet and to check its fit and battery. Reset clears the link state.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)",
@@ -750,9 +750,17 @@
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.StrapLinkState.reset()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:WorkoutAIContext.wristHeartRateLive"
+   ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "ctx.wristHeartRateLive (?:)",
+     "effect": "true: 'Strap just went quiet — switching to your Watch's heart rate.'; false: 'Strap just went quiet — check its fit and battery.'"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.StrapLinkState.reset()": "deec8d7be5a26d67",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.strapDroppedCondition(_:state:)": "a4d3b2fe9b90deed",

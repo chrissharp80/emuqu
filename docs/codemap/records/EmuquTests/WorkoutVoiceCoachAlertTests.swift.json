@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/WorkoutVoiceCoachAlertTests.swift",
  "hash": "df15f504980f9422",
- "role": "Tests of how WorkoutVoiceCoach delivers trigger-engine events (a .haptic or urgent event plays the alert haptic, urgent flagged; routine spoken and silent events play none) and of WorkoutTriggerEngine's canAlert gate (.haptic and .spoken rules keep their cooldown while alerts are off; .silent rules still fire). The coach's alert haptic is injected as a recorder, with no conversation set, so nothing plays or speaks.",
+ "role": "Tests of how WorkoutVoiceCoach delivers trigger-engine events (a .haptic or urgent event plays the alert haptic, urgent flagged; routine spoken and silent events play none), of WorkoutTriggerEngine's canAlert gate (.haptic and .spoken rules keep their cooldown while alerts are off; .silent rules still fire), and of the strap-drop line naming the Watch only while its wrist HR is live. The coach's alert haptic is injected as a recorder, with no conversation set, so nothing plays or speaks.",
  "types": [
   "WorkoutVoiceCoachAlertTests: class (@MainActor XCTestCase)"
  ],
@@ -86,7 +86,43 @@
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:canAlert:)": "08ff05f0ef9bb4ed",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)": "ee975218d86a22ee",
     "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.alertRule(_:_:)": "c84a9ffe840e7c91",
-    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.makeContext()": "67866991e2b97564"
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.makeContext(elapsedSeconds:strapConnected:wristHeartRateLive:)": "3daeca6c8fadcda8"
+   }
+  },
+  {
+   "key": "func WorkoutVoiceCoachAlertTests.testTheStrapDropLineNamesTheWatchOnlyWhileWristHeartRateIsLive()",
+   "hash": "ed2d33cf9a454284",
+   "does": "The strap-drop rule's message is the Watch-switch line with wrist HR live and the check-fit-and-battery line without it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.strapDropMessage(wristHeartRateLive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.strapDropMessage(wristHeartRateLive:)": "9ca3dc472a3ffdbe"
+   }
+  },
+  {
+   "key": "func WorkoutVoiceCoachAlertTests.strapDropMessage(wristHeartRateLive:)",
+   "hash": "a2e1cd3762beb617",
+   "does": "Helper: evaluates equipmentAndProgressRules on second 600 with the strap connected, then second 601 without it, and returns the message of the equipment.strapDown event fired then (nil if none).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentAndProgressRules()",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:canAlert:)",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.makeContext(elapsedSeconds:strapConnected:wristHeartRateLive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentAndProgressRules()": "60f92b5932fd6ca5",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:canAlert:)": "08ff05f0ef9bb4ed",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)": "ee975218d86a22ee",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.makeContext(elapsedSeconds:strapConnected:wristHeartRateLive:)": "3daeca6c8fadcda8"
    }
   },
   {
@@ -116,9 +152,9 @@
    }
   },
   {
-   "key": "func WorkoutVoiceCoachAlertTests.makeContext()",
-   "hash": "c2b6018f5c13020a",
-   "does": "Helper: a ten-minute run WorkoutAIContext with no readings, which the always-true test rules ignore.",
+   "key": "func WorkoutVoiceCoachAlertTests.makeContext(elapsedSeconds:strapConnected:wristHeartRateLive:)",
+   "hash": "a137001dbbf7591b",
+   "does": "Helper: a run WorkoutAIContext started ten minutes ago with no readings, at the given workout second (default 600) and with the given strap link and wrist-HR liveness (default false); the always-true test rules ignore it.",
    "entry": null,
    "calls": [],
    "reads": [],

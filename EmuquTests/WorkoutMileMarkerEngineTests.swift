@@ -414,6 +414,7 @@ final class WorkoutMileMarkerEngineTests: XCTestCase {
             weather: nil,
             strapConnected: false,
             strapSilentSec: nil,
+            wristHeartRateLive: false,
             currentRoadName: nil,
             currentLocality: nil,
             currentAdministrativeArea: nil,

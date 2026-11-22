@@ -24,6 +24,13 @@ final class SpokenTextChunker {
     /// Internal text buffer. Exposed for tests; callers should not mutate.
     private(set) var pendingBuffer: String = ""
 
+    /// How far the text spoken since the last `reset()` has followed one of
+    /// the app's canned safety replies. `VoiceConversationController.speak`
+    /// scrubs every utterance with it (`CoachVoiceGuard.scrub(_:continuing:)`),
+    /// so a canned reply spoken chunk by chunk passes as the reply and its
+    /// sentences said anywhere else do not. `reset()` starts it afresh.
+    var safetyCopy = CoachVoiceGuard.SafetyCopyProgress()
+
     /// Whether there's any buffered content waiting to be emitted.
     var hasPendingContent: Bool { !pendingBuffer.isEmpty }
 
@@ -48,9 +55,11 @@ final class SpokenTextChunker {
         return speakable.isEmpty ? nil : speakable
     }
 
-    /// Clear the buffer without emitting.
+    /// Clear the buffer without emitting, and start `safetyCopy` afresh: a
+    /// reset marks the start of a new reply.
     func reset() {
         pendingBuffer = ""
+        safetyCopy = CoachVoiceGuard.SafetyCopyProgress()
     }
 
     /// Take back the last `count` characters appended, as far as they are

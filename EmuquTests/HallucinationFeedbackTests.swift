@@ -60,8 +60,18 @@ final class HallucinationFeedbackTests: XCTestCase {
 
     /// Clearing the conversation drops every correction, pending or already
     /// put in a prompt: the next conversation's first prompt must not tell
-    /// the model about a number it said in the one the user cleared.
-    func testClearingDropsPendingAndDeliveredCorrections() {
+    /// the model about a number it said in the one the user cleared. Driven
+    /// through the assistant's own Clear, on stores in a temporary directory.
+    @MainActor
+    func testClearingDropsPendingAndDeliveredCorrections() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("HallucinationFeedbackTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
+        let viewModel = AssistantViewModel(
+            store: ConversationStore(fileURL: dir.appendingPathComponent("conversation.json")),
+            factsStore: UserFactsStore(fileURL: dir.appendingPathComponent("user_facts.json"))
+        )
         let delivered = MetricsVerifier.Discrepancy(
             metric: "TSB", claimed: "-29", actual: "-15", absoluteDelta: 14, range: wholeRange("x")
         )
@@ -72,8 +82,9 @@ final class HallucinationFeedbackTests: XCTestCase {
         )
         MetricsVerifier.recordCorrections([pending])
 
-        MetricsVerifier.clearCorrections()
+        viewModel.clearConversation()
 
+        XCTAssertNil(viewModel.errorMessage, "the conversation was not cleared")
         XCTAssertNil(MetricsVerifier.pendingCorrectionsBlock())
     }
 
@@ -216,6 +227,7 @@ final class LiveClaimVerificationTests: XCTestCase {
         weather: nil,
         strapConnected: false,
         strapSilentSec: nil,
+        wristHeartRateLive: false,
         currentRoadName: nil,
         currentLocality: nil,
         currentAdministrativeArea: nil,

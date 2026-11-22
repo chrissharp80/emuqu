@@ -50,7 +50,7 @@ extension VoiceConversationController {
     func speak(_ text: String, voice: AVSpeechSynthesisVoice? = nil, scripted: Bool = false) {
         let chosenVoice = voice ?? bestVoice
         let english = (chosenVoice?.language ?? AVSpeechSynthesisVoice.currentLanguageCode()).hasPrefix("en")
-        let guarded = applyHallucinationGuard(to: perimeterScrubbed(text))
+        let guarded = applyHallucinationGuard(to: perimeterScrubbed(text, continuing: &textChunker.safetyCopy))
         // Scripted lines (coach triggers, the recovery line) are not Flo's
         // reply, so they don't get the "Flo here. <Model>." preamble.
         let isScripted = scripted || state == .triggerSpeaking
@@ -759,9 +759,13 @@ enum VoiceCoachPrompt {
 /// Ordering matters: scrub first, then `applyHallucinationGuard`, then the
 /// session preamble. The perimeter must see the model's words, not a string
 /// that already has "Flo here." glued to the front of it.
-private func perimeterScrubbed(_ text: String) -> String {
-    guard CoachVoiceGuard.containsProhibitedLanguage(text) else { return text }
-    let result = CoachVoiceGuard.scrub(text)
+///
+/// Every utterance goes through the guard, clean ones included, with the
+/// reply's `safetyCopy` progress, so the app's canned safety reply is kept
+/// when it is spoken as the reply, chunk by chunk, and its sentences are
+/// scrubbed anywhere else.
+private func perimeterScrubbed(_ text: String, continuing safetyCopy: inout CoachVoiceGuard.SafetyCopyProgress) -> String {
+    let result = CoachVoiceGuard.scrub(text, continuing: &safetyCopy)
     for trigger in result.triggers {
         debugLog("[VoiceConv] CoachVoiceGuard intercepted spoken output: \(trigger.reason)", level: .warning)
     }

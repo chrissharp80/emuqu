@@ -1,15 +1,15 @@
 {
  "file": "EmuquTests/VoiceConversationControllerTests.swift",
- "hash": "2fb2ad23aa30ff45",
- "role": "Characterization tests for VoiceConversationController's observable surface (singleton identity, idle initial state, State equatable cases, and that the controller's textChunker splits streamed deltas like a standalone SpokenTextChunker), plus VoiceTriggerQueue's route-line replacement and expiry, capacity eviction and mute, and CoachCueSpeech's fallback and cue-session hold handling against a counting session.",
+ "hash": "f7475e5654dcc775",
+ "role": "Characterization tests for VoiceConversationController's observable surface (singleton identity, idle initial state, State equatable cases, and that the controller's textChunker splits streamed deltas like a standalone SpokenTextChunker), plus VoiceTriggerQueue's route-line replacement and expiry, capacity eviction and mute, and CoachCueSpeech's fallback and cue-session hold handling against a counting session whose activation can be held open.",
  "types": [
   "VoiceConversationControllerTests: class (@MainActor XCTestCase) — observable-contract tests on the shared controller",
   "VoiceTriggerQueueTests: class (XCTestCase) — queue semantics on a value",
   "CoachCueSpeechTests: class (@MainActor XCTestCase) — fallback and session-hold handling, no speech",
-  "CountingCueSession: class (private, CueAudioSession) — lock-guarded claim flag and activation / deactivation counts"
+  "CountingCueSession: class (private, CueAudioSession) — lock-guarded claim flag and activation / deactivation counts; with holdsActivation, activate() blocks on a semaphore until releaseActivation()"
  ],
  "state": [],
- "toplevel": "Imports AVFoundation and os for the cue tests. CountingCueSession keeps its counts in an OSAllocatedUnfairLock.",
+ "toplevel": "Imports AVFoundation and os for the cue tests. CountingCueSession keeps its counts and whether its activation is released in an OSAllocatedUnfairLock, and holds activate() on a DispatchSemaphore.",
  "units": [
   {
    "key": "func VoiceConversationControllerTests.testSharedSingletonIsPersistent()",
@@ -79,7 +79,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "11b7d59f422f3990",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "617bf2c6974d2d39",
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "2a4db3fb94564d8d"
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "ee286b1dae0bcd67"
    }
   },
   {
@@ -222,13 +222,14 @@
     "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.takeFallback()": "f98d5ed201533ae6",
     "Emuqu/Sources/Assistant/CoachCueSpeech.swift::init CoachCueSpeech(synthesizer:audio:)": "d9284067424a26d4",
     "Emuqu/Sources/Assistant/CoachCueSpeech.swift::var CoachCueSpeech.fallback": "7320090b631a3645",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)": "4260f6316b731934"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)": "4260f6316b731934",
+    "EmuquTests/VoiceConversationControllerTests.swift::init CountingCueSession(holdsActivation:)": "3186054e9ab0b44a"
    }
   },
   {
    "key": "func CoachCueSpeechTests.testALineStoppedWhileClaimingGivesItsHoldBack()",
-   "hash": "004dbaca83bb7b2f",
-   "does": "Speaks one line through CoachCueSpeech over a counting session and stops it before its claim completes: speak clears the fallback and the line counts as busy; after stopAll it is not busy, and once the claim loop has run the session was activated once and deactivated once (the dropped line's hold given back) and nothing was spoken.",
+   "hash": "4e90213d17dc7ba9",
+   "does": "Speaks one line through CoachCueSpeech over a counting session whose activation is held open: speak clears the fallback and the line counts as busy; once the claim has reached the session (one activation, none given back) the line is stopped, so stopAll lands while the claim is in flight, and it is no longer busy; the activation is then released, and once the claim loop and the manager queue have run the session was activated once and deactivated once (the dropped line's hold given back) and nothing was spoken.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Assistant/CoachCueSpeech.swift::init CoachCueSpeech(synthesizer:audio:)",
@@ -237,14 +238,21 @@
     "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.stopAll()",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.waitForPendingTransitions()",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
+    "EmuquTests/VoiceConversationControllerTests.swift::init CountingCueSession(holdsActivation:)",
+    "EmuquTests/VoiceConversationControllerTests.swift::func CountingCueSession.releaseActivation()"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+11",
-     "cond": "for up to 200 polls while no deactivation yet",
+     "at": "+10",
+     "cond": "for up to 500 polls while the session has not been activated",
+     "effect": "sleep 10 ms (the manager queue is not drained: it is blocked in activate)"
+    },
+    {
+     "at": "+18",
+     "cond": "for up to 500 polls while no deactivation yet",
      "effect": "sleep 10 ms and drain the manager queue"
     }
    ],
@@ -256,8 +264,21 @@
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.waitForPendingTransitions()": "e8b5f4db47733cb1",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::init BackgroundAudioManager(session:observesInterruptions:)": "4260f6316b731934",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4",
+    "EmuquTests/VoiceConversationControllerTests.swift::func CountingCueSession.releaseActivation()": "5d43f58eaae669eb",
+    "EmuquTests/VoiceConversationControllerTests.swift::init CountingCueSession(holdsActivation:)": "3186054e9ab0b44a",
     "EmuquTests/VoiceConversationControllerTests.swift::var CountingCueSession.activations": "2f051f4e4606bc34"
    }
+  },
+  {
+   "key": "init CountingCueSession(holdsActivation:)",
+   "hash": "991d49daf4a97af5",
+   "does": "Starts with no claim and zero counts; activation is held (activate() will block) when holdsActivation is true, released otherwise (the default).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "var CountingCueSession.activations",
@@ -316,14 +337,21 @@
   },
   {
    "key": "func CountingCueSession.activate()",
-   "hash": "603f10e779a45ce6",
-   "does": "Counts one activation.",
+   "hash": "970c48ec42bf6d13",
+   "does": "Counts one activation; while the activation has not been released, then blocks on the gate semaphore (up to 10 s) until releaseActivation signals it.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "activation not yet released",
+     "effect": "wait on the gate (10 s timeout)"
+    }
+   ],
    "deps": {
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "fde0bbdf2808590a",
     "EmuquTests/VoiceConversationControllerTests.swift::var CountingCueSession.activations": "2f051f4e4606bc34"
    }
   },
@@ -336,6 +364,23 @@
    "reads": [],
    "writes": [],
    "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func CountingCueSession.releaseActivation()",
+   "hash": "cc385f5ff90e011e",
+   "does": "Marks the activation released, so later activate() calls return at once, and signals the gate once if it was still held; calling it again does nothing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "the activation was still held",
+     "effect": "signal the gate"
+    }
+   ],
    "deps": {}
   }
  ],

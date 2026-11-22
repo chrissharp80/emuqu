@@ -98,10 +98,12 @@ enum MedicalQueryGuard {
     // inside `NarrativeLanguage.english { }`, which is how `CoachVoiceGuard`
     // reads the English copy rule B quotes.
 
-    /// Every reply the guard can give. `CoachVoiceGuard.scrub` passes their
-    /// sentences through unchanged: the output perimeter must never rewrite
-    /// the app's own safety copy, which the system prompt also tells the
-    /// model to give word for word.
+    /// Every reply the guard can give. `CoachVoiceGuard.scrub` passes a
+    /// reply's sentences through unchanged where they appear as that reply
+    /// (its opening sentence, then the rest in order): the output perimeter
+    /// must never rewrite the app's own safety copy, which the system prompt
+    /// also tells the model to give word for word, but one of its sentences
+    /// after the model's own reasoning is not that copy.
     static var cannedReplies: [String] {
         [arrhythmiaReply, symptomReplyTemplate, selfHarmReply, injuryReply]
     }

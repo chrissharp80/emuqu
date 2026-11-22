@@ -48,6 +48,28 @@ final class WorkoutVoiceCoachAlertTests: XCTestCase {
         XCTAssertEqual(heard.map(\.ruleID), ["h", "s"])
     }
 
+    // MARK: - Strap drop
+
+    /// The strap-drop line is spoken, so it names the Watch only when the
+    /// Watch's wrist heart rate is arriving; without one it says only what
+    /// happened and what to check.
+    func testTheStrapDropLineNamesTheWatchOnlyWhileWristHeartRateIsLive() {
+        XCTAssertEqual(
+            strapDropMessage(wristHeartRateLive: true),
+            "Strap just went quiet — switching to your Watch's heart rate."
+        )
+        XCTAssertEqual(strapDropMessage(wristHeartRateLive: false), "Strap just went quiet — check its fit and battery.")
+    }
+
+    /// The message the strap-drop rule gives when the strap is connected on
+    /// one workout second and gone on the next.
+    private func strapDropMessage(wristHeartRateLive: Bool) -> String? {
+        let engine = WorkoutTriggerEngine(rules: WorkoutTriggerEngine.equipmentAndProgressRules())
+        _ = engine.evaluate(context: makeContext(elapsedSeconds: 600, strapConnected: true, wristHeartRateLive: wristHeartRateLive))
+        let fired = engine.evaluate(context: makeContext(elapsedSeconds: 601, strapConnected: false, wristHeartRateLive: wristHeartRateLive))
+        return fired.first { $0.ruleID == "equipment.strapDown" }?.message
+    }
+
     // MARK: - Helpers
 
     private func event(tier: WorkoutTriggerEngine.Tier, urgency: WorkoutTriggerEngine.Urgency) -> WorkoutTriggerEngine.Event {
@@ -58,13 +80,18 @@ final class WorkoutVoiceCoachAlertTests: XCTestCase {
         WorkoutTriggerEngine.Rule(id: id, tier: tier, cooldown: 60, condition: { _ in true }, message: { _ in id })
     }
 
-    /// A context the always-true test rules ignore.
-    private func makeContext() -> WorkoutAIContext {
+    /// A context the always-true test rules ignore; the strap-drop test sets
+    /// the second and the heart-rate sources.
+    private func makeContext(
+        elapsedSeconds: Int = 600,
+        strapConnected: Bool = false,
+        wristHeartRateLive: Bool = false
+    ) -> WorkoutAIContext {
         WorkoutAIContext(
             sport: .run,
             nowAt: Date(),
             sessionStart: Date().addingTimeInterval(-600),
-            elapsedSeconds: 600,
+            elapsedSeconds: elapsedSeconds,
             heartRate: nil,
             peakHR: 0,
             userMaxHR: 180,
@@ -91,8 +118,9 @@ final class WorkoutVoiceCoachAlertTests: XCTestCase {
             upcomingClimb: nil,
             routeTopology: nil,
             weather: nil,
-            strapConnected: false,
+            strapConnected: strapConnected,
             strapSilentSec: nil,
+            wristHeartRateLive: wristHeartRateLive,
             currentRoadName: nil,
             currentLocality: nil,
             currentAdministrativeArea: nil,

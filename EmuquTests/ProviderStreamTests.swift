@@ -861,9 +861,26 @@ final class PartialReplyTests: XCTestCase {
 
     /// The list follows the tool overlay's MUTATION TOOLS, so the model's
     /// rules and the fallback rule name the same tools.
-    func testEveryMutationToolThePromptNamesIsTreatedAsMutating() {
+    ///
+    /// Both directions: every name in the set is in the overlay, and every
+    /// tool the overlay lists under MUTATION TOOLS is in the set. A mutation
+    /// tool missing from the set would let a turn that changed something be
+    /// started over on another model.
+    func testEveryMutationToolThePromptNamesIsTreatedAsMutating() throws {
         for name in AssistantToolRunner.mutatingToolNames where !name.hasPrefix("assistant_artifacts_") {
             XCTAssertTrue(AssistantSystemPrompt.toolOverlay.contains("`\(name)`"), name)
+        }
+        let overlay = AssistantSystemPrompt.toolOverlay
+        let start = try XCTUnwrap(overlay.range(of: "MUTATION TOOLS"), "the overlay no longer has a MUTATION TOOLS list")
+        let end = try XCTUnwrap(overlay.range(of: "Their descriptions start", range: start.upperBound ..< overlay.endIndex))
+        let listed = overlay[start.upperBound ..< end.lowerBound]
+            .components(separatedBy: "`")
+            .enumerated()
+            .filter { !$0.offset.isMultiple(of: 2) }
+            .map(\.element)
+        XCTAssertFalse(listed.isEmpty, "no tool names found in the MUTATION TOOLS list")
+        for name in listed {
+            XCTAssertTrue(AssistantToolRunner.mutatingToolNames.contains(name), "\(name) is a mutation tool but not in mutatingToolNames")
         }
     }
 
