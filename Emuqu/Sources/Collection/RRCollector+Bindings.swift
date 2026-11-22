@@ -55,11 +55,12 @@ extension CollectorSessionControl {
     /// itself (a crash leaves one running with no session), so the strap
     /// starting never sets it; the device-recording start does. The strap
     /// stopping ends only a device recording's collection, not a streaming
-    /// night's.
+    /// night's. A live workout's backup recording is the workout's, not a
+    /// device recording, so the phase stays idle for it.
     private func bindRecordingStateTracking() {
         ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.isRecordingOnDevice }, onChange: { collector, isRecording in
             collector.deviceStatus.isRecordingOnDevice = isRecording
-            if isRecording, collector.recordingPhase == .idle {
+            if isRecording, collector.recordingPhase == .idle, !collector.recovery.strapRecordingBelongsToLiveWorkout {
                 collector.recordingPhase = .deviceRecording
             } else if !isRecording, collector.recordingPhase == .deviceRecording {
                 collector.isCollecting = false
@@ -91,10 +92,16 @@ extension CollectorSessionControl {
     /// when reconnecting ran out; in both, the strap dropping or a failed
     /// reconnect attempt must not close the night and take Resume away. The
     /// night stays paused until the user resumes or finishes it.
+    ///
+    /// The Continue card is looked up again when the link comes up or goes
+    /// down, not on each scanning and connecting step in between: the lookup
+    /// scans the archive, and a reconnecting strap passes those steps over
+    /// and over.
     private func bindConnectionState() {
         ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.connectionState }, onChange: { collector, state in
             collector.deviceStatus.isDeviceConnected = state == .connected
             collector.deviceStatus.connectionState = state
+            guard state == .connected || state == .disconnected else { return }
             collector.control.refreshRecentPausedSession()
         })
     }
@@ -275,22 +282,38 @@ extension CollectorSessionControl {
     /// need state, pausedDate, and endDate for the search.
     ///
     /// Paused sessions win over recently-completed ones — a pause is an
-    /// explicit "I'm coming back to this."
+    /// explicit "I'm coming back to this." A paused session that was already
+    /// resumed is not offered: it stays paused in the archive, but its night
+    /// went on in the segment resumed from it, and continuing it again would
+    /// leave that segment out.
     nonisolated static func findRecentPausedSessionOffMain(archive: SessionArchive, maxGap: TimeInterval) -> HRVSession? {
         guard maxGap > 0 else { return nil }
         let now = Date()
         let cutoff = now.addingTimeInterval(-maxGap)
+        let entries = archive.entries
         // By when the night stopped, not when it started: a night paused or
         // finished minutes ago may have begun hours before the window.
-        let loaded = archive.entries
+        let loaded = entries
             .filter { $0.sessionType == .overnight && ($0.endDate ?? $0.date) >= cutoff }
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
         let paused = loaded.first {
             $0.state == .paused && now.timeIntervalSince($0.pausedDate ?? .distantPast) <= maxGap
+                && !wasResumed($0, entries: entries)
         }
         if let paused { return paused }
         return loaded.first {
             $0.state == .complete && now.timeIntervalSince($0.endDate ?? .distantPast) <= maxGap
+        }
+    }
+
+    /// Whether some archived segment was resumed from this paused session.
+    nonisolated private static func wasResumed(_ paused: HRVSession, entries: [SessionArchiveEntry]) -> Bool {
+        entries.contains { entry in
+            SessionRecoveryMath.isResumedSegment(
+                segmentId: entry.sessionId, segmentLinks: entry.linkedSessionIds,
+                segmentEnd: entry.endDate ?? entry.date,
+                parentId: paused.id, parentLinks: paused.linkedSessionIds, parentPausedAt: paused.pausedDate
+            )
         }
     }
 }

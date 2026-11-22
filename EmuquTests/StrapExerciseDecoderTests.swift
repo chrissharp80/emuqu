@@ -70,6 +70,35 @@ final class StrapExerciseDecoderTests: XCTestCase {
     }
 
     /// Only ids this app wrote carry a start time.
+    /// An id written with no zone given is read back at the offset it was
+    /// written at, so it names the instant it was written.
+    func testAnIdWrittenInTheCurrentZoneReadsBackItsInstant() {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let id = StrapExerciseDecoder.exerciseId(at: start)
+        XCTAssertEqual(StrapExerciseDecoder.recordingStart(fromExerciseId: id), start)
+    }
+
+    /// In the hour a DST fall-back repeats, both passes write the same id, so
+    /// the zone's name can read back only one of them. The offset each was
+    /// written at reads back both, and the offset is what an id is
+    /// remembered with.
+    func testAnIdFromTheRepeatedFallBackHourIsReadAtItsOffset() throws {
+        let london = try XCTUnwrap(TimeZone(identifier: "Europe/London"))
+        // 01:30 in London on the night clocks went back in October 2026:
+        // first in BST (00:30 GMT), then in GMT.
+        let firstPass = Date(timeIntervalSince1970: 1_792_888_200)
+        let secondPass = Date(timeIntervalSince1970: 1_792_891_800)
+        let id = StrapExerciseDecoder.exerciseId(at: firstPass, timeZone: london)
+        XCTAssertEqual(StrapExerciseDecoder.exerciseId(at: secondPass, timeZone: london), id)
+
+        for instant in [firstPass, secondPass] {
+            let writtenAt = try XCTUnwrap(TimeZone(secondsFromGMT: london.secondsFromGMT(for: instant)))
+            XCTAssertEqual(StrapExerciseDecoder.recordingStart(fromExerciseId: id, timeZone: writtenAt), instant)
+        }
+        let readByName = StrapExerciseDecoder.recordingStart(fromExerciseId: id, timeZone: london)
+        XCTAssertEqual([firstPass, secondPass].filter { $0 != readByName }.count, 1)
+    }
+
     func testIdsThisAppDidNotWriteHaveNoStart() {
         for id in ["", "EXERCISE", "2026090213040", "202609021304055", "2026-09-02T13", "20260902130４05", "20261302130405"] {
             XCTAssertNil(StrapExerciseDecoder.recordingStart(fromExerciseId: id, timeZone: utc), "id \(id)")

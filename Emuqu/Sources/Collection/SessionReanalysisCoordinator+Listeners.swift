@@ -351,7 +351,7 @@ extension SessionReanalysisCoordinator {
         var done: Set<UUID> = []
         var missed: [UUID] = []
         for sessionId in queue where processed < maxPerCycle {
-            guard let session = sessionNeedingSnapshots(sessionId) else { done.insert(sessionId); continue }
+            guard let session = await sessionNeedingSnapshots(sessionId) else { done.insert(sessionId); continue }
             processed += 1
             if await backfillOneSession(session, sessionId: sessionId) {
                 done.insert(sessionId)
@@ -365,11 +365,15 @@ extension SessionReanalysisCoordinator {
     /// The session, when it still has no sleep data and the user hasn't
     /// adjusted it by hand (matches the autoRefresh guard). Nil for a session
     /// the archive does not hold or cannot read (the read failure is logged
-    /// at `.error`).
-    private func sessionNeedingSnapshots(_ sessionId: UUID) -> HRVSession? {
-        guard let session = ArchivedSessionRead.read(sessionId, from: archive, caller: "CloudKitBackfill").session,
-              session.sleepSnapshot == nil, session.sleepUserAdjusted != true
-        else { return nil }
+    /// at `.error`). Decoded off the main actor, as `loadTodaysOvernightSession`
+    /// is: the queue is drained at launch, and each read decrypts and decodes
+    /// a whole session.
+    private func sessionNeedingSnapshots(_ sessionId: UUID) async -> HRVSession? {
+        let archiveRef = archive
+        let stored = await Task.detached {
+            ArchivedSessionRead.read(sessionId, from: archiveRef, caller: "CloudKitBackfill").session
+        }.value
+        guard let session = stored, session.sleepSnapshot == nil, session.sleepUserAdjusted != true else { return nil }
         return session
     }
 

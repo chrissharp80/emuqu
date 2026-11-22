@@ -154,6 +154,9 @@ extension RRCollector {
     /// the card since it last matched the archive (`reviewArchivedEntries`)
     /// is kept; the others come from the archived copy, which then holds any
     /// edit made elsewhere, in History for instance.
+    ///
+    /// The paused night's held copy (`pausedSession`) takes the rewrite too,
+    /// so nothing that reads it later works from the copy before it.
     func adoptArchivedCopy(_ archived: HRVSession) {
         let state = sessionState
         guard let current = currentSession, current.id == archived.id,
@@ -168,5 +171,6 @@ extension RRCollector {
             state.reviewArchivedEntries = SessionState.ReviewEntries(of: archived)
         }
         currentSession = adopted
+        if pausedSession?.id == archived.id, adopted.state == .paused { pausedSession = adopted }
     }
 }

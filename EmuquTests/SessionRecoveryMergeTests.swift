@@ -184,4 +184,55 @@ final class SessionRecoveryMergeTests: XCTestCase {
     func testAnImplausiblyHighAverageIsBounded() {
         XCTAssertEqual(SessionRecoveryMath.recoveredAverageHR(50_000), 300)
     }
+
+    // MARK: - Resumed segments
+
+    private struct Linked {
+        let id = UUID()
+        var links: [UUID]?
+        var end: Date
+        var pausedAt: Date?
+    }
+
+    private func isSegment(_ segment: Linked, of parent: Linked) -> Bool {
+        SessionRecoveryMath.isResumedSegment(
+            segmentId: segment.id, segmentLinks: segment.links, segmentEnd: segment.end,
+            parentId: parent.id, parentLinks: parent.links, parentPausedAt: parent.pausedAt
+        )
+    }
+
+    /// Paused at 3:00 and resumed: the segment is the paused night's child,
+    /// and the paused night, whose first link is the segment, is not the
+    /// segment's child.
+    func testOnlyTheSegmentResumedFromAPauseIsItsChild() {
+        var paused = Linked(end: start.addingTimeInterval(4 * 3600), pausedAt: start.addingTimeInterval(4 * 3600))
+        let segment = Linked(links: [paused.id], end: start.addingTimeInterval(8 * 3600))
+        paused.links = [segment.id]
+
+        XCTAssertTrue(isSegment(segment, of: paused))
+        XCTAssertFalse(isSegment(paused, of: segment))
+    }
+
+    /// A segment paused again and resumed: each segment is the child of the
+    /// one before it, never the other way round.
+    func testAChainOfPausesLinksEachSegmentToTheOneBefore() {
+        var first = Linked(end: start.addingTimeInterval(3 * 3600), pausedAt: start.addingTimeInterval(3 * 3600))
+        var second = Linked(links: [first.id], end: start.addingTimeInterval(5 * 3600), pausedAt: start.addingTimeInterval(5 * 3600))
+        let third = Linked(links: [second.id], end: start.addingTimeInterval(8 * 3600))
+        first.links = [second.id]
+        second.links = [first.id, third.id]
+
+        XCTAssertTrue(isSegment(second, of: first))
+        XCTAssertTrue(isSegment(third, of: second))
+        XCTAssertFalse(isSegment(first, of: second))
+    }
+
+    /// A night that superseded a same-night sibling lists it, but the sibling
+    /// does not list the night back: it is no resume.
+    func testASupersededSiblingIsNoResume() {
+        let sibling = Linked(end: start.addingTimeInterval(2 * 3600), pausedAt: nil)
+        let night = Linked(links: [sibling.id], end: start.addingTimeInterval(8 * 3600))
+
+        XCTAssertFalse(isSegment(night, of: sibling))
+    }
 }

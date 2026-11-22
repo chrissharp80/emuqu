@@ -21,12 +21,14 @@ extension CollectorSessionControl {
     private static let maxQuickReadingExtensionSeconds = 60
 
     /// Start a streaming session for quick HRV reading
+    ///
+    /// Refused while a night is paused or being ended: that night owns the
+    /// current session and the recording phase until it is resumed, finished
+    /// or saved.
     /// - Parameter durationSeconds: Target duration (180 for 3min, 300 for 5min)
     @MainActor
     func startStreamingSession(durationSeconds: Int = 180) throws {
-        guard collector.polarManager.connectionState == .connected else {
-            throw RRCollector.CollectorError.notConnected
-        }
+        try collector.requireConnectedWithNoNightHeld(starting: "a quick reading")
         guard !collector.polarManager.isStreaming, !collector.polarManager.isRecordingOnDevice else {
             throw RRCollector.CollectorError.alreadyRecording
         }
@@ -78,10 +80,12 @@ extension CollectorSessionControl {
 
     /// One 1 Hz tick of the quick-capture countdown. The guard is thread
     /// safety: streaming may have been stopped while the Task was pending.
+    /// The elapsed time is the wall clock's (`streamingElapsedNow`), so a
+    /// reading the app was suspended through still ends at its target.
     @MainActor
     private func streamingCountdownTick() {
         guard collector.isStreamingMode, collector.streamingTimer != nil else { return }
-        collector.streamingElapsedSeconds += 1
+        collector.streamingElapsedSeconds = collector.streamingElapsedNow
         if let session = collector.currentSession {
             runQuickStreamingBackup(session: session)
         }
@@ -312,5 +316,13 @@ extension RRCollector {
     var streamingHoursForBattery: Double {
         sessionStartTime.map { max(0, Date().timeIntervalSince($0)) / 3600.0 }
             ?? Double(streamingElapsedSeconds) / 3600.0
+    }
+
+    /// The streaming session's elapsed seconds for a 1 Hz tick to publish:
+    /// wall clock since `sessionStartTime`, as the battery hours are, since
+    /// the tick misses every second the app is suspended. One tick on from
+    /// the last value when there is no start time.
+    var streamingElapsedNow: Int {
+        sessionStartTime.map { max(0, Int(Date().timeIntervalSince($0))) } ?? streamingElapsedSeconds + 1
     }
 }

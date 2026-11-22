@@ -167,7 +167,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.overnightStreamingTick()": "f7ca78b1a42934e7",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.overnightStreamingTick()": "978ad2c127ef8df5",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.runOvernightIncrementalBackup(session:force:)": "9d568f4667106e93",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)": "68edb2e2aa8c4896",
@@ -193,8 +193,8 @@
   },
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.1 Capture and source selection > 3.1.3 Source selection",
-   "hash": "35092a3027b60c6f",
-   "does": "Specifies source selection: valid = >=120 beats; internal preferred unless internal is shorter by >5%; then gaps where next.t_ms - prev.endMs > prev.rr + 2000; fill with streamed beats whose wallClockMs ?? t_ms lies in a gap; two-pointer merge with cluster-aware 50 ms de-dup both directions, streamed t_ms rebased to wallClockMs; composite failure falls to streaming. Code matches DataSourceSelector.swift:7-17,46-61,124-135,177-183,204-218,242-303.",
+   "hash": "ef620b36e97d1c1d",
+   "does": "Specifies source selection: valid = >=120 beats; internal preferred unless internal is shorter by >5%; then gaps where next.t_ms - prev.endMs > prev.rr + 2000; selects streamed beats whose wallClockMs ?? t_ms lies in a gap or outside the internal span (a strap file, summed from intervals, has no gaps of its own); two-pointer merge with cluster-aware 50 ms de-dup both directions, streamed t_ms rebased to wallClockMs; with no streamed beat selected the composite fails and streaming is used. Code matches DataSourceSelector.swift (selectBestSource, compareDataSources, createComposite, uncoveredBeats, mergePoints).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
@@ -217,8 +217,7 @@
    "deps": {
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "92041204e18acc22",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)": "ec9a20b0fe2bfbde",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "f019d8dfc57537c0",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(internalPoints:streamingPoints:)": "b0ea6652b20f3b70",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "67a35a6721da0066",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "2f36c3f661613041",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "c1e198aaa2e0604d",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)": "acb9faa540910ecf",
@@ -226,7 +225,6 @@
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectWithInternalAvailable(internalData:streamingPoints:hasValidStreaming:sessionId:sessionStart:)": "ce681f869f0f10e4",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipInternalDuplicates(of:in:from:)": "4df4b670ae5af20f",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.skipStreamingDuplicates(of:in:from:)": "e5f03b1fff1f1b1e",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.streamingBeatsInsideGaps(internalPoints:streamingPoints:)": "f9b5125ea17259e1",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "a8106f16c811f9de"
    }
   },
@@ -1339,7 +1337,7 @@
   },
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > Appendix B: Pseudocode",
-   "hash": "e56584b228d37c83",
+   "hash": "3e70bbcd9bcbc899",
    "does": "Pseudocode (Appendix B) for selectSource, mergeDedup, detectOnset, dateUndated, mapWallToBeat, isBreak, maskedRMSSD, selectWindow, evalWindow, organized, admit, baselineStats, freeze, autoSleepRefresh, stageNight. Each matches the implementing Swift. The selectWindow pseudocode returns none for |P| < 120 while production callers require 400 beats (see the 3.4.3 record).",
    "entry": null,
    "calls": [
@@ -1360,17 +1358,16 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)": "836597a99ab2f10d",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "36042c28cf8528af",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)": "25e71da29d9fb02c",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "deb8f351263f64fc",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d0309f14481839ab",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "574a0263e53dfb77",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)": "a83bfc29bd250f82",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "8b634b5d27eacefa",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.evaluateWindow(series:flags:startIdx:endIdx:sessionStartMs:sessionEndMs:artifactRateLimit:)": "bbfb350a6490456b",
     "Emuqu/Sources/Analysis/WindowSelection+Filters.swift::func WindowSelector.maskedRMSSD(_:kept:breaks:)": "9bc49a4d235e4785",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.tMsOffset(forWallElapsed:in:)": "3d767d1c59c92ffc",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "c1e198aaa2e0604d",
-    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "116be4de76274bbe",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "256742f47fea5811",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.freezeScore(on:result:inputs:)": "274e51d59a1c5012"
    }
   },
@@ -1499,7 +1496,7 @@
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrEstimatedSleepData(rrPoints:recordingStart:sleepOnsetMs:wakeMs:stageResult:)": "b250dea40d980de5",
     "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "4a5ceb4ba655d800",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.assembleFinalSession(analyzingSession:placement:series:outcome:)": "df44ae3ce74630cf",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.startSession(sessionType:)": "772f19dfa3201881",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.startSession(sessionType:)": "bd8db526263f8530",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.analyzeAndFinalizeOvernight(finalPoints:baseSession:streamingBeats:deviceBeats:dataSource:reconnectCount:prefetchedSleepData:)": "01a4032da0d5dd49",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func selectBestDataSource(streamingPoints:devicePoints:baseSession:)": "1e9526c8e54dba01",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "38654eadca6211af",

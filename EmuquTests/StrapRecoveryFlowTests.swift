@@ -69,6 +69,21 @@ final class StrapRecoveryFlowTests: XCTestCase {
         }
     }
 
+    /// Stop on the strap's recording files it under the session on screen
+    /// only when that session is a strap recording. A quick reading left on
+    /// screen is not, and the beats would be merged into it.
+    func testStopFilesTheRecordingUnderOnlyAStrapRecordingSession() {
+        let collector = makeCollector(FakeStrapRadio())
+        collector.currentSession = HRVSession(sessionType: .quick, deviceProvenance: DeviceProvenance.current(
+            deviceId: deviceId, deviceModel: "Polar H10", recordingMode: .streaming
+        ))
+        XCTAssertNil(collector.deviceRecording.resolveBaseSession(), "a quick reading took the strap's recording")
+
+        let strapSession = HRVSession(sessionType: .overnight, deviceProvenance: collector.deviceRecording.deviceRecordingProvenance())
+        collector.currentSession = strapSession
+        XCTAssertEqual(collector.deviceRecording.resolveBaseSession()?.id, strapSession.id)
+    }
+
     // MARK: - Recover and a recording still running
 
     /// A recording no session owns — left by a crash — is what the Recover
@@ -148,6 +163,21 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertFalse(archive.entries.contains { $0.sessionId == night.id }, "Discard left the recovered night in History")
     }
 
+    /// A strap armed two hours into a night was downloaded into that night:
+    /// the night was running when the recording began, so the recording is
+    /// saved, though the night started long before it.
+    func testALateArmedRecordingFiledIntoItsNightIsSaved() throws {
+        let collector = makeCollector(FakeStrapRadio())
+        let nightStart = Date().addingTimeInterval(-9 * 3600)
+        let armed = nightStart.addingTimeInterval(2 * 3600)
+        collector.polarManager.downloadLedger.markDownloaded(recordingStartedAt: armed)
+        XCTAssertFalse(collector.isStrapRecordingSaved(startedAt: armed), "stored nowhere on the device yet")
+
+        _ = try archive.archive(completeNight(startingAt: nightStart), skipSameNightMerge: true)
+
+        XCTAssertTrue(collector.isStrapRecordingSaved(startedAt: armed))
+    }
+
     /// A night that was already archived is the user's existing record and
     /// is not marked as Discard's to remove.
     func testANightAlreadyArchivedIsNotMarkedForDiscard() throws {
@@ -204,6 +234,43 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertNil(points)
         XCTAssertEqual(collector.lastError as? RRCollector.CollectorError, .strapStillHoldsNight(missingMinutes: 30))
         XCTAssertTrue(collector.hasUnrecoveredData, "Resume would clear a copy nobody was told about")
+    }
+
+    /// A night whose arming never succeeded has no copy on the strap: the
+    /// strap is neither stopped nor read for it, and no strap copy of the
+    /// night is reported. An older recording the strap holds stays on it.
+    func testANightThatNeverArmedTheStrapIsNotDownloaded() async {
+        let radio = FakeStrapRadio()
+        let lastNight = Date().addingTimeInterval(-30 * 3600)
+        radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 500))
+        let collector = makeCollector(radio)
+        collector.useDeviceBackupForOvernight = true
+        collector.overnightDeviceBackupActive = false
+
+        let points = await collector.overnightStreaming.fetchNightFromStrap(
+            baseSession: HRVSession(startDate: Date().addingTimeInterval(-3 * 3600)),
+            streamingPoints: streamWithGap(minutes: 30), isVeritySense: false
+        )
+
+        XCTAssertNil(points)
+        XCTAssertFalse(fetched(radio))
+        XCTAssertFalse(radio.calls.contains(.stopRecording))
+        XCTAssertNil(collector.lastError, "no strap copy of this night exists to recover")
+    }
+
+    /// The night's arming is read by the gate and then cleared with it.
+    func testTheGateClearsTheNightsArming() async {
+        let radio = FakeStrapRadio()
+        let collector = makeCollector(radio)
+        collector.useDeviceBackupForOvernight = true
+        collector.overnightDeviceBackupActive = true
+        collector.deviceFetchPolicy = .skipByUser
+
+        _ = await collector.overnightStreaming.fetchNightFromStrap(
+            baseSession: HRVSession(startDate: Date().addingTimeInterval(-3 * 3600)), streamingPoints: [], isVeritySense: false
+        )
+
+        XCTAssertFalse(collector.overnightDeviceBackupActive)
     }
 
     // MARK: - A strap the link dropped

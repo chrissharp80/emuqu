@@ -264,7 +264,7 @@
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "92041204e18acc22",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)": "ec9a20b0fe2bfbde",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)": "bc5b01a5e936fd8f",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "582e36e6a1520c96",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "67a35a6721da0066",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)": "20f2a7fead60a17b",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "2f36c3f661613041",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "bc42114589f9bafa",
@@ -591,7 +591,7 @@
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "92041204e18acc22",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)": "ec9a20b0fe2bfbde",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)": "bc5b01a5e936fd8f",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "582e36e6a1520c96",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "67a35a6721da0066",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)": "20f2a7fead60a17b",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "2f36c3f661613041",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "bc42114589f9bafa",
@@ -611,8 +611,8 @@
   },
   {
    "key": "func DataSourceSelectorTests.testCompositeFallsBackToStreamingWhenCreationFails()",
-   "hash": "183bf301bb477ece",
-   "does": "20000 streaming vs 18000 internal, no gaps: asserts 20000 points, description contains 'streaming', not composite (composite failed → streaming).",
+   "hash": "038716eb256b7415",
+   "does": "20000 streaming beats at 720 ms vs 18000 internal at 800 ms over the same span, no gaps: streaming adds nothing outside the internal span, so asserts 20000 points, description contains 'streaming', not composite (composite failed → streaming).",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
@@ -653,7 +653,7 @@
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compareDataSources(internalCount:streamingCount:)": "92041204e18acc22",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.compositeOrStreaming(internalData:streamingPoints:sessionId:sessionStart:)": "ec9a20b0fe2bfbde",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.countFillableBeats(gaps:streamingPoints:)": "bc5b01a5e936fd8f",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "582e36e6a1520c96",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "67a35a6721da0066",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)": "20f2a7fead60a17b",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "2f36c3f661613041",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.logBothSourcesFailed(streamingPoints:internalPoints:)": "bc42114589f9bafa",
@@ -667,6 +667,34 @@
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.takeEarlier(_:_:_:_:into:)": "a8106f16c811f9de",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)": "ea52360d20076118",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "42ec638977556020"
+   }
+  },
+  {
+   "key": "func DataSourceSelectorTests.testALateArmedStrapIsCompletedFromTheStreamNotDropped()",
+   "hash": "0f9a02612fc5cf31",
+   "does": "A strap series starting 45 min late against a whole-night stream with a 20-min dropout the strap covers: asserts a composite holding every strap beat plus the stream beats before the strap's first and after its last, with strap beats inside the dropout.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
+    "ext:XCTUnwrap"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "beat inside the stream's dropout",
+     "effect": "dropped from the stream fixture"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "5c9bb3b18af92a73",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
     "EmuquTests/DataSourceSelectorTests.swift::func DataSourceSelectorTests.createRRPoints(count:startMs:intervalMs:)": "42ec638977556020"
    }

@@ -778,11 +778,19 @@ extension SessionRecoveryCoordinator {
 
     /// Load the child + parent, decide whether anything is wrong, and if so
     /// rebuild and re-archive.
+    ///
+    /// Only a segment resumed from its first link is a child
+    /// (`SessionRecoveryMath.isResumedSegment`). Other linked nights are left
+    /// as they are: a paused night that was resumed lists its segment first,
+    /// and a night that superseded same-night siblings lists them, and
+    /// rebuilding either onto that link would put another session's beats
+    /// in front of its own.
     nonisolated private func repairLinkedSession(_ entry: SessionArchiveEntry) async -> LinkedRepairResult {
         guard let parentId = entry.linkedSessionIds?.first else { return .unchanged }
         // Full load needed for the rrSeries merge.
         guard let session = await MainActor.run(resultType: HRVSession?.self, body: { collector.archive.retrieveOrLog(entry.sessionId) }),
               let parent = await MainActor.run(resultType: HRVSession?.self, body: { collector.archive.retrieveOrLog(parentId) }),
+              Self.isResumedChild(session, of: parent),
               let parentSeries = parent.rrSeries, !parentSeries.points.isEmpty,
               let childSeries = session.rrSeries, !childSeries.points.isEmpty
         else { return .unchanged }
@@ -794,6 +802,14 @@ extension SessionRecoveryCoordinator {
         ) else { return .unchanged }
         let written = await rebuildAndArchive(session: session, parent: parent, mergedPoints: mergedPoints)
         return written ? .repaired : .failed
+    }
+
+    nonisolated private static func isResumedChild(_ session: HRVSession, of parent: HRVSession) -> Bool {
+        SessionRecoveryMath.isResumedSegment(
+            segmentId: session.id, segmentLinks: session.linkedSessionIds,
+            segmentEnd: session.endDate ?? session.startDate,
+            parentId: parent.id, parentLinks: parent.linkedSessionIds, parentPausedAt: parent.pausedDate
+        )
     }
 
     /// What (if anything) is wrong with a merged child session.

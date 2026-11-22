@@ -1,15 +1,16 @@
 {
  "file": "EmuquTests/SessionRecoveryMergeTests.swift",
- "hash": "e4d22d5c247f302a",
- "role": "Tests SessionRecoveryMath pure decisions in crash recovery: which recording wins a strap-pull merge (selector, then more-beats tie-break), v5 merge-corruption timestamp-restart detection, and the recovered workout card's average-HR conversion.",
+ "hash": "a9bd1dc4bd523446",
+ "role": "Tests SessionRecoveryMath pure decisions in crash recovery: which recording wins a strap-pull merge (selector, then more-beats tie-break), v5 merge-corruption timestamp-restart detection, the recovered workout card's average-HR conversion, and which linked session is a segment resumed from a pause.",
  "types": [
-  "SessionRecoveryMergeTests: class — XCTestCase for SessionRecoveryMath"
+  "SessionRecoveryMergeTests: class — XCTestCase for SessionRecoveryMath",
+  "SessionRecoveryMergeTests.Linked: private struct — id, links, end and pause time of a linked session fixture"
  ],
  "state": [
   "mem:SessionRecoveryMergeTests.sessionId (UUID per instance)",
   "mem:SessionRecoveryMergeTests.start (fixed Date 1_785_600_000)"
  ],
- "toplevel": "Private stored sessionId and start used by every fixture series.",
+ "toplevel": "Private stored sessionId and start used by every fixture series, and the private Linked fixture struct.",
  "units": [
   {
    "key": "func SessionRecoveryMergeTests.points(count:rrMs:startingAt:)",
@@ -328,6 +329,66 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.recoveredAverageHR(_:)": "3e93d8570c00dc02"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.isSegment(_:of:)",
+   "hash": "6bf414c0ee91c118",
+   "does": "Asks SessionRecoveryMath.isResumedSegment whether one Linked fixture is a segment resumed from another.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.isResumedSegment(segmentId:segmentLinks:segmentEnd:parentId:parentLinks:parentPausedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.isResumedSegment(segmentId:segmentLinks:segmentEnd:parentId:parentLinks:parentPausedAt:)": "cb08443c01c4b526"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testOnlyTheSegmentResumedFromAPauseIsItsChild()",
+   "hash": "bbf0257d63096371",
+   "does": "A paused night and the segment resumed from it link each other: asserts the segment is the paused night's child and the paused night is not the segment's.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.isSegment(_:of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.isSegment(_:of:)": "2d2df33b57f4c464"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testAChainOfPausesLinksEachSegmentToTheOneBefore()",
+   "hash": "fc0d7600d3928267",
+   "does": "Three segments from two pauses: asserts each segment is the child of the one before it and the first is not the child of the second.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.isSegment(_:of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.isSegment(_:of:)": "2d2df33b57f4c464"
+   }
+  },
+  {
+   "key": "func SessionRecoveryMergeTests.testASupersededSiblingIsNoResume()",
+   "hash": "edce33e5b3db3ca5",
+   "does": "A night listing a same-night sibling it superseded, which does not list it back: asserts it is not a segment resumed from the sibling.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.isSegment(_:of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/SessionRecoveryMergeTests.swift::func SessionRecoveryMergeTests.isSegment(_:of:)": "2d2df33b57f4c464"
    }
   }
  ],

@@ -40,11 +40,31 @@ final class StreamingLifecycle {
     var pausedBeatCount: Int = 0
 
     /// One caller's hold on ending the overnight session. Only the claim
-    /// that is still held releases it, so a caller whose claim was dropped
-    /// for a new night cannot end that night's ending.
+    /// that is still held releases it, so a caller whose stale claim was
+    /// dropped for a new night cannot end that night's ending.
     struct OvernightEndingClaim: Equatable {
         fileprivate let number: Int
+        /// When the caller took the claim.
+        let claimedAt: Date
     }
+
+    /// What a starting night or resumed segment found of an earlier ending.
+    enum EndingClearance: Equatable {
+        /// No ending holds a claim; the night may start.
+        case clear
+        /// A claim older than `staleEndingClaimAge` was dropped: its caller
+        /// never returned. The night may start.
+        case droppedStale(ageSeconds: TimeInterval)
+        /// An ending still in progress holds the claim; the night must not start.
+        case endingInProgress
+    }
+
+    /// How old a claim must be before a starting night may take it as left
+    /// behind. Every step of an ending is bounded (the strap stop, reconnect
+    /// and download budgets, the sleep poll, the analysis) and together they
+    /// take minutes; half an hour also covers an ending the system suspended
+    /// briefly in the background.
+    static let staleEndingClaimAge: TimeInterval = 30 * 60
 
     /// The claim held while one caller (the morning stop, a pause or a
     /// discard) is ending the overnight session: from its claim, taken before
@@ -63,10 +83,10 @@ final class StreamingLifecycle {
     /// Claims the ending of the overnight session for the caller. Nil when
     /// no night is streaming or another caller is already ending it; the
     /// caller then leaves the night alone.
-    func claimOvernightEnding() -> OvernightEndingClaim? {
+    func claimOvernightEnding(now: Date = Date()) -> OvernightEndingClaim? {
         guard isOvernightStreaming, overnightEndingClaim == nil else { return nil }
         claimsMade += 1
-        let claim = OvernightEndingClaim(number: claimsMade)
+        let claim = OvernightEndingClaim(number: claimsMade, claimedAt: now)
         overnightEndingClaim = claim
         return claim
     }
@@ -78,13 +98,17 @@ final class StreamingLifecycle {
         overnightEndingClaim = nil
     }
 
-    /// A night is starting: no earlier ending can still own the recorder,
-    /// so a claim left behind (a caller that never returned) is dropped
-    /// rather than blocking every Stop, Pause and Discard until relaunch.
-    /// Returns whether one was held.
-    func dropStaleOvernightEnding() -> Bool {
-        guard overnightEndingClaim != nil else { return false }
+    /// A night or a resumed segment is starting. An ending in progress still
+    /// owns the recorder (its download, analysis and publish would overwrite
+    /// the new night), so a claim younger than `staleEndingClaimAge` refuses
+    /// the start and is left held. An older one belongs to a caller that never
+    /// returned and is dropped, rather than blocking every Stop, Pause and
+    /// Discard until relaunch.
+    func clearEndingForNewNight(now: Date = Date()) -> EndingClearance {
+        guard let claim = overnightEndingClaim else { return .clear }
+        let age = now.timeIntervalSince(claim.claimedAt)
+        guard age >= Self.staleEndingClaimAge else { return .endingInProgress }
         overnightEndingClaim = nil
-        return true
+        return .droppedStale(ageSeconds: age)
     }
 }
