@@ -351,7 +351,7 @@ drift — treat them as scale indicators, not invariants. Directories are under
 | `.githooks/pre-commit` | SwiftFormat + SwiftLint + the code-map check before commit (install via `make setup-hooks`). |
 | `Makefile` | Dev/CI entry points (§10). |
 | `README.md`, `LICENSE` | Overview; PolyForm Strict 1.0.0 source-available, no-derivatives license. |
-| `.swiftlint.yml` / `.swiftformat` | Lint & format config. `.swiftlint-strict.yml` (tighter limits on top of `.swiftlint.yml`) is in the tree, but nothing runs it any more: the changed-files lint script that used it was deleted. |
+| `.swiftlint.yml` / `.swiftformat` | Lint & format config. |
 | `.env.example` | Local overrides for the coverage script (SCHEME/PROJECT/MIN_COVERAGE). |
 
 ### 5.1 `Analysis/` — physiology math + scoring (~75 files)

@@ -721,7 +721,7 @@ enum CloudSettingsRecord {
 }
 
 /// Sync status lines shown in Settings → iCloud & Data, in the app language.
-/// One definition each: `resumeSyncForAvailableAccount` matches on the
+/// One definition each: `CloudKitSyncManager.clearNotSignedInError` matches on the
 /// not-signed-in line to clear it, through `isNotSignedIn`.
 enum CloudSyncMessages {
     static var notSignedIn: String { String(localized: "Not signed into iCloud", bundle: LanguageManager.appBundle) }

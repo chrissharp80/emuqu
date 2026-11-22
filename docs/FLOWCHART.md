@@ -773,10 +773,11 @@ any. Nothing else reduces the set.
 
 | File | What it does |
 |------|-------------|
-| `PolarManager.swift` | Streaming RR data → RRPoint creation with t_ms/wallClockMs |
+| `PolarManager+Streaming.swift` | Streaming RR data → RRPoint creation with t_ms/wallClockMs (`appendStreamedBeat`) |
 | `RRModels.swift` | RRPoint/RRSeries/metrics data structures |
-| `HRVSession.swift` | Session model with all metadata |
-| `RRCollector+OvernightStreaming.swift` | Start/stop streaming, gatherOvernightData, **mergeParentSessionData** |
+| `SessionMetadata.swift` | `HRVSession`, the session model with all metadata (`HRVSession.swift` holds its decoding support) |
+| `RRCollector+OvernightStreaming.swift` | Start/stop streaming, **mergeParentSessionData** |
+| `RRCollector+OvernightGather.swift` | gatherOvernightData |
 | `RRCollector+PauseResume.swift` | pauseOvernightStreaming, resumeOvernightStreaming |
 | `RRCollector+MorningProcessing.swift` | **processOvernightData** — main analysis pipeline, supersedeSameNightSession |
 | `RRCollector+DeviceRecording.swift` | fetchTrainingLoadIfEnabled, device-only recording |
@@ -789,7 +790,6 @@ any. Nothing else reduces the set.
 | `SleepTimelineEditorView.swift` | Timeline sleep editor — add/remove/split/merge/carve-awake |
 | `SleepTimelineEditModel.swift` | Pure-value edit state + 5-entry undo stack |
 | `AnalysisSummaryGenerator.swift` | Narrative generator (per-tag feelBadAdvice in `+Steps.swift`) |
-| `ArchiveStatusComponents.swift` | Dashboard banners + status pill for archive state |
 | `SessionDataMigrations+InsufficientDataMigration.swift` | One-shot quality-flag backfill across the archive |
 | `MorningFeelingTag.swift` | Body/Mind tags + forward-compat Codable wrapper |
 
@@ -943,24 +943,17 @@ App launch (EmuquApp interruptedSessionAlerts, AppLaunchRecovery)
       Lost Sessions (scan, Recover All, or delete backups).
 
 Dashboard
-  ├─ ScoreChangedBanner (tint = primary if delta ≥ 0, orange if < 0)
-  │   Shown when PendingScoreChange.read() returns a non-nil entry.
-  │   Written by recordPendingScoreChangeIfMeaningful() in the rescore
-  │   listener (SessionReanalysisCoordinator+Listeners.swift) when an auto-rescore moves
-  │   the score by ≥ 3 points (e.g. Apple Watch synced sleep at 11 AM,
-  │   score climbed 67 → 74). Title text reflects the reason:
-  │     "Sleep data finished syncing — score updated · 67 → 74"
-  │     "Training context refreshed — score updated · 72 → 69"
-  │   Single-slot (latest wins). Cleared on tap-X or after the dashboard
-  │   reads it once. On-foreground load via .onAppear; live update via
-  │   .pendingScoreChangeWritten NotificationCenter event.
-  └─ Recovery card
-      └─ ArchiveStatusLine pill (ArchiveStatusComponents.swift)
-           Archive half: "Saved" or "Saving…"
-           iCloud half:  "iCloud"      (uploaded)
-                         "Retrying…"   (pending retry queue)
-                         "Syncing…"    (upload in flight)
-                         "Local only"  (not uploaded)
+  └─ ScoreChangedBanner (tint = primary if delta ≥ 0, orange if < 0)
+      Shown when PendingScoreChange.read() returns a non-nil entry.
+      Written by recordPendingScoreChangeIfMeaningful() in the rescore
+      listener (SessionReanalysisCoordinator+Listeners.swift) when an auto-rescore moves
+      the score by ≥ 3 points (e.g. Apple Watch synced sleep at 11 AM,
+      score climbed 67 → 74). Title text reflects the reason:
+        "Sleep data finished syncing — score updated · 67 → 74"
+        "Training context refreshed — score updated · 72 → 69"
+      Single-slot (latest wins). Cleared on tap-X or after the dashboard
+      reads it once. On-foreground load via .onAppear; live update via
+      .pendingScoreChangeWritten NotificationCenter event.
 
 Settings → iCloud & Data
   ├─ Storage Summary section
