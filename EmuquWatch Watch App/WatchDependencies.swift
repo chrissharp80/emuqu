@@ -9,7 +9,9 @@ import Foundation
 /// - Every accessor resolves when it is read, so nothing is built until it is
 ///   asked for.
 /// - `WatchApp` reads `WatchDependencies.current` at launch and hands the
-///   objects to the view tree; no other Watch file reads the container.
+///   objects to the view tree; its app delegate, in the same file, reads the
+///   session manager from it for a recovery relaunch that comes before any
+///   view. No other Watch file reads the container.
 /// - A substitute goes on a fresh container's `overrides`, and that container
 ///   is assigned to `current` before `WatchApp` is built.
 ///

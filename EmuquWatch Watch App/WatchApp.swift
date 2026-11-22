@@ -66,10 +66,11 @@ struct WatchApp: App {
     /// where WCSession activated before this view appeared.
     ///
     /// The workout manager follows the iPhone's messages so it can end its
-    /// session when the iPhone app goes silent mid-workout.
+    /// session when the iPhone app goes silent mid-workout
+    /// (`WatchAppDelegate.wire`, which a background recovery relaunch runs
+    /// before any view appears).
     private func wireUp() {
-        sessionManager.attach(workoutManager: workoutManager)
-        workoutManager.followPhoneMessages(of: sessionManager)
+        appDelegate.wire(to: sessionManager)
         Task { await workoutManager.requestAuthorizationIfNeeded() }
         sessionManager.requestCurrentStateFromPhone()
     }
@@ -86,7 +87,25 @@ struct WatchApp: App {
 final class WatchAppDelegate: NSObject, WKApplicationDelegate {
     let workoutManager = WatchWorkoutManager()
 
+    /// The recovery is begun before the managers are wired, so a recording
+    /// state the session manager already holds starts nothing beside the
+    /// session being handed back (a start waits for the recovery). Then the
+    /// workout manager is wired at once rather than when the root view
+    /// appears, which a background relaunch may never do: unwired, it heard
+    /// nothing from the iPhone, so the phone-silence check ended a recovered
+    /// workout the iPhone was still recording, and a not-recording report
+    /// never let go of one it was not.
     func handleActiveWorkoutRecovery() {
         workoutManager.recoverActiveSession()
+        wire(to: WatchDependencies.current.sessionManager)
+    }
+
+    /// Attaches the workout manager to `sessionManager` (which starts it when
+    /// the iPhone is already recording) and has it follow the iPhone's
+    /// messages. Both steps keep only their first call, so the recovery
+    /// relaunch and the root view's appearance can each run it.
+    func wire(to sessionManager: WatchSessionManager) {
+        sessionManager.attach(workoutManager: workoutManager)
+        workoutManager.followPhoneMessages(of: sessionManager)
     }
 }

@@ -1,30 +1,31 @@
 {
  "file": "EmuquWatch Watch App/WatchWorkoutManager.swift",
- "hash": "3dde37dc356b9088",
- "role": "Runs a non-saved HKWorkoutSession + HKLiveWorkoutBuilder on the Watch as a keep-alive during iPhone-recorded workouts, takes over a session watchOS hands back after relaunching the app, forwards wrist HR to the iPhone over WCSession as watchHRSample, and ends the session on wrist Stop when the phone is unreachable or after 30 min of iPhone silence, publishing that it ended without the phone.",
+ "hash": "b06fe6f06b5d3c49",
+ "role": "Runs a non-saved HKWorkoutSession + HKLiveWorkoutBuilder on the Watch as a keep-alive during iPhone-recorded workouts, takes over a session watchOS hands back after relaunching the app (applying what the iPhone said while the hand-back was outstanding), forwards wrist HR to the iPhone over WCSession as watchHRSample, and ends the session on wrist Stop when the phone is unreachable or after 30 min of iPhone silence, publishing that it ended without the phone.",
  "types": [
   "WatchWorkoutManager: class (NSObject, ObservableObject; MainActor by target default SWIFT_DEFAULT_ACTOR_ISOLATION=MainActor) — Watch keep-alive workout session owner",
   "extension WatchWorkoutManager: HKWorkoutSessionDelegate — releases sessions the system ended/failed",
   "extension WatchWorkoutManager: HKLiveWorkoutBuilderDelegate — forwards most recent HR"
  ],
  "state": [
-  "mem:WatchWorkoutManager.healthStore (HKHealthStore, :18)",
-  "mem:WatchWorkoutManager.session (:19)",
-  "mem:WatchWorkoutManager.builder (:20)",
-  "mem:WatchWorkoutManager.hasRequestedAuth (:26)",
-  "mem:WatchWorkoutManager.startPending (:31)",
-  "mem:WatchWorkoutManager.pendingSportRaw (:33)",
-  "mem:WatchWorkoutManager.authorizationInFlight (:35)",
-  "mem:WatchWorkoutManager.recoveryPending (:39)",
-  "mem:WatchWorkoutManager.sessionWasRecovered (:42)",
-  "mem:WatchWorkoutManager.lastStartError (@Published, read by WatchLiveView LiveMetricsScreen.startErrorNote, :49)",
-  "mem:WatchWorkoutManager.endedWithoutPhone (@Published, read by WatchLiveView LiveMetricsScreen.body, :56)",
-  "mem:WatchWorkoutManager.lastPhoneContact (:60)",
-  "mem:WatchWorkoutManager.phoneSilenceTask (:61)",
-  "mem:WatchWorkoutManager.endedForPhoneSilence (:64)",
-  "mem:WatchWorkoutManager.sessionSportRaw (:66)",
-  "mem:WatchWorkoutManager.phoneMessagesTask (:67)",
-  "wc:type=watchHRSample {heartRate} (sent :350)"
+  "mem:WatchWorkoutManager.healthStore (HKHealthStore)",
+  "mem:WatchWorkoutManager.session",
+  "mem:WatchWorkoutManager.builder",
+  "mem:WatchWorkoutManager.hasRequestedAuth",
+  "mem:WatchWorkoutManager.startPending",
+  "mem:WatchWorkoutManager.pendingSportRaw",
+  "mem:WatchWorkoutManager.authorizationInFlight",
+  "mem:WatchWorkoutManager.recoveryPending",
+  "mem:WatchWorkoutManager.sessionWasRecovered",
+  "mem:WatchWorkoutManager.phoneRecordingDuringRecovery (Bool?: what the iPhone last said while a recovery was outstanding)",
+  "mem:WatchWorkoutManager.lastStartError (@Published, read by WatchLiveView LiveMetricsScreen.startErrorNote)",
+  "mem:WatchWorkoutManager.endedWithoutPhone (@Published, read by WatchLiveView LiveMetricsScreen.body)",
+  "mem:WatchWorkoutManager.lastPhoneContact",
+  "mem:WatchWorkoutManager.phoneSilenceTask",
+  "mem:WatchWorkoutManager.endedForPhoneSilence",
+  "mem:WatchWorkoutManager.sessionSportRaw",
+  "mem:WatchWorkoutManager.phoneMessagesTask",
+  "wc:type=watchHRSample {heartRate} (sent by forwardLatestHR)"
  ],
  "toplevel": "Instance created and owned by WatchAppDelegate (EmuquWatch Watch App/WatchApp.swift), which WatchApp reads through its delegate adaptor. Stored-property initializers only; lastPhoneContact starts at Date().",
  "units": [
@@ -62,8 +63,8 @@
   },
   {
    "key": "func WatchWorkoutManager.start(sportRaw:)",
-   "hash": "3eca78632ba41dea",
-   "does": "Start for the iPhone's workout: first marks any running session as no longer a recovered one (the iPhone is recording); ignores the call if a session exists or a start is pending; otherwise records the sport, clears endedWithoutPhone, marks the start pending with its sport, begins the authorization wait when auth has not been requested and none is in flight, and calls finishPendingStart (which starts at once when nothing is outstanding).",
+   "hash": "c1f757c55bae7f67",
+   "does": "Start for the iPhone's workout: first marks any running session as no longer a recovered one (the iPhone is recording) and, while a recovery is outstanding, notes that the iPhone is recording (phoneRecordingDuringRecovery = true); ignores the call if a session exists or a start is pending; otherwise records the sport, clears endedWithoutPhone, marks the start pending with its sport, begins the authorization wait when auth has not been requested and none is in flight, and calls finishPendingStart (which starts at once when nothing is outstanding).",
    "entry": null,
    "calls": [
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.awaitAuthorization()",
@@ -73,10 +74,12 @@
     "mem:WatchWorkoutManager.session",
     "mem:WatchWorkoutManager.startPending",
     "mem:WatchWorkoutManager.hasRequestedAuth",
-    "mem:WatchWorkoutManager.authorizationInFlight"
+    "mem:WatchWorkoutManager.authorizationInFlight",
+    "mem:WatchWorkoutManager.recoveryPending"
    ],
    "writes": [
     "mem:WatchWorkoutManager.sessionWasRecovered",
+    "mem:WatchWorkoutManager.phoneRecordingDuringRecovery",
     "mem:WatchWorkoutManager.sessionSportRaw",
     "mem:WatchWorkoutManager.endedWithoutPhone",
     "mem:WatchWorkoutManager.startPending",
@@ -85,11 +88,16 @@
    "branches": [
     {
      "at": "+3",
+     "cond": "recoveryPending",
+     "effect": "true: phoneRecordingDuringRecovery = true"
+    },
+    {
+     "at": "+4",
      "cond": "session != nil or startPending",
      "effect": "true: return (duplicate start from dual-channel delivery, or a recovered session kept); false: continue"
     },
     {
-     "at": "+12",
+     "at": "+13",
      "cond": "!hasRequestedAuth and !authorizationInFlight",
      "effect": "true: awaitAuthorization(); false: nothing"
     }
@@ -154,8 +162,8 @@
   },
   {
    "key": "func WatchWorkoutManager.recoverActiveSession()",
-   "hash": "63ca43742711931f",
-   "does": "Sets recoveryPending and calls HKHealthStore.recoverActiveWorkoutSession; its @Sendable completion hops to the main actor with the recovered session (nil on error, which means there was none) and calls finishRecovery.",
+   "hash": "ac071bc5b82ad4ea",
+   "does": "Sets recoveryPending, clears phoneRecordingDuringRecovery, and calls HKHealthStore.recoverActiveWorkoutSession; its @Sendable completion hops to the main actor with the recovered session (nil on error, which means there was none) and calls finishRecovery.",
    "entry": "Called from WatchAppDelegate.handleActiveWorkoutRecovery when watchOS relaunches the app to hand back its active workout session.",
    "calls": [
     "ext:HKHealthStore.recoverActiveWorkoutSession(completion:)",
@@ -165,46 +173,56 @@
     "mem:WatchWorkoutManager.healthStore"
    ],
    "writes": [
-    "mem:WatchWorkoutManager.recoveryPending"
+    "mem:WatchWorkoutManager.recoveryPending",
+    "mem:WatchWorkoutManager.phoneRecordingDuringRecovery"
    ],
    "branches": [],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.finishRecovery(_:)": "e89b44cb5be2fda4"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.finishRecovery(_:)": "d94109c4cc51d9b2"
    }
   },
   {
    "key": "func WatchWorkoutManager.finishRecovery(_:)",
-   "hash": "d5ee0678e039f884",
-   "does": "Clears recoveryPending; adopts the recovered session when there is one and no session is running, else ends the recovered one (if any); then calls finishPendingStart so a held start proceeds or is satisfied by the adopted session.",
+   "hash": "fe61ad8047475abb",
+   "does": "Clears recoveryPending and takes (and clears) phoneRecordingDuringRecovery. When there is a recovered session and none is running, adopts it (as the iPhone's workout's session when the iPhone said it is recording during the wait, else as a recovered one the iPhone has not asked for) and, when the iPhone said during the wait it is not recording or stopped, stops it at once; otherwise ends the recovered one (if any). Then calls finishPendingStart so a held start proceeds or is satisfied by the adopted session.",
    "entry": null,
    "calls": [
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.adopt(_:)",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.adopt(_:askedForByPhone:)",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()",
     "ext:HKWorkoutSession.end",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.finishPendingStart()"
    ],
    "reads": [
-    "mem:WatchWorkoutManager.session"
+    "mem:WatchWorkoutManager.session",
+    "mem:WatchWorkoutManager.phoneRecordingDuringRecovery"
    ],
    "writes": [
     "mem:WatchWorkoutManager.recoveryPending",
+    "mem:WatchWorkoutManager.phoneRecordingDuringRecovery",
     "hk:HKWorkoutSession"
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+4",
      "cond": "recovered != nil and session == nil",
-     "effect": "true: adopt(recovered); false: recovered?.end() (a duplicate beside a running session, or nothing)"
+     "effect": "true: adopt(recovered, askedForByPhone: phone said recording); false: recovered?.end() (a duplicate beside a running session, or nothing)"
+    },
+    {
+     "at": "+6",
+     "cond": "the iPhone said during the wait it is not recording (or stopped)",
+     "effect": "stop() the adopted session"
     }
    ],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.adopt(_:)": "e72091020135fa6f",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.finishPendingStart()": "df7a5f3e1f7420c0"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.adopt(_:askedForByPhone:)": "5bb021970130f282",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.finishPendingStart()": "df7a5f3e1f7420c0",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "1873be1a9e68f0da"
    }
   },
   {
-   "key": "func WatchWorkoutManager.adopt(_:)",
-   "hash": "838fe38d458d9602",
-   "does": "Takes over a recovered session: gets its associated workout builder, sets this manager as delegate of both, stores them as session/builder, sets sessionWasRecovered, and starts the phone-silence watch.",
+   "key": "func WatchWorkoutManager.adopt(_:askedForByPhone:)",
+   "hash": "81ede9326c056a25",
+   "does": "Takes over a recovered session: gets its associated workout builder, sets this manager as delegate of both, stores them as session/builder, sets sessionWasRecovered unless the iPhone asked for it (askedForByPhone), and starts the phone-silence watch.",
    "entry": null,
    "calls": [
     "ext:HKWorkoutSession.associatedWorkoutBuilder",
@@ -223,25 +241,33 @@
   },
   {
    "key": "func WatchWorkoutManager.notePhoneNotRecording()",
-   "hash": "83024f74e9dd6254",
-   "does": "Called when the iPhone reports not recording with no transition: stops the session only when it is a recovered one the iPhone has not asked for; otherwise does nothing.",
+   "hash": "c2273d7f9a99eecc",
+   "does": "Called when the iPhone reports not recording with no transition: while a recovery is outstanding, records it for finishRecovery (phoneRecordingDuringRecovery = false); then stops the session only when it is a recovered one the iPhone has not asked for; otherwise does nothing more.",
    "entry": null,
    "calls": [
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()"
    ],
    "reads": [
+    "mem:WatchWorkoutManager.recoveryPending",
     "mem:WatchWorkoutManager.sessionWasRecovered"
    ],
-   "writes": [],
+   "writes": [
+    "mem:WatchWorkoutManager.phoneRecordingDuringRecovery"
+   ],
    "branches": [
     {
      "at": "+1",
+     "cond": "recoveryPending",
+     "effect": "true: phoneRecordingDuringRecovery = false"
+    },
+    {
+     "at": "+2",
      "cond": "sessionWasRecovered",
      "effect": "false: return; true: stop()"
     }
    ],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "6a7c44545c6397cd"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "1873be1a9e68f0da"
    }
   },
   {
@@ -391,8 +417,8 @@
   },
   {
    "key": "func WatchWorkoutManager.stop()",
-   "hash": "0251e5be57b5378d",
-   "does": "Idempotent stop: clears startPending, endedForPhoneSilence and sessionWasRecovered, cancels the silence task; if a session exists, nils session/builder, ends the session and discards the builder's workout (no callbacks; nothing saved).",
+   "hash": "4f082b62e6c11053",
+   "does": "Idempotent stop: clears startPending, endedForPhoneSilence and sessionWasRecovered, records a stop while a recovery is outstanding (phoneRecordingDuringRecovery = false, so finishRecovery stops the session handed back), cancels the silence task; if a session exists, nils session/builder, ends the session and discards the builder's workout (no callbacks; nothing saved).",
    "entry": null,
    "calls": [
     "ext:HKWorkoutSession.end",
@@ -400,12 +426,14 @@
    ],
    "reads": [
     "mem:WatchWorkoutManager.session",
-    "mem:WatchWorkoutManager.builder"
+    "mem:WatchWorkoutManager.builder",
+    "mem:WatchWorkoutManager.recoveryPending"
    ],
    "writes": [
     "mem:WatchWorkoutManager.startPending",
     "mem:WatchWorkoutManager.endedForPhoneSilence",
     "mem:WatchWorkoutManager.sessionWasRecovered",
+    "mem:WatchWorkoutManager.phoneRecordingDuringRecovery",
     "mem:WatchWorkoutManager.phoneSilenceTask",
     "mem:WatchWorkoutManager.session",
     "mem:WatchWorkoutManager.builder",
@@ -413,7 +441,12 @@
    ],
    "branches": [
     {
-     "at": "+10",
+     "at": "+8",
+     "cond": "recoveryPending",
+     "effect": "true: phoneRecordingDuringRecovery = false"
+    },
+    {
+     "at": "+11",
      "cond": "session and builder both non-nil",
      "effect": "false: return after clearing flags (second stop is a no-op); true: tear down, end and discard"
     }
@@ -442,7 +475,7 @@
    ],
    "deps": {
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.endsSessionOnWristStop(phoneReachable:)": "4fd3a3d28cab8851",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "6a7c44545c6397cd"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "1873be1a9e68f0da"
    }
   },
   {
@@ -510,7 +543,7 @@
     }
    ],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "30f5d1bceda22e77"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "5442dd346fcec65a"
    }
   },
   {
@@ -590,7 +623,7 @@
    ],
    "deps": {
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.phoneSilenceExceeded(lastContact:now:)": "968554cc893f78a9",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "6a7c44545c6397cd"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "1873be1a9e68f0da"
    }
   },
   {

@@ -40,6 +40,11 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// The running session is one `recoverActiveSession` took over, which the
     /// iPhone has not yet asked for (`start`).
     private var sessionWasRecovered = false
+    /// What the iPhone last said while a recovery was outstanding: true for a
+    /// start (it is recording), false for a stop or a report that it is not
+    /// recording, nil for nothing yet. `finishRecovery` applies it to the
+    /// session it takes over, which did not exist yet when the iPhone spoke.
+    private var phoneRecordingDuringRecovery: Bool?
 
     /// Most recent HKWorkoutSession start failure, shown under the live
     /// metrics so the user knows wrist-HR fallback won't fire. nil when start
@@ -99,6 +104,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     func start(sportRaw: String?) {
         // The iPhone is recording, so a recovered session is this workout's.
         sessionWasRecovered = false
+        if recoveryPending { phoneRecordingDuringRecovery = true }
         if session != nil || startPending { return }
         sessionSportRaw = sportRaw
         endedWithoutPhone = false
@@ -138,11 +144,13 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// (`WatchAppDelegate.handleActiveWorkoutRecovery`). The session is taken
     /// over, so the start the iPhone's state then asks for keeps it instead of
     /// running a second one beside it. If the iPhone reports it is not
-    /// recording, the session is stopped like any other.
+    /// recording, the session is stopped like any other, also when the report
+    /// arrives before watchOS has handed the session back.
     ///
     /// `@Sendable`: HealthKit calls back on its own queue.
     func recoverActiveSession() {
         recoveryPending = true
+        phoneRecordingDuringRecovery = nil
         healthStore.recoverActiveWorkoutSession { @Sendable recovered, _ in
             // An error means there was no session to hand back; a pending
             // start then runs a new one.
@@ -152,24 +160,30 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
     /// A session that started while the recovery was outstanding (none
     /// should: a start waits for it) keeps running, and the recovered one is
-    /// ended rather than left beside it.
+    /// ended rather than left beside it. What the iPhone said during the wait
+    /// (`phoneRecordingDuringRecovery`) then applies to the session taken
+    /// over: after a start it is the iPhone's workout's session, and after a
+    /// stop or a not-recording report it is stopped at once.
     private func finishRecovery(_ recovered: HKWorkoutSession?) {
         recoveryPending = false
+        let phoneRecording = phoneRecordingDuringRecovery
+        phoneRecordingDuringRecovery = nil
         if let recovered, session == nil {
-            adopt(recovered)
+            adopt(recovered, askedForByPhone: phoneRecording == true)
+            if phoneRecording == false { stop() }
         } else {
             recovered?.end()
         }
         finishPendingStart()
     }
 
-    private func adopt(_ recovered: HKWorkoutSession) {
+    private func adopt(_ recovered: HKWorkoutSession, askedForByPhone: Bool) {
         let recoveredBuilder = recovered.associatedWorkoutBuilder()
         recovered.delegate = self
         recoveredBuilder.delegate = self
         session = recovered
         builder = recoveredBuilder
-        sessionWasRecovered = true
+        sessionWasRecovered = !askedForByPhone
         watchForPhoneSilence()
     }
 
@@ -177,8 +191,10 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// stop it reports goes to `stop()`). A recovered session the iPhone never
     /// asked for is stopped, rather than holding the sensor until the
     /// phone-silence check ends it; a session started for the iPhone's
-    /// workout is left to the iPhone's stop.
+    /// workout is left to the iPhone's stop. While watchOS has not yet
+    /// handed the session back, the report is kept for `finishRecovery`.
     func notePhoneNotRecording() {
+        if recoveryPending { phoneRecordingDuringRecovery = false }
         guard sessionWasRecovered else { return }
         stop()
     }
@@ -256,6 +272,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         startPending = false
         endedForPhoneSilence = false
         sessionWasRecovered = false
+        if recoveryPending { phoneRecordingDuringRecovery = false }
         phoneSilenceTask?.cancel()
         phoneSilenceTask = nil
         guard let session, let builder else { return }

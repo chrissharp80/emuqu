@@ -90,8 +90,8 @@
   },
   {
    "key": "func WeatherService.refreshIfNeeded(for:)",
-   "hash": "d28a7bcd148ee8e2",
-   "does": "If a location is given, no request is in flight and cacheCovers is false: rounds the coordinate to 2 decimals, sends If-Modified-Since only for the identical rounded place, records lastRequestAt, and starts a main-actor Task that awaits the off-main fetch through the stored transport and, unless it was cancelled meanwhile (forgetAfterPurge), applies the outcome; in the same turn (defer) it clears the in-flight slot.",
+   "hash": "9f93ea3a332cc189",
+   "does": "If a location is given, no request is in flight and cacheCovers is false: rounds the coordinate to 2 decimals, sends If-Modified-Since only for the identical rounded place, records lastRequestAt, and starts a main-actor Task that awaits the off-main fetch through the stored transport. Unless it was cancelled meanwhile (forgetAfterPurge), the task clears the in-flight slot and applies the outcome in the same turn; a cancelled task leaves the slot as it is (the purge cleared it, and it may hold a newer request).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.cacheCovers(_:)",
@@ -124,7 +124,7 @@
     {
      "at": "+13",
      "cond": "the task was cancelled",
-     "effect": "the outcome is dropped"
+     "effect": "the outcome is dropped and the slot is not touched"
     }
    ],
    "deps": {

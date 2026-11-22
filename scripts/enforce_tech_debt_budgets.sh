@@ -190,7 +190,9 @@ for counts in "$app_counts" "$watch_counts"; do
 done
 read -r shared_count try_optional_count try_optional_write_count large_file_count observable_object_count <<<"$app_counts"
 read -r w_shared w_try_optional w_try_optional_write w_large w_observable <<<"$watch_counts"
-watch_count=$(( w_shared + w_try_optional + w_try_optional_write + w_large + w_observable ))
+# `try?` already counts every `try?`, those on write paths included, so the
+# write-path count is shown but not added again.
+watch_count=$(( w_shared + w_try_optional + w_large + w_observable ))
 
 summary_lines=(
     "Tech debt budgets:"
@@ -199,7 +201,7 @@ summary_lines=(
     "- try? on write/encode/delete paths: ${try_optional_write_count} (budget: ${try_optional_write_budget}; ratchet toward 0)"
     "- Swift files >= ${LARGE_FILE_THRESHOLD} lines: ${large_file_count} (budget: ${large_file_budget})"
     "- ObservableObject (legacy; prefer @Observable): ${observable_object_count} (budget: ${observable_object_budget})"
-    "- ${WATCH_ROOT}: ${watch_count} in all (budget: ${watch_budget}): .shared ${w_shared}, try? ${w_try_optional}, try? on writes ${w_try_optional_write}, large files ${w_large}, ObservableObject ${w_observable}"
+    "- ${WATCH_ROOT}: ${watch_count} in all (budget: ${watch_budget}): .shared ${w_shared}, try? ${w_try_optional} (${w_try_optional_write} of them on writes), large files ${w_large}, ObservableObject ${w_observable}"
 )
 
 failed=0
