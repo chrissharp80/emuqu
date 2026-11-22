@@ -167,7 +167,7 @@
    "deps": {
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.metricChart(points:band:)": "8de0296137dede20",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.nearestPoint(to:in:)": "e5590ce09c0159fb",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.scrubPill(point:band:)": "66811f71bc6e19d9",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.scrubPill(point:band:)": "77202ad5c7902b8c",
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.buildingBaselineOverlay": "d6c280cfcfeb9ace",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "745128b24479ceaf"
    }
@@ -390,8 +390,8 @@
   },
   {
    "key": "func TrendsV2View.scrubPill(point:band:)",
-   "hash": "2515f9cf44bce0ff",
-   "does": "Capsule pill with the point's abbreviated month/day, formatted metric value, and deltaLabel coloured by deltaColor(pct:higherIsBetter:) for the selected metric when the 60-day baseline exists and mean > 0.",
+   "hash": "3e36c2df784c544b",
+   "does": "Capsule pill with the point's abbreviated month/day (in the app's language, LanguageManager.appLocale), formatted metric value, and deltaLabel coloured by deltaColor(pct:higherIsBetter:) for the selected metric when the 60-day baseline exists and mean > 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.formatMetricValue(_:)",
@@ -413,6 +413,7 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
@@ -497,7 +498,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.Metric.displayUnit": "f670e4fb2e17d522"
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.Metric.displayUnit": "af1959232b75fa9b"
    }
   },
   {
@@ -544,8 +545,8 @@
   },
   {
    "key": "func TrendsV2View.metricValue(_:in:)",
-   "hash": "c04900952a2bd984",
-   "does": "Extracts the metric from a session: recoveryScore×10 (0–10 → 0–100), rmssd/meanHR from timeDomain, SDNN via measuredSDNN (nil when estimated), LF/HF and HF from frequencyDomain, Baevsky stressIndex from ansMetrics; nil when missing.",
+   "hash": "f5015176bdedcee7",
+   "does": "Extracts the metric from a session: recoveryScore×10 (0–10 → 0–100), rmssd from timeDomain, meanHR only when above 0 (VitalsDetailV2View.strapMeanHR; an analysis with no heart rate stores 0), SDNN via measuredSDNN (nil when estimated), LF/HF and HF from frequencyDomain, Baevsky stressIndex from ansMetrics; nil when missing.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN"
@@ -593,7 +594,8 @@
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "1fac8fed8eddf554",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.strapMeanHR(of:)": "e3143b77721e9595"
    }
   },
   {

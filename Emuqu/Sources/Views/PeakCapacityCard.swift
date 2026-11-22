@@ -7,8 +7,9 @@ struct PeakCapacityCard: View {
     var showInfoButton: Bool = false
     /// Whether the recording was a sleep (overnight or nap). The "during
     /// sleep" explanation is shown only then: peak capacity is computed for
-    /// every recording, including a daytime quick reading.
-    var describesSleep: Bool = true
+    /// every recording, including a daytime quick reading. No default, so
+    /// a caller cannot describe a quick reading as sleep by leaving it out.
+    let describesSleep: Bool
 
     @State private var showingInfo = false
 
@@ -44,7 +45,7 @@ struct PeakCapacityCard: View {
             }
             .buttonStyle(.plain)
             .popover(isPresented: $showingInfo) {
-                CapacityExplanationPopover()
+                CapacityExplanationPopover(describesSleep: describesSleep)
             }
         } else {
             headerContent
@@ -168,13 +169,15 @@ struct PeakCapacityCard: View {
 
 /// Popover explaining autonomic capacity vs readiness
 struct CapacityExplanationPopover: View {
+    /// As `PeakCapacityCard.describesSleep`: a quick reading is not sleep.
+    let describesSleep: Bool
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             autonomicCapacitySection
 
-            Text(String(localized: "The highest sustained HRV values observed during your sleep — your physiological ceiling, not a readiness indicator.", bundle: LanguageManager.appBundle))
+            Text(ceilingText)
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
 
@@ -190,6 +193,12 @@ struct CapacityExplanationPopover: View {
         .padding()
         .frame(width: 300)
         .background(AppTheme.cardBackground)
+    }
+
+    private var ceilingText: String {
+        describesSleep
+            ? String(localized: "The highest sustained HRV values observed during your sleep — your physiological ceiling, not a readiness indicator.", bundle: LanguageManager.appBundle)
+            : String(localized: "The highest sustained HRV values observed in this recording — your physiological ceiling, not a readiness indicator.", bundle: LanguageManager.appBundle)
     }
 
     private var autonomicCapacitySection: some View {

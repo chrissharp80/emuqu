@@ -107,7 +107,7 @@ struct SleepDetailV2View: View {
     private var effectiveVitals: RecoveryVitals? {
         let stored = recoveryVitals
         let fresh = refreshedVitals
-        let strapHR = session.analysisResult?.timeDomain.meanHR
+        let strapHR = VitalsDetailV2View.strapMeanHR(of: session)
         let mergedRHR = strapHR ?? stored?.restingHeartRate ?? fresh?.restingHeartRate
         if fresh == nil, stored == nil { return heartRateOnlyVitals(mergedRHR) }
         return RecoveryVitals(
@@ -294,7 +294,7 @@ struct SleepDetailV2View: View {
     @MainActor
     private func refreshVitals() async {
         let referenceDate = session.endDate ?? session.startDate
-        let strapHR = session.analysisResult?.timeDomain.meanHR
+        let strapHR = VitalsDetailV2View.strapMeanHR(of: session)
         let fresh = await collector.healthKit
             .fetchRecoveryVitals(relativeTo: referenceDate)
             .withStrapNocturnalRHR(strapHR)
@@ -644,7 +644,7 @@ struct SleepDetailV2View: View {
     @ViewBuilder
     private func hypnogramScrubPill(intervals: [HealthKitManager.SleepStageInterval]) -> some View {
         if let scrubbed = hypnogramScrubbedAt, let interval = stageAt(scrubbed, in: intervals) {
-            let timeFmt: Date.FormatStyle = .dateTime.hour().minute()
+            let timeFmt: Date.FormatStyle = .dateTime.hour().minute().locale(LanguageManager.appLocale)
             HStack(spacing: 8) {
                 Circle()
                     .fill(stageColor(interval.stage))

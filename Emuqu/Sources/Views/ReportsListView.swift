@@ -46,12 +46,17 @@ struct ReportsListView: View {
     @State private var isGenerating = false
     @State private var generationError: String?
     @State private var generatingRowID: UUID?
+    /// False until the page appears and again once it is left: a render that
+    /// finishes after that deletes its PDF instead of presenting it on a page
+    /// that is gone. A page that no longer exists reads the initial false.
+    @State private var isOnScreen = false
 
     var body: some View {
         Group { content }
             .navigationTitle(String(localized: "Reports", bundle: LanguageManager.appBundle))
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear(perform: load)
+            .onAppear(perform: appear)
+            .onDisappear { isOnScreen = false }
             .onChange(of: archiveSignal.version) { load() }
             .sheet(item: $presentedPDF, onDismiss: removeShownPDF) { wrapper in
                 PDFPreviewView(url: wrapper.url)
@@ -306,9 +311,13 @@ struct ReportsListView: View {
         }
     }
 
+    /// The page left before the render finished: the PDF holds health data
+    /// and nothing will show it, so it is deleted rather than kept in tmp.
     @MainActor
     private func finishGeneration(url: URL?, error: String?) {
-        if let url {
+        if let url, !isOnScreen {
+            Self.removeTemporaryPDF(url)
+        } else if let url {
             presentedPDF = URLWrapper(url: url)
             shownPDF = url
         }
@@ -329,6 +338,28 @@ struct ReportsListView: View {
         guard FileManager.default.fileExists(atPath: url.path) else { return }
         attempt("ReportsListView.removeTemporaryPDF") { try FileManager.default.removeItem(at: url) }
     }
+
+    /// Opening the page also deletes the report PDFs an earlier visit left in
+    /// tmp: one whose preview was open when the app was killed never reached
+    /// the sheet's `onDismiss`. Only while no report is being made or shown
+    /// here, so this visit's own PDF is never the one removed.
+    private func appear() {
+        isOnScreen = true
+        load()
+        guard !isGenerating, shownPDF == nil else { return }
+        Task.detached(priority: .utility) { Self.removeLeftoverPDFs() }
+    }
+
+    /// Every `emuqu-report-*.pdf` in tmp (the names `generationInputs` gives).
+    nonisolated private static func removeLeftoverPDFs() {
+        let tmp = FileManager.default.temporaryDirectory
+        guard let names = attempt("ReportsListView.listTemporaryPDFs", { try FileManager.default.contentsOfDirectory(atPath: tmp.path) }) else { return }
+        for name in names where name.hasPrefix(reportFilePrefix) && name.hasSuffix(".pdf") {
+            removeTemporaryPDF(tmp.appendingPathComponent(name))
+        }
+    }
+
+    nonisolated private static let reportFilePrefix = "emuqu-report-"
 
     /// Everything the detached render needs, captured on the main actor before
     /// it starts so the task never reaches back into view state.
@@ -354,7 +385,7 @@ struct ReportsListView: View {
     private func generationInputs(for row: ReportRow) -> GenerationInputs {
         let settings = dependencies.app.settingsManager.settings
         let workout = row.workoutSession
-        let name = "emuqu-report-\(row.id.uuidString.prefix(8))-\(Int(Date().timeIntervalSince1970)).pdf"
+        let name = "\(Self.reportFilePrefix)\(row.id.uuidString.prefix(8))-\(Int(Date().timeIntervalSince1970)).pdf"
         return GenerationInputs(
             kind: row.kind,
             workout: workout,
@@ -510,8 +541,11 @@ struct ReportRow: Identifiable {
         return [UnitsPreferenceStore.current.resolved.formatDistance(meters: dist)]
     }
 
+    /// The frozen score first, as the recovery detail screen reads it, then
+    /// the stored breakdown's composite: a legacy night has the first only.
     private var recoveryScoreBit: [String] {
-        guard let composite = overnightSession?.scoreBreakdown?.compositeScore else { return [] }
+        let frozen = overnightSession.flatMap(\.recoveryScore).map { $0 * 10 }
+        guard let composite = frozen ?? overnightSession?.scoreBreakdown?.compositeScore else { return [] }
         return [String(localized: "score \(ScoreVerdict.safeDisplayScore(composite))", bundle: LanguageManager.appBundle)]
     }
 

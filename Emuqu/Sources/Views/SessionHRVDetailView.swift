@@ -44,7 +44,7 @@ struct SessionHRVDetailView: View {
 
         // Peak Capacity
         if let peak = result.peakCapacity {
-            PeakCapacityCard(capacity: peak, showInfoButton: true)
+            PeakCapacityCard(capacity: peak, showInfoButton: true, describesSleep: session.sessionType == .overnight || session.sessionType == .nap)
         }
 
         // Heart Rate Chart (non-overnight)

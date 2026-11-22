@@ -291,13 +291,17 @@ extension RecoveryScoreCharts {
 
     /// An untouched slider (or one reset by the previous Analyze) sits at
     /// the recording midpoint with no preview set, so that is the target.
+    /// One that stored nothing keeps the slider where it was and says so
+    /// (`reanalysisFailed`), so Analyze can be tried again.
     private func runInlineReanalysis() {
         guard let onReanalyzeAt, let target = previewWindowMs ?? pickWindowMidpointMs else { return }
         windowChangedHere = true
         Task {
             isReanalyzing = true
-            await onReanalyzeAt(target)
-            previewWindowMs = nil
+            reanalysisFailed = false
+            let stored = await onReanalyzeAt(target)
+            if stored { previewWindowMs = nil }
+            reanalysisFailed = !stored
             isReanalyzing = false
         }
     }

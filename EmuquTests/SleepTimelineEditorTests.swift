@@ -190,6 +190,7 @@ final class SleepTimelineEditorTests: XCTestCase {
         let second = state.segments[1].id
         let merged = state.applying(.merge(leftId: first, rightId: second))
         XCTAssertEqual(merged.segments.count, 1, "45-min gap is within merge threshold — should merge")
+        XCTAssertEqual(merged.segments.first?.id, first, "the merged segment keeps the id it was merged from, so it stays selected")
 
         // A 90-min gap should refuse
         var wide = SleepTimelineState.initial(from: makeSingleNight())
