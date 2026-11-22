@@ -123,6 +123,8 @@ final class SavedRouteStore {
 
     /// Serial, newest-wins writer: saves land in the order they were made, so
     /// a rename followed by a delete cannot leave the deleted route on disk.
+    /// The routes trace where the user runs from, so the file is sealed and
+    /// gets an explicit protection class, as the contacts file does.
     private let writer: LatestWinsFileWriter<[SavedRoute]>
 
     /// Retries a load that file protection blocked (a background launch
@@ -145,7 +147,9 @@ final class SavedRouteStore {
         let url = storeURL ?? AppConfig.sharedContainerURL().appendingPathComponent("saved_routes.json")
         if storeURL == nil { Self.migrateLegacyStoreIfNeeded(to: url) }
         self.storeURL = url
-        self.writer = LatestWinsFileWriter(url: url, options: [.atomic], label: "savedRoutes")
+        self.writer = LatestWinsFileWriter(
+            url: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication], label: "savedRoutes"
+        )
         load()
         if loadFailed { installProtectedDataObserver() }
     }
@@ -408,24 +412,54 @@ final class SavedRouteStore {
 /// Writes one JSON file, sealed with the app's key (`JSONFileSeal.app`), on
 /// a private serial queue. A new snapshot replaces any still waiting, so
 /// writes land in the order they were made and a burst collapses to its last
-/// value. Used by the small JSON stores (saved routes, email contacts).
+/// value. A write that fails is not dropped: unless a newer snapshot or a
+/// discard came in meanwhile, it waits again and is retried after each of
+/// `retryDelays`; past the last it waits for the next snapshot, which
+/// replaces it. Used by the small JSON stores (saved routes, email contacts).
 final class LatestWinsFileWriter<Value: Encodable & Sendable>: Sendable {
+    /// The snapshot waiting to be written, a count bumped by every new
+    /// snapshot, discard and synchronous replace (so a failed write can tell
+    /// whether anything superseded it), and the failed attempts at the
+    /// current snapshot.
+    private struct State: Sendable {
+        var value: Value?
+        var generation = 0
+        var failedWrites = 0
+
+        /// Replaces whatever waits with `value` (nil for nothing).
+        mutating func supersede(with value: Value?) {
+            self.value = value
+            generation += 1
+            failedWrites = 0
+        }
+    }
+
     private let url: URL
     private let options: Data.WritingOptions
     private let label: String
     private let queue: DispatchQueue
-    private let pending = OSAllocatedUnfairLock<Value?>(initialState: nil)
+    private let retryDelays: [TimeInterval]
+    private let seal: JSONFileSeal
+    private let state = OSAllocatedUnfairLock<State>(initialState: State())
 
-    init(url: URL, options: Data.WritingOptions, label: String) {
+    /// `retryDelays` are the waits, in seconds, before each retry of a
+    /// failed write; a test passes short ones, and a `seal` that fails as
+    /// it needs.
+    init(
+        url: URL, options: Data.WritingOptions, label: String,
+        retryDelays: [TimeInterval] = [5, 30, 120], seal: JSONFileSeal = .app
+    ) {
         self.url = url
         self.options = options
         self.label = label
+        self.retryDelays = retryDelays
+        self.seal = seal
         self.queue = DispatchQueue(label: "com.emuqu.\(label).write", qos: .utility)
     }
 
     /// Queue `value` to be written, replacing any snapshot not yet written.
     func enqueue(_ value: Value) {
-        pending.withLock { $0 = value }
+        state.withLock { $0.supersede(with: value) }
         queue.async { [self] in drain() }
     }
 
@@ -435,7 +469,7 @@ final class LatestWinsFileWriter<Value: Encodable & Sendable>: Sendable {
     /// write already running and before any queued later, so the caller (the
     /// main actor) never waits on a write.
     func discard() {
-        pending.withLock { $0 = nil }
+        state.withLock { $0.supersede(with: nil) }
         queue.async { [self] in removeFile() }
     }
 
@@ -447,7 +481,7 @@ final class LatestWinsFileWriter<Value: Encodable & Sendable>: Sendable {
     func replaceNow(with value: Value, removing staleCopy: URL) -> Bool {
         queue.sync {
             guard Self.removeIfPresent(staleCopy, label: label), write(value) else { return false }
-            pending.withLock { $0 = nil }
+            state.withLock { $0.supersede(with: nil) }
             return true
         }
     }
@@ -464,11 +498,30 @@ final class LatestWinsFileWriter<Value: Encodable & Sendable>: Sendable {
     }
 
     private func drain() {
-        guard let value = pending.withLock({ state -> Value? in
-            defer { state = nil }
-            return state
+        guard let taken = state.withLock({ state -> (value: Value, generation: Int)? in
+            guard let value = state.value else { return nil }
+            state.value = nil
+            return (value, state.generation)
         }) else { return }
-        write(value)
+        guard !write(taken.value) else { return }
+        retryLater(taken.value, generation: taken.generation)
+    }
+
+    /// Puts a snapshot whose write failed back to wait, unless something
+    /// superseded it meanwhile (a discard must not bring purged data back),
+    /// and schedules the next retry while any are left.
+    private func retryLater(_ value: Value, generation: Int) {
+        let delays = retryDelays
+        let delay = state.withLock { state -> TimeInterval? in
+            guard state.generation == generation, state.value == nil else { return nil }
+            state.value = value
+            guard state.failedWrites < delays.count else { return nil }
+            defer { state.failedWrites += 1 }
+            return delays[state.failedWrites]
+        }
+        guard let delay else { return }
+        debugLog("[\(label)] write failed; retrying in \(Int(delay)) s", level: .warning)
+        queue.asyncAfter(deadline: .now() + delay) { [self] in drain() }
     }
 
     /// Encodes, seals and writes `value`; false (logged) when any step
@@ -476,7 +529,7 @@ final class LatestWinsFileWriter<Value: Encodable & Sendable>: Sendable {
     /// what it held and is never written in the clear.
     @discardableResult
     private func write(_ value: Value) -> Bool {
-        guard let sealed = attempt("\(label).seal", { try JSONFileSeal.app.sealJSON(value, with: JSONEncoder()) }) else { return false }
+        guard let sealed = attempt("\(label).seal", { try seal.sealJSON(value, with: JSONEncoder()) }) else { return false }
         return attempt("\(label).write") { try sealed.write(to: url, options: options) } != nil
     }
 }

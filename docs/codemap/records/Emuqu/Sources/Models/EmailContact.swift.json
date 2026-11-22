@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Models/EmailContact.swift",
- "hash": "b36475df5a1f4977",
+ "hash": "f899def802cae1e2",
  "role": "Defines the EmailContact value (name/email/notes) and EmailContactStore, the @Observable @MainActor singleton address book persisted as email_contacts.json in Application Support, used by the AI's assistant.email.compose / contacts.add / contacts.remove actions and the Settings email-contacts section.",
  "types": [
   "EmailContact: struct — Codable/Identifiable/Hashable contact record (id, name, email, notes, createdAt)",
@@ -11,8 +11,10 @@
   "mem:EmailContactStore.shared (static singleton; returned by AppDependencies.app.emailContactStore unless overridden)",
   "mem:EmailContactStore.contacts (@Observable, private(set)) read by SettingsView+Pages EmailContactsSection and AppFactResolver+AssistantEmail",
   "mem:EmailContactStore.loadFailed (private; set while the file cannot be read; blocks saves)",
+  "mem:EmailContactStore.protectedDataObserver (@ObservationIgnored; installed while the launch read is blocked)",
   "file:<ApplicationSupport>/email_contacts.json (falls back to <AppGroup container>/email_contacts.json when Application Support cannot be resolved), written atomic with .completeFileProtectionUntilFirstUserAuthentication",
-  "file:<store dir>/email_contacts.undecodable.json (copy of a contacts file that read but did not decode)"
+  "file:<store dir>/email_contacts.undecodable.json (copy of a contacts file that read but did not decode)",
+  "notif:UIApplication.protectedDataDidBecomeAvailableNotification (observed while the read is blocked)"
  ],
  "toplevel": "`static let shared = EmailContactStore()` lazily creates the singleton on first access, whose init reads email_contacts.json. EmailContact gets synthesized Codable/Equatable/Hashable.",
  "units": [
@@ -42,19 +44,20 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "4d9b88ba10ab6291"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "d7e6ba844750c90b"
    }
   },
   {
    "key": "init EmailContactStore(storeURL:)",
-   "hash": "9d7a8bd8ad127e0a",
-   "does": "Initializer: uses the injected storeURL, or <ApplicationSupport>/email_contacts.json (creating the directory; the App Group container when Application Support cannot be resolved), builds a LatestWinsFileWriter (atomic, completeFileProtectionUntilFirstUserAuthentication, label emailContacts) and synchronously loads the file.",
+   "hash": "ba1757bb6ed59d67",
+   "does": "Initializer: uses the injected storeURL, or <ApplicationSupport>/email_contacts.json (creating the directory; the App Group container when Application Support cannot be resolved), builds a LatestWinsFileWriter (atomic, completeFileProtectionUntilFirstUserAuthentication, label emailContacts), synchronously loads the file, and installs an unlock observer when it could not be read.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
-    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:retryDelays:seal:)",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.installProtectedDataObserver()",
     "ext:FileManager.url(for:.applicationSupportDirectory,create:true)"
    ],
    "reads": [
@@ -73,13 +76,45 @@
      "at": "+5",
      "cond": "?? — Application Support URL lookup threw (attempt returned nil, logged)",
      "effect": "falls back to AppConfig.sharedContainerURL(), which persists like Application Support"
+    },
+    {
+     "at": "+15",
+     "cond": "loadFailed after load",
+     "effect": "installs the protected-data observer; otherwise none"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.installProtectedDataObserver()": "cfbaa1dd8e3a9aa3",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "c643e06dd2691591",
-    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)": "ff6d7d9df5fa4798",
+    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:retryDelays:seal:)": "2194b0c246cd5121",
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
+   "key": "func EmailContactStore.installProtectedDataObserver()",
+   "hash": "1f7f9d2802c65e1b",
+   "does": "Once only: observes protectedDataDidBecomeAvailable on the main queue and retries the blocked read (retryLoadIfBlocked) on the main actor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
+    "ext:NotificationCenter.addObserver(forName:object:queue:using:)"
+   ],
+   "reads": [
+    "notif:UIApplication.protectedDataDidBecomeAvailableNotification"
+   ],
+   "writes": [
+    "mem:EmailContactStore.protectedDataObserver"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "an observer is already installed",
+     "effect": "returns"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "04d965a004d2ee00"
    }
   },
   {
@@ -104,7 +139,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "f08cdd3da9297fef",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "04d965a004d2ee00",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "92952b96008002e5"
    }
   },
@@ -138,22 +173,29 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "f08cdd3da9297fef",
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)": "46130e4c9e265b47"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "04d965a004d2ee00",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)": "db0e03828a3d6d3e"
    }
   },
   {
    "key": "func EmailContactStore.find(name:)",
-   "hash": "9d028ba09bfef843",
-   "does": "Returns all contacts whose name equals the whitespace-trimmed argument case-insensitively.",
+   "hash": "e479d87cb57b3f8c",
+   "does": "Reads the book again first when the launch read was blocked (retryLoadIfBlocked), then returns all contacts whose name equals the whitespace-trimmed argument case-insensitively.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()"
+   ],
    "reads": [
+    "mem:EmailContactStore.contacts",
+    "file:email_contacts.json"
+   ],
+   "writes": [
     "mem:EmailContactStore.contacts"
    ],
-   "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "04d965a004d2ee00"
+   }
   },
   {
    "key": "func EmailContactStore.resolveNames(_:)",
@@ -224,7 +266,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "ae0a857674e18280",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.looksLikeEmailAddress(_:)": "e4c137486b3dae9d",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197"
    }
@@ -361,17 +403,19 @@
   },
   {
    "key": "func EmailContactStore.retryLoadIfBlocked()",
-   "hash": "5c6a47ba8cecb0a7",
-   "does": "Before an edit, when the last read failed: reloads; on success appends the contacts added in memory while the file was unreadable (by id), so they are kept and saved with the next edit.",
+   "hash": "5ea1c1a21aeec8b0",
+   "does": "Before an edit or lookup, and on unlock, when the last read failed: reloads; on success appends the contacts added in memory while the file was unreadable (by id), so they are kept and saved with the next edit, and removes the unlock observer.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
+    "ext:NotificationCenter.removeObserver"
    ],
    "reads": [
     "file:email_contacts.json"
    ],
    "writes": [
-    "mem:EmailContactStore.contacts"
+    "mem:EmailContactStore.contacts",
+    "mem:EmailContactStore.protectedDataObserver"
    ],
    "branches": [
     {
@@ -382,7 +426,7 @@
     {
      "at": "+4",
      "cond": "reload still failed",
-     "effect": "return, keeping the in-memory list"
+     "effect": "return, keeping the in-memory list and the observer"
     }
    ],
    "deps": {
@@ -410,7 +454,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "a110d95e1d08cfd3",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "1cecd48171fbd501",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
