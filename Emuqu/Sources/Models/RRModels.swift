@@ -254,6 +254,18 @@ struct ArtifactFlags: Codable, Equatable {
         self.confidence = confidence
         self.corrected = corrected
     }
+
+    /// A type a newer build added reads as nil, unclassified, instead of
+    /// failing the session's whole flag array (and the session with it).
+    /// The beat stays an artifact or not as `isArtifact` says; reanalysis
+    /// classifies it again.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        isArtifact = try c.decode(Bool.self, forKey: .isArtifact)
+        type = try c.decodeIfPresent(String.self, forKey: .type).flatMap(ArtifactType.init(rawValue:))
+        confidence = try c.decode(Double.self, forKey: .confidence)
+        corrected = try c.decode(Bool.self, forKey: .corrected)
+    }
 }
 
 /// Time-domain HRV metrics

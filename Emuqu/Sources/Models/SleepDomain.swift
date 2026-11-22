@@ -24,6 +24,15 @@ enum SleepBoundarySource: String, Codable {
     case hrEstimated = "HR Estimated" // Estimated from HR drop patterns (no HealthKit data)
     case healthKitHREstimated = "HK HR Estimated" // Estimated from HealthKit background HR samples (Apple Watch passive monitoring)
     case recordingBounds = "Recording" // Using recording start/end as fallback
+
+    /// A source a newer build added reads as `.recordingBounds`, the least
+    /// trusted, instead of failing the night and the session holding it;
+    /// `HRVSession` then reads the payload as newer, so it is not re-saved
+    /// over.
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = SleepBoundarySource(rawValue: raw) ?? .recordingBounds
+    }
 }
 
 /// Metadata showing how sleep boundaries were resolved when HR data is available.

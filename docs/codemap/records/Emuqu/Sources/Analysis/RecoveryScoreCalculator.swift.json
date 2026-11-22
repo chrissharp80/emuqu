@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift",
- "hash": "955ecefa2777f0fc",
+ "hash": "b92a52a2c136acba",
  "role": "Core recovery-score calculator: score breakdown model types (ScoreFactor, ScoreBreakdown), configuration, z-score→score mapping with versioned band tables, input sanitising, the two calculateWithBreakdown entry points, perceived-readiness blending and final composition (missing-sleep deduction, clamp, SpO2 override).",
  "types": [
   "RecoveryScoreCalculator: enum — namespace for recovery scoring",
@@ -18,8 +18,19 @@
   "mem:RecoveryScoreCalculator.defaultScoringParameters = scoringParametersV2",
   "archive:ScoreBreakdown Codable keys compositeScore,tier,factors,penalties,spo2PenaltyApplied,scoringVersion (persisted inside HRVSession.scoreBreakdown)"
  ],
- "toplevel": "Static lets scoringParametersV1/V2/defaultScoringParameters (V1 is referenced only by EmuquTests/ScoringCharacterizationTests.swift:589). ScoreBreakdown.scoringVersion stored-property default ScoringVersion.current. ScoreFactor and ScoreFactorFacts use synthesized Codable; ScoreBreakdown has custom decode and synthesized encode via CodingKeys.",
+ "toplevel": "Static lets scoringParametersV1/V2/defaultScoringParameters (V1 is referenced only by EmuquTests/ScoringCharacterizationTests.swift:589). ScoreBreakdown.scoringVersion stored-property default ScoringVersion.current. ScoreFactor and ScoreFactorFacts use synthesized Codable (Impact's own init(from:) reads an unknown case as .neutral); ScoreBreakdown has custom decode and synthesized encode via CodingKeys.",
  "units": [
+  {
+   "key": "init RecoveryScoreCalculator.ScoreFactor.Impact(from:)",
+   "hash": "9cf4972be782b3e9",
+   "does": "Single-value decode of the raw string; an impact this build does not know reads as .neutral.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
   {
    "key": "init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)",
    "hash": "d0b2fa8516266dba",
@@ -623,8 +634,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "df732f4d66d187be",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "ab549fa73d7d0103",
-    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "9395447027b4ee5d",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "e7951116886bd63e",
+    "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)": "66428e2a8eef0a0b",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "ad54156cccbbbb24"
    }
   },
