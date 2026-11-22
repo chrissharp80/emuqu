@@ -68,7 +68,7 @@ baseline differs between them (below).
 
 | Area | Gates |
 | --- | --- |
-| **Style & debt** | SwiftLint budget, tech-debt budgets, budget monotonicity, refactor-spec conformance, aggregate type size, fixed-point font budget, test-skip budget |
+| **Style & debt** | SwiftLint budget, tech-debt budgets (the Watch target against its own combined ceiling; every debt ceiling a whole number), budget monotonicity, refactor-spec conformance, aggregate type size, fixed-point font budget, test-skip budget |
 | **Correctness traps** | Empty-range loops (`1 ..< count` on a possibly-empty collection), unchecked `Sendable`, strict-concurrency enablement, orphaned Swift files |
 | **Privacy & safety** | No health data in CloudKit, log redaction, no developer endpoint, privacy-manifest vocabulary, Info.plist key drift, FDA copy perimeter + runtime-guard sync |
 | **Localization** | Coverage across every locale, bundle reachability, literal resolution, orphaned catalogue keys, locale-aware decimal formatting |
@@ -81,9 +81,14 @@ baseline differs between them (below).
 The last row is the one that matters most. A gate that passes because it is
 measuring nothing is worse than no gate, because it is documented as protection.
 
-Every gate has a plant except two that need a build or a simulator
-(`check_coverage.sh`, `check_thread_sanitizer.sh`), which are verified by their
-own CI runs. `check_uitest_fresh_install.sh` is a static grep that runs on
+Every gate has a plant except `check_coverage.sh`, which needs a real build and
+is verified by its own CI runs. `check_thread_sanitizer.sh` is planted against a
+stand-in `xcodebuild`: a race in the suite, and each of the two settings that
+make a race visible (serial testing, so the report reaches the log, and
+`TSAN_OPTIONS=halt_on_error=1`, so it fails the run) removed from the gate. On a
+real run the gate proves the same two things first with a canary,
+`EmuquTests/ThreadSanitizerCanaryTests`, which races on purpose; it fails unless
+that race is reported and fails its run. `check_uitest_fresh_install.sh` is a static grep that runs on
 Ubuntu, so it has a plant like the rest. Every planted violation goes red.
 
 A gate that covers one of two shapes of its subject reports a clean tree it has
@@ -178,8 +183,10 @@ edges and the no-heart-rate case, and a mutation swaps the denominator back.
 
 A comment that says "careful, this is subtle" is a lead, not a safeguard.
 
-The delete that runs before every HR re-export in `HealthKitManager+HeartRate`
-decides what gets erased from the user's permanent Health record. Its naming
+The delete that accompanies every re-export to Apple Health
+(`HealthSampleReplacer`: read the earlier samples, save the new ones, delete the
+earlier ones the save did not replace through their sync identifier) decides
+what gets erased from the user's permanent Health record. Its naming
 scheme is one type, `HealthExportIdentity`, whose tests enumerate every metric
 the app writes and assert that no metric's delete reaches another metric's
 samples, or another session's — a property that extends itself to any metric
@@ -233,8 +240,13 @@ fails a raise that has no written justification.
   release cannot be cut without the full suite, UI target included, passing
   first. Its deploy job runs in the `testflight` environment: only `main` can
   deploy to it, the owner has to approve each run, and the signing and App
-  Store Connect secrets live there.
-- `security.yml` (CodeQL) is run on demand when a security pass is wanted.
+  Store Connect secrets live there. The deploy job's own `if:` requires `main`
+  too, and its last step removes the signing keychain and keys whatever the
+  outcome.
+- `security.yml` (CodeQL and dependency review) is run on demand when a
+  security pass is wanted. The dependency review fails unless every package
+  pinned in `Package.resolved` is in the repository's dependency-graph SBOM,
+  since a graph without them would review nothing for them.
 
 ## What this posture does *not* claim
 

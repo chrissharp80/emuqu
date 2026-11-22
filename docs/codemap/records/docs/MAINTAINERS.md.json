@@ -79,7 +79,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/StoreKitManager.swift::func boot()": "2d578510538e7ee6",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "1aa026e4481155fe"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "edd8e1a85c8dc3b3"
    }
   },
   {
@@ -162,8 +162,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetPath(from:to:)": "20e81f84a21f920a",
-    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.body": "c3830df880049e8f"
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetPath(from:to:)": "f7e631498f909e01",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.body": "a7e43ef0e71b4852"
    }
   },
   {
@@ -302,8 +302,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.0 Top-level repository",
-   "hash": "87c73f8f5c01507d",
-   "does": "Claims top-level layout: Emuqu/, Emuqu/EmuquApp.swift, EmuquTests (256), EmuquUITests (18), watch app, xcodeproj last upgraded with Xcode 26.6 (pbxproj LastUpgradeCheck = 2660 at line 3549), Emuqu.xctestplan used by CI + make test, docs/, docs/codemap/ (the code map, kept current by CI), scripts/, Tools/copy_linter (lint.py + prohibited_terms.json), .ci/ budgets, .github workflows (ci, gates, security, performance, testflight), .githooks/pre-commit (SwiftFormat + SwiftLint + the code-map check), Makefile, README/LICENSE, swiftlint/swiftformat configs, .env.example. All paths exist.",
+   "hash": "d9ce322a301e2a0a",
+   "does": "Claims top-level layout: Emuqu/, Emuqu/EmuquApp.swift, EmuquTests (256), EmuquUITests (18), watch app, xcodeproj last upgraded with Xcode 26.6, Emuqu.xctestplan used by CI + make test, docs/, docs/codemap/ (the code map, kept current by CI), scripts/, Tools/copy_linter (lint.py + prohibited_terms.json), .ci/ budgets, .github workflows (ci, gates, security, performance, testflight), .githooks/pre-commit (SwiftFormat + SwiftLint + the code-map check), Makefile, README/LICENSE, .swiftlint.yml/.swiftformat as the lint and format config, and .swiftlint-strict.yml present but run by nothing since the changed-files lint script was deleted (no script, Makefile target or workflow names it), .env.example. All paths exist.",
    "entry": null,
    "calls": [
     "Tools/copy_linter/lint.py::def main",
@@ -332,80 +332,119 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "0537b6229c6d467c",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "10ea7c04076f529f",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.2 `Collection/` — sensor capture + recording lifecycle (~150 files)",
-   "hash": "bfe09a0e900d5588",
-   "does": "Claims Collection/ (~150; actual 157) holds RRCollector + extensions, SessionRecoveryCoordinator and OvernightStreamingCoordinator built on demand as values holding the collector strongly (collector.recovery at RRCollector+RecoveryForwarding.swift:14, collector.overnightStreaming at RRCollector+OvernightStreamingForwarding.swift:14), PolarManager(+Streaming/+Recording/+Observers), HealthKitManager(+HRV/+HeartRate/+SleepTrends/+Store/+Heat) with Vitals/Training/SleepHealthQueries, WorkoutRecorder(+Lifecycle/+Ticker/+Start/+Stop/+Metrics), extra-device managers, recording support types incl. RecoveryVitals, and pure types METLookup/WorkoutTickState/WorkoutStartCue/SleepRefreshPolicy/HRSleepEstimator with HealthKitManager.estimateSleepFromHR kept as a forwarder (chain HealthKitManager → SleepHealthQueries → HRSleepEstimator).",
+   "hash": "d43beedb3006ab89",
+   "does": "Claims Collection/ (~150; actual 159) holds RRCollector + extensions, SessionRecoveryCoordinator and OvernightStreamingCoordinator built on demand as values holding the collector strongly, PolarManager(+Streaming/+Recording/+Observers), HealthKitManager(+HRV/+HeartRate/+SleepTrends/+Store/+Heat) with Vitals/Training/SleepHealthQueries, the Apple Health write-back types (HealthExportIdentity.metadata stamps ExternalUUID + sync identifier + rising sync version from nextSyncVersion on every export; HealthKitWorkoutExport.export; HealthWriteAndObserve.swift holding HealthSampleReplacer, removeExports and the anchored HealthSampleWatch observer that drops the app's own samples), WorkoutRecorder(+Lifecycle/+Ticker/+Start/+Stop/+Metrics), extra-device managers, recording support types incl. RecoveryVitals, and pure types METLookup/WorkoutTickState/WorkoutStartCue/SleepRefreshPolicy/HRSleepEstimator with HealthKitManager.estimateSleepFromHR kept as a forwarder (chain HealthKitManager → SleepHealthQueries → HRSleepEstimator).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHR(rrPoints:recordingStart:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthWriteAndObserve.removeExports(sessionId:from:to:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "2e8dcb644819aff3",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)": "7ee0ef3efc415d6e",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)": "dc7538c29edef3aa",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHR(rrPoints:recordingStart:)": "9a2ca7bd234f3585",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "573ac4aba216c312"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "573ac4aba216c312",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "26c67d8ab67eca74",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "0415c974b73264d3",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)": "954971d68df38c94",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthWriteAndObserve.removeExports(sessionId:from:to:)": "980c692590529480"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.3 `Assistant/` — the \"Flo\" AI subsystem (~115 files)",
-   "hash": "96879a6bdc3769d7",
-   "does": "Claims Assistant/ (~115; actual 115) layout: root voice/coach/guard/speech-prep files, Providers/ (AIProvider + Apple/Anthropic/OpenAI/Gemini/Grok/DeepSeek + streamer/registry), Facts/ (AppFactResolver + extensions, FactCatalog, routers, classifiers, compactor, telemetry), Chat/, Context/, ViewModel/, Views/, Keys/APIKeyStore.swift (Keychain). All named types/files exist.",
+   "hash": "2944ef2077099f80",
+   "does": "Claims Assistant/ (~115; actual 118) layout: root voice/coach/guard/speech-prep files including CoachCueSpeech (each coach line claims the cue audio session via BackgroundAudioManager.beginCue before it is spoken; holds the scripted fallback of an AI interjection), Providers/ (AIProvider + Apple/Anthropic/OpenAI/Gemini/Grok/DeepSeek + streamer/registry), Facts/ (AppFactResolver + extensions, FactCatalog, routers, classifiers, compactor, telemetry), Chat/, Context/, ViewModel/, Views/, Keys/APIKeyStore.swift (Keychain). All named types/files exist.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)"
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.speak(_:onUnqueued:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff"
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.speak(_:onUnqueued:)": "6d21c49c9272c15e",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "08324bd52931b06a"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.4 `Services/` — cross-cutting app services (~50 files)",
-   "hash": "2e93bcaabc41a4f1",
-   "does": "Claims Services/ (~50; actual 49) holds StoreKitManager + EntitlementAnchor, WatchConnectivityBridge, DataPurgeService, the morning/recovery services, the location/road/nav stack, LanguageManager, NarrativeLanguage, WeatherService, WebSearchService. Named types exist.",
+   "hash": "53d34e7110271827",
+   "does": "Claims Services/ (~50; actual 52) holds StoreKitManager + EntitlementAnchor, WatchConnectivityBridge, DataPurgeService with PurgeGate (the process-wide purge lock: admitWrite refuses archive writes and the sync manager skips uploads/full syncs via isPurging while beginPurge..endPurge holds it), the morning/recovery services, the location/road/nav stack, LanguageManager, NarrativeLanguage, WeatherService, WebSearchService. Named types exist.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)",
+    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "2c4e0f1253cea3a1"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
+    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging": "e50d4ba69a9f521d"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.5 `Storage/` — persistence, encryption, sync (~44 files)",
-   "hash": "84b47d6eb23d2d0b",
-   "does": "Claims Storage/ (~44, the count on disk) holds Archive.swift (+MergeForwarding/+Migrations/+Repair, SessionMerger) — JSON in the App Group with SHA-256 and an in-memory index — plus CloudKit sync types, EncryptionManager, DataCompression (ZLIB, verified DataCompression.swift:26-40), backups, caches, SessionStorageDiagnostic.",
+   "hash": "4faa1bd93809b595",
+   "does": "Claims Storage/ (~44; actual 47) holds Archive.swift (+MergeForwarding/+Migrations/+Repair, SessionMerger) — JSON in the App Group with SHA-256 and an in-memory index — plus CloudKit sync types, CloudAccountIdentity + CloudAccountGuard in CloudAccountIdentity.swift (the recorded Apple ID, confirmed by confirmAccount before any iCloud read/write), EncryptionManager, DataCompression (ZLIB), backups, caches, SessionStorageDiagnostic.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)"
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4"
+   }
+  },
+  {
+   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.5a `Export/` and `Import/` — reports, export files, data import",
+   "hash": "75dc30c15a22195d",
+   "does": "Claims Export/ holds the PDF reports (PDFReportGenerator + extensions with OvernightReportRenderer, DeepDiveReportRenderer, ReportSectionRenderer; HolisticDailyReport; WorkoutPDFReport/WorkoutPDFRenderer) and ExportFile.swift, through which CSVExporter/GPXExporter/TCXExporter, PDFReportGenerator.writeReport, the DebugLog export and the CrashLogManager export write into tmp/Exports with .completeFileProtection (ExportFile.write), the folder emptied at launch by EmuquApp.init via ExportFile.removeLeftovers, and WorkoutPDFReport/HolisticDailyReport raised to complete protection by ExportFile.protect; Import/ holds RRDataImporter (+CSV/+EliteHRV/+FlowHRV/+JSON) and HealthWorkoutImporter (+Queries/+Rebuild) with ImportedWorkoutBuilder. All named files exist.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.removeLeftovers()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)": "12c56ef05601a449",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.removeLeftovers()": "2938ba72f922f474",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.6 `Models/` — domain types & settings (~29 files)",
    "hash": "cad98ad727074d38",
-   "does": "Claims Models/ (~29; actual 29) holds HRVSession, SettingsManager/UserSettings, RRModels, workout models, Route/SavedRoute, IntervalPlan, ScoreVerdict, MorningFeelingTag, DashboardSessionPolicy, UnitsPreference, EmailContact (all declared in Models/).",
+   "does": "Claims Models/ (~29; actual 31) holds HRVSession, SettingsManager/UserSettings, RRModels, workout models, Route/SavedRoute, IntervalPlan, ScoreVerdict, MorningFeelingTag, DashboardSessionPolicy, UnitsPreference, EmailContact (all declared in Models/).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
@@ -420,7 +459,6 @@
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()",
     "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.displayLabel",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.word",
-    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.label",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightScore(inEntries:calendar:)",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
@@ -513,17 +551,17 @@
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Documented file counts match the tree": "42e852ed3bb188e8",
-    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "324ee77df2888a13",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash": "641cca446688e09e",
     "Emuqu/Sources/Utilities/DebugLog.swift::init DebugLogger()": "2f65eb8a92ad3e2f",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
     "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "c991ffd8e3975e6f",
-    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.install()": "382790801bb249ba",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.install()": "1fc7b317584f17cb",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b",
-    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()": "49052db956ceb4a5",
-    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)": "dd932b9a8c546bc4",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()": "c15f55dd92f347d8",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)": "4476c41e93b017fe",
     "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "9253edd1b85f1ce3",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.install()": "5d93902873652d8a",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.install()": "4023e8c2ad706c16",
     "Makefile::target doc-counts-guard": "81cc0795ce562bec"
    }
   },
@@ -607,8 +645,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 7. End-to-end flows > 7.2 Overnight recording → recovery score → dashboard",
-   "hash": "357cb3f1400587e7",
-   "does": "Claims overnight spine: RRCollector.startOvernightStreaming arms H10 internal recording as backup (never on Verity Sense), ~60 s incremental raw-RR backup; StrapLinkCoordinator gives PolarReconnectPolicy.windowSeconds (20 min) before reconnectExhausted; Stop = RecordView.stopOvernightAndApplyOutcome -> RRCollector.stopOvernightStreaming -> OvernightStreamingCoordinator.stopOvernightStreaming (end arming, stop streaming infrastructure, back up beats, download/merge/score with bounded reconnect and parallel sleep poll, fallbackToDeviceFetch for a short stream); gatherOvernightData named as the pause/recovery gather; DataSourceSelector.selectBestSource internal → composite → streaming → raw backup, composite gap threshold 2 s; HRVAnalysisPipeline.analyzeWithAutoWindow runs WindowSelector.findBestWindow over 30-70% of sleep then analyzeWithWindow; computeRecoveryScore → calculateWithBreakdown 0-100 HRV60/Sleep25/Vitals15 stored 0-10 via toTenScale; archive + archiveSignal.notifyChanged + CloudKit upload; MainTabView.startDashboardLoad reloads recentSessionsAsync(limit: 35).",
+   "hash": "858b12e51fb156ee",
+   "does": "Claims overnight spine: RRCollector.startOvernightStreaming arms H10 internal recording as backup (never on Verity Sense), ~60 s incremental raw-RR backup; StrapLinkCoordinator gives PolarReconnectPolicy.windowSeconds (20 min) before reconnectExhausted; Stop = RecordView.stopOvernightAndApplyOutcome -> RRCollector.stopOvernightStreaming -> OvernightStreamingCoordinator.stopOvernightStreaming (end arming, stop streaming infrastructure, back up beats, download/merge/score with bounded reconnect and parallel sleep poll, fallbackToDeviceFetch for a short stream), the download skipped by nightFetchAllowed when the night never armed the strap (overnightDeviceBackupActive false) and the strap reports no recording (isRecordingOnDevice false); gatherOvernightData named as the pause/recovery gather; DataSourceSelector.selectBestSource internal → composite (internal more than compositeThresholdPercent = 5% fewer beats) → streaming → raw backup, createComposite taking streamed beats in the internal series' gaps (findGaps: more than 2 s past the expected interval) or outside the span it recorded (uncoveredBeats); HRVAnalysisPipeline.analyzeWithAutoWindow runs WindowSelector.findBestWindow over 30-70% of sleep then analyzeWithWindow; computeRecoveryScore → calculateWithBreakdown 0-100 HRV60/Sleep25/Vitals15 stored 0-10 via toTenScale; archive + archiveSignal.notifyChanged + CloudKit upload; MainTabView.startDashboardLoad reloads recentSessionsAsync(limit: 35).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)",
@@ -630,7 +668,10 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopOvernightAndApplyOutcome()",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fallbackToDeviceFetch(baseSession:streamingPoints:reconnectCount:isVeritySense:)"
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fallbackToDeviceFetch(baseSession:streamingPoints:reconnectCount:isVeritySense:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.nightFetchAllowed(isVeritySense:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)"
    ],
    "reads": [],
    "writes": [],
@@ -642,12 +683,15 @@
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "10ea7c04076f529f",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.createComposite(internalSeries:streamingSeries:)": "67a35a6721da0066",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "2f36c3f661613041",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "5c9bb3b18af92a73",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)": "ea52360d20076118",
     "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "4a5ceb4ba655d800",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.gatherOvernightData()": "c9507fb0c711b5de",
     "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "867ac72b9cc49e72",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fallbackToDeviceFetch(baseSession:streamingPoints:reconnectCount:isVeritySense:)": "99beabe0f238ba49",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.nightFetchAllowed(isVeritySense:)": "695c99d9beeba3df",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "8734a28e0edc13b1",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "575d0b0cd63c0721",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "e9c4df85c5c05b87",
@@ -660,8 +704,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 7. End-to-end flows > 7.3 Workout recording → summary",
-   "hash": "9996c392da103462",
-   "does": "Claims workout flow: WorkoutRecorder reconnects strap/Stryd/FTMS/PM5, starts GPS and barometric buffer; LiveDFAAnalyzer rolling α1 every 20 s; LiveWorkoutBroker snapshot; WorkoutTriggerEngine + WorkoutVoiceCoach; stopStreaming deferred until a 120 s HRR window (HRRCaptureService captureWindowSec = 120, HRRCaptureService.swift:27); finalizeSession runs WorkoutAnalyzer (TRIMP, hrTSS, power-TSS, splits, decoupling), elevation post-processing, archives and auto-archives a breadcrumb; WorkoutPDFReport.generate produces the PDF. The 20 s cadence matches an init default `cadenceSec: TimeInterval = 20` with 120 s window (LiveDFAAnalyzer).",
+   "hash": "6d29e445d324dc4d",
+   "does": "Claims workout flow: WorkoutRecorder reconnects strap/Stryd/FTMS/PM5, starts GPS and barometric buffer only for a sport with usesGPS (startedLocation is nil for an indoor workout, so its location stack is never built); LiveDFAAnalyzer rolling α1 every 20 s; LiveWorkoutBroker snapshot; WorkoutTriggerEngine + WorkoutVoiceCoach, with WorkoutVoiceCoach.dispatch(event:) playing the alert haptic on the phone (CoachAlertHaptic.playOnPhone) and on the Watch (WatchConnectivityBridge.sendCoachAlertHaptic) and each spoken line claiming the cue session through CoachCueSpeech; WorkoutRecorder.stop ends an open pause at the stop date (pauseTimeline.resume); stopStreaming deferred until a 120 s HRR window (HRRCaptureService); finalizeSession runs WorkoutAnalyzer (TRIMP, hrTSS, power-TSS, splits, decoupling), elevation post-processing, archives and auto-archives a breadcrumb; after the archive write the workout goes to Apple Health via HealthKitWorkoutExport.export (replaces earlier exports of the session, active energy from netMETs = METs − 1 floored at 0) when HealthKit write is available; WorkoutPDFReport.generate produces the PDF. 20 s cadence is LiveDFAAnalyzer's cadenceSec default.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift::func WorkoutRecorder.finalizeSession(rrPoints:stopDate:hrrSamples:)",
@@ -669,24 +713,40 @@
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)",
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func CoachAlertHaptic.playOnPhone(urgent:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.sendCoachAlertHaptic(urgent:)",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.speak(_:onUnqueued:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.netMETs(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "f33747d3f9768073",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "dbca3958b68fa5b2",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.speak(_:onUnqueued:)": "6d21c49c9272c15e",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func CoachAlertHaptic.playOnPhone(urgent:)": "b805ae22a0875e55",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "f61db63d73e6b0a7",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "26c67d8ab67eca74",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.netMETs(_:)": "7a61cfddd41f146e",
     "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift::func WorkoutRecorder.finalizeSession(rrPoints:stopDate:hrrSamples:)": "1e3e4431c984daf6",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "64bf251428145cd9",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "852043f9a6e193e7"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "a7d5cc61801af2cf",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "5c15b4a33c0ef2e6",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "f56389b765313440",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "ce818f1d27dc80fe",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.sendCoachAlertHaptic(urgent:)": "c9323b98938c5117"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 7. End-to-end flows > 7.4 An AI turn (Flo)",
-   "hash": "c346c70d74e2a39b",
-   "does": "Claims an AI turn: AssistantViewModel.send → for a voice turn with no reply streaming, the DeterministicIntent.tryMatch zero-token shortcut over 14 patterns before the consent check → dispatch → resolveProviderForThisTurn (pure core TurnRouter) with RoutingMode active only while Apple is selected; Auto → CapabilityClassifier → SmartProviderRouter tier; TierProviderMapper mid tier Grok then DeepSeek else Apple; 50/day cap on deep turns (dailyTier3Cap = 50); runToolUseLoop with CompactToolRouter.resolveTool and maxToolCallsPerTurn = 8; Apple path compacts at 70% of 4096, SessionCache rotates after 20 turns (maxTurnsPerSession = 20), 512-token replies (responseReserve = 512); Apple model prewarmed on the first send.",
+   "hash": "5524245050409866",
+   "does": "Claims an AI turn: AssistantViewModel.send refuses empty input and Flo-off, answers a health-symptom question locally (medicalGuardRefused → MedicalQueryGuard), requires ProviderRegistry.canSend(to:) (isAvailable and switched on) for the active provider, then for a voice turn with no reply streaming tries the DeterministicIntent.tryMatch zero-token shortcut over 14 patterns before the consent check → dispatch(regenerating:) → resolveProviderForThisTurn (pure core TurnRouter) with RoutingMode active only while Apple is selected; Auto → CapabilityClassifier → SmartProviderRouter tier; TierProviderMapper mid tier Grok then DeepSeek else Apple; 50/day cap on deep turns; runToolUseLoop with CompactToolRouter.resolveTool and maxToolCallsPerTurn = 8; after a mutating tool a fallbackable failure becomes PickedModelFailure and is shown, not handed on; delete tools and writes of unstated values (memory add, contact add, set_address, route rename) return confirmation_required until the user's next message confirms (DestructiveActionContext.gateUnlessUserStated); CoachVoiceGuard.scrub passes MedicalQueryGuard's canned replies byte-identical; Apple path compacts at 70% of 4096, SessionCache reused only when AppleExchange.before matches the exchange it answered, rotates after 20 turns, 512-token replies; fact extraction only when mayExtractFacts (Flo allowed, canSend, consent); summaryBatch folds one budget-sized batch per send into the summary saved sealed by ConversationStore.saveSummary; Apple model prewarmed on the first send.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)",
@@ -701,31 +761,45 @@
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)",
     "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleExchange.before(latestQuestionIn:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.mayExtractFacts(with:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summaryBatch(_:provider:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "c5c0f800ac025f4e",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "4ac533937d18871b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "fa5e4ee2a83fe2df",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "dd6ae7872b57f262",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "fe140477d3574bdf",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "d3863d8890919dcd",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)": "8d58df70465717c5",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleExchange.before(latestQuestionIn:)": "a5123dc82e5789af",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "1ccac547ae32c782",
     "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "7bb03bb593437ace",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "9ae5cc4573f169ef",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.mayExtractFacts(with:)": "5ddb2fb605a79207",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summaryBatch(_:provider:)": "7015c0c0acba3a85",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch(regenerating:)": "f106a850ffc7955f",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.resolveProviderForThisTurn()": "23ca3517bef7efb1",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.dispatch()": "c316282a0afd93c3",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "466acc0532c80c31",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.dispatch(regenerating:)": "74238d879bcd0903",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "20d2e837dc8e8c64",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 7. End-to-end flows > 7.5 Storage & iCloud sync",
-   "hash": "9b1cff8efca6800f",
-   "does": "Claims storage/sync: SessionArchive.archive writes JSON to the App Group, stores SHA-256, updates the locked index, persists it; CloudKitSyncManager.uploadSession only when sync is on strips Health-sourced fields via CloudSessionPayload.uploadable (sleep/vitals snapshots, sleep window, training/analysis/breakdown Health readings, Watch HR) then ZLIB-compresses and encrypts into a private-DB CKAsset; performFullSync on launch/foreground; soft-delete isDeleted and deletedSessionIds; runDeferredMigrations runs one-time migrations in the background. uploadable verified CloudKitSyncSupport.swift:564-581; isDeleted tombstones CloudKitSyncManager+Deletion.swift:163-198.",
+   "hash": "a12e9c242f8337e3",
+   "does": "Claims storage/sync: SessionArchive.archive writes JSON to the App Group, stores SHA-256, updates the locked index, persists it; CloudKitSyncManager.uploadSession only when cloudUploadsAllowed (sync on, onboarding done, not PurgeGate.isPurging, re-checked inside the serializer with CloudAccountGuard.confirmAccount) strips Health-sourced fields via CloudSessionPayload.uploadable then ZLIB-compresses and encrypts into a private-DB CKAsset; sample nights never built into a record (CloudUploadExclusion.sampleData); performFullSync on launch/foreground, re-checking sync-on and !isPurging inside its serializer turn; soft-delete isDeleted and deletedSessionIds; the recorded account (CloudAccountIdentity, UserDefaults) gates every read/write and key creation until confirmed this launch; verdict adopts the signed-in account when none is recorded unless the app stopped sync and it is still off, or the account changed this launch with bookkeeping left; a different account or zoneWasDeleted → stopSync (forget account, reset bookkeeping, sync off, notice; local data kept; no zone recreated); Delete All My Data closes PurgeGate (archive writes refused via admitWrite, uploads/full sync skipped, waits for in-flight writes) and sets iCloudSyncEnabled false before the remote delete; runDeferredMigrations runs one-time migrations in the background.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
@@ -735,17 +809,33 @@
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()",
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()"
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.verdict(recorded:current:syncEnabled:stoppedByApp:accountChangedThisLaunch:hasBookkeeping:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.beginPurge()",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.beginPurge()": "2ab1219114a4f254",
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "533489add6f1c58a",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "e1168fc765a065fb",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "1aa026e4481155fe",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "12d14f68b1fd137f",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "42ad9add2c66cf12",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.verdict(recorded:current:syncEnabled:stoppedByApp:accountChangedThisLaunch:hasBookkeeping:)": "e242752a275058fb",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "eff72e3d17da1100",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "edd8e1a85c8dc3b3",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1"
@@ -775,8 +865,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "10ea7c04076f529f",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b"
    }
   },
   {
@@ -793,7 +883,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "f33747d3f9768073",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.banisterIntensityFactor(hrReserve:)": "d57c82dcbf1c40a0",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "654be340768a34db"
    }
@@ -821,55 +911,73 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 8. Subsystem reference > 8.4 The AI assistant (Flo)",
-   "hash": "93ab6911adf9e958",
-   "does": "Claims Flo ownership: provider-agnostic, app seam is Facts/AppFactResolver*; naming Flo tab (Tab.coach), Coach (WorkoutVoiceCoach), Flo Report; AssistantSubsystem in AIProvider.swift; byte-stable system prompt, sorted-keys tool schemas, cap 8 tool calls, API keys in Keychain never iCloud-synced (APIKeyStore uses kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly, APIKeyStore.swift:65).",
+   "hash": "647539dc6b530224",
+   "does": "Claims Flo ownership: provider-agnostic, app seam is Facts/AppFactResolver*; naming Flo tab (Tab.coach), Coach (WorkoutVoiceCoach), Flo Report; AssistantSubsystem in AIProvider.swift; byte-stable system prompt, sorted-keys tool schemas, cap 8 tool calls, API keys in Keychain never iCloud-synced (APIKeyStore, kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly); turns go only to a provider ProviderRegistry.canSend accepts; CoachVoiceGuard.scrub never rewrites MedicalQueryGuard's canned safety replies.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "466acc0532c80c31"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "4ac533937d18871b",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "08324bd52931b06a",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "20d2e837dc8e8c64"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 8. Subsystem reference > 8.5 Storage, sync & export",
-   "hash": "5053cdff63d060fc",
-   "does": "Claims storage/sync/export ownership and the post-acceptance mutation contract (pointer to FLOWCHART.md).",
+   "hash": "7780c628670d6d29",
+   "does": "Claims storage/sync/export ownership (Storage/ incl. CloudAccountIdentity, Services/PurgeGate, Export/ incl. ExportFile, Import/, Analysis exporters), the post-acceptance mutation contract (pointer to FLOWCHART.md), sync only for the recorded iCloud account and turned off rather than a deleted zone recreated (CloudAccountGuard), no archive write during Delete All My Data (PurgeGate.admitWrite), and ExportFile.write putting its exports in tmp/Exports with complete protection.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "e1168fc765a065fb"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "42ad9add2c66cf12",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "eff72e3d17da1100"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 8. Subsystem reference > 8.6 The Apple Watch app",
-   "hash": "4bfa072bb191f61c",
-   "does": "Claims Watch app files WatchApp.swift, WatchLiveView.swift, WatchWorkoutManager.swift (HKWorkoutSession), WatchSessionManager.swift (WCSession), WatchStrapConnector.swift (CoreBluetooth); phone side WatchConnectivityBridge.swift; iPhone owns strap and canonical record. Files exist.",
+   "hash": "0f5f11cbe8d2cf14",
+   "does": "Claims Watch app files WatchApp.swift, WatchLiveView.swift, WatchWorkoutManager.swift (HKWorkoutSession), WatchSessionManager.swift (WCSession), WatchStrapConnector.swift (CoreBluetooth); phone side WatchConnectivityBridge.swift; iPhone owns strap and canonical record; WatchAppDelegate.handleActiveWorkoutRecovery calls WatchWorkoutManager.recoverActiveSession to take back a running session after relaunch; coachAlert messages play only while WatchMessageDecoding.playsCoachAlert says they are fresh; WatchSendTimeoutBreaker opens after 3 timeouts for 30 s (isOpen), during which live sendMessage is skipped and the application context carries the snapshot.",
    "entry": null,
    "calls": [
     "EmuquWatch Watch App/WatchApp.swift::var WatchApp.body",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()",
+    "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.handleActiveWorkoutRecovery()",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.recoverActiveSession()",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.playsCoachAlert(firedAt:now:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchSendTimeoutBreaker.isOpen(at:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "5eabea06d36d7da6",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "a5ec0a0a99759886",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchSendTimeoutBreaker.isOpen(at:)": "e41941deed03eb57",
+    "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.handleActiveWorkoutRecovery()": "779c1f6fca32e8f6",
     "EmuquWatch Watch App/WatchApp.swift::var WatchApp.body": "0a197b1e78defaae",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)": "42a8f9775fc24441"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.playsCoachAlert(firedAt:now:)": "21b64c09318ddcfe",
+    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)": "de45895777568fe9",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.recoverActiveSession()": "1a75076b5065267c"
    }
   },
   {
@@ -886,7 +994,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "236e3a0832306138",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "852043f9a6e193e7"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "ce818f1d27dc80fe"
    }
   },
   {
@@ -931,7 +1039,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "40b91b35656ce492",
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "6d8b97fe157f2aaf"
    }
   },
   {
@@ -1014,17 +1122,17 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.5a Paywall, trial, and beta grandfathering",
    "hash": "bad567f30d22046b",
-   "does": "Claims paywallEnabled = true; lifetime non-consumable + $0 30-day trial non-consumable com.chrissharp.flowrecovery.trial30day; four bypasses (purchase, grandfathered beta tester on a verified production install, developer install, active trial) in hasAccess; anchor written only by the history check and migrateLegacyTestFlightFlag; no grant from a cached build-type flag (it can survive a TestFlight → App Store upgrade); isDeveloperInstall never writes the anchor; testPaywall* UI tests use -UITests-ForcePaywall (UITestLaunchArguments.forcesPaywall, :18), which the gate honours even with paywallEnabled off (AppLaunchTasks.swift:678). Verified StoreKitManager.swift:22,138; prepareEntitlementGate calls resolvedForGate, migrateLegacyTestFlightFlag, grandfatherExistingUserIfNeeded (AppLaunchTasks.swift:633-639).",
+   "does": "Claims paywallEnabled = true; lifetime non-consumable + $0 30-day trial non-consumable com.chrissharp.flowrecovery.trial30day; four bypasses (purchase, grandfathered beta tester on a verified production install, developer install, active trial) in hasAccess; anchor written only by the history check and migrateLegacyTestFlightFlag; no grant from a cached build-type flag (it can survive a TestFlight → App Store upgrade); isDeveloperInstall never writes the anchor; testPaywall* UI tests use -UITests-ForcePaywall (UITestLaunchArguments.forcesPaywall), which the gate honours. prepareEntitlementGate calls migrateLegacyTestFlightFlag and grandfatherExistingUserIfNeeded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/AppLaunchTasks.swift::var EmuquApp.hasAccess",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.prepareEntitlementGate()",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.paywallModal()",
     "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolvedForGate(wallClock:)",
     "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now:)",
     "Emuqu/Sources/Services/StoreKitManager.swift::func grandfatherExistingUserIfNeeded(hasHistory:now:)",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var isGrandfatheredBetaTester"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isGrandfatheredBetaTester",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)"
    ],
    "reads": [],
    "writes": [],
@@ -1033,6 +1141,7 @@
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.paywallModal()": "63a78b8bf3186b01",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.prepareEntitlementGate()": "c9f8421fce9815b2",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::var EmuquApp.hasAccess": "0562037118d85c46",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "4d7efcd4ad0fd486",
     "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)": "af8cc76eea12b046",
     "Emuqu/Sources/Services/StoreKitManager.swift::func grandfatherExistingUserIfNeeded(hasHistory:now:)": "d1a8bba6258c08c1",
     "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now:)": "56ae12379090a5d7",
@@ -1041,39 +1150,63 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.6 Background execution",
-   "hash": "56ea0dc520d44a30",
-   "does": "Claims background execution: overnight recordings and indoor workouts stay alive on bluetooth-central wakeups, no silent audio, background location only for workout GPS, spoken cues hold a mixable audio session only while speaking, voice chat holds it until the chat ends, no audio/speech at launch. BackgroundAudioManager doc and beginCue/endCue implement per-cue activation (BackgroundAudioManager.swift:3-20,101,113). Info.plist UIBackgroundModes: audio, bluetooth-central, bluetooth-peripheral, location.",
+   "hash": "9ed3f4a538bcaf8d",
+   "does": "Claims background execution: overnight recordings and indoor workouts stay alive on bluetooth-central wakeups, no silent audio, background location only for workout GPS, spoken cues hold a mixable audio session only while speaking (BackgroundAudioManager.beginCue/endCue, claimed per line by CoachCueSpeech), voice chat holds it until the chat ends, the breathing guide holds it while running (activateForClaimant), no audio/speech at launch; HealthKit background delivery enabled only for sleep (startObservingSleepData) and disabled for the vitals types (observeVitalsType); HealthSampleWatch.observerQuery reads added samples since a UserDefaults anchor kept across launches; WatchAppDelegate.handleActiveWorkoutRecovery takes back a running Watch workout session. Info.plist UIBackgroundModes: audio, bluetooth-central, bluetooth-peripheral, location.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.speak(_:onUnqueued:)",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.activateForClaimant(completion:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.observeVitalsType(_:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)",
+    "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.handleActiveWorkoutRecovery()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.speak(_:onUnqueued:)": "6d21c49c9272c15e",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.activateForClaimant(completion:)": "8137754cb0ce563f",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()": "c52e7b3762fc7878",
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)": "e99460b9df40b117"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)": "e99460b9df40b117",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "d2b12ef734f88fff",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)": "954971d68df38c94",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.observeVitalsType(_:)": "b057daf08ad5501e",
+    "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.handleActiveWorkoutRecovery()": "779c1f6fca32e8f6"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.7 Privacy & security",
-   "hash": "2b710a5f4b188577",
-   "does": "Claims privacy: health data on device; iCloud sync private DB, encrypted, no Health data; cloud providers receive chat, tool results, user facts, and the live-state block from AssistantContext.renderLiveStateForCloud (latest session score+tier, RMSSD, SDNN, mean HR, overnight HR nadir/mean, sleep duration+efficiency, note; yesterday's recovery/RMSSD/mean HR; location during a live workout — verified AssistantContext.swift:132-186); EntitlementAnchor keychain item is synchronizable with kSecAttrAccessibleAfterFirstUnlock (EntitlementAnchor.swift:374); API keys use kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly (APIKeyStore.swift:65,174); Dependabot monthly with open-pull-requests-limit: 0 (dependabot.yml); copy linter in Tools/copy_linter.",
+   "hash": "3e8be37443381757",
+   "does": "Claims privacy: health data on device; iCloud sync private DB, encrypted, no Health data, acting only for the recorded iCloud account (CloudAccountGuard.confirmAccount); cloud providers receive chat, tool results, user facts, and the live-state block from AssistantContext.renderLiveStateForCloud (latest session score+tier, RMSSD, SDNN, mean HR, overnight HR nadir/mean, sleep duration+efficiency, note; previous day's recovery/RMSSD/mean HR; location during a live workout); delete tools and unstated writes wait for confirmation (gateUnlessUserStated); the broadcaster advertises only with this device's acceptance (BroadcasterDisclosure.allowsBroadcast, kept outside UserSettings); DebugLogger.scrubPHI redacts every named value whose key's last word is not in loggableKeyWords; CSV/GPX/TCX/report-PDF/log/crash exports via ExportFile.write with complete protection; the conversation summary sealed (ConversationStore.saveSummary); EntitlementAnchor keychain item synchronizable with kSecAttrAccessibleAfterFirstUnlock; API keys kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly; Dependabot monthly with open-pull-requests-limit: 0; copy linter in Tools/copy_linter.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
-    "Tools/copy_linter/lint.py::def main"
+    "Tools/copy_linter/lint.py::def main",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "c5c0f800ac025f4e",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "212ef74d72560eb7",
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "fa5e4ee2a83fe2df",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "08324bd52931b06a",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "7bf0551ca86415fb",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)": "cf774c1bba4c4382",
     "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b"
    }
   },
@@ -1231,8 +1364,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > CI/CD (`.github/workflows/`)",
-   "hash": "314cced58c1c50fc",
-   "does": "Claims ci.yml runs on every pull request and push to main (scope unit), workflow_dispatch (gates/unit/full) and workflow_call from testflight.yml (scope full) on macos-26 with Xcode 26.6; job 1 lint-and-budgets (its listed gates include pinned package versions), job 2 strict-concurrency on ubuntu, job 3 thread-sanitizer, job 4 release-build (make release-build, in parallel with the tests) and job 5 tests (coverage floors at full, unit target with the Views floor at unit), each of jobs 3-5 ending with a step that writes its result to the run summary and skipped at the gates scope; gates.yml on push to main, pull_request and dispatch on ubuntu, including the code-map check, plus the code-map impact report in the job summary on pull requests; main requires the gates.yml job (Script gates (no Xcode)) and the five ci.yml jobs to pass, on a branch up to date with main, before anything merges; security.yml, performance.yml, testflight.yml workflow_dispatch only, the testflight deploy job running in the testflight environment that holds the signing secrets, accepts only main and waits for the owner's approval.",
+   "hash": "0e02e4595b98d3f3",
+   "does": "Claims ci.yml runs on every pull request and push to main (scope unit), workflow_dispatch (gates/unit/full) and workflow_call from testflight.yml (scope full) on macos-26 with Xcode 26.6; job 1 lint-and-budgets, job 2 strict-concurrency on ubuntu, job 3 thread-sanitizer running scripts/check_thread_sanitizer.sh (run_sanitized: serial, -parallel-testing-enabled NO, TEST_RUNNER_TSAN_OPTIONS=halt_on_error=1; first the ThreadSanitizerCanaryTests canary with TEST_RUNNER_EMUQU_TSAN_CANARY=1, failing the gate unless its log has a ThreadSanitizer warning and its run failed), job 4 release-build and job 5 tests, each of jobs 3-5 ending with a run-summary step and skipped at the gates scope; gates.yml on ubuntu incl. the code-map check and the impact report on pull requests; main requires the gates.yml job and the five ci.yml jobs; security.yml (CodeQL + dependency review, whose 'Require the Swift packages in the dependency graph' step fails when a Package.resolved pin is missing from the dependency-graph SBOM), performance.yml, testflight.yml workflow_dispatch only; the testflight deploy job in the testflight environment (signing secrets, main only, owner approval) also requires refs/heads/main in its if:, passes secrets through env:, uses a random keychain password, and removes the signing material in an if: always() step.",
    "entry": null,
    "calls": [
     ".github/workflows/ci.yml::job lint-and-budgets",
@@ -1247,7 +1380,12 @@
     ".github/workflows/security.yml::job codeql",
     ".github/workflows/security.yml::job dependency-review",
     ".github/workflows/testflight.yml::job deploy",
-    ".github/workflows/testflight.yml::job quality-gate"
+    ".github/workflows/testflight.yml::job quality-gate",
+    "scripts/check_thread_sanitizer.sh::fn run_sanitized",
+    "EmuquTests/ThreadSanitizerCanaryTests.swift::func ThreadSanitizerCanaryTests.testUnsynchronizedWritesRaceWhenTheCanaryIsRequested()",
+    ".github/workflows/ci.yml::step thread-sanitizer/Unit suite under Thread Sanitizer",
+    ".github/workflows/security.yml::step dependency-review/Require the Swift packages in the dependency graph",
+    ".github/workflows/testflight.yml::step deploy/Remove signing material"
    ],
    "reads": [],
    "writes": [],
@@ -1258,14 +1396,19 @@
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "717dc9698a3dc7ba",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
+    ".github/workflows/ci.yml::step thread-sanitizer/Unit suite under Thread Sanitizer": "7eee23ecc349ef14",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request": "db4ba9cd8b1a58cd",
     ".github/workflows/gates.yml::step script-gates/Code map is current": "816d6727b1d4d826",
     ".github/workflows/performance.yml::job performance-tests": "330868dd344a0c70",
     ".github/workflows/security.yml::job codeql": "64078fc4677fac05",
     ".github/workflows/security.yml::job dependency-review": "f544cc3ea5ca4098",
+    ".github/workflows/security.yml::step dependency-review/Require the Swift packages in the dependency graph": "8b05cdb3a8f6d6ea",
     ".github/workflows/testflight.yml::job deploy": "02e6016611ab02e4",
-    ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e"
+    ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e",
+    ".github/workflows/testflight.yml::step deploy/Remove signing material": "6e9a08daf6efeb80",
+    "EmuquTests/ThreadSanitizerCanaryTests.swift::func ThreadSanitizerCanaryTests.testUnsynchronizedWritesRaceWhenTheCanaryIsRequested()": "8204202826b96076",
+    "scripts/check_thread_sanitizer.sh::fn run_sanitized": "82b631abdc683244"
    }
   },
   {
@@ -1323,15 +1466,18 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > Tech-debt budgets (`.ci/*.txt`)",
-   "hash": "a6f5e5b05fe886de",
-   "does": "Claims .ci budgets enforced by enforce_tech_debt_budgets.sh and monotonic via check_budget_monotonicity.sh; ci.yml passes HEAD~1 as BUDGET_BASE_REF and gates.yml compares against HEAD~1; counters strip comments; cites '.shared 718, try? 377, ObservableObject 55' as 'the real numbers'.",
+   "hash": "0541abafa578b704",
+   "does": "Claims .ci budgets enforced by enforce_tech_debt_budgets.sh (measure_debt counts the app and, against the combined .ci/watch_tech_debt_budget.txt, the Watch target the same five ways; read_budget refuses a non-whole-number budget) and monotonic via check_budget_monotonicity.sh, which also reports a non-floor ceiling that was whole and is no longer whole as loosened; ci.yml passes HEAD~1 as BUDGET_BASE_REF and gates.yml compares against HEAD~1; counters strip comments; cites '.shared 718, try? 377, ObservableObject 55' as 'the real numbers' (historical figures).",
    "entry": null,
    "calls": [
     "scripts/enforce_tech_debt_budgets.sh::fn read_budget",
     "scripts/enforce_tech_debt_budgets.sh::fn note_slack",
-    "scripts/check_budget_monotonicity.sh::fn read_int",
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only"
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only",
+    "scripts/enforce_tech_debt_budgets.sh::fn measure_debt",
+    "scripts/check_budget_monotonicity.sh::fn read_number",
+    "scripts/check_budget_monotonicity.sh::fn is_floor",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened"
    ],
    "reads": [],
    "writes": [],
@@ -1339,6 +1485,10 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "336e7a9de9707672",
     ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "e077302680bcc6ab",
+    "scripts/check_budget_monotonicity.sh::fn read_number": "80dfd43a50d50f4a",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened": "1556eb46bf71f4cf",
+    "scripts/enforce_tech_debt_budgets.sh::fn measure_debt": "da2320eb626a809c",
     "scripts/enforce_tech_debt_budgets.sh::fn note_slack": "a6eb51c1c34ce8df",
     "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "0b214d0ad20888fb"
    }
@@ -1350,7 +1500,6 @@
    "entry": null,
    "calls": [
     "EmuquTests/Helpers/TestHelpers.swift::func createRealisticPoints(count:meanRR:startMs:)",
-    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchLastNightSleep(relativeTo:)",
     "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.testDecodeReadsEveryKnownField()",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)",
     "EmuquTests/CapabilityClassifierTests.swift::func CapabilityClassifierTests.testRecoveryScoreLookupIsQuick()",
@@ -1361,7 +1510,8 @@
     "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testNoDuplicateToolNames()",
     "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testSchemaSerializationIsDeterministic()",
     ".github/workflows/ci.yml::step tests/Run tests with coverage",
-    "scripts/run_tests_with_coverage.sh::fn run_tests"
+    "scripts/run_tests_with_coverage.sh::fn run_tests",
+    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)"
    ],
    "reads": [],
    "writes": [],
@@ -1376,6 +1526,7 @@
     "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testSchemaSerializationIsDeterministic()": "5eaf86432b2cc373",
     "EmuquTests/Helpers/TestHelpers.swift::func createRealisticPoints(count:meanRR:startMs:)": "7261446ec33c34b2",
     "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.testAFibLiteralFormsAreRefused()": "d7d4a2e2f5812e93",
+    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "c95e1671956e4082",
     "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.testDecodeReadsEveryKnownField()": "c6cfbc9e0e34e67e",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
     "scripts/run_tests_with_coverage.sh::fn run_tests": "c53fe7cc88c339f7"
@@ -1393,24 +1544,30 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "2c4e0f1253cea3a1"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 12. Glossary",
-   "hash": "b0b7ec278971d17c",
-   "does": "Claims glossary definitions: recovery score 0-100 stored 0-10 with HRV 60/Sleep 25/Vitals 15; comeback mode 21-day HRV 80/Sleep 20/Vitals 0 (verified ScoringWeights.Comeback, Constants.swift:417-424); window selection 30-70% of sleep; tier routing Quick/Auto/Deep; Fact Catalog ~200 facts (not counted here).",
+   "hash": "ee00b41a9072913c",
+   "does": "Claims glossary definitions: recovery score 0-100 stored 0-10 with HRV 60/Sleep 25/Vitals 15; comeback mode 21-day HRV 80/Sleep 20/Vitals 0 (ScoringWeights.Comeback); window selection 30-70% of sleep; tier routing Quick/Auto/Deep; Fact Catalog ~200 facts (not counted here); sync identifier/version set by HealthExportIdentity.metadata (HKMetadataKeySyncIdentifier, HKMetadataKeySyncVersion); recorded iCloud account (CloudAccountIdentity, userRecordID); purge gate (PurgeGate refusing archive writes and uploads during Delete All My Data).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "b0963f4cef77ab75",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)": "7ee0ef3efc415d6e",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148"
    }
   },
   {

@@ -114,14 +114,17 @@ TRIMP = durationMinutes × HRR × coefficient × e^(k × HRR)
 - **No average HR → returns 0**, not a fabricated value (`calculateTrimp`,
   `HealthDataTypes.swift`). Strava/manual imports with no HR contribute zero rather than
   inflating load.
-- `restingHR` = Apple's HealthKit resting HR when available, else the user's
+- `restingHR` = Apple's HealthKit resting HR when available (the latest
+  sample from the `WorkoutLoadRestingHR.maxAgeDays` (30) days up to the
+  reference date, never one Emuqu wrote to Health itself:
+  `hrReadExcludingOwnWrites`), else the user's
   resting-HR setting (`settings.effectiveRestingHR`); `maxHR` =
   `settings.effectiveMaxHR`. Both are resolved once per refresh by
   `trainingHeartRateAnchors` (`TrainingHealthQueries+Queries.swift`) and the
   same values go to the live value and the daily series
   (`TrainingLoadSeries.HeartRateAnchors`). A direct
   `calculateTrainingMetrics` call that passes no anchors resolves them the
-  same way. **maxHR must be the physiological max, not the workout's peak** —
+  same way, as of its own reference date. **maxHR must be the physiological max, not the workout's peak** —
   using the peak inverts the HR-reserve scoring.
 
 ---

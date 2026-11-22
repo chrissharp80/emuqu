@@ -261,8 +261,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Dashboard Tab > Dashboard Toolbar (top-right)",
-   "hash": "174db175824f82de",
-   "does": "Claims three toolbar icons: Notifications, Send Report menu (recovery/daily/workout PDF rendered off the main actor into the mail composer, Browse all reports) and Ask Flo shortcuts that auto-send and switch to Flo.",
+   "hash": "b7670127a4497f62",
+   "does": "Claims three toolbar icons: Notifications (its Daily morning report Format picker: Teaser never shows the score, Full readout always does, Auto sends a teaser until 30 nights of readings and then the score only while Show Previews is not Always, per MorningNotificationScheduler.resolvedFormat), Send Report menu (recovery/daily/workout PDF rendered off the main actor into the mail composer, Browse all reports) and Ask Flo shortcuts that auto-send and switch to Flo.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardToolbar",
@@ -279,18 +279,23 @@
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.prepareAndSendReport(_:)",
     "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.consumeInboxIfPresent()",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)"
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.formatPicker",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:previewsHiddenWhileLocked:)",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayloadFromArchive(settings:previewsHiddenWhileLocked:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.consumeInboxIfPresent()": "a4f5aab2f857fe43",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.consumeInboxIfPresent()": "5e88753c2e956397",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "10c2d5811df41ad4",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)": "eeb40d25d9993585",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayloadFromArchive(settings:previewsHiddenWhileLocked:)": "e4c1cda1a7b76c1d",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:previewsHiddenWhileLocked:)": "f4505584aeb01ebd",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)": "b9ef6644cde6cb98",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.askAssistant(_:)": "bea703d01a10d2d1",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.mostRecentDailyPair()": "dfe10f2253860f94",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.prepareAndSendReport(_:)": "77cb568da8197940",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.prepareAndSendReport(_:)": "37579b79e693b378",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentOvernight": "48b0ad249678e9fd",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.askFloButton(_:)": "702e45ea5c14161b",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.sendReportButton(_:enabled:)": "68c98362710eb72d",
@@ -299,7 +304,8 @@
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardToolbar": "d93bdd9d33a0247e",
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.notificationsToolbarItem": "1cb15bd6dc414546",
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.sendReportMenu": "97874f2eef22894b",
-    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.sendReportMenuLabel": "4c01b8e3cd410cab"
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.sendReportMenuLabel": "4c01b8e3cd410cab",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.formatPicker": "24da4ec8a2dde3a8"
    }
   },
   {
@@ -594,8 +600,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Record Tab > Quick Reading Section (Spot Check)",
-   "hash": "a0821ee1f2603595",
-   "does": "Claims quick reading 2/3/5 min with countdown, progress ring, breathing mandala, voice guide, Stop Early, and a Reading Complete card.",
+   "hash": "3044359fe98ba82a",
+   "does": "Claims quick reading 2/3/5 min with countdown, progress ring, breathing mandala, voice guide, Stop Early (a reading with at least 120 beats, CollectorSessionControl.minimumQuickReadingBeats, is still saved), and a Reading Complete card.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.body",
@@ -626,16 +632,20 @@
   },
   {
    "key": "§ Emuqu User Manual > Record Tab > Results Preview",
-   "hash": "425c7cf6db0f4c2f",
-   "does": "Claims extended results open the full report with Done/Discard and an upward arrow when H10 data improved the score; quick readings show Reading Complete.",
+   "hash": "ae751a140943e486",
+   "does": "Claims extended results open the full report with Done/Discard, Discard asking first (see Notes Section), and an upward arrow when H10 data improved the score; quick readings show Reading Complete.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.body"
+    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.body",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.discardReadingActions",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.discardReadingMessage"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.discardReadingActions": "1bbcdf8840958020",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.discardReadingMessage": "4d6aa8dfac410186",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.body": "06567dcec70b0bbf"
    }
   },
@@ -869,16 +879,22 @@
   },
   {
    "key": "§ Emuqu User Manual > Flo Tab (the AI Assistant) > What the AI can do beyond reading your data",
-   "hash": "671ac97ee86f2165",
-   "does": "Claims [ACTION] tools for saved routes, navigation (walking route, <10 ms follow-ups, 'never mind' clears), location, email draft + contacts, memory, web search; read-back of results and verbatim disambiguation.",
+   "hash": "12894e5ea36a5388",
+   "does": "Claims [ACTION] tools for saved routes, navigation (walking route, <10 ms follow-ups, 'never mind' clears), location, email draft + contacts, memory, web search; when the value to save (memory fact, contact, address, route name) is not in the user's latest message the tool asks first and changes nothing until yes (DestructiveActionContext.gateUnlessUserStated); an email draft or new contact needs the user's latest message to ask for it (user_quote); read-back of results and verbatim disambiguation.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.actionTools(registry:)"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.actionTools(registry:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsAdd(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantEmailCompose(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "fa5e4ee2a83fe2df",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsAdd(_:)": "148c6299a38a5ed7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantEmailCompose(_:)": "76e7bdead6bd3111",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.actionTools(registry:)": "12c285c552028037"
    }
   },
@@ -1762,8 +1778,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Detailed Report View (MorningResultsView) > Action Buttons",
-   "hash": "89c1e23942950090",
-   "does": "Claims Email Report builds a PDF with selectable sections (Metrics & Data, Visualizations for raw-RR sessions, Analysis Summary); Delete from History confirms then moves the reading to the Trash, restorable from Settings → iCloud & Data → Trash for 90 days (ArchiveStore.moveToTrash, expiredDeletionIds keepDays 90); Reanalyze.",
+   "hash": "71b50f7d0cd9be38",
+   "does": "Claims Email Report builds a PDF with selectable sections (Metrics & Data, Visualizations for raw-RR sessions, Analysis Summary); Delete from History confirms then moves the reading to the Trash, restorable from Settings → iCloud & Data → Trash for 90 days (ArchiveStore.moveToTrash, expiredDeletionIds keepDays 90); Reanalyze asks first because the new score replaces the saved one (beat data unchanged, reanalyzeMessage), and a re-analysis that cannot run raises an alert and leaves the score as it was.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.actionButtons",
@@ -1781,7 +1797,8 @@
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::var MorningResultsView.reanalyzeRow",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reanalyzeActions",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.performReanalysis()",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reanalyzeMessage"
    ],
    "reads": [],
    "writes": [],
@@ -1802,7 +1819,8 @@
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.availableReportSections": "521bd62e77f3d87d",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.deleteReadingActions": "3f35106c5cbce902",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.deleteReadingMessage": "06f93566ac86af7a",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reanalyzeActions": "1683569177e3f196"
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reanalyzeActions": "1683569177e3f196",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reanalyzeMessage": "0b474e769b5bb7be"
    }
   },
   {
@@ -1822,16 +1840,20 @@
   },
   {
    "key": "§ Emuqu User Manual > Fitness Tab > Fitness tab dashboard",
-   "hash": "6446d3636b05945d",
-   "does": "Claims a hero card for the latest workout (sport badge, distance, polyline, badge row), 7/30-day tiles, passive activity card, Get Me Back card, recent list.",
+   "hash": "d4e14e4688fa8135",
+   "does": "Claims a hero card for the latest workout (sport badge, distance, polyline, badge row), 7/30-day tiles, passive activity card, Get Me Back card, recent list whose long-press Delete Workout asks first and moves the workout to the Trash (failure alerts on the tab).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.body"
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.body",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.deleteWorkoutButton(_:title:)",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteRecentWorkout(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.deleteWorkoutButton(_:title:)": "bbb867f0b1809cb8",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteRecentWorkout(_:)": "d0b2df2c80f6b89b",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.body": "ddb8fdeaf0ee8e7f"
    }
   },
@@ -1858,8 +1880,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Fitness Tab > Starting a workout",
-   "hash": "a6889c885f3fb415",
-   "does": "Claims Start auto-reconnects the paired strap and Stryd, strap stays ~120 s for HRR then disconnects; sport list; HR source automatic (strap when connected or paired, else Watch; WorkoutPlanModel.resolvedSource); target zone with no spoken drift nudge (zone.drifted rules are .silent); interval plans; ambient-coach thresholds in plain words (HR bpm, %FTP, elevation gain, grade, elapsed time, distance per WorkoutThreshold.parsePlainText) with debounce/cooldown; route binding via trail discovery (2-50 km radius), GPX, or saved-route recognition after ~500 m.",
+   "hash": "c64864f91b634550",
+   "does": "Claims Start auto-reconnects the paired strap and Stryd, strap stays ~120 s for HRR then disconnects; sport list; HR source automatic (strap when connected or paired, else Watch; WorkoutPlanModel.resolvedSource); target zone with no spoken drift nudge (zone.drifted rules are .silent); interval plans; ambient-coach thresholds in plain words (HR bpm, %FTP, elevation gain, grade, elapsed time, distance per WorkoutThreshold.parsePlainText) with debounce/cooldown, distance and climb cues spoken in miles/feet for an imperial units preference (WorkoutThreshold.progressCue); route binding via trail discovery (2-50 km radius), GPX, or saved-route recognition after ~500 m.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)",
@@ -1883,7 +1905,8 @@
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.attemptAutoRouteDetection(sport:)",
     "Emuqu/Sources/Views/WorkoutPlanModel.swift::func WorkoutPlanModel.resolvedSource(strapConnected:hasKnownStrap:)",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)"
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.progressCue()"
    ],
    "reads": [],
    "writes": [],
@@ -1906,6 +1929,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()": "29bef757ae0c8830",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "1cb2758726692616",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.parsePlainText(_:languageCode:)": "293be5fdfcab1fa2",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.progressCue()": "f6045287740db606",
     "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.searchRadiusStack": "3442ffea8d96530a",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.pickTrail(_:)": "98176cb9ff8f18eb",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPX(from:)": "a4077cf81f8e1918",
@@ -1979,8 +2003,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Fitness Tab > My Routes (route library + route-aware coaching)",
-   "hash": "5d96fe48306f460e",
-   "does": "Claims post-summary 'Add to my route library', management in Settings → My Routes, direction-agnostic recognition after ~500 m giving the coach climbs, ascent remaining, peak, steepest grade.",
+   "hash": "f06c85aba30608e0",
+   "does": "Claims post-summary 'Add to my route library', management in Settings → My Routes (rename; delete asks first and the coach stops recognising the route), direction-agnostic recognition after ~500 m giving the coach climbs, ascent remaining, peak, steepest grade.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.saveRouteCard",
@@ -1999,7 +2023,9 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.metersToPeak(route:altitudes:routeMax:progress:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeUpcomingClimb(currentLocation:)",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadRule()",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadMessage(_:)"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadMessage(_:)",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.withDeleteConfirmation(_:)",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.deleteRoute(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -2020,7 +2046,9 @@
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.addToLibraryButton": "095c1544eaae1730",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.saveRouteCard": "8767b3bc314cd343",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.commitRename()": "c4995e95857639ed",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.deleteRoute(_:)": "f4d4beb76b0a6f23",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.swipeActions(for:)": "2dd5113c11362e36",
+    "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.withDeleteConfirmation(_:)": "c38bedbcad3e20ce",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::var SavedRoutesPage.body": "e8dc4e37cfd693ba"
    }
   },
@@ -2162,8 +2190,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Fitness Tab > Post-workout summary",
-   "hash": "e1890fc356a6c645",
-   "does": "Claims the summary opens instantly with HRR captured over 120 s; lists cards (map, stats, HRR, charts, α1 timeline with AT1 0.75 / AT2 0.50, route by α1, α1 LT1 ±10 bpm, crossings, zone distribution on configured max HR, derived metrics, decoupling/EF, splits, GPX/CSV/TCX export).",
+   "hash": "7a830211d6bf5cbb",
+   "does": "Claims the summary opens instantly with HRR captured over 120 s; lists cards (map, stats, HRR, charts, α1 timeline with AT1 0.75 / AT2 0.50, route by α1, α1 LT1 ±10 bpm, crossings, zone distribution on configured max HR, derived metrics, decoupling/EF, splits, GPX/CSV/TCX export); deleting from the summary asks first and moves the workout to the Trash.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.body",
@@ -2172,7 +2200,7 @@
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryChartCards",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCard",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCaptureBanner",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrPlaceholder",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrPlaceholder(captureFinished:)",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartCard(samples:)",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartCard(samples:)",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.powerChartCard(samples:)",
@@ -2182,41 +2210,45 @@
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1CrossingsCard",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.hrZoneDistributionCard",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.hrZoneSeconds(samples:maxHR:)",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.hrZoneSeconds(samples:maxHR:)",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.derivedMetricsCard",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.physiologyCard",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.splitsCard(_:)",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.exportCard",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.writeExports(session:track:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutActions",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutMessage"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "b5611c3673c7a99c",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "1cb2758726692616",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.hrZoneSeconds(samples:maxHR:)": "f957079cf573356e",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.splitsCard(_:)": "d6e5230d943df802",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.exportCard": "afcf886ad1527a5d",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.physiologyCard": "1731e155c6c5e8e6",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.writeExports(session:track:)": "0a352ed790cd35d4",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.body": "45424818e7b2f8b2",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.body": "6552bd8d4a079375",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutActions": "a79fd8d7c89c41f7",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutMessage": "5f64a00c42f81f5c",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryChartCards": "f40b16d1700fba68",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryHeroCards": "9e93f51f4e9aeab4",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryMapCard": "e9d1a633806eab5e",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "5b701a2276624df8",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.hrZoneSeconds(samples:maxHR:)": "3b2322044d015c0d",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryMapCard": "5d9fe3b6b6fb1b00",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "c559c56d407c8548",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1CrossingsCard": "48819c985787cd19",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard": "a1a164fc69226783",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard": "025fb4e741cb7fad",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.derivedMetricsCard": "15c552a1471cdb68",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.hrZoneDistributionCard": "d6d3f770c2ecbdde",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.hrZoneDistributionCard": "3dbe2eff9d994688",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceChartCard(samples:)": "63961043ba530cf0",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrChartCard(samples:)": "4d23a67542722fd1",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrPlaceholder(captureFinished:)": "f099c52d7c41e49f",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartCard(samples:)": "28c2f9cb75acf0fe",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.powerChartCard(samples:)": "11c354841b7958e8",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.elevationCard": "d524a1d5f47a6e8c",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCaptureBanner": "98615339edd21e59",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCard": "8f98b64544303007",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrPlaceholder": "fd22047c2d5035d6"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.powerChartCard(samples:)": "1925eb84244a0bb0",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.elevationCard": "d324f3fcdc744912",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCaptureBanner": "dc47d0fb0ba48534",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrrCard": "0527f0b5f4d84bf4"
    }
   },
   {
@@ -2467,19 +2499,21 @@
   },
   {
    "key": "§ Emuqu User Manual > Apple Watch Companion App",
-   "hash": "e6a153ce09fb3b35",
-   "does": "Claims the Watch app mirrors the live workout, keeps an HKWorkoutSession alive without saving an HKWorkout, ends on its own after 30 minutes of phone silence or End while unreachable, and forwards wrist HR as fallback. Verified phoneSilenceLimit 30*60 (WatchMessageDecoding.swift:337).",
+   "hash": "b7044f099b0de334",
+   "does": "Claims the Watch app mirrors the live workout, keeps an HKWorkoutSession alive without saving an HKWorkout, ends on its own after 30 minutes of phone silence or End while unreachable and then shows 'Ended on Watch. Open Emuqu on your iPhone to finish the workout.' (LiveMetricsScreen.endedOnWatchView), and forwards wrist HR as fallback. Verified phoneSilenceLimit 30*60 (WatchMessageDecoding.swift).",
    "entry": null,
    "calls": [
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.watchForPhoneSilence()",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.checkForPhoneSilence()"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.checkForPhoneSilence()",
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.endedOnWatchView"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "EmuquWatch Watch App/WatchLiveView.swift::var LiveMetricsScreen.endedOnWatchView": "5ab3540b21ae86a1",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.checkForPhoneSilence()": "4df0eee9fb99362d",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "30f5d1bceda22e77",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "6a7c44545c6397cd",
@@ -2507,17 +2541,21 @@
   },
   {
    "key": "§ Emuqu User Manual > Apple Watch Companion App > Known Watch limitations",
-   "hash": "98cbd0777c207d4e",
-   "does": "Claims Watch is not standalone, requests HealthKit on first Start, and surfaces HKWorkoutSession start failures via lastStartError.",
+   "hash": "6eb4a7d122691aaf",
+   "does": "Claims Watch is not standalone, a wrist Start is refused while the iPhone already records a workout ('A workout is already recording on your iPhone.', EmuquApp.watchStartRefusal / refusalText), requests HealthKit on first Start, and surfaces HKWorkoutSession start failures via lastStartError.",
    "entry": null,
    "calls": [
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.requestAuthorizationIfNeeded()",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteStartFailure(_:)"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteStartFailure(_:)",
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchStartRefusal(sportRaw:)",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchStartRefusal(sportRaw:)": "c6531027a7b7a454",
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.refusalText(code:sport:)": "57e5c2b8096f75ac",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteStartFailure(_:)": "dbff608de1f8bb4f",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.requestAuthorizationIfNeeded()": "f8c9538d39f28688"
    }
@@ -2608,8 +2646,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Settings Tab > Profile, Biometrics, Sleep, Training, Wearables",
-   "hash": "34ded575c0c47fdd",
-   "does": "Claims Biometrics ranges (Max HR 80-230, Resting 30-110, LTHR 80-220, weight 25-250 kg, VO2max 10-100), Home Address stored and synced with settings; Sleep toggles incl. HRV-Enhanced Watch Stages (overrides deep/core and REM/awake where HRV strongly disagrees; an estimate) and 'Lower Score Without Sleep' −10; Training break; Wearables export toggles and HR-detected sleep export as asleep/awake/in-bed.",
+   "hash": "b98b31722de5484d",
+   "does": "Claims Biometrics ranges (Max HR 80-230, Resting 30-110, LTHR 80-220, weight 25-250 kg, VO2max 10-100), Home Address stored and synced with settings; Sleep toggles incl. HRV-Enhanced Watch Stages (overrides deep/core and REM/awake where HRV strongly disagrees; an estimate) and 'Lower Score Without Sleep' −10; Training break; Wearables export toggles and HR-detected sleep export as asleep/awake/in-bed; workout active energy written net of resting metabolism (HealthKitWorkoutExport.netMETs via activeEnergySamples); a re-export (after a trim, or from another device) replaces Emuqu's own earlier copy and never another source's samples (sync identifiers, EarlierExport, HealthSampleReplacer).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.body",
@@ -2633,12 +2671,18 @@
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.footPodSection",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.appleHealthExportSection",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitExportToggles",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.deleteSleepWritesButton"
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.deleteSleepWritesButton",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)": "b01e3fee14e4c6a6",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "26c67d8ab67eca74",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "0415c974b73264d3",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.bodyWeightRow": "31794d1cead5384b",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.homeAddressFields": "98fff35f5d2b95e6",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.lthrRow": "e045a7151bfb2bc3",
@@ -2646,10 +2690,10 @@
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.restingHRRow": "4c5095fbb27d6c24",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.vo2maxFields": "47cfe113dc087879",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.vo2maxOverrideRow": "25fe345d60c1ed4d",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.bodyWeightDisplayBinding(isImperial:)": "1e05efbe982b5a11",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.bodyWeightDisplayBinding(isImperial:)": "1c81d28cbceb4eee",
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedDoubleBinding(_:range:)": "1cca40ab3c37790f",
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.clampedIntBinding(_:range:)": "90ddac6f4a6a7f10",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.dropValuesBelowMinimum()": "9f007d9099e94fd4",
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.dropValuesBelowMinimum()": "46b342c36821b10d",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.body": "cdf829d51790a98d",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var ProfileSettingsPage.distancePacePicker": "4a8a4db2bc55f26c",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var SleepSettingsPage.hrvEnhancedStagesToggle": "519bbd0ccc1c9638",
@@ -2660,7 +2704,7 @@
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.appleHealthExportSection": "2a2aff18d7928e47",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.deleteSleepWritesButton": "d21e388b8ed91cce",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.footPodSection": "a7493d5aa07bd710",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitExportToggles": "cacc7832cd0b66a8"
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.healthKitExportToggles": "dfe64308c764653f"
    }
   },
   {
@@ -2763,8 +2807,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Settings Tab > iCloud & Data",
-   "hash": "27c63bc5e6c0a0e3",
-   "does": "Claims iCloud Sync off by default (Health readings never uploaded, computed scores encrypted), sync status, RR import formats (CSV/JSON/TXT/Kubios/EliteHRV) with >= 60 intervals and >= 3/4 in 300-2000 ms, Export Data with three formats, Recover RR from Strap, Recover Lost Sessions, Trash kept 90 days. Verified expireTrash(keepDays: 90) called at launch (AppLaunchTasks.swift:433) and export buttons (ExportAndArchiveViews.swift:121-138). EliteHRV bullet: RMSSD, and SDNN/pNN50 when the export has them, are Elite HRV's values; metrics it lacks are shown marked 'estimate' and kept out of baselines, trends, the assistant and Apple Health; no stress index, score or beat count is made up, and earlier imports lose the ones they were given (HRVSession.init(from:), ArchiveMigrations.migrateLegacyEliteImportIndex) (RRDataImporter+EliteHRV.swift createAnalyzedSession / eliteEstimatedMetrics).",
+   "hash": "af8a86701d22beed",
+   "does": "Claims iCloud Sync off by default (Health readings never uploaded, computed scores encrypted, sample nights never uploaded per CloudUploadExclusion.sampleData in buildSessionRecord); sync tied to the iCloud account it was enabled for: a different account or deleted iCloud data turns it off, uploads nothing, keeps local sessions and shows the reason under the switch until re-enabled (CloudAccountGuard.stopSync, CloudAccountIdentity.StopReason.message, DataSettingsPage.iCloudSyncDetail); sync status; Force iCloud Sync reports uploads or 'Nothing was synced this time' (forceSyncOutcome); Back Up Settings replaces even a newer cloud copy (pushImmediately(replacingNewerCloudCopy: true)) while automatic backup replaces only an older one, Restore asks first; RR import formats (CSV/JSON/TXT/Kubios/EliteHRV) with >= 60 intervals and >= 3/4 in 300-2000 ms, Export Data with three formats, Recover RR from Strap, Recover Lost Sessions, Trash kept 90 days. Verified expireTrash(keepDays: 90) called at launch (AppLaunchTasks.swift) and export buttons (ExportAndArchiveViews.swift). EliteHRV bullet: RMSSD, and SDNN/pNN50 when the export has them, are Elite HRV's values; metrics it lacks are shown marked 'estimate' and kept out of baselines, trends, the assistant and Apple Health; no stress index, score or beat count is made up, and earlier imports lose the ones they were given (HRVSession.init(from:), ArchiveMigrations.migrateLegacyEliteImportIndex) (RRDataImporter+EliteHRV.swift createAnalyzedSession / eliteEstimatedMetrics).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.body",
@@ -2772,7 +2816,16 @@
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)",
     "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()"
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.iCloudSyncDetail",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.backupSettingsNow()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately(replacingNewerCloudCopy:)",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsFromCloud()"
    ],
    "reads": [],
    "writes": [],
@@ -2782,14 +2835,23 @@
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "9b1e36ffcc006241",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()": "b04f455c10ed849c",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "834af333d59ad9d7",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "12d14f68b1fd137f",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "42ad9add2c66cf12",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message": "fc75f12bef78c376",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "4c7fe1d60d564374",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately(replacingNewerCloudCopy:)": "14f6c1da756190f7",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body": "4f1540290cd3bf6d",
-    "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.body": "5e8a84be919a5be5"
+    "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.body": "5e8a84be919a5be5",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.backupSettingsNow()": "6fbcecfa41a6aa67",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)": "0ac0477052f8b7f7",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsFromCloud()": "a3c52c32713be39e",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.iCloudSyncDetail": "6ae0b7747fbbb87a"
    }
   },
   {
    "key": "§ Emuqu User Manual > Settings Tab > Troubleshooting",
-   "hash": "4b6c092028f89ba4",
-   "does": "Claims Troubleshooting page with recent errors, diagnostic log export (health values and GPS removed), reanalyze all, clear actions, advanced diagnostics toggle.",
+   "hash": "d3172c38cf910798",
+   "does": "Claims Troubleshooting page with recent errors, diagnostic log export (health values and GPS removed), reanalyze all, clear actions that each ask first, advanced diagnostics toggle revealing archive diagnostics, repair, log viewer and Clear All Logs (asks first; deletes the debug log and every crash log); Archive Diagnostics' Repair Archive rebuilds the index from readable session files, deletes no file and reports when it cannot finish; Archive Diagnostics deletes no data and points to Delete All My Data.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.advancedSection()",
@@ -2805,21 +2867,29 @@
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.reanalyzeStartButton",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.startReanalysis()",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugModeSection",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugToolsSection"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugToolsSection",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugToolsListSection",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.actionsSection",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.repairArchiveButton",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.repair(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearCrashReportButton": "0c7d3f50df6ff785",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearProblemsButton": "d07d561303abef61",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.repair(_:)": "ab8247907075a0d1",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.actionsSection": "88711fcaf3c9a5ff",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.repairArchiveButton": "7a0949c08b9ef687",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearCrashReportButton": "6b117c3506992cce",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearProblemsButton": "7109263a016f7430",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugModeSection": "5f4742599a186c28",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugToolsListSection": "47f7bf81b6804488",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugToolsSection": "6e7820fd8b36a9d7",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportActionsSection": "867b8dee2d037d94",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "133cf41dd056ae19",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "4253edeec26ecd94",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.reanalyzeSection": "cf3015eab75f59c0",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.reanalyzeStartButton": "9921f1bcb26a7668",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.startReanalysis()": "2c9a30e14587da31",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.startReanalysis()": "b1ef0820bf5a4e0c",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.body": "63cbc781550d46a8",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.recentProblemsSection": "2d116f06e0995763",
     "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.advancedSection()": "c0ba60778143509a",
@@ -2829,14 +2899,17 @@
   },
   {
    "key": "§ Emuqu User Manual > Settings Tab > Advanced Data Controls",
-   "hash": "67afc940f9aa1318",
-   "does": "Claims Delete All My Data erases device and iCloud data and API keys after typing DELETE MY DATA plus a confirmation; it is unavailable while a recording is in progress (a reading, a night even paused, a strap recording or a workout) or a reading is waiting to be accepted, until the user stops it or accepts or discards the reading; trial record and encryption keys stay in the keychain. Matches DataPurgeService (defaultsKeepList entitlement anchor, isRecordingInProgress and the Refusal.recordingInProgress refusal) and DeleteAllDataPage (confirmPhrase, the button disabled while recordingInProgress).",
+   "hash": "d9360501cd616900",
+   "does": "Claims Delete All My Data erases device and iCloud data and API keys after typing DELETE MY DATA plus a confirmation; it is unavailable while a recording is in progress (a reading, a night even paused, a strap recording or a workout) or a reading is waiting to be accepted, until the user stops it or accepts or discards the reading; trial record and encryption keys stay in the keychain. iCloud Sync is turned off before the remote delete and stays off; other devices stop syncing with a notice (CloudAccountGuard.zoneWasDeleted); a recording started during the remote delete leaves this device untouched (Refusal.recordingStartedDuringDelete); Apple Health samples are not removed and the report's footer says where to remove them. Matches DataPurgeService (defaultsKeepList entitlement anchor, isRecordingInProgress, the refusals, Report.footerLines) and DeleteAllDataPage (confirmPhrase, the button disabled while recordingInProgress).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingFooter",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Refusal.errorDescription",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.footerLines",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()"
    ],
    "reads": [],
    "writes": [],
@@ -2844,6 +2917,9 @@
    "deps": {
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "0ae1baecd7e62774",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Refusal.errorDescription": "9abd8246eb90b1d1",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.footerLines": "65fad30ef3262e67",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "42ad9add2c66cf12",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "1f0e630b88682e7d",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingFooter": "4fb05587e1544120"
    }
@@ -2945,21 +3021,25 @@
   },
   {
    "key": "§ Emuqu User Manual > Trash View > With Deleted Sessions",
-   "hash": "2164f05138a3876a",
-   "does": "Claims trash rows with restore (re-analyzes) and permanent delete, which removes the session's file, raw backup, iCloud copy, the route a workout filed in the trail history and the HRV samples it wrote to Apple Health; a session that cannot be removed stays and the screen says how many, HRV samples that cannot be deleted are reported with where to remove them in the Health app, and the message stays until the next action; 90-day footer, Permanently Delete All with confirmation.",
+   "hash": "064f3bbf3caf467d",
+   "does": "Claims trash rows with restore (re-analyzes) and permanent delete, which asks first and removes the session's file, raw backup, iCloud copy, the route a workout filed in the trail history and everything it wrote to Apple Health (HRV, heart rate, resting heart rate, sleep, workout; HealthWriteAndObserve.removeExports); a session that cannot be removed stays and the screen says how many, Health samples that cannot be deleted are reported with where to remove them in the Health app, and the message stays until the next action; 90-day footer, Permanently Delete All with confirmation.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)",
-    "Emuqu/Sources/Views/TrashView.swift::func TrashView.failureMessage(for:)"
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.failureMessage(for:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthWriteAndObserve.removeExports(sessionId:from:to:)",
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.permanentlyDelete(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthWriteAndObserve.removeExports(sessionId:from:to:)": "980c692590529480",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)": "8fba1c517d94a264",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "834af333d59ad9d7",
-    "Emuqu/Sources/Views/TrashView.swift::func TrashView.failureMessage(for:)": "08699e5a657ecc94"
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.failureMessage(for:)": "08699e5a657ecc94",
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.permanentlyDelete(_:)": "640f13d64283f698"
    }
   },
   {
@@ -3025,19 +3105,20 @@
   },
   {
    "key": "§ Emuqu User Manual > HRV Metrics Explained > Time Domain Metrics",
-   "hash": "f6ec119a02e89fed",
-   "does": "Educational table: RMSSD 40-100+ ms, SDNN 50-100+ ms, pNN50 >20% 'good values'; Avg HR is the whole recording's average with rejected beats left out (report header, overnight chart, session details); Min/Max HR are the whole recording's, Min being the lowest 30-second average; Mean HR in the time-domain metrics is the analysis-window average (about five and a half minutes of calm sleep) that sleep HR, resting HR and the heart-rate baseline use. Verified against HRVAnalysisResult.recordingMeanHR/recordingMinHR/recordingMaxHR and attachOvernightHRStats.",
+   "hash": "bc0864caf03ac291",
+   "does": "Educational table: RMSSD 40-100+ ms, SDNN 50-100+ ms, pNN50 >20% 'good values'; Avg HR is the whole recording's average with rejected beats left out (report header, overnight chart, session details); Min/Max HR are the whole recording's, the lowest and the highest 30-second average (smoothedExtreme over nadirWindowMs); Mean HR in the time-domain metrics is the analysis-window average (about five and a half minutes of calm sleep) that sleep HR, resting HR and the heart-rate baseline use. Verified against HRVAnalysisResult.recordingMeanHR/recordingMinHR/recordingMaxHR and attachOvernightHRStats.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.metrics(cleanRR:diffs:hrStats:)",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rollingWindowHRSamples(series:flags:windowStart:windowEnd:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)": "271733259b6ae97a",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "ae5a1983d1c7500d",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.metrics(cleanRR:diffs:hrStats:)": "34a2ca171394d522",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rollingWindowHRSamples(series:flags:windowStart:windowEnd:)": "346a1e207c699814"
@@ -3045,21 +3126,25 @@
   },
   {
    "key": "§ Emuqu User Manual > HRV Metrics Explained > Frequency Domain Metrics",
-   "hash": "6660e581488bd24d",
-   "does": "Educational: LF 0.04-0.15 Hz, HF 0.15-0.4 Hz, LF/HF.",
+   "hash": "7c38e41e71a6f39d",
+   "does": "Educational: LF 0.04-0.15 Hz; HF 0.15-0.4 Hz, most tied to parasympathetic activity at ordinary breathing rates, with slow breathing moving power into LF; LF/HF read as a trend, not a sympathetic index (Billman 2013), raised by slow breathing. Matches MetricInfoSheet.hfPowerEntry / lfhfRatioEntry.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)",
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.hfPowerEntry()",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.lfhfRatioEntry()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)": "cf6fa552329ebdca",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "036ebb2ea5297c4c",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "ddb723904f5b5a39",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.hfPowerEntry()": "b4584eff12761610",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.lfhfRatioEntry()": "66395cd254dc5e83"
    }
   },
   {
@@ -3083,19 +3168,23 @@
   },
   {
    "key": "§ Emuqu User Manual > HRV Metrics Explained > Composite Metrics",
-   "hash": "89b875eddeeb096e",
-   "does": "Claims Readiness 0-10 modulated by recovery score; Recovery 60/25/15 with last-60-nights baseline; Comeback mode 80/20/0 for 21 days via Settings → Modes, auto-expiring.",
+   "hash": "9ce8138e0687f87f",
+   "does": "Claims Readiness is a 1-10 nearness score from a neutral 5 (RMSSD near usual, α1 in its resting band, PNS/SNS balance, lifted by recent hard training; StressAnalyzer.computeReadinessScore, MetricInfoSheet.readinessEntry), distinct from the load-based Training Readiness gauge; Recovery 60/25/15 with last-60-nights baseline; Comeback mode 80/20/0 for 21 days via Settings → Modes, auto-expiring.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.readinessEntry()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "10ea7c04076f529f",
+    "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeReadinessScore(rmssd:baselineRMSSD:alpha1:pnsIndex:snsIndex:trainingLoadAdjustment:vo2Max:)": "e93c7230b0f6e980",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.readinessEntry()": "c51de52a7daf969d"
    }
   },
   {
@@ -3269,14 +3358,15 @@
   },
   {
    "key": "§ Emuqu User Manual > Privacy & Data",
-   "hash": "0b28640a8d13af61",
-   "does": "Claims no server/account; data in app container and App Group; recordings, raw backups, workout routes, settings, saved routes, contacts, trails and Flo's chat and memory sealed with a device-keychain key on top of file protection; keychain items survive app deletion (API keys removable via Delete All My Data); iCloud sync off by default and encrypted, Health readings never uploaded; cloud AI only with key + consent, receiving chat, tool results, memory facts and a live-state block; Tavily, MET Norway (~1 km), OpenTopoData (<= 100 points, ~11 m), Overpass (100 m / 250 m), Apple, Hugging Face.",
+   "hash": "46c0d02e87d70c65",
+   "does": "Claims no server/account; data in app container and App Group; recordings, raw backups, workout routes, settings, saved routes, contacts, trails and Flo's chat and memory sealed with a device-keychain key on top of file protection; keychain items survive app deletion (API keys removable via Delete All My Data); iCloud sync off by default and encrypted, Health readings never uploaded, and tied to the iCloud account it was enabled for (another account turns it off and uploads nothing; CloudAccountGuard.stopSync); cloud AI only with key + consent, receiving chat, tool results, memory facts and a live-state block; Tavily, MET Norway (~1 km), OpenTopoData (<= 100 points, ~11 m), Overpass (100 m / 250 m), Apple, Hugging Face.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:transport:)",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -3284,6 +3374,7 @@
    "deps": {
     "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:transport:)": "5578484203f68cc5",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "8c5da6b396d13175",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "12d14f68b1fd137f",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb"
    }

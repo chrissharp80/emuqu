@@ -2,13 +2,13 @@
 
 **Sleep-anchored, score-ranked window selection, anti-ratchet baselines and frozen, versioned scores**
 
-Technical White Paper • v1.3 • 8 October 2026
+Technical White Paper • v1.4 • 22 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision e028039 (2026-10-07), scoring version v3.1.oct2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision d2c8ca9 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
 
-Cite as: Sharp C. Emuqu — Overnight Recovery Measurement from Raw Beat Intervals. Technical White Paper v1.3, 8 October 2026. github.com/chrissharp80/emuqu, docs/whitepapers/01-overnight-recovery-measurement.md.
+Cite as: Sharp C. Emuqu — Overnight Recovery Measurement from Raw Beat Intervals. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/01-overnight-recovery-measurement.md.
 
 ---
 
@@ -18,10 +18,10 @@ Emuqu is an iOS app that records a night of beat-to-beat (RR) intervals from a c
 
 The method has six parts, each specified precisely enough to re-implement:
 
-1. **Source assembly.** The strap's internal recording is preferred. Bluetooth-streamed beats fill only its own gaps, matched on the phone's arrival clock and de-duplicated within 50 ms. An undated strap file is dated by aligning an RR-detected sleep onset with the HealthKit sleep start.
+1. **Source assembly.** The strap's internal recording is preferred. Bluetooth-streamed beats fill only its own gaps and the stretches before or after it recorded, matched on the phone's arrival clock and de-duplicated within 50 ms. An undated strap file is dated by aligning an RR-detected sleep onset with the HealthKit sleep start.
 2. **Sleep-anchored window search.** The analysis window is searched only within 30–70% of *measured sleep*, not of the recording, after the sleep boundaries are mapped from wall-clock time onto the beat timeline, which stalls during Bluetooth dropouts.
 3. **Score-ranked window selection.** When a baseline exists, windows that pass the artifact, clean-beat and stability gates are ranked by the heart-rate-variability (HRV) sub-score function that produces the final score (less its autonomic-balance term), against the same prior-nights baseline.
-4. **Anti-ratchet baseline.** Admission uses a structural test that ignores whether a reading is above or below the mean, so short high readings cannot ratchet the baseline upward; the one direction-dependent exclusion is a below-baseline session shorter than 3 h. Each night has one slot, keyed by wake date, and is scored only against earlier nights.
+4. **Anti-ratchet baseline.** Admission uses a structural test that ignores whether a reading is above or below the mean, so short high readings cannot ratchet the baseline upward; the one direction-dependent exclusion is a below-baseline session shorter than 3 h. Each night has one slot, keyed by wake date; a re-analysed session replaces its own reading; and each night is scored only against earlier nights.
 5. **Frozen, versioned scores.** At acceptance the score, its breakdown and its inputs are frozen and stamped with a scoring-version string; records without one are labeled `unversioned`.
 6. **RR-only sleep staging** by within-night rank normalization, with a conservative Apple Watch augmentation that overrides Watch stages only on strong evidence.
 
@@ -69,7 +69,7 @@ Commercial products describe nocturnal windows and personal baselines only at su
 | Phase | Operation | Purpose |
 |---|---|---|
 | A. Capture | Stream RR over Bluetooth; strap records internally in parallel; append-only JSON Lines (JSONL) backup every 60 s | No single failure loses the night |
-| B. Source selection | Prefer internal recording; gap-only composite with stream; date undated files | One continuous, correctly dated series |
+| B. Source selection | Prefer internal recording; add stream beats only where it has none (gaps, before, after); date undated files | One continuous, correctly dated series |
 | C. Segment merge | Time-shift resumed segments onto the parent's timeline and concatenate | One window search across a paused night |
 | D. Artifact flags | Whole-series rolling-median classifier | Mark technical, extra, missed and ectopic beats |
 | E. Sleep boundaries | HealthKit → RR heart-rate (HR) estimate → Watch passive-HR estimate → recording bounds | Anchor the search to sleep, not to the recording |
@@ -99,7 +99,7 @@ prior-nights baseline ──┬────────────────�
 
 **Figure 2.1.** Data flow from capture to baseline update. The prior-nights baseline feeds both window selection (H) and scoring (J).
 
-Three principles run through the design. *Every beat-to-beat difference is real:* time-domain statistics use no interpolated beats, and no difference spans a removed beat or a recording break. (Spectral features use the standard resampled series.) *One rule, used everywhere:* the estimator that selects a window is the one that reports it, and the function that ranks windows is the one that scores the night. *A score is a record:* once accepted, it changes only through stated, bounded rules, and it carries the version of the algorithm that produced it.
+Three principles run through the design. *Every beat-to-beat difference is real:* time-domain statistics use no interpolated beats, and no difference spans a removed beat or a recording break. (Spectral features use the standard resampled series; DFA, which works in beat index, interpolates removed beats inside break-free stretches.) *One rule, used everywhere:* the estimator that selects a window is the one that reports it, and the function that ranks windows is the one that scores the night. *A score is a record:* once accepted, it changes only through stated, bounded rules, and it carries the version of the algorithm that produced it.
 
 ---
 
@@ -166,7 +166,7 @@ The parent already carries its own parent's beats, so a chain of pauses yields t
 
 ### 3.3 Artifact handling
 
-All artifact handling *drops* beats. Nothing is interpolated.
+Artifact handling *drops* beats: no time-domain statistic uses an interpolated beat. The one exception is the window's DFA α1 (Section 3.5.2), which works in beat index and so interpolates removed beats inside each break-free stretch.
 
 #### 3.3.1 Whole-series classifier
 
@@ -216,10 +216,10 @@ A negative onset is clamped to 0. HealthKit/HR reconciliation, where used, keeps
 
 #### 3.4.2 Wall-clock to beat-timeline mapping
 
-Boundaries arrive as wall-clock offsets from session start. The scan is indexed on `t_ms`, which stalls across dropouts. Mapping: if the first beat has no wall clock (strap internal recording, whose beat-sum timeline does not stall during Bluetooth dropouts), the offset is used unchanged. Otherwise, find the first beat with `wallClockMs ≥ firstWall + offset` and return `that.t_ms − first.t_ms`, or the last beat's offset if none qualifies.
+Boundaries arrive as wall-clock offsets from session start. The scan is indexed on `t_ms`, which stalls across dropouts. Mapping: if the first beat has no wall clock (strap internal recording, whose beat-sum timeline does not stall during Bluetooth dropouts), the offset is used unchanged. Otherwise, return the `t_ms` of the first beat whose `wallClockMs` (milliseconds since the stream started, the same clock as the offset) is ≥ the offset, or the last beat's `t_ms` if none qualifies.
 
-- `sleepStart = max(0, map(sleepStartMs))`, or 0 if absent.
-- `sleepEnd = min(map(wakeMs), recordingDuration)` if it is later than `sleepStart`, else `recordingDuration`.
+- `sleepStart = max(recordingStart, map(sleepStartMs))`, or `recordingStart` (the first beat's `t_ms`) if absent.
+- `sleepEnd = min(map(wakeMs), recordingEnd)` if it is later than `sleepStart`, else `recordingEnd` (the last beat's `t_ms`).
 
 #### 3.4.3 Band
 
@@ -247,7 +247,7 @@ For each window:
 3. Apply the local ectopic gate (Section 3.3.2). Reject if `clean < min(300, max(50, ⌊0.75·size⌋))`.
 4. `RMSSD` = masked RMSSD (Section 3.3.3). `meanRR` and the standard deviation of NN intervals, `SDNN` (population, divisor N), are taken over clean beats, and the coefficient of variation is `CV = SDNN / meanRR`.
 5. `meanHR` = 5–95% trimmed mean of sensor HR values if ≥ 10 are present, plain mean if fewer, else `60000 / meanRR`.
-6. DFA α1 [6] on the clean beats if there are ≥ 64: integrate, use box sizes 4–16 log-spaced by 2^(1/8), apply linear detrend per box, and take the slope of log F(n) against log n.
+6. DFA α1 [6] if there are ≥ 64 clean beats. The window is split at every recording break, and inside each break-free stretch every beat removed by the gates is replaced by linear interpolation between the kept beats either side (removed beats at a stretch's ends are left out). Integrate over all stretches, use box sizes from 4 to min(16, a quarter of the longest stretch) log-spaced by 2^(1/8), lay non-overlapping boxes from the start of each stretch so that no box spans a break, apply linear detrend per box, and take the slope of log F(n) against log n.
 7. `relativePosition = (midpoint t_ms − sleepStart) / (sleepEnd − sleepStart)`.
 
 The ratio of low- to high-frequency spectral power (LF/HF) is not used in window selection and is not treated as a sympathovagal measure [13].
@@ -288,17 +288,20 @@ Let `base` be the leave-current-out baseline for this night (Section 3.6.4).
 
 ### 3.6 Baseline
 
-#### 3.6.1 Admission (three gates, in order)
+#### 3.6.1 Admission (four gates, in order)
 
 1. Session type is overnight.
 2. Data quality is not `insufficient` and not `preSleep` (Section 3.8.3).
-3. *Structural soundness:* the analysis window lasts ≥ 5 min (300 000 ms), **and** the window is organized **or** the session lasts ≥ 3 h (10 800 s).
+3. *Structural soundness:* the analysis window (the whole session if the analysis has none) lasts ≥ 5 min (300 000 ms), **and** the window is organized **or** the session lasts ≥ 3 h (10 800 s).
+4. The reading's SDNN was measured, not estimated (an imported summary that does not state SDNN carries an estimate).
 
 *Why it works.* Gate 3 deliberately ignores the direction of the reading. The display path treats a short reading differently depending on whether it lands above or below baseline (Section 3.8.3), because a brief clean high reading is still worth showing. For aggregation, that asymmetry would be a ratchet. Short windows have the largest sampling error, so their high readings overshoot most. Admitting the high ones and rejecting the low ones would raise `lnRmssdMean`, every later night would score lower against it, and the correcting samples would be exactly the ones excluded. The structural test is therefore symmetric: a 4-minute window is not baseline-quality whichever side of the mean it falls on. The one direction-dependent exclusion comes through gate 2: a below-baseline session shorter than 3 h is marked `insufficient` by quality rule 3 (`classifyHRVQuality` in `Emuqu/Sources/Services/SessionAcceptanceService.swift`) and is not admitted, while the same session above baseline is admitted if it passes gate 3.
 
 #### 3.6.2 One slot per night
 
-The night key is the calendar date of the first expected wake after the night's overnight window opens (from the user's sleep schedule). A 23:30 start and its 00:30 continuation share a key. If the key is new, the point is appended. Otherwise the newcomer is compared with the incumbent by the rules below, in order; the first rule that applies decides. *Readiness* here is each reading's legacy 1–10 autonomic readiness value. A *morning reading* is one that ended between the night's window start and the expected wake time plus 4 h.
+An update first removes any reading the same session stored before (matched by session id, or by start time for a point stored before ids were recorded). A re-analysed or re-windowed session therefore replaces its own reading outright, and one that admission (Section 3.6.1) now refuses only takes its old reading out.
+
+The night key is the calendar date of the first expected wake after the night's overnight window opens (from the user's sleep schedule). A 23:30 start and its 00:30 continuation share a key. If the key is new, the point is appended. If the incumbent is a reading of the same session, the newcomer replaces it. Otherwise the newcomer is compared with the incumbent by the rules below, in order; the first rule that applies decides. *Readiness* here is each reading's legacy 1–10 autonomic readiness value. A *morning reading* is one that ended between the night's window start and the expected wake time plus 4 h.
 
 1. **Morning reading.** If exactly one of the two is a morning reading, it wins.
 2. **Consolidation.** If the incumbent is consolidated and the newcomer is not, the newcomer wins only if its readiness exceeds the incumbent's by more than 15%. If the newcomer is consolidated and the incumbent is not, the newcomer wins if its readiness is ≥ 90% of the incumbent's.
@@ -308,7 +311,7 @@ The night key is the calendar date of the first expected wake after the night's 
 
 Missing values default to 0 (readiness), false (flags) and 100% (artifacts). Up to 90 points are stored, sorted by date.
 
-*Why it works.* One night, one vote: a night recorded in two pieces must not count twice. Keying by wake date groups the pieces of one sleep across midnight. The replacement order prefers the reading taken under the most comparable conditions (the morning reading), then the structurally better window, and only then a higher value, and the final 5% margin keeps a marginally higher reading from displacing a sound one.
+*Why it works.* One night, one vote: a night recorded in two pieces must not count twice. Keying by wake date groups the pieces of one sleep across midnight. A re-analysis is the same reading measured again, not a rival, so it takes its own slot without having to beat the value it supersedes; otherwise a corrected lower value, or a reading that no longer qualifies, would leave the stale value in the baseline. The replacement order prefers the reading taken under the most comparable conditions (the morning reading), then the structurally better window, and only then a higher value, and the final 5% margin keeps a marginally higher reading from displacing a sound one.
 
 #### 3.6.3 Statistics
 
@@ -316,11 +319,11 @@ Take the 60 most recent stored *nights* (a count, not calendar days). Require �
 
 - `lnMean = mean(ln RMSSD)`.
 - `lnSD = max(sampleSD(ln RMSSD) · w, 0.10)`, with `w = 1` if `n ≥ 7`, else `w = √(7/n)` (≈ 1.53 at n = 3).
-- `hrMean`, `hrSD = max(sampleSD(meanHR), 0.5)`.
+- `hrMean`, `hrSD = max(sampleSD(meanHR) · w_HR, 0.5)`, with `w_HR` the same widening over the number of points in the 60-night window.
 - `CV7 = 100 · CV(ln RMSSD of the last 7 points)` if ≥ 7 points (≥ 3 positive), else none.
 - `lastDate` = date of the most recent point.
 
-*Why it works.* The widening keeps early z-scores near zero until the spread can be trusted, without withholding a score for the first week. The 0.10 floor (about a 10% change in RMSSD) keeps a stable user's trivial −8% night from being scored as a −8 SD event, as it would be against an observed SD of 0.01.
+*Why it works.* The widening keeps early z-scores near zero until the spread can be trusted, without withholding a score for the first week. The resting-HR SD is widened the same way, so three nights half a beat apart cannot turn a 2 bpm rise into the full resting-HR deduction. The 0.10 floor (about a 10% change in RMSSD) keeps a stable user's trivial −8% night from being scored as a −8 SD event, as it would be against an observed SD of 0.01.
 
 #### 3.6.4 Leave-current-out
 
@@ -328,7 +331,7 @@ To score a night, only points whose night key is strictly earlier than the score
 
 *Why it works.* A night compared with a baseline that contains it is partly compared with itself, which pulls its z-score toward zero; comparing with earlier measurements only follows Kiviniemi et al. [5]. Restricting to earlier keys also makes a historical rescore reproduce what the user would have seen that morning.
 
-### 3.7 Recovery score (v3.1.oct2026)
+### 3.7 Recovery score (v3.3.nov2026)
 
 #### 3.7.1 z-mapping
 
@@ -358,7 +361,7 @@ T1 = clamp(T1, 0, 100)
 
 The autonomic nervous system (ANS) term uses the parasympathetic (PNS) and sympathetic (SNS) nervous system indices of the analysis window, built from the same input triples as Kubios' indices of the same name [8]: mean RR, RMSSD and SD1 for PNS; mean HR, Baevsky's stress index and SD2 for SNS.
 
-Without a baseline: the legacy readiness (1–10) × 10 if present. Otherwise absolute RMSSD bands: ≥ 60 → 85, ≥ 45 → 70, ≥ 30 → 55, ≥ 20 → 40, else 25. With no RMSSD the score is 50.
+Without a baseline (fewer than 3 nights), a reading with RMSSD > 0 is scored on absolute RMSSD bands: ≥ 60 → 85, ≥ 45 → 70, ≥ 30 → 55, ≥ 20 → 40, else 25. A night with no usable RMSSD scores the legacy readiness (1–10) × 10 when the analysis produced one, else 50.
 
 #### 3.7.3 Tiers
 
@@ -413,7 +416,7 @@ Rules 1 and 3 are asymmetric: a short reading is replaced only when it is low. T
 
 #### 3.8.5 What is stored
 
-`recoveryScore` (composite / 10, a 0–10 value; the composite itself is 0–100), `scoreBreakdown` (composite, tier, factors, penalties, SpO₂ flag and `scoringVersion = "v3.1.oct2026"`) and the frozen training readiness. A breakdown decoded without a version field is labeled **`unversioned`**, never assumed to be the current version, because the archive cannot tell which earlier algorithm produced it.
+`recoveryScore` (composite / 10, a 0–10 value; the composite itself is 0–100), `scoreBreakdown` (composite, tier, factors, penalties, SpO₂ flag and `scoringVersion = "v3.3.nov2026"`) and the frozen training readiness. A breakdown decoded without a version field is labeled **`unversioned`**, never assumed to be the current version, because the archive cannot tell which earlier algorithm produced it.
 
 #### 3.8.6 Mutation rules
 
@@ -523,11 +526,11 @@ Commercial entries state only what the cited public pages say. Items marked † 
 
 Each statement gives only the part not found in a prior-art search made on 2026-10-08 (patents, vendor support pages and white papers, peer-reviewed and preprint literature, clinical-trial protocols and open-source HRV code). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 9d89933) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
 
-**N1 (Section 3.1.3). Building an overnight RR series by preferring a chest strap's internal recording and adding Bluetooth-streamed beats only when the internal file is more than 5% shorter.** Streamed beats are added only inside internal gaps (next start − previous end > previous RR + 2000 ms), are matched on the phone's arrival clock rather than their own drifting beat-sum time, and are de-duplicated cluster-wise within 50 ms. If no gap can be filled, the stream is used rather than the shorter internal file.
+**N1 (Section 3.1.3). Building an overnight RR series by preferring a chest strap's internal recording and adding Bluetooth-streamed beats only when the internal file is more than 5% shorter.** Streamed beats are added only where the internal file has none: inside its gaps (next start − previous end > previous RR + 2000 ms) or before its first or after its last beat. They are matched on the phone's arrival clock rather than their own drifting beat-sum time, and are de-duplicated cluster-wise within 50 ms. If the stream adds no beat the internal file lacks, the stream is used rather than the shorter internal file.
 
-*Builds on:* the Polar H10's internal memory, which stores about 20 h of RR as one session [30][31]; adds a gap-only merge with the live stream, which no public tool found performs.
+*Builds on:* the Polar H10's internal memory, which stores about 20 h of RR as one session [30][31]; adds a merge that takes live-stream beats only where the internal file has none, which no public tool found performs.
 
-*Earliest dated record:* flow-recovery-old aeaf0db, 2026-01-18 (first form: 5% rule and gap rule, matched on beat-sum time, no de-duplication); emuqu 554540f, 2026-10-03 (current form: gap-interior-only insertion). 50 ms de-duplication: flow-recovery-dev c48eeb9, 2026-03-01; cluster tolerance: flow-recovery cc7c53e, 2026-04-18; arrival-clock matching: emuqu-dev 680bbee, 2026-08-25.
+*Earliest dated record:* flow-recovery-old aeaf0db, 2026-01-18 (first form: 5% rule and gap rule, matched on beat-sum time, no de-duplication); emuqu 554540f, 2026-10-03 (gap-interior-only insertion); emuqu da87235, 2026-11-21 (current form: stream beats before and after the internal span added too). 50 ms de-duplication: flow-recovery-dev c48eeb9, 2026-03-01; cluster tolerance: flow-recovery cc7c53e, 2026-04-18; arrival-clock matching: emuqu-dev 680bbee, 2026-08-25.
 
 **N2 (Section 3.1.4). Dating a chest-strap recording that carries no start time by subtracting an RR-detected sleep onset from the HealthKit sleep start.** The onset is the first sustained drop of more than 8 bpm (5-window versus 10-window means over 120-beat windows) into the lower half of that night's own HR range, accepted only within 20 min of the start (a later drop gives no onset, so the recording is aligned with its start at the HealthKit sleep start).
 
@@ -577,17 +580,17 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* flow-recovery 870028e, 2026-04-05 (first form: same 5 min / 3 h constants, direction-dependent); emuqu-dev 680bbee, 2026-08-25 (current form: direction-free structural test).
 
-**N10 (Section 3.6.2). Holding one baseline slot per night keyed by the wake date of the user's sleep schedule, with an ordered replacement rule.** The order is morning reading, then consolidation (15% / 90%), then organized (95%), then artifact and CV quality ceilings, then a 5% improvement.
+**N10 (Section 3.6.2). Holding one baseline slot per night keyed by the wake date of the user's sleep schedule, with an ordered replacement rule.** Between readings of different sessions, the order is morning reading, then consolidation (15% / 90%), then organized (95%), then artifact and CV quality ceilings, then a 5% improvement.
 
 *Builds on:* rolling personal baselines [1][2]; adds the per-night slot and ordered replacement. No public method doing this was found in the same search.
 
-*Earliest dated record:* flow-recovery-old 52d6267, 2026-01-22 (first form: same ordered rule, calendar-day slot; morning = before 10:00 from flow-recovery-old abf91d6, 2026-01-18); emuqu 554540f, 2026-10-03 (current form: wake-date key).
+*Earliest dated record:* flow-recovery-old 52d6267, 2026-01-22 (first form: same ordered rule, calendar-day slot; morning = before 10:00 from flow-recovery-old abf91d6, 2026-01-18); emuqu 554540f, 2026-10-03 (wake-date key); emuqu 3ad4f82, 2026-11-21 (current form: a re-analysed session replaces or removes its own reading).
 
 **N11 (Sections 3.6.3–3.6.4). Widening the ln(RMSSD) SD of a personal baseline by √(7/n) below seven nights with a 0.10 floor, and scoring each night only against nights with an earlier night key, with the same leave-current-out statistics used for window ranking and for the score.** The 60-night statistics window is not presented as new.
 
 *Builds on:* HRV4Training's 60-day normal range of ±0.75 SD [28] and comparison with earlier days [5]; adds small-sample widening and shared leave-current-out statistics.
 
-*Earliest dated record:* flow-recovery-dev c48eeb9, 2026-03-01 (first form: 60 nights, ln statistics, 0.10 floor); emuqu 554540f, 2026-10-03 (current form: earlier-nights filter). √(7/n) widening: flow-recovery c6d66dd, 2026-06-25.
+*Earliest dated record:* flow-recovery-dev c48eeb9, 2026-03-01 (first form: 60 nights, ln statistics, 0.10 floor); emuqu 554540f, 2026-10-03 (current form: earlier-nights filter). √(7/n) widening: flow-recovery c6d66dd, 2026-06-25; the same widening of the resting-HR SD: emuqu 3ad4f82, 2026-11-21.
 
 **N12 (Sections 3.8.1–3.8.5). Freezing a recovery score at acceptance with frozen inputs and a per-score algorithm version.** The freeze substitutes the strap's nocturnal window HR for daytime resting HR in the vitals snapshot; sets the reference date to session end; applies a baseline-substitution rule for unusable readings that is triggered asymmetrically for short readings, with a 70/30 baseline/subjective blend routed through the same penalty tail; and stores an algorithm-version string, with records lacking one labeled `unversioned` rather than current.
 
@@ -636,7 +639,7 @@ The cross-implementation scripts are in `Tools/validation/`.
 
 **Artifact pipeline on recordings with ectopic beats (Sections 3.3.1–3.3.3).** On the MIT-BIH Arrhythmia Database [41] (44 records, paced records excluded; 100,733 annotated beats, 10,593 ectopic), with every beat kept as a chest strap would report it, uncorrected ectopic beats inflate 5-min RMSSD by a median of 32 ms against the normal-to-normal reference; on a ratio scale, the uncorrected values are a median 2.2 times the reference. The app's drop-only pipeline (whole-record classifier, local gate and masked estimator) brings the median absolute error to 4.7 ms over all 255 segments and 3.2 ms outside atrial fibrillation (AF) and flutter. The overnight RMSSD exclusion (whole-series classifier plus the per-window ectopic gate) detects 85.6% of ventricular premature beats, with an interval specificity of 94.3%. Detection statistics by beat type and Bland–Altman limits are in the cross-implementation report, which also covers the PhysioNet sleep datasets slpdb [42] and the Cyclic Alternating Pattern (CAP) Sleep Database [43].
 
-**Register labels.** Exact labels from `Tools/science_register/register.json`, scoring version v3.1.oct2026. Register labels are internal: `validated` means the entry's arithmetic or literature basis has been checked against reference data or its source; `awaiting-validation` means no such check exists yet.
+**Register labels.** Exact labels from `Tools/science_register/register.json`, scoring version v3.3.nov2026. Register labels are internal: `validated` means the entry's arithmetic or literature basis has been checked against reference data or its source; `awaiting-validation` means no such check exists yet.
 
 **Table 6.1.** Science-register entries relevant to this paper.
 
@@ -692,7 +695,7 @@ The project began as a general fitness app. Repository AI-Fitness-Coach (2025-02
 
 History has gaps from 2026-01-26 to 2026-03-01, 2026-08-12 to 2026-08-16 and 2026-09-04 to 2026-09-08, where each new repository began with a squashed import; a date at a squashed import is an upper bound for anything it contains. The pre-code design (v1 to v9.2 FINAL, completed 2026-01-08 21:06 CST) is described in Paper 5, Section 4: versions v1 and v3.0 have not been recovered; v2–v2.2 and v4.0–v9.1 survive in the author's Claude conversation record; v9.2 FINAL survives as a Google Drive document.
 
-Scoring versions: v2.may2026 (public 2026-09-08) → v3.oct2026 (2026-10-03) → v3.1.oct2026 (2026-10-04).
+Scoring versions: v2.may2026 (public 2026-09-08) → v3.oct2026 (2026-10-03) → v3.1.oct2026 (2026-10-04) → v3.2.oct2026 (2026-10-13; SD1, entropy and DFA respect removed beats and recording breaks) → v3.3.nov2026 (2026-11-21; per-session baseline replacement, resting-HR SD widening, absolute RMSSD bands ahead of the legacy readiness).
 
 ### 8.3 Dated records outside git
 
@@ -733,7 +736,7 @@ Chris Sharp is the sole author of these papers and of the design, and the only p
 
 ### 8.6 Document history
 
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims).
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.4, published 2026-11-22, describes source revision d2c8ca9 and scoring version v3.3.nov2026. Changes from v1.3: stream beats before and after the internal recording are added (Section 3.1.3); an HR-detected onset later than 20 min is undetermined rather than clamped, and HealthKit/HR onset reconciliation keeps a staged HealthKit onset (Sections 3.1.4, 3.4.1); window DFA interpolates removed beats inside break-free stretches (Section 3.5.2); a fourth admission gate, per-session replacement and the widened resting-HR SD (Sections 3.6.1–3.6.3); the Tier-1 fallback order (Section 3.7.2); the wall-clock mapping returns the matched beat's `t_ms` position (Section 3.4.2); same-second sync ties (Section 3.8.6); epoch features over break-free stretches (Section 3.9.1); and the reimplementation's partial coverage stated (Section 6).
 
 ---
 
@@ -818,7 +821,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | minimum valid RRs | 50 | beats | Per window |
 | minCleanBeats | min(300, max(50, 0.75·size)) | beats | Per window |
 | DFA minimum | 64 | beats | α1 computed |
-| α1 boxes | 4–16 (ratio 2^(1/8)) | beats | DFA α1 |
+| α1 boxes | 4 to min(16, longest stretch / 4) (ratio 2^(1/8)) | beats | DFA α1 |
 | isolatedSpikeRatio | 1.50 | × | Spike filter |
 | organized α1 | 0.75–1.0 | — | Organized test |
 | unstable CV | 0.08 | fraction | Organized and consolidated tests |
@@ -828,7 +831,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | stored points | 90 | nights | Baseline storage |
 | stats window | 60 | nights | Baseline statistics |
 | minimum nights | 3 | nights | Baseline exists |
-| widening | √(7/n), n < 7 | — | SD widening |
+| widening | √(7/n), n < 7 | — | ln(RMSSD) and resting-HR SD widening |
 | lnRmssdSDFloor | 0.10 | ln units | SD floor |
 | meanHRSDFloor | 0.5 | bpm | HR SD floor |
 | replacement fractions | 0.15 / 0.90 / 0.95 / 0.05 | — | Night-slot replacement |
@@ -841,7 +844,8 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | CV7 thresholds / penalties | <2 → −5; >12 → −3 | % / points | Tier-1 adjustment |
 | ANS thresholds / points | <−1.5 → −6; <−0.5 → −3; ≥1.5 → +2 | — / points | Tier-1 adjustment |
 | staleness | ≥7 d: min(20, 5·(1+(d−7)/7)) | points | Tier-1 deduction |
-| absolute bands | 60/45/30/20 → 85/70/55/40; else 25; none 50 | ms / points | No-baseline fallback |
+| absolute bands | 60/45/30/20 → 85/70/55/40; else 25 | ms / points | No-baseline fallback |
+| no-RMSSD fallback | readiness × 10; else 50 | points | Night without a usable RMSSD |
 | Tier 3 weights | 0.60/0.25/0.15 | — | Composite |
 | Comeback weights / duration | 0.80/0.20/0.00 / 21 | — / days | Composite |
 | Tier 2 weights / dampened | 0.70/0.30 / 0.85/0.15 | — | Composite |
@@ -902,7 +906,7 @@ function detectOnset(beats):
     ceiling = max(W.hr) - 0.5*(max(W.hr)-min(W.hr))
     for j in 5 .. |W|-11:
         if mean(W[j-5..j-1].hr) - mean(W[j..j+9].hr) > 8 and mean(W[j..j+9].hr) < ceiling:
-            return min(W[j].t, 20 min)
+            return W[j].t <= 20 min ? W[j].t : none     // later: misfire, undetermined
     return none
 
 function dateUndated(rec):
@@ -910,11 +914,10 @@ function dateUndated(rec):
     if hk.start: return hk.start - (detectOnset(rec.beats) ?? 0)
     return now - duration(rec.beats)
 
-function mapWallToBeat(offset, P):
+function mapWallToBeat(offset, P):        // offset and P[k].wall: ms since the stream started
     if P[0].wall is none: return offset
-    target = P[0].wall + offset
-    k = first index with P[k].wall >= target
-    return (k exists ? P[k].t : P[last].t) - P[0].t
+    k = first index with P[k].wall >= offset
+    return k exists ? P[k].t : P[last].t
 
 function isBreak(p, q):     // q follows p
     if q.t - (p.t + p.rr) > p.rr + 2000: return true
@@ -928,8 +931,8 @@ function maskedRMSSD(vals /*(origIndex, rr) not flagged, valid*/, kept, breaks):
 
 function selectWindow(P, flags, sleepStart?, wake?, base?):
     if |P| < 120: return none
-    s = max(0, map(sleepStart)) or 0
-    e = wake ? (map(wake) > s ? min(map(wake), dur) : dur) : dur
+    s = max(P[0].t, map(sleepStart)) or P[0].t
+    e = wake ? (map(wake) > s ? min(map(wake), P[last].t) : P[last].t) : P[last].t
     early = clampToRec(s + 0.3(e-s)); late = clampToRec(s + 0.7(e-s))
     band = [first t>=early .. last t<=late]; B = |band|
     size = B>=400 ? 400 : (B>=240 ? B/2 : max(60, 0.6B)); step = max(10, size/10)
@@ -950,15 +953,25 @@ function evalWindow(win, cap):
     kept = localGate(vals.rr, neighbors=10 excluding self, 20%)
     if count(kept) < min(300, max(50, 0.75|win|)): reject
     rmssd = maskedRMSSD(vals, kept, breaksIn(win))
-    cv = popSD(keptRR)/mean(keptRR); alpha1 = count(kept) >= 64 ? DFA(keptRR) : none
+    cv = popSD(keptRR)/mean(keptRR)
+    alpha1 = count(kept) >= 64 ? DFA(stretches(kept, breaksIn(win))) : none
+        // split at breaks; removed beats inside a stretch linearly interpolated; no box spans a break
     return {rmssd, cv, alpha1, meanHR, pos}
 
 organized(w) = w.alpha1 ? (0.75 <= w.alpha1 <= 1.0 and w.cv < 0.08) : w.cv < 0.08
 
 function admit(session, result):
     return session.overnight and quality not in {insufficient, preSleep}
-       and result.windowLen >= 5 min
+       and (result.windowLen ?? session.duration) >= 5 min
        and (result.organized or session.duration >= 3 h)
+       and not result.sdnnEstimated
+
+function updateBaseline(points, session):
+    remove from points every p with p.session == session.id (or p.start == session.start if p has no id)
+    if not admit(session, session.result): return
+    n = point(session); k = index of p in points with nightKey(p) == nightKey(n)
+    if k is none: append n
+    elif sameSession(points[k], n) or replaces(points[k], n): points[k] = n     // Section 3.6.2 rules
 
 function baselineStats(points, scoredNightKey):
     P = [p where nightKey(p) < scoredNightKey]        // leave-current-out
@@ -966,7 +979,7 @@ function baselineStats(points, scoredNightKey):
     R = last 60 of P; L = [ln p.rmssd for p in R if p.rmssd > 0]; if |L| < 3: return none
     w = |L| >= 7 ? 1 : sqrt(7/|L|)
     return {lnMean: mean(L), lnSD: max(sd(L)*w, 0.10),
-            hrMean: mean(R.hr), hrSD: max(sd(R.hr), 0.5),
+            hrMean: mean(R.hr), hrSD: max(sd(R.hr)*(|R| >= 7 ? 1 : sqrt(7/|R|)), 0.5),
             cv7: |R|>=7 ? 100*cv(ln of last 7) : none, last: R.last.date}
 
 function freeze(session, result, base, config):
@@ -978,7 +991,7 @@ function freeze(session, result, base, config):
     if q.useBaseline and session.perceived:
         bd.HRV = 0.7*bd.HRV + 0.3*100*clamp(perceived)
         bd = recomposite(bd)        // same missing-sleep and SpO₂ tail
-    bd.version = "v3.1.oct2026"
+    bd.version = "v3.3.nov2026"
     store(session.score = bd.composite/10, bd, frozenReadiness)
 
 function autoSleepRefresh():
@@ -1020,7 +1033,7 @@ function stageNight(P, s, e):
 | Window scan, evaluation, gates | `Emuqu/Sources/Analysis/WindowSelection.swift`, `Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift`, `Emuqu/Sources/Analysis/WindowSelection+Filters.swift`, `Emuqu/Sources/Analysis/WindowSelection+Scoring.swift`, `Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift` |
 | DFA | `Emuqu/Sources/Analysis/DFAAnalysis.swift` |
 | Pipeline entry | `Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift`, `Emuqu/Sources/Services/MorningProcessingService+Analysis.swift`, `Emuqu/Sources/Collection/RRCollector+Analysis.swift` |
-| Baseline | `Emuqu/Sources/Analysis/BaselineTracker.swift`, `Emuqu/Sources/Models/SleepSchedule.swift`, `Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift` |
+| Baseline | `Emuqu/Sources/Analysis/BaselineTracker.swift`, `Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift`, `Emuqu/Sources/Models/SleepSchedule.swift`, `Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift` |
 | Recovery score | `Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift`, `Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift`, `Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift`, `Emuqu/Sources/Analysis/ScoreDetailBuilder.swift`, `Emuqu/Sources/Analysis/HRVThresholds.swift`, `Emuqu/Sources/Utilities/Constants+RecoveryScore.swift`, `Emuqu/Sources/Utilities/Constants.swift` (`ScoringWeights`) |
 | Vitals | `Emuqu/Sources/Analysis/VitalsScoring.swift`, `Emuqu/Sources/Models/RecoveryVitals.swift` |
 | Freeze and quality decision | `Emuqu/Sources/Services/SessionAcceptanceService.swift` |
