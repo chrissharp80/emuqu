@@ -9,12 +9,17 @@ import os
 /// runs every writer is refused, and the purge itself starts only once the
 /// writes already under way have finished.
 ///
-/// Writers are the archive's disk writes (`writeArchiveBytes`,
-/// `SessionArchive.saveIndex`), which run their write through `admitWrite`,
-/// and the CloudKit sync manager, which checks `isPurging` before a full sync
-/// or an upload runs. Every archive write path (archiving, `update`, batch
-/// imports, merges, migrations, deletions) reaches the disk through one of
-/// those two, so none has to know about the purge.
+/// Writers are the archive's disk writes, which run their write through
+/// `admitWrite`: session files (`writeArchiveBytes`), the index
+/// (`SessionArchive.saveIndex`), the deleted-session list
+/// (`SessionArchive.saveDeletedIndex`), the re-encryption of a Trash or
+/// quarantine copy, and the protection-class rewrite of an archive file at
+/// launch; and the CloudKit sync manager, which checks `isPurging` before a
+/// full sync or an upload runs. Every archive write path (archiving,
+/// `update`, batch imports, merges, migrations, deletions, re-encryption)
+/// writes session or index bytes through one of those, so none has to know
+/// about the purge. Moving or removing a file that is already there (into the
+/// Trash or quarantine) is not gated: it brings nothing back.
 ///
 /// A refused write throws `Refused`; its caller handles it as it handles any
 /// other failed write (logs it, reports the save as failed), so nothing is

@@ -33,6 +33,12 @@ import os
 /// downloading the whole archive once. A record rewritten without a new stamp
 /// (the health scrub, a routine re-upload) is a new version, so each other
 /// device downloads it once.
+///
+/// Stamps come from each device's own clock, and clocks differ. So a stamp is
+/// never earlier than one second after the latest stamp this device has seen
+/// on an iCloud copy (`stamp`, `noteSeen`): an edit made after seeing another
+/// device's edit wins over it, whichever clock runs behind. Edits made without
+/// either device seeing the other's are ordered by their clocks.
 enum CloudKitSessionFreshness {
     /// The plain CKRecord field carrying `HRVSession.modifiedAt`.
     static let modifiedAtField = "modifiedAt"
@@ -65,9 +71,34 @@ enum CloudKitSessionFreshness {
         return .importRemote
     }
 
-    /// The stamp for an edit made now, already at the precision it is compared in.
-    static func stamp(at now: Date = Date()) -> Date {
-        Date(timeIntervalSince1970: wholeSeconds(now))
+    /// The stamp for an edit made now, already at the precision it is
+    /// compared in: the clock's second, or one second after `seen` (the
+    /// latest stamp this device has seen on an iCloud copy, `noteSeen`) when
+    /// that is later, so the edit counts as made after everything this device
+    /// had seen.
+    static func stamp(at now: Date = Date(), after seen: Date? = CloudKitSessionFreshness.latestSeenStamp) -> Date {
+        let clock = wholeSeconds(now)
+        guard let seen else { return Date(timeIntervalSince1970: clock) }
+        return Date(timeIntervalSince1970: max(clock, wholeSeconds(seen) + 1))
+    }
+
+    /// The latest edit stamp this device has seen on an iCloud copy of any
+    /// session, kept across launches; nil before the first.
+    static var latestSeenStamp: Date? {
+        UserDefaults.standard.object(forKey: latestSeenKey) as? Date
+    }
+
+    private static let latestSeenKey = "cloudkit.latestSeenEditStamp"
+    private static let seenLock = OSAllocatedUnfairLock()
+
+    /// An iCloud copy carries `stamp`: kept as the latest seen when it is
+    /// later than the one kept, so this device's next edit stamps after it.
+    static func noteSeen(_ stamp: Date?) {
+        guard let stamp else { return }
+        seenLock.withLock { _ in
+            if let kept = latestSeenStamp, kept >= stamp { return }
+            UserDefaults.standard.set(stamp, forKey: latestSeenKey)
+        }
     }
 
     private static func wholeSeconds(_ date: Date) -> TimeInterval {

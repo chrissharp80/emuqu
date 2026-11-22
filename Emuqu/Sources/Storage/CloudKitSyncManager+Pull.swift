@@ -124,14 +124,9 @@ extension CloudPullCoordinator {
         let forgotten = ForgottenSessions.ids
         for (_, result) in results {
             if Task.isCancelled || !CloudAccountIdentity.isConfirmed { break }
-            let record: CKRecord
-            switch result {
-            case .success(let listed):
-                record = listed
-            case .failure(let error):
-                noteListingFailure(error)
-                continue
-            }
+            guard let record = listedRecord(result) else { continue }
+            // Seen, so an edit made here afterwards is stamped after it.
+            CloudKitSessionFreshness.noteSeen(CloudKitSessionFreshness.modifiedAt(of: record))
             let outcome = await processRemoteRecord(record, forgotten: forgotten)
             manager.noteSyncProgress() // processed a remote record — sync is advancing
             counts.newSessions += outcome.new
@@ -140,6 +135,18 @@ extension CloudPullCoordinator {
             if let id = outcome.backfillId { counts.backfillIds.append(id) }
         }
         return counts
+    }
+
+    /// The listed record, or nil when that entry of the listing failed
+    /// (`noteListingFailure`).
+    private func listedRecord(_ result: Result<CKRecord, Error>) -> CKRecord? {
+        switch result {
+        case let .success(record):
+            return record
+        case let .failure(error):
+            noteListingFailure(error)
+            return nil
+        }
     }
 
     /// One record of the listing failed. Logged, and kept as the pull's error

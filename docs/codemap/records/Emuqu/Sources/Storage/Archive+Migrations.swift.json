@@ -563,8 +563,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "2d06ba44e8e8015c",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "79f2c2d15798a516",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "fa7f11dc067c058a",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "458c4130b9c80d9d",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
@@ -618,7 +618,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "79f2c2d15798a516",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "fa7f11dc067c058a",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "458c4130b9c80d9d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
@@ -703,7 +703,7 @@
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._retrieve(_:)",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.carryUserContent(from:into:)",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -738,7 +738,7 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)": "d4934c6761bf3325",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._retrieve(_:)": "a5b7183a74f1552e",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "4c10324f8b76c2f3",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)": "d14e6c55f8aaa87a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -765,13 +765,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.mergedNotes(_:_:)": "407270773fd8ac1c"
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.mergedNotes(_:_:)": "61e2fad198187687"
    }
   },
   {
    "key": "func ArchiveMigrations.mergedNotes(_:_:)",
-   "hash": "9f433600728af8c0",
-   "does": "Pure: the keeper's notes when the copy's are empty, nil or the same; the copy's when the keeper has none; otherwise both, a blank line apart.",
+   "hash": "85ace441f2453bec",
+   "does": "Pure: the keeper's notes when the copy's are empty, nil or the same, or when the keeper's blank-line-separated paragraphs already hold the copy's notes as whole paragraphs (a copy carried on an earlier pass); the copy's when the keeper has none; otherwise both, a blank line apart.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -786,6 +786,11 @@
      "at": "+2",
      "cond": "keeper's empty or nil",
      "effect": "copy's"
+    },
+    {
+     "at": "+4",
+     "cond": "keeper's paragraphs already contain the copy's notes",
+     "effect": "keeper's, unchanged"
     }
    ],
    "deps": {}

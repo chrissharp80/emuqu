@@ -462,7 +462,7 @@
    "does": "Optionally stamps modifiedAt (whole seconds), then under archiveLock writes the session via _archive (merge unless skipped, encode, encrypt, hash, index save) and, when the recording was folded into a same-night session (the entry has another id), remembers the fold (foldedInto); posts flowRecoveryArchiveChanged (object = input session id) and posts flowRecoveryArchiveSessionsNeedReupload for the entry's id when the recording was folded (whatever requestingReupload says) or for a user edit of an already-archived session. Rethrows write errors after unlocking.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.postReuploadRequest(for:)"
    ],
@@ -504,7 +504,7 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)": "d4934c6761bf3325",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.postReuploadRequest(for:)": "901b2aed212d9829",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "4c10324f8b76c2f3"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)": "d14e6c55f8aaa87a"
    }
   },
   {
@@ -533,7 +533,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._retrieve(_:)",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.postReuploadRequest(for:)"
    ],
@@ -574,7 +574,7 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._retrieve(_:)": "a5b7183a74f1552e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.postReuploadRequest(for:)": "901b2aed212d9829",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "4c10324f8b76c2f3"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)": "d14e6c55f8aaa87a"
    }
   },
   {

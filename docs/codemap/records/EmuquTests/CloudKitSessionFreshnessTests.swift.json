@@ -194,26 +194,43 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:onTie:in:)": "342bb73a36f43561",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "7aa400d557f5383d",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "163fb44b0590ade2",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()": "62f63cae49cabc1c",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)": "400218a5c880b91a"
    }
   },
   {
    "key": "func CloudKitSessionFreshnessTests.testStampIsWholeSeconds()",
-   "hash": "4d625133e02abe96",
-   "does": "Asserts stamp(at: earlier+0.9s) truncates to `earlier`.",
+   "hash": "ab556279c4509f96",
+   "does": "Asserts stamp(at: earlier+0.9s, after: nil) truncates to `earlier`.",
    "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "4c10324f8b76c2f3",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)": "d14e6c55f8aaa87a",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "a46a38707c7acf3f"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshnessTests.testAnEditAfterSeeingAnotherDevicesStampIsStampedAfterIt()",
+   "hash": "4c458f2c6ffca0e0",
+   "does": "stamp(at: earlier, after: a stamp an hour ahead) is one whole second after that stamp and wins decide against it (keepLocal); a seen stamp earlier than the clock leaves the clock's second.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)": "d14e6c55f8aaa87a"
    }
   },
   {
@@ -377,7 +394,7 @@
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeVitals()",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)"
    ],
    "reads": [],
@@ -389,7 +406,7 @@
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)": "30f7b6d7d07998e3",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "b809c28c8de5089a",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "62f5272a5d47ff5a",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "62f5272a5d47ff5a",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()": "6b7f475953c275f2",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeVitals()": "568d4ff2f67f2bab"
@@ -404,7 +421,7 @@
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.sameSleepWindow(_:_:)"
    ],
    "reads": [],
@@ -414,7 +431,7 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "b809c28c8de5089a",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.sameSleepWindow(_:_:)": "d2c290b367afce2c",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "62f5272a5d47ff5a",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "62f5272a5d47ff5a",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()": "6b7f475953c275f2"
    }
@@ -427,7 +444,7 @@
    "calls": [
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)"
    ],
@@ -438,7 +455,7 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)": "30f7b6d7d07998e3",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "b809c28c8de5089a",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()": "6b7f475953c275f2"
    }
@@ -450,7 +467,7 @@
    "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
    "calls": [
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSessionWithHealthKitReadings()",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -460,8 +477,7 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSessionWithHealthKitReadings()": "51f524e14ed4efbd"
    }
   },
@@ -472,9 +488,9 @@
    "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
    "calls": [
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSessionWithHealthKitReadings()",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)"
    ],
    "reads": [],
    "writes": [],
@@ -482,10 +498,9 @@
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "b809c28c8de5089a",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "62f5272a5d47ff5a",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "62f5272a5d47ff5a",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSessionWithHealthKitReadings()": "51f524e14ed4efbd"
    }
   },
@@ -496,7 +511,7 @@
    "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
    "calls": [
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)"
    ],
    "reads": [],
@@ -505,7 +520,34 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "4c7fe1d60d564374",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99"
+   }
+  },
+  {
+   "key": "func CloudKitSessionFreshnessTests.testSampleNightsAreNeverBuiltIntoARecord()",
+   "hash": "c4c9bd170e31791c",
+   "does": "Tags a fixture session with the sample-data tag and asserts buildSessionRecord throws CloudUploadExclusion.sampleData; asserts the untagged fixture is not sample data.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::var DemoSessionSeeder.demoTag",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isSampleData(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "thrown error is not .sampleData",
+     "effect": "test fails"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isSampleData(_:)": "def8c3059ae78820",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::var DemoSessionSeeder.demoTag": "1eb7e9cde63591d9",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "4c7fe1d60d564374",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99"
    }
   },
@@ -572,7 +614,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:onTie:in:)": "342bb73a36f43561",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "7aa400d557f5383d",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "163fb44b0590ade2",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "b20571745bb721d5",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()": "62f63cae49cabc1c",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)": "400218a5c880b91a"
@@ -594,19 +636,19 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:onTie:in:)": "342bb73a36f43561",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "7aa400d557f5383d",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "163fb44b0590ade2",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()": "62f63cae49cabc1c",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)": "400218a5c880b91a"
    }
   },
   {
    "key": "func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)",
-   "hash": "447be99250c6fde9",
-   "does": "Test helper: archives a session with 200 beats stamped an hour ago and returns it with an iCloud copy whose notes are 'from iCloud', stamped 30 min ago — both in the past, so an edit made now is newer than either.",
+   "hash": "582714b77d737519",
+   "does": "Test helper: archives a session with 200 beats stamped an hour ago and returns it with an iCloud copy whose notes are 'from iCloud', stamped 30 min ago — both from the clock alone (after: nil) and in the past, so an edit made now is newer than either.",
    "entry": null,
    "calls": [
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)"
    ],
    "reads": [],
@@ -618,7 +660,7 @@
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "5dc05159bc65d04f",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "4c10324f8b76c2f3",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)": "d14e6c55f8aaa87a",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99"
    }
   },
@@ -784,33 +826,6 @@
    "writes": [],
    "branches": [],
    "deps": {}
-  },
-  {
-   "key": "func CloudKitSessionFreshnessTests.testSampleNightsAreNeverBuiltIntoARecord()",
-   "hash": "c4c9bd170e31791c",
-   "does": "Tags a fixture session with the sample-data tag and asserts buildSessionRecord throws CloudUploadExclusion.sampleData; asserts the untagged fixture is not sample data.",
-   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
-   "calls": [
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()",
-    "Emuqu/Sources/Services/DemoSessionSeeder.swift::var DemoSessionSeeder.demoTag",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)",
-    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isSampleData(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "thrown error is not .sampleData",
-     "effect": "test fails"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isSampleData(_:)": "def8c3059ae78820",
-    "Emuqu/Sources/Services/DemoSessionSeeder.swift::var DemoSessionSeeder.demoTag": "1eb7e9cde63591d9",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "4c7fe1d60d564374",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99"
-   }
   }
  ],
  "deps": {}

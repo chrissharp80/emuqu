@@ -66,10 +66,17 @@ extension CloudDeletionCoordinator {
     /// until they turn sync on, the same rule a deletion found by a sync
     /// follows (`CloudAccountGuard.zoneWasDeleted`). `resetLocalSyncState`
     /// also clears `zoneCreated` and sets `syncState = .idle`.
+    ///
+    /// Zones are deleted only in an account this device may delete from
+    /// (`mayDeleteInSignedInAccount`); in any other the remote step reports
+    /// failure, deletes nothing, and the purge tells the user to run it again
+    /// signed into their iCloud account. The account check runs inside the
+    /// same 30 s cap.
     private func performDeleteAllRemoteData() async -> Bool {
         let zoneNames = allCustomZoneIDs.map(\.zoneName).joined(separator: ", ")
         let outcome: Result<Bool, Error> = await manager.withTimeoutResult(seconds: 30) {
-            try await self.deleteCustomZonesOnce()
+            guard await self.mayDeleteInSignedInAccount() else { return false }
+            return try await self.deleteCustomZonesOnce()
         }
         guard Self.remoteDeletionSucceeded(outcome) else { return false }
         manager.settingsManager.settings.iCloudSyncEnabled = false
@@ -79,6 +86,32 @@ extension CloudDeletionCoordinator {
         forgetConfirmedTombstones()
         debugLog("[CloudKit] Remote deletion complete — zones [\(zoneNames)] removed from private DB; sync turned off, local sync manager.state reset")
         return true
+    }
+
+    /// Whether "Delete All My Data" may delete the app's zones in the
+    /// signed-in iCloud account: it is the account sync is enabled for
+    /// (`CloudAccountGuard.confirmAccount`, which adopts an unrecorded one as
+    /// a sync would), or no account is recorded and nothing shows the
+    /// signed-in one to be another person's (a reinstall, sync never turned
+    /// on). Not when the check finds a different account (and resets the
+    /// bookkeeping), when the app stopped sync earlier because the device was
+    /// signed into a different account, or when the account cannot be
+    /// checked.
+    private func mayDeleteInSignedInAccount() async -> Bool {
+        switch await manager.accountGuard.confirmAccount() {
+        case .confirmed:
+            return true
+        case .unavailable, .differentAccount:
+            debugLog("[CloudKit] Remote deletion skipped — the signed-in iCloud account could not be checked, or is not the one this device synced with", level: .warning)
+            return false
+        case .stopped:
+            // Nothing is recorded here (`CloudAccountIdentity.Verdict.awaitingOptIn`).
+            let mayDelete = CloudAccountIdentity.stopReason != .differentAccount
+            if !mayDelete {
+                debugLog("[CloudKit] Remote deletion skipped — sync was stopped for a different iCloud account", level: .warning)
+            }
+            return mayDelete
+        }
     }
 
     /// Forget which deletions iCloud confirmed: they describe zones that are

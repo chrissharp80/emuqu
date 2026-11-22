@@ -1,23 +1,98 @@
 {
  "file": "Emuqu/Sources/Storage/CloudAccountIdentity.swift",
- "hash": "761f9d134ff2c094",
+ "hash": "aacd83d1803e88e8",
  "role": "Which iCloud account this device's sync bookkeeping belongs to (the recorded userRecordID name, kept in UserDefaults only, and this launch's confirmation of it), the verdict a check of the signed-in account reaches, the reason the app stopped sync, and CloudAccountGuard, which checks the signed-in account, stops sync for another account or deleted iCloud data, and gates every CloudKit read and write on the confirmation.",
  "types": [
   "enum CloudAccountIdentity",
   "enum CloudAccountIdentity.Verdict",
   "enum CloudAccountIdentity.StopReason",
-  "struct CloudAccountIdentity.LaunchState (private)",
+  "struct CloudAccountIdentity.LaunchState (the per-launch rules as a value; the process copy is private in launch)",
   "struct CloudAccountGuard (@MainActor)",
   "enum CloudAccountGuard.Check",
+  "enum CloudAccountGuard.Attribution (private)",
   "enum CloudAccountGuard.Halt (LocalizedError)"
  ],
  "state": [
   "ud:cloudkit.accountIdentity (recordedKey: the recorded account's userRecordID().recordName)",
   "ud:cloudkit.syncStoppedReason (stopReasonKey: StopReason raw value)",
-  "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation) (OSAllocatedUnfairLock, per launch)"
+  "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation) (OSAllocatedUnfairLock, per launch)",
+  "mem:CloudAccountGuard.attributionSampleSize = 5 (uploaded sessions looked up to attribute bookkeeping)"
  ],
- "toplevel": "",
+ "toplevel": "None: declarations only; CloudAccountIdentity.launch starts as an empty LaunchState.",
  "units": [
+  {
+   "key": "func CloudAccountIdentity.LaunchState.isConfirmed(recorded:)",
+   "hash": "e497cb729365e4bb",
+   "does": "True when recorded is non-nil and equals the confirmed name; false otherwise.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LaunchState.confirmed"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recorded is nil",
+     "effect": "false"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CloudAccountIdentity.LaunchState.noteAccountChanged()",
+   "hash": "4f4eefd0889252b5",
+   "does": "Clears the confirmed name, sets accountChanged and advances the generation.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LaunchState.generation"
+   ],
+   "writes": [
+    "mem:LaunchState.confirmed",
+    "mem:LaunchState.accountChanged",
+    "mem:LaunchState.generation"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudAccountIdentity.LaunchState.revokeConfirmation()",
+   "hash": "9ebdcce2a58ee4e8",
+   "does": "Clears the confirmed name and advances the generation; accountChanged is left as it is.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LaunchState.generation"
+   ],
+   "writes": [
+    "mem:LaunchState.confirmed",
+    "mem:LaunchState.generation"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudAccountIdentity.LaunchState.confirm(_:generation:)",
+   "hash": "7757617272337355",
+   "does": "When the generation still equals the given one, stores name as the confirmed account and returns true; else returns false and changes nothing.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:LaunchState.generation"
+   ],
+   "writes": [
+    "mem:LaunchState.confirmed"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "generation moved on since the check began",
+     "effect": "false, nothing confirmed"
+    }
+   ],
+   "deps": {}
+  },
   {
    "key": "var CloudAccountIdentity.recordedAccount",
    "hash": "d564e0c307f1139a",
@@ -33,25 +108,21 @@
   },
   {
    "key": "var CloudAccountIdentity.isConfirmed",
-   "hash": "8302ba82ec04a4d0",
-   "does": "True when an account is recorded and this launch confirmed that same name; false otherwise.",
+   "hash": "5f1c437ba40d68ec",
+   "does": "Reads the recorded account, then under the lock asks the launch state whether that name is the confirmed one: true only when an account is recorded and this launch confirmed that same name.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.recordedAccount"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.recordedAccount",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.isConfirmed(recorded:)"
    ],
    "reads": [
     "ud:cloudkit.accountIdentity",
     "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "no recorded account",
-     "effect": "false"
-    }
-   ],
+   "branches": [],
    "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.isConfirmed(recorded:)": "bb5a9b1e5848b1f6",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.recordedAccount": "4a51e9149b349214"
    }
   },
@@ -83,63 +154,65 @@
   },
   {
    "key": "func CloudAccountIdentity.noteAccountChanged()",
-   "hash": "f92377080b5ffb09",
+   "hash": "714f004a36869403",
    "does": "Under the lock: clears the confirmation, marks the account changed this launch and advances the generation.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.noteAccountChanged()"
+   ],
    "reads": [],
    "writes": [
     "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.generation": "07eb5568ecc6505d"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.noteAccountChanged()": "802641f78e02a9d4"
    }
   },
   {
    "key": "func CloudAccountIdentity.revokeConfirmation()",
-   "hash": "f045d7d88c3167dd",
+   "hash": "eeb311350e90ec75",
    "does": "Under the lock: clears the confirmation and advances the generation, so the next check fetches the account again.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.revokeConfirmation()"
+   ],
    "reads": [],
    "writes": [
     "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.generation": "07eb5568ecc6505d"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.revokeConfirmation()": "222562537f10d182"
    }
   },
   {
    "key": "func CloudAccountIdentity.confirm(_:generation:)",
-   "hash": "2ff4709b2948f5e9",
-   "does": "Under the lock: when the generation still equals the given one, stores name as this launch's confirmed account and returns true; else returns false and changes nothing.",
+   "hash": "241b79b25b3d2199",
+   "does": "Under the lock: the launch state's confirm — stores name as confirmed and returns true when the generation still equals the given one; else false with nothing confirmed.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.confirm(_:generation:)"
+   ],
    "reads": [
     "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)"
    ],
    "writes": [
     "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)"
    ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "generation changed since the check began",
-     "effect": "false, nothing confirmed"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.generation": "07eb5568ecc6505d"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.confirm(_:generation:)": "ab02af366f397c81"
    }
   },
   {
    "key": "func CloudAccountIdentity.adopt(_:generation:)",
-   "hash": "79a89ac5d1c58cec",
-   "does": "Under the lock: when the generation still matches, confirms name; then records it in UserDefaults and removes the stop reason, returning true. Returns false with nothing recorded when the generation changed.",
+   "hash": "5fbb163df1ce9368",
+   "does": "Under the lock, confirms name through the launch state's confirm; when that fails (generation changed) returns false with nothing recorded. Otherwise records name in UserDefaults, removes the stop reason and returns true.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.confirm(_:generation:)"
+   ],
    "reads": [
     "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)"
    ],
@@ -150,18 +223,13 @@
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
      "cond": "generation changed",
-     "effect": "false from the lock closure"
-    },
-    {
-     "at": "+6",
-     "cond": "not adopted",
-     "effect": "returns false, nothing recorded"
+     "effect": "false, nothing recorded"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.generation": "07eb5568ecc6505d"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.LaunchState.confirm(_:generation:)": "ab02af366f397c81"
    }
   },
   {
@@ -184,8 +252,8 @@
   },
   {
    "key": "func CloudAccountIdentity.verdict(recorded:current:syncEnabled:stoppedByApp:accountChangedThisLaunch:hasBookkeeping:)",
-   "hash": "1dbb1e41c8ac2c29",
-   "does": "Pure decision for the signed-in account: with a recorded account, sameAccount when it equals current else differentAccount; with none, awaitingOptIn when the app stopped sync and sync is still off, differentAccount when the account changed this launch while bookkeeping remains, else adopt.",
+   "hash": "e95aecb054f5e988",
+   "does": "Pure decision for the signed-in account: with a recorded account, sameAccount when it equals current else differentAccount. With none: awaitingOptIn while sync is off and either the app stopped sync or there is no bookkeeping; attributeBookkeeping when the account changed this launch while bookkeeping remains; else adopt.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -198,13 +266,13 @@
     },
     {
      "at": "+5",
-     "cond": "stopped by the app and sync off",
+     "cond": "sync off and (stopped by the app or no bookkeeping)",
      "effect": "awaitingOptIn"
     },
     {
      "at": "+6",
      "cond": "account changed this launch and bookkeeping held",
-     "effect": "differentAccount"
+     "effect": "attributeBookkeeping"
     },
     {
      "at": "+7",
@@ -213,9 +281,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)": "8c186f87dafb7746",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.accountChangedThisLaunch": "dc747fa1cb562695",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.recorded": "4a51e9149b349214"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)": "c5421cd0577c4303",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.accountChangedThisLaunch": "dc747fa1cb562695"
    }
   },
   {
@@ -272,8 +339,8 @@
   },
   {
    "key": "func CloudAccountGuard.confirmAccount()",
-   "hash": "3d96326cffc9e05e",
-   "does": "Returns confirmed at once when this launch already confirmed the recorded account. Otherwise notes the generation and fetches the signed-in account's userRecordID().recordName from the manager's container; a failed fetch is logged and returns unavailable with cloudKitErrorMessage. Then applies the verdict for that name; when the account changed during the fetch (apply returns nil) the check starts over.",
+   "hash": "53f00f52b2acc6eb",
+   "does": "Returns confirmed at once when this launch already confirmed the recorded account. Otherwise notes the generation and fetches the signed-in account's userRecordID().recordName from the manager's container; a failed fetch is logged and returns unavailable with cloudKitErrorMessage. Then applies the verdict for that name (which may look the bookkeeping up in iCloud first); when the account changed during the check (apply returns nil) the check starts over.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed",
@@ -309,10 +376,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.apply(_:to:generation:)": "5a5f7ddb7595873d",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.apply(_:to:generation:)": "3ab4f069ac1babbd",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.verdict(for:)": "0b478b68e095c6c7",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.checkGeneration": "07eb5568ecc6505d",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "be903b8b907a5e7c",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "80bbf49d58eb35ac",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cloudKitErrorMessage(_:)": "99be467b99e29773",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -338,26 +405,30 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.verdict(recorded:current:syncEnabled:stoppedByApp:accountChangedThisLaunch:hasBookkeeping:)": "e242752a275058fb",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.verdict(recorded:current:syncEnabled:stoppedByApp:accountChangedThisLaunch:hasBookkeeping:)": "4550605a5ad52f37",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.accountChangedThisLaunch": "dc747fa1cb562695",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.recordedAccount": "4a51e9149b349214",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.stopReason": "51e9a5028ec44682",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.hasAccountBookkeeping": "bd0446e4db5599f5"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.hasAccountBookkeeping": "7ed5783b84a3bf90"
    }
   },
   {
    "key": "func CloudAccountGuard.apply(_:to:generation:)",
-   "hash": "fa95cb3a22e0823c",
-   "does": "Acts on a verdict: sameAccount confirms the name (nil when the generation changed); adopt records and confirms it, logged (nil when the generation changed); awaitingOptIn returns stopped; differentAccount stops sync for a different account and returns stopped.",
+   "hash": "b36068f71f31cc4e",
+   "does": "Acts on a verdict: sameAccount confirms the name (nil when the generation changed); adopt records and confirms it, logged (nil when the generation changed); attributeBookkeeping looks the bookkeeping up in iCloud — found applies adopt, absent applies differentAccount, unknown returns unavailable(message); awaitingOptIn returns stopped; differentAccount returns nil when the generation changed, else stops sync for a different account and returns differentAccount.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.confirm(_:generation:)",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.apply(_:to:generation:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.checkGeneration",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.applyAttribution(to:generation:)"
    ],
    "reads": [
-    "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)"
+    "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)",
+    "ck:HRVSession records (isDeleted only, via lookUpBookkeeping)"
    ],
    "writes": [
     "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)",
@@ -377,22 +448,171 @@
     },
     {
      "at": "+8",
+     "cond": "attributeBookkeeping",
+     "effect": "applyAttribution: found → adopt, absent → differentAccount, unknown → unavailable(message)"
+    },
+    {
+     "at": "+10",
      "cond": "awaitingOptIn",
      "effect": "stopped"
     },
     {
-     "at": "+10",
+     "at": "+12",
      "cond": "differentAccount",
-     "effect": "stopSync(.differentAccount); stopped"
+     "effect": "nil if the generation changed; else stopSync(.differentAccount) and differentAccount"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "12d14f68b1fd137f",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.applyAttribution(to:generation:)": "c50b80e12055f68c",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "4d2df9370d22b5f6",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.verdict(for:)": "0b478b68e095c6c7",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)": "8c186f87dafb7746",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.confirm(_:generation:)": "8eecb1373730b7ef",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.generation": "07eb5568ecc6505d",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)": "c5421cd0577c4303",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.confirm(_:generation:)": "f3069c6a766fc1a4",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.checkGeneration": "07eb5568ecc6505d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func CloudAccountGuard.applyAttribution(to:generation:)",
+   "hash": "34a1d3a4341db7a2",
+   "does": "Looks the bookkeeping up in iCloud (lookUpBookkeeping): found applies adopt, absent applies differentAccount (both through apply, so a changed generation still gives nil), unknown returns unavailable(message).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.lookUpBookkeeping()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.apply(_:to:generation:)"
+   ],
+   "reads": [
+    "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)",
+    "ck:HRVSession records (isDeleted only, via lookUpBookkeeping)"
+   ],
+   "writes": [
+    "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)",
+    "ud:cloudkit.accountIdentity",
+    "ud:cloudkit.syncStoppedReason"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "found",
+     "effect": "apply(.adopt)"
+    },
+    {
+     "at": "+4",
+     "cond": "absent",
+     "effect": "apply(.differentAccount)"
+    },
+    {
+     "at": "+6",
+     "cond": "unknown",
+     "effect": "unavailable(message)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.apply(_:to:generation:)": "3ab4f069ac1babbd",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.lookUpBookkeeping()": "c65d215830e40a77",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)": "c5421cd0577c4303",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message": "fc75f12bef78c376"
+   }
+  },
+  {
+   "key": "func CloudAccountGuard.lookUpBookkeeping()",
+   "hash": "46bf40396ee8835b",
+   "does": "Takes up to five ids from the manager's uploaded set; with none returns absent without any request. Fetches those records by id from the session zone of the signed-in account's private database, reading only isDeleted and writing nothing: any record returned (a tombstone included) gives found; records missing (unknownItem, zone gone) are skipped; any other per-record error gives unknown(message) unless a record is found. A whole-request zone/record-missing error gives absent; any other error is logged and gives unknown(cloudKitErrorMessage).",
+   "entry": null,
+   "calls": [
+    "ext:CKRecord.ID(recordName:zoneID:)",
+    "ext:CKDatabase.records(for:desiredKeys:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.attribution(of:)",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cloudKitErrorMessage(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "ck:HRVSession records (isDeleted only)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "nothing uploaded",
+     "effect": "absent, no request"
+    },
+    {
+     "at": "+6",
+     "cond": "records fetched",
+     "effect": "attribution(of:): found / absent / unknown"
+    },
+    {
+     "at": "+7",
+     "cond": "whole request: record or zone missing",
+     "effect": "absent"
+    },
+    {
+     "at": "+9",
+     "cond": "any other error",
+     "effect": "logged; unknown(message)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.attribution(of:)": "8c882d2d8abce8d3",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "ce3859c45e532228",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cloudKitErrorMessage(_:)": "99be467b99e29773",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func CloudAccountGuard.attribution(of:)",
+   "hash": "fdc727e7dbd4a274",
+   "does": "Any successful result gives found at once; failures that mean the record or zone is missing are skipped; any other failure makes the answer unknown(cloudKitErrorMessage) unless a later result is found; with only missing records, absent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.meansMissing(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cloudKitErrorMessage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "a record came back",
+     "effect": "found"
+    },
+    {
+     "at": "+4",
+     "cond": "record or zone missing",
+     "effect": "skipped"
+    },
+    {
+     "at": "+5",
+     "cond": "any other failure",
+     "effect": "unknown(message)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.meansMissing(_:)": "bc6f1a49bb1f5a11",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cloudKitErrorMessage(_:)": "99be467b99e29773"
+   }
+  },
+  {
+   "key": "func CloudAccountGuard.meansMissing(_:)",
+   "hash": "7d9ebc4cb5c01fb6",
+   "does": "True when error is a CKError meaning the record or its zone is not in iCloud (CloudHealthScrubCoordinator.meansNoRecord); false for any other error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not a CKError",
+     "effect": "false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "ce3859c45e532228"
    }
   },
   {
@@ -416,8 +636,8 @@
   },
   {
    "key": "func CloudAccountGuard.requireConfirmedAccount()",
-   "hash": "b1126dc173da7a83",
-   "does": "Runs confirmAccount and returns when confirmed; throws Halt.unavailable(message) or Halt.stopped otherwise.",
+   "hash": "dca0e504c56f6819",
+   "does": "Runs confirmAccount and returns when confirmed; throws Halt.unavailable(message) when the account could not be checked, Halt.stopped when sync is stopped or the account is a different one.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()"
@@ -437,19 +657,19 @@
     },
     {
      "at": "+6",
-     "cond": "stopped",
+     "cond": "stopped or differentAccount",
      "effect": "throws Halt.stopped"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message": "fc75f12bef78c376"
    }
   },
   {
    "key": "func CloudAccountGuard.zoneWasDeleted()",
-   "hash": "1fba41d1c324f4c9",
-   "does": "A zone found gone: revokes the confirmation so the account is fetched afresh, then confirmAccount. Confirmed means the user deleted the app's iCloud data: stopSync(.iCloudDataDeleted) and nil. Stopped (another account, already stopped by the check) returns nil. Unavailable returns the message; nothing is stopped, recreated or re-queued.",
+   "hash": "d598d991b58fcdb1",
+   "does": "A zone found gone: revokes the confirmation so the account is fetched afresh, then confirmAccount. Confirmed means the user deleted the app's iCloud data: stopSync(.iCloudDataDeleted) and nil. Stopped or a different account (the check already reset the bookkeeping) returns nil. Unavailable returns the message; nothing is stopped, recreated or re-queued.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.revokeConfirmation()",
@@ -468,7 +688,7 @@
     },
     {
      "at": "+6",
-     "cond": "stopped",
+     "cond": "stopped or differentAccount",
      "effect": "nil"
     },
     {
@@ -478,28 +698,30 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "12d14f68b1fd137f",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "4d2df9370d22b5f6",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.revokeConfirmation()": "8858e858273751c6",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message": "fc75f12bef78c376"
    }
   },
   {
    "key": "func CloudAccountGuard.stopSync(_:)",
-   "hash": "87a5a3df9bc594a2",
-   "does": "Turns iCloud Sync off for a reason: logs, forgets the recorded account, stores the stop reason, resets the manager's local sync state (uploaded set, queues, versions, zone flags, listing memory, settings zone), forgets the confirmed tombstones, clears the Apple Health scrub list, sets iCloudSyncEnabled false and shows the reason's message in the sync status. No session, setting or backup on the device is touched.",
+   "hash": "8aff017063a41c8c",
+   "does": "Notes whether iCloud Sync is on, logs, forgets the recorded account, resets the manager's local sync state (uploaded set, queues, versions, zone flags, listing memory, settings zone), forgets the confirmed tombstones and clears the Apple Health scrub list. With sync already off it stops there: no stop reason is kept or shown. With sync on it stores the stop reason, sets iCloudSyncEnabled false and shows the reason's message in the sync status. No session, setting or backup on the device is touched.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.forget()",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.noteStopped(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.forgetConfirmedTombstones()",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clear()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.noteStopped(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.showSyncStopped(_:)",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message"
    ],
-   "reads": [],
+   "reads": [
+    "mem:SettingsManager.settings.iCloudSyncEnabled"
+   ],
    "writes": [
     "ud:cloudkit.accountIdentity",
     "ud:cloudkit.syncStoppedReason",
@@ -512,7 +734,13 @@
     "mem:CloudKitSyncManager.syncState",
     "mem:CloudKitSyncManager.lastPermanentErrorMessage"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "sync was already off",
+     "effect": "bookkeeping reset only; no stop reason stored, nothing shown, the switch untouched"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.forget()": "71320cd8cae44080",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.noteStopped(_:)": "c29d40a36e60793b",

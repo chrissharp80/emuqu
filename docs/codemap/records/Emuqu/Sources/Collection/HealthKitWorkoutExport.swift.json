@@ -554,16 +554,16 @@
    "does": "Builds SampleOptions: heart rate is written only if requested and the session is neither HealthKit-sourced nor Apple-Watch-heart-rate; distance/energy written only if the session is not HealthKit-sourced.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "4b039aada6505d8e",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.hasAppleWatchHeartRate(_:)": "4b039aada6505d8e",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
    }
   },
   {
@@ -612,7 +612,7 @@
    "does": "Attaches the stamped GPS route to an already-saved workout and says whether one was saved; a HealthKit-sourced session gets none, and any route error is caught and logged at warning level so the export still counts as successful.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRoute(metadata:duration:startDate:workout:stamp:store:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -634,7 +634,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRoute(metadata:duration:startDate:workout:stamp:store:)": "71e352ba34317c2d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

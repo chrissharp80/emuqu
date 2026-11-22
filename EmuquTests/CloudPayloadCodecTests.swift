@@ -1,6 +1,7 @@
 import CloudKit
 import CryptoKit
 @testable import Emuqu
+import os
 import Security
 import XCTest
 
@@ -153,6 +154,40 @@ final class CloudPayloadCodecTests: XCTestCase {
         XCTAssertEqual(read.map(\.t_ms), points.map(\.t_ms))
     }
     // MARK: - Key lifecycle (F4)
+
+    /// No cloud key is created while the iCloud account is unconfirmed: the
+    /// key is synchronizable, so one created after an Apple ID switch would
+    /// reach the other account's Keychain. With no key held the seal fails
+    /// closed instead; once the account is confirmed it creates one.
+    func testNoKeyIsCreatedWhileTheAccountIsUnconfirmed() throws {
+        let created = OSAllocatedUnfairLock(initialState: 0)
+        let noKeys = CloudPayloadCodec.KeyStore(read: { [] }, add: {
+            created.withLock { $0 += 1 }
+            return SymmetricKey(size: .bits256)
+        })
+
+        XCTAssertThrowsError(try CloudPayloadCodec.sealForUpload(payload, mayCreateKey: false, in: noKeys)) { error in
+            XCTAssertEqual(error as? CloudSyncError, .encryptionUnavailable)
+        }
+        XCTAssertEqual(created.withLock { $0 }, 0, "a key was created before the account was confirmed")
+
+        XCTAssertNoThrow(try CloudPayloadCodec.sealForUpload(payload, mayCreateKey: true, in: noKeys))
+        XCTAssertEqual(created.withLock { $0 }, 1)
+    }
+
+    /// A key already held is used whether or not the account is confirmed,
+    /// and none is added beside it.
+    func testAHeldKeyIsUsedWithoutCreatingAnother() throws {
+        let heldBytes = Data(repeating: 7, count: 32)
+        let account = CloudPayloadCodec.accountPrefix + "held"
+        let store = CloudPayloadCodec.KeyStore(read: { [(account: account, key: SymmetricKey(data: heldBytes))] }, add: {
+            XCTFail("a key was added beside the one held")
+            return SymmetricKey(size: .bits256)
+        })
+        let sealed = try CloudPayloadCodec.sealForUpload(payload, mayCreateKey: false, in: store)
+        let box = try AES.GCM.SealedBox(combined: sealed.dropFirst(CloudPayloadCodec.magic.count + 1))
+        XCTAssertEqual(try CloudPayloadCodec.open(box, withAnyOf: [SymmetricKey(data: heldBytes)]), payload)
+    }
 
     /// Decoding must never mint a key. A payload that cannot be opened caused
     /// a fresh key to be created, which guaranteed it could never be opened —
@@ -326,6 +361,45 @@ final class CloudSettingsRecordTests: XCTestCase {
         let settings = try decoder.decode(UserSettings.self, from: restored)
         XCTAssertEqual(settings.bodyWeightKg, 61.4)
         XCTAssertEqual(settings.trainingBreakReason, "stress fracture, left tibia")
+    }
+
+    /// The edit fingerprint moves with a setting the user edits and stays put
+    /// when only what the app writes itself changes (baselines, the trial
+    /// start, the sync switch, launch flags), so the app's own writes do not
+    /// date the settings as edited.
+    func testOnlyAUserEditMovesTheEditFingerprint() throws {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = .sortedKeys
+        var settings = UserSettings()
+        settings.maxHR = 182
+        let before = try CloudSettingsRecord.editFingerprint(try encoder.encode(settings))
+
+        var appWritten = settings
+        appWritten.baselineRMSSD = 61.5
+        appWritten.baselineHR = 52
+        appWritten.trialStartDate = Date(timeIntervalSince1970: 1_700_000_000)
+        appWritten.iCloudSyncEnabled.toggle()
+        appWritten.hasCompletedOnboarding.toggle()
+        appWritten.hasFixedTempAsymmetry.toggle()
+        XCTAssertEqual(try CloudSettingsRecord.editFingerprint(try encoder.encode(appWritten)), before)
+
+        var edited = settings
+        edited.maxHR = 184
+        XCTAssertNotEqual(try CloudSettingsRecord.editFingerprint(try encoder.encode(edited)), before)
+    }
+
+    /// Every field the fingerprint leaves out is one the settings encode, so a
+    /// renamed key cannot silently turn an app write back into an edit.
+    func testTheAppWrittenFieldsAreSettingsKeys() throws {
+        var settings = UserSettings()
+        settings.baselineRMSSD = 61.5
+        settings.baselineHR = 52
+        settings.trialStartDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: try encoder.encode(settings)) as? [String: Any])
+        XCTAssertEqual(CloudSettingsRecord.appWrittenFields.subtracting(object.keys), [])
     }
 
     /// Profile values filled from Apple Health are not in the settings that

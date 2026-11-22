@@ -502,14 +502,10 @@ final class CloudKitSyncManagerTests: XCTestCase {
         // zone-created flag cleared so the next sync cycle recreates the zone
         // from scratch.
         let defaults = UserDefaults.standard
-        let priorZoneCreated = defaults.bool(forKey: UserDefaultsKeys.cloudKitZoneCreated)
-        let priorLastSync = defaults.object(forKey: UserDefaultsKeys.cloudKitLastSyncDate)
-        defer {
-            defaults.set(priorZoneCreated, forKey: UserDefaultsKeys.cloudKitZoneCreated)
-            if let priorLastSync { defaults.set(priorLastSync, forKey: UserDefaultsKeys.cloudKitLastSyncDate) }
-        }
+        preserveTheZoneFlagsAndLastSync()
 
         defaults.set(true, forKey: UserDefaultsKeys.cloudKitZoneCreated)
+        defaults.set(true, forKey: CloudKitSettingsSync.zoneCreatedKey)
 
         let manager = CloudKitSyncManager.shared
         manager.resetLocalSyncState()
@@ -520,6 +516,46 @@ final class CloudKitSyncManagerTests: XCTestCase {
                      "Persisted last-sync stamp must clear too")
         XCTAssertFalse(defaults.bool(forKey: UserDefaultsKeys.cloudKitZoneCreated),
                        "zoneCreated must clear so ensureZoneExists recreates the zone on next upload")
+        XCTAssertFalse(defaults.bool(forKey: CloudKitSettingsSync.zoneCreatedKey),
+                       "the settings zone flag must clear with the rest of the bookkeeping")
+    }
+
+    /// Put the session and settings zone flags and the last-sync date back
+    /// as they were once the test ends: `resetLocalSyncState` clears them in
+    /// the host's defaults.
+    private func preserveTheZoneFlagsAndLastSync() {
+        let defaults = UserDefaults.standard
+        let zoneCreated = defaults.object(forKey: UserDefaultsKeys.cloudKitZoneCreated) as? Bool
+        let settingsZoneCreated = defaults.object(forKey: CloudKitSettingsSync.zoneCreatedKey) as? Bool
+        let lastSync = defaults.object(forKey: UserDefaultsKeys.cloudKitLastSyncDate) as? Date
+        addTeardownBlock {
+            let defaults = UserDefaults.standard
+            for (key, value) in [
+                (UserDefaultsKeys.cloudKitZoneCreated, zoneCreated),
+                (CloudKitSettingsSync.zoneCreatedKey, settingsZoneCreated)
+            ] {
+                if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) }
+            }
+            if let lastSync {
+                defaults.set(lastSync, forKey: UserDefaultsKeys.cloudKitLastSyncDate)
+            } else {
+                defaults.removeObject(forKey: UserDefaultsKeys.cloudKitLastSyncDate)
+            }
+        }
+    }
+
+    /// Sessions queued for upload say nothing about which account the device
+    /// syncs with: the queue fills while sync is off. Uploaded sessions do.
+    func testTheUploadQueueIsNotAccountBookkeeping() {
+        preserveTheZoneFlagsAndLastSync()
+        let manager = CloudKitSyncManager.shared
+        manager.resetLocalSyncState()
+        defer { manager.resetLocalSyncState() }
+
+        manager.state.markRemoved(UUID())
+        XCTAssertFalse(manager.hasAccountBookkeeping, "a queued upload counted as another account's bookkeeping")
+        manager.state.markUploaded(UUID())
+        XCTAssertTrue(manager.hasAccountBookkeeping)
     }
 
     func testIsPermanentSchemaErrorUnwrapsPartialFailures() {
@@ -566,11 +602,22 @@ final class CloudKitSyncManagerTests: XCTestCase {
 
     /// An install from before the account was recorded adopts the signed-in
     /// account, unless the account status changed this launch while its
-    /// bookkeeping remains: that bookkeeping may be another Apple ID's.
+    /// bookkeeping remains: that bookkeeping may be another Apple ID's, and is
+    /// looked up in iCloud before anything is decided.
     func testAnUnrecordedAccountIsAdoptedOnlyWhenTheBookkeepingCanBeAttributed() {
         XCTAssertEqual(verdict(recorded: nil), .adopt)
         XCTAssertEqual(verdict(recorded: nil, accountChanged: true, hasBookkeeping: false), .adopt)
-        XCTAssertEqual(verdict(recorded: nil, accountChanged: true), .differentAccount)
+        XCTAssertEqual(verdict(recorded: nil, accountChanged: true), .attributeBookkeeping)
+    }
+
+    /// With sync off, an account is recorded only for a device holding
+    /// bookkeeping to keep in step; one that never synced records nothing
+    /// until the user turns sync on.
+    func testWithSyncOffNothingIsAdoptedWithoutBookkeeping() {
+        XCTAssertEqual(verdict(recorded: nil, syncEnabled: false, hasBookkeeping: false), .awaitingOptIn)
+        XCTAssertEqual(verdict(recorded: nil, syncEnabled: false, accountChanged: true, hasBookkeeping: false), .awaitingOptIn)
+        XCTAssertEqual(verdict(recorded: nil, syncEnabled: false), .adopt)
+        XCTAssertEqual(verdict(recorded: nil, syncEnabled: true, hasBookkeeping: false), .adopt)
     }
 
     /// After the app stopped sync, nothing is adopted until the user turns
@@ -581,28 +628,30 @@ final class CloudKitSyncManagerTests: XCTestCase {
     }
 
     /// A check that began before an account change confirms nothing, and an
-    /// account change drops the confirmation at once.
+    /// account change drops the confirmation at once. Run on a launch state
+    /// of its own, so the process's stays as it was.
     func testAnAccountChangeUnconfirmsTheAccount() {
-        let defaults = UserDefaults.standard
-        let recorded = CloudAccountIdentity.recordedAccount
-        let stopReason = defaults.string(forKey: CloudAccountIdentity.stopReasonKey)
-        defer {
-            if let recorded { defaults.set(recorded, forKey: CloudAccountIdentity.recordedKey) } else { defaults.removeObject(forKey: CloudAccountIdentity.recordedKey) }
-            if let stopReason { defaults.set(stopReason, forKey: CloudAccountIdentity.stopReasonKey) }
-            CloudAccountIdentity.revokeConfirmation()
-        }
-        XCTAssertTrue(CloudAccountIdentity.adopt("account-a", generation: CloudAccountIdentity.checkGeneration))
-        XCTAssertTrue(CloudAccountIdentity.isConfirmed)
+        var launch = CloudAccountIdentity.LaunchState()
+        XCTAssertTrue(launch.confirm("account-a", generation: launch.generation))
+        XCTAssertTrue(launch.isConfirmed(recorded: "account-a"))
+        XCTAssertFalse(launch.accountChanged)
 
-        let staleCheck = CloudAccountIdentity.checkGeneration
-        CloudAccountIdentity.noteAccountChanged()
-        XCTAssertFalse(CloudAccountIdentity.isConfirmed)
-        XCTAssertFalse(CloudAccountIdentity.confirm("account-a", generation: staleCheck))
-        XCTAssertFalse(CloudAccountIdentity.isConfirmed)
-        XCTAssertTrue(CloudAccountIdentity.confirm("account-a", generation: CloudAccountIdentity.checkGeneration))
-        XCTAssertTrue(CloudAccountIdentity.isConfirmed)
-        XCTAssertTrue(CloudAccountIdentity.confirm("account-b", generation: CloudAccountIdentity.checkGeneration))
-        XCTAssertFalse(CloudAccountIdentity.isConfirmed, "an account other than the recorded one counts as confirmed")
+        let staleCheck = launch.generation
+        launch.noteAccountChanged()
+        XCTAssertTrue(launch.accountChanged)
+        XCTAssertFalse(launch.isConfirmed(recorded: "account-a"))
+        XCTAssertFalse(launch.confirm("account-a", generation: staleCheck))
+        XCTAssertFalse(launch.isConfirmed(recorded: "account-a"))
+        XCTAssertTrue(launch.confirm("account-a", generation: launch.generation))
+        XCTAssertTrue(launch.isConfirmed(recorded: "account-a"))
+        XCTAssertTrue(launch.confirm("account-b", generation: launch.generation))
+        XCTAssertFalse(launch.isConfirmed(recorded: "account-a"), "an account other than the recorded one counts as confirmed")
+        XCTAssertFalse(launch.isConfirmed(recorded: nil), "nothing recorded counts as confirmed")
+
+        let beforeRevoke = launch.generation
+        launch.revokeConfirmation()
+        XCTAssertFalse(launch.isConfirmed(recorded: "account-b"))
+        XCTAssertFalse(launch.confirm("account-b", generation: beforeRevoke))
     }
 
     /// Only the not-signed-in line is cleared by the account-change handler,
