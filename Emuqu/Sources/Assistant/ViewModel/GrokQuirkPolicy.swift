@@ -70,7 +70,9 @@ struct GrokQuirkPolicy {
               AssistantViewModel.lastUserAskedForLiveData(userTurn.text)
         else { return nil }
         announceWithoutCallRetries += 1
-        debugLog("[Assistant] announce-but-no-call detected (retry \(announceWithoutCallRetries)/\(maxAnnounceWithoutCallRetries)) — text=\(roundText.prefix(120))")
+        // Lengths only: the reply can carry health numbers and location, and
+        // the debug log can be persisted and exported.
+        debugLog("[Assistant] announce-but-no-call detected (retry \(announceWithoutCallRetries)/\(maxAnnounceWithoutCallRetries)) — \(roundText.count) chars of text")
         // Rewind the announcement off the visible turn so the user doesn't see
         // "Calling X" and the eventual real answer back-to-back.
         buffer.rewindToRoundStart()
@@ -107,7 +109,7 @@ struct GrokQuirkPolicy {
                 bundle: LanguageManager.appBundle
             )
             owner.store.save(owner.turns)
-            debugLog("[Assistant] grok fallback substituted (raw=\"\(raw.prefix(80))\")", level: .warning)
+            debugLog("[Assistant] grok fallback substituted for \(raw.count) chars of reply", level: .warning)
         }
     }
 }

@@ -927,6 +927,66 @@
    }
   },
   {
+   "key": "func CoachVoiceGuardTests.testEveryCannedSafetyReplySurvivesTheScrubUnchanged()",
+   "hash": "d20b3445a7c14b81",
+   "does": "Every MedicalQueryGuard canned reply comes back from scrub byte-identical and with no triggers.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.cannedReplies",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each canned reply",
+     "effect": "scrub it and assert unchanged"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "4ac533937d18871b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.cannedReplies": "fd3737a40f20234e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testCannedSafetyReplyInsideAModelReplyIsKeptAndItsNeighboursStillScrubbed()",
+   "hash": "42d43a47aee67631",
+   "does": "The symptom reply after a speculative-diagnosis sentence, with typographic apostrophes and bold emphasis: the reply and its emphasis are kept, the diagnosis sentence is deflected, one trigger.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "4ac533937d18871b",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "1b78b93208cd2db0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuardTests.testAReferralThatIsNotTheSafetyCopyIsStillDeflected()",
+   "hash": "c0715f838a2a142e",
+   "does": "'Talk to your doctor about your HRV.' — not the app's sentence — is still deflected.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "4ac533937d18871b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Result.didIntercept": "75fd0f1efb431807",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
+   }
+  },
+  {
    "key": "func CoachVoiceGuardTests.testTermsThatUsedToEvadeTheRuntimeGuard()",
    "hash": "e06f9c73f89c77fc",
    "does": "Asserts ten English sentences with linter-forbidden terms (AFib, arrhythmia, diagnosis, pathology, FDA-cleared, medical-grade, prescription, cure, high risk band, injury risk) are intercepted.",

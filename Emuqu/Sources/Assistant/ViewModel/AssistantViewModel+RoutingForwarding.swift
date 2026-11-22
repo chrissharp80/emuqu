@@ -9,7 +9,7 @@ extension AssistantViewModel {
         AssistantTurnRouter(owner: self)
     }
 
-    func dispatch() { router.dispatch() }
+    func dispatch(regenerating replyID: UUID? = nil) { router.dispatch(regenerating: replyID) }
     func liveTurnIndex(for turnID: UUID) -> Int? { router.liveTurnIndex(for: turnID) }
     func recordCoachVoiceInterception(reason: String) { router.recordCoachVoiceInterception(reason: reason) }
     func snapshotUserFacts() async -> String { await router.snapshotUserFacts() }

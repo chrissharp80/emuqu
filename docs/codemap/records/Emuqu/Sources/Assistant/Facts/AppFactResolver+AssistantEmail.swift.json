@@ -1,12 +1,12 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift",
- "hash": "b079215f3be97a5f",
- "role": "Second half of the `assistant` fact namespace: the address-book actions (assistant.contacts.list/add/remove; remove runs only after the user confirms, via DestructiveActionContext.gate) and the assistant.email.compose action that resolves names/category defaults into recipients and stages a draft on AssistantEmailBridge for the mail composer.",
+ "hash": "75421d9eb49e888a",
+ "role": "Second half of the `assistant` fact namespace: the address-book actions (assistant.contacts.list/add/remove; remove runs only after the user confirms, via DestructiveActionContext.gate, and add asks first whenever the name or address is not in the user's own latest message, via gateUnlessUserStated) and the assistant.email.compose action that resolves names/category defaults into recipients and stages a draft on AssistantEmailBridge for the mail composer.",
  "types": [
   "AssistantMemoryNamespace: extension (struct declared in AppFactResolver+AssistantMemory.swift) — contacts + email-compose entries"
  ],
  "state": [
-  "static let assistantContactsAddDescription (AI tool description text)",
+  "static let assistantContactsAddDescription (AI tool description text; says a contact whose name or email is not in the user's latest message needs a plain-yes confirmation first)",
   "static let assistantEmailComposeParameters ([ActionParam] subject/body/category/to/cc)",
   "static let assistantEmailComposeDescription (says the draft is staged on the email bridge, which the root view observes)"
  ],
@@ -83,22 +83,27 @@
   },
   {
    "key": "func AssistantMemoryNamespace.resolveAssistantContactsAdd(_:)",
-   "hash": "3eaddcfc83268dd7",
-   "does": "Validates name/email, requires the user_quote to appear in the latest user chat message, then adds a new EmailContact to the persistent address book and returns {status:'added',id,name,email}; when the store refuses the add (the address book can't be read) returns contactsNotChanged() instead.",
+   "hash": "c6393b105e07cc0b",
+   "does": "Validates name/email, requires the user_quote to appear in the latest user chat message, then hands over on the main actor to addContact(name:email:notes:store:context:) with the live address book and the live confirmation context, which adds the contact only once its details are the user's own words or the user confirmed it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactInputProblem(name:email:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsNotChanged()"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:store:context:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore",
+    "ext:MainActor.assumeIsolated"
    ],
    "reads": [
-    "mem:AssistantViewModel.turns"
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantActionConfirmations.pending"
    ],
    "writes": [
     "file:Application Support/email_contacts.json (EmailContactStore)",
-    "mem:EmailContactStore.contacts"
+    "mem:EmailContactStore.contacts",
+    "mem:AssistantActionConfirmations.pending"
    ],
    "branches": [
     {
@@ -119,20 +124,62 @@
     {
      "at": "+4",
      "cond": "user_quote is found in the latest user message",
-     "effect": "continues to add; else returns userRequestRequired('add a contact') (.missing invalidParameter)"
-    },
-    {
-     "at": "+7",
-     "cond": "addContact returned nil (address book unreadable)",
-     "effect": "returns contactsNotChanged(); nothing added"
+     "effect": "continues to addContact; else returns userRequestRequired('add a contact')"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:)": "3b8c7cecef5e354c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live": "fba34d98abddbf6a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:store:context:)": "b394fa01954cff17",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactInputProblem(name:email:)": "cb7403cb3500c436",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsNotChanged()": "3cc8cdeaebff617a",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "37d7f0088e388109",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "a2b5550709809fa9"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "a2b5550709809fa9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "6ccff086e88d7a89"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.addContact(name:email:notes:store:context:)",
+   "hash": "a68dba5e6966ca25",
+   "does": "Main actor. Asks first (gateUnlessUserStated with [name, email], action assistant.contacts.add, target 'name email', question 'Add <name> (<email>) to your contacts? Reply yes to confirm.') unless both are in the user's own latest message, returning the gate's answer when it does not pass. Then trims notes (nil when empty/absent), builds an EmailContact and adds it to `store`; returns {status:'added', id, name, email}, or contactsNotChanged() when the store refused the add because the file can't be read.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsNotChanged()"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns (context transcript)",
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "writes": [
+    "file:Application Support/email_contacts.json (EmailContactStore)",
+    "mem:EmailContactStore.contacts",
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "name or email not stated by the user and the request not confirmed",
+     "effect": "return the confirmation_required (or no-user-message) answer; nothing added"
+    },
+    {
+     "at": "+12",
+     "cond": "trimmed notes nil or empty",
+     "effect": "notes stored as nil"
+    },
+    {
+     "at": "+13",
+     "cond": "store.add returned false",
+     "effect": "returns contactsNotChanged()"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "fa5e4ee2a83fe2df",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsNotChanged()": "3cc8cdeaebff617a",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "bf5d46125beaa0ed",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d"
    }
   },
   {
@@ -172,42 +219,6 @@
    "writes": [],
    "branches": [],
    "deps": {}
-  },
-  {
-   "key": "func AssistantMemoryNamespace.addContact(name:email:notes:)",
-   "hash": "a821cd53fd826b78",
-   "does": "Trims notes, builds an EmailContact (notes nil when empty/absent) and adds it to EmailContactStore on the main actor (which appends and enqueues a write of email_contacts.json); returns the contact, or nil when the store refused the add because the file can't be read.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
-    "ext:MainActor.assumeIsolated"
-   ],
-   "reads": [],
-   "writes": [
-    "file:Application Support/email_contacts.json (EmailContactStore)",
-    "mem:EmailContactStore.contacts"
-   ],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "trimmed notes is nil or empty (?? true when rawNotes is nil)",
-     "effect": "notes stored as nil; otherwise trimmed notes stored"
-    },
-    {
-     "at": "+8",
-     "cond": "store.add returned false",
-     "effect": "returns nil"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "bf5d46125beaa0ed",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "6ccff086e88d7a89"
-   }
   },
   {
    "key": "var AssistantMemoryNamespace.assistantContactsRemoveEntry",

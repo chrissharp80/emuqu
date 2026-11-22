@@ -213,16 +213,54 @@ final class WhisperKitSTTBridge {
 
     /// One converter per input format: a route change mid-turn that changes
     /// the tap's format starts a fresh converter instead of feeding the old
-    /// one buffers in a format it was not built for.
+    /// one buffers in a format it was not built for. Each converter is
+    /// drained once its last buffer is in (`drain`), so the end of the
+    /// utterance is written too.
     private static func writeConverted(_ buffers: [AVAudioPCMBuffer], to file: AVAudioFile, format targetFormat: AVAudioFormat) throws {
         var converter: AVAudioConverter?
         for input in buffers {
             if converter?.inputFormat != input.format {
-                converter = AVAudioConverter(from: input.format, to: targetFormat)
+                converter = try freshConverter(replacing: converter, from: input.format, to: targetFormat, file: file)
             }
             guard let active = converter else { throw STTBridgeError.converterUnavailable }
             guard let output = try convert(input, with: active, to: targetFormat) else { continue }
             if output.frameLength > 0 { try file.write(from: output) }
+        }
+        if let converter { try drain(converter, to: file, format: targetFormat) }
+    }
+
+    /// A converter for `format`, after draining the one it replaces.
+    private static func freshConverter(
+        replacing finished: AVAudioConverter?,
+        from format: AVAudioFormat,
+        to targetFormat: AVAudioFormat,
+        file: AVAudioFile
+    ) throws -> AVAudioConverter? {
+        if let finished { try drain(finished, to: file, format: targetFormat) }
+        return AVAudioConverter(from: format, to: targetFormat)
+    }
+
+    /// Frames one drain pass can hold: 256 ms at 16 kHz, far more than a
+    /// sample-rate converter keeps back.
+    private static let drainCapacity: AVAudioFrameCount = 4_096
+
+    /// Writes what `converter` still holds of the buffers already fed. A
+    /// sample-rate converter keeps a short tail of each input back for its
+    /// filter and gives it up only when told the input has ended; without
+    /// this the last few milliseconds of every utterance were never written.
+    /// Called once per converter, after its last buffer: once told
+    /// end-of-stream it converts nothing more.
+    private static func drain(_ converter: AVAudioConverter, to file: AVAudioFile, format targetFormat: AVAudioFormat) throws {
+        while true {
+            guard let output = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: drainCapacity) else { return }
+            var error: NSError?
+            let status = converter.convert(to: output, error: &error) { _, outStatus in
+                outStatus.pointee = .endOfStream
+                return nil
+            }
+            if status == .error { throw error ?? STTBridgeError.conversionFailed }
+            if output.frameLength > 0 { try file.write(from: output) }
+            guard status == .haveData, output.frameLength > 0 else { return }
         }
     }
 

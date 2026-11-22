@@ -647,7 +647,8 @@ enum MetricsVerifier {
     // delivered ones. A single fabrication still produces one reminder
     // per reply, not a perpetual one.
     //
-    // Process-local; cleared on app launch. Lock-guarded since
+    // Process-local; cleared on app launch and when the conversation is
+    // cleared (`clearCorrections`). Lock-guarded since
     // both the speaker thread (writes) and the AssistantViewModel
     // dispatch path (reads) hit it.
 
@@ -702,6 +703,14 @@ enum MetricsVerifier {
             return Array((buffer.delivered + buffer.pending).suffix(4))
         }
         return correctionsBlock(drained)
+    }
+
+    /// Drop every correction, delivered or not. Called when the conversation
+    /// is cleared: the replies they correct are gone, and the first prompt of
+    /// the next conversation must not tell the model it said something it
+    /// never said there.
+    static func clearCorrections() {
+        corrections.withLock { $0 = CorrectionBuffer() }
     }
 
     /// A reply has come back, so the model has seen every delivered

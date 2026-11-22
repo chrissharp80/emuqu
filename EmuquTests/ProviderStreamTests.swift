@@ -469,6 +469,18 @@ final class GeminiEndOfStreamTests: XCTestCase {
         }
     }
 
+    /// A prompt Gemini's safety system blocks before any reply is a safety
+    /// stop too, so the fallback chain does not send it to another vendor
+    /// (`AIProviderError.isFallbackable` is false for it).
+    func testBlockedPromptIsABlockedReply() async {
+        for reason in ["SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "OTHER"] {
+            let outcome = await replay([#"data: {"promptFeedback":{"blockReason":"\#(reason)"}}"#])
+            XCTAssertEqual(outcome.blockedReply, "gemini: \(reason)")
+            XCTAssertFalse(outcome.endedWithDone)
+        }
+        XCTAssertFalse(AIProviderError.blockedReply(provider: .gemini, reason: "SAFETY").isFallbackable)
+    }
+
     func testMalformedFunctionCallDoesNotRunATool() async {
         let call = #"{"functionCall":{"name":"get_sleep","args":{"days":7}}}"#
         let outcome = await replay([#"data: {"candidates":[{"content":{"role":"model","parts":[\#(call)]},"finishReason":"MALFORMED_FUNCTION_CALL"}]}"#])
@@ -829,6 +841,54 @@ final class PartialReplyTests: XCTestCase {
             XCTAssertEqual(turn.providerID, .apple, "\(ending)")
             XCTAssertEqual(turn.modelID, "apple-on-device", "\(ending)")
         }
+    }
+
+    // MARK: Mutating tools and the fallback chain
+
+    private func toolExchange(_ toolName: String) -> ToolExchange {
+        ToolExchange(toolUseID: UUID().uuidString, toolName: toolName, inputJSON: "{}", resultJSON: "{}")
+    }
+
+    /// A turn that only read data may start over on another model; one that
+    /// already added a contact or staged an email may not, or the fallback
+    /// does it a second time.
+    func testOnlyAMutatingToolKeepsTheTurnFromStartingOverElsewhere() {
+        XCTAssertFalse(AssistantToolRunner.ranMutatingTool([[toolExchange("get_sleep"), toolExchange("web_search")]]))
+        XCTAssertTrue(AssistantToolRunner.ranMutatingTool([[toolExchange("get_sleep")], [toolExchange("assistant_contacts_add")]]))
+        XCTAssertTrue(AssistantToolRunner.ranMutatingTool([[toolExchange("assistant_email_compose")]]))
+        XCTAssertFalse(AssistantToolRunner.ranMutatingTool([]))
+    }
+
+    /// The list follows the tool overlay's MUTATION TOOLS, so the model's
+    /// rules and the fallback rule name the same tools.
+    func testEveryMutationToolThePromptNamesIsTreatedAsMutating() {
+        for name in AssistantToolRunner.mutatingToolNames where !name.hasPrefix("assistant_artifacts_") {
+            XCTAssertTrue(AssistantSystemPrompt.toolOverlay.contains("`\(name)`"), name)
+        }
+    }
+
+    // MARK: Summary batches
+
+    /// After a long cloud conversation, Apple gets the dropped turns a
+    /// window-sized batch at a time, oldest first, never an empty batch.
+    func testSummaryBatchFitsTheProvidersHistoryBudget() {
+        let budget = AssistantViewModel.conversationTokenBudget(for: .apple)
+        let turns = (0 ..< 40).map { ChatTurn(role: $0.isMultiple(of: 2) ? .user : .assistant, text: String(repeating: "x", count: 400)) }
+        let batch = AssistantViewModel.summaryBatch(turns, provider: .apple)
+        XCTAssertFalse(batch.isEmpty)
+        XCTAssertLessThan(batch.count, turns.count)
+        XCTAssertEqual(batch.map(\.id), Array(turns.prefix(batch.count)).map(\.id))
+        XCTAssertLessThanOrEqual(batch.map { AssistantViewModel.estimateTokens($0.text) + 4 }.reduce(0, +), budget)
+    }
+
+    /// One turn longer than the whole budget still goes, cut to it, so the
+    /// summary cannot stall on it for good.
+    func testAnOversizedTurnIsCutToTheBudget() {
+        let budget = AssistantViewModel.conversationTokenBudget(for: .apple)
+        let long = ChatTurn(role: .user, text: String(repeating: "y", count: budget * 10))
+        let batch = AssistantViewModel.summaryBatch([long], provider: .apple)
+        XCTAssertEqual(batch.map(\.id), [long.id])
+        XCTAssertEqual(batch.first?.text.count, budget * 4)
     }
 
     // MARK: Fact extraction
