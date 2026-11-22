@@ -9,16 +9,25 @@ final class WorkoutLiveTrendsTallyTests: XCTestCase {
     /// A 25-minute run: heart rate rising, pace easing, cadence falling,
     /// a climb, and gaps in each series so every window skips some rows.
     private func run(seconds: Int, from start: Int = 0) -> [WorkoutSample] {
-        (start ..< start + seconds).map { t in
-            WorkoutSample(
-                offsetSec: t,
-                heartRate: t % 7 == 0 ? nil : 130 + t / 40,
-                distanceMeters: t % 11 == 0 ? nil : Double(t) * 3.1,
-                paceSecPerKm: t % 5 == 0 ? nil : 300 + Double(t % 90) / 3,
-                cadenceStepsPerMin: t % 9 == 0 ? nil : 172 - Double(t) / 120,
-                altitudeMeters: t % 13 == 0 ? nil : 40 + Double(t) / 20
-            )
-        }
+        (start ..< start + seconds).map(sample(at:))
+    }
+
+    /// The run's sample at second `t`, each series with its own gaps.
+    private func sample(at t: Int) -> WorkoutSample {
+        let seconds = Double(t)
+        let heartRate: Int? = t % 7 == 0 ? nil : 130 + t / 40
+        let distance: Double? = t % 11 == 0 ? nil : seconds * 3.1
+        let pace: Double? = t % 5 == 0 ? nil : 300 + Double(t % 90) / 3
+        let cadence: Double? = t % 9 == 0 ? nil : 172 - seconds / 120
+        let altitude: Double? = t % 13 == 0 ? nil : 40 + seconds / 20
+        return WorkoutSample(
+            offsetSec: t,
+            heartRate: heartRate,
+            distanceMeters: distance,
+            paceSecPerKm: pace,
+            cadenceStepsPerMin: cadence,
+            altitudeMeters: altitude
+        )
     }
 
     private func assertMatchesStateless(_ tally: inout WorkoutLiveTrends.Tally, _ samples: [WorkoutSample], line: UInt = #line) {
