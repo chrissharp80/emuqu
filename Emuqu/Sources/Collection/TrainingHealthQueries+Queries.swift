@@ -201,7 +201,9 @@ extension TrainingHealthQueries {
     /// The workouts of the last `days` days (`fetchWorkouts`), or nil when
     /// the query returned an error (the store locked or unavailable) or did
     /// not answer within the timeout. Without HealthKit on the device there
-    /// is nothing to ask, which is no workouts rather than a failure.
+    /// is nothing to ask, and a query HealthKit refused because workouts were
+    /// never authorized (or were denied) is an answer: both are no workouts
+    /// rather than a failure, so the load is still built from the archive.
     private func queryWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary]? {
         guard manager.isHealthKitAvailable else { return [] }
         let calendar = Calendar.current
@@ -221,13 +223,31 @@ extension TrainingHealthQueries {
         }
     }
 
-    /// The query's workouts, or nil (logged) when it returned an error.
-    nonisolated private static func workoutSummaries(
+    /// The query's workouts; no workouts when HealthKit answered that the
+    /// app may not read them (`isUnauthorizedAnswer`); nil (logged) for any
+    /// other error, which is a query that did not get an answer.
+    nonisolated static func workoutSummaries(
         _ samples: [HKSample]?, unlessFailed error: (any Error)?
     ) -> [HealthKitManager.WorkoutSummary]? {
         guard let error else { return workoutSummaries(samples) }
+        if isUnauthorizedAnswer(error) {
+            debugLog("[TrainingHealthQueries] Workouts are not authorized — reading them as none", level: .info)
+            return []
+        }
         debugLog("[TrainingHealthQueries] Workout query failed: \(error.localizedDescription)", level: .warning)
         return nil
+    }
+
+    /// True for the HealthKit errors that answer the query rather than fail
+    /// it: authorization was never asked for (the user skipped the Health
+    /// step) or was denied. Asking again gives the same answer until the
+    /// user changes it in Settings, so treating these as a failed query
+    /// would keep the training load from ever being computed.
+    nonisolated static func isUnauthorizedAnswer(_ error: any Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == HKErrorDomain else { return false }
+        return nsError.code == HKError.Code.errorAuthorizationNotDetermined.rawValue
+            || nsError.code == HKError.Code.errorAuthorizationDenied.rawValue
     }
 
     nonisolated private static func workoutSummaries(_ samples: [HKSample]?) -> [HealthKitManager.WorkoutSummary] {

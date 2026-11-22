@@ -23,6 +23,28 @@ final class WorkoutMovingTimeTests: XCTestCase {
         XCTAssertNil(WorkoutMetadata(sport: .run).movingSeconds(wallClockDuration: nil))
     }
 
+    /// Before, pace comparisons, race predictions and history baselines took
+    /// the pauses off the wall clock while the PDF and the TCX lap read the
+    /// samples, so one run had two moving times. All of them read
+    /// `activeWorkoutSeconds` now, which is `movingSeconds(wallClockDuration:)`.
+    func testOneMovingTimeForEveryReader() {
+        let run = runWithStop()
+        var session = HRVSession(
+            id: UUID(), startDate: Date(timeIntervalSince1970: 0), endDate: Date(timeIntervalSince1970: 3_600),
+            state: .complete, sessionType: .workout, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        var metadata = run
+        metadata.distanceMeters = 6_000
+        session.workoutMetadata = metadata
+        XCTAssertEqual(session.activeWorkoutSeconds, run.movingSeconds(wallClockDuration: 3_600))
+        XCTAssertEqual(session.activeWorkoutSeconds, 2_400)
+        let baselines = WorkoutHistoryBaselines.compute(from: [session], sport: .run)
+        XCTAssertEqual(baselines.avgPaceSecPerKm ?? 0, 400, accuracy: 0.001)
+        var bare = session
+        bare.workoutMetadata = nil
+        XCTAssertEqual(bare.activeWorkoutSeconds, 3_600, "Without workout metadata there are no pauses to leave out")
+    }
+
     /// 6 km at 2.5 m/s of moving time: six 400-second kilometres, the stop in
     /// none of them, and no partial tail.
     func testSplitsFromSamplesUseMovingTime() {

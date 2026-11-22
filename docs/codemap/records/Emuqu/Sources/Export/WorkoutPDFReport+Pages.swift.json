@@ -492,11 +492,11 @@
   },
   {
    "key": "func WorkoutPDFRenderer.avgPaceString()",
-   "hash": "e99ea3c7e351a6c2",
-   "does": "Average pace from session distance over moving time (movingSeconds), formatted by units; '—' when distance ≤100 m, moving time ≤10 s or formatting fails.",
+   "hash": "46ebcd8d5e11bff5",
+   "does": "Average pace from session distance over moving time (HRVSession.activeWorkoutSeconds), formatted by units; '—' when distance ≤100 m, moving time unknown or ≤10 s, or formatting fails.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.movingSeconds()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)"
    ],
    "reads": [],
@@ -514,31 +514,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.movingSeconds()": "44573b1dec671de2",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds": "a956dd2ca4347410",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "9f6523aed76afcae"
-   }
-  },
-  {
-   "key": "func WorkoutPDFRenderer.movingSeconds()",
-   "hash": "347729730f800f04",
-   "does": "The session's moving seconds (WorkoutMetadata.movingSeconds over its wall-clock duration), or the wall-clock duration when the session has no workout metadata.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "no metadata, or movingSeconds nil",
-     "effect": "?? session.duration"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)": "7ba0583eb19458f3"
    }
   },
   {
@@ -565,11 +542,11 @@
   },
   {
    "key": "func WorkoutPDFRenderer.calorieString()",
-   "hash": "e16cb53fcd0111ec",
-   "does": "Estimates calories as mean sample METs × 3.5 × current settings body weight × moving minutes (movingSeconds) / 200, formatted 'N kcal'; '—' without samples, moving time or METs.",
+   "hash": "adc2e7976d00776d",
+   "does": "Estimates calories as mean sample METs × 3.5 × current settings body weight × moving minutes (HRVSession.activeWorkoutSeconds) / 200, formatted 'N kcal'; '—' without samples, moving time or METs.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.movingSeconds()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
@@ -595,7 +572,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.movingSeconds()": "44573b1dec671de2",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds": "a956dd2ca4347410",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "a1abab14c1ff8f17",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "f13b6ef4aa525d0f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",

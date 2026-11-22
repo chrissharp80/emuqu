@@ -12,7 +12,6 @@
   "TrainingLoadProjection: enum — forward ATL/CTL/TSB projection using TrainingLoadSeries.Point.stepped",
   "TrainingLoadProjection.Day: struct — projected day",
   "WorkoutHistoryBaselines: struct — sport-matched averages of pace/HR/alpha1 across recent archived workouts",
-  "HRVSession: extension — activeWorkoutSeconds (moving time: duration less recorded pauses)",
   "WorkoutLiveTrends.SplitFold: struct (fileprivate) — kilometreSplits one sample at a time",
   "WorkoutLiveTrends.RunningSum: struct (fileprivate) — prefix sums and counts of one optional value; mean over a run of positions",
   "WorkoutLiveTrends.Tally: struct — the live trends of a growing sample buffer, synced by appending its new tail or starting over",
@@ -1027,27 +1026,6 @@
    "deps": {}
   },
   {
-   "key": "var HRVSession.activeWorkoutSeconds",
-   "hash": "5c91755a4ffc67b5",
-   "does": "A workout's moving time: duration less the seconds of its recorded pauses (WorkoutMetadata.pauseSpans), floored at 0; nil without a positive duration. Read by pace comparisons and race predictions.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "no positive duration",
-     "effect": "nil"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e"
-   }
-  },
-  {
    "key": "func RaceTimePrediction.predict(from:sport:now:)",
    "hash": "c4d3eb69080af3a6",
    "does": "Predicted seconds per standard distance; strips the basis from predictWithBasis.",
@@ -1112,7 +1090,7 @@
    "does": "Builds Basis list from sessions of matching sport with moving time (activeWorkoutSeconds) > 0 and distance>=3000 m; returns those from the last 90 days, or all of them if none are recent.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var HRVSession.activeWorkoutSeconds"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds"
    ],
    "reads": [],
    "writes": [],
@@ -1129,7 +1107,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var HRVSession.activeWorkoutSeconds": "f8d4254af1c71134"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds": "a956dd2ca4347410"
    }
   },
   {
@@ -1302,7 +1280,7 @@
    "does": "Sum of moving times (activeWorkoutSeconds) over sum of distances (sec/km) across sessions with distance>100 m and moving time>60 s.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var HRVSession.activeWorkoutSeconds"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds"
    ],
    "reads": [],
    "writes": [],
@@ -1324,7 +1302,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var HRVSession.activeWorkoutSeconds": "f8d4254af1c71134"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds": "a956dd2ca4347410"
    }
   },
   {

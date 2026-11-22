@@ -1,0 +1,175 @@
+{
+ "file": "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift",
+ "hash": "0719a05fc91dc544",
+ "role": "The archive's lightweight index record for one session (SessionArchiveEntry): quick-access metadata, metrics and sleep mirrors that lists and trends read without loading the session, with its hand-written Codable and schema-version check.",
+ "types": [
+  "SessionArchiveEntry: struct — index row with mirrored metrics/sleep fields and the transient sourceSchemaVersion it was decoded with",
+  "SessionArchiveEntry.CodingKeys: enum"
+ ],
+ "state": [
+  "mem:SessionArchiveEntry.currentSchemaVersion = 1"
+ ],
+ "toplevel": "SessionArchiveEntry has a custom init(from:)/encode(to:); sourceSchemaVersion is transient (decoded, never encoded). Its decoder reads enums through the KeyedDecodingContainer extension in SessionMetadata.swift.",
+ "units": [
+  {
+   "key": "var SessionArchiveEntry.displayDate",
+   "hash": "a0aaa768cffea12d",
+   "does": "History display date: for overnight sessions sleepEnd, else endDate; otherwise (or when both nil) start date.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sessionType == .overnight",
+     "effect": "false → date"
+    },
+    {
+     "at": "+2",
+     "cond": "sleepEnd non-nil",
+     "effect": "returns sleepEnd"
+    },
+    {
+     "at": "+3",
+     "cond": "endDate non-nil",
+     "effect": "returns endDate; else falls through to date"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var SessionArchiveEntry.isReliableForHRVAggregates",
+   "hash": "ae4fed21d70b9389",
+   "does": "Index-side mirror of HRVSession.isReliableForHRVAggregates through the same HRVDataQuality.allowsHRVAggregates rule.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVDataQuality.allowsHRVAggregates(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVDataQuality.allowsHRVAggregates(_:)": "e3b8279aa42f24f4"
+   }
+  },
+  {
+   "key": "init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
+   "hash": "4cf151b500fc95ea",
+   "does": "Memberwise initializer for all 23 SessionArchiveEntry fields.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "init SessionArchiveEntry(from:)",
+   "hash": "e54d209c2304387d",
+   "does": "Decodes an index entry; sourceSchemaVersion from entrySchemaVersion (schemaVersion, 0 when absent, or newer than this build when sessionType or hrvDataQuality holds an unknown case); sessionType defaults to .overnight (an unknown case reads as .quick), tags to []; hrvDataQuality reads an unknown case as .insufficient; other optional fields nil when absent; wrong types throw.",
+   "entry": "Decodable use by SessionArchive.loadIndex (Archive+IndexIO.swift:129)",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::func SessionArchiveEntry.entrySchemaVersion(in:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "tags absent ?? []",
+     "effect": "empty"
+    },
+    {
+     "at": "+16",
+     "cond": "sessionType absent / unknown",
+     "effect": "absent → .overnight; unknown → .quick"
+    },
+    {
+     "at": "+27",
+     "cond": "hrvDataQuality unknown",
+     "effect": ".insufficient"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::func SessionArchiveEntry.entrySchemaVersion(in:)": "c2fcb26bd21a3768",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)": "4f735db783adbd32"
+   }
+  },
+  {
+   "key": "func SessionArchiveEntry.entrySchemaVersion(in:)",
+   "hash": "692e4ed0e78e5043",
+   "does": "The entry's schemaVersion (0 when absent), or max(stated, currentSchemaVersion + 1) when sessionType or hrvDataQuality holds a case this build does not know, so the index writes the entry back as it was read instead of the lossy decode.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.holdsUnknownCase(_:forKey:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "an unknown case",
+     "effect": "newer than this build; otherwise the stated version"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.holdsUnknownCase(_:forKey:)": "d9a7b18c284cc9ca"
+   }
+  },
+  {
+   "key": "func SessionArchiveEntry.encode(to:)",
+   "hash": "b8abe85b0c6cbf01",
+   "does": "Encodes the entry via three group encoders.",
+   "entry": "Encodable use by SessionArchive.saveIndex",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::func SessionArchiveEntry.encodeIdentity(into:)",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::func SessionArchiveEntry.encodeMetrics(into:)",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::func SessionArchiveEntry.encodeSleepSummary(into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::func SessionArchiveEntry.encodeIdentity(into:)": "abf6f5ae9df36966",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::func SessionArchiveEntry.encodeMetrics(into:)": "e56d7e65150e95b1",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::func SessionArchiveEntry.encodeSleepSummary(into:)": "ff010ba084eeed50"
+   }
+  },
+  {
+   "key": "func SessionArchiveEntry.encodeIdentity(into:)",
+   "hash": "92b4698fbff264c3",
+   "does": "Writes schemaVersion=1, sessionId, date, endDate, fileHash, filePath.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionArchiveEntry.encodeMetrics(into:)",
+   "hash": "0147b985da30b00a",
+   "does": "Writes recoveryScore, meanRMSSD, meanHR, stressIndex, meanSDNN, tags, notes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionArchiveEntry.encodeSleepSummary(into:)",
+   "hash": "66d764287507bea5",
+   "does": "Writes sessionType, linked ids, sleepEnd, segment count, stage minutes, nocturnal dip, hrvDataQuality, modifiedAt.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

@@ -29,10 +29,14 @@ import Foundation
 /// was deleted) the cached estimate is cleared rather than kept: an
 /// old number would keep scaling every power-TSS. The scan time is
 /// stamped either way, so a fruitless scan isn't repeated every launch.
-/// A scan that could not read every workout in the window is not a
-/// verdict: it never clears or lowers the estimate (the best effort may be
-/// in the workout it could not read), raises it only when it found a
-/// better effort, and is not stamped, so the next launch scans again.
+/// A scan that could not read every workout in the window for now (the
+/// device locked: `ArchiveAccessFailure.mayClear`) is not a verdict: it
+/// never clears or lowers the estimate (the best effort may be in the
+/// workout it could not read), raises it only when it found a better
+/// effort, and is not stamped, so the next launch scans again. A workout
+/// that can never be read as it is (corrupt, undecodable) holds no effort
+/// this build can find, so it does not keep the scan open; the weekly
+/// rescan tries it again.
 /// The weekly throttle is skipped when a workout was added since the last
 /// scan or the anchoring workout is no longer in the archive, so the next
 /// launch scan picks up a new best effort or drops a deleted anchor.
@@ -208,8 +212,8 @@ enum FTPAutoEstimator {
     }
 
     /// Running-family workouts that started inside the lookback window, and
-    /// whether every workout there could be read (a read that throws is
-    /// logged and makes the scan incomplete).
+    /// whether the scan is complete: a read that throws is logged, and makes
+    /// the scan incomplete only when the failure may clear.
     private static func recentRunningWorkouts(archive: SessionArchive, now: Date) -> (sessions: [HRVSession], complete: Bool) {
         let cutoff = now.addingTimeInterval(-Double(lookbackDays) * 86_400)
         let entries = archive.entries.filter { $0.sessionType == .workout && $0.date >= cutoff && $0.date <= now }
@@ -223,14 +227,15 @@ enum FTPAutoEstimator {
         return (sessions, complete)
     }
 
-    /// One entry's session, lightweight, and whether it could be read: a
-    /// read that throws is logged and returns (nil, false).
+    /// One entry's session, lightweight, and whether the read gave a lasting
+    /// answer: a read that throws is logged and returns nil, with `read`
+    /// false only when the failure may clear (`ArchiveAccessFailure.mayClear`).
     private static func readSession(_ entry: SessionArchiveEntry, archive: SessionArchive) -> (session: HRVSession?, read: Bool) {
         do {
             return (try archive.retrieveLightweight(entry.sessionId), true)
         } catch {
             debugLog("[FTPAutoEstimator] \(entry.sessionId.uuidString.prefix(8)) could not be read: \(error)", level: .warning)
-            return (nil, false)
+            return (nil, !ArchiveAccessFailure.mayClear(error))
         }
     }
 

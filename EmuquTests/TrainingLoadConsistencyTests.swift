@@ -1,5 +1,5 @@
-@testable import Emuqu
 import CryptoKit
+@testable import Emuqu
 import HealthKit
 import XCTest
 
@@ -257,5 +257,30 @@ final class TrainingLoadConsistencyTests: XCTestCase {
             lastUpdated: now.addingTimeInterval(-60), hasResult: true,
             observedChange: false, settingsChanged: false, dayChanged: true, reference: now
         ))
+    }
+
+    // MARK: - An unauthorized workout query is an answer
+
+    /// Before, a user who skipped the Health step got
+    /// `errorAuthorizationNotDetermined` from the workout query, which read
+    /// as a failed query: the refresh published nothing, so the load was
+    /// never built from the archived workouts.
+    func testAWorkoutQueryRefusedForAuthorizationReadsAsNoWorkouts() {
+        for code in [HKError.Code.errorAuthorizationNotDetermined, .errorAuthorizationDenied] {
+            let error = HKError(code)
+            XCTAssertTrue(TrainingHealthQueries.isUnauthorizedAnswer(error))
+            XCTAssertEqual(TrainingHealthQueries.workoutSummaries(nil, unlessFailed: error)?.count, 0)
+        }
+    }
+
+    /// A locked or wedged store did not answer: the refresh keeps the
+    /// published load and asks again.
+    func testAWorkoutQueryThatFailedOtherwiseStaysUnanswered() {
+        for error in [HKError(.errorDatabaseInaccessible), HKError(.errorHealthDataUnavailable)] as [any Error] {
+            XCTAssertFalse(TrainingHealthQueries.isUnauthorizedAnswer(error))
+            XCTAssertNil(TrainingHealthQueries.workoutSummaries(nil, unlessFailed: error))
+        }
+        let otherDomain = NSError(domain: NSCocoaErrorDomain, code: HKError.Code.errorAuthorizationNotDetermined.rawValue)
+        XCTAssertNil(TrainingHealthQueries.workoutSummaries(nil, unlessFailed: otherDomain))
     }
 }

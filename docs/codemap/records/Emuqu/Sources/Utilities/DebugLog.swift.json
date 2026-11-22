@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Utilities/DebugLog.swift",
- "hash": "4bf6256cc2c411f3",
+ "hash": "443918f39a18a125",
  "role": "App-wide logger: debugLog() buffers every line into an observable in-memory ring buffer and 'Recent Problems' error catalog, and (always in DEBUG, opt-in in Release) flushes PHI-scrubbed lines to debug_log.txt in the App Group container (via AppConfig.sharedContainerURL); exports the file, or the scrubbed in-memory buffer when Persistent Logging is off; also owns the PHI scrubber/regex cache, log export and the debugLogExternal/correlation helpers.",
  "types": [
   "DebugLogger: class (@Observable, @MainActor) — logger singleton, ring buffer, disk flush, export",
@@ -20,7 +20,7 @@
   "notif:DebugLogger.significantLogPosted ('DebugLogger.SignificantLog')",
   "static maxFileSize=2MB, maxMemoryEntries=5000, flushInterval=5s",
   "static lineDateStyle (yyyy-MM-dd HH:mm:ss.SSS local)",
-  "static metricPattern/unitPattern/separatorPattern (PHI regex sources), the internal composed metricValuePattern / valueChainPattern built from them, keyValuePattern, heartRateUnitPattern and the loggableKeyWords allow-list",
+  "static metricNames (the health-metric name alternatives, in order) joined into metricPattern; unitPattern/separatorPattern (PHI regex sources), the internal composed metricValuePattern / valueChainPattern built from them, keyValuePattern, heartRateUnitPattern and the loggableKeyWords allow-list",
   "mem:DebugLogger.compiledPatterns (regex cache)",
   "DispatchQueue 'com.hrv.debuglogger'",
   "Timer flushTimer (5 s repeating)"
@@ -552,7 +552,7 @@
   },
   {
    "key": "func DebugLogger.redactUnlistedKeyValues(in:)",
-   "hash": "cb42ca104d674c9f",
+   "hash": "ed0904006ad447ac",
    "does": "Finds every keyValuePattern match and, last to first, replaces the number (group 2) by '<redacted>' unless the key's lastKeyWord is in loggableKeyWords and the value is not in brackets; returns the line unchanged when the pattern does not compile.",
    "entry": null,
    "calls": [

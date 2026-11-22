@@ -444,6 +444,28 @@ final class TrendAnalysisTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(result?.dataPoints.count), 5, "Sessions without results should be excluded")
     }
 
+    /// Before, the two recordings of a night split by a strap restart were
+    /// two readings, so one night counted twice in every trend. Only the
+    /// longer half is a reading now.
+    func testASplitNightIsOneReading() throws {
+        var sessions = (0 ..< 4).map { createMockSession(daysAgo: $0, rmssd: 50) }
+        let longer = sessions[0]
+        let half = createMockSession(daysAgo: 0, rmssd: 20)
+        let end = try XCTUnwrap(longer.endDate)
+        let shorter = HRVSession(
+            id: UUID(), startDate: end.addingTimeInterval(-2 * 3_600), endDate: end,
+            state: .complete, sessionType: .overnight, rrSeries: nil,
+            analysisResult: half.analysisResult, artifactFlags: nil
+        )
+        sessions.append(shorter)
+
+        let result = try XCTUnwrap(TrendAnalyzer.analyze(sessions: sessions, period: .all))
+
+        XCTAssertEqual(result.dataPoints.count, 4)
+        XCTAssertFalse(result.dataPoints.contains { $0.id == shorter.id }, "The shorter half of the night reached the trend")
+        XCTAssertTrue(result.dataPoints.contains { $0.id == longer.id })
+    }
+
     func testEstimatedSDNNStaysOutOfTheSDNNTrendButRMSSDStays() throws {
         var sessions = (0 ..< 4).map { createMockSession(daysAgo: $0, rmssd: 50) }
         sessions[0].analysisResult?.estimatedMetrics = [EstimatedMetric.sdnn.rawValue]

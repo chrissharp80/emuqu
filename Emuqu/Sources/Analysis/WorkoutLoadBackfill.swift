@@ -37,9 +37,13 @@ enum WorkoutLoadBackfill {
     /// every launch — the gate keeps it cheap.
     ///
     /// The scan is stamped as run only when it completed: a workout or a
-    /// prior that could not be read, or an estimate that could not be
-    /// written, leaves the stamp as it was, so the next launch scans again
-    /// instead of skipping that workout for a week.
+    /// prior that could not be read for now, or an estimate that could not
+    /// be written for now (the device locked, the disk full:
+    /// `ArchiveAccessFailure.mayClear`), leaves the stamp as it was, so the
+    /// next launch scans again instead of skipping that workout for a week.
+    /// A workout that can never be read as it is (corrupt, undecodable) is
+    /// skipped and does not hold the stamp back; the weekly rescan tries it
+    /// again.
     static func runIfNeeded(
         archive: SessionArchive,
         savedRouteStore: SavedRouteStore,
@@ -82,8 +86,8 @@ enum WorkoutLoadBackfill {
     /// yield in between, so a long history doesn't hitch the UI after launch.
     /// The prior runs are read once, off the main actor, before the walk; a
     /// session given an estimate here replaces its run, so a later workout
-    /// does not take it as a clean prior. True when every workout and prior
-    /// was read and every estimate written.
+    /// does not take it as a clean prior. True unless a workout or prior
+    /// could not be read, or an estimate written, for now.
     private static func run(
         archive: SessionArchive,
         savedRouteStore: SavedRouteStore,
@@ -116,20 +120,21 @@ enum WorkoutLoadBackfill {
         /// The workouts the estimates draw their priors from, most recent
         /// first.
         var priorRuns: [RouteTRIMPEstimator.PriorRun]
-        /// False once a workout or prior could not be read or an estimate
-        /// could not be written.
+        /// False once a workout or prior could not be read, or an estimate
+        /// written, for a reason that may clear.
         var complete: Bool
         var updated = 0
 
         /// What one write did: a written session counts as updated and takes
-        /// its new run's place; a failed write leaves the scan incomplete.
+        /// its new run's place; a write that failed for now leaves the scan
+        /// incomplete; one that can never succeed is skipped.
         mutating func record(_ outcome: Persisted) {
             switch outcome {
             case let .written(session):
                 updated += 1
                 replaceRun(of: session)
-            case .alreadyEstimated: break
-            case .failed: complete = false
+            case .alreadyEstimated, .failedForGood: break
+            case .failedForNow: complete = false
             }
         }
 
@@ -149,8 +154,9 @@ enum WorkoutLoadBackfill {
     }
 
     /// One entry: an estimate from the scan's prior runs, written back. A
-    /// session that could not be read or written marks the scan incomplete;
-    /// one given an estimate replaces its run among the priors.
+    /// session that could not be read or written for now marks the scan
+    /// incomplete; one that can never be read is skipped; one given an
+    /// estimate replaces its run among the priors.
     private static func backfill(
         _ entry: SessionArchiveEntry,
         archive: SessionArchive,
@@ -160,8 +166,8 @@ enum WorkoutLoadBackfill {
         let candidate: Candidate
         switch await loadCandidate(entry.sessionId, archive: archive) {
         case let .candidate(loaded): candidate = loaded
-        case .noBackfillNeeded: return
-        case .unreadable:
+        case .noBackfillNeeded, .unreadableForGood: return
+        case .unreadableForNow:
             scan.complete = false
             return
         }
@@ -183,8 +189,10 @@ enum WorkoutLoadBackfill {
         case candidate(Candidate)
         /// Already estimated, carrying power TSS, or without GPS, or gone.
         case noBackfillNeeded
-        /// The session could not be read.
-        case unreadable
+        /// The session could not be read, for a reason that may clear.
+        case unreadableForNow
+        /// The session can never be read as it is (corrupt, undecodable).
+        case unreadableForGood
     }
 
     /// What writing one estimate did.
@@ -192,8 +200,10 @@ enum WorkoutLoadBackfill {
         case written(HRVSession)
         /// The session was gone or had been estimated meanwhile.
         case alreadyEstimated
-        /// It could not be read again or written.
-        case failed
+        /// It could not be read again or written, for a reason that may clear.
+        case failedForNow
+        /// It can never be read again or written as it is.
+        case failedForGood
     }
 
     /// The three fields the backfill writes.
@@ -207,7 +217,9 @@ enum WorkoutLoadBackfill {
     /// needed for sessions that already carry a route extrapolation, or a
     /// non-trivial powerTSS — `preferredTrainingLoad` will already pick the
     /// right number for those — for sessions without GPS, or for one deleted
-    /// meanwhile. A read that throws is `.unreadable` (logged).
+    /// meanwhile. A read that throws is logged and is `.unreadableForNow`
+    /// when the failure may clear (`ArchiveAccessFailure.mayClear`), else
+    /// `.unreadableForGood`.
     private static func loadCandidate(_ id: UUID, archive: SessionArchive) async -> Loaded {
         await Task.detached(priority: .utility) { () -> Loaded in
             let read: HRVSession?
@@ -215,7 +227,7 @@ enum WorkoutLoadBackfill {
                 read = try archive.retrieve(id)
             } catch {
                 debugLog("[WorkoutLoadBackfill] \(id.uuidString.prefix(8)) could not be read: \(error)", level: .warning)
-                return .unreadable
+                return ArchiveAccessFailure.mayClear(error) ? .unreadableForNow : .unreadableForGood
             }
             guard let session = read, let meta = session.workoutMetadata,
                   meta.extrapolatedTRIMP == nil,
@@ -231,9 +243,10 @@ enum WorkoutLoadBackfill {
     /// right before the write and only the three extrapolation fields are
     /// changed, so an edit or a CloudKit pull that landed on it while the
     /// route match ran is kept rather than overwritten with the copy read at
-    /// the start. A read or write failure is logged and reported as
-    /// `.failed` rather than thrown — one bad entry must not abort the whole
-    /// sweep, but it does keep the scan from being stamped done.
+    /// the start. A read or write failure is logged and reported rather than
+    /// thrown — one bad entry must not abort the whole sweep. One that may
+    /// clear (`.failedForNow`) keeps the scan from being stamped done; one
+    /// that cannot (`.failedForGood`) does not.
     private static func persist(
         _ extrapolation: Extrapolation,
         entry: SessionArchiveEntry,
@@ -241,26 +254,36 @@ enum WorkoutLoadBackfill {
     ) async -> Persisted {
         let sessionId = entry.sessionId
         return await Task.detached(priority: .utility) { () -> Persisted in
-            guard let read = archive.retrieveOrLog(sessionId, caller: "WorkoutLoadBackfill") else { return .failed }
-            var session = read
+            let read: HRVSession?
+            do {
+                read = try archive.retrieve(sessionId)
+            } catch {
+                return failure(error, "could not be read again", id: sessionId)
+            }
+            guard var session = read else { return .alreadyEstimated }
             guard var meta = session.workoutMetadata, meta.extrapolatedTRIMP == nil else { return .alreadyEstimated }
             meta.extrapolatedTRIMP = extrapolation.trimp
             meta.extrapolationConfidence = extrapolation.confidence
             meta.extrapolationRouteName = extrapolation.routeName
             session.workoutMetadata = meta
-            return write(session, sport: meta.sport, archive: archive) ? .written(session) : .failed
+            return write(session, sport: meta.sport, archive: archive)
         }.value
     }
 
-    nonisolated private static func write(_ session: HRVSession, sport: Sport, archive: SessionArchive) -> Bool {
-        let id = session.id.uuidString.prefix(8)
+    nonisolated private static func write(_ session: HRVSession, sport: Sport, archive: SessionArchive) -> Persisted {
         do {
             _ = try archive.archive(session)
-            debugLog("[WorkoutLoadBackfill] Updated \(id) \(sport.rawValue) → extrapolated TRIMP \(Int(session.workoutMetadata?.extrapolatedTRIMP ?? 0))")
-            return true
+            debugLog("[WorkoutLoadBackfill] Updated \(session.id.uuidString.prefix(8)) \(sport.rawValue) → extrapolated TRIMP \(Int(session.workoutMetadata?.extrapolatedTRIMP ?? 0))")
+            return .written(session)
         } catch {
-            debugLog("[WorkoutLoadBackfill] Failed to re-archive \(id): \(error.localizedDescription)")
-            return false
+            return failure(error, "could not be re-archived", id: session.id)
         }
+    }
+
+    /// A failed read or write, logged: `.failedForNow` when it may clear
+    /// (`ArchiveAccessFailure.mayClear`), else `.failedForGood`.
+    nonisolated private static func failure(_ error: any Error, _ what: String, id: UUID) -> Persisted {
+        debugLog("[WorkoutLoadBackfill] \(id.uuidString.prefix(8)) \(what): \(error.localizedDescription)", level: .warning)
+        return ArchiveAccessFailure.mayClear(error) ? .failedForNow : .failedForGood
     }
 }

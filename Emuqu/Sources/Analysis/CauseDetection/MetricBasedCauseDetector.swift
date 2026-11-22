@@ -136,12 +136,12 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
     /// two real nights would read as a decline; they are left out too.
     /// `recentSessions` holds only the nights before tonight, so tonight's
     /// reading starts the decline walk and two earlier nights are enough.
+    /// A night split into two recordings is one step of the walk: the other
+    /// half of tonight is left out, and of an earlier split night only the
+    /// longer half is kept (`DashboardSessionPolicy.oneOvernightPerNight`).
     private func detectIllnessPattern(in context: CauseDetectionContext) -> IllnessSignals {
         let none = IllnessSignals(consecutiveDeclines: 0, totalDeclinePercent: 0, hrElevated: false, hrIncrease: 0)
-        let sortedSessions = context.recentSessions
-            .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
-            .filter { $0.state == .complete && $0.analysisResult != nil }
-            .sorted { $0.startDate > $1.startDate }
+        let sortedSessions = earlierNights(in: context)
         guard sortedSessions.count >= 2 else { return none }
         let declines = consecutiveDeclines(from: context.rmssd, at: context.session.startDate, in: sortedSessions)
         let hr = hrElevation(context: context)
@@ -154,6 +154,20 @@ final class MetricBasedCauseDetector: CauseDetectionStrategy {
             hrElevated: hr.elevated && !reportedAsSevere,
             hrIncrease: hr.increase
         )
+    }
+
+    /// The complete, analysed, HRV-reliable overnights of the nights before
+    /// tonight's (`DashboardSessionPolicy.nightDay`), one per night
+    /// (`DashboardSessionPolicy.oneOvernightPerNight`), newest first.
+    private func earlierNights(in context: CauseDetectionContext) -> [HRVSession] {
+        let calendar = Calendar.current
+        let tonight = DashboardSessionPolicy.nightDay(of: context.session, calendar: calendar)
+        let candidates = context.recentSessions
+            .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
+            .filter { $0.state == .complete && $0.analysisResult != nil }
+            .filter { $0.id != context.session.id && DashboardSessionPolicy.nightDay(of: $0, calendar: calendar) != tonight }
+        return DashboardSessionPolicy.oneOvernightPerNight(candidates, calendar: calendar)
+            .sorted { $0.startDate > $1.startDate }
     }
 
     /// `sortedSessions` is NEWEST-first, so this walks backwards in time from

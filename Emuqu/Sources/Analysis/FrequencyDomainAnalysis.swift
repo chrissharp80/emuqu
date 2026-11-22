@@ -151,17 +151,100 @@ enum FrequencyDomainAnalyzer {
         // slice. nil = the existing insufficient-data contract.
         guard windowStart >= 0, windowStart <= windowEnd,
               windowEnd <= series.points.count, windowEnd <= flags.count else { return nil }
-        let windowPoints = Array(series.points[windowStart ..< windowEnd])
-        let windowFlags = Array(flags[windowStart ..< windowEnd])
-        guard windowPoints.count >= 120 else { return nil }
-        var t: [Double] = []
-        var rr: [Double] = []
-        for i in 0 ..< windowPoints.count where !windowFlags[i].isArtifact {
-            t.append((Double(windowPoints[i].t_ms) + Double(windowPoints[i].rr_ms) / 2.0) / 1_000.0)
-            rr.append(Double(windowPoints[i].rr_ms))
+        guard windowEnd - windowStart >= 120 else { return nil }
+        let runs = cleanRuns(series, flags: flags, range: windowStart ..< windowEnd)
+        guard runs.reduce(0, { $0 + $1.times.count }) >= 60 else { return nil }
+        return computeFromCleanRuns(runs)
+    }
+
+    /// The non-artifact beats of `range` as (mid-beat seconds, RR ms) pairs,
+    /// a new run starting after every recording break
+    /// (`TimeDomainAnalyzer.beatsAfterRecordingBreak`), also one that falls
+    /// on a removed beat.
+    private static func cleanRuns(_ series: RRSeries, flags: [ArtifactFlags], range: Range<Int>) -> [CleanRun] {
+        let breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: series.points, range: range)
+        var runs: [CleanRun] = []
+        var previous: Int?
+        for i in range where !flags[i].isArtifact {
+            let point = series.points[i]
+            if runs.isEmpty || previous.map({ spansBreak(breaks, after: $0, upTo: i) }) == true {
+                runs.append(CleanRun())
+            }
+            runs[runs.count - 1].times.append((Double(point.t_ms) + Double(point.rr_ms) / 2.0) / 1_000.0)
+            runs[runs.count - 1].rr.append(Double(point.rr_ms))
+            previous = i
         }
-        guard t.count >= 60 else { return nil }
-        return computeFromCleanPairs(times: t, rrValues: rr)
+        return runs
+    }
+
+    /// Whether a beat after `kept`, up to `index`, follows a recording break.
+    private static func spansBreak(_ breaks: Set<Int>, after kept: Int, upTo index: Int) -> Bool {
+        ((kept + 1) ... index).contains { breaks.contains($0) }
+    }
+
+    /// Clean beats between two recording breaks: mid-beat times in seconds
+    /// and RR intervals in milliseconds, parallel.
+    struct CleanRun {
+        var times: [Double] = []
+        var rr: [Double] = []
+    }
+
+    /// Metrics from clean beats split into runs at recording breaks
+    /// (`TimeDomainAnalyzer.isRecordingBreak`). One run is
+    /// `computeFromCleanPairs`. With more, no Welch segment spans a break:
+    /// each run is resampled on its own, the segments that fit inside a run
+    /// are averaged across all the runs, and a run shorter than a segment is
+    /// left out; VLF pools the long segments the same way once the runs add
+    /// up to the VLF gate. When no run holds a whole segment, the longest run
+    /// is read alone as one window. Resampling across a break instead bridges
+    /// it with a curve no heart beat, which reads as low-frequency power.
+    static func computeFromCleanRuns(_ runs: [CleanRun]) -> FrequencyDomainMetrics? {
+        guard runs.count > 1 else { return runs.first.flatMap { computeFromCleanPairs(times: $0.times, rrValues: $0.rr) } }
+        let signals = runs.compactMap(centeredResample)
+        let fs = resampleFrequency
+        guard let psd = pooledWelchPSD(signals, segLen: defaultWelchSegmentLength) else {
+            guard let longest = signals.max(by: { $0.count < $1.count }), longest.count >= 64 else { return nil }
+            return computePSD(signal: longest, fs: fs, usableWindowMin: Double(longest.count - 1) / fs / 60.0)
+        }
+        let bands = bandPowers(psd: psd, fs: fs, fftN: defaultWelchSegmentLength)
+        let minutes = Double(signals.reduce(0) { $0 + $1.count }) / fs / 60.0
+        let vlf = minutes >= vlfMinDuration
+            ? pooledWelchPSD(signals, segLen: vlfWelchSegmentLength).map { bandPowers(psd: $0, fs: fs, fftN: vlfWelchSegmentLength).vlf }
+            : nil
+        return metrics(vlf: vlf, lf: bands.lf, hf: bands.hf)
+    }
+
+    /// One run cubic-spline resampled to 4 Hz, its mean removed; nil when it
+    /// spans no time.
+    private static func centeredResample(_ run: CleanRun) -> [Double]? {
+        guard run.times.count >= 2, let first = run.times.first, let last = run.times.last, last > first else { return nil }
+        let sampleCount = Int(round((last - first) * resampleFrequency)) + 1
+        let signal = cubicSplineResample(t: run.times, values: run.rr, fs: resampleFrequency, sampleCount: sampleCount, tStart: first)
+        let mean = signal.reduce(0, +) / Double(signal.count)
+        return signal.map { $0 - mean }
+    }
+
+    /// Welch's average periodogram over every `segLen` segment that fits
+    /// inside one of `signals`, each signal's average weighted by its number
+    /// of segments; nil when none fits or no DFT setup exists.
+    private static func pooledWelchPSD(_ signals: [[Double]], segLen: Int) -> [Double]? {
+        let stepSize = Int(Double(segLen) * (1.0 - welchOverlap))
+        let usable = signals.filter { $0.count >= segLen }
+        guard !usable.isEmpty, let dftSetup = getDFTSetup(size: segLen) else { return nil }
+        var pooled = [Double](repeating: 0, count: segLen / 2 + 1)
+        var segments = 0
+        for signal in usable {
+            let count = (signal.count - segLen) / stepSize + 1
+            let psd = computeWelchPSD(
+                data: signal, fs: resampleFrequency, segLen: segLen, stepSize: stepSize,
+                numSegments: count, dftSetup: dftSetup
+            )
+            for k in pooled.indices {
+                pooled[k] += psd[k] * Double(count)
+            }
+            segments += count
+        }
+        return pooled.map { $0 / Double(segments) }
     }
 
     /// Compute frequency domain metrics from pre-cleaned (time, RR) pairs.
