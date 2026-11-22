@@ -94,14 +94,17 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
     /// The category goes through the coordinator, so a voice chat's or a
     /// workout cue's claim is never clobbered by the guide's. The session
     /// stays active while the voice guide is on, since it speaks every breath.
+    /// It is activated on the cue manager's transition queue
+    /// (`BackgroundAudioManager.activateForClaimant`), not here: after a phone
+    /// call `setActive(true)` can block for many seconds, and on the main
+    /// actor that froze the screen the toggle sits on.
     /// The voice is looked up off the main actor here, so the first cue
     /// normally finds it cached.
     private func start() {
         WorkoutStartCue.prewarm(forLanguage: LanguageManager.appLocale.language.languageCode?.identifier ?? "en")
         AppDependencies.current.services.audioSessionCoordinator.claim(.breathingGuide, mode: .playback)
-        do {
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
+        AppDependencies.current.collection.backgroundAudioManager.activateForClaimant { error in
+            guard let error else { return }
             debugLog("[BreathingAudio] Audio session error: \(error.localizedDescription)")
         }
 

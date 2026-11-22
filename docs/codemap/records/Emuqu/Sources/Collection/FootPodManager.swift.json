@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/FootPodManager.swift",
- "hash": "d7e64a3dfbf180df",
+ "hash": "45f7d1b31be31c28",
  "role": "Declares the BLEPeripheralConnecting protocol (shared connect-by-id handshake for FootPodManager and Concept2Manager) and FootPodManager, a CoreBluetooth client for standard RSC foot pods, Cycling Power meters (incl. Stryd) and FTMS indoor bikes, publishing speed, cadence, stride, odometer and power for WorkoutRecorder.",
  "types": [
   "BLEPeripheralConnecting: protocol (@MainActor) — central/centralIfCreated/pendingReconnectId/attach/startScanning/stopScanning + shared connect(deviceId:)",
@@ -16,7 +16,9 @@
   "mem:FootPodManager.cadenceStepsPerMin",
   "mem:FootPodManager.strideLengthMeters",
   "mem:FootPodManager.podReportedDistanceMeters",
-  "mem:FootPodManager.instantaneousPowerWatts",
+  "mem:FootPodManager.instantaneousPowerWatts (0 W kept as a reading)",
+  "mem:FootPodManager.powerMeasuredAt (ObservationIgnored, when the power reading arrived)",
+  "FootPodManager.powerStaleAfter = 5 s (static)",
   "mem:FootPodManager.knownDevices",
   "mem:FootPodManager.discoveredDevices",
   "mem:FootPodManager.lastStatusLine",
@@ -104,6 +106,55 @@
     "Emuqu/Sources/Collection/FootPodManager.swift::requirement BLEPeripheralConnecting.stopScanning()": "2e4ad68e6e11676c",
     "Emuqu/Sources/Collection/FootPodManager.swift::var FootPodManager.central": "a147c992ebeb8ab3"
    }
+  },
+  {
+   "key": "func FootPodManager.currentPowerWatts(now:)",
+   "hash": "9f8775d1e766e1d5",
+   "does": "The power reading when it arrived within powerStaleAfter of `now` (freshPower), else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.freshPower(_:measuredAt:now:)"
+   ],
+   "reads": [
+    "mem:FootPodManager.instantaneousPowerWatts",
+    "mem:FootPodManager.powerMeasuredAt"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.freshPower(_:measuredAt:now:)": "6cf7549cde3fc6fe"
+   }
+  },
+  {
+   "key": "func FootPodManager.freshPower(_:measuredAt:now:)",
+   "hash": "c88839dc8e938b27",
+   "does": "Returns `watts` while it is no older than powerStaleAfter (5 s), else nil; nil when there is no reading or no arrival time.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no reading, no arrival time, or older than 5 s",
+     "effect": "nil"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func FootPodManager.recordPower(_:)",
+   "hash": "82c079ab32443f15",
+   "does": "Stores a power reading, negative values clamped to 0 (zero kept as a reading), and the time it arrived.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:FootPodManager.instantaneousPowerWatts",
+    "mem:FootPodManager.powerMeasuredAt"
+   ],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "var FootPodManager.central",
@@ -298,7 +349,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6a7a22e884879f4b"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "070c1af607be2e91"
    }
   },
   {
@@ -346,8 +397,8 @@
   },
   {
    "key": "func FootPodManager.cleanupAfterDisconnect()",
-   "hash": "2aebb0850c9d2f5e",
-   "does": "Clears active peripheral, characteristic refs, speed, cadence, stride and power; clears the pod odometer only when no workout holds the link; sets .disconnected.",
+   "hash": "e78f6120b116b93a",
+   "does": "Clears active peripheral, characteristic refs, speed, cadence, stride, power and its arrival time; clears the pod odometer only when no workout holds the link; sets .disconnected.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -355,12 +406,13 @@
     "mem:FootPodManager.instantaneousSpeedMS",
     "mem:FootPodManager.cadenceStepsPerMin",
     "mem:FootPodManager.instantaneousPowerWatts",
+    "mem:FootPodManager.powerMeasuredAt",
     "mem:FootPodManager.podReportedDistanceMeters",
     "mem:FootPodManager.connectionState"
    ],
    "branches": [
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "no workout holds the link",
      "effect": "podReportedDistanceMeters = nil; mid-workout it is kept so the workout baseline still applies"
     }
@@ -504,7 +556,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6a7a22e884879f4b",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "070c1af607be2e91",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.drainPendingReconnect()": "99c2587a6870e420",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parkReconnectIfMidWorkout()": "f84a56ec79e16d59",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.startScanning()": "5dd3aa1b11ece94c",
@@ -664,7 +716,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6a7a22e884879f4b",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "070c1af607be2e91",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.retryConnect(_:)": "a3dd2c88b2868351",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -720,7 +772,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.attach(peripheral:)": "450ff9c58b878202",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "6a7a22e884879f4b",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.cleanupAfterDisconnect()": "070c1af607be2e91",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -911,7 +963,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parseIndoorBikeData(data:)": "3626ac638498c4a2",
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parsePower(data:)": "cc4f231fd627a450",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parsePower(data:)": "37c8acc46bab9d37",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.parseRSC(data:)": "1bb8813d80ac0ba6"
    }
   },
@@ -989,29 +1041,29 @@
   },
   {
    "key": "func FootPodManager.parsePower(data:)",
-   "hash": "b00fecb7af7e3408",
-   "does": "Decodes CPS instantaneous power int16 at bytes 2–3, clamping negatives to 0 and publishing nil for 0.",
+   "hash": "ebe28b074e1adff8",
+   "does": "Decodes CPS instantaneous power int16 at bytes 2–3 and records it (recordPower: negatives clamped to 0, zero kept, arrival time stamped).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.recordPower(_:)"
+   ],
    "reads": [
     "ble:Cycling Power Measurement 0x2A63"
    ],
    "writes": [
-    "mem:FootPodManager.instantaneousPowerWatts"
+    "mem:FootPodManager.instantaneousPowerWatts",
+    "mem:FootPodManager.powerMeasuredAt"
    ],
    "branches": [
     {
      "at": "+3",
      "cond": "<4 bytes",
      "effect": "ignored"
-    },
-    {
-     "at": "+11",
-     "cond": "watts > 0",
-     "effect": "publishes; else nil"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.recordPower(_:)": "208a0c6c5778ed7f"
+   }
   },
   {
    "key": "func FootPodManager.parseIndoorBikeData(data:)",
@@ -1067,7 +1119,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyInstantaneousPower(_:at:flags:)": "e1a03d0875e75449",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyInstantaneousPower(_:at:flags:)": "1c14d531a65d21a8",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.applyInstantaneousSpeed(_:at:)": "7a525694d1bffd4f",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "556861bcc35c7652"
    }
@@ -1102,29 +1154,27 @@
   },
   {
    "key": "func FootPodManager.applyInstantaneousPower(_:at:flags:)",
-   "hash": "ac6e2ecba926271a",
-   "does": "If the power flag (bit 6) is set and bytes present, publishes clamped int16 watts (nil when 0).",
+   "hash": "904ac69d05d683f3",
+   "does": "If the power flag (bit 6) is set and bytes present, records the int16 watts (recordPower: negatives clamped to 0, zero kept, arrival time stamped).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)"
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.recordPower(_:)"
    ],
    "reads": [],
    "writes": [
-    "mem:FootPodManager.instantaneousPowerWatts"
+    "mem:FootPodManager.instantaneousPowerWatts",
+    "mem:FootPodManager.powerMeasuredAt"
    ],
    "branches": [
     {
      "at": "+2",
      "cond": "power flag clear or bytes missing",
-     "effect": "returns; previous power value stays"
-    },
-    {
-     "at": "+4",
-     "cond": "watts > 0",
-     "effect": "publishes; else nil"
+     "effect": "returns; previous power value and its time stay"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.recordPower(_:)": "208a0c6c5778ed7f",
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.u16(_:at:)": "556861bcc35c7652"
    }
   },

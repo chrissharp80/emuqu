@@ -284,7 +284,7 @@
    "deps": {
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.assembleMetadata(recovered:reason:overrides:prepared:deps:)": "ce7060cc1021e1ab",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildRecoveredSession(sessionId:startDate:endDate:rrPoints:metadata:)": "b3a4bbb4221b6ab2",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.carryArchived(into:recovered:deps:)": "6d66c9ac2424e635",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.carryArchived(into:recovered:deps:)": "d3b2686c6099bdd5",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.hasRecoverableData(_:)": "467b5ab2da8632d0",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.knownStartDate(_:)": "701d3246821c53d5",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.persist(_:metadata:recovered:overrides:deps:)": "df4bb1ec70ca79f9",
@@ -311,20 +311,24 @@
   },
   {
    "key": "func WorkoutRecoveryService.carryArchived(into:recovered:deps:)",
-   "hash": "725e8081f76e357e",
-   "does": "When the archive holds a copy with the session's id, carries its user/measured fields and per-second samples forward (carryForward) and then rebuilds the analysis snapshot over the metadata as it now stands (attachAnalysisSnapshot with the recovered sport, duration and beats), so a trim / strap-augment / Watch-route of a saved workout whose track backup is gone keeps alpha1 bands, zones, moving time and narratives.",
+   "hash": "67d12541f6fea7f1",
+   "does": "When the archive holds a copy with the session's id, carries its user/measured fields and per-second samples forward (carryForward, which drops an export stamp Emuqu wrote), asks the next HealthKit backfill to rescan when that copy was in Apple Health (so the rebuild replaces it there), and then rebuilds the analysis snapshot over the metadata as it now stands (attachAnalysisSnapshot with the recovered sport, duration and beats), so a trim / strap-augment / Watch-route of a saved workout whose track backup is gone keeps alpha1 bands, zones, moving time and narratives.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
     "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.wasExportedByEmuqu(_:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestBackfillRescan()",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)"
    ],
    "reads": [
     "archive:SessionArchive.exists/retrieveOrLog",
     "mem:SettingsManager.settings"
    ],
-   "writes": [],
+   "writes": [
+    "ud:hkBackfillExportedWatermark (removed when the copy was exported)"
+   ],
    "branches": [
     {
      "at": "+1",
@@ -333,12 +337,19 @@
     },
     {
      "at": "+3",
+     "cond": "the archived copy was exported by Emuqu",
+     "effect": "backfill watermark cleared"
+    },
+    {
+     "at": "+4",
      "cond": "session.workoutMetadata nil after carryForward",
      "effect": "return without a snapshot rebuild (never in practice: buildRecoveredSession sets it)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.requestBackfillRescan()": "71031f57ae09f184",
     "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "831fac62d7fe8a12",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.wasExportedByEmuqu(_:)": "7c40791626573adf",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)": "d41c6c29f285102d",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96"

@@ -321,10 +321,14 @@ enum WorkoutRecoveryService {
     /// What the rebuild cannot recompute, from the archived copy it replaces.
     /// That can bring the per-second samples back (a saved workout's track
     /// backup is gone), so the analysis snapshot, built from the rebuild's own
-    /// samples, is built again over the samples the session now holds.
+    /// samples, is built again over the samples the session now holds. When
+    /// the archived copy was in Apple Health, its export stamp is dropped
+    /// (`carryForward`) and the next backfill is told to look again, so the
+    /// rebuild replaces the copy there.
     private static func carryArchived(into session: inout HRVSession, recovered: RecoveredWorkout, deps: Dependencies) {
         guard deps.archive.exists(session.id), let archived = deps.archive.retrieveOrLog(session.id) else { return }
         Self.carryForward(from: archived, into: &session)
+        if Self.wasExportedByEmuqu(archived) { HealthKitManager.requestBackfillRescan() }
         guard var metadata = session.workoutMetadata else { return }
         Self.attachAnalysisSnapshot(
             to: &metadata, sport: recovered.sport, durationSec: recovered.durationSec,

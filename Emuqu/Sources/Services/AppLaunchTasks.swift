@@ -716,7 +716,9 @@ extension EmuquApp {
     /// never bumped `sleepDataVersion`, so the morning sleep didn't
     /// auto-update — the user had to open the Sleep section and tap
     /// "Refresh". Combined with the scenePhase-active re-pull in
-    /// MainTabView, the morning sleep self-corrects.
+    /// MainTabView, the morning sleep self-corrects. The vitals observer
+    /// starts with it, for the same reason: the Watch writes a night's
+    /// vitals hours after wake, whether or not the night was streamed.
     ///
     /// The observer is started before the authorization request as well as
     /// after it. When a release adds read types, the request waits for a
@@ -727,6 +729,7 @@ extension EmuquApp {
     /// sheet grants.
     func requestHealthKitAuthorizationWithRetry(collector: RRCollector) async {
         collector.healthKit.startObservingSleepData()
+        collector.healthKit.startObservingVitalsData()
         for attempt in 1 ... 2 {
             if await authorizeHealthKitOnce(collector: collector, attempt: attempt) { return }
             await sleepQuietly(1_500_000_000, context: "requestHealthKitAuthorizationWithRetry")
@@ -741,6 +744,7 @@ extension EmuquApp {
             try await collector.healthKit.requestAuthorization()
             NSLog("[App][hk] authorization request returned (attempt \(attempt))")
             collector.healthKit.startObservingSleepData()
+            collector.healthKit.startObservingVitalsData()
             return true
         } catch {
             return !Self.isRetryableAuthTimeout(error, attempt: attempt)

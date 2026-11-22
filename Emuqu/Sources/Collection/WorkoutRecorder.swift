@@ -153,6 +153,11 @@ final class WorkoutRecorder {
     }
 
     typealias HRSource = WorkoutSessionLifecycle.HRSource
+    /// The location stack if something has built it (start() for a GPS
+    /// sport, or a view that read `location`); nil otherwise. Pause, stop and
+    /// finalize read it through this, so an indoor workout never builds the
+    /// stack (the 1–3 s of main-thread work above) only to find it empty.
+    var startedLocation: WorkoutLocationManager? { _injectedLocation ?? _lazyLocation }
     var location: WorkoutLocationManager {
         if let injected = _injectedLocation { return injected }
         if let cached = _lazyLocation { return cached }
@@ -367,6 +372,22 @@ final class WorkoutRecorder {
     /// out for the rest of the workout). 0 = not tried yet. Reset in
     /// `start()`.
     var nextRouteDetectionAtMeters: Double = 0
+
+    /// The live grade, with the track and barometer state it was worked out
+    /// from (`WorkoutAIContextBuilder.computeCurrentGradePercent`). Reset in
+    /// `start()`.
+    @ObservationIgnored var gradeMemo: GradeMemo?
+
+    struct GradeMemo {
+        struct Key: Equatable {
+            let fixCount: Int
+            let lastFixAt: Date?
+            let baroCount: Int
+        }
+
+        let key: Key
+        let grade: Double?
+    }
 
     /// Per-threshold breach duration in seconds. Counts up while breached,
     /// resets to 0 the moment the metric comes back inside the band. The

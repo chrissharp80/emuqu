@@ -29,7 +29,7 @@ extension WorkoutAIContextBuilder {
     }
 
     private func contextInputs() -> ContextInputs {
-        let loc = recorder.location.currentLocation
+        let loc = recorder.startedLocation?.currentLocation
         let userMaxHR = recorder.settingsProvider().effectiveMaxHR
         return ContextInputs(
             userMaxHR: userMaxHR,
@@ -73,7 +73,7 @@ extension WorkoutAIContextBuilder {
             sport: sport, nowAt: Date(), sessionStart: inputs.startDate, elapsedSeconds: recorder.elapsedSeconds, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: inputs.userMaxHR, hrDriftPercent: nil, alpha1: recorder.dfa.currentAlpha1,
             band: recorder.dfa.currentBand, alpha1FitQuality: recorder.dfa.fitQuality, alpha1Status: recorder.dfa.status, distanceMeters: recorder.distanceMeters, currentPaceSecPerKm: recorder.currentPaceSecPerKm,
             currentSpeedMS: recorder.currentSpeedMS, cadenceStepsPerMin: recorder.cadenceStepsPerMin, powerWatts: recorder.powerWatts, footPodActive: recorder.footPodActive, currentMETs: inputs.lastSample?.mets, recentSplitPaces: recentSplitPacesSecPerKm(),
-            currentLatitude: inputs.loc?.coordinate.latitude, currentLongitude: inputs.loc?.coordinate.longitude, currentAltitudeMeters: inputs.loc?.altitude, currentHeadingDegrees: inputs.heading, gpsAccuracyMeters: recorder.location.lastHorizontalAccuracy,
+            currentLatitude: inputs.loc?.coordinate.latitude, currentLongitude: inputs.loc?.coordinate.longitude, currentAltitudeMeters: inputs.loc?.altitude, currentHeadingDegrees: inputs.heading, gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy,
             elevationGainMeters: recorder.elevationGainMeters, currentGradePercent: inputs.grade, upcomingClimb: computeUpcomingClimb(currentLocation: inputs.loc), routeTopology: computeRouteTopology(currentLocation: inputs.loc), weather: AppDependencies.current.location.weatherService.current,
             strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: recorder.strapSilentSeconds(), currentRoadName: inputs.road?.road, currentLocality: inputs.road?.locality, currentAdministrativeArea: inputs.road?.administrativeArea,
             currentCountryCode: inputs.road?.countryCode, currentCompactAddress: inputs.road?.compactAddress, currentNearestCrossStreet: inputs.road?.nearestCrossStreet, currentNearestIntersection: inputs.road?.nearestIntersection, sessionAverageHR: sessionAverageHR(),
@@ -107,22 +107,23 @@ extension WorkoutAIContextBuilder {
     /// the user is walking it the same way as the day they saved it OR in
     /// reverse. Sets `recorder.plannedRoute` + the direction flag so the banner +
     /// AI coach speak about it correctly. Runs first at
-    /// `RouteLibrary.detectionTriggerMeters` of track, then, while nothing
-    /// matches, after each further stretch of that length, so a loop joined
-    /// after a warm-up leg is still recognised.
+    /// `RouteLibrary.detectionTriggerMeters` of GPS distance, then, while
+    /// nothing matches, after each further stretch of that length, so a loop
+    /// joined after a warm-up leg is still recognised. The distance is the
+    /// one the location manager keeps as fixes arrive, so the ticks between
+    /// attempts cost nothing; measuring the whole track each second did not.
     ///
     /// We deliberately do NOT auto-mine random history — only the user's
     /// curated saved library. Surprise auto-binds against random old
     /// workouts created false positives in earlier iterations and made
     /// the "what is the app doing right now" question harder to answer.
     func attemptAutoRouteDetection(sport: Sport) {
-        let track = recorder.location.track
-        let traveled = recorder.trackLengthMeters(track)
+        let traveled = recorder.location.distanceMeters
         guard traveled >= max(RouteLibrary.detectionTriggerMeters, recorder.nextRouteDetectionAtMeters) else { return }
 
         recorder.nextRouteDetectionAtMeters = traveled + RouteLibrary.detectionTriggerMeters
         guard let match = RouteLibrary.findMatch(
-            currentTrack: track,
+            currentTrack: recorder.location.track,
             sport: sport,
             store: AppDependencies.current.location.savedRouteStore
         ) else {
@@ -528,8 +529,27 @@ extension WorkoutAIContextBuilder {
     /// `track.last` is always non-nil past the count guard.
     /// Optional binding is used for the refactor-spec "zero magic" rule rather
     /// than a force-unwrap.
+    ///
+    /// A tick reads the grade several times (the coach context, the live
+    /// snapshot, the threshold signals, the grade-adjusted pace); it is worked
+    /// out once per new fix or barometer sample (`recorder.gradeMemo`) and
+    /// read back until the next.
     func computeCurrentGradePercent() -> Double? {
-        let track = recorder.location.track
+        guard let location = recorder.startedLocation else { return nil }
+        let key = WorkoutRecorder.GradeMemo.Key(
+            fixCount: location.track.count,
+            lastFixAt: location.track.last?.timestamp,
+            baroCount: location.barometricSamples.count
+        )
+        if let memo = recorder.gradeMemo, memo.key == key { return memo.grade }
+        let grade = gradeFromTrack(location)
+        recorder.gradeMemo = WorkoutRecorder.GradeMemo(key: key, grade: grade)
+        return grade
+    }
+
+    /// The grade over the trailing window of the track as it stands.
+    private func gradeFromTrack(_ location: WorkoutLocationManager) -> Double? {
+        let track = location.track
         guard track.count >= 2 else { return nil }
         let window = WorkoutGeometry.trailingGradeWindow(track: track)
         guard window.meters >= 50 else { return nil }   // too short to trust

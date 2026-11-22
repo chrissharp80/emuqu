@@ -46,6 +46,10 @@ extension WorkoutRecorder {
     /// archive work with no background budget. The assertion asks for the full budget (~30 s); its
     /// expiration handler ends the task, so running out suspends the app
     /// rather than getting it killed. A free no-op in the foreground.
+    ///
+    /// Stopped while paused (by hand or by auto-pause), the pause ends at the
+    /// stop, so it is saved with the others and Apple Health counts the
+    /// paused tail as paused, not as moving.
     func stop() async {
         guard case .recording = phase else { return }
         let finalizeStartedAt = Date()
@@ -55,6 +59,7 @@ extension WorkoutRecorder {
         lifecycle.phase = .finalizing
         tearDownLiveWorkoutServices()
         let stopDate = Date()
+        lifecycle.pauseTimeline.resume(now: stopDate)
         let endHR = heartRateAtStop()
         collectedPoints = await gatherFinalRRPoints(stopDate: stopDate)
         cancelStrapSubscriptionsAfterStop()
@@ -126,7 +131,7 @@ extension WorkoutRecorder {
     /// closes voice when they're done.
     func tearDownLiveWorkoutServices() {
         stopTicker()
-        location.stopTracking()
+        startedLocation?.stopTracking()
         pedometer.stop()
         // Stop the BLE peripheral advertisement so we don't continue to
         // appear as a sensor for trainer apps after the workout ends.
@@ -231,7 +236,7 @@ extension WorkoutRecorder {
         workoutHR.reset()
         motion.reset()
         lastIngestedPointCount = 0
-        location.reset()
+        startedLocation?.reset()
         pedometer.reset()
         lifecycle.targetZone = nil
         intervalController.clear()

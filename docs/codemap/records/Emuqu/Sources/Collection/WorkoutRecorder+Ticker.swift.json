@@ -30,22 +30,25 @@
    "branches": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.runTick()": "91d53c49f3a27ec8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.runTick()": "69b2bd65dab5ba01",
     "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::var WorkoutRecorder.ticker": "0f973f8e3bac44f6"
    }
   },
   {
    "key": "func WorkoutTicker.runTick()",
-   "hash": "181109dad293f8bc",
-   "does": "One tick: returns unless phase is .recording; evaluates auto-pause/resume; increments elapsedSeconds when not paused; runs incrementalBackupTick.",
+   "hash": "2e3d7940815f5d8a",
+   "does": "One tick: returns unless phase is .recording; evaluates auto-pause/resume; when not paused sets elapsedSeconds to the wall-clock active time (PauseTimeline.activeSeconds since sessionStartDate, 0 without one) but at least one second more than before, so a tick the timer missed (app suspended, main actor busy) is not lost and every tick's sample has its own offset; runs incrementalBackupTick.",
    "entry": "Timer block installed by startTicker (1 Hz, RunLoop .common).",
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.evaluateAutoPauseResume()",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.activeSeconds(sessionStart:now:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.incrementalBackupTick()"
    ],
    "reads": [
     "mem:WorkoutLifecycle.phase",
-    "mem:WorkoutLifecycle.isPaused"
+    "mem:WorkoutLifecycle.isPaused",
+    "mem:WorkoutLifecycle.pauseTimeline",
+    "mem:WorkoutRecorder.sessionStartDate"
    ],
    "writes": [
     "mem:WorkoutLifecycle.elapsedSeconds"
@@ -59,12 +62,18 @@
     {
      "at": "+3",
      "cond": "not paused",
-     "effect": "true: elapsedSeconds += 1; false: clock frozen (tick work still runs)"
+     "effect": "true: elapsedSeconds = max(elapsedSeconds + 1, wall-clock active seconds); false: clock frozen (tick work still runs)"
+    },
+    {
+     "at": "+7",
+     "cond": "no sessionStartDate",
+     "effect": "wall-clock term 0, so the clock advances by one"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.activeSeconds(sessionStart:now:)": "4ae6aecd908acf3b",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.evaluateAutoPauseResume()": "4a15836626dba7ce",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.incrementalBackupTick()": "cd81b6e1b7dbceb9",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.incrementalBackupTick()": "aafed6cd016085f3",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7"
    }
@@ -390,9 +399,9 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.advanceIntervalPlanUnlessPaused()": "021e66bcbea4607d",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.arbitrateHRSource()": "0229714e771e93ed",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.capturePerSecondSample()": "623d07e828ff3630",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.consumeWatchRoutedStrapFallback()": "b2c1f304be8571d1",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.consumeWatchRoutedStrapFallback()": "59e149cc266792e8",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.ingestStrapBeatsAndDeriveHR(buffer:)": "bf7cc93632b70f86",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.mirrorMotionAndPowerSensors()": "4bfeb990c14c6285",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.mirrorMotionAndPowerSensors()": "f0b4c6a39930e1d3",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.publishLiveWorkoutSnapshot()": "6cca70fae47eb3b3",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.runIncrementalBackup(buffer:)": "435f02480db3d094",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.runSportScopedTickWork(sport:)": "5e102f1bfab539ce",
@@ -483,20 +492,20 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.persistWorkoutTrackIfChanged(session:sessionId:)": "239b5fc2d1bd2d83",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.persistWorkoutTrackIfChanged(session:sessionId:)": "64954d17099a409c",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.uploadLiveBackup(sessionId:points:deviceId:force:)": "51564be5a07a1300",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "f4c95388828a8c5a"
    }
   },
   {
    "key": "func WorkoutTicker.persistWorkoutTrackIfChanged(session:sessionId:)",
-   "hash": "949ebe7cadcb696a",
+   "hash": "174f98f16bbd6d17",
    "does": "Advances the TrackBackupWatermark with track count, barometric count and newest sample offsetSec; when anything changed, takes and appends a track snapshot.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.appendTrackSnapshot(session:sessionId:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation"
    ],
    "reads": [
     "mem:WorkoutLocationManager.track",
@@ -514,26 +523,31 @@
      "effect": "returns without snapshot"
     },
     {
+     "at": "+2",
+     "cond": "?? — no location stack",
+     "effect": "track and barometer counts 0"
+    },
+    {
      "at": "+4",
      "cond": "?? — no samples",
      "effect": "fallback samples mark 0"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.appendTrackSnapshot(session:sessionId:)": "11e516b7e56a13bd",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "bf6480b3ac06b1d3",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.appendTrackSnapshot(session:sessionId:)": "efe8e20091ec7578",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Collection/WorkoutTickState.swift::func TrackBackupWatermark.advanceIfChanged(trackCount:baroCount:samplesCount:)": "ea15b04f71a54797"
    }
   },
   {
    "key": "func WorkoutTicker.appendTrackSnapshot(session:sessionId:)",
-   "hash": "38a9308ed30d358c",
+   "hash": "eb28a19587c2cf48",
    "does": "Brings the recorder's TrackBackupRows up to date (only fixes and barometer samples new since the last snapshot are mapped), then hands those rows, the workout samples and wrist-HR offsets to a detached utility task calling WorkoutTrackBackup.appendIncremental for crash recovery.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func TrackBackupRows.sync(sessionId:track:baro:)",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation"
    ],
    "reads": [
     "mem:WorkoutLocationManager.track",
@@ -555,11 +569,16 @@
      "at": "+2",
      "cond": "?? — sessionStartDate nil",
      "effect": "fallback session.startDate"
+    },
+    {
+     "at": "+4",
+     "cond": "?? — no location stack",
+     "effect": "no fixes or barometer rows"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func TrackBackupRows.sync(sessionId:track:baro:)": "63d1654efe5cf07d",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "bf6480b3ac06b1d3",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
@@ -636,8 +655,8 @@
   },
   {
    "key": "func WorkoutTicker.consumeWatchRoutedStrapFallback()",
-   "hash": "9071f8a60d4f7bd4",
-   "does": "Watch-routed strap fallback: if the Watch strap payload is < 10 s old, drains the bridge's pending RR queue (bounded to plausible values); when the phone strap is not live (no RR in 5 s) synthesizes RRPoints, appends them to watchRoutedRRBuffer, feeds the DFA and applies the Watch strap HR. Drained beats are discarded while the phone strap is live.",
+   "hash": "12c3d311737bb9d1",
+   "does": "Watch-routed strap fallback: once any Watch strap payload has arrived, drains the bridge's pending RR queue every tick (bounded to plausible values); when the phone strap is not live (no RR in 5 s) synthesizes RRPoints placed back from the newest batch's arrival and appends them to watchRoutedRRBuffer; only when that batch is < 10 s old does it also feed the DFA and apply the Watch strap HR (older beats keep their time in the series but no longer describe the live state). Drained beats are discarded while the phone strap is live.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.drainPendingWatchStrapRR()",
@@ -659,18 +678,23 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "Watch strap timestamp exists and < 10 s old",
-     "effect": "false: returns (queue not drained); true: drains"
+     "cond": "no Watch strap payload yet",
+     "effect": "returns (nothing to drain)"
     },
     {
-     "at": "+5",
+     "at": "+3",
      "cond": "drained beats non-empty and phone strap not live",
      "effect": "false: returns (beats dropped if phone live); true: synthesize"
     },
     {
-     "at": "+8",
+     "at": "+5",
      "cond": "synthesized points empty",
-     "effect": "true: returns; false: buffer + DFA + HR"
+     "effect": "true: returns; false: appended to the buffer"
+    },
+    {
+     "at": "+7",
+     "cond": "newest batch older than 10 s",
+     "effect": "returns after buffering; else DFA + live HR"
     }
    ],
    "deps": {
@@ -936,15 +960,17 @@
   },
   {
    "key": "func WorkoutTicker.mirrorMotionAndPowerSensors()",
-   "hash": "11a339de18b75ddc",
-   "does": "Mirrors sensors into WorkoutMotion: footPodActive; distance (rower: PM5 odometer; else max of foot-pod, GPS and pedometer distances with paused stretches removed); elevation gain; live track; step count; cadence (rower stroke rate, else foot pod, else pedometer); then tallies power (rower PM5 or foot pod).",
+   "hash": "5fd49d40cf46923e",
+   "does": "Mirrors sensors into WorkoutMotion: footPodActive; distance (rower: PM5 odometer; else max of foot-pod, GPS (0 without a location stack) and pedometer distances with paused stretches removed); elevation gain; live track when it changed (mirrorLiveTrackIfChanged); step count; cadence (rower stroke rate, else foot pod, else pedometer); then tallies power (rower PM5, or the foot pod's current reading: 0 W counts, one older than its stale limit is none).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.footPodDistance(_:)",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.mirrorLiveTrackIfChanged()",
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.currentPowerWatts(now:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.tallyPower(_:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation"
    ],
    "reads": [
     "mem:FootPodManager.connectionState",
@@ -953,6 +979,7 @@
     "mem:Concept2Manager.instantaneousPowerWatts",
     "mem:FootPodManager.cadenceStepsPerMin",
     "mem:FootPodManager.instantaneousPowerWatts",
+    "mem:FootPodManager.powerMeasuredAt",
     "mem:FootPodManager.podReportedDistanceMeters",
     "mem:WorkoutLocationManager.distanceMeters",
     "mem:WorkoutLocationManager.elevationGainMeters",
@@ -983,37 +1010,43 @@
      "effect": "true: distance = PM5 odometer; false (non-row, or row with no PM5 distance): max(foot-pod, GPS, pedometer) with paused stretches removed"
     },
     {
+     "at": "+10",
+     "cond": "?? no location stack",
+     "effect": "GPS distance 0"
+    },
+    {
+     "at": "+13",
+     "cond": "?? no location stack",
+     "effect": "elevation gain 0"
+    },
+    {
      "at": "+16",
      "cond": "?: sport is .row",
      "effect": "true: PM5 stroke rate; false: nil"
     },
     {
-     "at": "+16",
-     "cond": "?? stroke rate nil (non-row, or PM5 has none)",
-     "effect": "fallback foot-pod cadence"
-    },
-    {
      "at": "+17",
-     "cond": "?? foot-pod cadence nil",
-     "effect": "fallback pedometer cadence (may itself be nil)"
+     "cond": "?? stroke rate nil (non-row, or PM5 has none)",
+     "effect": "fallback foot-pod cadence, then pedometer cadence (may itself be nil)"
     },
     {
      "at": "+19",
      "cond": "?: sport is .row",
-     "effect": "true: tallies PM5 instantaneous power; false: tallies foot-pod instantaneous power"
+     "effect": "true: tallies PM5 instantaneous power; false: tallies the foot pod's current power reading"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.currentPowerWatts(now:)": "35c48208cdc36d6c",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.footPodDistance(_:)": "29b8fe8b5c476a24",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)": "c84e42529d210659",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.mirrorLiveTrackIfChanged()": "a8858d4c6f0c6998",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.tallyPower(_:)": "1f540ce4ecf40d7a",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()": "77948665d3827df7",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.footPodActive": "5895630ee6834116",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.liveTrack": "fe39b21a461a0d32",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "bf6480b3ac06b1d3",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.footPod": "c08d158801df90d9"
@@ -1095,13 +1128,13 @@
   },
   {
    "key": "func WorkoutTicker.makeSample(sport:paceSecPerKm:)",
-   "hash": "929a972b4a0a5ca0",
+   "hash": "fdbcce5951b02a9f",
    "does": "Builds one WorkoutSample from current recorder values, with METs from WorkoutRecorder.estimateMETs (pace-based) and user max HR, then clears any value that is not a finite number to nil (finiteValuesOnly), since the archive cannot encode NaN or infinity.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation",
     "closure:settingsProvider",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutSample.finiteValuesOnly"
    ],
@@ -1123,8 +1156,8 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "36bfa7a8dab58811",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "bf6480b3ac06b1d3",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "f306ef98d67e6cfb",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
@@ -1232,7 +1265,7 @@
   },
   {
    "key": "func WorkoutTicker.publishLiveWorkoutSnapshot()",
-   "hash": "ae55e4e6c139dd9d",
+   "hash": "701703f6e9d67989",
    "does": "Publishes a LiveWorkoutSnapshot to LiveWorkoutBroker built from the current location, valid course, speed, last sample, strap silence and live zone breakdown.",
    "entry": null,
    "calls": [
@@ -1242,7 +1275,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.buildBrokerSnapshot(sport:loc:heading:speedMS:lastSample:strapSilent:liveZoneBreakdown:)",
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.publish(_:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSpeedMS",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation"
    ],
    "reads": [
     "mem:WorkoutLocationManager.currentLocation"
@@ -1258,13 +1291,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.publish(_:)": "7d110ab62736d5d8",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.publish(_:)": "0414f9976b1916e6",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.buildBrokerSnapshot(sport:loc:heading:speedMS:lastSample:strapSilent:liveZoneBreakdown:)": "19f3b9e20d5971b4",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.liveZoneBreakdown()": "752380c660e49beb",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.strapSilentSeconds()": "64fe74d468397ad6",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.validCourse(_:)": "5e7c629fc99a58f3",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentSpeedMS": "3ca606f01e5d1edf",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "bf6480b3ac06b1d3",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
@@ -1342,7 +1375,7 @@
   },
   {
    "key": "func WorkoutTicker.buildBrokerSnapshot(sport:loc:heading:speedMS:lastSample:strapSilent:liveZoneBreakdown:)",
-   "hash": "be5088232739a063",
+   "hash": "e282293c1c8ca876",
    "does": "Constructs the AssistantContext.LiveWorkoutSnapshot literal: sport, timings, HR/peak/max, beats, distance, steps, cadence, elevation, α1 band/status/fit, strap state, GPS, pace/speed/power/METs, splits, position/heading/cardinal, grade, units, target zone, recognised route, road geocode fields, route topology, weather, live trends, historical baselines, readiness/ATL/CTL/TSB, projections, zone seconds, race predictions, thresholds and interval progress.",
    "entry": null,
    "calls": [
@@ -1365,7 +1398,8 @@
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Models/Sport.swift::var Sport.displayName",
-    "closure:settingsProvider"
+    "closure:settingsProvider",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation"
    ],
    "reads": [
     "mem:RoadGeocodingService.current",
@@ -1392,7 +1426,7 @@
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "cfe47a2075181798",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)": "30171ba55743b2d5",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "a14332360ad925a3",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "45d5fec7bbf69622",
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.computeCurrentGradePercent()": "a955da335e00ab4e",
@@ -1416,11 +1450,12 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.plannedRoute": "95253620d4d7cdc6",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "f306ef98d67e6cfb",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "e04a40813a53feb6",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "e04a40813a53feb6",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.compactAddress": "15809705576bbcfa",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "84a1ad6f830929e0",
@@ -1629,14 +1664,15 @@
   },
   {
    "key": "func WorkoutTicker.refreshEnvironmentContextIfNeeded(sport:)",
-   "hash": "d3d5fc02ca3c0e47",
+   "hash": "602b128397653db6",
    "does": "Refreshes weather when the assistant is on or heat tracking is on for a GPS sport, and refreshes road reverse-geocoding only when the assistant is on.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)",
     "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS",
-    "closure:settingsProvider"
+    "closure:settingsProvider",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation"
    ],
    "reads": [
     "mem:UserSettings.enableAIAssistant",
@@ -1660,10 +1696,11 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "f306ef98d67e6cfb",
     "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "17652f56f6054d5a",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "1a287da0ce5ea4b6",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)": "ad6dd15bfecf63ad",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "a4c3b987ae29dd27",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)": "de72c50325c28f39",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
   },
@@ -1718,6 +1755,33 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::init TrackBackupRows(sessionId:)": "de26f48e3928016b",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup.PersistedFix(_:)": "3904632de3af9eb7"
+   }
+  },
+  {
+   "key": "func WorkoutTicker.mirrorLiveTrackIfChanged()",
+   "hash": "b90f77fc008be4f7",
+   "does": "Sets WorkoutMotion.liveTrack to the location manager's track (empty without a location stack) only when a fix was added or replaced (count or newest fix differs), so the map's polyline is not re-sent every second.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation"
+   ],
+   "reads": [
+    "mem:WorkoutLocationManager.track",
+    "mem:WorkoutMotion.liveTrack"
+   ],
+   "writes": [
+    "mem:WorkoutMotion.liveTrack"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "same count and same newest fix",
+     "effect": "nothing set"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.liveTrack": "fe39b21a461a0d32",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c"
    }
   }
  ],

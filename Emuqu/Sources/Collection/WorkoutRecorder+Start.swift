@@ -193,6 +193,7 @@ extension WorkoutSessionLifecycle {
         recorder.plannedRoute = route
         recorder.plannedRouteWasAutoDetected = false
         recorder.nextRouteDetectionAtMeters = 0
+        recorder.gradeMemo = nil
     }
 
     /// start() — source-conditional pre-flight + strap downgrade cascade (sync-breakdown `preflight` span).
@@ -785,7 +786,7 @@ extension WorkoutSessionLifecycle {
         recorder.lifecycle.autoPaused = isAuto
         recorder.lifecycle.pausedMotion.pause(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())
         recorder.lifecycle.pauseTimeline.pause(atElapsed: recorder.elapsedSeconds, now: Date())
-        recorder.location.isPaused = true
+        recorder.startedLocation?.isPaused = true
         recorder.autoPause.reset()
         debugLog("[WorkoutRecorder] paused (auto=\(isAuto))")
     }
@@ -797,7 +798,7 @@ extension WorkoutSessionLifecycle {
         recorder.lifecycle.autoPaused = false
         recorder.lifecycle.pausedMotion.resume(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())
         recorder.lifecycle.pauseTimeline.resume(now: Date())
-        recorder.location.isPaused = false
+        recorder.startedLocation?.isPaused = false
         recorder.autoPause.reset()
         debugLog("[WorkoutRecorder] resumed")
     }
