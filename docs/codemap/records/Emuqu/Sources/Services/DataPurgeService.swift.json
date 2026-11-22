@@ -504,7 +504,7 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:stores:scope:errors:)": "40a72001c1ce6517",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(_:errors:)": "4da9739737ac0975",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)": "6fe62cc8633e3cad",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:stores:)": "1ecf1d91803ce6f2",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:stores:)": "c9f1d9ce5241963b",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)": "e29a678403bf0b1c",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.report(remoteDeleted:swept:directories:steps:errors:)": "84ad75841c1136ef",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)": "6175290b41cbe774",
@@ -531,7 +531,7 @@
   {
    "key": "func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:stores:)",
    "hash": "abd426371b6306d4",
-   "does": "After all purge steps, checks each store (the conversation, facts, assistant view model and breadcrumb stores are the ones `stores` resolves) the report would otherwise assume cleared: CloudKit lastSyncDate nil and zoneCreated false; the conversation file empty or gone once the store's queued clear has run (ConversationStore.isEmptyOnDisk — a remaining set-aside copy, or a file that is unreadable or undecodable, counts as not cleared); UserFactsStore.facts empty and the facts file holding no facts once its queued write has run (persistedFacts); SettingsManager.hasAcceptedDisclaimer false; the assistant disclaimer false in UserDefaults and in the view model; UnitsPreferenceStore.current == .auto; and no breadcrumb active.json or archive.json (checked on the store's queue, after its pending clear/erase).",
+   "does": "After all purge steps, checks each store (the conversation, facts, assistant view model and breadcrumb stores are the ones `stores` resolves) the report would otherwise assume cleared: CloudKit lastSyncDate nil and zoneCreated false; the conversation history file empty or gone and no summary file once the store's queued clear has run (ConversationStore.isEmptyOnDisk — a remaining set-aside copy, a folder that cannot be listed, a summary file, or a history file that is unreadable or undecodable, counts as not cleared); UserFactsStore.facts empty and the facts file holding no facts once its queued write has run (persistedFacts); SettingsManager.hasAcceptedDisclaimer false; the assistant disclaimer false in UserDefaults and in the view model; UnitsPreferenceStore.current == .auto; and no breadcrumb active.json or archive.json (checked on the store's queue, after its pending clear/erase).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()",
@@ -547,7 +547,9 @@
     "ud:SettingsManager.disclaimerAcceptedKey",
     "ud:AssistantViewModel.disclaimerKey (assistant.disclaimerAccepted)",
     "ud(appGroup):fitness.unitsPreference",
-    "file:ConversationStore file",
+    "file:Assistant/conversation.json",
+    "file:Assistant/conversation.undecodable-<unix>.json",
+    "file:<AppGroup|Documents|tmp>/Assistant/conversation_summary.json (sealed, completeFileProtectionUnlessOpen)",
     "file:UserFactsStore file",
     "file:Breadcrumbs/active.json",
     "file:Breadcrumbs/archive.json",
@@ -558,7 +560,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()": "fa4723447a1fcb35",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()": "fc6cd71b4aa59878",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persistedFacts()": "529cfc9b46afdf6d",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasActiveTrail()": "0ffd5bc880f4cf8f",
@@ -792,7 +794,7 @@
    "deps": {
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.cancelMorningNotifications(_:)": "28403424ce4a1783",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches(_:errors:)": "dcf492de58ec5e2a",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:stores:)": "eb2c6ffda3392e88",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:stores:)": "1a6a1d05159e03be",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetAppGroupDirectory(named:in:label:reportMissingContainer:errors:)": "d44ed2172d10cdf0",
     "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "41e46af4db9cc30a",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
@@ -854,7 +856,7 @@
   {
    "key": "func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:stores:)",
    "hash": "2b31db29023405b3",
-   "does": "On the stores `stores` resolves: purges workout GPS backups, resets CloudKit local sync state, removes all API keys from the Keychain, clears the assistant conversation (view model and store) and user facts, resets settings to defaults with iCloud sync OFF, removes ud AssistantViewModel.disclaimerKey (assistant.disclaimerAccepted), sets units to .auto, clears breadcrumb active trail and archive, and resets in-memory location/contact/artifact stores, the display and training-load caches, and AI consents. Returns whether keychain removal fully succeeded.",
+   "does": "On the stores `stores` resolves: purges workout GPS backups, resets CloudKit local sync state, removes all API keys from the Keychain, clears the assistant conversation (view model and store: the history file, its set-aside copies and the summary file, synchronously) and user facts, resets settings to defaults with iCloud sync OFF, removes ud AssistantViewModel.disclaimerKey (assistant.disclaimerAccepted), sets units to .auto, clears breadcrumb active trail and archive, and resets in-memory location/contact/artifact stores, the display and training-load caches, and AI consents. Returns whether keychain removal fully succeeded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.purgeAll()",
@@ -881,15 +883,17 @@
     "file:WorkoutBackup/",
     "file:Breadcrumbs/active.json (async on BreadcrumbStore queue; verified by readBackClearedStores)",
     "file:Breadcrumbs/archive.json (async; verified by readBackClearedStores)",
-    "file:ConversationStore file (async)",
+    "file:Assistant/conversation.json",
+    "file:Assistant/conversation.undecodable-<unix>.json",
+    "file:<AppGroup|Documents|tmp>/Assistant/conversation_summary.json (sealed, completeFileProtectionUnlessOpen)",
     "file:UserFactsStore file"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "305a2f6600079f86",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "e4350cd91ff4f6a1",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "276f25ef2ddab82c",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeAllKeys()": "71525a349484c31c",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "af95a41f7463b816",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "dff1863da10b59ec",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resetToDefaults()": "4f9c0300611dc1ea",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "136e4673c9e1eea5",

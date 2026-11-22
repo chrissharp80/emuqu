@@ -595,7 +595,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archivedId(of:)": "c3d7b32f9870de81",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.takesDirectUpload(_:)": "0a5a1ef9bcc97c83",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.takesDirectUpload(_:)": "d5849e01d9c072ca",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadOne(_:)": "2dc66a05014ab1e1",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
@@ -606,10 +606,10 @@
   {
    "key": "func CloudKitSyncManager.takesDirectUpload(_:)",
    "hash": "ea3f372e30d59ef7",
-   "does": "Whether uploadSession takes the session at all: true for a .complete session or a workout carrying workoutMetadata in any state, and false for a session read out of Apple Health whole (CloudPayloadCodec isHealthKitSourced: a breathe session or a HealthKit device id).",
+   "does": "Whether uploadSession takes the session at all: true for a .complete session or a workout carrying workoutMetadata in any state, and false for a session read out of Apple Health whole (CloudSessionPayload.isHealthKitSourced: a breathe session or a HealthKit device id).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -627,7 +627,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
    }
   },
   {
@@ -1354,7 +1354,7 @@
    "deps": {
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.requireConfirmedAccount()": "d43a2836062707a1",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.dripReupload()": "a02c3bd093841b42",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.reconcileLocalDeletions()": "0a25fbe977455468",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.reconcileLocalDeletions()": "6beb440b42123396",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "abab41edf9cbe471",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.pushPendingSessions()": "8b76bb4819877acb",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.withProgressWatchdog(stuckAfter:operation:)": "74055e357b84334a",
