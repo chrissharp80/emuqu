@@ -255,7 +255,7 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "307d74d767ff8c77",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.discardReportPDF(_:next:)": "b82b62d3032a197d",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportMailSheet(_:)": "09dba98405966421",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportMailSheet(_:)": "f559375f3dd63a95",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportSheet(_:)": "9c52c06512077acc",
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportPrepErrorBinding": "b927a70f4e11b94e",
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabsWithObservers": "efe9548134c6ec8c"
@@ -284,12 +284,12 @@
   },
   {
    "key": "func MainTabView.reportMailSheet(_:)",
-   "hash": "3b490227342c6a4f",
-   "does": "Report delivery sheet: Mail composer pre-filled with subject 'Emuqu report', training-email recipient (or the default recipient) and CC, attaching the PDF; falls back to the system share sheet when no mail account is configured.",
+   "hash": "80b31c1b9c7f25a5",
+   "does": "Report delivery sheet: Mail composer pre-filled with subject 'Emuqu report', the workout-report recipient (resolvedTrainingEmailRecipient: training → recovery → general, blank fields skipped) and the general CC, attaching the PDF; falls back to the system share sheet when no mail account is configured.",
    "entry": "SwiftUI .sheet(item: pendingReportMailURL).",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC",
     "ext:MFMailComposeViewController.canSendMail",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.makeUIViewController(context:)",
@@ -309,13 +309,13 @@
     },
     {
      "at": "+4",
-     "cond": "defaultTrainingEmailRecipient ?? resolvedDefaultEmailRecipient, then .map ?? []",
-     "effect": "training recipient first, else the general default recipient, else no recipient"
+     "cond": "resolvedTrainingEmailRecipient nil",
+     "effect": "no recipient"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "91eeb80e18c9f867",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "41fd2fc8b37365a4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "dac42d076ea6279c",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient": "19fcbec0d072481a",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a",

@@ -451,7 +451,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ccRecipients(_:fallback:)": "49602d7e4159168a",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactResolutionFailure(_:_:)": "cf6dfec7f309615d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.emailDefaults(for:)": "5eac198c5737d99c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.emailDefaults(for:)": "541b352df0c3f822",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveContacts(_:)": "dc412f77feeeb4fd",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stageEmail(subject:body:to:cc:)": "539ee7ab9e72b9fd",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmailRecord(subject:body:category:to:cc:)": "a6e9822b6a736ed7",
@@ -460,15 +460,17 @@
   },
   {
    "key": "func AssistantMemoryNamespace.emailDefaults(for:)",
-   "hash": "33fa5702e4ce6463",
-   "does": "Reads the settings snapshot and returns (to, cc) for the category: to = category recipient trimmed, else resolvedDefaultEmailRecipient (recovery → training → legacy); cc = the category CC split on ',', trimmed and stripped of empty entries (so a whitespace-only or comma-only CC counts as unset), else resolvedDefaultEmailCC, joined with ','.",
+   "hash": "cc8858baab74b600",
+   "does": "Reads the settings snapshot and returns (to, cc) for the category: a recovery note uses resolvedDefaultEmailRecipient / resolvedDefaultEmailCC (recovery → training → legacy), anything else resolvedTrainingEmailRecipient / resolvedTrainingEmailCC (training → recovery → legacy), blank fields skipped; to is \"\" when none, cc the addresses joined with ','.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC"
    ],
    "reads": [
     "mem:SettingsManager.settingsSnapshot (defaultRecoveryEmailRecipient, defaultTrainingEmailRecipient, defaultRecoveryEmailCC, defaultTrainingEmailCC, defaultEmailRecipient, defaultEmailCC)"
@@ -476,40 +478,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "category == 'recovery'",
-     "effect": "reads defaultRecoveryEmailRecipient; else defaultTrainingEmailRecipient"
-    },
-    {
-     "at": "+2",
-     "cond": "selected recipient is nil",
-     "effect": "?? '' — primary empty"
-    },
-    {
-     "at": "+8",
-     "cond": "category == 'recovery'",
-     "effect": "reads defaultRecoveryEmailCC; else defaultTrainingEmailCC"
-    },
-    {
-     "at": "+8",
-     "cond": "selected CC is nil",
-     "effect": "?? '' — categoryCC empty"
-    },
-    {
-     "at": "+16",
-     "cond": "primary is empty",
-     "effect": "to = resolvedDefaultEmailRecipient ?? ''; else primary"
-    },
-    {
-     "at": "+17",
-     "cond": "parsed categoryCC is empty",
-     "effect": "cc = resolvedDefaultEmailCC joined with ','; else categoryCC"
+     "at": "+3",
+     "cond": "category is \"recovery\"",
+     "effect": "recovery chain; else the workout chain"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "a1abab14c1ff8f17",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "91eeb80e18c9f867",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "41fd2fc8b37365a4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "dac42d076ea6279c",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "46367860bc72e5b4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC": "c4c996f8ca2bbd96",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient": "19fcbec0d072481a",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
