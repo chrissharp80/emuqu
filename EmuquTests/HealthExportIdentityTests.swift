@@ -1,4 +1,5 @@
 @testable import Emuqu
+import HealthKit
 import XCTest
 
 /// Tests for the `HKMetadataKeyExternalUUID` scheme that decides which of the
@@ -146,6 +147,35 @@ final class HealthExportIdentityTests: XCTestCase {
             HealthExportIdentity.seriesMember(sessionId: session, metric: .sleep, suffix: "inbed"),
             "\(session.uuidString)-sleep-inbed"
         )
+        XCTAssertEqual(
+            HealthExportIdentity.summary(sessionId: session, metric: .workout),
+            "\(session.uuidString)-workout"
+        )
+    }
+
+    // MARK: - Sync identity
+
+    /// What HealthKit de-duplicates on: the identity again as the sync
+    /// identifier, and a version, which HealthKit requires with it.
+    func testMetadataCarriesTheIdentityAsTheSyncIdentifier() {
+        let identity = HealthExportIdentity.summary(sessionId: session, metric: .sdnn)
+        let metadata = HealthExportIdentity.metadata(identity, version: 42, ["HRVMetric": "SDNN"])
+        XCTAssertEqual(metadata[HKMetadataKeyExternalUUID] as? String, identity)
+        XCTAssertEqual(metadata[HKMetadataKeySyncIdentifier] as? String, identity)
+        XCTAssertEqual(metadata[HKMetadataKeySyncVersion] as? Int, 42)
+        XCTAssertEqual(metadata["HRVMetric"] as? String, "SDNN")
+        XCTAssertEqual(metadata["Source"] as? String, "Emuqu")
+    }
+
+    /// A later export always carries a higher version, even within one
+    /// millisecond or with the clock set back, so it replaces the earlier one.
+    func testSyncVersionsOnlyGoUp() {
+        let now = Date()
+        let first = HealthExportIdentity.nextSyncVersion(now: now)
+        let sameMillisecond = HealthExportIdentity.nextSyncVersion(now: now)
+        let clockSetBack = HealthExportIdentity.nextSyncVersion(now: now.addingTimeInterval(-3_600))
+        XCTAssertLessThan(first, sameMillisecond)
+        XCTAssertLessThan(sameMillisecond, clockSetBack)
     }
 
     /// An unrelated app's sample, or one of ours from before the scheme, is

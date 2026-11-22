@@ -428,6 +428,14 @@ final class HealthKitManager {
 
     nonisolated private static let backfillWatermarkKey = "hkBackfillExportedWatermark"
 
+    /// Make the next backfill scan every workout. For a change the
+    /// watermark cannot see: a rebuilt workout keeps its id, start and
+    /// count, but its export stamp was cleared so the new copy replaces the
+    /// one in Apple Health.
+    nonisolated static func requestBackfillRescan() {
+        UserDefaults.standard.removeObject(forKey: backfillWatermarkKey)
+    }
+
     /// "count-newestDate" for the workout entries; see `backfillWorkoutsToHealthKit`.
     nonisolated private static func backfillWatermark(_ entries: [SessionArchiveEntry]) -> String {
         let newest = entries.map(\.date).max()?.timeIntervalSince1970 ?? 0
@@ -512,7 +520,7 @@ final class HealthKitManager {
     /// sustained without throwing, so a 1 s pause after each export keeps
     /// the batch at or below that.
     private func exportAndStamp(_ session: inout HRVSession, archive: SessionArchive, bodyWeightKg: Double) async throws {
-        try await HealthKitWorkoutExport.export(session: session, store: healthStore, bodyWeightKg: bodyWeightKg)
+        try await HealthKitWorkoutExport.export(session: session, healthKit: self, bodyWeightKg: bodyWeightKg)
         let exportedAt = Date()
         session.healthKitExportedAt = exportedAt
         session.healthKitExportFailureCount = nil
@@ -530,9 +538,11 @@ final class HealthKitManager {
 
     /// Only the stamp, onto the copy as stored now: the export takes a
     /// moment, and writing back the copy read before it undid an edit or a
-    /// heart-rate-recovery save made meanwhile.
+    /// heart-rate-recovery save made meanwhile. The stamp is uploaded to
+    /// iCloud with the session, so another device, or this one after a
+    /// reinstall, does not export the workout again.
     private static func writeExportStamp(_ id: UUID, at exportedAt: Date, archive: SessionArchive) throws {
-        try archive.update(id, requestingReupload: false) {
+        try archive.update(id) {
             $0.healthKitExportedAt = exportedAt
             $0.healthKitExportFailureCount = nil
         }

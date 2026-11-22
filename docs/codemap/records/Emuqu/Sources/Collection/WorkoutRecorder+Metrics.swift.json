@@ -213,7 +213,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportToHealthKitIfAvailable(_:)": "35c8c50d7e58c5f7",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportToHealthKitIfAvailable(_:)": "2f63271847dcba8c",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.retireRedundantBackups(for:)": "09ab28233eb711fb",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "1aa026e4481155fe",
@@ -260,11 +260,11 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.exportToHealthKitIfAvailable(_:)",
-   "hash": "9558fb1cdb7a99a5",
-   "does": "Captures the HealthKit store, effective body weight and archive, and launches a utility Task running exportWorkoutToHealthKit.",
+   "hash": "b06a1de59f1874bd",
+   "does": "Captures the HealthKitManager, effective body weight and archive, and launches a utility Task running exportWorkoutToHealthKit.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:store:bodyWeightKg:archive:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:healthKit:bodyWeightKg:archive:)",
     "closure:WorkoutRecorder.settingsProvider"
    ],
    "reads": [],
@@ -272,21 +272,21 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "66055d6a54f84c45",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:store:bodyWeightKg:archive:)": "9aace41a5e76faf4",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:healthKit:bodyWeightKg:archive:)": "2261a2492beff4ba",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "f306ef98d67e6cfb",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "f13b6ef4aa525d0f",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
   },
   {
-   "key": "func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:store:bodyWeightKg:archive:)",
-   "hash": "fa6ec62dfa9e0013",
-   "does": "Claims the session id in HealthExportClaims (returns if another exporter holds it), exports the HKWorkout via HealthKitWorkoutExport.export, then stamps healthKitExportedAt; export errors are logged at info level; claim released on exit.",
+   "key": "func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:healthKit:bodyWeightKg:archive:)",
+   "hash": "8c410ece036e0e72",
+   "does": "Claims the session id in HealthExportClaims (returns if another exporter holds it), exports the HKWorkout via HealthKitWorkoutExport.export (replacing any earlier export of the session), then stamps healthKitExportedAt; export errors are logged at info level; claim released on exit.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)",
     "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:store:bodyWeightKg:writesHeartRate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.stampHealthKitExport(sessionId:archive:)"
    ],
    "reads": [],
@@ -308,29 +308,30 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)": "e893db4f613ebe89",
     "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)": "1b5b0fdc46896c07",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:store:bodyWeightKg:writesHeartRate:)": "66252bcf11489020",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "26c67d8ab67eca74",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "66055d6a54f84c45",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.stampHealthKitExport(sessionId:archive:)": "f1cb517d350b80f2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.stampHealthKitExport(sessionId:archive:)": "cf076816c038ce1e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func WorkoutSessionLifecycle.stampHealthKitExport(sessionId:archive:)",
-   "hash": "4dcea9df3b3503f6",
-   "does": "Updates the archived session in place (requestingReupload false) to set healthKitExportedAt = now; logs a warning if the archive update throws.",
+   "hash": "d9d2c6411dad0956",
+   "does": "Updates the archived session in place, requesting a reupload (modifiedAt stamped), to set healthKitExportedAt = now, so the stamp reaches iCloud and another device does not export the workout again; logs a warning if the archive update throws.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)"
    ],
    "reads": [],
    "writes": [
-    "archive:SessionArchive.update (healthKitExportedAt)"
+    "archive:SessionArchive.update (healthKitExportedAt, modifiedAt)",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
    ],
    "branches": [
     {
      "at": "+7",
      "cond": "archive.update throws",
-     "effect": "catch: warning log; HealthKit has the workout but archive lacks the stamp, so a later backfill can export a duplicate"
+     "effect": "catch: warning log; HealthKit has the workout but the archive lacks the stamp, so a later backfill exports it again, replacing the copy in Health"
     }
    ],
    "deps": {

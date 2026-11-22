@@ -1,9 +1,11 @@
 {
  "file": "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift",
- "hash": "863c2a8352eb77a4",
- "role": "Exports a finished Emuqu workout HRVSession to HealthKit as an HKWorkout via HKWorkoutBuilder, with per-tick heart rate (opt-in, not Apple-sourced), distance and active-energy sample series placed on the wall clock around pauses, pause/resume workout events, and an optional GPS route.",
+ "hash": "f4d288afe76792b7",
+ "role": "Exports a finished Emuqu workout HRVSession to HealthKit as an HKWorkout via HKWorkoutBuilder, with per-tick heart rate (opt-in, not Apple-sourced), distance and net active-energy sample series placed on the wall clock around pauses, pause/resume workout events, and an optional GPS route. Every object it saves carries the session's identity as ExternalUUID and sync identifier with the export's sync version; an export first finds what earlier exports of the session saved (by identity, or a legacy copy by its start second) and deletes what HealthKit did not replace once the new copy is saved. Also deletes a session's exported workouts when the session is deleted forever.",
  "types": [
-  "HealthKitWorkoutExport: enum — namespace of static export + pure sample builders",
+  "HealthKitWorkoutExport: enum — namespace of static export/removal + pure sample builders",
+  "HealthKitWorkoutExport.ExportStamp: struct — session id + sync version; the identities and metadata of the workout, its route and its samples",
+  "HealthKitWorkoutExport.EarlierExport: struct (@MainActor) — an earlier export's workouts and the samples/routes saved with them; find, match, delete",
   "HealthKitWorkoutExport.SampleOptions: struct — body weight + which series to write",
   "HealthKitWorkoutExport.ExportError: enum (LocalizedError) — missingRequiredFields / authorizationNotGranted / workoutNotSaved",
   "WorkoutWallClock: struct — start date + pause spans sorted by atElapsed; maps active (pause-excluded) seconds to wall-clock Dates, tick intervals that never span a pause, and pause start/resume moments"
@@ -11,32 +13,42 @@
  "state": [
   "mem:HealthKitWorkoutExport.mlOxygenPerKgPerMET = 3.5 (private static let)",
   "mem:HealthKitWorkoutExport.mlOxygenPerKcal = 200.0 (private static let)",
-  "mem:HealthKitWorkoutExport.minimumKcalPerSample = 0.01 (private static let)"
+  "mem:HealthKitWorkoutExport.restingMETs = 1.0 (private static let)",
+  "mem:HealthKitWorkoutExport.minimumKcalPerSample = 0.01 (private static let)",
+  "mem:HealthKitWorkoutExport.EarlierExport.searchPadding = 25 h (static let)",
+  "hk identities: '<uuid>-workout' (the workout), '<uuid>-workout-route', '<uuid>-workout-<hr|distance|energy>-<n>'"
  ],
- "toplevel": "Constants for the ACSM kcal formula (lines 219-224). After the enum, the file-scope struct WorkoutWallClock (stored startDate and sorted pauseSpans, no other top-level code).",
+ "toplevel": "Constants for the ACSM kcal formula and the resting MET. After the enum, the file-scope struct WorkoutWallClock (stored startDate and sorted pauseSpans, no other top-level code).",
  "units": [
   {
-   "key": "func HealthKitWorkoutExport.export(session:store:bodyWeightKg:writesHeartRate:)",
-   "hash": "93aa46bcdaa18dfe",
-   "does": "Saves a finished workout session to HealthKit: requires workoutMetadata and endDate, requires workout write authorization, builds and finishes an HKWorkout with sample series chosen by sampleOptions, then (unless the session is HealthKit-sourced) attaches the GPS route; logs success. Throws ExportError or builder errors to the caller.",
+   "key": "func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)",
+   "hash": "33bc8cb2146070bf",
+   "does": "Saves a finished workout session to HealthKit, replacing earlier exports of it: requires workoutMetadata and endDate and workout write authorization; finds the earlier exports (EarlierExport.find, fail closed); builds and finishes an HKWorkout under a fresh ExportStamp with the sample series sampleOptions chooses; attaches the GPS route (none for a HealthKit-sourced session); then deletes what the earlier exports saved, keeping objects whose sync identifier the new export reused (HealthKit replaced them); logs success. Throws ExportError, builder, query or delete errors to the caller; a failed delete throws after the new workout is saved.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.saveWorkout(metadata:startDate:endDate:samples:store:)",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRouteToSavedWorkout(session:metadata:workout:store:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.saveWorkout(metadata:startDate:endDate:samples:stamp:store:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRouteToSavedWorkout(session:metadata:workout:stamp:store:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.routeIdentity",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.writesWorkoutHeartRate",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:HKObjectType.workoutType"
    ],
-   "reads": [],
+   "reads": [
+    "hk:HKWorkout and its samples/route (own source, earlier exports)",
+    "mem:HealthKitManager.sampleReplacer.store"
+   ],
    "writes": [
     "hk:HKWorkout",
     "hk:heartRate",
     "hk:distanceWalkingRunning/distanceCycling",
     "hk:activeEnergyBurned",
-    "hk:HKWorkoutRoute"
+    "hk:HKWorkoutRoute",
+    "hk:earlier exports of the session (deleted)"
    ],
    "branches": [
     {
@@ -45,31 +57,268 @@
      "effect": "throws ExportError.missingRequiredFields; otherwise continues"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "workout type not sharingAuthorized in store",
-     "effect": "throws ExportError.authorizationNotGranted; otherwise saves the workout"
+     "effect": "throws ExportError.authorizationNotGranted; otherwise continues"
     },
     {
-     "at": "+18",
-     "cond": "session is NOT HealthKit-sourced (isHealthKitSourced false; breathe sessions and HK-device sessions are sourced)",
-     "effect": "attaches the route via attachRouteToSavedWorkout; otherwise skips route entirely"
+     "at": "+15",
+     "cond": "the earlier-export lookup fails or times out",
+     "effect": "throws; nothing saved"
     },
     {
-     "at": "+21",
+     "at": "+22",
+     "cond": "route saved",
+     "effect": "its identity kept out of the delete"
+    },
+    {
+     "at": "+23",
+     "cond": "deleting an earlier object fails",
+     "effect": "throws, the new workout saved"
+    },
+    {
+     "at": "+24",
      "cond": "session.duration nil (?? 0)",
      "effect": "log prints duration 0s"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRouteToSavedWorkout(session:metadata:workout:store:)": "10b094bddb39f129",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)": "dc7538c29edef3aa",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)": "42fde0c19bdd2767",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)": "b01e3fee14e4c6a6",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRouteToSavedWorkout(session:metadata:workout:stamp:store:)": "c4a6fcb8a475ea4d",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "76a0ccf485ca3adf",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "90ab8655c5d66a52",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.saveWorkout(metadata:startDate:endDate:samples:store:)": "d5a37a56d57bebe6",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.saveWorkout(metadata:startDate:endDate:samples:stamp:store:)": "57a8d43cdb283297",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.routeIdentity": "3cc50591e1d408c1",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.writesWorkoutHeartRate": "2605e0e80c4a21af",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.removeExports(sessionId:startDate:healthKit:)",
+   "hash": "d42d14263cebceb1",
+   "does": "For a session deleted forever: finds every workout the app exported for it (EarlierExport.find from the recording's start) with the samples and routes saved with each, and deletes them all; logs how many workouts went. Without HealthKit it does nothing; lookup and delete errors propagate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:HKWorkout and its samples/route (own source)",
+    "mem:HealthKitManager.sampleReplacer.store"
+   ],
+   "writes": [
+    "hk:the session's exported workouts, samples and routes (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "HealthKit unavailable",
+     "effect": "returns, nothing deleted"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)": "42fde0c19bdd2767",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)": "b01e3fee14e4c6a6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "var HealthKitWorkoutExport.ExportStamp.workoutIdentity",
+   "hash": "836f4364c8e1bb79",
+   "does": "The workout's own identity: HealthExportIdentity.summary(session, .workout), '<uuid>-workout'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "6366e07ca5f14857"
+   }
+  },
+  {
+   "key": "var HealthKitWorkoutExport.ExportStamp.routeIdentity",
+   "hash": "4f72a6909cb4513b",
+   "does": "The route's identity: the workout series member 'route', '<uuid>-workout-route'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "b798540327ba6b0c"
+   }
+  },
+  {
+   "key": "var HealthKitWorkoutExport.ExportStamp.metadataOfWorkout",
+   "hash": "68dcfb56d3e739d8",
+   "does": "The workout's export metadata: HealthExportIdentity.metadata of workoutIdentity at the stamp's version.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.workoutIdentity",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)": "7ee0ef3efc415d6e",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.workoutIdentity": "4e25930142621c79"
+   }
+  },
+  {
+   "key": "var HealthKitWorkoutExport.ExportStamp.metadataOfRoute",
+   "hash": "6b51ce37ab2d9c66",
+   "does": "The route's export metadata: HealthExportIdentity.metadata of routeIdentity at the stamp's version.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.routeIdentity",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)": "7ee0ef3efc415d6e",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.routeIdentity": "3cc50591e1d408c1"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.ExportStamp.sampleMetadata(_:index:)",
+   "hash": "0d30efd537782d75",
+   "does": "The export metadata of the `index`th sample of a `kind` series saved with the workout: identity '<uuid>-workout-<kind>-<index>' at the stamp's version.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)": "7ee0ef3efc415d6e",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "b798540327ba6b0c"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
+   "hash": "3b1d4086beaf7a48",
+   "does": "Reads this app's workouts within ±25 h of `startDate` (store.ownSamples, background aggregate timeout, fail closed) and keeps those isEarlierExport matches; then, for each, reads the app's samples of every type a workout export attaches (HealthKitManager.workoutExportSampleTypes: heart rate, active energy, both distances, routes) saved with it. Returns the workouts and those samples; any read error or timeout throws.",
+   "entry": null,
+   "calls": [
+    "dyn:HealthSampleStore.ownSamples(of:in:)",
+    "dyn:HealthSampleStore.ownSamples(of:savedWith:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.isEarlierExport(externalUUID:startDate:sessionId:sessionStart:)",
+    "ext:HKObjectType.workoutType"
+   ],
+   "reads": [
+    "hk:HKWorkout (own source)",
+    "hk:heartRate/activeEnergyBurned/distance/HKWorkoutRoute saved with those workouts",
+    "mem:HealthKitManager.workoutExportSampleTypes (static)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "a workout is not an export of the session",
+     "effect": "left out"
+    },
+    {
+     "at": "+12",
+     "cond": "no matching workout",
+     "effect": "no sample reads; empty result"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "2f3f27aa0cd39f4d",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.isEarlierExport(externalUUID:startDate:sessionId:sessionStart:)": "e4f75bb994fe9e27"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.EarlierExport.isEarlierExport(externalUUID:startDate:sessionId:sessionStart:)",
+   "hash": "2514c4ef9b1da147",
+   "does": "Whether a workout this app saved is an export of the session: its ExternalUUID is the session's workout identity (exact), or it has none (saved before workouts had one) and starts within a second of the session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no ExternalUUID",
+     "effect": "true when the start is within 1 s of the session's"
+    },
+    {
+     "at": "+4",
+     "cond": "ExternalUUID present",
+     "effect": "true only for the session's own workout identity"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)": "30167c2c525d7d30"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)",
+   "hash": "1af79a17f4941523",
+   "does": "Deletes the earlier samples and workouts, leaving out any whose sync identifier is in `keeping` (a new export reused it and HealthKit replaced the object): grouped by type with workouts last (byType), each group deleted on its own through the store; a failed group is logged as a warning and the rest still run; the first error is thrown at the end.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.syncIdentifier(of:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.byType(_:)",
+    "dyn:HealthSampleStore.delete",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:earlier workouts, samples and routes (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "object's sync identifier is in `keeping`",
+     "effect": "not deleted"
+    },
+    {
+     "at": "+8",
+     "cond": "deleting a group fails",
+     "effect": "logged, first error kept, next group still deleted"
+    },
+    {
+     "at": "+14",
+     "cond": "any group failed",
+     "effect": "throws the first error"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.syncIdentifier(of:)": "5a7a5b433a98884b",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.byType(_:)": "bac5d2c59fcf325e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.EarlierExport.byType(_:)",
+   "hash": "8dd7fca11d6a275a",
+   "does": "Groups the objects by sample type identifier, ordered by identifier with the workout type last, so a workout is never deleted before the samples saved with it.",
+   "entry": null,
+   "calls": [
+    "ext:HKObjectType.workoutType"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "var HealthKitWorkoutExport.writesWorkoutHeartRate",
@@ -121,16 +370,18 @@
    }
   },
   {
-   "key": "func HealthKitWorkoutExport.saveWorkout(metadata:startDate:endDate:samples:store:)",
-   "hash": "06f04eefeccfbfe5",
-   "does": "Creates an HKWorkoutBuilder with the sport's configuration on the local device, builds a WorkoutWallClock from startDate and metadata.pauseSpans, begins collection at start, adds the sample series on that clock, adds a pause/resume HKWorkoutEvent pair per pause (so Health's duration leaves pauses out), ends collection at end and finishes the workout; returns the saved HKWorkout.",
+   "key": "func HealthKitWorkoutExport.saveWorkout(metadata:startDate:endDate:samples:stamp:store:)",
+   "hash": "729aa35574a231c1",
+   "does": "Creates an HKWorkoutBuilder with the sport's configuration on the local device, builds a WorkoutWallClock from startDate and metadata.pauseSpans, begins collection at start, adds the stamped sample series on that clock, adds a pause/resume HKWorkoutEvent pair per pause (so Health's duration leaves pauses out), adds the stamp's workout metadata (identity, sync identifier, sync version), ends collection at end and finishes the workout; returns the saved HKWorkout with the sync identifiers of it and the samples added.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutConfiguration(for:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.addSampleSeries(metadata:clock:options:store:to:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.addSampleSeries(metadata:clock:options:stamp:store:to:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)",
-    "ext:HKWorkoutBuilder.beginCollection/addWorkoutEvents/endCollection/finishWorkout"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.metadataOfWorkout",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.workoutIdentity",
+    "ext:HKWorkoutBuilder.beginCollection/addWorkoutEvents/addMetadata/endCollection/finishWorkout"
    ],
    "reads": [],
    "writes": [
@@ -139,30 +390,33 @@
    ],
    "branches": [
     {
-     "at": "+11",
+     "at": "+14",
      "cond": "no pause events (no pauses, or all began at/after endDate)",
      "effect": "addWorkoutEvents not called; otherwise the events are added (a throw fails the export)"
     },
     {
-     "at": "+15",
+     "at": "+19",
      "cond": "finishWorkout() returns nil",
-     "effect": "throws ExportError.workoutNotSaved; otherwise returns the workout"
+     "effect": "throws ExportError.workoutNotSaved; otherwise returns the workout and sync identifiers"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.addSampleSeries(metadata:clock:options:store:to:)": "90f48435dae8819a",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.addSampleSeries(metadata:clock:options:stamp:store:to:)": "18b2d4808c34eb1b",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)": "05d5c0c59b30c3f5",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutConfiguration(for:)": "176909391b03bf94",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)": "d21ee09d30eb856c"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)": "d21ee09d30eb856c",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.metadataOfWorkout": "046fabc234810b92",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.workoutIdentity": "4e25930142621c79"
    }
   },
   {
-   "key": "func HealthKitWorkoutExport.attachRouteToSavedWorkout(session:metadata:workout:store:)",
-   "hash": "0dc1dfe9c78d4d96",
-   "does": "Attaches the GPS route to an already-saved workout, catching and logging any route error at warning level so the export still counts as successful.",
+   "key": "func HealthKitWorkoutExport.attachRouteToSavedWorkout(session:metadata:workout:stamp:store:)",
+   "hash": "34b2b60a5c35fc1d",
+   "does": "Attaches the stamped GPS route to an already-saved workout and says whether one was saved; a HealthKit-sourced session gets none, and any route error is caught and logged at warning level so the export still counts as successful.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRoute(metadata:duration:startDate:workout:store:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRoute(metadata:duration:startDate:workout:stamp:store:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -171,13 +425,19 @@
    ],
    "branches": [
     {
-     "at": "+8",
+     "at": "+3",
+     "cond": "session is HealthKit-sourced",
+     "effect": "false, no route"
+    },
+    {
+     "at": "+9",
      "cond": "attachRoute throws",
-     "effect": "error is logged ('saved without its route') and swallowed; workout stays saved without route"
+     "effect": "error is logged ('saved without its route') and swallowed; false, workout stays saved without route"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRoute(metadata:duration:startDate:workout:store:)": "e987d9b9ecaf01b6",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRoute(metadata:duration:startDate:workout:stamp:store:)": "71e352ba34317c2d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -205,15 +465,16 @@
    }
   },
   {
-   "key": "func HealthKitWorkoutExport.addSampleSeries(metadata:clock:options:store:to:)",
-   "hash": "d393e1a42c872b09",
-   "does": "Builds up to three sample batches (heart rate, distance, active energy) placed on the given WorkoutWallClock and adds each non-empty batch whose type is writable to the builder; unwritable types are skipped and logged.",
+   "key": "func HealthKitWorkoutExport.addSampleSeries(metadata:clock:options:stamp:store:to:)",
+   "hash": "2196995bc7d8041f",
+   "does": "Builds up to three stamped sample batches (heart rate, distance, active energy) placed on the given WorkoutWallClock and adds each non-empty batch whose type is writable to the builder; unwritable types are skipped and logged. Returns the sync identifiers of the samples added.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(of:clock:)",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(of:clock:stamp:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:stamp:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:stamp:bodyWeightKg:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.syncIdentifier(of:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:HKWorkoutBuilder.addSamples"
    ],
@@ -225,40 +486,36 @@
    ],
    "branches": [
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "options.writesDistanceAndEnergy",
      "effect": "uses metadata.samples (?? [] when samples nil) for distance/energy; otherwise uses [] so no distance/energy samples"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "options.writesHeartRate",
      "effect": "builds heart rate samples; otherwise empty batch"
     },
     {
      "at": "+15",
-     "cond": "loop over the three batches",
-     "effect": "each batch processed in order HR, distance, energy"
-    },
-    {
-     "at": "+16",
-     "cond": "batch is empty (no first sampleType)",
-     "effect": "continue — batch skipped"
+     "cond": "batch empty or its type not sharingAuthorized",
+     "effect": "not added; a non-empty unwritable batch's type is listed as skipped"
     },
     {
      "at": "+17",
-     "cond": "batch type not sharingAuthorized",
-     "effect": "type identifier appended to skipped, batch not added; otherwise addSamples (which can throw and fail the export)"
+     "cond": "loop over the writable batches",
+     "effect": "addSamples in order HR, distance, energy (a throw fails the export)"
     },
     {
-     "at": "+23",
+     "at": "+20",
      "cond": "any batch skipped",
      "effect": "debug log listing skipped types; otherwise no log"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "df3ed21319501982",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "1ef6728ddd3b1365",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(of:clock:)": "1fa6304e4f6a3ffd",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.syncIdentifier(of:)": "5a7a5b433a98884b",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:stamp:bodyWeightKg:)": "28c482a86fac1ea6",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:stamp:)": "834bdefe1566bca7",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(of:clock:stamp:)": "affb64ec943c963f",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "76a0ccf485ca3adf",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
@@ -322,33 +579,34 @@
    }
   },
   {
-   "key": "func HealthKitWorkoutExport.heartRateSamples(of:clock:)",
-   "hash": "3c83ae88e7b07f93",
-   "does": "Heart rate samples for a workout on the given wall clock, skipping the offsets listed in metadata.healthKitHROffsets (rows read from Apple Health).",
+   "key": "func HealthKitWorkoutExport.heartRateSamples(of:clock:stamp:)",
+   "hash": "10ffd74d3cf12181",
+   "does": "Stamped heart rate samples for a workout on the given wall clock, skipping the offsets listed in metadata.healthKitHROffsets (rows read from Apple Health).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:stamp:skipping:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
+     "at": "+4",
      "cond": "metadata.samples nil / healthKitHROffsets nil (??)",
      "effect": "uses [] samples / empty skip set"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "51006c5ceb17bf4d"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:stamp:skipping:)": "b4174a5f512cb54e"
    }
   },
   {
-   "key": "func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)",
-   "hash": "ed07a8620104821c",
-   "does": "Maps WorkoutSamples with heart rate (and not in the skip set) to instantaneous HKQuantitySamples in count/min at each tick's wall-clock moment (clock.date(atActiveOffset:): start + offset + pauses that began before it); nil factory results dropped.",
+   "key": "func HealthKitWorkoutExport.heartRateSamples(from:clock:stamp:skipping:)",
+   "hash": "2d87af1c2701b235",
+   "does": "Maps WorkoutSamples with heart rate (and not in the skip set) to instantaneous HKQuantitySamples in count/min at each tick's wall-clock moment (clock.date(atActiveOffset:): start + offset + pauses that began before it), each with the stamp's 'hr' sample metadata numbered in the order written; nil factory results dropped.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.ExportStamp.sampleMetadata(_:index:)",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
    ],
    "reads": [],
@@ -360,57 +618,65 @@
      "effect": "returns []"
     },
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "sample has no heartRate or its offset is in the skip set",
-     "effect": "sample dropped (nil); otherwise sample built"
+     "effect": "sample dropped; otherwise sample built"
+    },
+    {
+     "at": "+12",
+     "cond": "factory returned a sample",
+     "effect": "appended; nil dropped"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.ExportStamp.sampleMetadata(_:index:)": "44fbd369b85a8016",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "4c4f33a82d84ec45",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678"
    }
   },
   {
-   "key": "func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)",
-   "hash": "79a16b97ae38b85a",
-   "does": "Builds delta-distance samples for sports with a Health distance type: ticks sorted by offset, each increase over the last cumulative distance becomes a sample spanning from where the previous written delta ended (the workout start for the first) to this tick, so a delta that built up over non-advancing ticks covers all of them. The span is placed on the wall clock by clock.interval(fromActiveOffset:to:), so it never crosses a pause: one a pause interrupted starts at that pause's resume.",
+   "key": "func HealthKitWorkoutExport.distanceSamples(from:sport:clock:stamp:)",
+   "hash": "a638f38725b60d5b",
+   "does": "Builds delta-distance samples for sports with a Health distance type: ticks sorted by offset, each increase over the last cumulative distance becomes a sample spanning from where the previous written delta ended (the workout start for the first) to this tick, so a delta that built up over non-advancing ticks covers all of them, each with the stamp's 'distance' sample metadata numbered in the order written. The span is placed on the wall clock by clock.interval(fromActiveOffset:to:), so it never crosses a pause: one a pause interrupted starts at that pause's resume.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.ExportStamp.sampleMetadata(_:index:)",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "sport has no distance type or HK type unavailable",
      "effect": "returns []"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "loop over time-ordered ticks",
      "effect": "per-tick processing"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "tick has no distanceMeters or distance not greater than the last emitted cumulative distance",
      "effect": "tick skipped (no sample; span start unchanged)"
     },
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "delta not finite or <= 0",
      "effect": "tick skipped; otherwise lastDistance updated and the span start moves to this tick"
     },
     {
-     "at": "+20",
+     "at": "+22",
      "cond": "factory returned a sample",
      "effect": "appended; nil (invalid interval/value) dropped"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.ExportStamp.sampleMetadata(_:index:)": "44fbd369b85a8016",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "03b79a6d1be56585",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "0d0cf2bc44fe4080",
@@ -445,55 +711,70 @@
    "deps": {}
   },
   {
-   "key": "func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)",
-   "hash": "9e8e00a882017ee7",
-   "does": "Builds per-tick active-energy samples: kcal = METs × 3.5 × bodyWeightKg × minutes / 200 over the active seconds since the previous tick (since the workout start for the first tick), skipping non-positive/non-finite METs and windows ≤ 0.01 kcal. Each sample is placed on the wall clock by clock.interval(fromActiveOffset:to:), so it never crosses a pause (one a pause interrupted starts at the resume).",
+   "key": "func HealthKitWorkoutExport.activeEnergySamples(from:clock:stamp:bodyWeightKg:)",
+   "hash": "b6026ce8c7f16f98",
+   "does": "Builds per-tick active-energy samples from net METs (netMETs: gross Compendium METs less the 1 MET of rest, floored at 0): kcal = netMETs × 3.5 × bodyWeightKg × minutes / 200 over the active seconds since the previous tick (since the workout start for the first tick), skipping non-positive/non-finite METs and windows ≤ 0.01 kcal, each with the stamp's 'energy' sample metadata numbered in the order written. Each sample is placed on the wall clock by clock.interval(fromActiveOffset:to:), so it never crosses a pause (one a pause interrupted starts at the resume).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.netMETs(_:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.ExportStamp.sampleMetadata(_:index:)",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "activeEnergyBurned type unavailable",
      "effect": "returns []"
     },
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "loop over time-ordered ticks",
      "effect": "per-tick processing"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "mets nil, <= 0 or not finite",
      "effect": "tick skipped"
     },
     {
-     "at": "+12",
+     "at": "+13",
      "cond": "idx > 0",
      "effect": "window starts at the previous tick; the first tick's window starts at the workout start (a tick at offset 0 still gets max(1,0) = 1 s)"
     },
     {
-     "at": "+16",
-     "cond": "kcal <= 0.01",
+     "at": "+17",
+     "cond": "kcal <= 0.01 (1 MET or less writes none)",
      "effect": "tick skipped; otherwise sample built"
     },
     {
-     "at": "+21",
+     "at": "+23",
      "cond": "factory returned a sample",
      "effect": "appended; nil dropped"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.ExportStamp.sampleMetadata(_:index:)": "44fbd369b85a8016",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "5ec53052581d91f0",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.netMETs(_:)": "7a61cfddd41f146e",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "0d0cf2bc44fe4080",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "c86bf2d802474678",
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97"
    }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.netMETs(_:)",
+   "hash": "43dfa2a8cb23d198",
+   "does": "The METs above rest: gross METs less the 1 MET of resting metabolism, never below zero.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "func HealthKitWorkoutExport.inTimeOrder(_:)",
@@ -507,13 +788,14 @@
    "deps": {}
   },
   {
-   "key": "func HealthKitWorkoutExport.attachRoute(metadata:duration:startDate:workout:store:)",
-   "hash": "28899e7eb45a3fad",
-   "does": "For GPS sports with a stored polyline and route write permission, decodes the polyline into CLLocations and inserts them into an HKWorkoutRouteBuilder finished against the saved workout.",
+   "key": "func HealthKitWorkoutExport.attachRoute(metadata:duration:startDate:workout:stamp:store:)",
+   "hash": "7501f320e1cb9499",
+   "does": "For GPS sports with a stored polyline and route write permission, decodes the polyline into CLLocations and inserts them into an HKWorkoutRouteBuilder finished against the saved workout with the stamp's route metadata; returns whether a route was saved.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.metadataOfRoute",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS",
     "ext:HKWorkoutRouteBuilder.insertRouteData/finishRoute"
@@ -524,24 +806,25 @@
    ],
    "branches": [
     {
-     "at": "+7",
-     "cond": "sport not GPS or gpsPolyline nil",
-     "effect": "returns without a route"
-    },
-    {
      "at": "+8",
-     "cond": "workoutRoute type not writable",
-     "effect": "logs and returns without a route"
+     "cond": "sport not GPS or gpsPolyline nil",
+     "effect": "returns false without a route"
     },
     {
-     "at": "+17",
+     "at": "+9",
+     "cond": "workoutRoute type not writable",
+     "effect": "logs and returns false"
+    },
+    {
+     "at": "+18",
      "cond": "decoded track empty",
-     "effect": "returns; otherwise inserts and finishes the route (throws propagate to caller)"
+     "effect": "returns false; otherwise inserts and finishes the route and returns true (throws propagate to caller)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "40d04f34ec0697be",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "76a0ccf485ca3adf",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.metadataOfRoute": "4e393607d3c030b5",
     "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "17652f56f6054d5a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }

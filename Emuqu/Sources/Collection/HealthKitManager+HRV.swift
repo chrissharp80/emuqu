@@ -30,7 +30,9 @@ extension HealthWriteAndObserve {
     func exportHRV(session: HRVSession, result: HRVAnalysisResult) async throws {
         guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
         guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN),
-              let samples = Self.hrvExportSamples(session: session, result: result, sdnnType: sdnnType) else { return }
+              let samples = Self.hrvExportSamples(
+                  session: session, result: result, sdnnType: sdnnType, version: HealthExportIdentity.nextSyncVersion()
+              ) else { return }
         try await manager.sampleReplacer.replace(
             samples, hrvReplacement(sdnnType: sdnnType, sessionId: session.id, span: Self.hrvSearchSpan(session: session, samples: samples))
         )
@@ -46,11 +48,16 @@ extension HealthWriteAndObserve {
     /// (`HRVAnalysisResult.estimatedMetrics`, from an Elite HRV summary) is
     /// never written: Health would show it as a reading. A series attempt that
     /// leaves nothing to write returns empty, which removes the earlier
-    /// export; a short recording with nothing to write returns nil.
-    nonisolated static func hrvExportSamples(session: HRVSession, result: HRVAnalysisResult, sdnnType: HKQuantityType) -> [HKQuantitySample]? {
-        let summary = result.measuredSDNN.flatMap { summarySDNNSample($0, session: session, sdnnType: sdnnType) }
+    /// export; a short recording with nothing to write returns nil. Every
+    /// sample carries `version` as its sync version.
+    nonisolated static func hrvExportSamples(
+        session: HRVSession, result: HRVAnalysisResult, sdnnType: HKQuantityType, version: Int
+    ) -> [HKQuantitySample]? {
+        let summary = result.measuredSDNN.flatMap { summarySDNNSample($0, session: session, sdnnType: sdnnType, version: version) }
         guard let points = session.rrSeries?.points, points.count >= 30 else { return summary.map { [$0] } }
-        let (series, _) = windowedHRVSamples(rrPoints: points, sdnnType: sdnnType, sessionStart: session.startDate, sessionId: session.id)
+        let (series, _) = windowedHRVSamples(
+            rrPoints: points, sdnnType: sdnnType, sessionStart: session.startDate, sessionId: session.id, version: version
+        )
         guard series.isEmpty else { return series }
         return summary.map { [$0] } ?? []
     }
@@ -60,7 +67,9 @@ extension HealthWriteAndObserve {
     /// warning logged, for a non-finite value: passing NaN/Inf to HKQuantity
     /// raises an NSException Swift `throws` can't catch (`HealthSampleFactory`
     /// refuses one too).
-    nonisolated private static func summarySDNNSample(_ value: Double, session: HRVSession, sdnnType: HKQuantityType) -> HKQuantitySample? {
+    nonisolated private static func summarySDNNSample(
+        _ value: Double, session: HRVSession, sdnnType: HKQuantityType, version: Int
+    ) -> HKQuantitySample? {
         guard value.isFinite else {
             debugLog("[HealthKit] HRV export: refusing non-finite SDNN (\(value)) for session \(session.id.uuidString.prefix(8))", level: .warning)
             return nil
@@ -68,7 +77,7 @@ extension HealthWriteAndObserve {
         let date = session.endDate ?? session.startDate
         return HealthSampleFactory.quantitySample(
             type: sdnnType, value: value, unit: .secondUnit(with: .milli), start: date, end: date,
-            metadata: [HKMetadataKeyExternalUUID: HealthExportIdentity.summary(sessionId: session.id, metric: .sdnn), "Source": "Emuqu"]
+            metadata: HealthExportIdentity.metadata(HealthExportIdentity.summary(sessionId: session.id, metric: .sdnn), version: version)
         )
     }
 
@@ -95,7 +104,8 @@ extension HealthWriteAndObserve {
         HealthSampleReplacement(
             type: sdnnType, span: span, timeout: HealthKitManager.vitalsQueryTimeoutSec,
             label: "HRV export", serialKey: sessionId.uuidString,
-            matches: { Self.isOurHRVExport($0, sessionId: sessionId) }
+            matches: { Self.isOurHRVExport($0, sessionId: sessionId) },
+            writeTimeout: HealthKitManager.backgroundAggregateQueryTimeoutSec
         )
     }
 
@@ -108,7 +118,8 @@ extension HealthWriteAndObserve {
         rrPoints: [RRPoint],
         sdnnType: HKQuantityType,
         sessionStart: Date,
-        sessionId: UUID
+        sessionId: UUID,
+        version: Int
     ) -> ([HKQuantitySample], Int) {
         let windowSizeMs: Int64 = 5 * 60 * 1000 // 5 minutes
         let endMs = rrPoints.map(\.exportTimeMs).max() ?? 0
@@ -118,11 +129,11 @@ extension HealthWriteAndObserve {
         while windowStart < endMs {
             let windowEnd = windowStart + windowSizeMs
             let windowPoints = rrPoints.filter { $0.exportTimeMs >= windowStart && $0.exportTimeMs < windowEnd }
-            if let built = hrvSamplesForWindow(
-                windowPoints: windowPoints, sdnnType: sdnnType, sessionStart: sessionStart,
-                sessionId: sessionId, windowStartMs: windowStart, windowEndMs: windowEnd,
-                windowIndex: windowIndex
-            ) {
+            let slot = HRVSampleSlot(
+                type: sdnnType, sessionStart: sessionStart, windowMs: (windowStart, windowEnd),
+                sessionId: sessionId, index: windowIndex, version: version
+            )
+            if let built = hrvSamplesForWindow(windowPoints: windowPoints, slot: slot) {
                 samples.append(contentsOf: built)
                 windowIndex += 1
             }
@@ -138,24 +149,13 @@ extension HealthWriteAndObserve {
     /// compensatory pause don't inflate the exported value.
     nonisolated private static func hrvSamplesForWindow(
         windowPoints: [RRPoint],
-        sdnnType: HKQuantityType,
-        sessionStart: Date,
-        sessionId: UUID,
-        windowStartMs: Int64,
-        windowEndMs: Int64,
-        windowIndex: Int
+        slot: HRVSampleSlot
     ) -> [HKQuantitySample]? {
         guard windowPoints.count >= 10 else { return nil }
         let orderedRRs = windowPoints.map { Double($0.rr_ms) }
         let validMask = orderedRRs.map { HRVConstants.RRInterval.isValid(Int($0)) }
         let validRRs = TimeDomainAnalyzer.filterEctopicBeats(zip(orderedRRs, validMask).filter { $0.1 }.map { $0.0 })
         guard validRRs.count >= 8 else { return nil }
-        let sampleStart = sessionStart.addingTimeInterval(Double(windowStartMs) / 1000)
-        let sampleEnd = sessionStart.addingTimeInterval(Double(windowEndMs) / 1000)
-        let slot = HRVSampleSlot(
-            type: sdnnType, start: sampleStart, end: sampleEnd,
-            sessionId: sessionId, index: windowIndex
-        )
         return hrvSample(Statistics.sampleStandardDeviation(validRRs), metric: .sdnn, label: "SDNN", slot: slot).map { [$0] }
     }
 
@@ -178,22 +178,36 @@ extension HealthWriteAndObserve {
             value: value,
             unit: .secondUnit(with: .milli),
             start: slot.start, end: slot.end,
-            metadata: [
-                HKMetadataKeyExternalUUID: HealthExportIdentity.seriesMember(sessionId: slot.sessionId, metric: metric, index: slot.index),
-                "Source": "Emuqu",
-                "HRVMetric": label
-            ]
+            metadata: HealthExportIdentity.metadata(
+                HealthExportIdentity.seriesMember(sessionId: slot.sessionId, metric: metric, index: slot.index),
+                version: slot.version, ["HRVMetric": label]
+            )
         )
     }
 
     /// Where one exported HRV sample lands: which HK type, which 5-minute
-    /// slice, and the session-scoped identity that makes the export idempotent.
+    /// slice, the session-scoped identity that makes the export idempotent,
+    /// and the export's sync version.
     private struct HRVSampleSlot {
         let type: HKQuantityType
         let start: Date
         let end: Date
         let sessionId: UUID
         let index: Int
+        let version: Int
+
+        /// The slot of the window `windowMs` milliseconds into the recording.
+        init(
+            type: HKQuantityType, sessionStart: Date, windowMs: (start: Int64, end: Int64),
+            sessionId: UUID, index: Int, version: Int
+        ) {
+            self.type = type
+            start = sessionStart.addingTimeInterval(Double(windowMs.start) / 1000)
+            end = sessionStart.addingTimeInterval(Double(windowMs.end) / 1000)
+            self.sessionId = sessionId
+            self.index = index
+            self.version = version
+        }
     }
 
     /// Delete every HRV sample this app exported for a session deleted
