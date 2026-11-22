@@ -10,8 +10,23 @@
  "units": [
   {
    "key": "func WorkoutLiveTrendsTallyTests.run(seconds:from:)",
-   "hash": "e4d5ff82984e1b7c",
-   "does": "A run of one sample a second from `start`: heart rate rising, pace easing, cadence falling, a climb, each series with regular gaps.",
+   "hash": "542067d2f44898db",
+   "does": "A run of one sample a second from `start`, each built by sample(at:): heart rate rising, pace easing, cadence falling, a climb, each series with regular gaps.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.sample(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/WorkoutLiveTrendsTallyTests.swift::func WorkoutLiveTrendsTallyTests.sample(at:)": "41e8145405d8e87a"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrendsTallyTests.sample(at:)",
+   "hash": "38ea49127f2a2d11",
+   "does": "The sample at second t: heart rate 130 + t/40 (absent every 7th second), distance 3.1 m/s (absent every 11th), pace 300 + (t mod 90)/3 s/km (absent every 5th), cadence 172 - t/120 (absent every 9th), altitude 40 + t/20 m (absent every 13th).",
    "entry": null,
    "calls": [],
    "reads": [],
