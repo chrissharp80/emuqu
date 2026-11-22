@@ -460,7 +460,7 @@ extension FitnessSummaryCards {
             icon: "doc.text",
             title: "TCX",
             subtitle: "TrainingPeaks, Final Surge, Garmin Connect",
-            url: tcxURL
+            export: tcxExport
         )
     }
 
@@ -469,7 +469,7 @@ extension FitnessSummaryCards {
             icon: "tablecells",
             title: "CSV",
             subtitle: "Numbers, Excel, Google Sheets",
-            url: csvURL
+            export: csvExport
         )
     }
 
@@ -478,7 +478,7 @@ extension FitnessSummaryCards {
             icon: "map",
             title: "GPX",
             subtitle: "Strava, Garmin Connect, WorkOutDoors, Dropbox",
-            url: gpxURL
+            export: gpxExport
         )
     }
 

@@ -45,7 +45,7 @@
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.closeScreen()": "ec02c9f2e2c65387",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportErrorMessage": "97ed6dcb01afbc24",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportRrIntervalsCsvSection": "48ca5efc0fbd4673",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportedFileSection": "1f5d074da170de24",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportedFileSection": "cb8723e0bc268120",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.exportingOverlay": "47a52d0aa86c2c0b",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.statisticsSection": "e6f2f5ab5c471f1f",
     "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "5af2c037e112ed05"
@@ -77,7 +77,7 @@
   {
    "key": "var ExportDataView.exportedFileSection",
    "hash": "dc8edd4a25dd1add",
-   "does": "When exportURL is set, a section with the ShareLink and a footer naming the file and any shortfall note.",
+   "does": "When exportURL is set, a section with the Share button (shareExportLink; the sheet deletes the file when it closes and the section goes) and a footer naming the file and any shortfall note.",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.shareExportLink(_:)",
@@ -94,7 +94,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.exportedFileFooter(_:)": "1c4ad8e8aac7510b",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.shareExportLink(_:)": "f751ae8268cf0c5c"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.shareExportLink(_:)": "2e92661ffd69bb3f"
    }
   },
   {
@@ -116,17 +116,53 @@
   },
   {
    "key": "func ExportDataView.shareExportLink(_:)",
-   "hash": "4e623fe57a415d43",
-   "does": "ShareLink(item: url) labelled 'Share'.",
-   "entry": "ShareLink tap opens system share sheet",
+   "hash": "34ffdac14543f3da",
+   "does": "Button labelled 'Share' that shares the finished export (shareExport).",
+   "entry": "SwiftUI button tap",
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.shareExport(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::func ExportDataView.shareExport(_:)": "42ffad52cd8653aa"
+   }
+  },
+  {
+   "key": "func ExportDataView.shareExport(_:)",
+   "hash": "0792dc77bc5ea9f0",
+   "does": "Presents the system share sheet over the export file from the topmost view controller (presentFileShareSheet); when it closes, shared or cancelled, the file is deleted and, if it is still the screen's export, exportURL and exportShortfall are cleared so the Share row goes.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentFileShareSheet(_:title:iconName:from:onClosed:)"
+   ],
+   "reads": [
+    "mem:ExportDataView.exportURL"
+   ],
+   "writes": [
+    "file:the export file (deleted when the sheet closes)",
+    "mem:ExportDataView.exportURL",
+    "mem:ExportDataView.exportShortfall"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no presenter",
+     "effect": "nothing shown"
+    },
+    {
+     "at": "+3",
+     "cond": "another export replaced it meanwhile",
+     "effect": "leave the state; else clear exportURL and exportShortfall"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentFileShareSheet(_:title:iconName:from:onClosed:)": "1114a84169ab2526",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()": "a3d510a9337700d2"
    }
   },
   {

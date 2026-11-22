@@ -1,0 +1,297 @@
+{
+ "file": "Emuqu/Sources/Services/SleepBoundaryWrite.swift",
+ "hash": "8cf1d866cdc66f36",
+ "role": "Off-main write of a sleep-boundary edit (ReanalysisService.updateSessionSleepBoundaries): RescoreContext, the main-actor inputs a re-score reads besides the session, and SleepBoundaryWrite, which decides an edit on the copy it read, then under SessionArchive.update compares that copy's inputs with the stored copy's (RescoreWrite.inputsMatch plus the user-adjusted mark and end date) and only when they match sets the clamped boundaries, segments and snapshot and classifies and scores the stored copy again; otherwise nothing is written and the stored copy comes back to run again from.",
+ "types": [
+  "RescoreContext: struct (Sendable) — baselineStats, typicalSleepHours, scoringConfig captured on the main actor for ReanalysisService.rescoredBreakdown(…context:)",
+  "SleepBoundaryWrite: enum (nonisolated) — write/readIsCurrent/apply/clampedOffsets/shouldApplyAutomaticUpdate/applyBoundaries/rescore/logBoundaryUpdate",
+  "SleepBoundaryWrite.Edit: struct (Sendable) — sleepData with its required start and end, and isUserAdjustment",
+  "SleepBoundaryWrite.Inputs: struct (Sendable) — RescoreContext plus the fallback training context (only when the session has an analysis and no training context)",
+  "SleepBoundaryWrite.Outcome: enum (Sendable) — written(session) / declined / inputsChanged(stored) / notArchived"
+ ],
+ "state": [],
+ "toplevel": "Type declarations only; no stored state. Everything is nonisolated and runs on the detached task ReanalysisService.runSleepBoundaryUpdate starts.",
+ "units": [
+  {
+   "key": "init SleepBoundaryWrite.Edit(sleepData:isUserAdjustment:)",
+   "hash": "c76b5bb489ddf4b7",
+   "does": "Builds an edit from sleepData and isUserAdjustment, keeping its sleepStart and sleepEnd unwrapped; nil when either is missing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sleepStart or sleepEnd nil",
+     "effect": "returns nil"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var SleepBoundaryWrite.Outcome.written",
+   "hash": "76f67cff5faa7e71",
+   "does": "The session as written; nil for declined, inputsChanged and notArchived.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not written",
+     "effect": "nil"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SleepBoundaryWrite.write(_:readFrom:inputs:to:)",
+   "hash": "c4ef9aa13902a95c",
+   "does": "Logs the edit against the copy it read (logBoundaryUpdate); for an automatic update, declines it when shouldApplyAutomaticUpdate rejects it on that copy; returns notArchived (logged) when the archive no longer holds the session; otherwise, under SessionArchive.update (requestingReupload = isUserAdjustment, which stamps modifiedAt and asks iCloud to upload again), refuses with inputsChanged(stored) and leaves the stored copy as it was when readIsCurrent fails, else applies the edit to the stored copy (apply) and returns written(stored). Rethrows an archive error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.logBoundaryUpdate(_:on:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.shouldApplyAutomaticUpdate(_:to:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.readIsCurrent(_:stored:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.apply(_:to:inputs:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "archive:SessionArchive index (exists)",
+    "archive:session file (under the lock)"
+   ],
+   "writes": [
+    "archive:session sleepStartMs/sleepEndMs/sleepSegments/sleepSnapshot/sleepUserAdjusted, hrvDataQuality, recoveryScore, scoreBreakdown, frozenReadiness (and modifiedAt for a user edit)",
+    "notif:flowRecoveryArchiveChanged (SessionArchive.update)",
+    "notif:flowRecoveryArchiveSessionsNeedReupload (user edit)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "automatic update and shouldApplyAutomaticUpdate false",
+     "effect": "return .declined, nothing written"
+    },
+    {
+     "at": "+3",
+     "cond": "session not in the archive",
+     "effect": "log, return .notArchived"
+    },
+    {
+     "at": "+9",
+     "cond": "stored copy no longer matches the read one",
+     "effect": "outcome .inputsChanged(stored); stored copy written back unchanged"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.apply(_:to:inputs:)": "f538df1ff760d809",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.logBoundaryUpdate(_:on:)": "709df01c67f66086",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.readIsCurrent(_:stored:)": "4cdbe840f13118f0",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.shouldApplyAutomaticUpdate(_:to:)": "c87d8ceb44d7b5b5",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::var SleepBoundaryWrite.Outcome.written": "cdb307e93a07200a"
+   }
+  },
+  {
+   "key": "func SleepBoundaryWrite.readIsCurrent(_:stored:)",
+   "hash": "a62bfe223a66a754",
+   "does": "Whether the copy an edit was decided and scored from is still the stored one: RescoreWrite.inputsMatch for a score-only rescore (beats, sleep boundaries/segments/snapshot, vitals, perceived readiness, training snapshot, analysis), the same sleepUserAdjusted and the same endDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.inputsMatch(_:_:kind:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.inputsMatch(_:_:kind:)": "ec64c644c8dc41cf"
+   }
+  },
+  {
+   "key": "func SleepBoundaryWrite.apply(_:to:inputs:)",
+   "hash": "e0ae67fe8f44c24e",
+   "does": "Sets the edit's offsets, clamped to the session's recording (clampedOffsets), with its segments and snapshot on the session (applyBoundaries), then classifies and scores it again (rescore) anchored to endDate ?? startDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.applyBoundaries(_:offsets:to:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.clampedOffsets(of:on:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.rescore(_:sessionEnd:inputs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "endDate nil",
+     "effect": "anchors the re-score to startDate"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.applyBoundaries(_:offsets:to:)": "d1cc239dafd6f67c",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.clampedOffsets(of:on:)": "0b242eddffd9f32d",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.rescore(_:sessionEnd:inputs:)": "5cef6f635133c757"
+   }
+  },
+  {
+   "key": "func SleepBoundaryWrite.clampedOffsets(of:on:)",
+   "hash": "17164e91b68b6561",
+   "does": "The edit's sleepStart and sleepEnd as ms offsets from the session start (start floored at 0), both clamped to 0 … ReanalysisService.recordingDurationMs(of: session).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.recordingDurationMs(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.recordingDurationMs(of:)": "f0d7b20b4f5520b3",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
+   }
+  },
+  {
+   "key": "func SleepBoundaryWrite.shouldApplyAutomaticUpdate(_:to:)",
+   "hash": "f8e81672bc34eb49",
+   "does": "Gate for automatic sleep updates on the copy read from the archive: false (logged) when the session is user-adjusted and already has a snapshot, or the sleep block does not plausibly overlap the recording; otherwise true only when the clamped new duration exceeds the stored offsets' duration or the new night minutes exceed the snapshot's.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.clampedOffsets(of:on:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "user-adjusted with a snapshot",
+     "effect": "log, false (snapshot-nil sessions exempt)"
+    },
+    {
+     "at": "+7",
+     "cond": "no plausible overlap",
+     "effect": "log, false"
+    },
+    {
+     "at": "+14",
+     "cond": "more duration or more minutes",
+     "effect": "true; else false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "0937b2fc06093e13",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.clampedOffsets(of:on:)": "0b242eddffd9f32d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SleepBoundaryWrite.applyBoundaries(_:offsets:to:)",
+   "hash": "7b1f70703141e1b1",
+   "does": "Writes the clamped start/end offsets, a segment array for a multi-segment night (else nil), the snapshot, and sleepUserAdjusted = true for a user adjustment.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "more than one segment",
+     "effect": "maps segments to ms offsets; else sleepSegments = nil"
+    },
+    {
+     "at": "+18",
+     "cond": "user adjustment",
+     "effect": "sleepUserAdjusted = true"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
+   }
+  },
+  {
+   "key": "func SleepBoundaryWrite.rescore(_:sessionEnd:inputs:)",
+   "hash": "e43d4c4f211ff2dc",
+   "does": "After a sleep snapshot change (edit, automatic update, retro-apply): re-classifies the session against the captured baseline (ReanalysisService.reclassifyHRVQuality(of:result:baselineStats:), so .preSleep follows the new sleep), then recomputes recovery score, breakdown and frozen readiness with ReanalysisService.rescoredBreakdown(…context:) against the frozen training context (session's, else the analysis's, else inputs.fallbackTraining), anchored to sessionEnd; logs the new score.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:baselineStats:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:context:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no analysisResult",
+     "effect": "return; sleep changed but quality and score left as before"
+    },
+    {
+     "at": "+3",
+     "cond": "trainingSnapshot / result.trainingContext nil",
+     "effect": "falls back to inputs.fallbackTraining"
+    },
+    {
+     "at": "+10",
+     "cond": "recoveryScore nil",
+     "effect": "log prints 0.0"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:baselineStats:)": "fe92d4d38e2ab2d7",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:context:)": "7333b863f0823f22",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SleepBoundaryWrite.logBoundaryUpdate(_:on:)",
+   "hash": "58fa549cf1127096",
+   "does": "Three [UpdateSleepBounds] debug lines: session start and the edit's sleep start/end; the new (unclamped, start floored at 0) and old offsets; the new total and night minutes, segment count and user-adjustment flag.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "old offsets nil",
+     "effect": "printed as -1"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "b70c38d229828097",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
+   }
+  }
+ ],
+ "deps": {}
+}

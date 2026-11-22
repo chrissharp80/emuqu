@@ -1,20 +1,19 @@
 {
  "file": "Emuqu/Sources/Views/FitnessPostSummaryView.swift",
- "hash": "0062cb9dfa873fbf",
- "role": "The post-workout summary sheet (Fitness tab and History): owns all @State for the sheet, lays out the card stack, keeps the rendered session fresh from the archive (newest reload wins; an unchanged file is not re-processed), and pre-generates the GPX/CSV/TCX export files, decoded GPS track and resolved splits off the main thread once per real change of the archived copy.",
+ "hash": "ae09d228a0420798",
+ "role": "The post-workout summary sheet (Fitness tab and History): owns all @State for the sheet, lays out the card stack, keeps the rendered session fresh from the archive (newest reload wins; an unchanged file is not re-processed), and pre-builds the GPX/CSV/TCX exports in memory (written to disk only when a row is shared), the decoded GPS track and the resolved splits off the main thread once per real change of the archived copy.",
  "types": [
   "FitnessPostSummaryView: struct (View) — the post-summary sheet; extensions in +Feeling/+Share(FitnessSummaryCards)/+StatsForwarding/+SummaryForwarding/+ThresholdForwarding/+Alpha1Forwarding/+Cards",
-  "FitnessPostSummaryView.ExportOutcome: struct — result of the off-main track decode + export write (track, splits, gpx/csv/tcx URLs, joined error)"
+  "FitnessPostSummaryView.ExportOutcome: struct — result of the off-main track decode + in-memory export build (track, splits, gpx/csv/tcx ExportFile.Pending, joined error)"
  ],
  "state": [
   "mem:FitnessPostSummaryView.refreshedSession (@State, archive copy that overrides initialSession) MAIN:17",
-  "@State showDeleteConfirm, cachedTrack, gpxURL, csvURL, tcxURL, exportsReady, exportGeneration, exportError, trackDecoded, reloadGeneration, loadedFileHash, summaryPrepared, pdfURL, pdfGenerating, recapImage, recapImageURL, recapGenerating, recapSharePresented, showSaveRouteSheet, newRouteName, savedRouteIDForThisSession, pdfSharePresented, pdfMailPresented, pdfMailError, reportShare (FitnessSummaryCards.ReportShareState; summaryOnScreen true from onAppear to onDisappear), reanalyzing, reanalyzeError, elevResmoothing, elevResmoothPreview, elevResmoothError, routeHistory, routeHistoryGeneration, cachedSplits, feelingEditing, feelingSaveFailed",
+  "@State showDeleteConfirm, cachedTrack, gpxExport, csvExport, tcxExport (ExportFile.Pending, built in memory), exportsReady, exportGeneration, exportError, trackDecoded, reloadGeneration, loadedFileHash, summaryPrepared, pdfURL, pdfGenerating, recapImage, recapImageURL, recapGenerating, recapSharePresented, showSaveRouteSheet, newRouteName, savedRouteIDForThisSession, pdfSharePresented, pdfMailPresented, pdfMailError, reportShare (FitnessSummaryCards.ReportShareState; summaryOnScreen true from onAppear to onDisappear), reanalyzing, reanalyzeError, elevResmoothing, elevResmoothPreview, elevResmoothError, routeHistory, routeHistoryGeneration, cachedSplits, feelingEditing, feelingSaveFailed",
   "mem:FitnessPostSummaryView.feelingSkipped (@State; Skip on an unrated workout hides both feeling prompts for this visit)",
-  "file:tmp/<GPX|CSV|TCX temp files> written by GPXExporter/CSVExporter/TCXExporter.writeToTempFile (MAIN:469-475)",
   "Environment: dependencies, SettingsManager, RRCollector, ArchiveSignal (lines 10, 38, 42, 43)",
   "@State builtAnalysis (snapshot the backfill built for a session saved without one) and analysisGeneration (newest backfill wins)"
  ],
- "toplevel": "Stored let initialSession / onDone and var onDelete set by init (the onDelete comment says the Fitness tab wires it and History does not); @State defaults (empty track, nil URLs, false flags, generations 0). The export comment says GPX/CSV/TCX rows use ShareLink while the PDF report and recap card present ShareSheet in a .sheet after a render. Environment objects SettingsManager, RRCollector and ArchiveSignal must be injected by the presenter or the view traps at runtime.",
+ "toplevel": "Stored let initialSession / onDone and var onDelete set by init (the onDelete comment says the Fitness tab wires it and History does not); @State defaults (empty track, nil exports and URLs, false flags, generations 0). The export comment says the GPX/CSV/TCX rows have their bytes ready so a tap only writes the file and opens a share sheet that deletes it (FileShareButton), while the PDF report and recap card present ShareSheet in a .sheet after a render. Environment objects SettingsManager, RRCollector and ArchiveSignal must be injected by the presenter or the view traps at runtime.",
  "units": [
   {
    "key": "var FitnessPostSummaryView.session",
@@ -102,7 +101,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.reloadFromArchive()": "9c7bb95f811e57b7",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.removeTemporaryExports()": "4776cb4bfa165368",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.removeTemporaryExports()": "ba04a4ab20eef0d8",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.summaryAppeared()": "743a5845523086ab",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutActions": "a79fd8d7c89c41f7",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutMessage": "5f64a00c42f81f5c",
@@ -130,8 +129,8 @@
   },
   {
    "key": "func FitnessPostSummaryView.removeTemporaryExports()",
-   "hash": "56b9836e13cb3265",
-   "does": "Marks the summary off screen and bumps exportGeneration and reportShare.cacheGeneration, so an export build or PDF/recap render still running deletes what it wrote when it lands instead of publishing it; deletes the GPX/CSV/TCX/PDF/recap temp files this summary wrote (removeTemporaryFiles), clears their URLs and exportsReady, and marks the summary unprepared so a summary shown again rebuilds them.",
+   "hash": "c8ebbbb63000ce75",
+   "does": "Marks the summary off screen and bumps exportGeneration and reportShare.cacheGeneration, so a PDF/recap render still running deletes what it wrote when it lands and an export build is dropped, instead of publishing; deletes the PDF/recap temp files this summary wrote (removeTemporaryFiles), clears them and the in-memory GPX/CSV/TCX exports and exportsReady, and marks the summary unprepared so a summary shown again rebuilds them.",
    "entry": "FitnessPostSummaryView.body .onDisappear",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.removeTemporaryFiles(_:)"
@@ -141,8 +140,8 @@
     "mem:FitnessPostSummaryView.reportShare.summaryOnScreen",
     "mem:FitnessPostSummaryView.exportGeneration",
     "mem:FitnessPostSummaryView.reportShare.cacheGeneration",
-    "file:tmp/<sport>-<date>.gpx|csv|tcx, emuqu-workout-*.pdf, emuqu-<sport>-<date>.png (deleted)",
-    "mem:FitnessPostSummaryView.gpxURL/csvURL/tcxURL/pdfURL/recapImageURL",
+    "file:tmp emuqu-workout-*.pdf, emuqu-<sport>-<date>.png (deleted)",
+    "mem:FitnessPostSummaryView.gpxExport/csvExport/tcxExport/pdfURL/recapImageURL",
     "mem:FitnessPostSummaryView.exportsReady",
     "mem:FitnessPostSummaryView.summaryPrepared"
    ],
@@ -651,13 +650,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.invalidateCachedExports()": "33c7c5fd98c260a7"
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.invalidateCachedExports()": "b624cbb4897bb857"
    }
   },
   {
    "key": "func FitnessPostSummaryView.invalidateCachedExports()",
-   "hash": "7781fccbac05085c",
-   "does": "Clears pdfURL/gpxURL/csvURL/tcxURL and exportsReady, bumps reportShare.cacheGeneration (so a PDF still rendering from the old copy is not cached), clears builtAnalysis, then spawns tasks to regenerate the exports, reload the route-history summary and run the analysis-snapshot backfill for the copy now shown.",
+   "hash": "886be4d6292c2f31",
+   "does": "Clears pdfURL, the in-memory gpxExport/csvExport/tcxExport and exportsReady, bumps reportShare.cacheGeneration (so a PDF still rendering from the old copy is not cached), clears builtAnalysis, then spawns tasks to rebuild the exports, reload the route-history summary and run the analysis-snapshot backfill for the copy now shown.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.generateExportsInBackground()",
@@ -668,9 +667,9 @@
    "writes": [
     "mem:FitnessPostSummaryView.pdfURL",
     "mem:FitnessPostSummaryView.reportShare.cacheGeneration",
-    "mem:FitnessPostSummaryView.gpxURL",
-    "mem:FitnessPostSummaryView.csvURL",
-    "mem:FitnessPostSummaryView.tcxURL",
+    "mem:FitnessPostSummaryView.gpxExport",
+    "mem:FitnessPostSummaryView.csvExport",
+    "mem:FitnessPostSummaryView.tcxExport",
     "mem:FitnessPostSummaryView.exportsReady",
     "mem:FitnessPostSummaryView.builtAnalysis"
    ],
@@ -678,7 +677,7 @@
    "deps": {
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.backfillAnalysisSnapshotIfNeeded()": "3e15e5cb71a1e33a",
     "Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift::func FitnessPostSummaryView.loadRouteHistorySummary()": "6cccf4c6a4aff1c2",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.generateExportsInBackground()": "92eee8ac82bd2cbd"
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.generateExportsInBackground()": "cf5e6c8ae02fe97e"
    }
   },
   {
@@ -702,30 +701,27 @@
     "mem:FitnessPostSummaryView.cachedTrack",
     "mem:FitnessPostSummaryView.trackDecoded",
     "mem:FitnessPostSummaryView.cachedSplits",
-    "mem:FitnessPostSummaryView.gpxURL",
-    "mem:FitnessPostSummaryView.csvURL",
-    "mem:FitnessPostSummaryView.tcxURL",
+    "mem:FitnessPostSummaryView.gpxExport",
+    "mem:FitnessPostSummaryView.csvExport",
+    "mem:FitnessPostSummaryView.tcxExport",
     "mem:FitnessPostSummaryView.exportError",
-    "mem:FitnessPostSummaryView.exportsReady",
-    "file:tmp export files (deleted when the summary closed meanwhile)"
+    "mem:FitnessPostSummaryView.exportsReady"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units": "3e400c1f12cc0758",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.buildExports(session:wantsMile:)": "0971e1fe1fff6a89",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.landExports(_:generation:)": "29beec6400741200",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.buildExports(session:wantsMile:)": "6e72a5bfb82ceef0",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.landExports(_:generation:)": "860b0f1455ccfb6c",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "1f4da74e2a051ea4"
    }
   },
   {
    "key": "func FitnessPostSummaryView.landExports(_:generation:)",
-   "hash": "729a7ef339a78d05",
-   "does": "Lands an export build: when the summary closed meanwhile, deletes the GPX/CSV/TCX files it wrote and publishes nothing; when a newer build started, drops it (the newer one writes the same files); else publishes cachedTrack, trackDecoded = true, cachedSplits, the three URLs, exportError and exportsReady (true if any one file was written). PDF and recap failures live in reportShare.error, so this exportError write cannot erase them.",
+   "hash": "c6b238c5bda595ab",
+   "does": "Lands an export build: drops it when the summary closed meanwhile or a newer build started; else publishes cachedTrack, trackDecoded = true, cachedSplits, the three in-memory exports, exportError and exportsReady (true if any one export was built). PDF and recap failures live in reportShare.error, so this exportError write cannot erase them.",
    "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.removeTemporaryFiles(_:)"
-   ],
+   "calls": [],
    "reads": [
     "mem:FitnessPostSummaryView.reportShare.summaryOnScreen",
     "mem:FitnessPostSummaryView.exportGeneration"
@@ -734,38 +730,31 @@
     "mem:FitnessPostSummaryView.cachedTrack",
     "mem:FitnessPostSummaryView.trackDecoded",
     "mem:FitnessPostSummaryView.cachedSplits",
-    "mem:FitnessPostSummaryView.gpxURL",
-    "mem:FitnessPostSummaryView.csvURL",
-    "mem:FitnessPostSummaryView.tcxURL",
+    "mem:FitnessPostSummaryView.gpxExport",
+    "mem:FitnessPostSummaryView.csvExport",
+    "mem:FitnessPostSummaryView.tcxExport",
     "mem:FitnessPostSummaryView.exportError",
-    "mem:FitnessPostSummaryView.exportsReady",
-    "file:tmp export files (deleted)"
+    "mem:FitnessPostSummaryView.exportsReady"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "summary no longer on screen",
-     "effect": "delete the files, return"
-    },
-    {
-     "at": "+5",
-     "cond": "generation != exportGeneration",
-     "effect": "drop the stale result; else publish"
+     "cond": "summary closed, or a newer build started",
+     "effect": "drop the result; else publish"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.removeTemporaryFiles(_:)": "3bb4d3cb48c92106",
     "EmuquTests/GPXMalformedInputTests.swift::func GPXMalformedInputTests.gpx(lat:lon:ele:)": "3c59e09c353ddba5"
    }
   },
   {
    "key": "func FitnessPostSummaryView.buildExports(session:wantsMile:)",
-   "hash": "796644173bfd07b5",
-   "does": "Off-main: decodes the stored GPS polyline into CLLocations (or [] without one), writes the three export files, and resolves the splits in the wanted unit.",
+   "hash": "9e75246fbf5857f8",
+   "does": "Off-main: decodes the stored GPS polyline into CLLocations (or [] without one), builds the three exports in memory (pendingExports), and resolves the splits in the wanted unit.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.writeExports(session:track:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.pendingExports(session:track:)",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.resolveSplits(stored:track:rrPoints:startDate:wantsMile:)"
    ],
    "reads": [],
@@ -783,53 +772,54 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "40d04f34ec0697be",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.resolveSplits(stored:track:rrPoints:startDate:wantsMile:)": "426498d8a15cd792",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.writeExports(session:track:)": "0a352ed790cd35d4",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.pendingExports(session:track:)": "1d80088dd1506777",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "1f4da74e2a051ea4",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "6ac5b02917da2d08"
    }
   },
   {
-   "key": "func FitnessPostSummaryView.writeExports(session:track:)",
-   "hash": "32bc4e520785f13f",
-   "does": "Attempts GPX, CSV and TCX temp-file writes independently; each failure appends a localized message, and the joined failures become out.error (nil when all succeeded).",
+   "key": "func FitnessPostSummaryView.pendingExports(session:track:)",
+   "hash": "ef1d5df130b66718",
+   "does": "Builds the GPX, CSV and TCX exports in memory (GPXExporter/CSVExporter/TCXExporter.pendingFile), each attempted independently; a failure leaves that format nil and adds a localized '<FORMAT> failed: <reason>' to the joined error.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.writeToTempFile(session:track:)",
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.writeToTempFile(session:track:)",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.writeToTempFile(session:track:)"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.pendingFile(session:track:)",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.pendingFile(session:track:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.pendingFile(session:track:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
-   "writes": [
-    "file:tmp GPX/CSV/TCX exports"
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite)"
    ],
+   "writes": [],
    "branches": [
     {
      "at": "+6",
-     "cond": "GPX write threw",
-     "effect": "error message appended, gpx stays nil; other formats still attempted"
+     "cond": "GPX build throws",
+     "effect": "error appended"
     },
     {
      "at": "+9",
-     "cond": "CSV write threw",
-     "effect": "error message appended, csv nil"
+     "cond": "CSV build throws",
+     "effect": "error appended"
     },
     {
      "at": "+12",
-     "cond": "TCX write threw",
-     "effect": "error message appended, tcx nil"
+     "cond": "TCX build throws",
+     "effect": "error appended"
     },
     {
      "at": "+13",
-     "cond": "failures empty",
-     "effect": "true: error nil; false: messages joined with spaces"
+     "cond": "no failures",
+     "effect": "error nil; else joined with spaces"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.writeToTempFile(session:track:)": "4c25c085eca5b277",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.writeToTempFile(session:track:)": "45d5df9683ec825d",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.writeToTempFile(session:track:)": "88a8a30b7d4aed52",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.pendingFile(session:track:)": "f8da6a37ff841b2b",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.pendingFile(session:track:)": "0e9b583d13e4c02c",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.pendingFile(session:track:)": "22099fa94e5c8222",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "1f4da74e2a051ea4",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "6ac5b02917da2d08",

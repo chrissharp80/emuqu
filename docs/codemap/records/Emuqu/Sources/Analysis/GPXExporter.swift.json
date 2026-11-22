@@ -6,7 +6,7 @@
   "GPXExporter: enum — GPX writer + polyline decoder"
  ],
  "state": [
-  "file:FileManager.temporaryDirectory/<sport.rawValue>-<yyyyMMdd-HHmmss UTC>.gpx (writeToTempFile)"
+  "file:tmp/Exports/<sport.rawValue>-<yyyyMMdd-HHmmss UTC>.gpx (writeToTempFile; pendingFile only builds it in memory)"
  ],
  "toplevel": "No stored state.",
  "units": [
@@ -273,14 +273,13 @@
   },
   {
    "key": "func GPXExporter.writeToTempFile(session:track:)",
-   "hash": "821db410953dc7f2",
+   "hash": "88c679fb4fbfe810",
    "does": "Renders the GPX, names it '<sport>-<UTC yyyyMMdd-HHmmss>.gpx' and writes it to the export folder through ExportFile.write (atomic, complete file protection; the same session's file is overwritten on the next export), logs the byte count and returns the URL; throws an NSError if UTF-8 encoding fails, and rethrows a write failure.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
-    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.pendingFile(session:track:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
@@ -288,6 +287,26 @@
    "writes": [
     "file:tmp/Exports/<sport>-<yyyyMMdd-HHmmss>.gpx"
    ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.pendingFile(session:track:)": "0e9b583d13e4c02c",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()": "1dc5315527542820",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func GPXExporter.pendingFile(session:track:)",
+   "hash": "9f358d248c597af7",
+   "does": "Renders the GPX in memory and names it '<sport>-<UTC yyyyMMdd-HHmmss>.gpx' (POSIX, Gregorian), returning it as an ExportFile.Pending that is written only when shared; throws an NSError if UTF-8 encoding fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
+   ],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
@@ -297,14 +316,12 @@
     {
      "at": "+11",
      "cond": "UTF-8 encoding nil",
-     "effect": "throws NSError (cannot happen for a Swift String); otherwise writes"
+     "effect": "throws NSError (cannot happen for a Swift String); otherwise returns the pending export"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "6b561e87968ef008",
-    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {

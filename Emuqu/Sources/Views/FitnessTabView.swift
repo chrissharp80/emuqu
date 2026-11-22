@@ -63,11 +63,12 @@ struct FitnessTabView: View {
     @State var interruptedRecordings: [HealthWorkoutImporter.InterruptedSession] = []
     /// Bumped by every interrupted-recording scan; only the newest one lands.
     @State var interruptedScanGeneration = 0
-    /// Trailing GPX-download share state. Generated
-    /// on demand off-main; presented via system share sheet so the
-    /// user can save / mail / AirDrop the latest workout track.
-    @State var gpxShareURL: URL?
-    @State var gpxSharePresented: Bool = false
+    /// Trailing GPX-download share state. The file is written on demand
+    /// off-main when the preview opens and lives until the preview closes:
+    /// shared through the system share sheet (and deleted when that closes)
+    /// if Send was tapped, deleted at once if not.
+    @State var gpxFile: URL?
+    @State var gpxSendTapped = false
     /// User-requested GPX preview before the
     /// share sheet. Holds the decoded track + temp-file URL while
     /// the preview sheet is up; the sheet's "Send" button dismisses
@@ -532,13 +533,11 @@ struct FitnessTabView: View {
 
     private func withGPXSheets(_ content: some View) -> some View {
         content
-            .sheet(isPresented: gpxShareBinding, onDismiss: { gpxShareURL = nil }, content: { gpxShareSheet })
             // GPX preview sheet (user-requested
             // "I'm not able to preview first"). Shows the decoded route
             // on a map + summary stats; "Send" inside the sheet opens
-            // the system share. Dismissing without tapping Send keeps
-            // the temp .gpx file on disk for next time (cleaned up by
-            // the OS on temp-dir purge).
+            // the system share once the preview has gone. Dismissing
+            // without tapping Send deletes the .gpx file.
             .sheet(item: $gpxPreviewPayload, onDismiss: { presentPendingGPXShare() }, content: { gpxPreviewSheet($0) })
             .alert(String(localized: "Export", bundle: LanguageManager.appBundle), isPresented: Binding(
                 get: { exportMessage != nil },
@@ -550,38 +549,32 @@ struct FitnessTabView: View {
             }
     }
 
-    /// Presented only while there is a URL to share, so the sheet can never
-    /// come up empty.
-    private var gpxShareBinding: Binding<Bool> {
-        Binding(
-            get: { gpxSharePresented && gpxShareURL != nil },
-            set: { gpxSharePresented = $0 }
-        )
-    }
-
-    @ViewBuilder
-    private var gpxShareSheet: some View {
-        if let url = gpxShareURL {
-            ShareSheet(activityItems: [url])
-        }
-    }
-
     private func gpxPreviewSheet(_ payload: GPXPreviewPayload) -> some View {
         GPXPreviewSheet(payload: payload) { shareGPXAfterPreview(payload) }
     }
 
-    /// Send tapped: remember the URL and dismiss the preview. The share sheet
-    /// is presented from the preview's `onDismiss`, once its dismissal has
+    /// Send tapped: note it and dismiss the preview. The share sheet is
+    /// presented from the preview's `onDismiss`, once its dismissal has
     /// finished, rather than after a guessed delay.
     private func shareGPXAfterPreview(_ payload: GPXPreviewPayload) {
-        gpxShareURL = payload.url
+        gpxFile = payload.url
+        gpxSendTapped = true
         gpxPreviewPayload = nil
     }
 
-    /// Preview dismissed: share if Send set a URL; a plain dismissal leaves
-    /// none (the share sheet's own dismissal clears it).
+    /// Preview dismissed: after Send, the file goes to the system share sheet
+    /// (`presentFileShareSheet`), which deletes it once it closes; after a
+    /// plain dismissal, or with nothing to present from, it is deleted now.
     private func presentPendingGPXShare() {
-        if gpxShareURL != nil { gpxSharePresented = true }
+        guard let file = gpxFile else { return }
+        let send = gpxSendTapped
+        gpxFile = nil
+        gpxSendTapped = false
+        guard send, let presenter = topmostPresenter() else {
+            _ = attempt("FitnessTabView.removeUnsentGPX") { try FileManager.default.removeItem(at: file) }
+            return
+        }
+        presentFileShareSheet(file, title: nil, from: presenter)
     }
 
     private func withFitnessImports(_ content: some View) -> some View {
@@ -676,6 +669,8 @@ struct FitnessTabView: View {
             exportMessage = String(localized: "Couldn't decode GPS track for export.", bundle: LanguageManager.appBundle)
             return
         }
+        gpxFile = url
+        gpxSendTapped = false
         gpxPreviewPayload = GPXPreviewPayload(url: url, track: track, session: session)
     }
 

@@ -82,9 +82,9 @@ struct DebugLogView: View {
     }
 
     /// The same export as Settings › Diagnostics: the log file is written when
-    /// the share sheet asks for it, so the tap opens the sheet at once.
+    /// the button is tapped and deleted when the share sheet closes.
     private var exportLogsButton: some View {
-        ShareLink(item: DiagnosticLogExport(), preview: DiagnosticLogExport.preview) {
+        FileShareButton(title: DiagnosticLogExport.title, makeFile: { try await DiagnosticLogExport.makeFile() }) {
             Label(String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
         }
     }
@@ -155,10 +155,11 @@ struct CrashLogView: View {
         }
     }
 
-    /// `ShareLink` opens the system sheet at once; the scrubbed copy is
-    /// written off the main thread only when a destination asks for it.
+    /// The scrubbed copy is written off the main thread when the button is
+    /// tapped and deleted when the share sheet closes.
     private var shareCrashButton: some View {
-        ShareLink(item: CrashReportExport(manager: dependencies.app.crashLogManager), preview: CrashReportExport.preview) {
+        let manager = dependencies.app.crashLogManager
+        return FileShareButton(title: CrashReportExport.title, makeFile: { try CrashReportExport.makeFile(from: manager) }) {
             Label(String(localized: "Share Crash Report", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
         }
     }
@@ -184,24 +185,19 @@ struct CrashLogView: View {
     }
 }
 
-/// The previous crash report, handed to `ShareLink` as something to build
-/// (see `DiagnosticLogExport` for why not a `ShareSheet` in a `.sheet`).
-/// A report that is gone or cannot be written fails the transfer, so the
-/// share sheet says so instead of the tap doing nothing.
-struct CrashReportExport: Transferable {
-    let manager: CrashLogManager
-
-    static var preview: SharePreview<Never, Never> {
-        SharePreview(String(localized: "Share Crash Report", bundle: LanguageManager.appBundle))
+/// The previous crash report, shared through `FileShareButton`. A report
+/// that is gone or cannot be written throws, so the button says the export
+/// failed instead of the tap doing nothing.
+enum CrashReportExport {
+    /// The share sheet's header.
+    static var title: String {
+        String(localized: "Share Crash Report", bundle: LanguageManager.appBundle)
     }
 
-    static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(exportedContentType: .plainText) { export in
-            guard let url = export.manager.exportCrashLog() else {
-                throw CocoaError(.fileWriteUnknown)
-            }
-            return SentTransferredFile(url)
-        }
+    /// Writes the scrubbed report to the export folder (`exportCrashLog`).
+    static func makeFile(from manager: CrashLogManager) throws -> URL {
+        guard let url = manager.exportCrashLog() else { throw CocoaError(.fileWriteUnknown) }
+        return url
     }
 }
 
@@ -326,44 +322,34 @@ struct ErrorCatalogView: View {
         ToolbarItem(placement: .primaryAction) { exportErrorsButton }
     }
 
-    /// `ShareLink` opens the system sheet at once; the scrubbed catalog is
-    /// built and written off the main thread only when a destination asks.
+    /// The scrubbed catalog is built and written when the button is tapped
+    /// and deleted when the share sheet closes.
     @ViewBuilder
     private var exportErrorsButton: some View {
         if !logger.errorCatalog.isEmpty {
-            ShareLink(item: ErrorCatalogExport(logger: logger), preview: ErrorCatalogExport.preview) {
+            FileShareButton(title: ErrorCatalogExport.title, makeFile: { [logger] in try await ErrorCatalogExport.makeFile(from: logger) }) {
                 Image(systemName: "square.and.arrow.up")
             }
         }
     }
 }
 
-/// The error catalog, handed to `ShareLink` as something to build. The
-/// PHI-scrubbed text (`DebugLogger.exportErrorCatalog`) is written to one
-/// fixed temporary file, replaced on every export, so copies do not pile up
-/// in tmp.
-struct ErrorCatalogExport: Transferable {
-    let logger: DebugLogger
-
-    static var preview: SharePreview<Never, Never> {
-        SharePreview(String(localized: "Error Catalog", bundle: LanguageManager.appBundle))
+/// The error catalog, shared through `FileShareButton`. The PHI-scrubbed
+/// text (`DebugLogger.exportErrorCatalog`) is written to one fixed file in
+/// the export folder (`ExportFile`: complete protection, emptied at launch),
+/// replaced on every export.
+enum ErrorCatalogExport {
+    /// The share sheet's header.
+    static var title: String {
+        String(localized: "Error Catalog", bundle: LanguageManager.appBundle)
     }
 
-    static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(exportedContentType: .plainText) { export in
-            let content = await export.logger.exportErrorCatalog()
-            let url = try writeExport(content)
-            return SentTransferredFile(url)
-        }
-    }
-
-    /// Writes `content` over the previous export; throws when it cannot be
-    /// encoded or written, which fails the transfer.
-    private static func writeExport(_ content: String) throws -> URL {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Emuqu_Error_Catalog.txt")
+    /// Builds the catalog on the main actor and writes it; throws when it
+    /// cannot be encoded or written.
+    static func makeFile(from logger: DebugLogger) async throws -> URL {
+        let content = await logger.exportErrorCatalog()
         guard let data = content.data(using: .utf8) else { throw CocoaError(.fileWriteInapplicableStringEncoding) }
-        try data.write(to: url, options: .atomic)
-        return url
+        return try ExportFile.write(data, named: "Emuqu_Error_Catalog.txt")
     }
 }
 

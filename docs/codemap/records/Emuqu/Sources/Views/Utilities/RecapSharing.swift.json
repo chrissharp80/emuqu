@@ -1,12 +1,12 @@
 {
  "file": "Emuqu/Sources/Views/Utilities/RecapSharing.swift",
  "hash": "b6783d92fd1e8e3c",
- "role": "Free functions for sharing the recap card: write a named PNG to tmp, find the topmost presenter, present a UIActivityViewController with an iPad popover anchor.",
+ "role": "Free functions for sharing from UIKit: write the recap card as a named PNG to tmp, find the topmost presenter, and present a UIActivityViewController with an iPad popover anchor whose completion deletes a recap PNG or a file written for that one share (presentFileShareSheet), shared or cancelled.",
  "types": [],
  "state": [
   "mem:recapShareDirectory (private global let: tmp/RecapShare/)"
  ],
- "toplevel": "Global free functions only; callers DashboardV2View+Chips.swift:391-392, RecoveryScoreDetailView+Panels.swift:378-379, PDFPreviewView.Coordinator.shareAction.",
+ "toplevel": "Global free functions only; callers DashboardV2View+Chips.swift, RecoveryScoreDetailView+Panels.swift, PDFPreviewView.Coordinator.shareAction (presentShareSheet) and FileShareButton, ExportDataView, FitnessTabView (presentFileShareSheet).",
  "units": [
   {
    "key": "func recapActivityItem(image:score:date:)",
@@ -86,33 +86,60 @@
    "deps": {}
   },
   {
-   "key": "func removeAfterSharing(_:)",
-   "hash": "a3d6cc225f592bd3",
-   "does": "Returns a UIActivityViewController completion handler that deletes the given file (failure logged by attempt).",
+   "key": "func closingHandler(removing:onClosed:)",
+   "hash": "6bf281a1175f71c0",
+   "does": "Returns a share-sheet completion that calls shareSheetClosed(removing: file, onClosed:).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func shareSheetClosed(removing:onClosed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func shareSheetClosed(removing:onClosed:)": "c75dca1ba7ac4da6"
+   }
+  },
+  {
+   "key": "func shareSheetClosed(removing:onClosed:)",
+   "hash": "a403369dcc65e51f",
+   "does": "The share sheet closed: deletes file, when given (a failed delete is logged by attempt 'share.file.remove'), then runs onClosed on the main actor (MainActor.assumeIsolated: UIKit calls the completion on the main thread).",
+   "entry": "UIActivityViewController.completionWithItemsHandler (closingHandler)",
+   "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:FileManager.removeItem"
+    "ext:FileManager.removeItem",
+    "ext:MainActor.assumeIsolated"
    ],
    "reads": [],
    "writes": [
-    "file:tmp/RecapShare/<file> (deleted)"
+    "file:the shared file (deleted)"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file given",
+     "effect": "deleted"
+    },
+    {
+     "at": "+4",
+     "cond": "no onClosed",
+     "effect": "return"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
    "key": "func presentShareSheet(activityItem:from:)",
-   "hash": "0f195386439d10eb",
-   "does": "Creates a UIActivityViewController for one item; when the item is a recap PNG (recapShareFile) sets a completion that deletes it once the sheet closes (shared or cancelled); anchors its popover to the presenter's view centre (no arrow) when one exists (iPad), and presents it.",
+   "hash": "01fa6140b21495aa",
+   "does": "Creates a UIActivityViewController for one item; when the item is a recap PNG (recapShareFile) sets a completion that deletes it once the sheet closes (shared or cancelled); presents it through presentActivitySheet (popover anchored to the presenter's view centre on iPad).",
    "entry": null,
    "calls": [
     "ext:UIActivityViewController",
-    "ext:UIViewController.present",
     "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func recapShareFile(_:)",
-    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func removeAfterSharing(_:)"
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func closingHandler(removing:onClosed:)",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentActivitySheet(_:from:)"
    ],
    "reads": [],
    "writes": [
@@ -120,15 +147,63 @@
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+3",
+     "cond": "item is not a recap PNG",
+     "effect": "no completion; nothing deleted"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func closingHandler(removing:onClosed:)": "610071584aa628b4",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentActivitySheet(_:from:)": "c95d3670da5cf126",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func recapShareFile(_:)": "fe60a5e6d63ae320"
+   }
+  },
+  {
+   "key": "func presentFileShareSheet(_:title:iconName:from:onClosed:)",
+   "hash": "6c5ea11aa5f495f5",
+   "does": "Shares a file written for this one share: a UIActivityViewController over the file (wrapped in ShareFileItem when a title is given, so the sheet's header shows the title and icon), whose completion deletes the file once the sheet closes, shared or cancelled, then runs onClosed; presented through presentActivitySheet.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init ShareFileItem(file:title:iconName:)",
+    "ext:UIActivityViewController",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func closingHandler(removing:onClosed:)",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentActivitySheet(_:from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:the shared file (deleted when the sheet closes)"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "title nil",
+     "effect": "shares the bare file URL (header shows the file name)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init ShareFileItem(file:title:iconName:)": "bbf6f2022f48af19",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func closingHandler(removing:onClosed:)": "610071584aa628b4",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentActivitySheet(_:from:)": "c95d3670da5cf126"
+   }
+  },
+  {
+   "key": "func presentActivitySheet(_:from:)",
+   "hash": "6efb65f7e5dfff99",
+   "does": "Anchors the activity sheet's popover to the presenter's view centre with no arrow when one exists (iPad), and presents it from the presenter.",
+   "entry": null,
+   "calls": [
+    "ext:UIViewController.present"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
      "cond": "popoverPresentationController present (iPad)",
      "effect": "anchor to presenter view centre"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func recapShareFile(_:)": "fe60a5e6d63ae320",
-    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func removeAfterSharing(_:)": "b6fbe15c263fd72d"
-   }
+   "deps": {}
   }
  ],
  "deps": {}

@@ -12,13 +12,27 @@ import Foundation
 ///
 /// They all go in one temporary folder, `Exports`, never in Documents (an
 /// iCloud-eligible container the share sheet probes for a CloudKit share
-/// mode before it will open a file there). A share sheet presented from
-/// SwiftUI's `ShareLink` gives the app no completion callback, so its file
-/// cannot be deleted at the moment the sheet closes. Instead each export
-/// replaces its own earlier copies when it is written again, and the whole
-/// folder is emptied at the next launch (`removeLeftovers`), when no share
-/// sheet from the previous run can still be reading it.
+/// mode before it will open a file there). A file written for one share is
+/// written when the user taps Share and deleted when the share sheet closes,
+/// shared or cancelled (`FileShareButton`, `presentFileShareSheet`); an
+/// export that is built ahead of the tap is held in memory (`Pending`) until
+/// then. Each export also replaces its own earlier copies when it is written
+/// again, and the whole folder is emptied at the next launch
+/// (`removeLeftovers`), when no share sheet from the previous run can still
+/// be reading it: the backstop for a sheet the app was closed under.
 enum ExportFile {
+    /// An export built in memory and not yet on disk: its file name and its
+    /// bytes. Written to `directory` only when the user shares it.
+    struct Pending: Sendable {
+        let name: String
+        let data: Data
+
+        /// Writes it to `directory` (`ExportFile.write`) and returns its URL.
+        func write() throws -> URL {
+            try ExportFile.write(data, named: name)
+        }
+    }
+
     /// `tmp/Exports`.
     static var directory: URL {
         FileManager.default.temporaryDirectory.appendingPathComponent("Exports", isDirectory: true)

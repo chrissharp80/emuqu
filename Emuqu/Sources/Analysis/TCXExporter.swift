@@ -168,7 +168,10 @@ enum TCXExporter {
         return xml
     }
 
-    static func writeToTempFile(session: HRVSession, track: [CLLocation]) throws -> URL {
+    /// The TCX export in memory, named `<sport>-<UTC start>.tcx`, for writing
+    /// when the user shares it (`ExportFile.Pending.write`). Throws when the
+    /// text cannot be encoded.
+    static func pendingFile(session: HRVSession, track: [CLLocation]) throws -> ExportFile.Pending {
         let tcx = export(session: session, track: track)
         let sport = session.workoutMetadata?.sport.rawValue ?? "workout"
         let fmt = DateFormatter()
@@ -182,9 +185,7 @@ enum TCXExporter {
                 NSLocalizedDescriptionKey: String(localized: "Couldn't create the TCX file.", bundle: LanguageManager.appBundle)
             ])
         }
-        let url = try ExportFile.write(data, named: filename)
-        debugLog("[TCXExporter] wrote \(data.count) bytes to \(url.path) (\(track.count) trackpoints)")
-        return url
+        return ExportFile.Pending(name: filename, data: data)
     }
 
     // MARK: - Helpers
