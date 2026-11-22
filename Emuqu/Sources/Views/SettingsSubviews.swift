@@ -559,6 +559,8 @@ struct MetricExplanationsView: View {
                 action: String(localized: "A declining SDNN trend alongside declining RMSSD reinforces that you need more recovery. If SDNN drops while RMSSD stays stable, your sympathetic system may be withdrawing.", bundle: LanguageManager.appBundle)
             )
 
+        } header: {
+            Text(String(localized: "Time Domain", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -571,8 +573,6 @@ struct MetricExplanationsView: View {
                 interpretation: pnn50Interpretation,
                 action: String(localized: "Chronically below 5%? The same interventions that boost RMSSD apply: better sleep, more aerobic base training, stress reduction. Above 15% at rest means your recovery system is firing well.", bundle: LanguageManager.appBundle)
             )
-        } header: {
-            Text(String(localized: "Time Domain", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -589,6 +589,8 @@ struct MetricExplanationsView: View {
             )
 
             hfPowerRow
+        } header: {
+            Text(String(localized: "Frequency Domain", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -620,8 +622,6 @@ struct MetricExplanationsView: View {
                 description: String(localized: "A ratio of two frequency bands. Emuqu uses it only to help choose the analysis window; it is not read as a stress or recovery measure.", bundle: LanguageManager.appBundle),
                 interpretation: String(localized: "Older references read it as a stress or recovery measure; current evidence does not support that. Rely on RMSSD and DFA \u{03B1}1.", bundle: LanguageManager.appBundle)
             )
-        } header: {
-            Text(String(localized: "Frequency Domain", bundle: LanguageManager.appBundle))
         }
     }
 

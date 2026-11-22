@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/SampleDataViews.swift",
- "hash": "8970df75b826bc18",
+ "hash": "79fe24233c5c209e",
  "role": "UI entry points for loading and removing synthetic sample nights: a shared observable model, shared copy, a Dashboard offer row and banner, a Settings section and a standalone Settings page.",
  "types": [
   "SampleDataModel: class — @MainActor @Observable per-screen phase/isPresent/failure state for load/remove",
@@ -14,7 +14,8 @@
   "SampleDataPage: struct — Form wrapping SampleDataSection for Settings search"
  ],
  "state": [
-  "mem:SampleDataModel.phase/isPresent/failure (per-view @State instance)"
+  "mem:SampleDataModel.phase/isPresent/failure (per-view @State instance)",
+  "mem:SampleDataModel.presenceCache (@ObservationIgnored: last presence read and the archive version it was read at)"
  ],
  "toplevel": "Each view owns its own SampleDataModel @State, so progress and failure are not shared across the offer row, banner and section.",
  "units": [
@@ -46,6 +47,34 @@
    ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent": "de4dbc90cab5c43f"
+   }
+  },
+  {
+   "key": "func SampleDataModel.presence(_:archiveVersion:)",
+   "hash": "b95e22dac50f63c8",
+   "does": "Whether sample nights are present as of archiveVersion: the cached answer when it was read at that version, otherwise library.isPresent (ledger decode + archive scan), cached with the version.",
+   "entry": "Called by SampleDataBanner.body",
+   "calls": [
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent"
+   ],
+   "reads": [
+    "ud:sampleData.ledger.v1 (SampleDataLibrary.ledgerKey, standard suite)",
+    "archive:SessionArchive.entries",
+    "mem:SampleDataModel.presenceCache"
+   ],
+   "writes": [
+    "mem:SampleDataModel.presenceCache"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "cached at the same archive version",
+     "effect": "cached answer; else read and cache"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.archiveVersion": "7c843f91f7345a6c",
     "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent": "de4dbc90cab5c43f"
    }
   },
@@ -262,13 +291,13 @@
   },
   {
    "key": "var SampleDataBanner.body",
-   "hash": "e33b9b9f13e2592c",
-   "does": "Reads collector.archiveVersion to re-evaluate on archive change; shows the banner with removal confirmation while working or while sample nights are present.",
+   "hash": "efa7e26ff9d5d4ca",
+   "does": "Reads collector.archiveVersion to re-evaluate on archive change; shows the banner with removal confirmation while working or while sample nights are present, presence being read once per archive version (model.presence).",
    "entry": "SwiftUI body (DashboardV2View.swift:330)",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.archiveVersion",
     "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.library",
-    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.presence(_:archiveVersion:)",
     "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking",
     "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.banner"
    ],
@@ -280,15 +309,15 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "model working or library.isPresent",
+     "at": "+1",
+     "cond": "model working or presence at this archive version",
      "effect": "show banner; else nothing"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.archiveVersion": "7c843f91f7345a6c",
-    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent": "de4dbc90cab5c43f",
     "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataBanner.remove()": "d9e80dcbd1958c62",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.presence(_:archiveVersion:)": "2c0ea896604de27b",
     "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.banner": "0ca3f7b95e8ed85c",
     "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.library": "bb5cfba1852757c4",
     "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "4636004a87ea11a0"

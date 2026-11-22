@@ -59,7 +59,7 @@ struct RebuildFromHealthSection: View {
     private var sportPicker: some View {
         Picker(String(localized: "Activity", bundle: LanguageManager.appBundle), selection: $sport) {
             ForEach([Sport.walk, .hike, .run, .trailRun, .treadmill, .bike], id: \.self) {
-                Text($0.displayName).tag($0)
+                Text($0.localizedName).tag($0)
             }
         }
     }

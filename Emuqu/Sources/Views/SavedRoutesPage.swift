@@ -18,15 +18,17 @@ struct SavedRoutesPage: View {
     /// A rename or delete the store could not save (the library cannot be
     /// read yet); the route is unchanged.
     @State private var showSaveFailed = false
+    /// The route a swipe Delete is waiting to have confirmed.
+    @State private var deletingRoute: SavedRoute?
 
     var body: some View {
-        Group {
+        withDeleteConfirmation(Group {
             if store.routes.isEmpty {
                 emptyState
             } else {
                 routeList
             }
-        }
+        })
         .navigationTitle(String(localized: "My Routes", bundle: LanguageManager.appBundle))
         .navigationBarTitleDisplayMode(.inline)
         .alert(String(localized: "Rename route", bundle: LanguageManager.appBundle), isPresented: Binding(
@@ -47,6 +49,26 @@ struct SavedRoutesPage: View {
             commitRename()
         }
         Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) { renamingRoute = nil }
+    }
+
+    /// "Delete “name”?" before a route leaves the library; a delete the
+    /// store could not save says so.
+    private func withDeleteConfirmation(_ content: some View) -> some View {
+        content.confirmationDialog(
+            String(localized: "Delete this route?", bundle: LanguageManager.appBundle),
+            isPresented: Binding(get: { deletingRoute != nil }, set: { if !$0 { deletingRoute = nil } }),
+            titleVisibility: .visible,
+            presenting: deletingRoute
+        ) { route in
+            Button(String(localized: "Delete", bundle: LanguageManager.appBundle), role: .destructive) { deleteRoute(route) }
+        } message: { route in
+            Text(String(localized: "“\(route.name)” is removed from your routes, and the coach stops recognising it on your workouts. This can't be undone.", bundle: LanguageManager.appBundle))
+        }
+    }
+
+    private func deleteRoute(_ route: SavedRoute) {
+        deletingRoute = nil
+        if !store.remove(id: route.id) { showSaveFailed = true }
     }
 
     private func commitRename() {
@@ -104,10 +126,11 @@ struct SavedRoutesPage: View {
             }
     }
 
+    /// Delete asks first (`withDeleteConfirmation`): it cannot be undone.
     @ViewBuilder
     private func swipeActions(for route: SavedRoute) -> some View {
         Button(role: .destructive) {
-            if !store.remove(id: route.id) { showSaveFailed = true }
+            deletingRoute = route
         } label: {
             Label(String(localized: "Delete", bundle: LanguageManager.appBundle), systemImage: "trash")
         }

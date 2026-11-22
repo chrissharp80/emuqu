@@ -213,13 +213,13 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "9956563e3f17fa81",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "2d613940641c274b",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.uploadedCount": "5109f0657f5f14ee",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)": "18ffeea358d196fc"
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)": "0ac0477052f8b7f7"
    }
   },
   {
    "key": "func DataSettingsPage.forceSyncOutcome(newlyUploaded:lastSyncBefore:)",
-   "hash": "1ef4f84bd2a87856",
-   "does": "Alert text for a force sync: \"iCloud unavailable\" when the schema is unavailable this launch; the forceSyncSummary error text when syncState is .error; \"Syncing…\" when lastSyncDate did not change (the call was skipped because another full sync is running, so nothing synced); otherwise forceSyncSummary.",
+   "hash": "f993fd0ff4a23433",
+   "does": "Alert text for a force sync: \"iCloud unavailable\" when the schema is unavailable this launch; the forceSyncSummary error text when syncState is .error; when lastSyncDate did not change (the call was skipped because another full sync is running, so nothing synced) that nothing was synced this time and another sync may still be running; otherwise forceSyncSummary.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -246,7 +246,7 @@
     {
      "at": "+7",
      "cond": "no completed sync",
-     "effect": "\"Syncing…\""
+     "effect": "nothing synced; another sync may still be running"
     }
    ],
    "deps": {
