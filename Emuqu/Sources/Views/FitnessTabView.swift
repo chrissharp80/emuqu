@@ -61,6 +61,8 @@ struct FitnessTabView: View {
     /// `interruptedRecordingCard` — the app telling the user its own recording
     /// failed and can be rebuilt, instead of waiting to be asked.
     @State var interruptedRecordings: [HealthWorkoutImporter.InterruptedSession] = []
+    /// Bumped by every interrupted-recording scan; only the newest one lands.
+    @State var interruptedScanGeneration = 0
     /// Trailing GPX-download share state. Generated
     /// on demand off-main; presented via system share sheet so the
     /// user can save / mail / AirDrop the latest workout track.
@@ -247,17 +249,21 @@ struct FitnessTabView: View {
     }
 
     private func deleteFromSummary(_ item: WorkoutSummaryItem) {
-        guard deleteWorkout(item.session.id) else {
-            workoutDeleteFailed = true
-            return
+        Task {
+            guard await deleteWorkout(item.session.id) else {
+                workoutDeleteFailed = true
+                return
+            }
+            if item.isJustCompleted { recorderBox.recorder?.acknowledgeFinished() }
         }
-        if item.isJustCompleted { recorderBox.recorder?.acknowledgeFinished() }
     }
 
     /// The confirmed context-menu delete from the Recent list. A failure
     /// raises the tab's alert, so it shows now and never later on a sheet.
     func deleteRecentWorkout(_ id: UUID) {
-        if !deleteWorkout(id) { recentWorkoutDeleteFailed = true }
+        Task {
+            if !(await deleteWorkout(id)) { recentWorkoutDeleteFailed = true }
+        }
     }
 
     private var startErrorBinding: Binding<Bool> {
@@ -469,7 +475,8 @@ struct FitnessTabView: View {
     /// First-load work for the tab. The cached snapshot paints instantly, the
     /// training-load warm is fire-and-forget, and the HealthKit aggregates are
     /// awaited last.
-    /// `reloadInterruptedRecordings()` runs FIRST, before any `await`. It is a
+    /// `reloadInterruptedRecordings()` starts FIRST, before any `await` (its
+    /// scan runs on a detached task and is not awaited here). It is a
     /// local archive read with no HealthKit or CoreMotion dependency, and it
     /// drives the card that tells a user their recording died. Ordering it after
     /// the awaits below made it the one thing on this screen that a slow
@@ -631,9 +638,9 @@ struct FitnessTabView: View {
     /// archive could not move it; the caller raises the alert where the user
     /// is (the sheet's `workoutDeleteFailed`, or the tab's
     /// `recentWorkoutDeleteFailed`).
-    func deleteWorkout(_ id: UUID) -> Bool {
+    func deleteWorkout(_ id: UUID) async -> Bool {
         do {
-            try SessionTrash.move(id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
+            try await SessionTrash.move(id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
         } catch {
             debugLog("[Fitness] Failed to delete workout \(id): \(error)", level: .error)
             return false
@@ -769,7 +776,7 @@ struct FitnessTabView: View {
             let parsed = try GPXImporter.parseWorkout(data: try Data(contentsOf: url))
             guard !HealthWorkoutImporter.isAlreadyArchived(start: parsed.startDate, existingStarts: existingStarts) else { return .duplicate }
             _ = try archive.archive(GPXImporter.buildSession(from: parsed))
-            let dur = min(max(0, Int(parsed.endDate.timeIntervalSince(parsed.startDate))), 48 * 3_600) / 60
+            let dur = ImportedWorkoutBuilder.clampedDurationSeconds(from: parsed.startDate, to: parsed.endDate) / 60
             return .imported(sport: parsed.sport, minutes: dur, points: parsed.track.count)
         } catch {
             return .failed(error.localizedDescription)

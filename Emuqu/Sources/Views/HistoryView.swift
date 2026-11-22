@@ -35,6 +35,8 @@ struct HistoryView: View {
     /// load racing the new selection. Also prevents the old session
     /// from briefly flashing in if its decode finishes first.
     @State private var selectionTask: Task<Void, Never>?
+    /// The last tag save started; the next one waits for it (`saveTags`).
+    @State private var pendingTagSave: Task<Void, Never>?
 
     /// Entries currently visible (paginated slice of filteredEntries)
     private var visibleEntries: [SessionArchiveEntry] {
@@ -366,14 +368,14 @@ struct HistoryView: View {
     private func confirmDelete() {
         guard let sessionId = deleteSessionId else { return }
         deleteSessionId = nil
-        moveToTrash(sessionId)
+        Task { await moveToTrash(sessionId) }
     }
 
     /// Moves the reading to Trash; tells the user when it could not be moved.
     @discardableResult
-    private func moveToTrash(_ sessionId: UUID) -> Bool {
+    private func moveToTrash(_ sessionId: UUID) async -> Bool {
         do {
-            try SessionTrash.move(sessionId, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
+            try await SessionTrash.move(sessionId, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
             return true
         } catch {
             debugLog("[HistoryView] Failed to delete session \(sessionId.uuidString.prefix(8)): \(error)")
@@ -519,16 +521,34 @@ struct HistoryView: View {
         )
     }
 
-    /// The sheet closes only once the reading has left the archive; when it
-    /// could not be moved, the sheet stays and says so.
+    /// The sheet closes only once the reading has left the archive, and only
+    /// if it still shows that reading; when it could not be moved, the sheet
+    /// stays and says so.
     private func deleteAndDismiss(_ session: HRVSession) {
-        guard moveToTrash(session.id) else { return }
-        selectedSession = nil
+        Task {
+            guard await moveToTrash(session.id), selectedSession?.id == session.id else { return }
+            selectedSession = nil
+        }
     }
 
+    /// The archive rewrite runs off the main actor. Saves run one after
+    /// another in the order they were made (each waits for the one before),
+    /// so a slow earlier write never lands over a later edit.
     private func saveTags(_ session: HRVSession, tags: [ReadingTag], notes: String?) {
+        let archive = collector.archive
+        let id = session.id
+        let previous = pendingTagSave
+        pendingTagSave = Task {
+            await previous?.value
+            await writeTags(id, tags: tags, notes: notes, to: archive)
+        }
+    }
+
+    /// One tag save: the rewrite on a detached task, then the archive signal,
+    /// or the failure shown to the user.
+    private func writeTags(_ id: UUID, tags: [ReadingTag], notes: String?, to archive: SessionArchive) async {
         do {
-            try collector.archive.updateTags(session.id, tags: tags, notes: notes)
+            try await Task.detached(priority: .userInitiated) { try archive.updateTags(id, tags: tags, notes: notes) }.value
             collector.notifyArchiveChanged()
         } catch {
             debugLog("[HistoryView] Failed to update tags: \(error)")
@@ -773,11 +793,14 @@ private struct SessionTypeFilterButton: View {
 /// The one way a screen moves a reading to Trash: out of the archive, every
 /// observer told, and the deletion queued for iCloud so the next pull does
 /// not bring it back. Throws when the archive could not move it, so the
-/// caller can tell the user.
+/// caller can tell the user. The move itself (index rewrite and file move,
+/// under the archive's lock) runs off the main actor; the observers and the
+/// iCloud deletion follow it on the main actor, only once it has succeeded.
 @MainActor
 enum SessionTrash {
-    static func move(_ sessionId: UUID, collector: RRCollector, cloudKit: CloudKitSyncManager) throws {
-        try collector.archive.delete(sessionId)
+    static func move(_ sessionId: UUID, collector: RRCollector, cloudKit: CloudKitSyncManager) async throws {
+        let archive = collector.archive
+        try await Task.detached(priority: .userInitiated) { try archive.delete(sessionId) }.value
         collector.notifyArchiveChanged()
         Task { await cloudKit.uploadDeletion(sessionId) }
     }

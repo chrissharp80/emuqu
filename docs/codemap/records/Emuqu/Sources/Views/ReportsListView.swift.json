@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/ReportsListView.swift",
- "hash": "5cf7c89d8c10155c",
+ "hash": "7e15742503713ddb",
  "role": "'All Reports' list: decodes the last 90 days of workout and overnight sessions, emits one row per workout (holistic if a reliable overnight started within 36 h before it, else workout-only) and one Recovery/HRV row per overnight, and renders the chosen PDF on tap into a temp file shown in a PDF preview sheet.",
  "types": [
   "ReportsListView: struct (View) — list, load, generation",
@@ -13,9 +13,9 @@
  "state": [
   "@State rows, loading, loadTask, presentedPDF, shownPDF, isGenerating, generationError, generatingRowID, isOnScreen (view-local)",
   "@Environment ArchiveSignal (reloads the rows on version change)",
-  "file:<tmp>/emuqu-report-<id8>-<epoch>.pdf (FileManager.temporaryDirectory; deleted when the preview sheet closes, the render fails, the render finishes after the page was left, or the page next opens)"
+  "file:<tmp>/emuqu-reports-<id8>-<epoch>.pdf (FileManager.temporaryDirectory; deleted when the preview sheet closes, the render fails, the render finishes after the page was left, or the page next opens)"
  ],
- "toplevel": "Presented from MainTabView.swift:542 and ReportsSettingsPage.swift:37; snapshot test ChartScreenSnapshotTests.swift:153. Header comment (lines 4-33) documents the three row kinds and the 36 h night-before rule. Report PDFs are written to tmp as emuqu-report-<row id prefix>-<epoch>.pdf (reportFilePrefix); @State isOnScreen (false until the page appears and again once it is left) decides whether a finished render is shown or deleted.",
+ "toplevel": "Presented from MainTabView.swift:542 and ReportsSettingsPage.swift:37; snapshot test ChartScreenSnapshotTests.swift:153. Header comment (lines 4-33) documents the three row kinds and the 36 h night-before rule. Report PDFs are written to tmp as emuqu-reports-<row id prefix>-<epoch>.pdf (reportFilePrefix, distinct from MainTabView's emuqu-report-<epoch>.pdf so neither page's cleanup touches the other's files); @State isOnScreen (false until the page appears and again once it is left) decides whether a finished render is shown or deleted.",
  "units": [
   {
    "key": "var ReportsListView.body",
@@ -45,9 +45,9 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.appear()": "5e75f51e6741a075",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.appear()": "715b51f376f66d58",
     "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.load()": "25dd35bcb6196a18",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeShownPDF()": "306c574f8e48d384",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeShownPDF()": "a7f7dff722fa9d89",
     "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.content": "6b44f4503384006c",
     "Emuqu/Sources/Views/ReportsListView.swift::var ReportsListView.errorAlertShown": "36a3ef6a233b1a67"
    }
@@ -467,8 +467,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.generationInputs(for:)": "755dcb0a53733e7e",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderAndPublish(_:)": "077e90499b5d3729"
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.generationInputs(for:)": "80cf5aa3eb41d42b",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderAndPublish(_:)": "5a3680da04884af7"
    }
   },
   {
@@ -484,7 +484,7 @@
    "reads": [],
    "writes": [
     "mem:ReportsListView @State (view-local)",
-    "file:<tmp>/emuqu-report-*.pdf (removed on failure)"
+    "file:<tmp>/emuqu-reports-*.pdf (removed on failure)"
    ],
    "branches": [
     {
@@ -494,8 +494,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.finishGeneration(url:error:)": "36ba8d6211056b01",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)": "578140f853243498",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.finishGeneration(url:error:)": "90dbecd3a43ce461",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)": "9cf05301d93ad8fc",
     "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderReport(_:)": "38ce4fa39d09cd55"
    }
   },
@@ -512,7 +512,7 @@
    ],
    "writes": [
     "mem:ReportsListView @State (view-local)",
-    "file:tmp/emuqu-report-*.pdf (deleted when off screen)"
+    "file:tmp/emuqu-reports-*.pdf (deleted when off screen)"
    ],
    "branches": [
     {
@@ -527,7 +527,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)": "578140f853243498"
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)": "9cf05301d93ad8fc"
    }
   },
   {
@@ -543,7 +543,7 @@
    ],
    "writes": [
     "mem:ReportsListView.shownPDF",
-    "file:<tmp>/emuqu-report-*.pdf"
+    "file:<tmp>/emuqu-reports-*.pdf"
    ],
    "branches": [
     {
@@ -553,7 +553,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)": "578140f853243498"
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)": "9cf05301d93ad8fc"
    }
   },
   {
@@ -567,7 +567,7 @@
    ],
    "reads": [],
    "writes": [
-    "file:<tmp>/emuqu-report-*.pdf"
+    "file:<tmp>/emuqu-reports-*.pdf"
    ],
    "branches": [
     {
@@ -594,7 +594,7 @@
    ],
    "writes": [
     "mem:ReportsListView @State (view-local)",
-    "file:tmp/emuqu-report-*.pdf (deleted)"
+    "file:tmp/emuqu-reports-*.pdf (deleted)"
    ],
    "branches": [
     {
@@ -605,13 +605,13 @@
    ],
    "deps": {
     "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.load()": "25dd35bcb6196a18",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeLeftoverPDFs()": "eddc7783885d6c32"
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeLeftoverPDFs()": "39ae817c2a954f5a"
    }
   },
   {
    "key": "func ReportsListView.removeLeftoverPDFs()",
    "hash": "047136c45551e719",
-   "does": "Lists tmp (failure logged via attempt, nothing removed) and deletes every file named emuqu-report-*.pdf through removeTemporaryPDF.",
+   "does": "Lists tmp (failure logged via attempt, nothing removed) and deletes every file named emuqu-reports-*.pdf through removeTemporaryPDF: only this page's report PDFs, never MainTabView's Send Report PDFs (emuqu-report-<epoch>.pdf), which the prefix does not match.",
    "entry": "Detached utility task started by appear()",
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
@@ -621,7 +621,7 @@
     "file:tmp directory listing"
    ],
    "writes": [
-    "file:tmp/emuqu-report-*.pdf (deleted)"
+    "file:tmp/emuqu-reports-*.pdf (deleted)"
    ],
    "branches": [
     {
@@ -637,7 +637,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)": "578140f853243498",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.removeTemporaryPDF(_:)": "9cf05301d93ad8fc",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
@@ -745,10 +745,10 @@
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "40d04f34ec0697be",
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()": "50874a244335011f",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "85adfaeef60b74e7",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderHolistic(_:track:load:)": "2c81187fe04a199e",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderRecovery(_:load:)": "75c3b1df190cd23b",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderWorkoutOnly(_:track:)": "6b1a3727d9114d47",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.withFullSessions(_:)": "1341b3507c480eac"
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderHolistic(_:track:load:)": "15d4b5d82d45653d",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderRecovery(_:load:)": "257a071647a7e434",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderWorkoutOnly(_:track:)": "c693d4573f0efc40",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.withFullSessions(_:)": "ea56613de60bfa20"
    }
   },
   {
@@ -804,7 +804,7 @@
    ],
    "reads": [],
    "writes": [
-    "file:<tmp>/emuqu-report-*.pdf"
+    "file:<tmp>/emuqu-reports-*.pdf"
    ],
    "branches": [],
    "deps": {
@@ -824,7 +824,7 @@
    ],
    "reads": [],
    "writes": [
-    "file:<tmp>/emuqu-report-*.pdf"
+    "file:<tmp>/emuqu-reports-*.pdf"
    ],
    "branches": [],
    "deps": {
@@ -855,7 +855,7 @@
    ],
    "reads": [],
    "writes": [
-    "file:<tmp>/emuqu-report-*.pdf"
+    "file:<tmp>/emuqu-reports-*.pdf"
    ],
    "branches": [
     {

@@ -56,7 +56,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.withPaywallChrome(_:)": "55d058f190029f12",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.withPaywallChrome(_:)": "c3af6b487b899d72",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallStack": "7a8e575cf35b6549"
    }
   },
@@ -142,9 +142,9 @@
   },
   {
    "key": "func PaywallView.withPaywallChrome(_:)",
-   "hash": "bbd5e28d7374ecfb",
-   "does": "Applies the paywall chrome: theme background, an onAppear debugLog, a .task that loads products, the Terms of Use / Privacy Policy / Your Data sheets (bound to showTermsOfUse / showPrivacyPolicy / showYourData; on the page so the two copies of the buttons ViewThatFits can hold do not each carry them), and the page's one alert, presenting pendingMessage (StoreKit error first, then a purchase notice, then what Restore found) with its title and an OK that dismisses it; dismissal clears that message, which presents the next. No swipe-dismiss control: the launch gate is a full-screen cover and Settings/More push it, so the gated user leaves through continueWithAccessButton.",
-   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); .onAppear and .task fire on presentation; alert binding setter fires on alert dismissal",
+   "hash": "340f0e0b1936c7e9",
+   "does": "Applies the paywall chrome: theme background, an onAppear debugLog, a .task that loads products, the Terms of Use / Privacy Policy / Your Data sheets (bound to showTermsOfUse / showPrivacyPolicy / showYourData; on the page so the two copies of the buttons ViewThatFits can hold do not each carry them), and the page's one alert, presenting pendingMessage (StoreKit error first, then a purchase notice, then what Restore found) with its title and an OK that clears the message it showed (dismiss), which presents the next. The alert binding's setter does nothing, so one OK tap clears one message. No swipe-dismiss control: the launch gate is a full-screen cover and Settings/More push it, so the gated user leaves through continueWithAccessButton.",
+   "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); .onAppear and .task fire on presentation; the alert's OK button",
    "calls": [
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.termsOfUseSheet",
@@ -153,9 +153,9 @@
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pendingMessage",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.title",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.text",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.dismissMessage()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.dismiss(_:)"
    ],
    "reads": [
     "mem:StoreKitManager.errorMessage",
@@ -174,19 +174,19 @@
    ],
    "branches": [
     {
-     "at": "+12",
-     "cond": "alert binding set with false (alert dismissed)",
-     "effect": "dismissMessage clears the message shown; true does nothing"
+     "at": "+19",
+     "cond": "OK tapped",
+     "effect": "dismiss(shown) clears the message that alert presented; the binding setter, also written on dismissal, does nothing"
     }
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.dismissMessage()": "36c99ce9d1368754",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.dismiss(_:)": "fd1f101d34d83cd5",
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()": "0d1aa80c31e9afdf",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.text": "c1e1d08040497212",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.title": "75ec02154c0ff9f5",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pendingMessage": "47f2fcd75a0a2cf0",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pendingMessage": "8e13d8a51daceace",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.privacyPolicySheet": "65296e6387b49d24",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.termsOfUseSheet": "7016f9e7ddb980fb",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataSheet": "53f37c238a1f97be",
@@ -252,7 +252,7 @@
    "key": "var PaywallView.pendingMessage",
    "hash": "ca0bd528ae0e51b5",
    "does": "The message to show now: storeKit.errorMessage as .error, else storeKit.purchaseNotice as .purchase, else restoreNotice as .restore, else nil.",
-   "entry": "Read by withPaywallChrome and dismissMessage",
+   "entry": "Read by withPaywallChrome",
    "calls": [],
    "reads": [
     "mem:StoreKitManager.errorMessage",
@@ -283,14 +283,16 @@
    }
   },
   {
-   "key": "func PaywallView.dismissMessage()",
-   "hash": "a4c2cf1fedb0851c",
-   "does": "Clears the message pendingMessage is showing (errorMessage, purchaseNotice or restoreNotice), so the next one, if any, is presented.",
-   "entry": "Alert OK and alert dismissal",
-   "calls": [
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pendingMessage"
+   "key": "func PaywallView.dismiss(_:)",
+   "hash": "3ed044936e7926f7",
+   "does": "Clears the field the shown message came from (storeKit.errorMessage, storeKit.purchaseNotice or restoreNotice), and only while it still holds that text: a field given a new text since keeps it, so it is shown next.",
+   "entry": "The paywall alert's OK button (withPaywallChrome)",
+   "calls": [],
+   "reads": [
+    "mem:StoreKitManager.errorMessage",
+    "mem:StoreKitManager.purchaseNotice",
+    "mem:PaywallView.restoreNotice"
    ],
-   "reads": [],
    "writes": [
     "mem:StoreKitManager.errorMessage",
     "mem:StoreKitManager.purchaseNotice",
@@ -298,14 +300,29 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "pending case",
-     "effect": "clears that message; nil: nothing"
+     "at": "+2",
+     "cond": ".error and errorMessage still that text",
+     "effect": "errorMessage = nil"
+    },
+    {
+     "at": "+3",
+     "cond": ".purchase and purchaseNotice still that text",
+     "effect": "purchaseNotice = nil"
+    },
+    {
+     "at": "+4",
+     "cond": ".restore and restoreNotice still that text",
+     "effect": "restoreNotice = nil"
+    },
+    {
+     "at": "+5",
+     "cond": "the field changed since",
+     "effect": "nothing cleared"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pendingMessage": "47f2fcd75a0a2cf0"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.text": "c1e1d08040497212"
    }
   },
   {

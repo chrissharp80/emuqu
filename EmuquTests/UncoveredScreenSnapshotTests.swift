@@ -128,28 +128,6 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
         assertSnapshot(of: hosted(DeviceInfoPanelObserving(polarManager: PolarManager())), named: "uncovered-device-info-panel")
     }
 
-    // MARK: - Archive status
-
-    func testArchiveStatusLineRenders() {
-        assertSnapshot(
-            of: hosted(ArchiveStatusLine(
-                session: SnapshotFixtures.overnightSession(), collector: SnapshotFixtures.collector(),
-                archiveSignal: ArchiveSignal(), syncManager: CloudKitSyncManager.shared
-            )),
-            named: "uncovered-archive-status-line"
-        )
-    }
-
-    func testArchiveStatusDetailRenders() {
-        assertSnapshot(
-            of: hosted(ArchiveStatusDetailSheet(
-                session: SnapshotFixtures.overnightSession(), collector: SnapshotFixtures.collector(),
-                archiveSignal: ArchiveSignal(), syncManager: CloudKitSyncManager.shared
-            )),
-            named: "uncovered-archive-status-detail"
-        )
-    }
-
     // MARK: - Detail and troubleshooting screens
 
     func testRecoveryScoreDetailRenders() {

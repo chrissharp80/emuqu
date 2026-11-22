@@ -160,7 +160,7 @@
    "deps": {
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
-    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::func FitnessTabView.reloadInterruptedRecordings()": "0751e3299a93dec5",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::func FitnessTabView.reloadInterruptedRecordings()": "40a1afd1a691d049",
     "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImporter": "e3d734b7dd2d4999"
    }
   },
@@ -202,24 +202,30 @@
   },
   {
    "key": "func FitnessTabView.reloadInterruptedRecordings()",
-   "hash": "7d266297d8fd1af7",
-   "does": "Sets interruptedRecordings to the archive's workouts from the last 30 days that ran under the minimum importable duration and have a readable sport.",
+   "hash": "f67cb0a149356a06",
+   "does": "Bumps interruptedScanGeneration and, in a main-actor Task, runs HealthWorkoutImporter.scanInterruptedSessions on a detached userInitiated task (the archive's workouts from the last 30 days that ran under the minimum importable duration and have a readable sport, reading those files off the main actor); sets interruptedRecordings to the result only if no newer scan started meanwhile. Returns at once: the caller does not wait for the scan.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImporter",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.interruptedSessions(archive:days:now:)"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.scanInterruptedSessions(archive:days:now:)"
    ],
    "reads": [
     "archive:SessionArchive.entries(from:to:)",
-    "archive:retrieveLightweight (short workouts only)"
+    "archive:retrieveLightweight (short workouts only)",
+    "mem:FitnessTabView.interruptedScanGeneration"
    ],
    "writes": [
+    "mem:FitnessTabView.interruptedScanGeneration",
     "mem:FitnessTabView.interruptedRecordings"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "a newer scan started meanwhile",
+     "effect": "result dropped; else interruptedRecordings = result"
+    }
+   ],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.interruptedSessions(archive:days:now:)": "5dd18fa1f07e82b4",
-    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImporter": "e3d734b7dd2d4999"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.scanInterruptedSessions(archive:days:now:)": "93d5b77d66bb3178"
    }
   }
  ],

@@ -54,6 +54,10 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
     private(set) var strokeCount: Int?
 
     private(set) var knownDevices: [KnownErg] = []
+    /// The peripheral id of the sensor connected or being connected now; nil
+    /// while none is. The sensor sheet titles the row with it, so the row
+    /// names the linked sensor rather than the first one paired.
+    private(set) var linkedDeviceId: String?
     private(set) var discoveredDevices: [DiscoveredErg] = []
     private(set) var lastStatusLine: String = String(localized: "Idle", bundle: LanguageManager.appBundle)
 
@@ -208,6 +212,7 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
 
     func attach(peripheral: CBPeripheral) {
         activePeripheral = peripheral
+        linkedDeviceId = peripheral.identifier.uuidString
         peripheral.delegate = self
         connectionState = .connecting
         let name = peripheral.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
@@ -222,6 +227,7 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
     /// and a workout stopped during the drop saved no strokes or drag factor.
     private func cleanupAfterDisconnect(keepingPiece: Bool = false) {
         activePeripheral = nil
+        linkedDeviceId = nil
         generalDataChar = nil
         additionalDataChar = nil
         strokeDataChar = nil

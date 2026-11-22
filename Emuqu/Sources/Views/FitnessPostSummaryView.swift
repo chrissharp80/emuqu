@@ -160,18 +160,29 @@ struct FitnessPostSummaryView: View {
             // resolves to `refreshedSession` when available), so a single
             // refresh here propagates everywhere.
             .onChange(of: archiveSignal.version) { _, _ in reloadFromArchive() }
-            .onAppear { primeSummary() }
+            .onAppear(perform: summaryAppeared)
             .onDisappear { removeTemporaryExports() }
+    }
+
+    /// Marks the summary on screen (renders that land now keep their files)
+    /// and loads the archive's copy.
+    private func summaryAppeared() {
+        reportShare.summaryOnScreen = true
+        primeSummary()
     }
 
     /// The GPX / CSV / TCX / PDF / recap files are plaintext health data (GPS
     /// and heart rate) in tmp. They go when the summary closes, and the state
     /// that pointed at them is reset, so a summary shown again rebuilds them
-    /// (`applyReload` treats it as a first build).
+    /// (`applyReload` treats it as a first build). Both generations are
+    /// bumped and the summary is marked off screen, so an export or PDF
+    /// render still running deletes what it wrote when it lands instead of
+    /// publishing it.
     private func removeTemporaryExports() {
-        for url in [gpxURL, csvURL, tcxURL, pdfURL, recapImageURL].compactMap({ $0 }) {
-            attempt("FitnessPostSummaryView.removeTemporaryExport") { try FileManager.default.removeItem(at: url) }
-        }
+        reportShare.summaryOnScreen = false
+        exportGeneration += 1
+        reportShare.cacheGeneration += 1
+        Self.removeTemporaryFiles([gpxURL, csvURL, tcxURL, pdfURL, recapImageURL])
         gpxURL = nil
         csvURL = nil
         tcxURL = nil
@@ -179,6 +190,12 @@ struct FitnessPostSummaryView: View {
         recapImageURL = nil
         exportsReady = false
         summaryPrepared = false
+    }
+
+    private static func removeTemporaryFiles(_ urls: [URL?]) {
+        for url in urls.compactMap({ $0 }) {
+            attempt("FitnessPostSummaryView.removeTemporaryExport") { try FileManager.default.removeItem(at: url) }
+        }
     }
 
     private var summaryScroll: some View {
@@ -491,7 +508,10 @@ struct FitnessPostSummaryView: View {
 
     /// Decode the track once and write GPX/CSV/TCX to temp files on a
     /// utility-priority detached task. State publishes when all three are
-    /// ready so the export rows switch from disabled → active.
+    /// ready so the export rows switch from disabled → active. A generation
+    /// that lands after a newer one started is dropped (the newer one writes
+    /// the same files); one that lands after the summary closed deletes the
+    /// files it wrote.
     func generateExportsInBackground() async {
         exportGeneration += 1
         let generation = exportGeneration
@@ -500,17 +520,25 @@ struct FitnessPostSummaryView: View {
         let result = await Task.detached(priority: .utility) {
             Self.buildExports(session: session, wantsMile: wantsMile)
         }.value
-        guard generation == exportGeneration else { return }
-        await MainActor.run {
-            self.cachedTrack = result.track
-            self.trackDecoded = true
-            self.cachedSplits = result.splits
-            self.gpxURL = result.gpx
-            self.csvURL = result.csv
-            self.tcxURL = result.tcx
-            self.exportError = result.error
-            self.exportsReady = (result.gpx != nil || result.csv != nil || result.tcx != nil)
+        landExports(result, generation: generation)
+    }
+
+    /// Publishes a landed export build, drops one a newer build superseded,
+    /// and deletes the files of one that landed after the summary closed.
+    private func landExports(_ result: ExportOutcome, generation: Int) {
+        guard reportShare.summaryOnScreen else {
+            Self.removeTemporaryFiles([result.gpx, result.csv, result.tcx])
+            return
         }
+        guard generation == exportGeneration else { return }
+        cachedTrack = result.track
+        trackDecoded = true
+        cachedSplits = result.splits
+        gpxURL = result.gpx
+        csvURL = result.csv
+        tcxURL = result.tcx
+        exportError = result.error
+        exportsReady = (result.gpx != nil || result.csv != nil || result.tcx != nil)
     }
 
     /// The track decode, the three export files and the splits, off the

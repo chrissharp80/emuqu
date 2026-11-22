@@ -499,6 +499,8 @@ struct GetMeBackView: View {
         return letters.count == 4 ? letters : ["N", "E", "S", "W"]
     }
 
+    /// The arrow follows `arrowRotationDegrees` from the first frame (`initial`),
+    /// so a dial built with a bearing and heading known never starts pointing up.
     private var arrowDial: some View {
         ZStack {
             roseRing
@@ -509,7 +511,7 @@ struct GetMeBackView: View {
                 .rotationEffect(.degrees(displayedArrowDegrees))
                 .opacity(showsArrow ? 1 : 0)
                 .animation(.zenInterface(.easeOut(duration: 0.3), reduceMotion: reduceMotion), value: displayedArrowDegrees)
-                .onChange(of: arrowRotationDegrees) { _, target in turnArrow(to: target) }
+                .onChange(of: arrowRotationDegrees, initial: true) { _, target in turnArrow(to: target) }
             if accuracyState == .waiting || (trail != nil && originFix == nil) {
                 ProgressView().controlSize(.large)
             } else if !hasValidHeading {
