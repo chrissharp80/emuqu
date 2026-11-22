@@ -24,18 +24,34 @@ extension RecordView {
 
     private var acceptanceButtons: some View {
         HStack(spacing: 12) {
-            Button(action: rejectSession) {
-                Label(String(localized: "Discard", bundle: LanguageManager.appBundle), systemImage: "trash")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .tint(.red)
+            readingDiscardButton
 
             Button(action: acceptSession) {
                 Label(String(localized: "Save", bundle: LanguageManager.appBundle), systemImage: "checkmark")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+        }
+    }
+
+    /// Discard asks first: the reading has not been saved anywhere else.
+    private var readingDiscardButton: some View {
+        Button(role: .destructive) {
+            confirmingReadingDiscard = true
+        } label: {
+            Label(String(localized: "Discard", bundle: LanguageManager.appBundle), systemImage: "trash")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(.red)
+        .confirmationDialog(
+            String(localized: "Discard this reading?", bundle: LanguageManager.appBundle),
+            isPresented: $confirmingReadingDiscard,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Discard", bundle: LanguageManager.appBundle), role: .destructive, action: rejectSession)
+        } message: {
+            Text(String(localized: "It isn't saved to your history. This can't be undone.", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -201,6 +217,7 @@ extension RecordView {
         if let review = morningCoordination.recoveredWorkoutReview {
             RecoveredWorkoutReviewCard(
                 review: review,
+                failureMessage: recoveredWorkoutFailure,
                 onSave: { keepRecoveredWorkout(review, endSec: $0) },
                 onDiscard: { discardRecoveredWorkout(review) }
             )
@@ -346,7 +363,7 @@ extension RecordView {
 
     func morningCover(_ presentation: ResultsPresentation) -> some View {
         NavigationStack {
-            withTagSaveFailureAlert(morningResultsWithAlert(presentation), shown: true)
+            withErrorAlert(withTagSaveFailureAlert(morningResultsWithAlert(presentation), shown: true), shown: true)
                 .toolbar { morningDoneToolbar }
         }
     }
@@ -416,7 +433,7 @@ extension RecordView {
 
     func quickCover(_ presentation: ResultsPresentation) -> some View {
         NavigationStack {
-            withTagSaveFailureAlert(quickResults(presentation), shown: true)
+            withErrorAlert(withTagSaveFailureAlert(quickResults(presentation), shown: true), shown: true)
                 .toolbar { quickDoneToolbar }
                 .alert(String(localized: "Couldn't delete this reading. Try again.", bundle: LanguageManager.appBundle), isPresented: $quickDiscardFailed) {
                     quickDiscardFailedActions
@@ -480,13 +497,25 @@ extension RecordView {
         withAnimation { selectedSessionType = nil }
     }
 
+    /// A Save that stored nothing keeps the card up (`retrimRecoveredWorkout`)
+    /// and the card says so, rather than the tap appearing to do nothing.
     func keepRecoveredWorkout(_ review: MorningCoordination.RecoveredWorkoutReview, endSec: Double) {
         interruptedWorkoutId = nil
-        Task { await collector.retrimRecoveredWorkout(sessionId: review.sessionId, endSec: endSec) }
+        recoveredWorkoutFailure = nil
+        Task {
+            let closed = await collector.retrimRecoveredWorkout(sessionId: review.sessionId, endSec: endSec)
+            if !closed {
+                recoveredWorkoutFailure = String(localized: "Couldn't save the trimmed workout. Try again.", bundle: LanguageManager.appBundle)
+            }
+        }
     }
 
+    /// The same for a Discard whose delete failed.
     func discardRecoveredWorkout(_ review: MorningCoordination.RecoveredWorkoutReview) {
         interruptedWorkoutId = nil
-        collector.discardRecoveredWorkout(sessionId: review.sessionId)
+        recoveredWorkoutFailure = nil
+        if !collector.discardRecoveredWorkout(sessionId: review.sessionId) {
+            recoveredWorkoutFailure = String(localized: "Couldn't delete this workout. Try again.", bundle: LanguageManager.appBundle)
+        }
     }
 }

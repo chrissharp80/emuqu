@@ -51,8 +51,9 @@ final class RecoveredWorkoutReviewTests: XCTestCase {
         let card = review(of: workout)
         collector.morningCoordination.recoveredWorkoutReview = card
 
-        await collector.retrimRecoveredWorkout(sessionId: workout.id, endSec: 200)
+        let closed = await collector.retrimRecoveredWorkout(sessionId: workout.id, endSec: 200)
 
+        XCTAssertFalse(closed, "a Save that stored nothing reports it, so the card can say so")
         XCTAssertEqual(
             collector.morningCoordination.recoveredWorkoutReview, card,
             "an unreadable workout is not one with too few beats: the card stays so Save can be tried again"
