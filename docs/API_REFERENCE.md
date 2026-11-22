@@ -449,7 +449,6 @@ final class RRCollector {
 
     // MARK: - Session Loading
 
-    func recentSessions(limit: Int?) -> [HRVSession]          // nil = all
     func recentSessionsAsync(limit: Int?) async -> [HRVSession] // nil = all
     func retrieveFullSessionAsync(_ id: UUID) async -> HRVSession?
 
@@ -521,8 +520,6 @@ enum RecordingPhase: Equatable, CustomStringConvertible {
     case analyzing
     case awaitingAcceptance
 
-    var isRecording: Bool       // streaming, overnightStreaming, deviceRecording
-    var isActive: Bool          // Anything except idle
     var description: String     // Human-readable phase name
 }
 ```
@@ -592,12 +589,15 @@ enum PolarDeviceType: String, Codable {
     case veritySense    // Optical PPG sensor
 }
 
-enum ConnectionState: Equatable {
-    case disconnected, scanning, connecting, connected
-}
+// Nested in PolarManager (PolarManager.ConnectionState, PolarManager.RecordingState):
+extension PolarManager {
+    enum ConnectionState: Equatable {
+        case disconnected, scanning, connecting, connected
+    }
 
-enum RecordingState: Equatable {
-    case idle, starting, recording, stopping, fetching
+    enum RecordingState: Equatable {
+        case idle, starting, recording, stopping, fetching
+    }
 }
 ```
 
@@ -634,6 +634,8 @@ enum HealthSampleWatch {
     /// HKObserverQuery whose every fire reads what was added since an anchor
     /// stored under `anchorKey` across launches (two days without one) and
     /// hands `deliver` the other sources' samples; the app's own are dropped.
+    /// One read runs per anchor key at a time (ReadGate): a fire during a read
+    /// has it run once more when it ends, from the anchor it kept.
     static func observerQuery(for type: HKSampleType, anchorKey: String, store: HKHealthStore,
                               deliver: @escaping @Sendable ([HKSample]) -> Void) -> HKObserverQuery
 }
@@ -644,6 +646,13 @@ enum HealthSampleWatch {
 second), saves the new workout, then deletes the earlier ones with their
 samples and route; a failure throws so the session stays unstamped. Active
 energy is written net of resting metabolism (`netMETs`: METs − 1, floored at 0).
+When the earlier exports cannot be read because the phone is locked
+(`EarlierExport.findUnlessLocked`), the workout is saved and the session
+noted in `PendingWorkoutReplacements` (`note`, `finish(in:)`, `clear`); the
+next `HealthKitManager.backfillWorkoutsToHealthKit` deletes all but the newest
+copy first. The export stamp is written by
+`HealthKitManager.writeExportStamp(_:at:archive:)` with
+`requestingReupload: false`.
 
 ---
 
@@ -807,7 +816,7 @@ final class ArtifactDetector: Sendable {
         var windowSize: Int = HRVConstants.Artifacts.windowSize  // 50
         var ectopicThreshold: Double = 0.20
         var missedThreshold: Double = 0.50
-        var extraThreshold: Double = 0.30
+        var extraThreshold: Double = 0.50
         var minRR: Int = HRVConstants.RRInterval.minimum         // 300
         var maxRR: Int = HRVConstants.RRInterval.maximum         // 2000
     }
@@ -1408,18 +1417,26 @@ final class BaselineTracker {
         let meanHRBaseline: Double
         let meanHRSD: Double
         let daysInWindow: Int
+        var lastDataPointDate: Date?      // newest night in the window (staleness)
         static let minimumDays = 3
     }
 
     typealias BaselineUpdater = (_ rmssd: Double, _ hr: Double) -> Void
 
-    init(onBaselineUpdated: BaselineUpdater? = nil)
+    /// HRVBaseline.json in the app's shared container.
+    convenience init(onBaselineUpdated: BaselineUpdater? = nil)
+    /// The baseline in `baselineFile`, sealed with the app's key.
+    convenience init(baselineFile: URL, onBaselineUpdated: BaselineUpdater? = nil)
+    init(baselineFile: URL, seal: JSONFileSeal, onBaselineUpdated: BaselineUpdater?)
 
     /// Current baseline (computed property)
     var baseline: Baseline? { get }
     var hasValidBaseline: Bool { get }
     var daysCollected: Int { get }
+    /// Every stored night: for display.
     var recoveryBaselineStats: RecoveryBaselineStats? { get }
+    /// Only the nights before the scored one (its night key), for scoring.
+    func recoveryBaselineStats(excludingNightOf session: HRVSession, sleepSchedule: SleepSchedule) -> RecoveryBaselineStats?
 
     /// One reading per night. A session already in the baseline (re-analysed,
     /// or its window re-picked) replaces its own earlier reading, matched by
@@ -1536,7 +1553,8 @@ final class ReanalysisService {
         analyzeWithWindow: @escaping (HRVSession, WindowSelector.RecoveryWindow, [ArtifactFlags], PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeFullSession: @escaping (HRVSession, PeakCapacity?) async -> HRVAnalysisResult?,
         onArchiveChanged: @escaping () -> Void,
-        onSessionUploaded: @escaping (HRVSession) -> Void
+        onSessionUploaded: @escaping (HRVSession) -> Void,
+        onZonesStale: @escaping (UUID) -> Void
     )
 
     func reanalyzeSession(
@@ -1642,6 +1660,8 @@ final class SessionAcceptanceService {
         clearPersistedRecordingState: () -> Void
     ) async
 
+    /// The whole night's range (overnightWindowStart … morningCutoff),
+    /// split or single-segment; `sessionEnd` is not read.
     func sleepFetchRange(
         for session: HRVSession,
         sessionEnd: Date,
@@ -1653,7 +1673,7 @@ final class SessionAcceptanceService {
 **Insufficient data gate** -- During `processAcceptance`, HRV data quality is classified before scoring:
 
 - `.insufficient` is triggered when RMSSD < baseline **and** either of the following is true:
-  1. Analysis window < 5 min (`forReliableWindowMs`), **or**
+  1. Analysed span < 5 min (`forReliableWindowMs`): the analysis window, or the whole session when it was analysed without one, **or**
   2. No organized recovery detected + session < 3 hours (`forOvernightSessionSeconds`).
 - `.preSleep` is triggered when the recording does not overlap detected sleep at all.
 - When either triggers: `useBaselineHRV = true` (substitutes baseline RMSSD), and `SubjectiveReadinessCard` is shown on the dashboard so the user can provide a perceived readiness value.
@@ -1764,9 +1784,11 @@ final class LanguageManager {
     static let shared: LanguageManager
     static let languageDidChangeNotification: Notification.Name
 
-    private(set) var locale: Locale
-    private(set) var bundle: Bundle
-    private(set) var revision: Int
+    // Lock-backed and read from any isolation; locale and bundle are
+    // stored together by init and setLanguage.
+    nonisolated var locale: Locale { get }
+    nonisolated var bundle: Bundle { get }
+    nonisolated var revision: Int { get }
 
     func setLanguage(_ language: AppLanguage)
 }
@@ -1799,8 +1821,11 @@ final class StoreKitManager {
     var errorMessage: String?
 
     func loadProducts() async
-    func purchase() async
-    func restore() async
+    func purchase() async                 // the lifetime unlock; nothing while the paywall is off
+    func startFreeTrial() async           // buys the $0 30-day trial product
+    /// AppStore.sync, then one entitlement sweep; the message for the user:
+    /// restored, no purchase found, or could not restore.
+    func restore() async -> String?
     func refreshStatus() async
 }
 ```
@@ -1879,10 +1904,11 @@ final class BreadcrumbRecorder: NSObject {
     private(set) var authorizationStatus: CLAuthorizationStatus
 
     func engage(label: String? = nil)
+    func resume()                     // restart on a trail restored after a relaunch
     func disengage()
-    func clearTrail() -> Bool
-    func updateLabel(_ label: String?)
-    func updateResolvedOriginLabel(_ resolved: String?)
+    func endAndArchive() -> Bool      // "End and save": file the trail, stop recording
+    func clearTrail() -> Bool         // user-confirmed delete; false when the file stays
+    func forgetAfterPurge()           // Delete All My Data: stop, drop the in-memory trail
 }
 ```
 
@@ -2121,7 +2147,11 @@ files went.
 @MainActor
 @Observable
 final class CloudKitSyncManager {
-    static let shared: CloudKitSyncManager
+    static let shared: CloudKitSyncManager      // bookkeeping at resolveSyncStateURL()
+
+    /// A test builds its own manager over its archive, settings and
+    /// sync-state file, so it never touches the app's bookkeeping.
+    init(settingsManager: SettingsManager = ..., archive: SessionArchive = ..., syncStateURL: URL)
 
     private(set) var syncState: SyncState
     private(set) var pullVersion: Int
@@ -2133,7 +2163,12 @@ final class CloudKitSyncManager {
     /// Confirms the signed-in Apple ID against `CloudAccountIdentity` before
     /// any read or write; a different account or a deleted zone stops sync.
     var accountGuard: CloudAccountGuard { get }
+    /// Reacts to `.CKAccountChanged` (built on each access).
+    var accountChange: CloudAccountChangeHandler { get }
 
+    /// A complete session, or a workout with metadata, that was not read out
+    /// of Apple Health whole: the sessions `uploadSession` uploads.
+    static func takesDirectUpload(_ session: HRVSession) -> Bool
     func uploadSession(_ session: HRVSession) async
     func uploadDeletion(_ sessionId: UUID) async
     func forceReuploadSession(_ session: HRVSession) async
@@ -2148,6 +2183,23 @@ final class CloudKitSyncManager {
     /// Keeps a session on this device only: its record is marked
     /// `keptOnDeviceMarker` (`isDeleted = 2`) with no payload.
     func markKeptOnDevice(_ recordID: CKRecord.ID) async throws
+
+    /// The sync status shows `message` and keeps it as the permanent error.
+    func showSyncStopped(_ message: String)
+    /// Clears the not-signed-in error, from the status and the permanent error.
+    func clearNotSignedInError()
+}
+
+/// File: `Emuqu/Sources/Storage/CloudAccountChangeHandler.swift`.
+@MainActor
+struct CloudAccountChangeHandler {
+    let manager: CloudKitSyncManager
+    /// Re-checks the CloudKit account status: .available clears the
+    /// not-signed-in error and runs a full sync (with sync off and onboarding
+    /// done, only the account check); .noAccount / .restricted /
+    /// .couldNotDetermine shows the not-signed-in error (showSyncStopped);
+    /// .temporarilyUnavailable is left for the next sync.
+    func handle() async
 }
 
 /// File: `Emuqu/Sources/Storage/CloudAccountIdentity.swift`. The account sync
@@ -2157,16 +2209,35 @@ enum CloudAccountIdentity {
     static var recordedAccount: String? { get }
     static var isConfirmed: Bool { get }     // checked this launch and matching
     static func noteAccountChanged()         // .CKAccountChanged: unconfirm
-    enum Verdict: Equatable { case sameAccount, adopt, differentAccount, awaitingOptIn }
+    /// attributeBookkeeping: nothing recorded, the account changed this
+    /// launch and bookkeeping remains, so a few uploaded sessions are looked
+    /// up in the signed-in account first (found: adopt; none: different).
+    enum Verdict: Equatable { case sameAccount, adopt, attributeBookkeeping, differentAccount, awaitingOptIn }
     enum StopReason: String { case differentAccount, iCloudDataDeleted }   // shown under the switch
 }
 
 struct CloudAccountGuard {
-    enum Check: Equatable { case confirmed, unavailable(String), stopped }
+    enum Check: Equatable { case confirmed, unavailable(String), stopped, differentAccount }
     func confirmAccount() async -> Check
     func requireConfirmedAccount() async throws   // throws Halt
     func zoneWasDeleted() async -> String?        // same account: stopSync(.iCloudDataDeleted); no zone recreated
     func stopSync(_ reason: CloudAccountIdentity.StopReason)  // resets per-account bookkeeping, sync off
+}
+
+/// File: `Emuqu/Sources/Storage/CloudPayloadCodec.swift`. Seals every payload
+/// uploaded to iCloud with the cloud key in the iCloud Keychain.
+enum CloudPayloadCodec {
+    /// Where the keys are read and added; `.keychain` in the app, a stub in tests.
+    struct KeyStore: Sendable {
+        let read: @Sendable () throws -> [StoredKey]
+        let add: @Sendable () throws -> SymmetricKey
+        static let keychain: KeyStore
+    }
+    /// The one sealing entry for uploads, fail-closed: no new key is created
+    /// unless `mayCreateKey` (the account was confirmed this launch); with no
+    /// key to use it throws `CloudSyncError.encryptionUnavailable`.
+    static func sealForUpload(_ payload: Data, mayCreateKey: Bool = CloudAccountIdentity.isConfirmed,
+                              in store: KeyStore = .keychain) throws -> Data
 }
 
 extension Notification.Name {
@@ -2248,11 +2319,15 @@ final class RRDataImporter {
         case noRRData
         case insufficientData(found: Int, required: Int)
         case invalidRRValues(String)
+        case invalidTimestamps(session: String)  // beat times that cannot be one recording
+        case recordingTooLong                    // intervals add up to more than a week
     }
 
     // Single-file import
     func importFile(at url: URL) async throws -> ImportResult
-    func createSession(from result: ImportResult) -> HRVSession
+    /// `startDate` is the file's recording date, or the date the user gives
+    /// for a file that states none (CSV, Kubios, text).
+    func createSession(from result: ImportResult, startingAt startDate: Date) -> HRVSession
 
     // EliteHRV batch import
     func isEliteHRVSummary(_ content: String) -> Bool
@@ -2327,37 +2402,29 @@ crash export are written through it.
 ## Protocols
 
 ```swift
-// @MainActor. Abridged — see the file for the full surface and its doc comments.
-protocol HealthKitServiceProtocol {
-    var isHealthKitAvailable: Bool { get }
+// The queries the injected services (MorningProcessingService,
+// SessionAcceptanceService, ReanalysisService, HRVAnalysisPipeline,
+// SleepBoundaryResolver) make, so a test mock stubs only those. Authorization,
+// observers, trends, other exports and dashboard queries are called on the
+// concrete HealthKitManager and are not part of it.
+@MainActor
+protocol HealthKitServiceProtocol: Sendable {
+    nonisolated var isHealthKitAvailable: Bool { get }
 
-    func requestAuthorization() async throws
-    func startObservingSleepData()
-    func stopObservingSleepData()
-
-    func fetchLastNightSleep(relativeTo: Date) async throws -> SleepData
     func fetchSleepData(
         for recordingStart: Date, recordingEnd: Date,
         rrPoints: [RRPoint]?, autoSleepExtension: SleepResolver.AutoSleepExtension?,
         rrStart: Date?
     ) async throws -> SleepData
-    func fetchSleepTrend(days: Int) async throws -> [SleepData]
+    func fetchDaytimeNapMinutes(nightAnchoredAt nightAnchor: Date) async -> Int    // default 0
+    func fetchDaytimeRestingHR(for sleepDate: Date) async throws -> Double?
+    func calculateTrainingLoad(relativeTo referenceDate: Date) async -> HealthKitManager.TrainingLoad
+    func fetchRecoveryVitals(relativeTo referenceDate: Date) async -> RecoveryVitals
     func estimateSleepFromHealthKitHR(
         windowStart: Date, windowEnd: Date, minimumSamples: Int, minimumSleepMinutes: Int
     ) async -> SleepData?
     func estimateSleepFromRR(rrPoints: [RRPoint], recordingStart: Date) async -> SleepData?  // default detaches
-
-    func fetchDaytimeRestingHR(for: Date) async throws -> Double?
-    func fetchHeartRateSamples(from: Date, to: Date) async throws -> [(date: Date, hr: Double)]
-    func fetchRecoveryVitals(relativeTo: Date) async -> RecoveryVitals
-    func fetchVO2Max() async -> Double?
-
-    func calculateTrainingLoad(relativeTo: Date) async -> HealthKitManager.TrainingLoad
-    func calculateTrainingMetrics(forMorningReading: Bool) async -> TrainingMetrics
-    func hasWorkoutInRange(from: Date, to: Date) async -> Bool
-
-    func exportSessionMetrics(from: HRVSession) async throws
-    func exportSleepToHealthKit(sleepData: SleepData, sessionId: UUID) async throws
+    func exportSessionMetrics(from session: HRVSession) async throws
 }
 
 
@@ -2484,13 +2551,17 @@ struct ModelOption: Codable, Hashable, Identifiable {
     let isDefault: Bool
 }
 
-struct ChatTurn: Codable, Identifiable, Hashable {
+struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let role: Role          // .user, .assistant
     var text: String
     let createdAt: Date
-    let providerID: ProviderID?
-    let modelID: String?
+    var providerID: ProviderID?
+    var modelID: String?
+    let subsystem: AssistantSubsystem?   // Flo / Coach / Flo Report badge
+    let routedTierRaw: Int?              // the routing tier, for the tier dot
+    var localOnly: Bool = false          // answered on the device (guard, shortcut)
+    var incomplete: Bool = false         // the reply stopped early
 }
 
 enum AIStreamEvent: Sendable {
@@ -2755,7 +2826,9 @@ final class CapabilityClassifier {
 
     /// Stateless. Caller (SmartProviderRouter) layers stickiness.
     /// Keyword-gated: an axis fires only when BOTH the keyword
-    /// heuristic AND the embedding cosine cross threshold.
+    /// heuristic AND the embedding cosine cross threshold. Text confidently
+    /// not English opens every keyword gate; without an embedder the keyword
+    /// result stands for English and `.none` is returned otherwise.
     func classify(_ message: String) -> Requirement
 }
 ```
@@ -2802,7 +2875,6 @@ enum DeterministicIntent {
 ```swift
 @MainActor
 @Observable
-@MainActor
 final class LLMCacheTelemetry {
     static let shared: LLMCacheTelemetry
 
@@ -2813,8 +2885,9 @@ final class LLMCacheTelemetry {
     var totalInputTokens, totalOutputTokens, totalCachedReadTokens,
         totalCacheCreateTokens, totalTurns: Int { get }
 
-    /// Called from each provider's `.usage` stream event. Keeps the last
-    /// 50 turns for the recent / per-provider figures.
+    /// Called from each provider's `.usage` stream event, once per request (a
+    /// turn with tool rounds counts once per round, in `totals.turns` too).
+    /// Keeps the last 50 requests for the recent / per-provider figures.
     func record(provider: String, input: Int, output: Int, cachedRead: Int, cacheCreate: Int)
 
     /// cachedRead / (input + cachedRead + cacheCreate) across all turns.
@@ -2869,13 +2942,10 @@ final class SmartProviderRouter {
     /// for the rest of the local day.
     func recordTier3UsageAndCheck() -> Bool
 
-    /// Shared embedder hook for CapabilityClassifier.
+    /// Shared embedder hook for CapabilityClassifier: the contextual
+    /// embedder's mean-pooled vector when one exists (nil when it fails for
+    /// this text), else the word-vector mean — one vector space per launch.
     func embed(_ text: String) -> [Double]?
-
-    // In-memory telemetry (never persisted).
-    private(set) var tierCounts: [Tier: Int]
-    private(set) var classifierProposalCounts: [Tier: Int]
-    private(set) var stickinessOverrides: Int
 }
 
 /// Per-conversation routing state. Lives on the AssistantViewModel.
@@ -2903,8 +2973,11 @@ enum TierProviderMapper {
 ### Keys
 
 ```swift
-final class APIKeyStore {
-    static let shared: APIKeyStore
+final class APIKeyStore: Sendable {
+    static let shared: APIKeyStore           // the app's Keychain service
+    /// Keys under `keychainService`; a test uses its own service so it never
+    /// reads or removes the app's keys.
+    init(keychainService: String)
     func key(for provider: ProviderID) -> String?
     func hasKey(for provider: ProviderID) -> Bool
     @discardableResult func setKey(_ key: String?, for provider: ProviderID) -> Bool
@@ -3069,7 +3142,10 @@ extension Notification.Name {
 
 `SessionArchive.delete(_:)` does **not** post it: a caller that deletes
 must announce the change itself (History's `SessionTrash.move` and the
-recovered-workout discard do, through `ArchiveSignal.notifyChanged()`). A session deleted on another
+recovered-workout discard do, through `ArchiveSignal.notifyChanged()`).
+`SessionTrash.move(_:collector:cloudKit:) async throws` runs the archive
+delete off the main actor and notifies and uploads the deletion only once
+it has succeeded. A session deleted on another
 device and removed here by the CloudKit pull
 (`CloudKitSyncManager+Pull.swift`, `handleDeletedRecord`) only bumps
 `CloudKitSyncManager.pullVersion`; observers of this notification are not
@@ -3417,8 +3493,8 @@ final class APIKeyStore {
     func removeServiceKey(for service: ServiceKeyID) -> Bool
     func maskedServicePreview(for service: ServiceKeyID) -> String?
 
-    // Removes all AI provider keys + all service keys
-    func removeAllKeys()
+    // Removes all AI provider keys + all service keys; true when every deletion succeeded
+    func removeAllKeys() -> Bool
 }
 ```
 
@@ -3456,6 +3532,9 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
     private(set) var dragFactor: Int?
     private(set) var instantaneousPowerWatts: Int?
     private(set) var strokeCount: Int?
+    /// The PM5 linked now (set on attach, cleared on disconnect); the
+    /// sensor row's title names it.
+    private(set) var linkedDeviceId: String?
 
     func startScanning()
     func stopScanning()
@@ -3564,10 +3643,63 @@ struct WorkoutMetadata: Codable {
     var averageSplitSecPer500m: Double?
     var dragFactor: Int?
 
+    /// When each fix of `gpsPolyline` was taken (WorkoutAnalyzer.encodeFixTimes;
+    /// read by GPXExporter.recordedFixTimes for the GPX/TCX exports). Nil for a
+    /// workout recorded before it was stored: its exports spread the times evenly.
+    var gpsFixTimes: Data?
+
     /// Seconds spent moving: the last per-second sample's offset, else
     /// `wallClockDuration` less the recorded pauses. Pace, calories and a TCX
     /// lap's timer time are measured on it.
     func movingSeconds(wallClockDuration: Double?) -> Double?
+}
+
+extension HRVSession {
+    /// The one moving time every reader uses (coach, race prediction,
+    /// baselines, PDF, TCX): `workoutMetadata.movingSeconds(wallClockDuration:)`,
+    /// else the positive duration of a session without workout metadata.
+    var activeWorkoutSeconds: Double? { get }
+}
+
+/// File: `Emuqu/Sources/Analysis/WorkoutLiveTrends.swift`. The live trends,
+/// kept as the sample buffer grows (WorkoutRecorder.syncedLiveTrends()).
+extension WorkoutLiveTrends {
+    struct Tally {
+        /// Adds the samples appended since the last call; starts over when the
+        /// buffer is not the one it holds grown (new workout, trim, replace).
+        mutating func catchUp(to buffer: [WorkoutSample])
+        var hrDriftPercent: Double? { get }
+        var cadenceDriftSpm: Double? { get }
+        var aerobicDecouplingPercent: Double? { get }
+        var reverseSplitDeltaSecPerKm: Double? { get }
+        var recentHRSlopeBpm: Double? { get }
+        var recentSplitGradeAdjustedPaces: [Double] { get }
+        var kilometreChunks: [WorkoutGeometry.SplitChunk] { get }
+        var projectedMinutesUntilFade: Double? { get }
+        var sessionAverageHR: Double? { get }
+    }
+}
+
+/// File: `Emuqu/Sources/Analysis/ArchiveAccessFailure.swift`.
+enum ArchiveAccessFailure {
+    /// True for a failed archive read or write that clears by itself (data
+    /// protection with the device locked, a full disk, the keychain refusing
+    /// the key for now); the launch scans stay unstamped only for these.
+    static func mayClear(_ error: any Error) -> Bool
+}
+
+extension WorkoutRecorder {
+    /// Renders the coach report PDF off the main actor and stages the email
+    /// draft; the task's value is true when the PDF was attached.
+    @discardableResult static func scheduleCoachReportEmail(for session: HRVSession) -> Task<Bool, Never>
+}
+
+/// `GPXImporter` (`Analysis/GPXImporter.swift`) and `ImportedWorkoutBuilder`
+/// (`Import/ImportedWorkoutBuilder.swift`) are nonisolated: a GPX file is
+/// parsed and built into a session off the main actor.
+enum GPXImporter {
+    static func parse(data: Data, defaultSport: Sport = .run) throws -> ImportedWorkoutTrack
+    static func buildSession(from parsed: ImportedWorkoutTrack) -> HRVSession
 }
 
 enum Sport: String, Codable, CaseIterable, Identifiable {
