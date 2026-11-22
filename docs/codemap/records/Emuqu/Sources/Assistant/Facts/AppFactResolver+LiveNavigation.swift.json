@@ -1034,28 +1034,26 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveDirectionsNextStep()": "8da831b84a2e1bd1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.resolveDirectionsNextStep()": "cd3334f810acd19a",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
    "key": "func WorkoutLiveCoachingNamespace.resolveDirectionsNextStep()",
-   "hash": "4922d824dc1cf261",
-   "does": "Reads the ActiveRouteSession snapshot and the cached fix ≤60 s old, advances the session's step index for that position (currentStep mutates step index/departure flag; its remaining distance counts only the unwalked part of the current step), and returns the next-step record. Not workout-gated: the route exists only because the user asked for directions.",
+   "hash": "eb32c50a148b13c9",
+   "does": "Reads the ActiveRouteSession snapshot and the cached fix ≤60 s old, computes the step for that position without moving the route (peekStep: the step index and departure flag the voice coach advances are left alone; its remaining distance counts only the unwalked part of the current step), and returns the next-step record. Not workout-gated: the route exists only because the user asked for directions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.peekStep(for:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.nextStepRecord(session:step:)"
    ],
    "reads": [
     "mem:ActiveRouteSession (_steps/_destination*/_currentStepIndex)",
     "mem:AmbientLocationService._latestLocation"
    ],
-   "writes": [
-    "mem:ActiveRouteSession._currentStepIndex/_hasLeftEnd"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -1069,13 +1067,13 @@
     },
     {
      "at": "+7",
-     "cond": "currentStep returned nil",
-     "effect": "returns .missing notRecorded 'step lookup returned nothing'; otherwise record. currentStep returns nil only when _steps is empty, which the snapshot guard at 612 already excluded, so this fires only if directions.clear / a new engage runs between the two calls (ActiveRouteSession.swift:148,169)"
+     "cond": "peekStep returned nil",
+     "effect": "returns .missing notRecorded 'step lookup returned nothing'; otherwise record. peekStep returns nil only when the route has no steps, which the snapshot guard already excluded, so this fires only if directions.clear / a new engage runs between the two calls"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.nextStepRecord(session:step:)": "55a4f0d23ae3eee9",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "2681f2bbcbb3c4af",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.peekStep(for:)": "a8daeda3eb90fea8",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "236e3a0832306138",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"

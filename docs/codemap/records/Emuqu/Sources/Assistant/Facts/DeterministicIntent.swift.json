@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift",
- "hash": "611ca8ef6b5e68f3",
+ "hash": "f576288ead6a3e59",
  "role": "On-device regex shortcut for voice turns: a hand-authored list of 14 patterns whose handlers answer common factual questions (recovery, RHR, HRV, sleep, last workout, weight, max HR, LTHR, etc.) from the session archive and settings without calling an LLM.",
  "types": [
   "DeterministicIntent: enum (@MainActor) — pattern catalog + matcher + spoken-reply helpers",
@@ -11,7 +11,7 @@
   "mem:DeterministicIntent.compiledCache (private static [String:[NSRegularExpression]], per-pattern compiled triggers)",
   "mem:DeterministicIntent.patterns (static let [Pattern], 14 entries)"
  ],
- "toplevel": "static let patterns (110-399) defines 14 Pattern handlers as closures: recovery_score_today (todaysOvernightEntry → recoveryScore×10 → RecoveryScoreCalculator.displayScore + ScoreVerdict(score:).localizedWord; nil when no reliable overnight or score), resting_hr_today (archive.retrieveLightweightOrLog(entry) → vitalsSnapshot.restingHeartRate; a read failure is logged and falls through to the LLM), hrv_rmssd_today (entry.meanRMSSD), sleep_duration_last_night (sleepSnapshot.nightSleepMinutes + measuredSleepEfficiency when non-nil), last_workout_summary (first .workout entry in newest-first archive.entries; endDate-date minutes; 0/no endDate → day only), trained_recently ('yesterday' substring picks dayStart(isYesterday:); sums the durations of every .workout that day; always returns a string, 'No workout recorded…' when none), score_breakdown_today (session.scoreBreakdown.factors localized label + rounded score, list-formatted, plus ScoreVerdict.safeDisplayScore(compositeScore)), sleep_stages_last_night (deep/REM/stages/breakdown triggers — light sleep is not matched; totalSleepIncludingNapMinutes; deep/REM minutes or 'No sleep stage data' when either is nil), body_weight (settings.bodyWeightKg, imperial when UnitsPreferenceStore.current.resolved == .imperial), max_hr and lthr (settings value, nil below MaxHeartRate.minimumUserEntered), sleep_latency (sleepSnapshot.sleepLatencyMinutes), sleep_efficiency (measuredSleepEfficiency or a 'wasn't measured' sentence), total_session_count (counts of all / .workout / .overnight entries; always answers). Replies use String(localized:bundle: LanguageManager.appBundle). Session reads use retrieveLightweightOrLog. Apostrophe classes accept ' and ’ and an omitted apostrophe ('whats'). Reads archive:SessionArchive.entries, archive:SessionArchive.retrieveLightweight, ud:UnitsPreferenceStore (units preference), mem:UserSettings fields.",
+ "toplevel": "static let patterns (110-399) defines 14 Pattern handlers as closures: recovery_score_today (todaysOvernightEntry → recoveryScore×10 → RecoveryScoreCalculator.displayScore + ScoreVerdict(score:).localizedWord; nil when no reliable overnight or score), resting_hr_today (archive.retrieveLightweightOrLog(entry) → vitalsSnapshot.restingHeartRate; a read failure is logged and falls through to the LLM), hrv_rmssd_today (entry.meanRMSSD), sleep_duration_last_night (sleepSnapshot.nightSleepMinutes + measuredSleepEfficiency when non-nil), last_workout_summary (first .workout entry in newest-first archive.entries; its active minutes, pauses left out (activeMinutes); 0 → day only), trained_recently ('yesterday' substring picks dayStart(isYesterday:); sums the active minutes of every .workout that day; always returns a string, 'No workout recorded…' when none), score_breakdown_today (session.scoreBreakdown.factors localized label + rounded score, list-formatted, plus ScoreVerdict.safeDisplayScore(compositeScore)), sleep_stages_last_night (deep/REM/stages/breakdown triggers — light sleep is not matched; totalSleepIncludingNapMinutes; deep/REM minutes or 'No sleep stage data' when either is nil), body_weight (settings.bodyWeightKg, imperial when UnitsPreferenceStore.current.resolved == .imperial), max_hr and lthr (settings value, nil below MaxHeartRate.minimumUserEntered), sleep_latency (sleepSnapshot.sleepLatencyMinutes), sleep_efficiency (measuredSleepEfficiency or a 'wasn't measured' sentence), total_session_count (counts of all / .workout / .overnight entries; always answers). Replies use String(localized:bundle: LanguageManager.appBundle). Session reads use retrieveLightweightOrLog. Apostrophe classes accept ' and ’ and an omitted apostrophe ('whats'). Reads archive:SessionArchive.entries, archive:SessionArchive.retrieveLightweight, ud:UnitsPreferenceStore (units preference), mem:UserSettings fields.",
  "units": [
   {
    "key": "var DeterministicIntent.Pattern.compiled",
@@ -290,6 +290,37 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
+   }
+  },
+  {
+   "key": "func DeterministicIntent.activeMinutes(_:archive:)",
+   "hash": "2a03189ec014e4ac",
+   "does": "A workout's active minutes, pauses left out, as its workout card and the assistant's context count them: WorkoutActiveTime.seconds over the lightweight-decoded session's samples, with the entry's wall-clock span (endDate - date) standing in when there are no samples or the session can't be read; 0 when neither exists. Truncated to whole minutes.",
+   "entry": "Called by the last_workout_summary and trained_recently pattern handlers.",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieveLightweight"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "endDate nil",
+     "effect": "no wall-clock fallback"
+    },
+    {
+     "at": "+3",
+     "cond": "no samples and no wall clock",
+     "effect": "0"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "2ab0c1cf6cea2ea6"
    }
   },
   {

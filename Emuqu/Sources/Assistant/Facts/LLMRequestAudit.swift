@@ -18,8 +18,8 @@ import Foundation
 ///
 /// Storage cost is bounded by the caps: each entry holds four strings
 /// (system prompt, messages, tools, response) of at most
-/// `maxPayloadCharacters` (60,000) each, so ten entries hold at most about
-/// 2.4M characters. A typical coaching turn is far smaller (~50 KB). Pruned
+/// `maxPayloadCharacters` (60,000) each, the response up to 10,000 more while
+/// it streams, so ten entries hold at most about 2.5M characters. A typical coaching turn is far smaller (~50 KB). Pruned
 /// with a hard limit so a tool-storm in a single turn can't blow the cap.
 @Observable
 @MainActor
@@ -58,9 +58,23 @@ final class LLMRequestAudit {
         /// Counts the model returned, populated once the stream completes.
         var usage: Usage?
         /// Concatenated text deltas the model emitted, populated as the
-        /// stream runs. Capped at `maxPayloadCharacters` (older bytes
-        /// dropped) so a runaway response doesn't blow the cap.
+        /// stream runs. Cut back to the last `maxPayloadCharacters` once it
+        /// runs `responseTrimSlack` past them, so a runaway response doesn't
+        /// blow the cap.
         var responseText: String
+        /// `responseText.count`, kept as deltas arrive: counting the text on
+        /// every delta would cost the whole reply's length each time.
+        var responseCharacterCount = 0
+
+        /// See `LLMRequestAudit.append(textDelta:to:)`.
+        @MainActor
+        mutating func appendResponse(_ delta: String) {
+            responseText.append(delta)
+            responseCharacterCount += delta.count
+            guard responseCharacterCount > LLMRequestAudit.maxPayloadCharacters + LLMRequestAudit.responseTrimSlack else { return }
+            responseText = String(responseText.suffix(LLMRequestAudit.maxPayloadCharacters))
+            responseCharacterCount = LLMRequestAudit.maxPayloadCharacters
+        }
         /// Filled in when the stream errored out so the page can show
         /// "why did this turn fail" alongside what was sent.
         var errorDescription: String?
@@ -106,17 +120,21 @@ final class LLMRequestAudit {
         return entry.id
     }
 
-    /// Append a streamed text delta to the in-flight entry. Cheap;
-    /// fired on every text chunk so we end up with the full response.
+    /// Append a streamed text delta to the in-flight entry. Fired on every
+    /// text chunk so we end up with the full response, so it costs the
+    /// delta, not the reply: the length is counted as deltas arrive, and
+    /// an over-long reply is cut back to `maxPayloadCharacters` only once
+    /// it has run `responseTrimSlack` past it, not on every later delta.
+    /// The entry is changed in place, so its text isn't copied for every
+    /// delta either.
     func append(textDelta: String, to id: UUID) {
         guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
-        var e = entries[idx]
-        e.responseText.append(textDelta)
-        if e.responseText.count > Self.maxPayloadCharacters {
-            e.responseText = String(e.responseText.suffix(Self.maxPayloadCharacters))
-        }
-        entries[idx] = e
+        entries[idx].appendResponse(textDelta)
     }
+
+    /// How far a streamed reply may run past `maxPayloadCharacters` before
+    /// its oldest text is dropped.
+    private static let responseTrimSlack = 10_000
 
     /// Stamp the final usage block (token counts) on the entry.
     /// Called by the chat's stream handler on each `.usage` event a

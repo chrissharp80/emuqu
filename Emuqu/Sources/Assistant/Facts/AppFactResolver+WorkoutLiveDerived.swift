@@ -156,19 +156,23 @@ extension WorkoutLiveNamespace {
     """
 
     private var workoutLiveRouteHistoryBaselineEntry: FactEntry {
-        .fixed(
+        .fixedAsync(
             key: "workout.live.route_history_baseline",
             description: Self.routeHistoryBaselineDescription,
             valueType: "Record"
-        ) { self.resolveWorkoutLiveRouteHistoryBaseline() }
+        ) { await self.resolveWorkoutLiveRouteHistoryBaseline() }
     }
 
-    private func resolveWorkoutLiveRouteHistoryBaseline() -> FactValue {
+    /// The session decodes (up to `routeHistoryScanLimit`) run off the main
+    /// actor: this is asked for mid-workout, while the main actor drives the
+    /// recorder's tick loop.
+    @MainActor
+    private func resolveWorkoutLiveRouteHistoryBaseline() async -> FactValue {
         guard let s = self.snapshot else { return self.missing() }
         guard let routeName = s.recognizedRouteName, !routeName.isEmpty else {
             return self.missing("no recognized route bound to this workout")
         }
-        let candidates = routeHistorySessions(named: routeName)
+        let candidates = await Task.detached(priority: .userInitiated) { self.routeHistorySessions(named: routeName) }.value
         guard !candidates.isEmpty else {
             return self.missing("first run on this route — no prior history yet")
         }
@@ -178,8 +182,8 @@ extension WorkoutLiveNamespace {
     /// The archive index doesn't carry the route name, so sessions are
     /// decoded newest-first and the walk stops at 20 matches or after the
     /// newest `routeHistoryScanLimit` workouts, whichever comes first —
-    /// a mid-workout call never decodes the whole archive on the main
-    /// actor. Uses the lightweight retrieval path (skips rrSeries; still
+    /// a mid-workout call never decodes the whole archive. Called off the
+    /// main actor. Uses the lightweight retrieval path (skips rrSeries; still
     /// loads workoutMetadata with recognizedRouteName + samples).
     private func routeHistorySessions(named routeName: String) -> [HRVSession] {
         let archive = self.archive

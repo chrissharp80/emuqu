@@ -132,7 +132,7 @@ enum AssistantSystemPrompt {
         // users and sessions — goes EARLY so prompt caching can hit it on
         // every send without counting as per-request variable content. The
         // app's one composer asks for the compact variant for every provider;
-        // the full manual is reached through the `app.help.lookup` tool.
+        // the full manual is reached through `lookup_fact` (app.help.lookup).
         if includeAppReference {
             sections.append(compactAppReference ? AppKnowledgeBase.referenceCompact : AppKnowledgeBase.reference)
         }

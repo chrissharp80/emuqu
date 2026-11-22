@@ -63,7 +63,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveCadenceDriftSpmEntry": "1911ee348b64b322",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveHistoricalBaselineEntry": "f1c83d33365d398f",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveHrDriftPercentEntry": "6a836cb27212a387",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveRouteHistoryBaselineEntry": "cd09e04e0867805d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveRouteHistoryBaselineEntry": "3dc1113eeff82521",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveTodayReadinessEntry": "3b8162eccb85998d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::var WorkoutLiveNamespace.workoutLiveTrainingPaceZonesEntry": "ee5982611a05a4ef"
    }
@@ -336,25 +336,25 @@
   },
   {
    "key": "var WorkoutLiveNamespace.workoutLiveRouteHistoryBaselineEntry",
-   "hash": "e8763f686c264537",
-   "does": "Declares fixed fact workout.live.route_history_baseline (Record) whose resolver is resolveWorkoutLiveRouteHistoryBaseline.",
+   "hash": "e7948dce7e5f6fb2",
+   "does": "Declares async fixed fact workout.live.route_history_baseline (Record) whose resolver is resolveWorkoutLiveRouteHistoryBaseline (session decodes off the main actor). A synchronous registry.resolve of this key gets the awaitable-path refusal.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveRouteHistoryBaseline()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveRouteHistoryBaseline()": "a5123e03a0c445d2",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift::func WorkoutLiveNamespace.resolveWorkoutLiveRouteHistoryBaseline()": "e79e2c25ea5347fc",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "838aa75e67df46a0"
    }
   },
   {
    "key": "func WorkoutLiveNamespace.resolveWorkoutLiveRouteHistoryBaseline()",
-   "hash": "95b7d8489ad3005d",
-   "does": "Resolves the route-specific baseline: requires a live snapshot with a non-empty recognizedRouteName, gathers prior archived workouts on that route, and returns routeBaselineRecord.",
+   "hash": "aa6e4ffeb9136631",
+   "does": "Resolves the route-specific baseline: requires a live snapshot with a non-empty recognizedRouteName, gathers prior archived workouts on that route in a detached task (up to 120 lightweight decodes, off the main actor that drives the recorder's tick loop), and returns routeBaselineRecord.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
@@ -368,17 +368,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "no live snapshot",
      "effect": "missing('no workout active')"
     },
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "recognizedRouteName nil or empty",
      "effect": "missing('no recognized route bound to this workout')"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "no prior sessions matched",
      "effect": "missing('first run on this route — no prior history yet'); else .record(routeBaselineRecord)"
     }

@@ -210,7 +210,7 @@ enum DeterministicIntent {
                 guard let last = ctx.archive.entries
                     .first(where: { $0.sessionType == .workout })
                 else { return nil }
-                let durationMin = last.endDate.map { Int($0.timeIntervalSince(last.date) / 60) } ?? 0
+                let durationMin = activeMinutes(last, archive: ctx.archive)
                 let dayLabel = relativeDay(last.date, now: ctx.now)
                 guard durationMin > 0 else {
                     return String(localized: "Your last workout was \(dayLabel).", bundle: LanguageManager.appBundle)
@@ -236,9 +236,7 @@ enum DeterministicIntent {
                     $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: target)
                 }
                 if !sameDay.isEmpty {
-                    let mins = sameDay.reduce(0) { total, m in
-                        total + (m.endDate.map { Int($0.timeIntervalSince(m.date) / 60) } ?? 0)
-                    }
+                    let mins = sameDay.reduce(0) { total, m in total + activeMinutes(m, archive: ctx.archive) }
                     return trainedReply(minutes: mins)
                 }
                 return isYesterday
@@ -554,6 +552,15 @@ enum DeterministicIntent {
         formatter.numberFormatter.maximumFractionDigits = imperial ? 0 : 1
         let measurement = Measurement(value: kg, unit: UnitMass.kilograms)
         return formatter.string(from: imperial ? measurement.converted(to: .pounds) : measurement)
+    }
+
+    /// A workout's active minutes, pauses left out, as its workout card and
+    /// the assistant's context count them (`WorkoutActiveTime`). The
+    /// wall-clock span stands in only when the session can't be read.
+    private static func activeMinutes(_ workout: SessionArchiveEntry, archive: SessionArchive) -> Int {
+        let wallClock = workout.endDate.map { $0.timeIntervalSince(workout.date) }
+        let samples = archive.retrieveLightweightOrLog(workout.sessionId)?.workoutMetadata?.samples
+        return Int((WorkoutActiveTime.seconds(samples: samples, wallClock: wallClock) ?? 0) / 60)
     }
 
     private static func trainedReply(minutes: Int) -> String {
