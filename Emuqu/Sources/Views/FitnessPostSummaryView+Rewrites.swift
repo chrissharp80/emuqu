@@ -346,8 +346,9 @@ extension FitnessSummaryCards {
     ) -> Result<HRVSession?, Error> {
         Result {
             try updateArchived(id, in: archive) { stored in
+                let storedSplits = stored.workoutMetadata?.splits
                 stored.workoutMetadata?.samples = refreshedSamples
-                if let enrichedSplits { stored.workoutMetadata?.splits = enrichedSplits }
+                stored.workoutMetadata?.splits = enrichedSplits ?? storedSplits
                 rebuildAnalysisSnapshot(&stored, settings: settings)
             }
         }
