@@ -31,6 +31,8 @@ struct RecordView: View {
     @State var fetchFailed = false
     @State var isRetrying = false
     @State var showingDiscardConfirm = false
+    /// The acceptance card's Discard waiting for confirmation.
+    @State var confirmingReadingDiscard = false
     @State var isDiscarding = false
     /// Sleep timeline edit failed to persist (see
     /// DashboardV2View.sleepEditSaveFailed).
@@ -49,6 +51,9 @@ struct RecordView: View {
     /// Loaded once on appear (NOT per-render — it scans backup headers) so the
     /// recovery card shows even when the crash flag is missing.
     @State var interruptedWorkoutId: UUID?
+    /// Why the recovered-workout card's last Save or Discard stored nothing;
+    /// shown on the card, cleared by the next tap.
+    @State var recoveredWorkoutFailure: String?
     @State var breathingAudio = BreathingAudioManager()
 
     /// Captures session + result at presentation time so the fullScreenCover content
@@ -94,11 +99,6 @@ struct RecordView: View {
 
     var body: some View {
         recordSurface
-            .alert(String(localized: "Error", bundle: LanguageManager.appBundle), isPresented: $showingError) {
-                errorAlertActions
-            } message: {
-                errorAlertMessage
-            }
             // SessionState is @Observable, so there is no `$lastError`. Key the
             // change on a String projection because `Error?` is not Equatable.
             .onChange(of: sessionState.lastError.map { String(describing: $0) }) { _, newError in
@@ -115,10 +115,11 @@ struct RecordView: View {
     }
 
     /// The scroll surface plus everything it can present over itself. The
-    /// tag-save failure alert shows here only while no cover is up; each
-    /// report cover carries its own.
+    /// tag-save failure and error alerts show here only while no cover is up
+    /// (an alert cannot appear over a full-screen cover); each cover carries
+    /// its own.
     private var recordSurface: some View {
-        withTagSaveFailureAlert(recordScroll, shown: !isResultsCoverPresented)
+        withErrorAlert(withTagSaveFailureAlert(recordScroll, shown: !isResultsCoverPresented), shown: !isResultsCoverPresented)
             .navigationTitle(String(localized: "Record", bundle: LanguageManager.appBundle))
             .background(AppTheme.background)
             .sheet(isPresented: $showingTagPicker) { tagPickerSheet }
@@ -188,13 +189,27 @@ struct RecordView: View {
     /// morning-results sheet. Captures feeling / soreness / motivation and gates
     /// the score reveal. Skipping still gates the reveal — there is no bypass.
     private func preScoreCover(_ pending: ResultsPresentation) -> some View {
-        PreScorePromptView { answers, _ in
+        withErrorAlert(PreScorePromptView { answers, _ in
             // Persist answers as morning-feeling tags on the session. Even on skip
             // we hand off to the score reveal — the prompt is mandatory to appear,
             // never mandatory to answer.
             applyMorningFeelingAnswers(answers, to: pending.session)
             pendingMorningPresentation = nil
             morningPresentation = pending
+        }, shown: true)
+    }
+
+    /// The strap / session error alert, presented where the user is: on the
+    /// screen while no report cover is up, on the cover while one is.
+    /// Dismissing it in either place clears `showingError`.
+    func withErrorAlert(_ content: some View, shown: Bool) -> some View {
+        content.alert(
+            String(localized: "Error", bundle: LanguageManager.appBundle),
+            isPresented: Binding(get: { shown && showingError }, set: { showingError = $0 })
+        ) {
+            errorAlertActions
+        } message: {
+            errorAlertMessage
         }
     }
 

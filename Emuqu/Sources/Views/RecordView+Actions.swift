@@ -292,22 +292,19 @@ extension RecordView {
 }
 
 /// Keeps the screen on around a strap download when the user opted in
-/// (`keepScreenOnDuringRecording`, default off). Only touches the idle timer
-/// when they did, so a workout that legitimately holds it disabled isn't
-/// cleared by an opt-out session. Shared by Stop, Retry and Recover.
+/// (`keepScreenOnDuringRecording`, default off). It takes the hold only when
+/// nothing else holds it, and gives back only a hold it took, so a flow that
+/// already kept the screen on (Get Me Back) is not cleared when the download
+/// ends — the same ownership rule as `GetMeBackView.resetScreenState`.
+/// Shared by Stop, Retry and Recover.
 enum RecordingKeepAwake {
     @MainActor
     static func during(_ work: () async -> Void) async {
         let keepAwake = AppDependencies.current.app.settingsManager.settings.shouldKeepScreenOnDuringRecording
-        apply(keepAwake, disabled: true)
+        let takesHold = keepAwake && !UIApplication.shared.isIdleTimerDisabled
+        if takesHold { UIApplication.shared.isIdleTimerDisabled = true }
         await work()
-        apply(keepAwake, disabled: false)
-    }
-
-    @MainActor
-    private static func apply(_ keepAwake: Bool, disabled: Bool) {
-        guard keepAwake else { return }
-        UIApplication.shared.isIdleTimerDisabled = disabled
+        if takesHold { UIApplication.shared.isIdleTimerDisabled = false }
     }
 }
 
@@ -318,16 +315,22 @@ enum RecordingKeepAwake {
 /// archive of a wrong-length session.
 struct RecoveredWorkoutReviewCard: View {
     let review: MorningCoordination.RecoveredWorkoutReview
+    /// Why the last Save or Discard stored nothing, shown under the buttons.
+    let failureMessage: String?
     let onSave: (Double) -> Void // chosen end, seconds from start
     let onDiscard: () -> Void
     @State private var endMinutes: Double
+    /// Discard waits for confirmation: it removes the workout from history.
+    @State private var confirmingDiscard = false
 
     init(
         review: MorningCoordination.RecoveredWorkoutReview,
+        failureMessage: String?,
         onSave: @escaping (Double) -> Void,
         onDiscard: @escaping () -> Void
     ) {
         self.review = review
+        self.failureMessage = failureMessage
         self.onSave = onSave
         self.onDiscard = onDiscard
         _endMinutes = State(initialValue: max(1, (review.durationSec / 60).rounded()))
@@ -350,12 +353,11 @@ struct RecoveredWorkoutReviewCard: View {
         return min(endMinutes * 60, review.durationSec)
     }
 
+    /// The distance with its unit in the app's language, through the shared
+    /// units formatter.
     var distanceText: String {
         guard review.distanceMeters > 0 else { return "" }
-        if UnitsPreferenceStore.current.resolved == .imperial {
-            return String(format: " · %.2f mi", locale: LanguageManager.appLocale, review.distanceMeters / 1609.344)
-        }
-        return String(format: " · %.2f km", locale: LanguageManager.appLocale, review.distanceMeters / 1000.0)
+        return " · " + UnitsPreferenceStore.current.formatDistance(meters: review.distanceMeters)
     }
 
     var body: some View {
@@ -366,6 +368,7 @@ struct RecoveredWorkoutReviewCard: View {
             Slider(value: $endMinutes, in: 1 ... maxMinutes, step: 1)
                 .tint(AppTheme.sage)
             actionRow
+            failureLine
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -421,8 +424,10 @@ struct RecoveredWorkoutReviewCard: View {
         }
     }
 
+    /// Asks first; the confirmation says what survives the delete (the raw
+    /// backup, `discardRecoveredWorkout`).
     private var discardButton: some View {
-        Button { onDiscard() } label: {
+        Button { confirmingDiscard = true } label: {
             Text(String(localized: "Discard", bundle: LanguageManager.appBundle))
                 .font(.caption.weight(.semibold))
                 .frame(maxWidth: .infinity)
@@ -430,6 +435,25 @@ struct RecoveredWorkoutReviewCard: View {
                 .background(AppTheme.terracotta.opacity(0.12))
                 .foregroundColor(AppTheme.terracotta)
                 .cornerRadius(8)
+        }
+        .confirmationDialog(
+            String(localized: "Discard this recovered workout?", bundle: LanguageManager.appBundle),
+            isPresented: $confirmingDiscard,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Discard", bundle: LanguageManager.appBundle), role: .destructive, action: onDiscard)
+        } message: {
+            Text(String(localized: "It's removed from your history. Its backup is kept, so you can recover it again from Settings → iCloud & Data → Recover Lost Sessions.", bundle: LanguageManager.appBundle))
+        }
+    }
+
+    @ViewBuilder
+    private var failureLine: some View {
+        if let failureMessage {
+            Text(failureMessage)
+                .font(.caption2)
+                .foregroundColor(AppTheme.terracottaText)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

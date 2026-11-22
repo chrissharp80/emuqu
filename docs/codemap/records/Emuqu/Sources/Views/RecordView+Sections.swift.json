@@ -21,26 +21,53 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.acceptanceButtons": "c17d44fb96440ab5",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.acceptanceButtons": "e931042123dd4dc9",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
    "key": "var RecordView.acceptanceButtons",
-   "hash": "1cf759cccf7b0e23",
-   "does": "HStack with red 'Discard' (rejectSession) and prominent 'Save' (acceptSession) buttons.",
+   "hash": "b961f8e49f35b535",
+   "does": "HStack with the red Discard button (readingDiscardButton, which confirms first) and prominent 'Save' (acceptSession).",
    "entry": "Buttons tapped by user.",
    "calls": [
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.rejectSession()",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.readingDiscardButton",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()": "d8f3cad6c16f3e7f",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.readingDiscardButton": "73b6c165e807da4f"
+   }
+  },
+  {
+   "key": "var RecordView.readingDiscardButton",
+   "hash": "ff85f87a1103cd7c",
+   "does": "Red bordered destructive 'Discard' that sets confirmingReadingDiscard; the confirmation ('Discard this reading?': not saved to history, cannot be undone) calls rejectSession on its destructive Discard.",
+   "entry": "Button tap by user; Discard in the confirmation",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.rejectSession()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:RecordView.confirmingReadingDiscard"
+   ],
+   "writes": [
+    "mem:RecordView.confirmingReadingDiscard"
+   ],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "user confirms Discard",
+     "effect": "rejectSession; Cancel does nothing"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.rejectSession()": "934cd4dfc89f5418"
    }
   },
@@ -326,7 +353,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "0e3fa7b6eee80a18",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoveredWorkoutReviewSection": "8fc1e7002183fa39",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoveredWorkoutReviewSection": "0f79adc486dbe119",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.strapRecoverySection": "aaa2f18900cd1069"
    }
   },
@@ -355,16 +382,17 @@
   },
   {
    "key": "var RecordView.recoveredWorkoutReviewSection",
-   "hash": "556c7ef7dc44486d",
-   "does": "Shows RecoveredWorkoutReviewCard for a pending review; Save → keepRecoveredWorkout(endSec), Discard → discardRecoveredWorkout.",
+   "hash": "7422bbd5fffda8c7",
+   "does": "Shows RecoveredWorkoutReviewCard for a pending review with recoveredWorkoutFailure as its failure message; Save → keepRecoveredWorkout(endSec), Discard → discardRecoveredWorkout.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/RecordView+Actions.swift::init RecoveredWorkoutReviewCard(review:onSave:onDiscard:)",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::init RecoveredWorkoutReviewCard(review:failureMessage:onSave:onDiscard:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.keepRecoveredWorkout(_:endSec:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardRecoveredWorkout(_:)"
    ],
    "reads": [
-    "mem:MorningCoordination.recoveredWorkoutReview"
+    "mem:MorningCoordination.recoveredWorkoutReview",
+    "mem:RecordView.recoveredWorkoutFailure"
    ],
    "writes": [],
    "branches": [
@@ -375,9 +403,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Actions.swift::init RecoveredWorkoutReviewCard(review:onSave:onDiscard:)": "55cfbb1fefe99bc0",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardRecoveredWorkout(_:)": "24a87c1f238aaaee",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.keepRecoveredWorkout(_:endSec:)": "287dc691a92a0e0b"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::init RecoveredWorkoutReviewCard(review:failureMessage:onSave:onDiscard:)": "2a06d2fab9abfb62",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardRecoveredWorkout(_:)": "9de47d65b493dc51",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.keepRecoveredWorkout(_:endSec:)": "a75b686e19c3812f"
    }
   },
   {
@@ -667,10 +695,11 @@
   },
   {
    "key": "func RecordView.morningCover(_:)",
-   "hash": "1992e0c77d4a1814",
-   "does": "NavigationStack wrapping the morning results (with sleep-edit alert and the tag-save failure alert, always shown here) and a Done toolbar.",
+   "hash": "ebe9ce52accc1813",
+   "does": "NavigationStack wrapping the morning results (with sleep-edit alert, the tag-save failure alert and the error alert, both always shown here) and a Done toolbar.",
    "entry": "fullScreenCover(item: $morningPresentation) content.",
    "calls": [
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.withErrorAlert(_:shown:)",
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResultsWithAlert(_:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningDoneToolbar"
@@ -681,7 +710,8 @@
    "deps": {
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)": "52cf0eb3686ad21e",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResultsWithAlert(_:)": "ddc084a01aee17b5",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningDoneToolbar": "5383d9434c15af02"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningDoneToolbar": "5383d9434c15af02",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.withErrorAlert(_:shown:)": "68f942d368735a68"
    }
   },
   {
@@ -856,10 +886,11 @@
   },
   {
    "key": "func RecordView.quickCover(_:)",
-   "hash": "762a1123e77386a7",
-   "does": "NavigationStack wrapping quick results (with the tag-save failure alert, always shown here) with a Done toolbar and the 'Couldn't delete this reading' alert bound to quickDiscardFailed.",
+   "hash": "1db6d0dc25e4bef4",
+   "does": "NavigationStack wrapping quick results (with the tag-save failure alert and the error alert, both always shown here) with a Done toolbar and the 'Couldn't delete this reading' alert bound to quickDiscardFailed.",
    "entry": "fullScreenCover(item: $quickPresentation) content.",
    "calls": [
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.withErrorAlert(_:shown:)",
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDoneToolbar",
@@ -876,9 +907,10 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)": "52cf0eb3686ad21e",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)": "060cd06c41e3b1f8",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)": "c9cc12f5cfa8249a",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDiscardFailedActions": "aef9880214f380f2",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDoneToolbar": "1a8a995375b00d3e"
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDoneToolbar": "1a8a995375b00d3e",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.withErrorAlert(_:shown:)": "68f942d368735a68"
    }
   },
   {
@@ -1014,8 +1046,8 @@
   },
   {
    "key": "func RecordView.keepRecoveredWorkout(_:endSec:)",
-   "hash": "d512e25ea2679ba2",
-   "does": "Clears interruptedWorkoutId and asynchronously re-trims the recovered workout to endSec via the collector.",
+   "hash": "18908ec8519e4331",
+   "does": "Clears interruptedWorkoutId and recoveredWorkoutFailure, then asynchronously re-trims the recovered workout to endSec via the collector; when that reports the card stayed up (nothing saved) it sets recoveredWorkoutFailure to 'Couldn't save the trimmed workout. Try again.'",
    "entry": "RecoveredWorkoutReviewCard onSave.",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retrimRecoveredWorkout(sessionId:endSec:)"
@@ -1023,17 +1055,27 @@
    "reads": [],
    "writes": [
     "archive:recovered workout session (re-trim)",
-    "mem:MorningCoordination.recoveredWorkoutReview (by collector)"
+    "mem:MorningCoordination.recoveredWorkoutReview (by collector)",
+    "mem:RecordView.interruptedWorkoutId",
+    "mem:RecordView.recoveredWorkoutFailure"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "retrimRecoveredWorkout returned false",
+     "effect": "recoveredWorkoutFailure set"
+    }
+   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retrimRecoveredWorkout(sessionId:endSec:)": "6042a893c46cd70f"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retrimRecoveredWorkout(sessionId:endSec:)": "6042a893c46cd70f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   },
   {
    "key": "func RecordView.discardRecoveredWorkout(_:)",
-   "hash": "fd78a37455becff0",
-   "does": "Clears interruptedWorkoutId and has the collector discard the recovered workout.",
+   "hash": "e67b3c9976fa37d8",
+   "does": "Clears interruptedWorkoutId and recoveredWorkoutFailure and has the collector discard the recovered workout; when the delete failed it sets recoveredWorkoutFailure to 'Couldn't delete this workout. Try again.'",
    "entry": "RecoveredWorkoutReviewCard onDiscard.",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.discardRecoveredWorkout(sessionId:)"
@@ -1041,11 +1083,21 @@
    "reads": [],
    "writes": [
     "archive:recovered workout session (discard)",
-    "mem:MorningCoordination.recoveredWorkoutReview (by collector)"
+    "mem:MorningCoordination.recoveredWorkoutReview (by collector)",
+    "mem:RecordView.interruptedWorkoutId",
+    "mem:RecordView.recoveredWorkoutFailure"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "discardRecoveredWorkout returned false",
+     "effect": "recoveredWorkoutFailure set"
+    }
+   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.discardRecoveredWorkout(sessionId:)": "808a11a06b8d3994"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.discardRecoveredWorkout(sessionId:)": "808a11a06b8d3994",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   }
  ],
