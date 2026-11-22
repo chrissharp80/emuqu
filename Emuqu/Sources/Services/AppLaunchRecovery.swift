@@ -14,18 +14,24 @@ extension EmuquApp {
     /// looking for — they assume the app lost it — so the fact is recorded at
     /// startup where a debug log will always carry it, whether or not anyone
     /// opened the tab.
+    ///
+    /// The scan reads (and decrypts) the file of each short workout, so it
+    /// runs on a detached task (`HealthWorkoutImporter.scanInterruptedSessions`),
+    /// off the main actor, and nothing at launch waits for it.
     private func logRebuildableWorkouts() {
-        let importer = HealthWorkoutImporter(manager: AppDependencies.current.collection.healthKitManager)
-        let stubs = importer.interruptedSessions(archive: collector.archive)
-        guard !stubs.isEmpty else { return }
-        let summary = stubs
-            .prefix(3)
-            .map { "\($0.sport.rawValue) \($0.startDate) (\(Int($0.capturedSeconds))s captured)" }
-            .joined(separator: ", ")
-        debugLog(
-            "[App][launch] \(stubs.count) interrupted recording(s) can be rebuilt from Apple Health: \(summary)",
-            level: .info
-        )
+        let archive = collector.archive
+        Task.detached(priority: .utility) {
+            let stubs = HealthWorkoutImporter.scanInterruptedSessions(archive: archive)
+            guard !stubs.isEmpty else { return }
+            let summary = stubs
+                .prefix(3)
+                .map { "\($0.sport.rawValue) \($0.startDate) (\(Int($0.capturedSeconds))s captured)" }
+                .joined(separator: ", ")
+            debugLog(
+                "[App][launch] \(stubs.count) interrupted recording(s) can be rebuilt from Apple Health: \(summary)",
+                level: .info
+            )
+        }
     }
 
     /// Check if a recording session was in progress when the app was killed.
@@ -169,18 +175,34 @@ extension EmuquApp {
     /// last one, perhaps the phone-only rebuild, would replace the
     /// strap-merged one. Auto-recovery that started first is waited for. If
     /// it claimed the session between the wait and the claim, it is waited
-    /// for again.
+    /// for again, all within one `autoRecoveryWaitLimit`: once that has
+    /// passed with auto-recovery still holding the session, the user is told
+    /// it is still being recovered rather than kept waiting on it, and
+    /// nothing else rebuilds it.
     private func claimRecovery(_ sessionId: UUID) async -> String? {
+        let deadline = Date().addingTimeInterval(Self.autoRecoveryWaitLimit)
         while true {
-            if let saved = await savedByAutoRecovery(sessionId) { return saved }
+            let remaining = max(deadline.timeIntervalSinceNow, 0)
+            if let saved = await savedByAutoRecovery(sessionId, waitingAtMost: remaining) { return saved }
             if InterruptedWorkoutAutoRecovery.claim(sessionId) { return nil }
+            if Date() >= deadline {
+                return String(
+                    localized: "This workout is still being recovered in the background. It will be in your archive when that finishes. If it is not, recover it from Settings → iCloud & Data → Recover Lost Sessions.",
+                    bundle: languageManager.bundle
+                )
+            }
         }
     }
 
+    /// How long Save and Resume wait, in all, for launch auto-recovery of the
+    /// same session.
+    private static let autoRecoveryWaitLimit: TimeInterval = 150
+
     /// The message to show when launch auto-recovery has saved this session,
-    /// after waiting for it to finish; nil when it is still to be recovered.
-    private func savedByAutoRecovery(_ sessionId: UUID) async -> String? {
-        await InterruptedWorkoutAutoRecovery.waitUntilDone(sessionId)
+    /// after waiting up to `limit` for it to finish; nil when it is not saved
+    /// (still to be recovered, or still being recovered when `limit` ran out).
+    private func savedByAutoRecovery(_ sessionId: UUID, waitingAtMost limit: TimeInterval) async -> String? {
+        await InterruptedWorkoutAutoRecovery.waitUntilDone(sessionId, limit: limit)
         guard collector.archive.exists(sessionId) else { return nil }
         collector.clearPersistedRecordingStatePublic()
         return String(localized: "Saved to your archive.", bundle: languageManager.bundle)

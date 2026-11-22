@@ -430,13 +430,13 @@ check "tech_debt_budgets/below_budget" \
     ".ci/shared_usage_budget.txt" \
     "import pathlib;pathlib.Path('.ci/shared_usage_budget.txt').write_text('0'+chr(10))"
 
-# A budget written as a decimal makes `(( count > budget ))` a bash error,
-# which `if` reads as false: the gate would pass with no limit at all.
 check "tech_debt_budgets/watch_debt" \
     "./scripts/enforce_tech_debt_budgets.sh" \
     "EmuquWatch Watch App/WatchDependencies.swift" \
     "import pathlib;p=pathlib.Path('EmuquWatch Watch App/WatchDependencies.swift');p.write_text(p.read_text()+chr(10)+'let plantedWatchSingleton = WatchSessionManager.shared'+chr(10))"
 
+# A budget written as a decimal makes `(( count > budget ))` a bash error,
+# which `if` reads as false: the gate would pass with no limit at all.
 check "tech_debt_budgets/decimal_budget" \
     "./scripts/enforce_tech_debt_budgets.sh" \
     ".ci/shared_usage_budget.txt" \

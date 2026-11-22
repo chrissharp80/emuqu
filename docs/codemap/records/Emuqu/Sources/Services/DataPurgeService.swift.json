@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/DataPurgeService.swift",
- "hash": "b9b97d400cc5ece2",
+ "hash": "c0d421e2915a70db",
  "role": "'Delete All My Data' orchestrator: refuses while a recording is under way or a reading is waiting to be accepted, otherwise awaits CloudKit zone deletion, sweeps every file in App Group/Application Support/Documents/Caches/tmp and every UserDefaults key (minus keep-lists), then resets named stores (archive dirs, keychain, AI stores, settings, breadcrumbs, caches, notifications) and returns a localized Report. The stores it clears beyond its named parameters come from the Stores set its caller passes (AppDependencies.purgeStores in the app), never from AppDependencies.current.",
  "types": [
   "DataPurgeService: enum (@MainActor) — static purge steps",
@@ -10,15 +10,14 @@
   "DataPurgeService.FallibleSteps: struct — debug/crash log outcomes",
   "DataPurgeService.ReadBack: struct — the outcomes read back from the stores after the steps",
   "DataPurgeService.PurgeScope: struct (@MainActor) — where a purge sweeps files and preferences: App Group container, sandbox roots, preference suites; .device in production",
-  "DataPurgeService.Stores: struct (extension) — resolvers for every service the purge clears or reads back beyond the named parameters: recorderBox plus the Assistant, Location (trails, routes, ambient location, road geocoding, weather, nearby places) and Device groups (nested structs), built by AppDependencies.purgeStores"
+  "DataPurgeService.Stores: struct (extension) — resolvers for every service the purge clears or reads back beyond the named parameters: recorderBox plus the Assistant, Location (trails, routes, ambient location, road geocoding, weather, nearby places) and Device groups (nested structs), built by AppDependencies.purgeStores",
+  "DataPurgeService: extension (DataPurgeService+Defaults.swift) — the preferences sweep"
  ],
  "state": [
-  "mem:DataPurgeService.defaultsKeepList = entitlement.anchor.account, entitlement.anchor.v1, storekit.lastKnownPurchased, storekit.lastKnownTestFlight, storekit.verifiedProductionInstall, storekit.verifiedXcodeInstall",
-  "mem:DataPurgeService.systemOwnedPrefixes (Apple, NS, com.apple., WebKit, AK, PK, MSV, INNext, CarCapabilities, ADPrivacy, METAL, GEO, TVRemote, SU)",
   "file:<sharedContainer>/debug_log.txt (referenced)",
   "ud:AssistantViewModel.disclaimerKey (assistant.disclaimerAccepted, referenced)"
  ],
- "toplevel": "Static let tables above. Entries are purgeAllUserData and isRecordingInProgress, called by DeleteAllDataPage.swift and DataPurgeServiceTests (which also calls purgeRoots). The legacy widget.* keys an earlier build wrote to the App Group suite are removed by sweepAllDefaults (none is kept). An extension at the end declares DataPurgeService.Stores and its Assistant, Location and Device groups (resolver closures only, no logic).",
+ "toplevel": "Entries are purgeAllUserData and isRecordingInProgress, called by DeleteAllDataPage.swift and DataPurgeServiceTests (which also calls purgeRoots). The preferences sweep (sweepAllDefaults, deviceDefaultsDomains and the keep rules, which remove the legacy widget.* keys an earlier build wrote to the App Group suite: none is kept) is in DataPurgeService+Defaults.swift. An extension at the end declares DataPurgeService.Stores and its Assistant, Location and Device groups (resolver closures only, no logic).",
  "units": [
   {
    "key": "var DataPurgeService.PurgeScope.device",
@@ -26,7 +25,7 @@
    "does": "The app's own purge scope: the App Group container, Application Support, Documents, Caches and the temporary directory (exports wait there for the share sheet), and the standard and App Group preference suites (deviceDefaultsDomains).",
    "entry": "Default argument of purgeAllUserData; read by DataPurgeServiceTests to pin that it names every container and suite.",
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.deviceDefaultsDomains(errors:)"
+    "Emuqu/Sources/Services/DataPurgeService+Defaults.swift::func DataPurgeService.deviceDefaultsDomains(errors:)"
    ],
    "reads": [
     "file:App Group container, Application Support, Documents, Caches, tmp (URLs only)"
@@ -34,7 +33,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.deviceDefaultsDomains(errors:)": "9760299d11b4b27d",
+    "Emuqu/Sources/Services/DataPurgeService+Defaults.swift::func DataPurgeService.deviceDefaultsDomains(errors:)": "9760299d11b4b27d",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
@@ -459,7 +458,7 @@
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.endPurge()",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:liveSettingsFile:errors:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService+Defaults.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:stores:scope:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(_:errors:)",
@@ -509,11 +508,24 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)": "e29a678403bf0b1c",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.report(remoteDeleted:swept:directories:steps:errors:)": "84ad75841c1136ef",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)": "6175290b41cbe774",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)": "a58902c80a499460",
+    "Emuqu/Sources/Services/DataPurgeService+Defaults.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)": "a58902c80a499460",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:liveSettingsFile:errors:)": "6515236adac11044",
     "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.PurgeScope.device": "41e46af4db9cc30a",
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.beginPurge()": "2ab1219114a4f254",
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.endPurge()": "728b8ead464f4367"
+   }
+  },
+  {
+   "key": "func DataPurgeService.report(remoteDeleted:swept:directories:steps:errors:)",
+   "hash": "4e7e1bd6e8486b8e",
+   "does": "Builds the Report from each step's result: the remote outcome, the archive/backup/keychain results, the read-back stores, the profile read-back, the log steps, the residual file and key counts and the errors.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.files(of:in:)": "c41df8bafc601514"
    }
   },
   {
@@ -666,172 +678,6 @@
      "at": "+2",
      "cond": "root is not the live settings file's directory",
      "effect": "[]; else [settings file name]"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "func DataPurgeService.isPurgeable(defaultsKey:)",
-   "hash": "9278dbd631147c1d",
-   "does": "False for keys on the keep list, FlowRecovery.migration.* keys, didRun* keys that carry a _v version marker, and system-owned keys (isSystemKey: a system prefix followed by a capital, digit, underscore or nothing); true otherwise.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isSystemKey(_:prefix:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "key in defaultsKeepList",
-     "effect": "false"
-    },
-    {
-     "at": "+2",
-     "cond": "FlowRecovery.migration. prefix",
-     "effect": "false"
-    },
-    {
-     "at": "+3",
-     "cond": "didRun prefix and contains _v",
-     "effect": "false"
-    },
-    {
-     "at": "+4",
-     "cond": "isSystemKey for any system prefix",
-     "effect": "false; else true"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isSystemKey(_:prefix:)": "abbc087bd25b359d"
-   }
-  },
-  {
-   "key": "func DataPurgeService.isSystemKey(_:prefix:)",
-   "hash": "d6a27fe5207bc71b",
-   "does": "True when key starts with prefix and either the prefix ends with '.', the key is exactly the prefix, or the next character is uppercase, a digit or '_' (Apple's key style); a lowercase continuation is not a system key.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "no prefix match",
-     "effect": "false"
-    },
-    {
-     "at": "+2",
-     "cond": "prefix ends with '.' or nothing follows it",
-     "effect": "true"
-    },
-    {
-     "at": "+3",
-     "cond": "next char uppercase/digit/underscore",
-     "effect": "true; else false"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "func DataPurgeService.deviceDefaultsDomains(errors:)",
-   "hash": "cf7c731ffc6bf93a",
-   "does": "The device's preference suites for PurgeScope.device: (name, store) for the standard suite (bundle id) and the App Group suite, appending an error for any unavailable.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "Bundle.main.bundleIdentifier non-nil",
-     "effect": "adds standard suite; else error 'no bundle identifier'"
-    },
-    {
-     "at": "+10",
-     "cond": "UserDefaults(suiteName: appGroup) non-nil",
-     "effect": "adds group suite; else error 'app group suite unavailable'"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
-   }
-  },
-  {
-   "key": "func DataPurgeService.sweepAllDefaults(scope:errors:)",
-   "hash": "a71fcff8504c2cab",
-   "does": "Removes every purgeable key from the scope's preference suites (the device's standard and App Group suites in production), returning the count removed.",
-   "entry": null,
-   "calls": [
-    "closure:PurgeScope.defaultsDomains — DataPurgeService.deviceDefaultsDomains for .device",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.storedKeys(in:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isPurgeable(defaultsKey:)"
-   ],
-   "reads": [
-    "ud:* (the scope's suites; standard and App Group in production)"
-   ],
-   "writes": [
-    "ud:* (the scope's suites; standard and App Group in production)"
-   ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "for each domain the scope lists",
-     "effect": "iterates available suites"
-    },
-    {
-     "at": "+3",
-     "cond": "for key where isPurgeable",
-     "effect": "removeObject + count"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isPurgeable(defaultsKey:)": "0ed2c508397ebbf7",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.storedKeys(in:)": "95250d1a3caf578c"
-   }
-  },
-  {
-   "key": "func DataPurgeService.storedKeys(in:)",
-   "hash": "77c6ba9275ffcc49",
-   "does": "Keys stored in a suite: its persistent domain keys if available, else dictionaryRepresentation minus global/argument/registration domain keys.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.inheritedDefaultsKeys()"
-   ],
-   "reads": [
-    "ud:*"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "persistentDomain(forName:) non-nil",
-     "effect": "returns its keys; else filtered dictionaryRepresentation (App Group case)"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.inheritedDefaultsKeys()": "539dad75bc176908"
-   }
-  },
-  {
-   "key": "func DataPurgeService.inheritedDefaultsKeys()",
-   "hash": "73a905317a336514",
-   "does": "Union of global persistent-domain, argument-domain and registration-domain keys of UserDefaults.standard.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "ud:NSGlobalDomain",
-    "ud:argument domain",
-    "ud:registration domain"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "global persistent domain nil ?? [:]",
-     "effect": "no global keys excluded"
     }
    ],
    "deps": {}
@@ -1258,19 +1104,6 @@
     "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.clear()": "ab1a448079777787",
     "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.clear()": "cccce7040c2e0f3b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab"
-   }
-  },
-  {
-   "key": "func DataPurgeService.report(remoteDeleted:swept:directories:steps:errors:)",
-   "hash": "4e7e1bd6e8486b8e",
-   "does": "Builds the Report from each step's result: the remote outcome, the archive/backup/keychain results, the read-back stores, the profile read-back, the log steps, the residual file and key counts and the errors.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.files(of:in:)": "c41df8bafc601514"
    }
   }
  ],

@@ -78,9 +78,11 @@ final class FitnessTabUITests: XCTestCase {
             "Fitness tab must render its content surface — \(UITestFind.onScreen(app))"
         )
 
-        // Best-effort: if the recorder came up in time, the pre-flight
-        // affordances should be there too. Not a hard requirement — a
-        // simulator with no BLE stack legitimately has no recorder.
+        // Best-effort here: the pre-flight comes up once the tab has bound
+        // its recorder (`FitnessTabView.bindRecorderOffTabSwap`, no hardware
+        // needed), which may take longer than this short wait.
+        // `testRoutePickerReachableForGPSSports` waits for it and fails
+        // without it.
         let anyPreflight = app.buttons.matching(sportPredicate).firstMatch.waitForExistence(timeout: UITestTiming.s(5))
             || app.staticTexts.matching(sportPredicate).firstMatch.exists
             || app.buttons.matching(getMeBackPredicate).firstMatch.exists

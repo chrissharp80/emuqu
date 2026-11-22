@@ -279,9 +279,6 @@ final class WatchMessageDecodingTests: XCTestCase {
         XCTAssertEqual(command, .strapState(connected: true, deviceName: "Polar H10 ABC123"))
     }
 
-    /// A `strapState` with no payload is still a valid command — iOS sends it
-    /// to signal "no strap" — so the fields decode to nil rather than the
-    /// command being rejected.
     /// A coach alert carries its urgency and when the iPhone fired it; a
     /// phone that leaves either out still sends the command.
     func testCoachAlertParsing() {
@@ -306,6 +303,9 @@ final class WatchMessageDecodingTests: XCTestCase {
         XCTAssertFalse(WatchMessageDecoding.playsCoachAlert(firedAt: nil, now: now))
     }
 
+    /// A `strapState` with no payload is still a valid command — iOS sends it
+    /// to signal "no strap" — so the fields decode to nil rather than the
+    /// command being rejected.
     func testStrapStateWithoutPayloadIsStillTheCommand() {
         XCTAssertEqual(
             WatchMessageDecoding.command(["type": "strapState"]),
