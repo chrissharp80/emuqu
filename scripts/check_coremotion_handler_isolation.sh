@@ -12,6 +12,13 @@
 # runs `dispatch_assert_queue(main)` — and libdispatch answers a failed queue
 # assertion with `__builtin_trap()`.
 #
+# HealthKit's completion blocks are the same shape: the workout builder's
+# `beginCollection`/`endCollection`/`finishWorkout` and the store's background-
+# delivery registration call back on HealthKit's own queue, and the Watch target
+# builds with `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, so a bare closure
+# there is main-actor isolated without a word in the source. They are held to
+# the same rule.
+#
 # The result is a SIGTRAP inside the first callback, with nothing in the crash
 # log that names the app except the closure itself. It cost a user their entire
 # walk: the app died about a second after Start, iOS did not relaunch it, and
@@ -22,7 +29,7 @@
 #
 # ## The rule
 #
-# Every CoreMotion callback closure must be one of:
+# Every CoreMotion or HealthKit callback closure must be one of:
 #
 #   * delivered to an explicit queue (`to: .main`, `to: someQueue`) — then the
 #     isolation is the queue's and the call site says so; or
@@ -75,6 +82,12 @@ QUEUE_DELIVERED_APIS = (
 SELF_QUEUED_APIS = (
     "startUpdates",
     "queryPedometerData",
+    # HealthKit: no queue parameter either; HealthKit picks the thread.
+    "beginCollection",
+    "endCollection",
+    "finishWorkout",
+    "enableBackgroundDelivery",
+    "disableBackgroundDelivery",
 )
 
 HANDLER_APIS = QUEUE_DELIVERED_APIS + SELF_QUEUED_APIS
@@ -115,16 +128,33 @@ for root in sys.argv[1:]:
         text = strip_comments(path.read_text(encoding="utf-8", errors="ignore"))
         scanned += 1
         for match in CALL.finditer(text):
-            # The argument list up to the trailing closure's `{`. Bounded so a
-            # call with no trailing closure cannot scan the rest of the file.
-            window = text[match.end(): match.end() + 400]
-            brace = window.find("{")
-            if brace < 0:
+            # The argument list runs to the parenthesis that closes the call.
+            # The handler is a closure inside it, or a trailing closure right
+            # after it; a call with neither (the `async` HealthKit forms) has
+            # no handler to check. Bounded so an unclosed call cannot scan the
+            # rest of the file.
+            depth, close = 1, None
+            for index in range(match.end(), min(len(text), match.end() + 2000)):
+                if text[index] == "(":
+                    depth += 1
+                elif text[index] == ")":
+                    depth -= 1
+                    if depth == 0:
+                        close = index
+                        break
+            if close is None:
                 continue
-            arguments = window[:brace]
+            arguments = text[match.end(): close]
+            after = text[close + 1:].lstrip()
+            if after.startswith("{"):
+                body = after[1:].lstrip()
+            elif "{" in arguments:
+                body = arguments[arguments.index("{") + 1:].lstrip()
+                arguments = arguments[: arguments.index("{")]
+            else:
+                continue
             if match.group(1) in QUEUE_DELIVERED_APIS and re.search(r"\bto:\s*\S", arguments):
                 continue  # Explicit delivery queue — isolation is stated.
-            body = window[brace + 1:].lstrip()
             if body.startswith("@Sendable"):
                 continue
             line = text[: match.start()].count("\n") + 1
@@ -132,10 +162,10 @@ for root in sys.argv[1:]:
 
 if not violations:
     print(f"check_coremotion_handler_isolation: clean. {scanned} Swift file(s) scanned; "
-          "every CoreMotion handler states its isolation.")
+          "every CoreMotion and HealthKit handler states its isolation.")
     raise SystemExit(0)
 
-print("check_coremotion_handler_isolation: CoreMotion handlers with inherited isolation:\n",
+print("check_coremotion_handler_isolation: CoreMotion or HealthKit handlers with inherited isolation:\n",
       file=sys.stderr)
 for violation in violations:
     print(f"  {violation}", file=sys.stderr)
@@ -143,7 +173,7 @@ print(
     "\n  A closure formed in a @MainActor type and handed to one of these"
     "\n  non-Sendable block types inherits main-actor isolation, and the"
     "\n  executor precondition Swift emits for it runs dispatch_assert_queue()"
-    "\n  on CoreMotion's worker thread. libdispatch answers that with"
+    "\n  on the framework's worker thread. libdispatch answers that with"
     "\n  __builtin_trap(): SIGTRAP, inside the first callback of the workout."
     "\n"
     "\n  Either pass a queue (`to: .main`), or mark the closure `@Sendable` and"

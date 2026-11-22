@@ -25,8 +25,26 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-HEALTH_FIELDS='recoveryScore|meanRMSSD|rmssd|sdnn|hrv|sleepScore|readinessScore|heartRate|restingHR|spo2|respiratoryRate'
+# Words that mark a field as health data. A key is split into its camelCase and
+# snake_case words, and it is a health field when any word is on this list, so
+# `avgHR`, `hrvScore` and `resting_heart_rate_bpm` are caught as well as the
+# exact names, not only a fixed set of spellings.
+HEALTH_WORDS='hr|hrv|rmssd|sdnn|pnn50|heart|pulse|bpm|spo2|oxygen|respiratory|respiration|sleep|recovery|readiness|score|vo2|resting|temperature|alpha1|strain|stress|calories'
 bad=0
+
+# function_body <name> <file>: prints `func <name>` through the closing brace at
+# the indentation the declaration has, whatever that is. Exits 3 when the
+# function is not found or never closes, so a range cannot run on to the end of
+# the file and find the call it looks for in some other function.
+function_body() {
+    awk -v fn="$1" '
+        !inside && $0 ~ ("func " fn "[^A-Za-z0-9_]") {
+            match($0, /^[ \t]*/); indent = substr($0, 1, RLENGTH); inside = 1; print; next
+        }
+        inside { print; if ($0 ~ ("^" indent "}[ \t]*$")) { closed = 1; exit } }
+        END { if (!closed) exit 3 }
+    ' "$2"
+}
 
 # Fail closed: the gate is meaningless if the files it inspects are not
 # there, and it must not depend on process substitution (/dev/fd), which
@@ -50,12 +68,19 @@ fi
 #     the owner's name — may only ever be cleared (`= nil`). Records from older
 #     builds still carry them, which is why the names cannot simply disappear
 #     from the source.
-hits="$(python3 - "$HEALTH_FIELDS" Emuqu "EmuquWatch Watch App" <<'PY'
+hits="$(python3 - "$HEALTH_WORDS" Emuqu "EmuquWatch Watch App" <<'PY'
 import pathlib
 import re
 import sys
 
-health = re.compile(rf"^(?:{sys.argv[1]})$")
+health_words = set(sys.argv[1].split("|"))
+WORD = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z0-9]+")
+
+
+def is_health(key):
+    return any(word.lower() in health_words for word in WORD.findall(key))
+
+
 legacy = re.compile(r"^(?:settingsJSON|deviceName)$")
 files = [p for root in sys.argv[2:] for p in sorted(pathlib.Path(root).rglob("*.swift"))
          if "CKRecord" in p.read_text(encoding="utf-8", errors="ignore")]
@@ -88,7 +113,7 @@ for path, text in texts.items():
         writes = [(k, m.group(3)) for m in SUBSCRIPT.finditer(code) for k in keys_of(m.group(1), m.group(2))]
         writes += [(k, m.group(1)) for m in SETTER.finditer(code) for k in keys_of(m.group(2), m.group(3))]
         for key, value in writes:
-            if health.match(key):
+            if is_health(key):
                 print(f"{path}:{n}: {line.strip()} — plaintext health field written to a CKRecord")
             elif legacy.match(key) and value.strip() != "nil":
                 print(f"{path}:{n}: {line.strip()} — legacy plaintext settings field written with a value")
@@ -113,7 +138,10 @@ for fn in compressedPayload compressedPoints sealedLocalSettings scrubStoredReco
         echo "check_no_health_data_in_cloudkit: writer $fn not found under Emuqu/Sources/Storage — re-point this gate at it." >&2
         exit 2
     fi
-    body="$(awk "/func $fn/,/^    \}/" "$file")"
+    if ! body="$(function_body "$fn" "$file")"; then
+        echo "check_no_health_data_in_cloudkit: cannot find the end of $fn in $file — re-point this gate at it." >&2
+        exit 2
+    fi
     if ! grep -qF "CloudPayloadCodec.sealForUpload(" <<<"$body"; then
         echo "ERROR: ${file#Emuqu/Sources/Storage/}: $fn does not seal through CloudPayloadCodec.sealForUpload" >&2
         bad=$((bad + 1))
@@ -123,8 +151,7 @@ done
 # The seal fails closed: with no cloud key it throws encryptionUnavailable and
 # never hands back the payload unsealed.
 codec="Emuqu/Sources/Storage/CloudPayloadCodec.swift"
-seal_body="$(awk '/func sealForUpload/,/^    \}/' "$codec")"
-if [[ -z "$seal_body" ]]; then
+if ! seal_body="$(function_body sealForUpload "$codec")"; then
     echo "check_no_health_data_in_cloudkit: sealForUpload not found in $codec — re-point this gate at it." >&2
     exit 2
 fi
@@ -153,7 +180,10 @@ for reader in decodePoints decodeSessionAsset; do
         echo "check_no_health_data_in_cloudkit: reader $reader not found under Emuqu/Sources/Storage — re-point this gate at it." >&2
         exit 2
     fi
-    body="$(awk "/func $reader/,/^    \}/" "$file")"
+    if ! body="$(function_body "$reader" "$file")"; then
+        echo "check_no_health_data_in_cloudkit: cannot find the end of $reader in $file — re-point this gate at it." >&2
+        exit 2
+    fi
     if ! grep -q "DataCompression.decompress" <<<"$body"; then
         echo "check_no_health_data_in_cloudkit: $reader no longer decompresses in its own body — re-point this gate at the function that does." >&2
         exit 2

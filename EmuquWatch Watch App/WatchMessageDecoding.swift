@@ -32,7 +32,7 @@ import Foundation
 ///
 /// ## Isolation
 ///
-/// Explicitly `nonisolated`. Both targets build with
+/// Explicitly `nonisolated`. The Watch target builds with
 /// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, which would otherwise put these
 /// static methods on the main actor — and they would then be unusable from the
 /// `WCSession` delegate callbacks that are their only real caller, which arrive
@@ -218,6 +218,7 @@ extension WatchMessageDecoding {
         case "unknownSport": String(localized: "Unknown sport: \(sport ?? "")")
         case needsUnlockCode: String(localized: "Open Emuqu on your iPhone to start your free trial or unlock.")
         case "strapBusy": String(localized: "The strap is currently used by another session. Stop it first.")
+        case "workoutInProgress": String(localized: "A workout is already recording on your iPhone.")
         default: nil
         }
     }

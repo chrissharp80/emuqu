@@ -144,12 +144,13 @@ private struct StartScreen: View {
     @ViewBuilder
     private var content: some View {
         reachabilityBanner
-        // No iOS-mirrored strap state here. The Polar SDK's
+        // No iOS-mirrored strap status row here. The Polar SDK's
         // `deviceDisconnected` callback can lag 30–60 s after a chest strap
         // leaves the body, so a mirrored pill with no staleness eviction shows
         // "Connected" after the strap is off. The pairing entry below uses
         // CoreBluetooth directly on the Watch, which sees disconnects
-        // immediately. Single source of truth.
+        // immediately. The iPhone's strap state only tints the Start button
+        // and sets its hint in display-only mode (see `startButton`).
         Text(String(localized: "Start from Watch"))
             .font(.headline)
         sportRow
@@ -485,11 +486,36 @@ private struct LiveMetricsScreen: View {
 
     /// The grid only while a workout records: before the first one, and after
     /// one ends, it would show nothing live or the finished workout's numbers.
+    /// A workout the Watch ended without the iPhone (`endedWithoutPhone`) is
+    /// still recording as far as the iPhone last said, but its numbers have
+    /// stopped, so the screen says what happened instead of freezing on them.
     var body: some View {
         Group {
-            if sessionManager.isRecording { metrics } else { connectionStatusView }
+            if sessionManager.isRecording, workoutManager.endedWithoutPhone {
+                endedOnWatchView
+            } else if sessionManager.isRecording {
+                metrics
+            } else {
+                connectionStatusView
+            }
         }
         .padding(6)
+    }
+
+    private var endedOnWatchView: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "iphone.slash")
+                    .foregroundStyle(.orange)
+                Text(String(localized: "Ended on Watch. Open Emuqu on your iPhone to finish the workout."))
+                    .font(.caption.weight(.medium))
+            }
+            Text(sessionManager.statusLine)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+            Spacer(minLength: 0)
+        }
     }
 
     /// Paused dims the grid and overlays a banner, so the user can see at a

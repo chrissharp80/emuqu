@@ -1,7 +1,7 @@
 {
  "file": "scripts/enforce_tech_debt_budgets.sh",
- "hash": "3cde2c4c272c2311",
- "role": "CI gate (make debt-budget; ci.yml, gates.yml) counting `.shared` uses, `try?` uses, `try?` on write-shaped lines, Swift files >= 1500 lines, and `ObservableObject` mentions under $1 (default Emuqu), each against a ratchet budget file.",
+ "hash": "7bc60a19b3d5f638",
+ "role": "CI gate (make debt-budget; ci.yml, gates.yml) counting `.shared` uses, `try?` uses, `try?` on write-shaped lines, Swift files >= 1500 lines, and `ObservableObject` mentions under $1 (default Emuqu), each against a ratchet budget file, and the same five counts under the Watch app against one combined budget.",
  "types": [],
  "state": [
   "file:.ci/shared_usage_budget.txt",
@@ -9,15 +9,17 @@
   "file:.ci/large_swift_files_1500_budget.txt",
   "file:.ci/legacy_observable_object_budget.txt",
   "file:.ci/try_optional_write_budget.txt",
+  "file:.ci/watch_tech_debt_budget.txt (or $WATCH_BUDGET_FILE)",
+  "env:WATCH_ROOT (default EmuquWatch Watch App)",
   "env:LARGE_FILE_THRESHOLD (1500)",
   "env:GITHUB_STEP_SUMMARY (append)"
  ],
- "toplevel": "set -euo pipefail; no cd. Reads five budgets via read_budget (no integer validation; a non-integer makes the later (( )) arithmetic error under set -e). Write-path count (python): lines not starting with `//` (trailing and block comments still counted) matching `try?` followed on the same line by a call whose name starts write/save/persist/encode/store/setValue/setAttributes/setResourceValue/create/remove/delete/move/copy, or `.archive(`/`.flush(`/`.commit(`, case-insensitive. Main counts (python): block and line comments blanked, then platform singletons (URLSession, UIApplication, MXMetricManager, AVAudioApplication, WidgetCenter, AppTransaction, AVAudioSession, FileManager, NotificationCenter, UNUserNotificationCenter, WCSession, HKHealthStore `.shared`) blanked; counts `\\.shared\\b`, keyword `try?`, `\\bObservableObject\\b`. Large files: wc -l per file via xargs, rows with $2 == 'total' excluded. Builds summary; note_slack adds a FAIL (slack) line and sets failed when a count is below its budget (exact ratchet); each count > budget adds FAIL and sets failed. Prints summary, appends to GITHUB_STEP_SUMMARY, exits 1 if any FAIL.",
+ "toplevel": "set -euo pipefail; no cd. Reads six budgets via read_budget (a missing file exits 66, a value that is not a whole number exits 65). Both roots must be directories (else exit 66). measure_debt runs for $SOURCE_ROOT and for $WATCH_ROOT (a failure exits 70), and each result must be five whole numbers (else exit 70); the app's are the five app counts and the Watch's are summed into one watch count. Builds summary (one line per app count, one for the Watch total with its parts); note_slack adds a FAIL (slack) line and sets failed when a count is below its budget (exact ratchet), the Watch total included; each app count > budget, and the Watch total > its budget, adds FAIL and sets failed. Prints summary, appends to GITHUB_STEP_SUMMARY, exits 1 if any FAIL.",
  "units": [
   {
    "key": "fn read_budget",
-   "hash": "67b532fe8c3b0fe3",
-   "does": "Reads budget file $1: exit 66 if missing, strips whitespace, exit 65 if empty, echoes value (not validated as an integer).",
+   "hash": "ec932e4cfcc54645",
+   "does": "Reads a budget file with whitespace stripped and prints it: missing file -> 'Budget file not found' and exit 66; a value that is not a whole number (empty, decimal, text) -> 'Budget file is not a whole number' and exit 65 (each call is a plain assignment under set -e, so the script stops).",
    "entry": null,
    "calls": [],
    "reads": [
@@ -28,12 +30,47 @@
     {
      "at": "+2",
      "cond": "file missing",
-     "effect": "stderr, exit 66 (terminates script via set -e on the $( ) assignment)"
+     "effect": "exit 66"
     },
     {
-     "at": "+8",
-     "cond": "value empty after whitespace strip",
-     "effect": "stderr, exit 65; otherwise echo the value"
+     "at": "+10",
+     "cond": "value !~ ^[0-9]+$",
+     "effect": "exit 65"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "fn measure_debt",
+   "hash": "c19ff1e8397b5bba",
+   "does": "Prints the five debt counts for <root> as `shared try? try?-on-write large-files ObservableObject`. Write-path count (python): lines not starting with `//` matching `try?` followed on the same line by a call whose name starts write/save/persist/encode/store/setValue/setAttributes/setResourceValue/create/remove/delete/move/copy, or `.archive(`/`.flush(`/`.commit(`, case-insensitive. Pattern counts (python): block and line comments blanked, platform singletons (URLSession, UIApplication, MXMetricManager, AVAudioApplication, WidgetCenter, AppTransaction, AVAudioSession, FileManager, NotificationCenter, UNUserNotificationCenter, WCSession, HKHealthStore `.shared`) blanked; counts `\\.shared\\b`, keyword `try?`, `\\bObservableObject\\b`. Large files: wc -l per file via xargs, rows with $2 == 'total' excluded. Any step failing returns 1.",
+   "entry": "Called from the script body for the app root and the Watch root, inside $( ).",
+   "calls": [
+    "ext:python3",
+    "ext:find",
+    "ext:xargs",
+    "ext:wc",
+    "ext:awk"
+   ],
+   "reads": [
+    "file:<root>/**/*.swift"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+36",
+     "cond": "write-path count fails",
+     "effect": "return 1"
+    },
+    {
+     "at": "+98",
+     "cond": "pattern counts fail",
+     "effect": "return 1"
+    },
+    {
+     "at": "+100",
+     "cond": "large-file count fails",
+     "effect": "return 1"
     }
    ],
    "deps": {}
@@ -61,7 +98,8 @@
  ],
  "deps": {
   "Tools/copy_linter/lint.py::": "5373b51ca6189fff",
+  "scripts/enforce_tech_debt_budgets.sh::fn measure_debt": "da2320eb626a809c",
   "scripts/enforce_tech_debt_budgets.sh::fn note_slack": "a6eb51c1c34ce8df",
-  "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "f16c6c713183c00b"
+  "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "0b214d0ad20888fb"
  }
 }

@@ -526,30 +526,34 @@ done
 # ---------------------------------------------------------------------------
 # Watch target — one combined budget. See the note by WATCH_SCAN_DIR.
 # ---------------------------------------------------------------------------
-if [[ -d "$WATCH_SCAN_DIR" ]]; then
-    if [[ ! -f "$WATCH_BUDGET_FILE" ]]; then
-        echo "check_refactor_spec_conformance: missing budget file: $WATCH_BUDGET_FILE" >&2
-        exit 2
-    fi
-    watch_budget="$(tr -d '[:space:]' < "$WATCH_BUDGET_FILE")"
-    if [[ ! "$watch_budget" =~ ^[0-9]+$ ]]; then
-        echo "check_refactor_spec_conformance: watch budget is not an integer" >&2
-        exit 2
-    fi
-    WATCH_MEASURED="$(measure_spec "$WATCH_SCAN_DIR")"
-    read -r W_LONG W_NEST _ _ _ _ _ W_LONG_P W_NEST_P \
-        <<<"$(printf '%s\n' "$WATCH_MEASURED" | head -n1)"
-    watch_total=$(( W_LONG + W_NEST + W_LONG_P + W_NEST_P ))
-    echo "- ${WATCH_SCAN_DIR}: ${watch_total} declarations over the spec limits (budget: ${watch_budget}; ratchet toward 0)"
-    echo "    long functions ${W_LONG}, deep nesting ${W_NEST}, long properties ${W_LONG_P}, deep properties ${W_NEST_P}"
-    if (( watch_total > watch_budget )); then
-        echo >&2
-        echo "ERROR: watch-target spec violations ${watch_total} exceed budget ${watch_budget}." >&2
-        exit 1
-    fi
-    if (( watch_total < watch_budget )); then
-        echo "    below budget — lower ${WATCH_BUDGET_FILE} to ${watch_total} to lock the gain in"
-    fi
+# A missing Watch directory is a configuration error, not a clean Watch: a
+# renamed target would otherwise drop out of the count without a word.
+if [[ ! -d "$WATCH_SCAN_DIR" ]]; then
+    echo "check_refactor_spec_conformance: watch scan directory missing: $WATCH_SCAN_DIR" >&2
+    exit 2
+fi
+if [[ ! -f "$WATCH_BUDGET_FILE" ]]; then
+    echo "check_refactor_spec_conformance: missing budget file: $WATCH_BUDGET_FILE" >&2
+    exit 2
+fi
+watch_budget="$(tr -d '[:space:]' < "$WATCH_BUDGET_FILE")"
+if [[ ! "$watch_budget" =~ ^[0-9]+$ ]]; then
+    echo "check_refactor_spec_conformance: watch budget is not an integer" >&2
+    exit 2
+fi
+WATCH_MEASURED="$(measure_spec "$WATCH_SCAN_DIR")"
+read -r W_LONG W_NEST _ _ _ _ _ W_LONG_P W_NEST_P \
+    <<<"$(printf '%s\n' "$WATCH_MEASURED" | head -n1)"
+watch_total=$(( W_LONG + W_NEST + W_LONG_P + W_NEST_P ))
+echo "- ${WATCH_SCAN_DIR}: ${watch_total} declarations over the spec limits (budget: ${watch_budget}; ratchet toward 0)"
+echo "    long functions ${W_LONG}, deep nesting ${W_NEST}, long properties ${W_LONG_P}, deep properties ${W_NEST_P}"
+if (( watch_total > watch_budget )); then
+    echo >&2
+    echo "ERROR: watch-target spec violations ${watch_total} exceed budget ${watch_budget}." >&2
+    exit 1
+fi
+if (( watch_total < watch_budget )); then
+    echo "    below budget — lower ${WATCH_BUDGET_FILE} to ${watch_total} to lock the gain in"
 fi
 
 echo "check_refactor_spec_conformance: clean."

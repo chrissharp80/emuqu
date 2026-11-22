@@ -22,7 +22,11 @@ jobs:
     # inserts when an `if:` carries no status function. This gate is the only
     # thing standing between a red build and real testers, so it says what it
     # means instead of depending on that rule staying true.
-    if: needs.quality-gate.result == 'success' && github.repository_owner == 'chrissharp80'
+    #
+    # The branch is checked here as well as in the `testflight` environment's
+    # rule. That rule lives in repository settings, where a change to it shows
+    # in no diff; this one is in the code.
+    if: needs.quality-gate.result == 'success' && github.repository_owner == 'chrissharp80' && github.ref == 'refs/heads/main'
     runs-on: macos-26
     timeout-minutes: 60
     # The signing and App Store Connect secrets live in this environment, which
@@ -89,6 +93,12 @@ jobs:
       # the app and its embedded Watch app each need their own App Store
       # profile, so xcodebuild fetches both through the App Store Connect key
       # below rather than this job installing one profile by hand.
+      #
+      # The keychain gets a random password, the private key is usable by
+      # codesign and security only (`-T`, not `-A`, which lets any program use
+      # it), and the decoded p12 is deleted as soon as it is imported. The
+      # cleanup step at the end removes the keychain and the API key whatever
+      # happens, so nothing is left behind on a runner that is reused.
       - name: Set up signing certificate
         env:
           P12_BASE64: ${{ secrets.IOS_DIST_P12_BASE64 }}
@@ -97,13 +107,17 @@ jobs:
           set -euo pipefail
           CERT_PATH="$RUNNER_TEMP/dist.p12"
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
 
           echo "$P12_BASE64" | base64 --decode > "$CERT_PATH"
 
-          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "" "$KEYCHAIN_PATH"
-          security import "$CERT_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security \
+            -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          rm -f "$CERT_PATH"
 
           # Required since macOS 10.12. Importing a p12 leaves the private key
           # guarded by an ACL that asks for interactive confirmation the first
@@ -112,20 +126,23 @@ jobs:
           # timeout with no error message worth reading. This grants the
           # codesigning tools access up front.
           security set-key-partition-list \
-            -S apple-tool:,apple:,codesign: -s -k "" "$KEYCHAIN_PATH" >/dev/null
+            -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" >/dev/null
 
           # Keep the default keychain in the search list alongside the build
           # one — replacing the list outright hides the system roots that
           # certificate validation needs.
           security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain-db
 
+      # Secrets reach every script through `env:`, never spliced into its text,
+      # so a value is data to the shell and not code.
       - name: Write App Store Connect API key
         env:
           ASC_PRIVATE_KEY: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
+          ASC_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.appstoreconnect/private_keys"
-          printf '%s' "$ASC_PRIVATE_KEY" > "$HOME/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8"
+          (umask 077 && printf '%s' "$ASC_PRIVATE_KEY" > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8")
 
       # CURRENT_PROJECT_VERSION is set to a monotonically-increasing value
       # so TestFlight never rejects an upload as "duplicate version." The
@@ -148,6 +165,7 @@ jobs:
         env:
           ASC_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
           ASC_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
           BUILD_NUMBER="${{ github.run_number }}.${{ github.run_attempt }}"
@@ -159,7 +177,7 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Emuqu.xcarchive" \
-            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
@@ -171,6 +189,7 @@ jobs:
         env:
           ASC_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
           ASC_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<'PLIST'
@@ -185,12 +204,13 @@ jobs:
             <key>stripSwiftSymbols</key>
             <true/>
             <key>teamID</key>
-            <string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <string></string>
             <key>uploadSymbols</key>
             <true/>
           </dict>
           </plist>
           PLIST
+          plutil -replace teamID -string "$APPLE_TEAM_ID" "$RUNNER_TEMP/ExportOptions.plist"
 
           xcodebuild \
             -exportArchive \
@@ -220,3 +240,13 @@ jobs:
             --file "$IPA_PATH" \
             --apiKey "$ASC_KEY_ID" \
             --apiIssuer "$ASC_ISSUER_ID"
+
+      # Runs whether the job passed, failed or was cancelled. GitHub-hosted
+      # runners are discarded after the job, but a self-hosted or reused one is
+      # not, and the signing key and the API key must not outlive the job.
+      - name: Remove signing material
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/build.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/dist.p12" "$RUNNER_TEMP/ExportOptions.plist"
+          rm -rf "$HOME/.appstoreconnect/private_keys"
