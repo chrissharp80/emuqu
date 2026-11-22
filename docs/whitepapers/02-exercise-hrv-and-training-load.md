@@ -6,7 +6,7 @@ Technical White Paper • v1.4 • 22 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision d2c8ca9 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 6b195c6 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
 
 Cite as: Sharp C. Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/02-exercise-hrv-and-training-load.md.
 
@@ -176,9 +176,9 @@ Walk the α1 samples in order.
 - **Below 0.75:** open a dip at the sample's offset (`start`) if none is open, and track the deepest point.
 - **At or above 0.75 with a dip open:** let `span = offset − start`. If `0 < span ≤ 120 s`, emit a shadow over `[max(0, start − 60), offset + 120)`, with the deepest point as the chart marker. Close the dip either way.
 
-A dip still open at session end is not labeled. Shadows are drawn with a neutral "beat artifact" marker. Samples inside them are left out of average, maximum and minimum α1 and out of band-time totals.
+A dip still open at session end is not labeled. A candidate during which heart rate climbed by at least 10 bpm (a sample at least 10 bpm above the lowest one before it, from the shadow's start to the deepest point) came with a real effort and is not a shadow; samples without HR are skipped, so a dip with no HR to judge stays a shadow. Shadows are drawn with a neutral "beat artifact" marker. Samples inside them are left out of average, maximum and minimum α1 and out of band-time totals.
 
-**Why window length discriminates.** An isolated bad beat affects α1 only while it is inside the 120 s window. A dip that recovers within one window is therefore consistent with a single artifact, while a real intensity change keeps α1 low as long as the effort lasts. The padding follows the window's geometry. The 60 s before covers the approach, as α1 falls once the beat enters. The 120 s after covers the recovery shoulder, which stays contaminated until the beat leaves. A dip open at the end has unknown duration, so it is not judged.
+**Why window length discriminates.** An isolated bad beat affects α1 only while it is inside the 120 s window. A dip that recovers within one window is therefore consistent with a single artifact, while a real intensity change keeps α1 low as long as the effort lasts. The padding follows the window's geometry. The 60 s before covers the approach, as α1 falls once the beat enters. The 120 s after covers the recovery shoulder, which stays contaminated until the beat leaves. A dip open at the end has unknown duration, so it is not judged. A beat artifact does not raise heart rate, while a surge into a harder effort does, so a dip that came with a heart-rate climb is kept as physiology.
 
 #### 3.2.2 Band totals and the first sustained AT1 crossing
 
@@ -190,7 +190,7 @@ Each sample counts for `dt = min(max(1, offset − previousOffset), 5)` s, or 1 
 
 #### 3.2.3 Crossing list and the LT1 card
 
-A second routine lists AT1 (0.75) and AT2 (0.50) crossings, with one tracker per threshold. It runs over samples from 120 s on (the previous value may precede 120 s), with `dt = max(1, offset − previousOffset)`. This routine counts time without the 5 s cap and arms on the previous sample.
+A second routine lists AT1 (0.75) and AT2 (0.50) crossings, with one tracker per threshold. It walks the same readings as Section 3.2.2 (shadow samples left out, each counting `dt` capped at 5 s), from 120 s on; the first reading after the warm-up only becomes the previous value, so a crossing needs α1 at or above the threshold after the warm-up first. Each tracker arms on the previous reading. Its first AT1 down-crossing is therefore the summary's first sustained crossing.
 - **Below the threshold:** if the previous α1 was at or above it and nothing is pending, create a pending down-crossing with offset, α1, HR and pace. Add `dt`, and emit the pending down-crossing once the counter reaches 180 s.
 - **At or above the threshold:** if a pending down-crossing had reached 180 s, emit an up-crossing with the current HR and pace. Clear the pending crossing and the counter.
 
@@ -225,7 +225,7 @@ The automatic running FTP works as follows.
 1. Over the running-family workouts of the last 90 days, build a per-second power array by sample offset (0 ≤ offset < 24 h). A second is empty unless watts > 0.
 2. Slide a 1200 s window. Where it is full and holds at least ⌈0.9 × 1200⌉ = 1080 readings, take the mean of the readings present.
 3. Take the best window mean across sessions and set `FTP = round(0.95 × best)`. Store it with its source session, or clear it if no window qualifies.
-4. Recompute at most every 7 days unless forced. If any workout in the 90 days cannot be read, the scan is not stamped and is retried at the next launch, and the stored FTP changes only if the scan found a higher one.
+4. Recompute at most every 7 days unless forced. If a workout in the 90 days cannot be read for a reason that may clear (the device locked, the disk full, the keychain refusing the key for now), the scan is not stamped and is retried at the next launch, and the stored FTP changes only if the scan found a higher one. A workout that can never be read as it is (corrupt or undecodable) holds no effort the scan can find, so it does not keep the scan open; the weekly rescan tries it again.
 
 The coverage rule ensures the best 20 minutes is a genuinely continuous effort.
 
@@ -252,6 +252,7 @@ At least 30 beats are required. When HRmax or resting HR is unknown, an Edwards 
 
 **Daily series and the Performance Management Chart (PMC).**
 - A workout figure is capped at 1000. Workouts with no precomputed figure use a summary Banister TRIMP from average HR, else 0.
+- Apple Health workouts that are not in the archive (from the Watch or other apps) join the series. When Apple Health workouts were never authorized, or were denied, the query's answer is read as no workouts, so the series is still built from the archive; a query that fails or times out for any other reason publishes nothing, and the previous load stands until the next refresh asks again.
 - Loads are summed per local day (0 on rest days), and each day is capped at 1200.
 - `X_today = load·(1 − e^(−1/τ)) + X_yesterday·e^(−1/τ)`, with τ = 7 days for ATL and 42 days for CTL; `TSB = CTL − ATL`.
 
@@ -304,7 +305,7 @@ Otherwise D is the recorded distance, so a partial run is credited for the dista
 The estimate, its confidence and the route name are stored on the workout. They are computed at three points:
 - at finalize, as not truncated;
 - in crash recovery, as truncated;
-- in a background backfill, as truncated only for crash-recovered or interrupted sessions.
+- in a background backfill, as truncated only for crash-recovered or interrupted sessions. A workout or prior that cannot be read, or an estimate that cannot be written, for a reason that may clear leaves the backfill unstamped, so the next launch runs it again; one that can never be read as it is is skipped and does not hold the stamp back.
 
 #### 3.4.3 Why route-matched substitution works
 
@@ -506,11 +507,11 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: warm-up, ok, stalled, fit failed); emuqu 14ecd58, 2026-10-06 (current form: clearing on every non-ok state). The too-many-artifacts state was added in emuqu-dev 7d6b4a6, 2026-09-03.
 
-**N5 (Section 3.2.1). A post-session α1 dip below 0.75 that recovers within one analyzer window (≤ 120 s) is labeled an ectopic "shadow".** An asymmetric span is excluded from α1 summary statistics and band time: from 60 s before the dip to 120 s after recovery. A dip still open at session end is left unlabeled.
+**N5 (Section 3.2.1). A post-session α1 dip below 0.75 that recovers within one analyzer window (≤ 120 s) is labeled an ectopic "shadow".** An asymmetric span is excluded from α1 summary statistics and band time: from 60 s before the dip to 120 s after recovery. A dip still open at session end is left unlabeled, and so is one during which heart rate climbed by at least 10 bpm.
 
 *Builds on:* the general observation that ectopic beats lower α1 [34]; adds a window-length rule that identifies and excludes the affected span.
 
-*Earliest dated record:* flow-recovery 549f747, 2026-04-23 (first form: the same 120 s limit and 60/120 s padding); emuqu-dev 680bbee, 2026-08-25 (current form: shared exclusion for all summary statistics).
+*Earliest dated record:* flow-recovery 549f747, 2026-04-23 (first form: the same 120 s limit and 60/120 s padding); emuqu-dev 680bbee, 2026-08-25 (shared exclusion for all summary statistics). Later: a dip with a heart-rate climb kept as effort, and the crossing list on the same readings, emuqu 946c8b2, 2026-10-11.
 
 **N6 (Section 3.2.2). In the post-session summary statistics, a downward α1 threshold crossing is accepted only after α1 has stayed below the threshold for longer than the analyzer window (180 s against 120 s).** Time is counted per sample, capped at 5 s. Counting starts only after a 120 s warm-up, and only once α1 has first been seen at or above the threshold. The HR at the start of that sustained run is reported.
 
@@ -717,7 +718,7 @@ Neither Substack article disclosed any method in this paper.
 Chris Sharp is the sole author of these papers and of the design, and the only person who commits to the repositories above. The code was written by AI coding assistants under his direction, and some commits carry "Claude" as author or co-author; he supplied the requirements, design direction, review, testing and acceptance, and wrote no code by hand. He developed the methods described here independently and did not learn them from anyone.
 
 ### 8.6 Document history
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.4, published 2026-11-22, describes source revision d2c8ca9 and scoring version v3.3.nov2026. Changes from v1.3: the live and offline α1 cleaner puts back and counts beats lost in a dropout (Section 3.1.3); an auto-FTP scan that cannot read every workout is retried and only raises the estimate (Section 3.3.2); the readiness acute term counts workouts since the start of the morning reading's day, and the narrative compares with the morning-anchor readiness (Sections 3.5.1–3.5.2); Watch-relayed strap beats are drained every tick, with only a batch under 10 s old feeding α1 and live HR (Section 3.6.1); and the port-fidelity counts are stated per suite (Section 6).
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.4, published 2026-11-22, describes source revision 6b195c6 (2026-11-21) and scoring version v3.3.nov2026. Changes from v1.3: the live and offline α1 cleaner puts back and counts beats lost in a dropout (Section 3.1.3); an auto-FTP scan that cannot read a workout for a reason that may clear is retried and only raises the estimate, while a workout that can never be read does not hold the scan open (Section 3.3.2); Apple Health workouts that were never authorized read as none, and a failed workout query leaves the previous load standing (Section 3.3.4); the route-estimate backfill is held open only by failures that may clear (Section 3.4.2); a dip with a 10 bpm heart-rate climb is not a shadow, and the crossing list walks the summary's readings (Sections 3.2.1, 3.2.3); the readiness acute term counts workouts since the start of the morning reading's day, and the narrative compares with the morning-anchor readiness (Sections 3.5.1–3.5.2); Watch-relayed strap beats are drained every tick, with only a batch under 10 s old feeding α1 and live HR (Section 3.6.1); and the port-fidelity counts are stated per suite (Section 6).
 
 ---
 
@@ -925,6 +926,7 @@ for s in samples with s.alpha1 != nil:
       if 0 < span <= 120: shadows.append([max(0, dip.start-60), s.t+120), dip.deepT, dip.deepA)
       dip = nil
 # an open dip at the end is discarded
+shadows = [sh for sh in shadows if not hrRose(sh)]   # HR >= 10 bpm above an earlier sample in [sh.start, sh.deepT]
 
 # B4 First sustained AT1 crossing for summary statistics (N6)
 prev = nil; armed = false; pend = nil; sus = 0; first = nil
@@ -1047,7 +1049,7 @@ for sample s: r = latest reading with r.t <= s.t
 
 **Table C.1.** Source files for each method.
 
-| Method | Files (repository paths at d2c8ca9) |
+| Method | Files (repository paths at 6b195c6) |
 |---|---|
 | Live α1, beat clock, filter, status | `Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift` |
 | DFA core | `Emuqu/Sources/Analysis/DFAAnalysis.swift`; constants in `Emuqu/Sources/Utilities/Constants.swift` (`HRVConstants.DFA`) |
@@ -1056,11 +1058,11 @@ for sample s: r = latest reading with r.t <= s.t
 | Crossing list, LT1 card | `Emuqu/Sources/Views/ThresholdCards+Cards.swift` |
 | Load ladder | `Emuqu/Sources/Collection/TrainingLoadPrecedence.swift`; `Emuqu/Sources/Models/WorkoutMetadata.swift` |
 | TRIMP, hrTSS, splits, decoupling | `Emuqu/Sources/Analysis/WorkoutAnalyzer.swift` |
-| Auto-FTP | `Emuqu/Sources/Analysis/FTPAutoEstimator.swift` |
+| Auto-FTP | `Emuqu/Sources/Analysis/FTPAutoEstimator.swift`; failures that may clear `Emuqu/Sources/Analysis/ArchiveAccessFailure.swift` |
 | METs | `Emuqu/Sources/Models/WorkoutMetadata.swift`; `Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift` |
 | Route matching | `Emuqu/Sources/Analysis/RouteLibrary.swift` |
 | Route load estimate | `Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift`; callers in `Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift`, `Emuqu/Sources/Services/WorkoutRecoveryService.swift`, `Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift` |
-| PMC / daily load | `Emuqu/Sources/Analysis/TrainingLoadSeries.swift`; `Emuqu/Sources/Collection/HealthDataTypes.swift` |
+| PMC / daily load | `Emuqu/Sources/Analysis/TrainingLoadSeries.swift`; `Emuqu/Sources/Collection/HealthDataTypes.swift`; Apple Health workouts `Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift`, `Emuqu/Sources/Analysis/TrainingMetricsCache.swift` |
 | Readiness | `Emuqu/Sources/Analysis/ReadinessScoring.swift`; `Emuqu/Sources/Utilities/Constants+RecoveryScore.swift` |
 | Live and frozen readiness | `Emuqu/Sources/Analysis/LiveReadiness.swift`; `Emuqu/Sources/Services/ReanalysisService.swift` |
 | Strap fusion and arbitration | `Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift` |

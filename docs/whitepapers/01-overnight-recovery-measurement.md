@@ -6,7 +6,7 @@ Technical White Paper • v1.4 • 22 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision d2c8ca9 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 6b195c6 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
 
 Cite as: Sharp C. Emuqu — Overnight Recovery Measurement from Raw Beat Intervals. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/01-overnight-recovery-measurement.md.
 
@@ -99,7 +99,7 @@ prior-nights baseline ──┬────────────────�
 
 **Figure 2.1.** Data flow from capture to baseline update. The prior-nights baseline feeds both window selection (H) and scoring (J).
 
-Three principles run through the design. *Every beat-to-beat difference is real:* time-domain statistics use no interpolated beats, and no difference spans a removed beat or a recording break. (Spectral features use the standard resampled series; DFA, which works in beat index, interpolates removed beats inside break-free stretches.) *One rule, used everywhere:* the estimator that selects a window is the one that reports it, and the function that ranks windows is the one that scores the night. *A score is a record:* once accepted, it changes only through stated, bounded rules, and it carries the version of the algorithm that produced it.
+Three principles run through the design. *Every beat-to-beat difference is real:* time-domain statistics use no interpolated beats, and no difference spans a removed beat or a recording break. (Spectral features use the standard resampled series, resampled within each break-free run of kept beats so that no Welch segment spans a recording break; DFA, which works in beat index, interpolates removed beats inside break-free stretches.) *One rule, used everywhere:* the estimator that selects a window is the one that reports it, and the function that ranks windows is the one that scores the night. *A score is a record:* once accepted, it changes only through stated, bounded rules, and it carries the version of the algorithm that produced it.
 
 ---
 
@@ -258,8 +258,8 @@ Scan the band with a 10% artifact cap. Only if that yields **zero valid windows*
 
 #### 3.5.4 Spike filter and organized filter
 
-1. *Isolated spike.* Window `i` (not first or last) is a spike if both neighbors have RMSSD > 0 and `RMSSD_i ≥ 1.5·RMSSD_{i−1}` and `RMSSD_i ≥ 1.5·RMSSD_{i+1}`. Spikes are removed. If removal leaves nothing, the unfiltered list is used.
-2. *Organized.* With α1 available: `0.75 ≤ α1 ≤ 1.0` **and** `CV < 0.08`. With α1 unavailable: `CV < 0.08`.
+1. *Isolated spike.* Window `i` (not first or last) is a spike if both neighbors have RMSSD > 0 and `RMSSD_i ≥ 1.5·RMSSD_{i−1}` and `RMSSD_i ≥ 1.5·RMSSD_{i+1}`. Spikes are removed. The first and last windows are never spikes, so the list does not empty.
+2. *Organized.* A window needs ≥ 60 clean beats. With α1 available: `0.75 ≤ α1 ≤ 1.0` **and** `CV < 0.08`. With α1 unavailable: `CV < 0.08`.
 
 "Organized" names a quiet, stable stretch that makes a good measurement window. It is not a claim about autonomic state.
 
@@ -423,7 +423,7 @@ Rules 1 and 3 are asymmetric: a short reading is replaced only when it is low. T
 - *User edits win.* Bulk reanalysis skips sessions whose analysis window the user picked by hand. Automatic sleep refresh never overwrites a sleep snapshot the user has edited. On a second device, where the cloud copy arrives without a snapshot, the refresh may *fill* the snapshot but keeps the user's boundaries and does not rescore.
 - *Automatic paths fill, not overwrite.* Pulled-session sleep boundaries are set only where they are missing. An imported duplicate adopts a recovery score only when the existing record has none.
 - *Bounded automatic upgrade.* When HealthKit sleep changes, only the most recent overnight session that ended within the last 18 h and has already been scored is considered. Runs are serialized: overlapping triggers collapse into one trailing pass. The fresh sleep must plausibly overlap the recording. The snapshot is updated if this is the first snapshot, the end moved later by more than 60 s, total minutes increased, the onset moved by ≥ 15 min, or the boundary source upgraded from an estimate (HR, Watch HR or recording bounds) to HealthKit sleep (alone or confirmed by the HR estimate). A **rescore** follows only for a first snapshot, a total change of ≥ 20 min, an onset move of ≥ 15 min, or a source upgrade. The scoring boundaries are updated with the snapshot so the rescore uses the new window.
-- *Cross-device.* The score, breakdown (with version) and frozen readiness travel inside one encrypted session payload. Of two copies, the one with the newer modification stamp (to the whole second) replaces the other as a unit, and of two stamped in the same second the server's copy wins; each device then restores only the HealthKit readings it holds locally.
+- *Cross-device.* The score, breakdown (with version) and frozen readiness travel inside one encrypted session payload. Of two copies, the one with the newer modification stamp (to the whole second) replaces the other as a unit, and of two stamped in the same second the server's copy wins. A device stamps an edit no earlier than one second after the latest stamp it has seen on an iCloud copy, so an edit made after seeing another device's edit wins whichever device's clock runs behind; each device then restores only the HealthKit readings it holds locally.
 
 *Why it works.* A morning score is something the user acts on, so it is treated as a record rather than a view. Freezing the inputs (snapshot, baseline, reference date) makes recomputation reproduce the same number. The version string attributes every stored score to the algorithm that produced it, so a later rule change does not silently rewrite history, and `unversioned` keeps the archive from attributing an old score to a newer algorithm. The mutation rules let genuinely better data improve the most recent score (late Watch sleep is the common case), while the 18-h horizon and change thresholds keep history from drifting on small revisions. User edits are the strongest evidence available and are never overridden. Moving score, breakdown and version as one unit keeps a device from pairing a score with the wrong explanation.
 
@@ -472,9 +472,9 @@ When Apple Watch stages exist, the Watch is the anchor. Each RR epoch takes the 
 | core / unspecified | LF/HF present, rem > 0.63, rem > deep | REM |
 | awake | LF/HF present, rem > 0.68, awake < 0.80 | REM |
 | deep | LF/HF present, rem > 0.72, deep < 0.40 | REM |
-| REM | deep > 0.72, rem < 0.40 | deep |
+| REM | deep > 0.72, rem before the first-hour REM lockout < 0.40 | deep |
 
-Only the part of each Watch interval that carries the overridden stage, inside the overridden epoch, is repainted and tagged as HRV-derived. All other Watch timing is kept and no smoothing touches Watch stages.
+"LF/HF present" means the epoch has its own LF/HF, not the filler value. Only the part of each Watch interval that carries the overridden stage, inside the overridden epoch, is repainted and tagged as HRV-derived. All other Watch timing is kept and no smoothing touches Watch stages.
 
 *Why it works.* Ranking makes the classifier scale-free: it never compares a feature with an absolute threshold, so it adapts to each person and each sensor without calibration. Choosing the weight set by which feature families exist that night keeps the classifier defined when spectral or α1 features are unavailable, instead of filling them with misleading constants. The time-of-night priors and the 60-min REM lockout encode the ordinary ordering of the sleep cycle. Smoothing removes single-epoch flicker but never erases wake, and gap-terminated intervals keep a dropout from being reported as sleep. With a Watch, the Watch's own staging is kept as the anchor and repainted only on strong evidence inside the epochs concerned; REM overrides need LF/HF because time-domain features separate REM from stage N2 sleep poorly [11].
 
@@ -556,7 +556,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* flow-recovery-old e5948bd, 2026-01-12 (first form: whole-series flags and the self-excluding 10-neighbor gate; RMSSD on the collapsed array); emuqu 5c4a23d, 2026-10-04 (current form: recording breaks). Shared estimator: emuqu-dev 680bbee, 2026-08-25.
 
-**N6 (Section 3.5.4). Selecting among windows that are neither isolated spikes nor disorganized.** A spike is ≥ 150% of both neighbors' RMSSD, with the unfiltered list kept if filtering removes everything. "Organized" means DFA α1 in 0.75–1.0 and RR coefficient of variation (SDNN / mean RR) < 0.08, or the CV test alone when α1 is unavailable. The author's article of 2026-05-19 publicly disclosed α1-based "organized windows", without the thresholds.
+**N6 (Section 3.5.4). Selecting among windows that are neither isolated spikes nor disorganized.** A spike is an interior window at ≥ 150% of both neighbors' RMSSD. "Organized" means DFA α1 in 0.75–1.0 and RR coefficient of variation (SDNN / mean RR) < 0.08, or the CV test alone when α1 is unavailable. The author's article of 2026-05-19 publicly disclosed α1-based "organized windows", without the thresholds.
 
 *Builds on:* selection of the "256 most stable points" of a recording [36]; adds the neighbor-spike test and the α1/CV organized test.
 
@@ -736,7 +736,7 @@ Chris Sharp is the sole author of these papers and of the design, and the only p
 
 ### 8.6 Document history
 
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.4, published 2026-11-22, describes source revision d2c8ca9 and scoring version v3.3.nov2026. Changes from v1.3: stream beats before and after the internal recording are added (Section 3.1.3); an HR-detected onset later than 20 min is undetermined rather than clamped, and HealthKit/HR onset reconciliation keeps a staged HealthKit onset (Sections 3.1.4, 3.4.1); window DFA interpolates removed beats inside break-free stretches (Section 3.5.2); a fourth admission gate, per-session replacement and the widened resting-HR SD (Sections 3.6.1–3.6.3); the Tier-1 fallback order (Section 3.7.2); the wall-clock mapping returns the matched beat's `t_ms` position (Section 3.4.2); same-second sync ties (Section 3.8.6); epoch features over break-free stretches (Section 3.9.1); and the reimplementation's partial coverage stated (Section 6).
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.4, published 2026-11-22, describes source revision 6b195c6 (2026-11-21) and scoring version v3.3.nov2026. Changes from v1.3: spectral features resampled within break-free runs, with no Welch segment across a recording break (Section 2); an edit stamped after the latest stamp a device has seen on iCloud (Section 3.8.6); stream beats before and after the internal recording are added (Section 3.1.3); an HR-detected onset later than 20 min is undetermined rather than clamped, and HealthKit/HR onset reconciliation keeps a staged HealthKit onset (Sections 3.1.4, 3.4.1); window DFA interpolates removed beats inside break-free stretches (Section 3.5.2); a fourth admission gate, per-session replacement and the widened resting-HR SD (Sections 3.6.1–3.6.3); the Tier-1 fallback order (Section 3.7.2); the wall-clock mapping returns the matched beat's `t_ms` position (Section 3.4.2); same-second sync ties (Section 3.8.6); epoch features over break-free stretches (Section 3.9.1); and the reimplementation's partial coverage stated (Section 6).
 
 ---
 
@@ -939,8 +939,8 @@ function selectWindow(P, flags, sleepStart?, wake?, base?):
     C = scan(band, size, step, cap=0.10)
     if C empty: C = scan(band, size, step, cap=0.15)
     if C empty: return none
-    F = removeIsolatedSpikes(C, 1.5); cand = F empty ? C : F
-    O = [w in cand where organized(w)]
+    F = removeIsolatedSpikes(C, 1.5)                 // never empty: edge windows are never spikes
+    O = [w in F where organized(w)]
     if O empty: return peakRMSSDFallback(...)        // flagged not organized
     if base: sort O by (Tier1(w.rmssd, w.meanHR, w.alpha1, base) desc, rmssd desc, pos desc)
     else:    sort O by (rmssd desc, pos desc)
@@ -958,7 +958,7 @@ function evalWindow(win, cap):
         // split at breaks; removed beats inside a stretch linearly interpolated; no box spans a break
     return {rmssd, cv, alpha1, meanHR, pos}
 
-organized(w) = w.alpha1 ? (0.75 <= w.alpha1 <= 1.0 and w.cv < 0.08) : w.cv < 0.08
+organized(w) = cleanBeats(w) >= 60 and (w.alpha1 ? (0.75 <= w.alpha1 <= 1.0 and w.cv < 0.08) : w.cv < 0.08)
 
 function admit(session, result):
     return session.overnight and quality not in {insufficient, preSleep}
@@ -1039,7 +1039,7 @@ function stageNight(P, s, e):
 | Freeze and quality decision | `Emuqu/Sources/Services/SessionAcceptanceService.swift` |
 | Version | `Emuqu/Sources/Analysis/ScoringVersion.swift` |
 | Automatic refresh | `Emuqu/Sources/Collection/SleepRefreshPolicy.swift`, `Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift` |
-| Cross-device merge | `Emuqu/Sources/Storage/CloudKitSyncSupport.swift`, `Emuqu/Sources/Storage/CloudKitSessionFreshness.swift`, `Emuqu/Sources/Storage/SessionMerger.swift` |
+| Cross-device merge | `Emuqu/Sources/Storage/CloudSessionPayload.swift`, `Emuqu/Sources/Storage/CloudKitSessionFreshness.swift`, `Emuqu/Sources/Storage/SessionMerger.swift` |
 | Manual-window preservation | `Emuqu/Sources/Services/ReanalysisService.swift` |
 | Sleep staging, Watch augmentation | `Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift`, `Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift`, `Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift` |
 | Science register / reference data | `Tools/science_register/register.json`, `docs/hrv-reference-data.md` |
