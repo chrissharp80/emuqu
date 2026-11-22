@@ -183,9 +183,12 @@ final class AnalysisSummaryGeneratorTests: XCTestCase {
         let generator = AnalysisSummaryGenerator(result: result, session: session)
         let summary = generator.generate()
 
+        // 1.4 is past `dfaAlpha1ClearlyElevated`: the finding states where α1
+        // sat against the reference range; it makes no fatigue claim.
+        let expected = String(localized: "DFA α1 was well above the app's reference range last night", bundle: NarrativeLanguage.bundle)
         XCTAssertTrue(
-            summary.keyFindings.contains(where: { $0.lowercased().contains("fatigue") || $0.lowercased().contains("rhythm") }),
-            "High DFA alpha1 should generate a fatigue finding"
+            summary.keyFindings.contains(expected),
+            "High DFA alpha1 should report α1 well above the reference range. Got: \(summary.keyFindings)"
         )
     }
 
