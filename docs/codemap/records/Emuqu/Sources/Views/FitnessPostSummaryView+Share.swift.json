@@ -791,27 +791,32 @@
    }
   },
   {
-   "key": "func FitnessSummaryCards.shareRow(icon:title:subtitle:url:)",
-   "hash": "2753506b542404bb",
-   "does": "ShareLink with SharePreview titled 'Emuqu · sport · distance · title' when the export URL exists; otherwise the label dimmed to 40%.",
+   "key": "func FitnessSummaryCards.shareRow(icon:title:subtitle:export:)",
+   "hash": "6d22f709bc5d04a7",
+   "does": "When the export was built: a FileShareButton (plain style) over the row label that writes the export to tmp/Exports when tapped and shares it under the title 'Emuqu · sport · distance · title' with the row's icon, deleting the file when the sheet closes; otherwise the label dimmed to 40%.",
    "entry": "Rendered by gpx/csv/tcx share rows in +Cards.swift.",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.previewTitle(title:)",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRowLabel(icon:title:subtitle:)",
-    "ext:ShareLink"
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "file:tmp/Exports/<sport>-<date>.gpx|csv|tcx (written on tap, deleted when the sheet closes)"
+   ],
    "branches": [
     {
      "at": "+2",
-     "cond": "url non-nil",
-     "effect": "ShareLink; else dimmed non-interactive label"
+     "cond": "export built",
+     "effect": "FileShareButton; else dimmed non-interactive label"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()": "1dc5315527542820",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.previewTitle(title:)": "c45cb7d3176e172a",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRowLabel(icon:title:subtitle:)": "be882e04bd96f5d2"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRowLabel(icon:title:subtitle:)": "be882e04bd96f5d2",
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)": "8dd01e57f3094370"
    }
   },
   {

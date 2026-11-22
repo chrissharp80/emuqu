@@ -121,6 +121,29 @@
    }
   },
   {
+   "key": "func ReanalysisServiceTests.testComputeFrozenReadiness_withTrainingLoad()",
+   "hash": "b96beec9c8a57e8c",
+   "does": "With ATL 40 on CTL 40 (capacity ratio 1.0 → 70, acute:chronic 1.0 under the damper, no freshness bonus, full model trust 0.55) asserts computeFrozenReadiness is exactly 6.1 for composite 50 (50 + 0.55 × 20) and 7.6 for composite 90 (70 + 0.3 × 20), values worked by hand.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "cc26a08289fff8fb",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1"
+   }
+  },
+  {
    "key": "func ReanalysisServiceTests.makeArchive()",
    "hash": "655eeb5dac781ec2",
    "does": "A SessionArchive over the test directory with a fixed 22:00/8 h sleep schedule and merge mode .off; a second one reads the index as it is on disk.",
@@ -221,8 +244,8 @@
   },
   {
    "key": "func ReanalysisServiceTests.testLateHealthKitSleepIsSavedForASessionWithoutASnapshot()",
-   "hash": "a37bb79cc8e1a0ec",
-   "does": "Archives an overnight session with no sleep snapshot, asserts updateSessionSleepBoundaries with 420 min of HealthKit sleep returns true and the stored snapshot reads 420 min.",
+   "hash": "96ea05a568be1182",
+   "does": "Archives an overnight session with no sleep snapshot, awaits updateSessionSleepBoundaries with 420 min of HealthKit sleep and asserts its task reports true and the stored snapshot reads 420 min.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
@@ -230,18 +253,13 @@
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:offsets:isUserAdjustment:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.clampedOffsets(startMs:endMs:of:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.writeSleepUpdate(_:sleepData:onto:isUserAdjustment:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.runSleepBoundaryUpdate(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.shouldApplyAutomaticUpdate(_:to:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.apply(_:to:inputs:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reportSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
    "reads": [
     "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)"
@@ -252,29 +270,24 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "0937b2fc06093e13",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyBoundaries(to:sleepData:offsets:isUserAdjustment:)": "0779541ba4174ad9",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "52f58f127571dcae",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.clampedOffsets(startMs:endMs:of:)": "da1dc5e5fe2a5288",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)": "a577d6ee9b86fc2f",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reportSleepUpdate(_:sleepData:oldMinutes:isUserAdjustment:)": "4c2f9b2cb388414f",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.rescoreAfterSleepChange(_:sessionEnd:)": "ab07b9a45af3ba5f",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)": "dc56868e86da84cf",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.writeSleepUpdate(_:sleepData:onto:isUserAdjustment:)": "a510ef6280d087ad",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.runSleepBoundaryUpdate(sessionId:sleepData:isUserAdjustment:)": "1098b7a8ceef473c",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "bdc8d0383e8b6150",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.apply(_:to:inputs:)": "f538df1ff760d809",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.shouldApplyAutomaticUpdate(_:to:)": "c87d8ceb44d7b5b5",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)": "1690d85f4141cc0b",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "3f2f775e598a275d",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "d864ee801aade5da",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "615d50c08c15ebf4"
    }
   },
   {
    "key": "func ReanalysisServiceTests.testLateHealthKitSleepNeverOverwritesAUserAdjustedNight()",
-   "hash": "ca929fd7a2c35eaf",
-   "does": "Archives a session with a user-adjusted 300-min snapshot, asserts an automatic update with 420 min returns false (shouldApplyAutomaticUpdate rejects it before any write, so applyBoundaries/rescore/persist are not reached) and the stored snapshot stays 300.",
+   "hash": "61198b31107bb4ab",
+   "does": "Archives a session with a user-adjusted 300-min snapshot, awaits an automatic update with 420 min and asserts its task reports false (SleepBoundaryWrite.shouldApplyAutomaticUpdate declines it before any write) and the stored snapshot stays 300.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
@@ -282,12 +295,11 @@
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.runSleepBoundaryUpdate(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.shouldApplyAutomaticUpdate(_:to:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
    "reads": [
     "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)"
@@ -299,14 +311,132 @@
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "52f58f127571dcae",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logBoundaryUpdate(session:sleepStart:sleepEnd:newStartMs:newEndMs:sleepData:isUserAdjustment:)": "a577d6ee9b86fc2f",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.shouldApplyAutomaticUpdate(to:sleepData:newDuration:)": "dc56868e86da84cf",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.runSleepBoundaryUpdate(sessionId:sleepData:isUserAdjustment:)": "1098b7a8ceef473c",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "bdc8d0383e8b6150",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.shouldApplyAutomaticUpdate(_:to:)": "c87d8ceb44d7b5b5",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)": "1690d85f4141cc0b",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "3f2f775e598a275d",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "d864ee801aade5da",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "615d50c08c15ebf4"
+   }
+  },
+  {
+   "key": "func ReanalysisServiceTests.sleepInputs()",
+   "hash": "a733e4fe1960aa6a",
+   "does": "The re-score inputs a sleep edit test writes with: a RescoreContext with no baseline, 8 h typical sleep and the default settings' scoring config, and no fallback training.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)": "1326be06ec8f3825",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
+   }
+  },
+  {
+   "key": "func ReanalysisServiceTests.testASleepEditLandsOnTheArchivedCopy()",
+   "hash": "c9b554c1663875ee",
+   "does": "Archives a night, then saves tags and notes to the archive; writes a 420-min user sleep edit decided on the earlier copy through SleepBoundaryWrite.write and asserts the outcome is .written and the archive holds the snapshot, offsets 600 000 / 27 600 000 ms, sleepUserAdjusted and the tags.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.sleepInputs()",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::init SleepBoundaryWrite.Edit(sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive"
+   ],
+   "writes": [
+    "archive:SessionArchive (test directory)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)": "1690d85f4141cc0b",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::init SleepBoundaryWrite.Edit(sleepData:isUserAdjustment:)": "c7a037bece589cdd",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "d173acbc448c38ce",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.sleepInputs()": "04e13a7e84a686e6",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "615d50c08c15ebf4"
+   }
+  },
+  {
+   "key": "func ReanalysisServiceTests.testAStaleSleepEditIsRefused()",
+   "hash": "b033453c62b15904",
+   "does": "Archives a night, then saves a 300-min sleep snapshot to it; writes a 420-min user edit decided on the earlier copy and asserts the outcome is .inputsChanged carrying the stored 300-min copy and the archive is unchanged (300 min, no offsets, not user-adjusted).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.sleepInputs()",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::init SleepBoundaryWrite.Edit(sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive"
+   ],
+   "writes": [
+    "archive:SessionArchive (test directory)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)": "1690d85f4141cc0b",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::init SleepBoundaryWrite.Edit(sleepData:isUserAdjustment:)": "c7a037bece589cdd",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.sleepInputs()": "04e13a7e84a686e6",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "615d50c08c15ebf4"
+   }
+  },
+  {
+   "key": "func ReanalysisServiceTests.testSleepEditsLandInTheOrderTheyWereMade()",
+   "hash": "320fdeac7967301d",
+   "does": "Archives a night and starts two user sleep edits back to back on one service (420 then 300 min) without awaiting the first; asserts both report true and the archive holds the second (300 min).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [
+    "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)"
+   ],
+   "writes": [
+    "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "bdc8d0383e8b6150",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "d864ee801aade5da",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "615d50c08c15ebf4"
    }
@@ -765,29 +895,6 @@
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)": "90a121a4b5513310",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e"
-   }
-  },
-  {
-   "key": "func ReanalysisServiceTests.testComputeFrozenReadiness_withTrainingLoad()",
-   "hash": "b96beec9c8a57e8c",
-   "does": "With ATL 40 on CTL 40 (capacity ratio 1.0 → 70, acute:chronic 1.0 under the damper, no freshness bonus, full model trust 0.55) asserts computeFrozenReadiness is exactly 6.1 for composite 50 (50 + 0.55 × 20) and 7.6 for composite 90 (70 + 0.3 × 20), values worked by hand.",
-   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)",
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819",
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "cc26a08289fff8fb",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1"
    }
   }
  ],

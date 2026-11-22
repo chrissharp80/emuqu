@@ -258,7 +258,10 @@ enum CSVExporter {
         return abs(best.offsetSec - offsetSec) <= 5 ? best : nil
     }
 
-    static func writeToTempFile(session: HRVSession, track: [CLLocation]) throws -> URL {
+    /// The CSV export in memory, named `<sport>-<UTC start>.csv`, for writing
+    /// when the user shares it (`ExportFile.Pending.write`). Throws when the
+    /// text cannot be encoded.
+    static func pendingFile(session: HRVSession, track: [CLLocation]) throws -> ExportFile.Pending {
         let csv = export(session: session, track: track)
         let sport = session.workoutMetadata?.sport.rawValue ?? "workout"
         // Machine format: POSIX locale and Gregorian calendar, so a Buddhist-
@@ -274,8 +277,6 @@ enum CSVExporter {
                 NSLocalizedDescriptionKey: String(localized: "Couldn't create the CSV file.", bundle: LanguageManager.appBundle)
             ])
         }
-        let url = try ExportFile.write(data, named: filename)
-        debugLog("[CSVExporter] wrote \(data.count) bytes to \(url.path)")
-        return url
+        return ExportFile.Pending(name: filename, data: data)
     }
 }

@@ -421,10 +421,14 @@ extension RecordView {
         await dependencies.collection.reanalysisService.applyManualAnalysis(session, result: manualResult)
     }
 
-    /// Surfaces persist failure (see DashboardV2View's onAdjust note).
+    /// Surfaces persist failure (see DashboardV2View's onAdjust note) once
+    /// the off-main save reports that nothing was stored.
     func adjustMorningSleep(_ sleepData: SleepData, for session: HRVSession) {
-        let reanalysis = dependencies.collection.reanalysisService
-        if !reanalysis.updateSessionSleepBoundaries(sessionId: session.id, sleepData: sleepData, isUserAdjustment: true) {
+        let save = dependencies.collection.reanalysisService.updateSessionSleepBoundaries(
+            sessionId: session.id, sleepData: sleepData, isUserAdjustment: true
+        )
+        Task {
+            guard await !save.value else { return }
             sleepEditSaveFailed = true
         }
     }

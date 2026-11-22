@@ -60,10 +60,10 @@ struct ExportDataView: View {
         }
     }
 
-    /// The finished file, offered through `ShareLink`, which opens at once.
-    /// `UIActivityViewController` raised from a sheet can spend seconds to a
-    /// minute cold-starting its share-extension scan
-    /// (`FitnessPostSummaryView+Share.shareRow`).
+    /// The finished file, offered through the system share sheet presented
+    /// straight from the topmost view controller (`presentFileShareSheet`),
+    /// not from a SwiftUI `.sheet`, where it can spend seconds to a minute
+    /// cold-starting its share-extension scan.
     @ViewBuilder
     private var exportedFileSection: some View {
         if let exportURL {
@@ -87,9 +87,22 @@ struct ExportDataView: View {
         }
     }
 
+    /// The sheet deletes the file once it closes, shared or cancelled, and
+    /// the row goes with it; exporting again writes a new file.
     private func shareExportLink(_ url: URL) -> some View {
-        ShareLink(item: url) {
+        Button {
+            shareExport(url)
+        } label: {
             Label(String(localized: "Share", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
+        }
+    }
+
+    private func shareExport(_ url: URL) {
+        guard let presenter = topmostPresenter() else { return }
+        presentFileShareSheet(url, title: nil, from: presenter) {
+            guard exportURL == url else { return }
+            exportURL = nil
+            exportShortfall = nil
         }
     }
 

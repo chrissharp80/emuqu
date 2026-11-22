@@ -556,11 +556,16 @@ struct HistoryView: View {
         }
     }
 
+    /// The save runs off the main actor; the failure shows once it reports
+    /// that nothing was stored.
     private func saveSleep(_ session: HRVSession, sleepData: SleepData, isUserAdjustment: Bool) {
-        guard !dependencies.collection.reanalysisService.updateSessionSleepBoundaries(
+        let save = dependencies.collection.reanalysisService.updateSessionSleepBoundaries(
             sessionId: session.id, sleepData: sleepData, isUserAdjustment: isUserAdjustment
-        ) else { return }
-        failureMessage = String(localized: "Your timeline change couldn't be stored. Please try again.", bundle: LanguageManager.appBundle)
+        )
+        Task {
+            guard await !save.value else { return }
+            failureMessage = String(localized: "Your timeline change couldn't be stored. Please try again.", bundle: LanguageManager.appBundle)
+        }
     }
 
     // MARK: - Session Type Filter Bar

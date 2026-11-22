@@ -48,7 +48,7 @@ extension TroubleshootingPage {
     }
 
     private var exportLogButton: some View {
-        ShareLink(item: DiagnosticLogExport(), preview: DiagnosticLogExport.preview) {
+        FileShareButton(title: DiagnosticLogExport.title, makeFile: { try await DiagnosticLogExport.makeFile() }) {
             Label(
                 String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle),
                 systemImage: "square.and.arrow.up"
@@ -444,25 +444,20 @@ extension TroubleshootingPage {
     }
 }
 
-/// The diagnostic log, handed to `ShareLink` as something to build rather
-/// than a file already built.
-///
-/// Presenting `UIActivityViewController` from a SwiftUI sheet has been
-/// measured cold-starting its share-extension scan for seconds to a minute
-/// (`FitnessPostSummaryView+Share.shareRow`). `ShareLink` opens the system
-/// sheet straight away, and the file is written only when a destination asks
-/// for it, off the main thread.
-struct DiagnosticLogExport: Transferable {
-    static var preview: SharePreview<Never, Never> {
-        SharePreview(String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle))
+/// The diagnostic log export, shared through `FileShareButton`: the file is
+/// written off the main thread when the button is tapped and deleted when
+/// the share sheet closes.
+enum DiagnosticLogExport {
+    /// The share sheet's header.
+    static var title: String {
+        String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle)
     }
 
-    static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(exportedContentType: .plainText) { _ in
-            guard let url = await AppDependencies.current.app.debugLogger.exportToFileAsync() else {
-                throw CocoaError(.fileWriteUnknown)
-            }
-            return SentTransferredFile(url)
+    /// Writes the scrubbed log to the export folder; throws when it cannot.
+    static func makeFile() async throws -> URL {
+        guard let url = await AppDependencies.current.app.debugLogger.exportToFileAsync() else {
+            throw CocoaError(.fileWriteUnknown)
         }
+        return url
     }
 }

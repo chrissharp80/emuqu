@@ -153,21 +153,93 @@ final class ReanalysisServiceTests: XCTestCase {
     /// snapshot yet; the automatic update path saves it, so the session holds
     /// the sleep ("the app will update sleep data from HealthKit when you view
     /// the session later") instead of re-querying on every open.
-    func testLateHealthKitSleepIsSavedForASessionWithoutASnapshot() throws {
+    func testLateHealthKitSleepIsSavedForASessionWithoutASnapshot() async throws {
         let session = overnight()
         try archive.archive(session)
-        XCTAssertTrue(makeService().updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 420)))
+        let saved = await makeService().updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 420)).value
+        XCTAssertTrue(saved)
         XCTAssertEqual(try archive.retrieve(session.id)?.sleepSnapshot?.nightSleepMinutes, 420)
     }
 
     /// User edits are the source of truth: late HealthKit sleep never
     /// replaces a timeline the user adjusted.
-    func testLateHealthKitSleepNeverOverwritesAUserAdjustedNight() throws {
+    func testLateHealthKitSleepNeverOverwritesAUserAdjustedNight() async throws {
         var session = overnight()
         session.sleepSnapshot = watchNight(minutes: 300)
         session.sleepUserAdjusted = true
         try archive.archive(session)
-        XCTAssertFalse(makeService().updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 420)))
+        let saved = await makeService().updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 420)).value
+        XCTAssertFalse(saved)
+        XCTAssertEqual(try archive.retrieve(session.id)?.sleepSnapshot?.nightSleepMinutes, 300)
+    }
+
+    // MARK: - Writing a sleep edit
+
+    /// What a sleep edit's re-score reads besides the session, as the tests'
+    /// service would capture it.
+    private func sleepInputs() -> SleepBoundaryWrite.Inputs {
+        SleepBoundaryWrite.Inputs(
+            context: RescoreContext(baselineStats: nil, typicalSleepHours: 8, scoringConfig: .init(from: UserSettings())),
+            fallbackTraining: nil
+        )
+    }
+
+    /// A user's edit decided on the copy it read lands on the archived copy:
+    /// the clamped boundaries, the snapshot and the adjusted mark are stored,
+    /// and an edit saved meanwhile to a field the edit does not read (the
+    /// tags) is kept.
+    func testASleepEditLandsOnTheArchivedCopy() throws {
+        let read = overnight()
+        try archive.archive(read)
+        try archive.updateTags(read.id, tags: [ReadingTag.alcohol], notes: "late dinner")
+        let edit = try XCTUnwrap(SleepBoundaryWrite.Edit(sleepData: watchNight(minutes: 420), isUserAdjustment: true))
+
+        let outcome = try SleepBoundaryWrite.write(edit, readFrom: read, inputs: sleepInputs(), to: archive)
+
+        guard case .written = outcome else { return XCTFail("expected a write, got \(outcome)") }
+        let stored = try XCTUnwrap(try archive.retrieve(read.id))
+        XCTAssertEqual(stored.sleepSnapshot?.nightSleepMinutes, 420)
+        XCTAssertEqual(stored.sleepStartMs, 600_000)
+        XCTAssertEqual(stored.sleepEndMs, (600 + 450 * 60) * 1000)
+        XCTAssertEqual(stored.sleepUserAdjusted, true)
+        XCTAssertEqual(stored.tags, [ReadingTag.alcohol])
+    }
+
+    /// A sleep edit decided on a copy that is no longer the archive's (other
+    /// sleep was saved after it was read) is refused: nothing of it is
+    /// written, and the stored copy comes back to run again from.
+    func testAStaleSleepEditIsRefused() throws {
+        let read = overnight()
+        try archive.archive(read)
+        let savedMeanwhile = watchNight(minutes: 300)
+        try archive.update(read.id, requestingReupload: false) { $0.sleepSnapshot = savedMeanwhile }
+        let edit = try XCTUnwrap(SleepBoundaryWrite.Edit(sleepData: watchNight(minutes: 420), isUserAdjustment: true))
+
+        let outcome = try SleepBoundaryWrite.write(edit, readFrom: read, inputs: sleepInputs(), to: archive)
+
+        guard case .inputsChanged(let stored) = outcome else { return XCTFail("expected a refusal, got \(outcome)") }
+        XCTAssertEqual(stored.sleepSnapshot?.nightSleepMinutes, 300, "the refusal hands back the stored copy")
+        let archived = try XCTUnwrap(try archive.retrieve(read.id))
+        XCTAssertEqual(archived.sleepSnapshot?.nightSleepMinutes, 300)
+        XCTAssertNil(archived.sleepStartMs)
+        XCTAssertNil(archived.sleepUserAdjusted)
+    }
+
+    /// Through the service, edits made one after another land in that order
+    /// (each waits for the one before), so the last one made is the one
+    /// stored.
+    func testSleepEditsLandInTheOrderTheyWereMade() async throws {
+        let session = overnight()
+        try archive.archive(session)
+        let service = makeService()
+
+        let first = service.updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 420), isUserAdjustment: true)
+        let second = service.updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 300), isUserAdjustment: true)
+        let firstSaved = await first.value
+        let secondSaved = await second.value
+
+        XCTAssertTrue(firstSaved)
+        XCTAssertTrue(secondSaved)
         XCTAssertEqual(try archive.retrieve(session.id)?.sleepSnapshot?.nightSleepMinutes, 300)
     }
 

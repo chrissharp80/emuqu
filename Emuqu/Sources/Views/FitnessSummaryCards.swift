@@ -9,8 +9,8 @@ import SwiftUI
 /// [RecoveryScoreCharts] and [FitnessStrapSection].
 ///
 /// Wide initialiser, honestly: these surfaces drive two dozen pieces of view
-/// state between them — the refreshed session, the export URLs and their
-/// readiness, the recap image and its share sheet, the route-save sheet and
+/// state between them — the refreshed session, the in-memory exports and
+/// their readiness, the recap image and its share sheet, the route-save sheet and
 /// route history, reanalysis and elevation re-smoothing, and the PDF report's
 /// file, sheets and errors. Every one travels back through a binding rather
 /// than being duplicated here.
@@ -29,9 +29,9 @@ struct FitnessSummaryCards {
     let settingsManager: SettingsManager
 
     @Binding var refreshedSession: HRVSession?
-    @Binding var gpxURL: URL?
-    @Binding var csvURL: URL?
-    @Binding var tcxURL: URL?
+    @Binding var gpxExport: ExportFile.Pending?
+    @Binding var csvExport: ExportFile.Pending?
+    @Binding var tcxExport: ExportFile.Pending?
     @Binding var exportsReady: Bool
     @Binding var exportError: String?
     @Binding var recapImage: UIImage?

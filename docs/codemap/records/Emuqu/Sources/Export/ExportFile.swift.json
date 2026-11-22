@@ -1,15 +1,33 @@
 {
  "file": "Emuqu/Sources/Export/ExportFile.swift",
- "hash": "758fcdbbab7b8a33",
- "role": "Where and how the files handed to the share sheet or a mail attachment are written: one temporary folder (tmp/Exports), complete file protection, an export replacing its own earlier copies, and the folder emptied at launch (ShareLink gives no completion callback).",
+ "hash": "12b7afbe3fa6d8c0",
+ "role": "Where and how the files handed to the share sheet or a mail attachment are written: one temporary folder (tmp/Exports), complete file protection, an export replacing its own earlier copies, and the folder emptied at launch as the backstop for a share sheet the app was closed under; Pending holds an export built ahead of the tap in memory until it is shared.",
  "types": [
-  "ExportFile: enum — namespace for export-file writing, protection and cleanup"
+  "ExportFile: enum — namespace for export-file writing, protection and cleanup",
+  "ExportFile.Pending: struct (Sendable) — an export's file name and bytes, written to the folder by write() when shared"
  ],
  "state": [
   "file:tmp/Exports/* (export files: report PDFs, GPX/CSV/TCX, scrubbed log and crash exports)"
  ],
  "toplevel": "",
  "units": [
+  {
+   "key": "func ExportFile.Pending.write()",
+   "hash": "fd0e78c4249690a5",
+   "does": "Writes the pending export's bytes to tmp/Exports under its name through ExportFile.write (atomic, complete file protection) and returns the URL; rethrows a write failure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/Exports/<name>"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c"
+   }
+  },
   {
    "key": "var ExportFile.directory",
    "hash": "0ab88729e72388b2",

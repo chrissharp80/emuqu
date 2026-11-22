@@ -44,7 +44,7 @@ struct FitnessPostSummaryView: View {
     @Environment(ArchiveSignal.self) var archiveSignal
     @State var showDeleteConfirm = false
 
-    // Export URLs are pre-generated once the archived copy of the session
+    // Exports are pre-built in memory once the archived copy of the session
     // has loaded on first appear (`reloadFromArchive`). Two reasons:
     //
     //   1. Decoding the GPS polyline is non-trivial for long tracks. The
@@ -52,17 +52,18 @@ struct FitnessPostSummaryView: View {
     //      body pass (the `if !track.isEmpty` check alone triggered it in
     //      mapCard, elevationCard, and all three export handlers), so a
     //      500-point track got decoded 5–10× per render.
-    //   2. The GPX / CSV / TCX rows use SwiftUI's native `ShareLink` with the
-    //      URL ready ahead of time, so their share sheet comes up instantly.
+    //   2. The GPX / CSV / TCX rows have their bytes ready ahead of time, so
+    //      a tap only writes the file and opens the share sheet, which
+    //      deletes it when it closes (`FileShareButton`).
     //      The PDF report and the recap card are rendered on an explicit tap
     //      and then present `ShareSheet` (UIActivityViewController) in a
     //      `.sheet`; the render is the wait the user sees there.
     //
     // Track is cached too. Generated once off the main thread.
     @State var cachedTrack: [CLLocation] = []
-    @State var gpxURL: URL?
-    @State var csvURL: URL?
-    @State var tcxURL: URL?
+    @State var gpxExport: ExportFile.Pending?
+    @State var csvExport: ExportFile.Pending?
+    @State var tcxExport: ExportFile.Pending?
     @State var exportsReady = false
     /// Bumped by every export generation; a generation that finishes after a
     /// newer one started is dropped, so stale files never overwrite fresh ones.
@@ -171,21 +172,21 @@ struct FitnessPostSummaryView: View {
         primeSummary()
     }
 
-    /// The GPX / CSV / TCX / PDF / recap files are plaintext health data (GPS
-    /// and heart rate) in tmp. They go when the summary closes, and the state
-    /// that pointed at them is reset, so a summary shown again rebuilds them
-    /// (`applyReload` treats it as a first build). Both generations are
-    /// bumped and the summary is marked off screen, so an export or PDF
-    /// render still running deletes what it wrote when it lands instead of
-    /// publishing it.
+    /// The PDF / recap files are plaintext health data (GPS and heart rate)
+    /// in tmp. They go when the summary closes, and the state that pointed
+    /// at them, and the in-memory GPX / CSV / TCX exports, are reset, so a
+    /// summary shown again rebuilds them (`applyReload` treats it as a first
+    /// build). Both generations are bumped and the summary is marked off
+    /// screen, so a PDF render still running deletes what it wrote when it
+    /// lands, and an export build is dropped, instead of being published.
     private func removeTemporaryExports() {
         reportShare.summaryOnScreen = false
         exportGeneration += 1
         reportShare.cacheGeneration += 1
-        Self.removeTemporaryFiles([gpxURL, csvURL, tcxURL, pdfURL, recapImageURL])
-        gpxURL = nil
-        csvURL = nil
-        tcxURL = nil
+        Self.removeTemporaryFiles([pdfURL, recapImageURL])
+        gpxExport = nil
+        csvExport = nil
+        tcxExport = nil
         pdfURL = nil
         recapImageURL = nil
         exportsReady = false
@@ -494,9 +495,9 @@ struct FitnessPostSummaryView: View {
     private func invalidateCachedExports() {
         pdfURL = nil
         reportShare.cacheGeneration += 1
-        gpxURL = nil
-        csvURL = nil
-        tcxURL = nil
+        gpxExport = nil
+        csvExport = nil
+        tcxExport = nil
         exportsReady = false
         Task { await generateExportsInBackground() }
         Task { await loadRouteHistorySummary() }
@@ -506,12 +507,11 @@ struct FitnessPostSummaryView: View {
         Task { await backfillAnalysisSnapshotIfNeeded() }
     }
 
-    /// Decode the track once and write GPX/CSV/TCX to temp files on a
+    /// Decode the track once and build GPX/CSV/TCX in memory on a
     /// utility-priority detached task. State publishes when all three are
     /// ready so the export rows switch from disabled → active. A generation
-    /// that lands after a newer one started is dropped (the newer one writes
-    /// the same files); one that lands after the summary closed deletes the
-    /// files it wrote.
+    /// that lands after a newer one started, or after the summary closed, is
+    /// dropped.
     func generateExportsInBackground() async {
         exportGeneration += 1
         let generation = exportGeneration
@@ -523,31 +523,27 @@ struct FitnessPostSummaryView: View {
         landExports(result, generation: generation)
     }
 
-    /// Publishes a landed export build, drops one a newer build superseded,
-    /// and deletes the files of one that landed after the summary closed.
+    /// Publishes a landed export build; drops one a newer build superseded
+    /// or one that landed after the summary closed.
     private func landExports(_ result: ExportOutcome, generation: Int) {
-        guard reportShare.summaryOnScreen else {
-            Self.removeTemporaryFiles([result.gpx, result.csv, result.tcx])
-            return
-        }
-        guard generation == exportGeneration else { return }
+        guard reportShare.summaryOnScreen, generation == exportGeneration else { return }
         cachedTrack = result.track
         trackDecoded = true
         cachedSplits = result.splits
-        gpxURL = result.gpx
-        csvURL = result.csv
-        tcxURL = result.tcx
+        gpxExport = result.gpx
+        csvExport = result.csv
+        tcxExport = result.tcx
         exportError = result.error
         exportsReady = (result.gpx != nil || result.csv != nil || result.tcx != nil)
     }
 
-    /// The track decode, the three export files and the splits, off the
+    /// The track decode, the three in-memory exports and the splits, off the
     /// main thread in one pass.
     nonisolated private static func buildExports(session: HRVSession, wantsMile: Bool) -> ExportOutcome {
         let track: [CLLocation] = session.workoutMetadata?.gpsPolyline.map {
             GPXExporter.decode(polyline: $0, startDate: session.startDate, duration: session.duration)
         } ?? []
-        var out = writeExports(session: session, track: track)
+        var out = pendingExports(session: session, track: track)
         out.splits = FitnessSummaryCards.resolveSplits(
             stored: session.workoutMetadata?.splits, track: track,
             rrPoints: session.rrSeries?.points ?? [], startDate: session.startDate, wantsMile: wantsMile
@@ -555,20 +551,20 @@ struct FitnessPostSummaryView: View {
         return out
     }
 
-    /// Each writer is attempted independently — one failing format must not
+    /// Each format is built independently — one failing format must not
     /// deny the user the other two, so failures accumulate into one message.
-    nonisolated private static func writeExports(session: HRVSession, track: [CLLocation]) -> ExportOutcome {
+    nonisolated private static func pendingExports(session: HRVSession, track: [CLLocation]) -> ExportOutcome {
         let bundle = LanguageManager.appBundle
         var out = ExportOutcome(track: track)
         var failures: [String] = []
         do {
-            out.gpx = try GPXExporter.writeToTempFile(session: session, track: track)
+            out.gpx = try GPXExporter.pendingFile(session: session, track: track)
         } catch { failures.append(String(localized: "GPX failed: \(error.localizedDescription)", bundle: bundle)) }
         do {
-            out.csv = try CSVExporter.writeToTempFile(session: session, track: track)
+            out.csv = try CSVExporter.pendingFile(session: session, track: track)
         } catch { failures.append(String(localized: "CSV failed: \(error.localizedDescription)", bundle: bundle)) }
         do {
-            out.tcx = try TCXExporter.writeToTempFile(session: session, track: track)
+            out.tcx = try TCXExporter.pendingFile(session: session, track: track)
         } catch { failures.append(String(localized: "TCX failed: \(error.localizedDescription)", bundle: bundle)) }
         out.error = failures.isEmpty ? nil : failures.joined(separator: " ")
         return out
@@ -577,9 +573,9 @@ struct FitnessPostSummaryView: View {
     struct ExportOutcome {
         let track: [CLLocation]
         var splits: FitnessSummaryCards.ResolvedSplits?
-        var gpx: URL?
-        var csv: URL?
-        var tcx: URL?
+        var gpx: ExportFile.Pending?
+        var csv: ExportFile.Pending?
+        var tcx: ExportFile.Pending?
         var error: String?
     }
 
