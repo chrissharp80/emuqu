@@ -270,6 +270,32 @@ final class SleepRefreshPolicyTests: XCTestCase {
         XCTAssertEqual(session.sleepStartMs, 0)
     }
 
+    /// A split night whose first segment began before the recording did:
+    /// its offsets clamp at zero, as the boundaries do, so the segments and
+    /// the scoring window agree.
+    func testSegmentsStartingBeforeTheRecordingClampToZero() {
+        var session = makeSession()
+        let segment = { (from: Int, to: Int) in
+            HealthKitManager.SleepSegment(
+                sleepStart: self.recordingStart.addingTimeInterval(Double(from) * 60),
+                sleepEnd: self.recordingStart.addingTimeInterval(Double(to) * 60),
+                totalSleepMinutes: to - from, deepSleepMinutes: nil, remSleepMinutes: nil,
+                coreSleepMinutes: nil, awakeMinutes: 0
+            )
+        }
+        let fresh = SleepData(
+            date: recordingStart, sleepStart: recordingStart.addingTimeInterval(-30 * 60),
+            sleepEnd: recordingStart.addingTimeInterval(400 * 60), totalSleepMinutes: 400, inBedMinutes: 430,
+            awakeMinutes: 30, sleepEfficiency: 93, boundarySource: .healthKit,
+            segments: [segment(-30, 120), segment(150, 400)]
+        )
+        SleepRefreshPolicy.applyFreshSleep(fresh, to: &session)
+        XCTAssertEqual(session.sleepStartMs, 0)
+        XCTAssertEqual(session.sleepSegments?.first?.startMs, 0)
+        XCTAssertEqual(session.sleepSegments?.first?.endMs, 120 * 60_000)
+        XCTAssertEqual(session.sleepSegments?.last?.startMs, 150 * 60_000)
+    }
+
     /// A single-segment night carries no split information worth storing;
     /// only a genuinely split night replaces the segment list.
     func testOnlyASplitNightWritesSegments() {

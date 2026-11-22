@@ -124,12 +124,12 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "b34e517a8d85767b",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "79a9067b84cc9c9e",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "d1f147aa9676b2b9",
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)": "d7b5612921729235",
-    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "db5846f46dc6a468",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "3446776e2575bc4f",
     "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "462fed45d516c684",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.medianSmoothedHR(recent:)": "7a50fee9c958ae71",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.runTick()": "91d53c49f3a27ec8"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.runTick()": "69b2bd65dab5ba01"
    }
   },
   {
@@ -728,8 +728,8 @@
   },
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.6 Fusing the two strap paths > 3.6.1 Per-tick routing",
-   "hash": "d199e9e68e5dd179",
-   "does": "Specifies per-tick routing: phone beats to the analyzer and live HR = 60000/median(last 8 RR>0) setting lastStrapHRAt; Watch relay considered only if Watch strap data <10 s old, queue always drained and range-filtered, beats used only when phone strap is silent >=5 s, re-timed on the phone stream clock backward from batch arrival, fed to a separate buffer and the analyzer; arbitration to wrist HR (<=30 s old) after >10 s silence on both channels, strap notice after 15 s of recording while both silent, Watch mode always wrist. Code: ingestStrapBeatsAndDeriveHR/medianSmoothedHR/consumeWatchRoutedStrapFallback/phoneStrapIsLive/synthesizeWatchRoutedPoints/alignWatchClock/streamClockBaseEpochMs/applyWatchRoutedHR/arbitrateHRSource/freshWristHR/HRArbitration.decide/strapNotice (WorkoutRecorder+Ticker.swift:294-975).",
+   "hash": "f7d441195b09e0d2",
+   "does": "Specifies per-tick routing: phone beats to the analyzer and live HR = 60000/median(last 8 RR>0) setting lastStrapHRAt; Watch relay considered once any Watch strap data has arrived, queue drained every tick and range-filtered, beats used only when phone strap is silent >=5 s, re-timed on the phone stream clock backward from the newest batch's arrival into a separate buffer, and fed to the analyzer with the Watch strap HR shown only when that batch is <10 s old; arbitration to wrist HR (<=30 s old) after >10 s silence on both channels, strap notice after 15 s of recording while both silent, Watch mode always wrist. Code: ingestStrapBeatsAndDeriveHR/medianSmoothedHR/consumeWatchRoutedStrapFallback/phoneStrapIsLive/synthesizeWatchRoutedPoints/alignWatchClock/streamClockBaseEpochMs/applyWatchRoutedHR/arbitrateHRSource/freshWristHR/HRArbitration.decide/strapNotice (WorkoutRecorder+Ticker.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.ingestStrapBeatsAndDeriveHR(buffer:)",
@@ -756,7 +756,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.alignWatchClock(toWallMs:)": "e82dfa7fbf77ba44",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.applyWatchRoutedHR()": "772faf3ae54c600d",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.arbitrateHRSource()": "0229714e771e93ed",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.consumeWatchRoutedStrapFallback()": "0179dde9754aee8b",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.consumeWatchRoutedStrapFallback()": "59e149cc266792e8",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.freshWristHR(now:)": "63fdfd6bd8fb93ec",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.ingestStrapBeatsAndDeriveHR(buffer:)": "bf7cc93632b70f86",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.medianSmoothedHR(recent:)": "7a50fee9c958ae71",
@@ -975,8 +975,8 @@
   },
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > Appendix A: Parameters",
-   "hash": "66f7deddcb3c3a7f",
-   "does": "Parameter table (Appendix A) restating every constant of Section 3 (live alpha1, cleaner, DFA boxes, crossing/shadow timings, HR smoothing and arbitration timings, route matching and estimator values, auto-FTP, TRIMP/MET constants, load caps, EWMA taus, readiness constants, label thresholds, decoupling minimums). Values match the code constants in the FILE record.",
+   "hash": "54b6f1483695e47a",
+   "does": "Parameter table (Appendix A) restating every constant of Section 3 (live alpha1, cleaner, DFA boxes, crossing/shadow timings, HR smoothing and arbitration timings including the 10 s Watch-batch freshness that gates relayed beats into alpha1 and live HR, route matching and estimator values, auto-FTP, TRIMP/MET constants, load caps, EWMA taus, readiness constants, label thresholds, decoupling minimums). Values match the code constants in the FILE record.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)",
@@ -990,14 +990,14 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)": "6a87eed9dd81b003",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)": "836d8771a56f4430"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "ef22a598a8881280",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)": "1dbf20fc1918ef27"
    }
   },
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > Appendix B: Pseudocode",
-   "hash": "b35dfb6cc5ba1263",
-   "does": "Pseudocode (Appendix B1-B10) for the beat clock, live analyzer, cleaner, ectopic shadows, first sustained crossing, route match, route estimate, load ladder and auto-FTP, readiness and live readiness (loads = 72 h loads since the start of the morning reading's day), strap fusion and merge, offline re-analysis; each block matches the implementing Swift listed in the corresponding Section 3 record.",
+   "hash": "bb35e7ed6587a1c6",
+   "does": "Pseudocode (Appendix B1-B10) for the beat clock, live analyzer, cleaner, ectopic shadows, first sustained crossing, route match, route estimate, load ladder and auto-FTP, readiness and live readiness (loads = 72 h loads since the start of the morning reading's day), strap fusion (relay queue drained every tick once the Watch reported, buffered when the phone is silent, fed to alpha1 and live HR only while the batch is <10 s old) and merge, offline re-analysis; each block matches the implementing Swift listed in the corresponding Section 3 record.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)",
@@ -1030,7 +1030,7 @@
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "3446776e2575bc4f",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "557250b35e2ea826",
     "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "462fed45d516c684",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.consumeWatchRoutedStrapFallback()": "b2c1f304be8571d1",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.consumeWatchRoutedStrapFallback()": "59e149cc266792e8",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.AT1CrossDetector.step(alpha1:sample:dt:)": "d80dda2e34c22a1d",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065"
    }

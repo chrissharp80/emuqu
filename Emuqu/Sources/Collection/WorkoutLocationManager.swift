@@ -90,6 +90,8 @@ final class WorkoutLocationManager: NSObject {
     private var liveAltitudeReference: Double?
     /// Timestamp of the fix whose jitter rejection was last logged.
     private var lastJitterLogAt: Date?
+    /// Timestamp of the fix whose accuracy rejection was last logged.
+    private var lastDroppedFixLogAt: Date?
     /// Most recent horizontal accuracy from CoreLocation. Surfaced so the UI
     /// can warn the user when GPS is degraded.
     private(set) var lastHorizontalAccuracy: Double?
@@ -130,7 +132,10 @@ final class WorkoutLocationManager: NSObject {
         authorizationStatus = manager.authorizationStatus
         super.init()
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        // `Best`, not `BestForNavigation`: Apple meant the navigation level
+        // for a device on external power, and a workout runs on the battery
+        // for hours. `Best` is the GPS fix a fitness track needs.
+        manager.desiredAccuracy = kCLLocationAccuracyBest
         // distanceFilter=kCLDistanceFilterNone — let every fix through; the
         // internal ingest filter decides whether to commit it.
         manager.distanceFilter = kCLDistanceFilterNone
@@ -301,6 +306,7 @@ final class WorkoutLocationManager: NSObject {
         elevationLossMeters = 0
         liveAltitudeReference = nil
         lastJitterLogAt = nil
+        lastDroppedFixLogAt = nil
         lastRawBarometricAltitude = nil
         pausedAltitudeShift = 0
         barometricSamples.removeAll()
@@ -316,6 +322,7 @@ final class WorkoutLocationManager: NSObject {
         guard isTracking else { return }
         lastHorizontalAccuracy = location.horizontalAccuracy
         guard Self.isUsableFix(location, threshold: accuracyThresholdMeters) else {
+            logDroppedFix(location)
             seedTrackIfEmpty(with: location)
             return
         }
@@ -336,11 +343,15 @@ final class WorkoutLocationManager: NSObject {
     /// generous — production running apps commonly use 50–100 m so that
     /// urban-canyon and early-fix samples still contribute.
     private static func isUsableFix(_ location: CLLocation, threshold: Double) -> Bool {
-        guard location.horizontalAccuracy > 0, location.horizontalAccuracy <= threshold else {
-            debugLog("[WorkoutLocation] dropped fix — accuracy=\(String(format: "%.0f", location.horizontalAccuracy))m (threshold=\(Int(threshold))m)")
-            return false
-        }
-        return true
+        location.horizontalAccuracy > 0 && location.horizontalAccuracy <= threshold
+    }
+
+    /// At most one line a minute: indoors or in a canyon every fix is
+    /// dropped, about one a second, and a line for each filled the log.
+    private func logDroppedFix(_ location: CLLocation) {
+        if let lastLogged = lastDroppedFixLogAt, location.timestamp.timeIntervalSince(lastLogged) < 60 { return }
+        lastDroppedFixLogAt = location.timestamp
+        debugLog("[WorkoutLocation] dropped fix — accuracy=\(String(format: "%.0f", location.horizontalAccuracy))m (threshold=\(Int(accuracyThresholdMeters))m)")
     }
 
     /// Still append a rejected fix to the track when it's the first one, so the

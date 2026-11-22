@@ -97,6 +97,16 @@ struct PauseTimeline: Equatable, Sendable {
         openPause = nil
     }
 
+    /// The workout's active seconds at `now`: the wall-clock time since
+    /// `sessionStart` less every pause, the one still running included, so
+    /// the count stands still while paused. Never below zero.
+    func activeSeconds(sessionStart: Date, now: Date) -> Int {
+        let paused = spans.reduce(0) { $0 + $1.seconds } + (openPause.map { max(0, now.timeIntervalSince($0.startedAt)) } ?? 0)
+        let active = now.timeIntervalSince(sessionStart) - paused
+        guard active.isFinite, active > 0 else { return 0 }
+        return Int(active.rounded(.down))
+    }
+
     /// The wall-clock time of the sample at `offsetSec`: the start plus the
     /// active seconds plus every pause that ended before it. A sample taken
     /// at the elapsed second a pause began was captured before that pause.

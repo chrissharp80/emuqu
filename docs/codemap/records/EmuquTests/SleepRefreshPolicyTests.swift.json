@@ -388,6 +388,25 @@
    }
   },
   {
+   "key": "func SleepRefreshPolicyTests.testSegmentsStartingBeforeTheRecordingClampToZero()",
+   "hash": "1b86e534e88571ea",
+   "does": "Applies a split night whose first segment began 30 minutes before the recording and asserts the start boundary and that segment's start clamp to 0 while the later offsets are kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "2f5b9c5a202619d6",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925",
+    "EmuquTests/SleepRefreshPolicyTests.swift::func SleepRefreshPolicyTests.makeSession(sleepSnapshot:sleepStartMs:sleepEndMs:sleepUserAdjusted:)": "e165cd5fa8e31db3"
+   }
+  },
+  {
    "key": "func SleepRefreshPolicyTests.testOnlyASplitNightWritesSegments()",
    "hash": "68b1b4ac6925f79c",
    "does": "Asserts applyFreshSleep with a single-segment night leaves sleepSegments nil.",
