@@ -438,11 +438,12 @@
   },
   {
    "key": "func HealthKitManager.backfillWorkoutsToHealthKit(archive:bodyWeightKg:)",
-   "hash": "5a9daf9ac8c54bdd",
-   "does": "Back-publishes archived workout sessions to Apple Health: requires HealthKit + workout write auth; skips entirely when the workout set watermark (count-newestDate) matches the stored one; otherwise logs denied optional types and serially handles each entry (backfillOne: claim, read, needsBackfill, stamp-only for a session already exported, else export+stamp with 1 s pacing), storing the watermark only when no session failed. An unreadable session counts as skipped, so it no longer holds the watermark. Returns (exported, skipped, failed). Called from EmuquApp.swift on foreground.",
+   "hash": "b26da5ba15b74a9a",
+   "does": "Back-publishes archived workout sessions to Apple Health: requires HealthKit + workout write auth; first deletes the earlier copies left beside workouts saved while the phone was locked (PendingWorkoutReplacements.finish, before and whatever the watermark says); skips the scan when the workout set watermark (count-newestDate) matches the stored one; otherwise logs denied optional types and serially handles each entry (backfillOne: claim, read, needsBackfill, stamp-only for a session already exported, else export+stamp with 1 s pacing), storing the watermark only when no session failed. An unreadable session counts as skipped, so it no longer holds the watermark. Returns (exported, skipped, failed). Called from EmuquApp.swift on foreground.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.workoutWriteAuthorized",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.finish(in:)",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillWatermark(_:)",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.reportDeniedWorkoutSampleTypes()",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillOne(entry:archive:bodyWeightKg:tally:)",
@@ -451,29 +452,38 @@
    ],
    "reads": [
     "archive:SessionArchive.entries",
-    "ud:hkBackfillExportedWatermark"
+    "ud:hkBackfillExportedWatermark",
+    "ud:hkPendingWorkoutReplacements (through PendingWorkoutReplacements.finish)",
+    "mem:HealthKitManager.sampleReplacer.store"
    ],
    "writes": [
-    "ud:hkBackfillExportedWatermark"
+    "ud:hkBackfillExportedWatermark",
+    "ud:hkPendingWorkoutReplacements (through PendingWorkoutReplacements.finish)",
+    "hk:earlier copies of workouts saved while locked (deleted, through PendingWorkoutReplacements.finish)"
    ],
    "branches": [
     {
      "at": "+5",
      "cond": "HealthKit unavailable OR workout write not authorized",
-     "effect": "returns (0,0,0)"
+     "effect": "returns (0,0,0); no pending cleanup"
     },
     {
-     "at": "+9",
+     "at": "+6",
+     "cond": "always, once authorized",
+     "effect": "pending locked-save cleanups run first"
+    },
+    {
+     "at": "+10",
      "cond": "stored watermark equals current",
      "effect": "returns (0, candidates.count, 0) without scanning"
     },
     {
-     "at": "+14",
+     "at": "+15",
      "cond": "for each workout entry",
      "effect": "yields then backfills one"
     },
     {
-     "at": "+20",
+     "at": "+21",
      "cond": "no failures",
      "effect": "stores the new watermark; else keeps the old one so the scan repeats next foreground"
     }
@@ -485,6 +495,7 @@
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.reportDeniedWorkoutSampleTypes()": "c00038bbbe4b856f",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.workoutWriteAuthorized": "6cd54d7ef07fe4d2",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.finish(in:)": "a25bd6799a51feda",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -690,7 +701,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.noteExportedUnstamped(_:pending:)": "c06716167689b3b3",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeExportStamp(_:at:archive:)": "9f37f99927c304a0",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeExportStamp(_:at:archive:)": "6f56c6433a484251",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "dafc9cf51cf35041",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -748,24 +759,23 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.noteExportedUnstamped(_:pending:)": "c06716167689b3b3",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeExportStamp(_:at:archive:)": "9f37f99927c304a0",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "26c67d8ab67eca74",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeExportStamp(_:at:archive:)": "6f56c6433a484251",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "cd6403f788fa4edb",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
   {
    "key": "func HealthKitManager.writeExportStamp(_:at:archive:)",
-   "hash": "c1f0f3a534bd784a",
-   "does": "Writes only healthKitExportedAt = exportedAt and clears healthKitExportFailureCount on the archive's current copy of the session (update, requesting a reupload, which stamps modifiedAt), so edits made during the export survive and the stamp reaches iCloud: another device, or a reinstall, does not export the workout again.",
+   "hash": "59fc4303708f6428",
+   "does": "Writes only healthKitExportedAt = exportedAt and clears healthKitExportFailureCount on the archive's current copy of the session (update with requestingReupload false: modifiedAt unchanged, no re-upload asked), so edits made during the export survive and this copy, which may predate an edit made on another device, does not overwrite that edit in iCloud. The stamp reaches iCloud with the session's next real upload. Internal (static) so a test can call it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)"
    ],
    "reads": [],
    "writes": [
-    "archive:SessionArchive.update(healthKitExportedAt, modifiedAt)",
-    "notif:flowRecoveryArchiveSessionsNeedReupload"
+    "archive:SessionArchive.update(healthKitExportedAt, healthKitExportFailureCount; modifiedAt unchanged)"
    ],
    "branches": [],
    "deps": {

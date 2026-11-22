@@ -186,18 +186,22 @@ final class HealthSampleFactoryTests: XCTestCase {
     }
 
     /// Two exports of one session that overlap leave one set: the second
-    /// reads what the first saved, not what was there before either.
+    /// reads what the first saved, not what was there before either. The
+    /// second is shorter (a trimmed recording), so a second export that read
+    /// the store before the first saved would leave the first's last minutes
+    /// behind.
     func testOverlappingExportsOfOneSessionLeaveOneSet() async throws {
         let store = InMemoryHealthSampleStore()
         let manager = HealthKitManager(settingsProvider: { UserSettings() }, sampleStore: store)
         let session = sessionWithBeats(minutes: 10)
         let points = try XCTUnwrap(session.rrSeries?.points)
+        let trimmed = try XCTUnwrap(sessionWithBeats(minutes: 6, id: session.id).rrSeries?.points)
         let (sessionStart, id) = (start, session.id)
         let first = Task { try await manager.exportHeartRateSeries(from: points, sessionStart: sessionStart, sessionId: id) }
-        let second = Task { try await manager.exportHeartRateSeries(from: points, sessionStart: sessionStart, sessionId: id) }
+        let second = Task { try await manager.exportHeartRateSeries(from: trimmed, sessionStart: sessionStart, sessionId: id) }
         try await first.value
         try await second.value
-        XCTAssertEqual(store.samples.count, 10, "one sample per minute, once")
+        XCTAssertEqual(store.samples.count, 6, "one sample per minute of the later export, and no tail of the first")
     }
 
     /// Deleting a session forever waits for its running export and then
@@ -321,15 +325,22 @@ final class HealthSampleFactoryTests: XCTestCase {
 /// memory. Each call yields before it acts, so replacements that are not kept
 /// apart interleave. A save replaces a stored sample with the same sync
 /// identifier and a lower sync version, and is dropped against a higher or
-/// equal one, as HealthKit does.
+/// equal one, as HealthKit does. A workout is saved with the samples that go
+/// with it (`saveWorkout(_:with:)`), and read back with them.
 @MainActor
-private final class InMemoryHealthSampleStore: HealthSampleStore {
+final class InMemoryHealthSampleStore: HealthSampleStore {
     private(set) var samples: [HKSample] = []
     /// Samples a delete was asked to remove that a save had already replaced.
     private(set) var deletedReplacedSamples = 0
+    /// The sample types of each delete, in the order asked.
+    private(set) var deletedTypes: [HKSampleType] = []
     private var replaced: [HKSample] = []
+    /// Each stored sample saved with a workout, and that workout.
+    private var savedWithWorkout: [(sample: HKSample, workout: HKWorkout)] = []
     var failNextSave = false
     var failNextDelete = false
+    /// The next read by time span throws this, as a Health read refused.
+    var failNextRead: Error?
     /// The next save waits until `releaseHeldSave()`, as a Health call that
     /// does not answer.
     var holdNextSave = false
@@ -339,14 +350,30 @@ private final class InMemoryHealthSampleStore: HealthSampleStore {
 
     func ownSamples(of type: HKSampleType, in span: DateInterval?, timeout _: TimeInterval, label _: String) async throws -> [HKSample] {
         await Task.yield()
+        if let failure = failNextRead {
+            failNextRead = nil
+            throw failure
+        }
         return samples.filter { sample in
             sample.sampleType == type && (span.map { $0.start <= sample.startDate && sample.startDate <= $0.end } ?? true)
         }
     }
 
-    func ownSamples(of _: HKSampleType, savedWith _: HKWorkout, timeout _: TimeInterval, label _: String) async throws -> [HKSample] {
+    func ownSamples(of type: HKSampleType, savedWith workout: HKWorkout, timeout _: TimeInterval, label _: String) async throws -> [HKSample] {
         await Task.yield()
-        return []
+        return samples.filter { sample in
+            sample.sampleType == type && savedWithWorkout.contains { $0.sample === sample && $0.workout === workout }
+        }
+    }
+
+    /// Saves a workout and the samples that go with it, as a builder does:
+    /// each replaces a stored one by sync identifier, as `save(_:)` does.
+    func saveWorkout(_ workout: HKWorkout, with series: [HKSample]) {
+        saveReplacingBySync(workout)
+        for sample in series {
+            saveReplacingBySync(sample)
+            savedWithWorkout.append((sample, workout))
+        }
     }
 
     func save(_ new: [HKSample]) async throws {
@@ -380,6 +407,7 @@ private final class InMemoryHealthSampleStore: HealthSampleStore {
             throw Failure()
         }
         deletedReplacedSamples += old.filter { sample in replaced.contains { $0 === sample } }.count
+        deletedTypes += old.first.map { [$0.sampleType] } ?? []
         samples.removeAll { sample in old.contains { $0 === sample } }
     }
 

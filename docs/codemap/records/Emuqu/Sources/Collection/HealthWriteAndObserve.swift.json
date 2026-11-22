@@ -1,21 +1,23 @@
 {
  "file": "Emuqu/Sources/Collection/HealthWriteAndObserve.swift",
- "hash": "810cbb9d0d14209c",
- "role": "Declares the stateless MainActor struct holding a strong HealthKitManager reference (its HRV/sleep writes, deletion and observers live in HealthKitManager+HRV.swift and +SleepTrends.swift) and its delete-forever removal of everything a session exported; the one replace operation every export uses: HealthSampleReplacement (what one replacement covers), the HealthSampleStore seam over query/save/delete, its HealthKit implementation HealthKitSampleStore, and HealthSampleReplacer (read earlier, save new, delete those read that the save did not replace through their sync identifier; serialized per key; the save and delete bounded by the write timeout); and HealthSampleWatch, the observer query plus persisted-anchor read that watches a type for other sources' samples, background deliveries included.",
+ "hash": "89be22c4f538df39",
+ "role": "Declares the stateless MainActor struct holding a strong HealthKitManager reference (its HRV/sleep writes, deletion and observers live in HealthKitManager+HRV.swift and +SleepTrends.swift) and its delete-forever removal of everything a session exported; the one replace operation every export uses: HealthSampleReplacement (what one replacement covers), the HealthSampleStore seam over query/save/delete, its HealthKit implementation HealthKitSampleStore, and HealthSampleReplacer (read earlier, save new, delete those read that the save did not replace through their sync identifier; serialized per key; the save and delete bounded by the write timeout); and HealthSampleWatch, the observer query plus persisted-anchor read that watches a type for other sources' samples, background deliveries included, one read per anchor key at a time (ReadGate: a fire during a read runs it once more when it ends).",
  "types": [
   "HealthWriteAndObserve: struct — write/observe half of HealthKit, holds `manager`",
   "HealthSampleReplacement: struct — type, search span, read timeout, label, serial key, ExternalUUID match, write timeout",
   "HealthSampleStore: protocol — ownSamples (by span / saved with a workout) / save / delete",
   "HealthKitSampleStore: class — HealthSampleStore over the manager's HKHealthStore and bounded query",
   "HealthSampleReplacer: class — serialized replace of exported samples",
-  "HealthSampleWatch: enum — HKObserverQuery + anchored read of added samples, anchor kept in UserDefaults"
+  "HealthSampleWatch: enum — HKObserverQuery + anchored read of added samples, anchor kept in UserDefaults",
+  "HealthSampleWatch.ReadGate: struct (Sendable) — the anchor keys with a read under way, and whether a request came during it"
  ],
  "state": [
   "mem:HealthWriteAndObserve.manager (let HealthKitManager, strong)",
   "mem:HealthKitSampleStore.manager (weak)",
   "mem:HealthSampleReplacer.store",
   "mem:HealthSampleReplacer.tails ([serialKey: Task] last queued replacement per key)",
-  "ud:<anchorKey> (archived HKQueryAnchor per watched type)"
+  "ud:<anchorKey> (archived HKQueryAnchor per watched type)",
+  "mem:HealthSampleWatch.readGate (static ReadGate; OSAllocatedUnfairLock<[anchorKey: Bool]>: present while a read runs, true when it is to run once more)"
  ],
  "toplevel": "Type declarations; stored properties only outside the units.",
  "units": [
@@ -55,7 +57,7 @@
     "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.removeExportedHeartRate(sessionId:from:to:)": "4a9f8f6db27f6a3e",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.removeExportedRestingHeartRate(at:sessionId:)": "9dd93624ff4e2ab4",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.removeExportedSleep(sessionId:)": "7de1add772881c2d",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.removeExports(sessionId:startDate:healthKit:)": "4374aa0fa0ee2c37",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.removeExports(sessionId:startDate:healthKit:)": "a7bcbce089ab088c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -73,7 +75,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.ownSamples(of:in:timeout:label:)": "6a29fc603ccd6c40",
-    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.ownSamples(of:in:timeout:label:)": "2de2734a16060564"
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.ownSamples(of:in:timeout:label:)": "6cfe999e0eeab83f"
    }
   },
   {
@@ -90,7 +92,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.ownSamples(of:savedWith:timeout:label:)": "616e260b77bced58",
-    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.ownSamples(of:savedWith:timeout:label:)": "7c0317b62ac63717"
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.ownSamples(of:savedWith:timeout:label:)": "9fd4be04ef2114f4"
    }
   },
   {
@@ -124,7 +126,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.delete(_:)": "4b918c97a2347437",
-    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.delete(_:)": "1690c4c548873a82"
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.delete(_:)": "6720f30775f27b9c"
    }
   },
   {
@@ -484,11 +486,11 @@
   },
   {
    "key": "func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)",
-   "hash": "cbaa6015638ea78a",
-   "does": "Builds the HKObserverQuery for `type` (no predicate). Each fire (one when it starts, then one per change, background deliveries included): on an error, logs a warning; otherwise, while the store is alive, starts readAdded for the type and anchor key; then calls HealthKit's completion handler.",
+   "hash": "cf5446cf26a6fad7",
+   "does": "Builds the HKObserverQuery for `type` (no predicate). Each fire (one when it starts, then one per change, background deliveries included): on an error, logs a warning; otherwise, while the store is alive, requests a read for the type and anchor key (requestRead: starts one, or has the one under way run again); then calls HealthKit's completion handler.",
    "entry": "The returned query's update handler runs on HealthKit's queue when the query starts and whenever samples of the type are saved or deleted.",
    "calls": [
-    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.readAdded(of:anchorKey:store:deliver:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.requestRead(of:anchorKey:store:deliver:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:HKObserverQuery"
    ],
@@ -507,19 +509,135 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.readAdded(of:anchorKey:store:deliver:)": "74f5c4ee571ac6c0",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.requestRead(of:anchorKey:store:deliver:)": "3c6d196ea3d44b17",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
+   "key": "func HealthSampleWatch.ReadGate.claimRead(_:)",
+   "hash": "0dea389d760f4dfe",
+   "does": "Under the lock: true, and the key marked as read under way, when no read for `key` is; false when one is, which is then marked to run once more.",
+   "entry": null,
+   "calls": [
+    "ext:OSAllocatedUnfairLock.withLock"
+   ],
+   "reads": [
+    "mem:ReadGate.reads"
+   ],
+   "writes": [
+    "mem:ReadGate.reads"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a read for the key is under way",
+     "effect": "marks it to run again, returns false"
+    },
+    {
+     "at": "+6",
+     "cond": "none",
+     "effect": "marks one under way, returns true"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HealthSampleWatch.ReadGate.finishRead(_:canRerun:)",
+   "hash": "af50c4eea99378b8",
+   "does": "Under the lock, when the read for `key` ends: true, the key kept as under way with no further request, when a request came during it and `canRerun`; otherwise the key is freed and false.",
+   "entry": null,
+   "calls": [
+    "ext:OSAllocatedUnfairLock.withLock"
+   ],
+   "reads": [
+    "mem:ReadGate.reads"
+   ],
+   "writes": [
+    "mem:ReadGate.reads"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no request came during the read, or it cannot run again",
+     "effect": "frees the key, returns false"
+    },
+    {
+     "at": "+6",
+     "cond": "a request came and it can run again",
+     "effect": "keeps the key under way, returns true"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HealthSampleWatch.requestRead(of:anchorKey:store:deliver:)",
+   "hash": "eec379decb4162a3",
+   "does": "Starts readAdded for `anchorKey` when the gate lets it begin (readGate.claimRead); when a read for it is under way, does nothing more: that read runs once more when it ends.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.ReadGate.claimRead(_:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.readAdded(of:anchorKey:store:deliver:)"
+   ],
+   "reads": [
+    "mem:HealthSampleWatch.readGate"
+   ],
+   "writes": [
+    "mem:HealthSampleWatch.readGate"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "a read for the key is under way",
+     "effect": "returns; it runs again when it ends"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.ReadGate.claimRead(_:)": "6f5b5134cda66504",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.readAdded(of:anchorKey:store:deliver:)": "a18903e2b33c8e22"
+   }
+  },
+  {
+   "key": "func HealthSampleWatch.readEnded(of:anchorKey:store:deliver:)",
+   "hash": "73954df642e3f681",
+   "does": "Called when a read for `anchorKey` answers: when a request came during it and the store is still there (readGate.finishRead), starts readAdded again from the anchor that read kept; otherwise the key is freed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.ReadGate.finishRead(_:canRerun:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.readAdded(of:anchorKey:store:deliver:)"
+   ],
+   "reads": [
+    "mem:HealthSampleWatch.readGate"
+   ],
+   "writes": [
+    "mem:HealthSampleWatch.readGate"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no request during the read, or the store is gone",
+     "effect": "returns, key freed"
+    },
+    {
+     "at": "+5",
+     "cond": "a request came during it",
+     "effect": "reads again"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.ReadGate.finishRead(_:canRerun:)": "b67326b377000fcc",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.readAdded(of:anchorKey:store:deliver:)": "a18903e2b33c8e22"
+   }
+  },
+  {
    "key": "func HealthSampleWatch.readAdded(of:anchorKey:store:deliver:)",
-   "hash": "b35a15a5865c7af2",
-   "does": "Executes an HKAnchoredObjectQuery for `type` from the anchor stored under `anchorKey` (no stored anchor: samples from the last 48 hours, no anchor). Its result: an error is logged and the anchor kept; otherwise the new anchor is stored, and the added samples other sources wrote (othersSamples) go to `deliver` when there are any.",
+   "hash": "42d798af84d3e17e",
+   "does": "Executes an HKAnchoredObjectQuery for `type` from the anchor stored under `anchorKey` (no stored anchor: samples from the last 48 hours, no anchor). Its result: an error is logged and the anchor kept; otherwise the new anchor is stored, and the added samples other sources wrote (othersSamples) go to `deliver` when there are any. Either way the read then ends (readEnded), which runs it again when a request came meanwhile.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.storedAnchor(_:)",
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.keepAnchor(_:key:)",
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.othersSamples(_:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.readEnded(of:anchorKey:store:deliver:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "closure:deliver",
     "ext:HKAnchoredObjectQuery",
@@ -539,17 +657,22 @@
      "effect": "reads the last 48 hours"
     },
     {
-     "at": "+8",
+     "at": "+9",
+     "cond": "every answer",
+     "effect": "ends the read (readEnded) after handling it"
+    },
+    {
+     "at": "+10",
      "cond": "the read failed",
      "effect": "logged; anchor unchanged, nothing delivered"
     },
     {
-     "at": "+12",
+     "at": "+14",
      "cond": "a new anchor came back",
      "effect": "stored"
     },
     {
-     "at": "+14",
+     "at": "+16",
      "cond": "no other source's samples were added",
      "effect": "nothing delivered"
     }
@@ -557,6 +680,7 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.keepAnchor(_:key:)": "7772a968ed36df9d",
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.othersSamples(_:)": "157048128dd656d3",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.readEnded(of:anchorKey:store:deliver:)": "0b66f7163e4d73ce",
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.storedAnchor(_:)": "0661cb555e9f0191",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }

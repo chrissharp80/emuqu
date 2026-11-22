@@ -280,20 +280,19 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.stampHealthKitExport(sessionId:archive:)",
-   "hash": "d9d2c6411dad0956",
-   "does": "Updates the archived session in place, requesting a reupload (modifiedAt stamped), to set healthKitExportedAt = now, so the stamp reaches iCloud and another device does not export the workout again; logs a warning if the archive update throws.",
+   "hash": "4dcea9df3b3503f6",
+   "does": "Updates the archived session in place to set healthKitExportedAt = now, as a routine stamp (requestingReupload false: modifiedAt unchanged, no re-upload asked), so a copy older than another device's edit cannot overwrite that edit in iCloud; the stamp rides the next real upload. Logs a warning if the archive update throws.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)"
    ],
    "reads": [],
    "writes": [
-    "archive:SessionArchive.update (healthKitExportedAt, modifiedAt)",
-    "notif:flowRecoveryArchiveSessionsNeedReupload"
+    "archive:SessionArchive.update (healthKitExportedAt; modifiedAt unchanged)"
    ],
    "branches": [
     {
-     "at": "+7",
+     "at": "+9",
      "cond": "archive.update throws",
      "effect": "catch: warning log; HealthKit has the workout but the archive lacks the stamp, so a later backfill exports it again, replacing the copy in Health"
     }
@@ -682,9 +681,9 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)": "e893db4f613ebe89",
     "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)": "1b5b0fdc46896c07",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "26c67d8ab67eca74",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "cd6403f788fa4edb",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "66055d6a54f84c45",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.stampHealthKitExport(sessionId:archive:)": "cf076816c038ce1e",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.stampHealthKitExport(sessionId:archive:)": "f807ca6e293a2d64",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }

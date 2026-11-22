@@ -178,6 +178,43 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertTrue(collector.isStrapRecordingSaved(startedAt: armed))
     }
 
+    /// Only a night or nap that was running when the strap recording began
+    /// holds it: a quick reading or a workout that ended a quarter of an
+    /// hour before, or a night that ended then, does not.
+    func testASessionThatEndedBeforeTheRecordingDoesNotHoldIt() throws {
+        let collector = makeCollector(FakeStrapRadio())
+        let armed = Date().addingTimeInterval(-3 * 3600)
+        collector.polarManager.downloadLedger.markDownloaded(recordingStartedAt: armed)
+        for type in [SessionType.quick, .workout, .overnight] {
+            var ended = completeNight(startingAt: armed.addingTimeInterval(-3600))
+            ended.sessionType = type
+            ended.endDate = armed.addingTimeInterval(-15 * 60)
+            _ = try archive.archive(ended, skipSameNightMerge: true)
+        }
+        XCTAssertFalse(collector.isStrapRecordingSaved(startedAt: armed), "no saved session was running at the start")
+
+        var nap = completeNight(startingAt: armed.addingTimeInterval(10 * 60))
+        nap.sessionType = .nap
+        nap.endDate = nil
+        _ = try archive.archive(nap, skipSameNightMerge: true)
+        XCTAssertTrue(collector.isStrapRecordingSaved(startedAt: armed), "a nap starting within the slack holds it")
+    }
+
+    /// A rebuild that starts over reuses a night only while its stored copy
+    /// is the one it decoded: a rewrite under the same id (a newer iCloud
+    /// copy) is another copy, decoded again.
+    func testARewrittenNightIsAnotherCopyForTheRebuild() throws {
+        let night = completeNight()
+        _ = try archive.archive(night, skipSameNightMerge: true)
+        let decoded = RRCollector.ArchivedCopy(try XCTUnwrap(archive.entries.first { $0.sessionId == night.id }))
+
+        try archive.update(night.id, requestingReupload: false) { $0.notes = "from iCloud" }
+
+        let rewritten = try XCTUnwrap(archive.entries.first { $0.sessionId == night.id }.map(RRCollector.ArchivedCopy.init))
+        XCTAssertEqual(rewritten.sessionId, decoded.sessionId)
+        XCTAssertNotEqual(rewritten, decoded, "the rewrite is not reused")
+    }
+
     /// A night that was already archived is the user's existing record and
     /// is not marked as Discard's to remove.
     func testANightAlreadyArchivedIsNotMarkedForDiscard() throws {

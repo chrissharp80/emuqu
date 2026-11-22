@@ -298,10 +298,12 @@ final class RRCollector {
     /// Whether the app holds the strap recording that began at `start`
     /// (`StrapRecordingPolicy.recordingIsSaved`). The strap's start sequence
     /// asks the same question before it clears the strap. On disk: an
-    /// archived session that was running when the recording began (within
-    /// 30 minutes either side), or a rescue backup within 30 minutes of its
-    /// start. A strap armed late in a night is filed into that night, whose
-    /// start can be hours before the recording's.
+    /// archived night or nap that was running when the recording began
+    /// (starting up to 30 minutes after it, and not ended before it), or a
+    /// rescue backup within 30 minutes of its start. A strap armed late in a
+    /// night is filed into that night, whose start can be hours before the
+    /// recording's; a quick reading or workout that ended just before the
+    /// recording does not hold it.
     func isStrapRecordingSaved(startedAt start: Date) -> Bool {
         let ledger = polarManager.downloadLedger
         return StrapRecordingPolicy.recordingIsSaved(
@@ -439,17 +441,20 @@ final class RRCollector {
     }
 
     /// A replacing rebuild starts from an empty tracker; one whose archive
-    /// changed while it decoded starts over instead, so a night archived in
-    /// the meantime is not wiped from the baseline. The pass that starts over
-    /// reuses what this one decoded and decrypts only what is new, so an
-    /// archive that keeps changing (a run of iCloud pulls) costs a few
-    /// sessions per pass, not the whole archive again. A boot rebuild re-checks:
-    /// if a live session landed while we were decrypting, it already seeded
-    /// the tracker, so the rebuild must not clobber it.
+    /// changed while it decoded starts over instead, so a night archived or
+    /// rewritten (a newer iCloud copy under the same id) in the meantime is
+    /// neither wiped from the baseline nor scored from its old copy. The pass
+    /// that starts over reuses what this one decoded whose stored file is
+    /// unchanged (`ArchivedCopy`: id and file hash) and decrypts only what is
+    /// new or rewritten, so an archive that keeps changing (a run of iCloud
+    /// pulls) costs a few sessions per pass, not the whole archive again. A
+    /// boot rebuild re-checks: if a live session landed while we were
+    /// decrypting, it already seeded the tracker, so the rebuild must not
+    /// clobber it.
     @MainActor
-    private func commitRebuiltBaseline(_ sessions: [HRVSession], decodedIds: [UUID], replacing: Bool) {
+    private func commitRebuiltBaseline(_ sessions: [HRVSession], decoded: [ArchivedCopy: HRVSession], copies: [ArchivedCopy], replacing: Bool) {
         if replacing {
-            guard archive.entries.map(\.sessionId) == decodedIds else { return restartReplacingRebuild(reusing: sessions) }
+            guard archive.entries.map(ArchivedCopy.init) == copies else { return restartReplacingRebuild(reusing: decoded) }
             baselineTracker.reset()
         } else if baselineTracker.daysCollected > 0 {
             return
@@ -781,29 +786,50 @@ enum RRCollectorError: Error, LocalizedError, Equatable {
 }
 
 extension RRCollector {
+    /// One stored copy of an archived session: its id and the hash of its
+    /// file, which every rewrite of the session changes.
+    struct ArchivedCopy: Hashable, Sendable {
+        let sessionId: UUID
+        let fileHash: String
+
+        init(_ entry: SessionArchiveEntry) {
+            sessionId = entry.sessionId
+            fileHash = entry.fileHash
+        }
+    }
+
     /// A replacing rebuild whose archive changed while it decoded starts
-    /// over, handing on what it decoded by id.
+    /// over, handing on what it decoded by stored copy.
     @MainActor
-    fileprivate func restartReplacingRebuild(reusing sessions: [HRVSession]) {
-        let decoded = Dictionary(sessions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+    fileprivate func restartReplacingRebuild(reusing decoded: [ArchivedCopy: HRVSession]) {
         rebuildBaselineOffMain(replacing: true, reusing: decoded)
     }
 
     /// The off-main decode behind `rebuildBaselineOffMain(replacing:)`.
-    /// Sessions in `decoded` (an earlier pass's, by id) are taken as they are;
-    /// only the archive's other entries are decrypted.
+    /// Sessions in `decoded` (an earlier pass's, by id and file hash) are
+    /// taken as they are; the archive's other entries, new or rewritten since,
+    /// are decrypted.
     @MainActor
-    fileprivate func rebuildBaselineOffMain(replacing: Bool, reusing decoded: [UUID: HRVSession]) {
+    fileprivate func rebuildBaselineOffMain(replacing: Bool, reusing decoded: [ArchivedCopy: HRVSession]) {
         let archive = self.archive
-        let entries = archive.entries
+        let copies = archive.entries.map(ArchivedCopy.init)
         Task.detached(priority: .utility) {
-            let sessions = entries.compactMap {
-                decoded[$0.sessionId] ?? archive.retrieveLightweightOrLog($0.sessionId, caller: "baselineRebuild")
-            }
-            let decodedIds = entries.map(\.sessionId)
+            let read = Self.decodedSessions(of: copies, reusing: decoded, from: archive)
+            let sessions = read.map { $0.1 }
+            let byCopy = Dictionary(read, uniquingKeysWith: { first, _ in first })
             await MainActor.run { [weak self] in
-                self?.commitRebuiltBaseline(sessions, decodedIds: decodedIds, replacing: replacing)
+                self?.commitRebuiltBaseline(sessions, decoded: byCopy, copies: copies, replacing: replacing)
             }
+        }
+    }
+
+    /// Each copy's session: the one decoded earlier for that same copy, else
+    /// decrypted lightweight; an unreadable copy is left out.
+    nonisolated private static func decodedSessions(
+        of copies: [ArchivedCopy], reusing decoded: [ArchivedCopy: HRVSession], from archive: SessionArchive
+    ) -> [(ArchivedCopy, HRVSession)] {
+        copies.compactMap { copy in
+            (decoded[copy] ?? archive.retrieveLightweightOrLog(copy.sessionId, caller: "baselineRebuild")).map { (copy, $0) }
         }
     }
 }
@@ -814,13 +840,17 @@ extension RRCollector {
 // nothing inside it, so none needs to be a member. `private` at file
 // scope is fileprivate, so every call site in this file resolves.
 
-/// Whether the archive holds a session that was running at `date`: one that
-/// started no more than `slackMinutes` after it and ended no more than that
-/// before it (a session with no end counts as ending at its start).
+/// Whether the archive holds a night or nap, the only sessions a strap
+/// recording is saved into, that was running at `date`: one that started no
+/// more than `slackMinutes` after it and had not ended before it. One with no
+/// end, or ending sooner, counts as running for `slackMinutes` after its
+/// start. A quick reading or a workout that ended just before is not one.
 private func archiveHoldsSession(runningAt date: Date, slackMinutes: Int, in archive: SessionArchive) -> Bool {
     let slack = TimeInterval(slackMinutes * 60)
     return archive.entries.contains { entry in
-        entry.date.addingTimeInterval(-slack) <= date && date <= (entry.endDate ?? entry.date).addingTimeInterval(slack)
+        guard entry.sessionType == .overnight || entry.sessionType == .nap else { return false }
+        let runsUntil = max(entry.endDate ?? entry.date, entry.date.addingTimeInterval(slack))
+        return entry.date.addingTimeInterval(-slack) <= date && date <= runsUntil
     }
 }
 
