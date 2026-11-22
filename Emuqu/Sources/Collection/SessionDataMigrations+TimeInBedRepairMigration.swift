@@ -21,30 +21,52 @@ extension SessionDataMigrations {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.timeInBedRepairKey) else { return }
         var repaired = 0
+        var failed = 0
         for entry in archive.entries where entry.sessionType == .overnight {
-            guard await repairTimeInBed(entry) else { continue }
-            repaired += 1
+            switch await repairTimeInBed(entry) {
+            case .repaired: repaired += 1
+            case .failed: failed += 1
+            case .unchanged: continue
+            }
+        }
+        // A night whose write failed is still wrong: leave the flag unset so
+        // the next launch tries again. Nights already corrected read as
+        // correct and are skipped.
+        guard failed == 0 else {
+            debugLog("[TimeInBedRepair] Corrected time in bed on \(repaired) nights; \(failed) could not be written — retrying next launch", level: .warning)
+            return
         }
         defaults.set(true, forKey: Self.timeInBedRepairKey)
         debugLog("[TimeInBedRepair] Complete. Corrected time in bed on \(repaired) nights.")
     }
 
-    /// Whether the night's stored time in bed was corrected.
-    /// The night is decoded off the main actor, as the other migrations read.
-    private func repairTimeInBed(_ entry: SessionArchiveEntry) async -> Bool {
-        guard var session = await retrieveOffMain(entry.sessionId, caller: "TimeInBedRepair"),
+    /// What `repairTimeInBed` did to one night.
+    private enum TimeInBedRepairOutcome {
+        case repaired
+        case unchanged
+        case failed
+    }
+
+    /// Whether the night's stored time in bed was corrected, needed no
+    /// correction, or needed one that could not be written. The night is
+    /// decoded off the main actor, as the other migrations read; the
+    /// correction is applied to the archive's copy as it is at the write, so
+    /// a change saved since the load is kept.
+    private func repairTimeInBed(_ entry: SessionArchiveEntry) async -> TimeInBedRepairOutcome {
+        guard let session = await retrieveOffMain(entry.sessionId, caller: "TimeInBedRepair"),
               let snapshot = session.sleepSnapshot,
               snapshot.timeInBedIsSleepPlusAwake,
               snapshot.inBedMinutes != snapshot.nightSleepMinutes + snapshot.awakeMinutes
-        else { return false }
-        session.sleepSnapshot = snapshot.withTimeInBedFromSleepAndAwake()
+        else { return .unchanged }
         do {
-            _ = try archive.archive(session)
+            try archive.update(entry.sessionId, requestingReupload: false) { stored in
+                stored.sleepSnapshot = stored.sleepSnapshot?.withTimeInBedFromSleepAndAwake()
+            }
         } catch {
             debugLog("[TimeInBedRepair] Failed to re-archive \(session.id.uuidString.prefix(8)): \(error)", level: .warning)
-            return false
+            return .failed
         }
         _ = await reanalysisService.recomputeScoreOnly(sessionId: entry.sessionId)
-        return true
+        return .repaired
     }
 }

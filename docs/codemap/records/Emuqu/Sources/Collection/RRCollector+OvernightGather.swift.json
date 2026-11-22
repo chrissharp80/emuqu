@@ -50,7 +50,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.resolveOvernightSource(streamingPoints:internalPoints:baseSession:)": "636facceda0bc0c2",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.backupStreamingData(_:sessionId:)": "9ec6ffb5020f31eb",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "04a37de5fc61168b",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "2f699405c9e324fe",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "7118bb68655824f9",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.isVeritySenseDevice(_:)": "fcdf7e5816f3f122",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
@@ -151,8 +151,8 @@
   },
   {
    "key": "func MorningSessionPipeline.publishGatherSavingState(streamingPoints:elapsedHours:)",
-   "hash": "61b5c66ae4f3ee39",
-   "does": "On the main actor sets morningStatus=.saving, clears overnight/streaming/collecting flags and overnightDeviceBackupActive, sets recordingPhase .analyzing, stores the beats in collectedPoints, zeroes elapsed seconds, and charges the strap battery-usage counter with the hours.",
+   "hash": "6e54ef6adc91a696",
+   "does": "On the main actor sets morningStatus=.saving, clears overnight/streaming/collecting flags, sets recordingPhase .analyzing, stores the beats in collectedPoints, zeroes elapsed seconds, and charges the strap battery-usage counter with the hours. overnightDeviceBackupActive is left for the strap gate (fetchNightFromStrap), which every ending reaches next and which clears it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.recordRecordingHours(_:)"
@@ -161,7 +161,6 @@
    "writes": [
     "mem:RRCollector.morningStatus",
     "mem:RRCollector.isOvernightStreaming",
-    "mem:RRCollector.overnightDeviceBackupActive",
     "mem:DeviceStatus.isStreaming",
     "mem:RRCollector.recordingPhase",
     "mem:RRCollector.isCollecting",

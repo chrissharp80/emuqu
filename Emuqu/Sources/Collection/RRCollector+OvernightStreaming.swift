@@ -102,9 +102,13 @@ extension OvernightStreamingCoordinator {
     /// includes device-internal backup. Verity Sense can't record internally
     /// while streaming, so it always streams only.
     ///
+    /// A night is refused while an earlier night's ending is still in
+    /// progress (`refuseWhileEndingInProgress`).
+    ///
     /// - Parameter sessionType: .overnight or .nap
     @MainActor
     func startOvernightStreaming(sessionType: SessionType = .overnight, useDeviceInternalBackup: Bool = true) throws {
+        try refuseWhileEndingInProgress()
         guard collector.polarManager.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }
         guard !collector.polarManager.isStreaming else { throw RRCollector.CollectorError.alreadyRecording }
         let session = HRVSession(sessionType: sessionType, deviceProvenance: .streaming(from: collector.polarManager))
@@ -141,19 +145,30 @@ extension OvernightStreamingCoordinator {
         collector.lastSeenReconnectCount = 0
         collector.overnightDeviceBackupActive = false
         collector.isOvernightEnding = false
-        dropStaleEndingClaim()
         // A Skip from an earlier morning never reaches this night's download,
         // and an earlier session's error is not this night's.
         collector.deviceFetchPolicy = .automatic
         collector.lastError = nil
     }
 
-    /// A night or a resumed segment is starting, so no earlier ending can
-    /// still own the recorder; a claim left behind is dropped and logged.
+    /// A night or a resumed segment may start only once no earlier ending
+    /// owns the recorder: the ending's download, analysis and publish would
+    /// otherwise overwrite the new night's session and phase. While one is in
+    /// progress the start throws `alreadyRecording` (the strap's recording is
+    /// still being taken off it) and the claim stays held. A claim left
+    /// behind by a caller that never returned, older than
+    /// `StreamingLifecycle.staleEndingClaimAge`, is dropped and logged.
     @MainActor
-    func dropStaleEndingClaim() {
-        guard collector.streamingLifecycle.dropStaleOvernightEnding() else { return }
-        debugLog("[RRCollector] ⚠️ An earlier night's ending never released its claim — dropped for the new night", level: .warning)
+    func refuseWhileEndingInProgress() throws {
+        switch collector.streamingLifecycle.clearEndingForNewNight() {
+        case .clear:
+            return
+        case let .droppedStale(ageSeconds):
+            debugLog("[RRCollector] ⚠️ An earlier night's ending never released its claim (held \(Int(ageSeconds / 60)) min) — dropped for the new night", level: .warning)
+        case .endingInProgress:
+            debugLog("[RRCollector] Not starting: an earlier night's ending is still in progress", level: .warning)
+            throw RRCollector.CollectorError.alreadyRecording
+        }
     }
 
     /// Start observing HealthKit for sleep data so we catch Apple Watch sync.
@@ -191,11 +206,15 @@ extension OvernightStreamingCoordinator {
 
     /// One 1 Hz overnight tick: elapsed clock, strap keep-alive, and the
     /// incremental backup (time-based, or forced by a detected reconnection).
+    /// The elapsed clock is the wall clock's (`streamingElapsedNow`), and the
+    /// battery is checked on the first tick of each 30 s of it, so a tick
+    /// missed while the app was suspended skips neither.
     @MainActor
     private func overnightStreamingTick() {
         guard collector.isOvernightStreaming, collector.streamingTimer != nil else { return }
-        collector.streamingElapsedSeconds += 1
-        if collector.streamingElapsedSeconds % 30 == 0 {
+        let previousElapsed = collector.streamingElapsedSeconds
+        collector.streamingElapsedSeconds = collector.streamingElapsedNow
+        if collector.streamingElapsedSeconds / 30 != previousElapsed / 30 {
             collector.polarManager.checkBatteryStaleness()
         }
         let currentReconnectCount = collector.polarManager.streamingReconnectCount
@@ -528,10 +547,11 @@ extension OvernightStreamingCoordinator {
     /// are placed on the night's clock.
     ///
     /// The Skip is this night's alone: it is cleared when the gate finishes
-    /// and again when the next night starts.
+    /// and again when the next night starts. So is the night's arming
+    /// (`overnightDeviceBackupActive`), which the gate reads and then clears.
     func fetchNightFromStrap(baseSession: HRVSession, streamingPoints: [RRPoint], isVeritySense: Bool) async -> [RRPoint]? {
         collector.polarManager.beginTransfer()
-        defer { collector.deviceFetchPolicy = .automatic }
+        defer { closeNightGate() }
         guard nightFetchAllowed(isVeritySense: isVeritySense) else {
             await collector.polarManager.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
             return nil
@@ -550,8 +570,23 @@ extension OvernightStreamingCoordinator {
         return recording.points(onClockOf: baseSession.startDate)
     }
 
+    /// The night's Skip and its arming are read once, by the gate: both are
+    /// reset when it finishes.
+    private func closeNightGate() {
+        collector.deviceFetchPolicy = .automatic
+        collector.overnightDeviceBackupActive = false
+    }
+
     /// The user's capture choice and the strap decide whether the night is
     /// downloaded at all.
+    ///
+    /// A night that never armed the strap holds no recording of its own
+    /// there, so it is not downloaded, and the strap is not reconnected for
+    /// it, unless the strap reports a recording running (the arming's answer
+    /// was lost, but the strap did start). Downloading anyway would stop a
+    /// recording that is not this night's and then report a strap copy of
+    /// the night that does not exist. A recording the strap does hold stays
+    /// on it, recoverable from the Record screen.
     private func nightFetchAllowed(isVeritySense: Bool) -> Bool {
         if collector.deviceFetchPolicy == .skipByUser {
             debugLog("[RRCollector] Device fetch skipped by user")
@@ -559,6 +594,8 @@ extension OvernightStreamingCoordinator {
             debugLog("[RRCollector] Skipping device fetch (capture mode: streaming only)")
         } else if isVeritySense {
             debugLog("[RRCollector] Skipping device fetch (Verity Sense uses streaming only)")
+        } else if !collector.overnightDeviceBackupActive, !collector.polarManager.isRecordingOnDevice {
+            debugLog("[RRCollector] Skipping device fetch (the strap was never armed for this night)", level: .warning)
         } else {
             return true
         }
@@ -782,6 +819,11 @@ extension OvernightStreamingCoordinator {
     /// Verity Sense or a tapped Skip fails on its stream rather than pulling
     /// a file the user did not ask for. A strap file that does exist stays on
     /// the strap, recoverable from the Record screen.
+    ///
+    /// A night that fails here has been shown as failed, so its recording
+    /// marker goes, as it does for a night the analysis failed
+    /// (`clearPersistedStateIfSaved`): the next launch must not offer it again
+    /// as interrupted. Its streamed beats stay in their backup.
     private func fallbackToDeviceFetch(
         baseSession: HRVSession,
         streamingPoints: [RRPoint],
@@ -793,7 +835,9 @@ extension OvernightStreamingCoordinator {
             baseSession: baseSession, streamingPoints: streamingPoints, isVeritySense: isVeritySense
         ), devicePoints.count >= Self.minimumUsableBeats else {
             debugLog("[RRCollector] Fallback: no usable device recording — recording failed")
-            return await failSession(from: baseSession)
+            let failed = await failSession(from: baseSession)
+            collector.clearPersistedRecordingState()
+            return failed
         }
         // Device data is primary on this path (it holds a usable night); the
         // selector only decides whether streaming can fill gaps in it.

@@ -15,10 +15,11 @@
  "units": [
   {
    "key": "func CollectorSessionControl.startStreamingSession(durationSeconds:)",
-   "hash": "1a9cd85067a4d9cd",
-   "does": "Starts a quick streaming reading: requires a connected strap that is neither streaming nor recording internally, creates a .quick HRVSession with streaming provenance, starts PolarManager streaming, resets quick-streaming state, persists the crash-recovery marker and starts the 1 Hz countdown timer.",
+   "hash": "4530ffb9f4e111a2",
+   "does": "Starts a quick streaming reading: refuses (alreadyRecording) while a night is paused or being ended, then requires a connected strap that is neither streaming nor recording internally, creates a .quick HRVSession with streaming provenance, starts PolarManager streaming, resets quick-streaming state, persists the crash-recovery marker and starts the 1 Hz countdown timer.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.requireConnectedWithNoNightHeld(starting:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreaming()",
@@ -27,6 +28,8 @@
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.startStreamingTimer()"
    ],
    "reads": [
+    "mem:StreamingLifecycle.isPaused",
+    "mem:StreamingLifecycle.isEndingOvernight",
     "mem:PolarManager.connectionState",
     "mem:PolarManager.isStreaming",
     "mem:PolarManager.isRecordingOnDevice"
@@ -38,21 +41,21 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "polarManager.connectionState == .connected",
-     "effect": "continues; else throws .notConnected"
+     "cond": "a night is paused or being ended, or the strap is not connected (requireConnectedWithNoNightHeld)",
+     "effect": "throws .alreadyRecording / .notConnected, nothing changed"
     },
     {
-     "at": "+5",
+     "at": "+3",
      "cond": "strap not streaming and not recording on device",
      "effect": "continues; else throws .alreadyRecording"
     },
     {
-     "at": "+10",
+     "at": "+8",
      "cond": "connectedDeviceId ?? \"unknown\"",
      "effect": "provenance deviceId falls back to 'unknown' when no id is known"
     },
     {
-     "at": "+11",
+     "at": "+9",
      "cond": "connectedDeviceType?.displayName ?? \"Polar device\"",
      "effect": "provenance model falls back to 'Polar device'"
     }
@@ -60,10 +63,10 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreaming()": "d153b9f71804fe63",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "819342ac0cbfaaea",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.requireConnectedWithNoNightHeld(starting:)": "a91decde2547df2c",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.resetStateForQuickStreaming(_:durationSeconds:)": "2eb5ee3e2aa163d8",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.startStreamingTimer()": "f1659827baaf2718",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
     "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
@@ -118,17 +121,18 @@
    "branches": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.streamingCountdownTick()": "26fe5d07bf1ad47d",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.streamingCountdownTick()": "0659fc20d3af11f9",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "59d78adaf5521ecb"
    }
   },
   {
    "key": "func CollectorSessionControl.streamingCountdownTick()",
-   "hash": "1b22b04d053d7f66",
-   "does": "One countdown tick: increments elapsed seconds, attempts an incremental raw backup of the current session, and once the reading is complete (quickReadingComplete: target reached with the minimum beats, or the extension used up) invalidates the timer, plays the completion alert and invokes collector.onStreamingComplete.",
+   "hash": "14a4683ca54352a7",
+   "does": "One countdown tick: sets elapsed seconds to the wall clock since the reading started (streamingElapsedNow), attempts an incremental raw backup of the current session, and once the reading is complete (quickReadingComplete: target reached with the minimum beats, or the extension used up) invalidates the timer, plays the completion alert and invokes collector.onStreamingComplete.",
    "entry": "Timer tick (1 Hz) from startStreamingTimer",
    "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingElapsedNow",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.runQuickStreamingBackup(session:)",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.playCompletionAlert()",
     "closure:RRCollector.onStreamingComplete — set by StreamingProgressPanel.installAutoCompleteHandler to its stopStreaming action",
@@ -137,6 +141,7 @@
    "reads": [
     "mem:StreamingLifecycle.isStreamingMode",
     "mem:RRCollector.streamingTimer",
+    "mem:RRCollector.sessionStartTime",
     "mem:StreamingLifecycle.streamingElapsedSeconds",
     "mem:StreamingLifecycle.streamingTargetSeconds",
     "mem:SessionState.currentSession"
@@ -169,6 +174,7 @@
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.playCompletionAlert()": "89ec477d591b3352",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.quickReadingComplete()": "6b677b5af25d78dc",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.runQuickStreamingBackup(session:)": "d12bb18a7854c25a",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingElapsedNow": "c2ab86f85e4002bc",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "59d78adaf5521ecb",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -587,6 +593,30 @@
      "at": "+1",
      "cond": "sessionStartTime non-nil",
      "effect": "wall-clock hours; nil: tick-counter hours"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410"
+   }
+  },
+  {
+   "key": "var RRCollector.streamingElapsedNow",
+   "hash": "64a1c77813deb822",
+   "does": "The elapsed seconds a 1 Hz streaming tick publishes: whole seconds of wall clock since sessionStartTime (clamped at 0), or streamingElapsedSeconds + 1 when there is no start time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds"
+   ],
+   "reads": [
+    "mem:RRCollector.sessionStartTime",
+    "mem:StreamingLifecycle.streamingElapsedSeconds"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sessionStartTime non-nil",
+     "effect": "wall-clock seconds; nil: the last value plus one"
     }
    ],
    "deps": {

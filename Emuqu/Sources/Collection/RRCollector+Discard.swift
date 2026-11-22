@@ -92,12 +92,10 @@ extension CollectorSessionControl {
     /// the recording is left exactly as it was (still recording, still
     /// recoverable) and the error is shown; returns false. While a night's
     /// ending is in progress the strap's recording is that night's, still to
-    /// be downloaded or saved, and nothing is touched; also false.
+    /// be downloaded or saved, and nothing is touched; also false. So is a
+    /// live workout's backup recording, with `alreadyRecording` shown.
     func discardDeviceRecording() async -> Bool {
-        guard !collector.streamingLifecycle.isEndingOvernight else {
-            debugLog("[RRCollector] 🗑 Not discarding the strap recording: a night's ending is in progress")
-            return false
-        }
+        guard !collector.strapRecordingIsHeldElsewhere("discarding") else { return false }
         let session = collector.currentSession
         debugLog("[RRCollector] 🗑 Discarding strap recording \(session?.id.uuidString.prefix(8) ?? "-")")
         do {

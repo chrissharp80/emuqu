@@ -9,6 +9,28 @@
  "toplevel": "",
  "units": [
   {
+   "key": "func SessionRecoveryMath.isResumedSegment(segmentId:segmentLinks:segmentEnd:parentId:parentLinks:parentPausedAt:)",
+   "hash": "4d12d3e31f6ae2a7",
+   "does": "True when the segment's first link is the parent, the parent's links contain the segment, the parent has a pause time and the segment ended after it: the shape a resume leaves. A paused night whose first link is its own resumed segment fails the order; a night listing a superseded sibling is not linked back.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "first link is not the parent, the parent does not list the segment, or the parent has no pause time",
+     "effect": "false"
+    },
+    {
+     "at": "+6",
+     "cond": "segment ended after the parent's pause",
+     "effect": "true; else false"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "func SessionRecoveryMath.makeRecoveredWorkoutReview(from:)",
    "hash": "15b54f09c0699f94",
    "does": "Builds a RecoveredWorkoutReview for a session: sport name (or localized 'Workout'), non-negative duration, distance (0 if none), and a safe integer average HR.",
