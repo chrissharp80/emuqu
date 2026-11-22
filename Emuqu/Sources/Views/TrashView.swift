@@ -252,15 +252,16 @@ struct TrashView: View {
         if let successMessage { showTransientStatus(successMessage) }
     }
 
-    /// One line for sessions still in the Trash, one for HRV samples still
-    /// in Apple Health; nil when everything went.
+    /// One line for sessions still in the Trash, one for what they exported
+    /// (heart rate, HRV, sleep, workouts) still in Apple Health; nil when
+    /// everything went.
     private static func failureMessage(for outcome: TrashDeletionOutcome) -> String? {
         var lines: [String] = []
         if outcome.kept > 0 {
             lines.append(String(localized: "\(outcome.kept) sessions could not be removed. Try again.", bundle: LanguageManager.appBundle))
         }
         if outcome.healthSamplesKept > 0 {
-            lines.append(String(localized: "Some HRV samples could not be deleted from Apple Health. Remove them in the Health app: tap your picture, then Privacy, then Apps and Services, then Emuqu.", bundle: LanguageManager.appBundle))
+            lines.append(String(localized: "Some of what this app wrote to Apple Health (heart rate, HRV, sleep or workouts) could not be deleted. Remove it in the Health app: tap your picture, then Privacy, then Apps and Services, then Emuqu.", bundle: LanguageManager.appBundle))
         }
         return lines.isEmpty ? nil : lines.joined(separator: "\n")
     }

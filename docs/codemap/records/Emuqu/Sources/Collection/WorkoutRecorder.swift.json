@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/WorkoutRecorder.swift",
- "hash": "c450e38c93339e69",
+ "hash": "89d0dad4d038d1e6",
  "role": "The @Observable @MainActor live-workout orchestrator: owns sub-observables (lifecycle, HR, motion), DFA analyzer, interval controller, dependencies (RecordingCore, location, pedometer, foot pod, Watch bridge, voice coach, conversation) and all per-workout mutable state; forwards lifecycle work to WorkoutSessionLifecycle. Also declares FootPodOdometer.",
  "types": [
   "WorkoutRecorder: class — live workout orchestrator",
@@ -31,6 +31,7 @@
   "mem:WorkoutRecorder.hrSubscription",
   "mem:WorkoutRecorder.lastIngestedPointCount",
   "mem:WorkoutRecorder.workoutSamples",
+  "mem:WorkoutRecorder.liveTrendTally (WorkoutLiveTrends.Tally of workoutSamples, @ObservationIgnored; synced on read)",
   "mem:WorkoutRecorder.hrFromWrist",
   "mem:WorkoutRecorder.wristHROffsets",
   "mem:WorkoutRecorder.trackBackupWatermark",
@@ -63,7 +64,7 @@
   "TrainingProjectionSnapshot.empty",
   "FootPodOdometer.baselineMeters/lastReadingMeters/bankedMeters"
  ],
- "toplevel": "Stored-property initializers construct WorkoutLifecycle(), WorkoutHR(), WorkoutMotion(), LiveDFAAnalyzer() (default 120 s window / 20 s cadence), IntervalController(), WorkoutPedometer(), TrackBackupWatermark(), TrackBackupRows(), LivePaceEstimator(), FootPodOdometer(), AutoPauseDetector() at recorder construction; caches start .empty/[]/nil/0.",
+ "toplevel": "Stored-property initializers construct WorkoutLifecycle(), WorkoutHR(), WorkoutMotion(), LiveDFAAnalyzer() (default 120 s window / 20 s cadence), IntervalController(), WorkoutPedometer(), TrackBackupWatermark(), TrackBackupRows(), WorkoutLiveTrends.Tally(), LivePaceEstimator(), FootPodOdometer(), AutoPauseDetector() at recorder construction; caches start .empty/[]/nil/0.",
  "units": [
   {
    "key": "var WorkoutRecorder.phase",

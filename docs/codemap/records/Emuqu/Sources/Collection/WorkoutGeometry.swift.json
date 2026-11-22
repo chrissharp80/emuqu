@@ -1,10 +1,11 @@
 {
  "file": "Emuqu/Sources/Collection/WorkoutGeometry.swift",
- "hash": "9cdc468cb049ab37",
+ "hash": "1cb29221f44720a6",
  "role": "Pure static geometry/physiology helpers used by the live workout path and fact resolvers: track length, nearest fix, local pace, route-index lookup, bearings and turn labels, %maxHR zone, breadcrumb decimation, km chunks and the trailing grade window.",
  "types": [
   "WorkoutGeometry: enum — namespace of pure static functions",
-  "WorkoutGeometry.SplitChunk: struct — distance span and sample offsets of one >=1 km chunk"
+  "WorkoutGeometry.SplitChunk: struct — distance span and sample offsets of one >=1 km chunk",
+  "WorkoutGeometry.ChunkFold: struct — kilometreChunks one sample at a time"
  ],
  "state": [],
  "toplevel": "No state; only type declarations.",
@@ -239,10 +240,12 @@
   },
   {
    "key": "func WorkoutGeometry.kilometreChunks(_:)",
-   "hash": "9ee58c96da622479",
+   "hash": "0e41b3549fea3489",
    "does": "Splits a sample series into consecutive chunks of >=1000 m cumulative distance, each with start/end distance and offsetSec; the trailing partial km is dropped; samples without distance are skipped.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.ChunkFold.add(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -255,6 +258,27 @@
      "at": "+5",
      "cond": "distanceMeters nil or < 1000 m past chunk start",
      "effect": "skips; otherwise closes a chunk and starts the next at this sample"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.ChunkFold.add(_:)": "95ea04a650e65541"
+   }
+  },
+  {
+   "key": "func WorkoutGeometry.ChunkFold.add(_:)",
+   "hash": "33bb60c0a7d1e47e",
+   "does": "Takes one sample into the kilometreChunks fold: a sample with a distance at least 1000 m past the chunk start closes a chunk (start/end distance and offsetSec) and starts the next at it; others change nothing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:ChunkFold.chunks/chunkStartDist/chunkStartSec"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "distanceMeters nil or < 1000 m past chunk start",
+     "effect": "returns, nothing changed"
     }
    ],
    "deps": {}

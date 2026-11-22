@@ -1,14 +1,15 @@
 {
  "file": "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift",
- "hash": "f4d288afe76792b7",
- "role": "Exports a finished Emuqu workout HRVSession to HealthKit as an HKWorkout via HKWorkoutBuilder, with per-tick heart rate (opt-in, not Apple-sourced), distance and net active-energy sample series placed on the wall clock around pauses, pause/resume workout events, and an optional GPS route. Every object it saves carries the session's identity as ExternalUUID and sync identifier with the export's sync version; an export first finds what earlier exports of the session saved (by identity, or a legacy copy by its start second) and deletes what HealthKit did not replace once the new copy is saved. Also deletes a session's exported workouts when the session is deleted forever.",
+ "hash": "b528dd445fed2848",
+ "role": "Exports a finished Emuqu workout HRVSession to HealthKit as an HKWorkout via HKWorkoutBuilder, with per-tick heart rate (opt-in, not Apple-sourced), distance and net active-energy sample series placed on the wall clock around pauses, pause/resume workout events, and an optional GPS route. Every object it saves carries the session's identity as ExternalUUID and sync identifier with the export's sync version; an export first finds what earlier exports of the session saved (by identity, or a legacy copy by its start second) and deletes what HealthKit did not replace once the new copy is saved. When Health refuses that read because the phone is locked, the workout is saved anyway and the session is noted (PendingWorkoutReplacements) so the next foreground backfill deletes every copy but the newest. Also deletes a session's exported workouts when the session is deleted forever.",
  "types": [
   "HealthKitWorkoutExport: enum — namespace of static export/removal + pure sample builders",
   "HealthKitWorkoutExport.ExportStamp: struct — session id + sync version; the identities and metadata of the workout, its route and its samples",
   "HealthKitWorkoutExport.EarlierExport: struct (@MainActor) — an earlier export's workouts and the samples/routes saved with them; find, match, delete",
   "HealthKitWorkoutExport.SampleOptions: struct — body weight + which series to write",
   "HealthKitWorkoutExport.ExportError: enum (LocalizedError) — missingRequiredFields / authorizationNotGranted / workoutNotSaved",
-  "WorkoutWallClock: struct — start date + pause spans sorted by atElapsed; maps active (pause-excluded) seconds to wall-clock Dates, tick intervals that never span a pause, and pause start/resume moments"
+  "WorkoutWallClock: struct — start date + pause spans sorted by atElapsed; maps active (pause-excluded) seconds to wall-clock Dates, tick intervals that never span a pause, and pause start/resume moments",
+  "PendingWorkoutReplacements: enum (@MainActor) — the sessions whose workout was saved while Health could not be read, by session id with the start time; note/clear/finish"
  ],
  "state": [
   "mem:HealthKitWorkoutExport.mlOxygenPerKgPerMET = 3.5 (private static let)",
@@ -16,27 +17,27 @@
   "mem:HealthKitWorkoutExport.restingMETs = 1.0 (private static let)",
   "mem:HealthKitWorkoutExport.minimumKcalPerSample = 0.01 (private static let)",
   "mem:HealthKitWorkoutExport.EarlierExport.searchPadding = 25 h (static let)",
-  "hk identities: '<uuid>-workout' (the workout), '<uuid>-workout-route', '<uuid>-workout-<hr|distance|energy>-<n>'"
+  "hk identities: '<uuid>-workout' (the workout), '<uuid>-workout-route', '<uuid>-workout-<hr|distance|energy>-<n>'",
+  "ud:hkPendingWorkoutReplacements ([uuidString: startDate seconds since 1970]; PendingWorkoutReplacements.key, swept by Delete All My Data)"
  ],
- "toplevel": "Constants for the ACSM kcal formula and the resting MET. After the enum, the file-scope struct WorkoutWallClock (stored startDate and sorted pauseSpans, no other top-level code).",
+ "toplevel": "Constants for the ACSM kcal formula and the resting MET. After the enum, the file-scope @MainActor enum PendingWorkoutReplacements (its UserDefaults key) and the struct WorkoutWallClock (stored startDate and sorted pauseSpans, no other top-level code).",
  "units": [
   {
    "key": "func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)",
-   "hash": "33bc8cb2146070bf",
-   "does": "Saves a finished workout session to HealthKit, replacing earlier exports of it: requires workoutMetadata and endDate and workout write authorization; finds the earlier exports (EarlierExport.find, fail closed); builds and finishes an HKWorkout under a fresh ExportStamp with the sample series sampleOptions chooses; attaches the GPS route (none for a HealthKit-sourced session); then deletes what the earlier exports saved, keeping objects whose sync identifier the new export reused (HealthKit replaced them); logs success. Throws ExportError, builder, query or delete errors to the caller; a failed delete throws after the new workout is saved.",
+   "hash": "14600f873e37f35a",
+   "does": "Saves a finished workout session to HealthKit, replacing earlier exports of it: requires workoutMetadata and endDate and workout write authorization; finds the earlier exports (EarlierExport.findUnlessLocked: nil when the phone is locked, any other read failure throws); builds and finishes an HKWorkout under a fresh ExportStamp with the sample series sampleOptions chooses; attaches the GPS route (none for a HealthKit-sourced session); then deletes what the earlier exports saved, keeping objects whose sync identifier the new export reused (HealthKit replaced them), and logs success (replaceEarlier). Saved while the earlier exports could not be read, replaceEarlier notes the session for the next backfill (PendingWorkoutReplacements.note), logs, and deletes nothing. Throws ExportError, builder, query or delete errors to the caller; a failed delete throws after the new workout is saved.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.findUnlessLocked(sessionId:startDate:in:)",
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.saveWorkout(metadata:startDate:endDate:samples:stamp:store:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRouteToSavedWorkout(session:metadata:workout:stamp:store:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.routeIdentity",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.writesWorkoutHeartRate",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:HKObjectType.workoutType"
+    "ext:HKObjectType.workoutType",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.replaceEarlier(_:keeping:of:sport:in:)"
    ],
    "reads": [
     "hk:HKWorkout and its samples/route (own source, earlier exports)",
@@ -48,7 +49,8 @@
     "hk:distanceWalkingRunning/distanceCycling",
     "hk:activeEnergyBurned",
     "hk:HKWorkoutRoute",
-    "hk:earlier exports of the session (deleted)"
+    "hk:earlier exports of the session (deleted)",
+    "ud:hkPendingWorkoutReplacements (when the earlier exports could not be read)"
    ],
    "branches": [
     {
@@ -63,48 +65,91 @@
     },
     {
      "at": "+15",
-     "cond": "the earlier-export lookup fails or times out",
+     "cond": "the earlier-export lookup fails or times out for a reason other than a locked phone",
      "effect": "throws; nothing saved"
     },
     {
-     "at": "+22",
+     "at": "+15",
+     "cond": "Health refuses the lookup because the phone is locked",
+     "effect": "continues with no earlier exports; the workout is still saved"
+    },
+    {
+     "at": "+23",
      "cond": "route saved",
      "effect": "its identity kept out of the delete"
     },
     {
-     "at": "+23",
-     "cond": "deleting an earlier object fails",
-     "effect": "throws, the new workout saved"
+     "at": "+24",
+     "cond": "no earlier exports were read (locked), in replaceEarlier",
+     "effect": "the session noted in PendingWorkoutReplacements, nothing deleted now"
     },
     {
      "at": "+24",
+     "cond": "deleting an earlier object fails, in replaceEarlier",
+     "effect": "throws, the new workout saved"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)": "dc7538c29edef3aa",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.findUnlessLocked(sessionId:startDate:in:)": "4e158348548fcf24",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRouteToSavedWorkout(session:metadata:workout:stamp:store:)": "c4a6fcb8a475ea4d",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "76a0ccf485ca3adf",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.replaceEarlier(_:keeping:of:sport:in:)": "54a9cb8158f57e88",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "90ab8655c5d66a52",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.saveWorkout(metadata:startDate:endDate:samples:stamp:store:)": "57a8d43cdb283297",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.routeIdentity": "3cc50591e1d408c1",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.writesWorkoutHeartRate": "2605e0e80c4a21af"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.replaceEarlier(_:keeping:of:sport:in:)",
+   "hash": "dad6d58d618097e4",
+   "does": "After an export saved the session's workout: deletes what the earlier exports saved except the objects whose sync identifier is in `keeping` (HealthKit replaced them) and logs the saved workout with its sport, duration and how many earlier workouts it replaced. With no earlier exports read (the phone was locked), notes the session for the next backfill (PendingWorkoutReplacements.note), logs, and deletes nothing. Delete errors propagate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.note(sessionId:startDate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:earlier exports of the session (deleted)",
+    "ud:hkPendingWorkoutReplacements (when none were read)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no earlier exports were read",
+     "effect": "notes the session, logs, returns"
+    },
+    {
+     "at": "+9",
+     "cond": "deleting an earlier object fails",
+     "effect": "throws"
+    },
+    {
+     "at": "+10",
      "cond": "session.duration nil (?? 0)",
      "effect": "log prints duration 0s"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)": "dc7538c29edef3aa",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)": "42fde0c19bdd2767",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)": "b01e3fee14e4c6a6",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.attachRouteToSavedWorkout(session:metadata:workout:stamp:store:)": "c4a6fcb8a475ea4d",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "76a0ccf485ca3adf",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.sampleOptions(for:bodyWeightKg:writesHeartRate:)": "90ab8655c5d66a52",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.saveWorkout(metadata:startDate:endDate:samples:stamp:store:)": "57a8d43cdb283297",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "bc29b4aba81078e2",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.ExportStamp.routeIdentity": "3cc50591e1d408c1",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::var HealthKitWorkoutExport.writesWorkoutHeartRate": "2605e0e80c4a21af",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.note(sessionId:startDate:)": "5a5439aa33a8e53f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func HealthKitWorkoutExport.removeExports(sessionId:startDate:healthKit:)",
-   "hash": "d42d14263cebceb1",
-   "does": "For a session deleted forever: finds every workout the app exported for it (EarlierExport.find from the recording's start) with the samples and routes saved with each, and deletes them all; logs how many workouts went. Without HealthKit it does nothing; lookup and delete errors propagate.",
+   "hash": "623e50471355a256",
+   "does": "For a session deleted forever: finds every workout the app exported for it (EarlierExport.find from the recording's start) with the samples and routes saved with each, deletes them all, and drops the session from the pending locked-save cleanups (PendingWorkoutReplacements.clear); logs how many workouts went. Without HealthKit it does nothing; lookup and delete errors propagate (the pending entry then stays).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.clear(sessionId:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -112,7 +157,8 @@
     "mem:HealthKitManager.sampleReplacer.store"
    ],
    "writes": [
-    "hk:the session's exported workouts, samples and routes (deleted)"
+    "hk:the session's exported workouts, samples and routes (deleted)",
+    "ud:hkPendingWorkoutReplacements (its entry removed)"
    ],
    "branches": [
     {
@@ -125,6 +171,7 @@
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)": "42fde0c19bdd2767",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)": "b01e3fee14e4c6a6",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.clear(sessionId:)": "dabe032afd871030",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -211,12 +258,13 @@
   },
   {
    "key": "func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
-   "hash": "3b1d4086beaf7a48",
+   "hash": "9b98404aff18de20",
    "does": "Reads this app's workouts within ±25 h of `startDate` (store.ownSamples, background aggregate timeout, fail closed) and keeps those isEarlierExport matches; then, for each, reads the app's samples of every type a workout export attaches (HealthKitManager.workoutExportSampleTypes: heart rate, active energy, both distances, routes) saved with it. Returns the workouts and those samples; any read error or timeout throws.",
    "entry": null,
    "calls": [
     "dyn:HealthSampleStore.ownSamples(of:in:)",
     "dyn:HealthSampleStore.ownSamples(of:savedWith:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.searchSpan(around:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.isEarlierExport(externalUUID:startDate:sessionId:sessionStart:)",
     "ext:HKObjectType.workoutType"
    ],
@@ -240,7 +288,129 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "2f3f27aa0cd39f4d",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.isEarlierExport(externalUUID:startDate:sessionId:sessionStart:)": "e4f75bb994fe9e27"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.isEarlierExport(externalUUID:startDate:sessionId:sessionStart:)": "e4f75bb994fe9e27",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.searchSpan(around:)": "f0e5c287545b3f24"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.EarlierExport.findAfterLockedSave(sessionId:startDate:in:)",
+   "hash": "651c25e814b838fb",
+   "does": "What find returns, plus this app's samples of every workout export type (HealthKitManager.workoutExportSampleTypes) in the same ±25 h span whose ExternalUUID is a member of the session's workout series (isSeriesMember) and that find did not already return (by HKObject uuid): a workout saved without find replaced the earlier one through its sync identifier, so what that one held beyond the new copy's samples is no longer saved with any workout. Read errors and timeouts throw.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
+    "dyn:HealthSampleStore.ownSamples(of:in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.searchSpan(around:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.isSeriesMember(_:of:)"
+   ],
+   "reads": [
+    "hk:HKWorkout (own source) and the samples saved with each (through find)",
+    "hk:heartRate/activeEnergyBurned/distance/HKWorkoutRoute of the session's workout series (own source, ±25 h)",
+    "mem:HealthKitManager.workoutExportSampleTypes (static)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "a sample is not a member of the session's workout series",
+     "effect": "left out"
+    },
+    {
+     "at": "+9",
+     "cond": "a sample find already returned",
+     "effect": "left out, so nothing is deleted twice"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "2f3f27aa0cd39f4d",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)": "b01e3fee14e4c6a6",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.isSeriesMember(_:of:)": "fccb8206e57985b9",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.searchSpan(around:)": "f0e5c287545b3f24"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.EarlierExport.isSeriesMember(_:of:)",
+   "hash": "ac6af2fb83042c46",
+   "does": "Whether a sample's ExternalUUID is a member of the session's workout series (HealthExportIdentity.isSeriesMember, metric .workout); false without an ExternalUUID.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no ExternalUUID",
+     "effect": "false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)": "dfc4221bee8720ff"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.EarlierExport.searchSpan(around:)",
+   "hash": "ca64fdf557da76f0",
+   "does": "The span find and findAfterLockedSave search: searchPadding (25 h) either side of `startDate`.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:EarlierExport.searchPadding"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthKitWorkoutExport.EarlierExport.findUnlessLocked(sessionId:startDate:in:)",
+   "hash": "86b772723f95abe6",
+   "does": "find, or nil when Health refuses the read because protected data is locked (isLockedRead: errorDatabaseInaccessible, which a Watch- or lock-screen-initiated stop meets while writes still go through), with a warning log. Every other error is thrown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.isLockedRead(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:as find"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "find throws errorDatabaseInaccessible",
+     "effect": "logs a warning, returns nil"
+    },
+    {
+     "at": "+4",
+     "cond": "find throws anything else",
+     "effect": "rethrows"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.find(sessionId:startDate:in:)": "b01e3fee14e4c6a6",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.isLockedRead(_:)": "4f4d8ca46d71ed11",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.EarlierExport.isLockedRead(_:)",
+   "hash": "ed708ffe69ef3fb2",
+   "does": "Whether an error is HealthKit's refusal to read while the phone is locked: HKErrorDomain with code errorDatabaseInaccessible.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "domain HKErrorDomain and code errorDatabaseInaccessible",
+     "effect": "true; else false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693"
    }
   },
   {
@@ -305,6 +475,33 @@
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.syncIdentifier(of:)": "5a7a5b433a98884b",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.byType(_:)": "bac5d2c59fcf325e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.EarlierExport.deleteSuperseded(from:)",
+   "hash": "b6d6433668c3500b",
+   "does": "Deletes everything found except the objects of the newest export: the highest sync version (HealthExportIdentity.syncVersion) any found workout or sample carries; objects with a lower version or none (saved before sync identifiers) go, through delete(keeping:) with the newest objects' sync identifiers. Deletes nothing when no found object carries a version (the newest copy is not among them). Delete errors propagate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.syncVersion(of:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.syncIdentifier(of:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:superseded workouts, samples and routes of the session (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no found object carries a sync version",
+     "effect": "returns, nothing deleted"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.syncIdentifier(of:)": "5a7a5b433a98884b",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.syncVersion(of:)": "5f8d61ac02f3e78a",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.delete(keeping:from:)": "42fde0c19bdd2767"
    }
   },
   {
@@ -915,6 +1112,145 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
+   "key": "func PendingWorkoutReplacements.pending()",
+   "hash": "a19e8f777eb27b25",
+   "does": "The sessions still to clean up: the UserDefaults dictionary under hkPendingWorkoutReplacements as [session uuidString: start seconds since 1970], empty when absent or of another shape.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:hkPendingWorkoutReplacements"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func PendingWorkoutReplacements.note(sessionId:startDate:)",
+   "hash": "5aa3d34fd5f580cb",
+   "does": "Adds (or replaces) the session's entry with its start time, so the next backfill deletes the copies its locked save could not.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()"
+   ],
+   "reads": [
+    "ud:hkPendingWorkoutReplacements"
+   ],
+   "writes": [
+    "ud:hkPendingWorkoutReplacements"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()": "a3de3836df8c4ecf"
+   }
+  },
+  {
+   "key": "func PendingWorkoutReplacements.clear(sessionId:)",
+   "hash": "964911426391973c",
+   "does": "Removes the session's entry; writes nothing when it had none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()"
+   ],
+   "reads": [
+    "ud:hkPendingWorkoutReplacements"
+   ],
+   "writes": [
+    "ud:hkPendingWorkoutReplacements"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no entry for the session",
+     "effect": "returns without writing"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()": "a3de3836df8c4ecf"
+   }
+  },
+  {
+   "key": "func PendingWorkoutReplacements.finish(in:)",
+   "hash": "ab31796abf2d70ca",
+   "does": "For each pending session: an entry whose key is not a UUID is dropped (forget); a session another export holds (HealthExportClaims.claim fails) is left for the next call; otherwise, under the claim, finds its exports with the series left without a workout (EarlierExport.findAfterLockedSave), deletes all but the newest (deleteSuperseded) and clears the entry. A read or delete that fails is logged and the entry kept for the next call. The claim is released after each session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.forget(_:)",
+    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)",
+    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.findAfterLockedSave(sessionId:startDate:in:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.deleteSuperseded(from:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.clear(sessionId:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:hkPendingWorkoutReplacements",
+    "hk:the pending sessions' workouts, samples and routes (own source)",
+    "mem:HealthExportClaims.claimed"
+   ],
+   "writes": [
+    "hk:superseded copies of the pending sessions' workouts (deleted)",
+    "ud:hkPendingWorkoutReplacements",
+    "mem:HealthExportClaims.claimed (claim and release)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each pending entry",
+     "effect": "handled in turn"
+    },
+    {
+     "at": "+3",
+     "cond": "key is not a UUID",
+     "effect": "entry dropped, next"
+    },
+    {
+     "at": "+7",
+     "cond": "another export holds the session",
+     "effect": "skipped, entry kept"
+    },
+    {
+     "at": "+12",
+     "cond": "found and deleted",
+     "effect": "entry cleared"
+    },
+    {
+     "at": "+15",
+     "cond": "a read or delete throws",
+     "effect": "warning log, entry kept"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)": "e893db4f613ebe89",
+    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)": "1b5b0fdc46896c07",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.deleteSuperseded(from:)": "645af581e4d1bbf8",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.EarlierExport.findAfterLockedSave(sessionId:startDate:in:)": "d76533fcd4b38843",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.clear(sessionId:)": "dabe032afd871030",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.forget(_:)": "ef766e620e6767c1",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()": "a3de3836df8c4ecf",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func PendingWorkoutReplacements.forget(_:)",
+   "hash": "1e1343c22cf7d412",
+   "does": "Removes the entry under a raw key (one that is not a session id) and writes the dictionary back.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()"
+   ],
+   "reads": [
+    "ud:hkPendingWorkoutReplacements"
+   ],
+   "writes": [
+    "ud:hkPendingWorkoutReplacements"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.pending()": "a3de3836df8c4ecf"
    }
   },
   {

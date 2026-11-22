@@ -1,6 +1,7 @@
 import Foundation
 // `@preconcurrency`: HealthKit query and anchor types predate Sendable.
 @preconcurrency import HealthKit
+import os
 
 /// The half of HealthKit that writes and watches, rather than reads: exporting
 /// SDNN and windowed HRV back to Health, writing sleep, deleting what this app
@@ -266,7 +267,11 @@ final class HealthSampleReplacer {
 ///
 /// An `HKObserverQuery` hears each change, and fires once when it starts.
 /// Each time, an `HKAnchoredObjectQuery` reads what was added since the
-/// anchor kept for `anchorKey`, which is stored across launches, so samples
+/// anchor kept for `anchorKey`. One read per anchor runs at a time: a fire
+/// during it (another change, or a restarted observer's first fire) has the
+/// read run once more when it ends, from the anchor it kept. Overlapping
+/// reads delivered the same samples twice, and one answering last could put
+/// back the older anchor. The anchor is stored across launches, so samples
 /// that arrived while the app was not running are delivered on the next
 /// launch, a background one included. Without a stored anchor the read
 /// covers the last two days. The app's own samples are left out: they are
@@ -291,16 +296,68 @@ enum HealthSampleWatch {
             if let error {
                 debugLog("[HealthSampleWatch] \(type.identifier) observer failed: \(error.localizedDescription)", level: .warning)
             } else if let store {
-                readAdded(of: type, anchorKey: anchorKey, store: store, deliver: deliver)
+                requestRead(of: type, anchorKey: anchorKey, store: store, deliver: deliver)
             }
             completion()
         }
     }
 
+    /// One read per anchor key at a time.
+    struct ReadGate: Sendable {
+        /// The reads under way, by key: true when a request came during one.
+        private let reads = OSAllocatedUnfairLock<[String: Bool]>(initialState: [:])
+
+        /// True when the caller starts the read for `key`. False when one is
+        /// under way: that one then runs once more when it ends.
+        func claimRead(_ key: String) -> Bool {
+            reads.withLock { reads in
+                guard reads[key] == nil else {
+                    reads[key] = true
+                    return false
+                }
+                reads[key] = false
+                return true
+            }
+        }
+
+        /// The read for `key` ended. True when a request came during it and
+        /// `canRerun`: the caller runs it again, as the one under way. Else the
+        /// key is free.
+        func finishRead(_ key: String, canRerun: Bool = true) -> Bool {
+            reads.withLock { reads in
+                guard reads[key] == true, canRerun else {
+                    reads[key] = nil
+                    return false
+                }
+                reads[key] = false
+                return true
+            }
+        }
+    }
+
+    private static let readGate = ReadGate()
+
+    /// Starts the read for `anchorKey` unless one is under way (`ReadGate`).
+    private static func requestRead(
+        of type: HKSampleType, anchorKey: String, store: HKHealthStore, deliver: @escaping @Sendable ([HKSample]) -> Void
+    ) {
+        guard readGate.claimRead(anchorKey) else { return }
+        readAdded(of: type, anchorKey: anchorKey, store: store, deliver: deliver)
+    }
+
+    /// The read for `anchorKey` ended: it runs again when a fire came during
+    /// it and the store is still there.
+    private static func readEnded(
+        of type: HKSampleType, anchorKey: String, store: HKHealthStore?, deliver: @escaping @Sendable ([HKSample]) -> Void
+    ) {
+        guard readGate.finishRead(anchorKey, canRerun: store != nil), let store else { return }
+        readAdded(of: type, anchorKey: anchorKey, store: store, deliver: deliver)
+    }
+
     /// Reads the samples of `type` added since the stored anchor, keeps the
     /// new anchor, and hands other sources' samples to `deliver` when there
-    /// are any. A failed read keeps the old anchor, so the next one reads the
-    /// same samples again.
+    /// are any, then ends the read (`readEnded`). A failed read keeps the old
+    /// anchor, so the next one reads the same samples again.
     private static func readAdded(
         of type: HKSampleType, anchorKey: String, store: HKHealthStore, deliver: @escaping @Sendable ([HKSample]) -> Void
     ) {
@@ -308,7 +365,8 @@ enum HealthSampleWatch {
         let recent = anchor == nil
             ? HKQuery.predicateForSamples(withStart: Date().addingTimeInterval(-48 * 60 * 60), end: nil, options: [])
             : nil
-        let query = HKAnchoredObjectQuery(type: type, predicate: recent, anchor: anchor, limit: HKObjectQueryNoLimit) { _, added, _, newAnchor, error in
+        let query = HKAnchoredObjectQuery(type: type, predicate: recent, anchor: anchor, limit: HKObjectQueryNoLimit) { [weak store] _, added, _, newAnchor, error in
+            defer { readEnded(of: type, anchorKey: anchorKey, store: store, deliver: deliver) }
             if let error {
                 debugLog("[HealthSampleWatch] \(type.identifier) read failed: \(error.localizedDescription)", level: .info)
                 return

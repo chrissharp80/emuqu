@@ -348,16 +348,19 @@ final class HealthKitManager {
     /// since the last clean (failed==0) backfill, judged by the count AND the
     /// newest workout's date: deleting one workout and recording another
     /// leaves the count alone, but not the newest date.
+    ///
+    /// First, before the watermark: a workout saved while the phone was
+    /// locked has its earlier copies deleted (`PendingWorkoutReplacements`).
     @discardableResult
     func backfillWorkoutsToHealthKit(
         archive: SessionArchive,
         bodyWeightKg: Double
     ) async -> (exported: Int, skipped: Int, failed: Int) {
         guard isHealthKitAvailable, workoutWriteAuthorized else { return (0, 0, 0) }
+        await PendingWorkoutReplacements.finish(in: sampleReplacer.store)
         let candidates = archive.entries.filter { $0.sessionType == .workout }
-        let defaults = UserDefaults.standard
         let watermark = Self.backfillWatermark(candidates)
-        if defaults.string(forKey: Self.backfillWatermarkKey) == watermark {
+        if UserDefaults.standard.string(forKey: Self.backfillWatermarkKey) == watermark {
             return (0, candidates.count, 0)
         }
         reportDeniedWorkoutSampleTypes()
@@ -369,7 +372,7 @@ final class HealthKitManager {
         // Advance the watermark only when nothing failed, so failed sessions
         // are retried next foreground (until the retry ceiling skips them).
         if tally.failed == 0 {
-            defaults.set(watermark, forKey: Self.backfillWatermarkKey)
+            UserDefaults.standard.set(watermark, forKey: Self.backfillWatermarkKey)
         }
         debugLog("[HealthKitManager] backfill complete — exported=\(tally.exported) skipped=\(tally.skipped) failed=\(tally.failed) of \(candidates.count) candidates")
         return tally
@@ -538,11 +541,15 @@ final class HealthKitManager {
 
     /// Only the stamp, onto the copy as stored now: the export takes a
     /// moment, and writing back the copy read before it undid an edit or a
-    /// heart-rate-recovery save made meanwhile. The stamp is uploaded to
-    /// iCloud with the session, so another device, or this one after a
-    /// reinstall, does not export the workout again.
-    private static func writeExportStamp(_ id: UUID, at exportedAt: Date, archive: SessionArchive) throws {
-        try archive.update(id) {
+    /// heart-rate-recovery save made meanwhile. A routine stamp: it asks for
+    /// no re-upload and leaves `modifiedAt` alone, so this device's copy,
+    /// which may predate an edit made on another device, cannot overwrite
+    /// that edit in iCloud. The stamp rides the session's next real upload,
+    /// and a pull keeps it (`CloudKitSessionFreshness.replacing`); the sync
+    /// identifiers already stop a second device's export from duplicating
+    /// the workout in Health.
+    static func writeExportStamp(_ id: UUID, at exportedAt: Date, archive: SessionArchive) throws {
+        try archive.update(id, requestingReupload: false) {
             $0.healthKitExportedAt = exportedAt
             $0.healthKitExportFailureCount = nil
         }
