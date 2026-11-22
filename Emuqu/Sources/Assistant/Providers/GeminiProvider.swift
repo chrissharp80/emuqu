@@ -396,10 +396,15 @@ final class GeminiProvider: KeyedCloudProvider, Sendable {
     /// A chunk that says the prompt was blocked (`promptFeedback.blockReason`
     /// with no candidates) as an error, so a blocked reply does not end as an
     /// empty success. Nil for any other chunk.
+    ///
+    /// Every block reason (`SAFETY`, `BLOCKLIST`, `PROHIBITED_CONTENT`,
+    /// `OTHER` …) is Gemini's safety system turning the request down, so it
+    /// is `AIProviderError.blockedReply` like the safety finish reasons: the
+    /// refusal is shown and the request is not sent on to another provider.
     private static func blockedPrompt(in json: [String: Any]) -> AIProviderError? {
         guard json["candidates"] == nil,
               let reason = (json["promptFeedback"] as? [String: Any])?["blockReason"] as? String else { return nil }
-        return .invalidResponse("Gemini blocked the request (\(reason))")
+        return .blockedReply(provider: .gemini, reason: reason)
     }
 
     /// The `candidates[0].content.parts` array, or empty when the chunk

@@ -213,6 +213,59 @@ final class ConversationStoreTests: XCTestCase {
         XCTAssertEqual(makeStore().load().map(\.text), ["turn-0", "turn-1"])
     }
 
+    // MARK: - Summary
+
+    /// A defaults domain of the test's own, so nothing reaches the app's.
+    private func makeDefaults() throws -> UserDefaults {
+        let name = "ConversationStoreTests-\(UUID().uuidString)"
+        addTeardownBlock { @MainActor in UserDefaults.standard.removePersistentDomain(forName: name) }
+        return try XCTUnwrap(UserDefaults(suiteName: name))
+    }
+
+    private var summaryFileURL: URL { tempDir.appendingPathComponent("conversation_summary.json") }
+
+    /// The summary restates the conversation (injuries, medications), so it is
+    /// sealed beside the history like it, not left in plain defaults.
+    func testSummaryIsSealedAtRestAndRoundTrips() throws {
+        let defaults = try makeDefaults()
+        let store = makeStore()
+        store.saveSummary("Runner with a sore left knee, taking ibuprofen.")
+        waitUntil("the summary to be written") { FileManager.default.fileExists(atPath: summaryFileURL.path) }
+
+        let raw = try Data(contentsOf: summaryFileURL)
+        XCTAssertNil(raw.range(of: Data("ibuprofen".utf8)), "The summary must not be readable on disk")
+        XCTAssertEqual(makeStore().loadSummary(migratingFrom: defaults, key: "summary"), "Runner with a sore left knee, taking ibuprofen.")
+    }
+
+    /// A summary an older build left in defaults moves into the sealed file
+    /// and leaves defaults.
+    func testPlainSummaryInDefaultsIsMovedIntoTheSealedFile() throws {
+        let defaults = try makeDefaults()
+        defaults.set("Training for a marathon.", forKey: "summary")
+
+        XCTAssertEqual(makeStore().loadSummary(migratingFrom: defaults, key: "summary"), "Training for a marathon.")
+
+        XCTAssertNil(defaults.string(forKey: "summary"))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: summaryFileURL.path))
+        XCTAssertEqual(makeStore().loadSummary(migratingFrom: defaults, key: "summary"), "Training for a marathon.")
+    }
+
+    /// Clear erases the summary with the history, and the chat only reads as
+    /// gone once both are.
+    func testClearErasesTheSummary() throws {
+        let defaults = try makeDefaults()
+        let store = makeStore()
+        store.saveSummary("Summary text.")
+        waitUntil("the summary to be written") { FileManager.default.fileExists(atPath: summaryFileURL.path) }
+        XCTAssertFalse(store.isEmptyOnDisk(), "A stored summary still holds the conversation")
+
+        XCTAssertTrue(store.clear())
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: summaryFileURL.path))
+        XCTAssertNil(store.loadSummary(migratingFrom: defaults, key: "summary"))
+        XCTAssertTrue(store.isEmptyOnDisk())
+    }
+
     /// A plain history written by a build that did not seal it still loads,
     /// and the next save replaces it sealed.
     func testPlainHistoryLoadsAndIsResealedOnTheNextSave() throws {

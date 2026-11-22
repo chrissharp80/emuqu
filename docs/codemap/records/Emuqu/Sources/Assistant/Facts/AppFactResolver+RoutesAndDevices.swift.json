@@ -210,8 +210,8 @@
   },
   {
    "key": "var RoutesLibraryNamespace.routesLibraryRenameEntry",
-   "hash": "4261ef178560e251",
-   "does": "Action entry 'routes.library.rename' (current_name, new_name) calling resolveRoutesLibraryRename.",
+   "hash": "d9a1dc935bb34384",
+   "does": "Action entry 'routes.library.rename' (current_name, new_name) calling resolveRoutesLibraryRename; the description says a new name not in the user's own latest message first returns confirmation_required.",
    "entry": "fact closure runs when the LLM calls tool 'routes.library.rename' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)",
@@ -221,28 +221,32 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.resolveRoutesLibraryRename(_:)": "c913a98e24f4d892",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.resolveRoutesLibraryRename(_:)": "34a6cc86b632835d",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "96217c66f5b84d41",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
    }
   },
   {
    "key": "func RoutesLibraryNamespace.resolveRoutesLibraryRename(_:)",
-   "hash": "792d220c10b1893a",
-   "does": "Validates current_name/new_name, refuses with libraryUnreadable's .missing while the library can't be read (before any change), finds exactly one saved route whose name matches case-insensitively, and renames it.",
+   "hash": "da39fa1ebc338a65",
+   "does": "Validates current_name/new_name, refuses with libraryUnreadable's .missing while the library can't be read (before any change), finds exactly one saved route whose name matches case-insensitively, then asks first (renameUnconfirmed) unless the new name is the user's own words or they confirmed it, and renames it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.ambiguousRoute(name:matches:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renamed(_:to:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renamed(_:to:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renameUnconfirmed(_:to:)"
    ],
    "reads": [
-    "mem:SavedRouteStore.routes"
+    "mem:SavedRouteStore.routes",
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantActionConfirmations.pending"
    ],
    "writes": [
     "mem:SavedRouteStore.routes",
-    "file:saved_routes.json"
+    "file:saved_routes.json",
+    "mem:AssistantActionConfirmations.pending"
    ],
    "branches": [
     {
@@ -263,14 +267,43 @@
     {
      "at": "+13",
      "cond": "match count != 1",
-     "effect": "returns ambiguousRoute (0 → notRecorded, >1 → invalidParameter); otherwise renames"
+     "effect": "returns ambiguousRoute (0 → notRecorded, >1 → invalidParameter)"
+    },
+    {
+     "at": "+16",
+     "cond": "renameUnconfirmed returns an answer (new name not stated, not confirmed)",
+     "effect": "returns it; nothing renamed; else renamed(...)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.ambiguousRoute(name:matches:)": "6fd5aa45a6bdbdf5",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "8ce66ce9a369bbce",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.libraryUnreadable()": "3b9db459e397c16e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renamed(_:to:)": "6aad98759b2d3eaa"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renameUnconfirmed(_:to:)": "a8b307feac573153",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.renamed(_:to:)": "ed4369835111d114"
+   }
+  },
+  {
+   "key": "func RoutesLibraryNamespace.renameUnconfirmed(_:to:)",
+   "hash": "c85dc16f2d29fb3b",
+   "does": "On the main actor: DestructiveActionContext.live.gateUnlessUserStated([new], action routes.library.rename, target '<route id> <new>', question 'Rename your route \"<old>\" to \"<new>\"? Reply yes to confirm.'): nil when the new name is the user's own words or they confirmed it, else the answer telling the model to ask first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)",
+    "ext:MainActor.assumeIsolated"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "writes": [
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "fa5e4ee2a83fe2df",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live": "fba34d98abddbf6a"
    }
   },
   {

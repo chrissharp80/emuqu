@@ -91,6 +91,26 @@
    }
   },
   {
+   "key": "func HallucinationFeedbackTests.testClearingDropsPendingAndDeliveredCorrections()",
+   "hash": "aca8bbe5d46089c7",
+   "does": "With one correction delivered to a prompt and another pending, clearCorrections leaves no reminder for the next prompt.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.pendingCorrectionsBlock()",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.clearCorrections()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.clearCorrections()": "da814cecd83b6969",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.pendingCorrectionsBlock()": "b712acc089226fa2",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "504750e4ad75b523",
+    "EmuquTests/HallucinationFeedbackTests.swift::func wholeRange(_:)": "9f1e5eff4a202794"
+   }
+  },
+  {
    "key": "func HallucinationFeedbackTests.testRecordMultipleInOneBatch()",
    "hash": "44695a8a0b63eb70",
    "does": "Records HR and pace discrepancies in one batch and asserts both claims and actuals are in the block.",

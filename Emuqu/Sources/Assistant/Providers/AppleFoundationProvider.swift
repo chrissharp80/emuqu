@@ -101,7 +101,9 @@ final class AppleFoundationProvider: AIProvider {
             let toolCatalogHash: String
             /// Turns in the transcript a fresh session would be sent.
             let conversationLength: Int
-            let previousReplyWasApple: Bool
+            /// The question and Apple reply just before the new question,
+            /// as the chat holds them; nil when there is none.
+            let previousExchange: AppleExchange?
             /// Estimated tokens of the instructions and tool descriptions.
             let prefixTokens: Int
             /// Estimated tokens of the prompt a reused session would be sent.
@@ -129,6 +131,9 @@ final class AppleFoundationProvider: AIProvider {
             private var toolSignature: String = ""
             private var turnsSinceCreation: Int = 0
             private var ledger = AppleContextCompactor.SessionLedger(prefixTokens: 0)
+            /// The question the cached session last answered and the reply it
+            /// generated. Nil until it has answered one.
+            private var lastExchange: AppleExchange?
 
             /// A session for the request. When the lease is fresh the caller
             /// must send the compacted transcript so the new session learns
@@ -140,9 +145,15 @@ final class AppleFoundationProvider: AIProvider {
             /// construction time, and their hash is part of the signature, so
             /// a tool-list change starts a fresh session.
             ///
-            /// `previousReplyWasApple` is false when the turn before the new
-            /// question was answered by another provider (Auto routing): the
-            /// cached session never saw that exchange.
+            /// The session is reused only when the conversation still ends the
+            /// way the session remembers it: the exchange before the new
+            /// question is the one it last answered, word for word. Not when
+            /// another provider answered it (Auto routing), when the reply was
+            /// regenerated (the session still holds the discarded answer and
+            /// would be asked the same question again), or when the reply
+            /// was changed after it was generated (the output perimeter or
+            /// the number check rewrote it, or the cap trimmed it): a fresh
+            /// session is sent the transcript as the user sees it.
             func lease(for request: SessionRequest) -> SessionLease {
                 let budget = ledger.followUpToolBudget(
                     promptTokens: request.followUpPromptTokens, perCallCap: request.perCallCap
@@ -159,11 +170,15 @@ final class AppleFoundationProvider: AIProvider {
 
             /// Charges a finished turn to the ledger of the session that ran
             /// it, if that session is still the cached one.
+            /// `exchange` is the question the turn answered and the reply it
+            /// generated, which the next lease compares with the chat.
             func record(
-                _ used: LanguageModelSession, promptTokens: Int, toolTokens: Int, replyTokens: Int
+                _ used: LanguageModelSession, promptTokens: Int, toolTokens: Int, replyTokens: Int,
+                exchange: AppleExchange?
             ) {
                 guard used === session else { return }
                 ledger.charge(promptTokens: promptTokens, toolTokens: toolTokens, replyTokens: replyTokens)
+                lastExchange = exchange
             }
 
             /// Whether everything but the window allows reusing the session.
@@ -172,7 +187,8 @@ final class AppleFoundationProvider: AIProvider {
                     && request.toolCatalogHash == toolSignature
                     && turnsSinceCreation < Self.maxTurnsPerSession
                     && request.conversationLength > 1 // not the first message of a new thread
-                    && request.previousReplyWasApple
+                    && request.previousExchange != nil
+                    && request.previousExchange == lastExchange
             }
 
             /// Build a session and make it the cached one.
@@ -189,6 +205,7 @@ final class AppleFoundationProvider: AIProvider {
                 toolSignature = request.toolCatalogHash
                 turnsSinceCreation = 1
                 ledger = AppleContextCompactor.SessionLedger(prefixTokens: request.prefixTokens)
+                lastExchange = nil
                 return s
             }
 
@@ -200,6 +217,7 @@ final class AppleFoundationProvider: AIProvider {
                 instructionsSignature = ""
                 turnsSinceCreation = 0
                 ledger = AppleContextCompactor.SessionLedger(prefixTokens: 0)
+                lastExchange = nil
             }
 
             /// Hash a signature that ignores volatile lines. Two calls
@@ -330,6 +348,11 @@ final class AppleFoundationProvider: AIProvider {
             /// it uses the session cache and the tool dispatcher. Anything else
             /// runs on a one-off session with no tools.
             let isChatTurn: Bool
+            /// The exchange before the latest question, from the chat's
+            /// history (not the compacted transcript, which may cut it).
+            let previousExchange: AppleExchange?
+            /// The latest question's turn id.
+            let latestQuestionID: UUID?
         }
 
         /// The instructions are Apple's own short prompt rebuilt from the
@@ -371,7 +394,8 @@ final class AppleFoundationProvider: AIProvider {
             return TurnPlan(
                 instructions: instructions, tools: tools, transcript: transcript,
                 allowance: allowance, toolTokens: toolTokens, prefixTokens: fixedTokens, allToolCount: allTools.count,
-                isChatTurn: isChatTurn
+                isChatTurn: isChatTurn, previousExchange: AppleExchange.before(latestQuestionIn: messages),
+                latestQuestionID: messages.last { $0.role == .user }?.id
             )
         }
 
@@ -407,7 +431,8 @@ final class AppleFoundationProvider: AIProvider {
             let toolTokens = await dispatcher?.toolTokensSpent ?? 0
             await sharedCache.record(
                 lease.session, promptTokens: AppleContextCompactor.estimateTokens(promptText),
-                toolTokens: toolTokens, replyTokens: AppleContextCompactor.estimateTokens(reply)
+                toolTokens: toolTokens, replyTokens: AppleContextCompactor.estimateTokens(reply),
+                exchange: plan.latestQuestionID.map { AppleExchange(questionID: $0, reply: reply) }
             )
             continuation.yield(.done)
         }
@@ -443,7 +468,7 @@ final class AppleFoundationProvider: AIProvider {
             SessionRequest(
                 instructions: plan.instructions, tools: appleTools(for: plan.tools),
                 toolCatalogHash: hashToolCatalog(plan.tools), conversationLength: plan.transcript.count,
-                previousReplyWasApple: plan.transcript.dropLast().last?.providerID == .apple,
+                previousExchange: plan.previousExchange,
                 prefixTokens: plan.prefixTokens,
                 followUpPromptTokens: AppleContextCompactor.estimateTokens(followUp),
                 perCallCap: plan.allowance.perCallCap
@@ -647,6 +672,32 @@ final class AppleFoundationProvider: AIProvider {
             .unknown(String(localized: "Apple Intelligence couldn't answer that. Try again, or ask it another way.", bundle: LanguageManager.appBundle))
         }
     #endif
+}
+
+// MARK: - Session continuity
+
+/// A question and the Apple reply to it, as `AppleFoundationProvider`'s
+/// session cache compares them: the question's turn id and the reply text,
+/// trimmed. Equal only when the chat still holds exactly what the cached
+/// session generated for exactly that question.
+struct AppleExchange: Equatable, Sendable {
+    let questionID: UUID
+    let reply: String
+
+    init(questionID: UUID, reply: String) {
+        self.questionID = questionID
+        self.reply = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// The question and Apple reply just before the latest question in
+    /// `messages`, or nil when the turn before it is not an Apple reply to a
+    /// question.
+    static func before(latestQuestionIn messages: [ChatTurn]) -> AppleExchange? {
+        let history = messages.dropLast()
+        guard let reply = history.last, reply.role == .assistant, reply.providerID == .apple,
+              let question = history.dropLast().last, question.role == .user else { return nil }
+        return AppleExchange(questionID: question.id, reply: reply.text)
+    }
 }
 
 // MARK: - Reply length

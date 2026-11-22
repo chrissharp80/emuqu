@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift",
- "hash": "7120bcf43dbc07b3",
+ "hash": "f39151448aedad85",
  "role": "Tap-to-talk dictation for the chat input bar: Apple SFSpeechRecognizer (on-device required) fed from an AVAudioEngine tap, with audio-session claims via AudioSessionCoordinator.",
  "types": [
   "SpeechInputManager: final class (@Observable @MainActor) — one dictation recorder owned by ChatInputBar @State",
@@ -10,7 +10,10 @@
   "mem:SpeechInputManager.transcript/isRecording/lastError (@Observable)",
   "mem:SpeechInputManager.isStarting (@ObservationIgnored: start() suspended on permissions)",
   "mem:SpeechInputManager.engine (lazy AVAudioEngine)",
-  "mem:AudioSessionCoordinator claim .dictation"
+  "mem:AudioSessionCoordinator claim .dictation",
+  "mem:SpeechInputManager.finalResultWaiter (continuation a stop() waits on)",
+  "mem:SpeechInputManager.finalResultWaits (count of stop() waits)",
+  "mem:SpeechInputManager.finalResultTimeout = 1.5 s"
  ],
  "toplevel": "engine is a lazy AVAudioEngine created on first start().",
  "units": [
@@ -218,40 +221,48 @@
   },
   {
    "key": "func SpeechInputManager.handleRecognition(result:error:)",
-   "hash": "6c8a6fe8fd11f252",
-   "does": "Recognition callback: publishes the best transcription to transcript on the main actor; a non-benign error (not 203/216/301) ends the recording on the main actor via endRecording(failure:).",
+   "hash": "074c27b23d6e0489",
+   "does": "Recognition callback: reads the best transcription, whether the result is final, and a non-benign error text (not 203/216/301), then on the main actor publishes the transcription to transcript, ends the recording through endRecording(failure:) for a non-benign error, and, when the result was final or any error arrived, lets a waiting stop() return (resumeFinalResultWaiter).",
    "entry": "SFSpeechRecognitionTask result handler",
    "calls": [
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.endRecording(failure:)"
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.endRecording(failure:)",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.resumeFinalResultWaiter(onlyWait:)"
    ],
    "reads": [],
    "writes": [
-    "mem:SpeechInputManager.transcript"
+    "mem:SpeechInputManager.transcript",
+    "mem:SpeechInputManager.finalResultWaiter"
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+5",
      "cond": "result present",
-     "effect": "set transcript on MainActor"
+     "effect": "set transcript"
     },
     {
-     "at": "+5",
-     "cond": "error nil or code 203/216/301",
-     "effect": "return; else endRecording(failure:) with the error text"
+     "at": "+6",
+     "cond": "error other than 203/216/301",
+     "effect": "endRecording(failure:) with its text"
+    },
+    {
+     "at": "+7",
+     "cond": "final result or any error",
+     "effect": "resume a waiting stop()"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.endRecording(failure:)": "56926249015808ac"
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.endRecording(failure:)": "4c0dfacceb71b07d",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.resumeFinalResultWaiter(onlyWait:)": "b0c18be35aa569a0"
    }
   },
   {
    "key": "func SpeechInputManager.endRecording(failure:)",
-   "hash": "0fc1b8913825a6c5",
-   "does": "Stores the failure text in lastError and calls stop(), which turns the mic off, releases the audio claim, clears isRecording and keeps the transcript so far.",
+   "hash": "04f59a1b5919f256",
+   "does": "Stores the failure text in lastError; when recording, stops capture (stopCapture: mic off, audio claim released) and clears isRecording, keeping the transcript so far.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()"
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stopCapture()"
    ],
    "reads": [],
    "writes": [
@@ -259,33 +270,81 @@
     "mem:SpeechInputManager.isRecording",
     "mem:AudioSessionCoordinator claims"
    ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()": "fa2b9b6187823abb"
-   }
-  },
-  {
-   "key": "func SpeechInputManager.stop()",
-   "hash": "88dca47ee8b37ec2",
-   "does": "If recording: removes tap, stops engine, ends audio, finishes task, releases the session if idle, clears isRecording and returns transcript; otherwise returns current transcript.",
-   "entry": "mic button tap while recording",
-   "calls": [
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:SpeechInputManager.isRecording",
-    "mem:AudioSessionCoordinator claims"
-   ],
    "branches": [
     {
      "at": "+2",
      "cond": "not recording",
+     "effect": "only lastError is set"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stopCapture()": "df73978c4ab7872a"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.stop()",
+   "hash": "47771e0241ecfc85",
+   "does": "Async. If recording and no stop is already waiting: stops capture (stopCapture), then waits until the recognizer's final result or an error arrives (handleRecognition) or finalResultTimeout passes (scheduleFinalResultTimeout), so the last words are in transcript; then clears isRecording and returns transcript. isRecording stays true while it waits. Otherwise returns the transcript so far at once. Discardable result.",
+   "entry": "mic button tap while recording (ChatInputBar.toggleDictation)",
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stopCapture()",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.scheduleFinalResultTimeout(for:)",
+    "ext:withCheckedContinuation"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SpeechInputManager.isRecording",
+    "mem:SpeechInputManager.finalResultWaiter",
+    "mem:SpeechInputManager.finalResultWaits",
+    "mem:AudioSessionCoordinator claims"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not recording, or a stop is already waiting",
      "effect": "return transcript without touching audio"
     }
    ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.scheduleFinalResultTimeout(for:)": "3a628b2a1a287c65",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stopCapture()": "df73978c4ab7872a"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.scheduleFinalResultTimeout(for:)",
+   "hash": "6e80e292d5221d7d",
+   "does": "After finalResultTimeout on the main queue, resumes the waiting stop() only if `wait` is still the latest wait (resumeFinalResultWaiter(onlyWait:)), so an earlier stop's timer cannot end a later one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.resumeFinalResultWaiter(onlyWait:)",
+    "ext:DispatchQueue.main.asyncAfter",
+    "ext:MainActor.assumeIsolated"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SpeechInputManager.finalResultWaiter"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.resumeFinalResultWaiter(onlyWait:)": "b0c18be35aa569a0"
+   }
+  },
+  {
+   "key": "func SpeechInputManager.stopCapture()",
+   "hash": "3c81683aabd22056",
+   "does": "Removes the tap, stops the engine, ends the request's audio, finishes (not cancels) the recognition task so it still delivers its final result, and releases the audio session if idle.",
+   "entry": null,
+   "calls": [
+    "c FRSafeRemoveTap",
+    "c FRSafeAudioEngineStop",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AudioSessionCoordinator claims"
+   ],
+   "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "6c0254444e6494ee",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16daaf0af55b8047",
@@ -293,24 +352,50 @@
    }
   },
   {
+   "key": "func SpeechInputManager.resumeFinalResultWaiter(onlyWait:)",
+   "hash": "46c3d81f3482d4ef",
+   "does": "Resumes and clears finalResultWaiter (a no-op when none waits); with onlyWait, only when that wait number is still the latest.",
+   "entry": null,
+   "calls": [
+    "ext:CheckedContinuation.resume"
+   ],
+   "reads": [
+    "mem:SpeechInputManager.finalResultWaits"
+   ],
+   "writes": [
+    "mem:SpeechInputManager.finalResultWaiter"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "onlyWait given and a later wait has started",
+     "effect": "return without resuming"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "func SpeechInputManager.cancel()",
-   "hash": "a1c96f7d0c64ee89",
-   "does": "Removes tap, stops engine, ends audio, cancels task, releases session if idle, clears transcript and isRecording.",
+   "hash": "df9082e175d7dfd5",
+   "does": "Removes tap, stops engine, ends audio, cancels task, releases session if idle, clears transcript and isRecording, and lets a waiting stop() return (with the cleared transcript).",
    "entry": "ChatInputBar.stopDictationIfRecording (view disappear/send)",
    "calls": [
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()"
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.resumeFinalResultWaiter(onlyWait:)"
    ],
    "reads": [],
    "writes": [
     "mem:SpeechInputManager.transcript",
     "mem:SpeechInputManager.isRecording",
+    "mem:SpeechInputManager.finalResultWaiter",
     "mem:AudioSessionCoordinator claims"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "6c0254444e6494ee",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.resumeFinalResultWaiter(onlyWait:)": "b0c18be35aa569a0",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeAudioEngineStop": "16daaf0af55b8047",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "8ecf514bc5109cd5"
    }

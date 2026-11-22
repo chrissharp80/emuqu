@@ -132,7 +132,9 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             key: "routes.library.rename",
             description: """
             [ACTION] Rename one of the user's saved routes. ONLY call this when the user explicitly asks for a rename and supplies the new name in the current turn — never on inference. Matches `current_name` case-insensitively. Errors \
-            if no route matches, or if multiple routes share that name (saved-route names aren't unique). Returns a confirmation record with the old + new name on success.
+            if no route matches, or if multiple routes share that name (saved-route names aren't unique). Returns a confirmation record with the old + new name on success. When new_name is not in the user's own words \
+            from their latest message, the first call renames nothing and returns status=confirmation_required with an ask_user question: ask it and end your reply; call again with the same arguments only if their next message \
+            is a plain yes.
             """,
             parameters: [
                 ActionParam("current_name", "The exact current name of the saved route to rename (case-insensitive). Example: 'Daily 1'."),
@@ -157,7 +159,20 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         guard matches.count == 1 else {
             return ambiguousRoute(name: current, matches: matches.count)
         }
-        return renamed(matches[0], to: new)
+        return renameUnconfirmed(matches[0], to: new) ?? renamed(matches[0], to: new)
+    }
+
+    /// The answer asking the user first when `new` is not in their own latest
+    /// message (`DestructiveActionContext.gateUnlessUserStated`), else nil. A
+    /// name the model took from what it read (a web page, a contact's notes)
+    /// is shown to the user before it replaces theirs.
+    private func renameUnconfirmed(_ target: SavedRoute, to new: String) -> FactValue? {
+        MainActor.assumeIsolated {
+            AssistantMemoryNamespace.DestructiveActionContext.live.gateUnlessUserStated(
+                [new], action: "routes.library.rename", target: "\(target.id.uuidString) \(new)",
+                question: "Rename your route \"\(target.name)\" to \"\(new)\"? Reply yes to confirm."
+            )
+        }
     }
 
     private func renamed(_ target: SavedRoute, to new: String) -> FactValue {
