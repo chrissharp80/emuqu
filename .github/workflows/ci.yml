@@ -532,6 +532,11 @@ jobs:
       SCHEME: Emuqu
       PROJECT: Emuqu.xcodeproj
       RESULT_BUNDLE: build/TestResults.xcresult
+      # xcodebuild hands TEST_RUNNER_-prefixed variables to the test process
+      # without the prefix. A snapshot that fails or is recorded writes its
+      # render there (SnapshotTesting.keepRender), and the folder is uploaded
+      # below, so the render can be inspected and, once checked, committed.
+      TEST_RUNNER_SNAPSHOT_RENDER_DIR: ${{ github.workspace }}/build/SnapshotRenders
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -559,6 +564,14 @@ jobs:
         with:
           name: test-results-xcresult
           path: ${{ env.RESULT_BUNDLE }}
+          if-no-files-found: ignore
+
+      - name: Upload snapshot renders
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        with:
+          name: snapshot-renders
+          path: build/SnapshotRenders
           if-no-files-found: ignore
 
       - name: Write the result to the run summary

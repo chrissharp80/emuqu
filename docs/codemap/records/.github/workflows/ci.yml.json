@@ -1259,8 +1259,8 @@
   },
   {
    "key": "job tests",
-   "hash": "2637ca5a4815b431",
-   "does": "macOS-26 job 'Tests + coverage' (timeout 180). Sets TEST_SCOPE=full when scope is full, otherwise unit, plus SCHEME/PROJECT/RESULT_BUNDLE. Steps: checkout, Xcode 26.6, resolve simulator, run_tests_with_coverage.sh, upload xcresult (the Release build is its own job, release-build). Skipped for gates scope. In unit scope the overall and logic floors are reported but not gated (SKIP_OVERALL_COVERAGE/SKIP_LOGIC_COVERAGE); the Views floor (.ci/min_coverage_views.txt) is gated in both scopes, which the job's comment now states.",
+   "hash": "c39ed0f7ca6f1c29",
+   "does": "macOS-26 job 'Tests + coverage' (timeout 180). Sets TEST_SCOPE=full when scope is full, otherwise unit, plus SCHEME/PROJECT/RESULT_BUNDLE and TEST_RUNNER_SNAPSHOT_RENDER_DIR (build/SnapshotRenders, which the test process reads as SNAPSHOT_RENDER_DIR). Steps: checkout, Xcode 26.6, resolve simulator, run_tests_with_coverage.sh, upload xcresult, upload snapshot renders (the Release build is its own job, release-build). Skipped for gates scope. In unit scope the overall and logic floors are reported but not gated (SKIP_OVERALL_COVERAGE/SKIP_LOGIC_COVERAGE); the Views floor (.ci/min_coverage_views.txt) is gated in both scopes, which the job's comment now states.",
    "entry": "GitHub Actions job in ci.yml, conditional on inputs.scope",
    "calls": [
     ".github/workflows/ci.yml::step tests/Checkout",
@@ -1288,6 +1288,7 @@
     ".github/workflows/ci.yml::step tests/Resolve simulator destination": "76314b58ffd91039",
     ".github/workflows/ci.yml::step tests/Run tests with coverage": "cb5ae02e2af749f1",
     ".github/workflows/ci.yml::step tests/Select Xcode": "4350c52f2517b31f",
+    ".github/workflows/ci.yml::step tests/Upload snapshot renders": "038a6cc8ef2a0031",
     ".github/workflows/ci.yml::step tests/Upload test results": "5be7717a14575bbf",
     ".github/workflows/ci.yml::step tests/Write the result to the run summary": "6e28e0a89505b30b",
     "scripts/run_tests_with_coverage.sh::": "768cb177fd4ba5ba",
@@ -1370,6 +1371,25 @@
      "at": "+1",
      "cond": "always()",
      "effect": "runs even after earlier step failure or cancellation; if-no-files-found: ignore means no bundle → no error"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "step tests/Upload snapshot renders",
+   "hash": "66b9cb2c88a94967",
+   "does": "Uploads build/SnapshotRenders (the renders of snapshots that failed or were recorded) as artifact snapshot-renders (actions/upload-artifact v7.0.0 pinned); no folder is ignored.",
+   "entry": "Step of ci.yml tests job",
+   "calls": [
+    "ext:actions/upload-artifact"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "always()",
+     "effect": "runs even after a failed test step; if-no-files-found: ignore, so no renders is no error"
     }
    ],
    "deps": {}

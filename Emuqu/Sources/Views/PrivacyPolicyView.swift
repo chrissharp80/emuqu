@@ -156,7 +156,7 @@ struct PrivacyPolicyView: View {
     }
 
     /// What goes to iCloud. Keep in step with `UserSettings.iCloudSyncEnabled`
-    /// (off by default), `CloudKitSyncManager+Push` and `CloudKitSyncSupport`:
+    /// (off by default), `CloudKitSyncManager+Push` and `CloudSessionPayload`:
     /// both payloads are encrypted by `CloudPayloadCodec`, and every reading
     /// taken from Apple Health is left out of them (`CloudSessionPayload`);
     /// the scores computed from those readings travel.

@@ -540,7 +540,7 @@ struct TrashDeletionOutcome: Equatable, Sendable {
     /// Sessions something of which could not be removed from this device;
     /// they stay in the Trash.
     var kept = 0
-    /// Sessions removed from this device whose HRV samples could not be
-    /// deleted from Apple Health.
+    /// Sessions removed from this device whose Apple Health exports (heart
+    /// rate, HRV, sleep or workouts) could not all be deleted.
     var healthSamplesKept = 0
 }
