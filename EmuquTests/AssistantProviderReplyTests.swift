@@ -223,9 +223,9 @@ final class AppleExchangeTests: XCTestCase {
 
 @MainActor
 final class LLMRequestAuditResponseTests: XCTestCase {
-    override func tearDown() {
+    override func tearDown() async throws {
         LLMRequestAudit.shared.clear()
-        super.tearDown()
+        try await super.tearDown()
     }
 
     /// A streamed reply keeps its full text up to the cap plus the slack,
