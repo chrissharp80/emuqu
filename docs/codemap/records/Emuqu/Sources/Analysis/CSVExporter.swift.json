@@ -238,8 +238,8 @@
   },
   {
    "key": "func CSVExporter.trackpointRow(fix:cumulative:session:samples:units:iso:)",
-   "hash": "c66e81b1d82a46f6",
-   "does": "Formats one CSV row: ISO timestamp, wall-clock seconds from start, lat/lon (6dp), altitude and cumulative distance in user units, and HR/pace/cadence/METs/power/DFA α1 from the sample nearest the fix on the pause-excluded sample clock (sample(at:of:in:); within 5 s, empty cells otherwise).",
+   "hash": "715f8559a96e49ba",
+   "does": "Formats one CSV row: ISO timestamp, wall-clock seconds from start, lat/lon (6dp), altitude (empty when the fix has no altitude, negative vertical accuracy) and cumulative distance in user units, and HR/pace/cadence/METs/power/DFA α1 from the sample nearest the fix on the pause-excluded sample clock (sample(at:of:in:); within 5 s, empty cells otherwise).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.sample(at:of:in:)"
@@ -248,6 +248,11 @@
    "writes": [],
    "branches": [
     {
+     "at": "+16",
+     "cond": "fix.verticalAccuracy >= 0",
+     "effect": "altitude cell; else ''"
+    },
+    {
      "at": "+18",
      "cond": "matched sample has heartRate",
      "effect": "HR cell else ''"
@@ -255,7 +260,7 @@
     {
      "at": "+19",
      "cond": "matched has paceSecPerKm",
-     "effect": "pace in sec per user unit (%.0f) else ''"
+     "effect": "pace else ''"
     },
     {
      "at": "+20",
@@ -265,7 +270,7 @@
     {
      "at": "+21",
      "cond": "matched has mets",
-     "effect": "METs %.1f else ''"
+     "effect": "METs else ''"
     },
     {
      "at": "+22",
@@ -275,7 +280,7 @@
     {
      "at": "+25",
      "cond": "matched has alpha1",
-     "effect": "α1 %.3f else '' (most rows empty since α1 is ~20 s cadence)"
+     "effect": "α1 else ''"
     }
    ],
    "deps": {

@@ -73,21 +73,42 @@ final class BeatConsistencyPriorsCache {
     /// effectively never ready. Persisting to disk means that walk happens AT
     /// MOST ONCE EVER per session; every later open (this launch or a future
     /// one) loads tiny precomputed features and the baseline is instant.
+    ///
+    /// `_v2`: features are now computed on the beats' clock with successive
+    /// differences only between neighbouring beats, so features cached by
+    /// earlier builds are not comparable and are not read (`removeLegacyFiles`).
     private let diskURL: URL = {
         let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
-        return dir.appendingPathComponent("beat_consistency_priors.json")
+        return dir.appendingPathComponent("beat_consistency_priors_v2.json")
     }()
 
-    /// Sibling file for `featureless`, so the old features file keeps its
+    /// Sibling file for `featureless`, so the features file keeps its
     /// format.
     private var featurelessURL: URL {
-        diskURL.deletingLastPathComponent().appendingPathComponent("beat_consistency_priors_featureless.json")
+        diskURL.deletingLastPathComponent().appendingPathComponent("beat_consistency_priors_v2_featureless.json")
     }
 
+    /// The files of builds that computed the features the earlier way. They
+    /// are removed rather than read, so a baseline never mixes features of
+    /// two methods; the walk recomputes each night once.
+    private static let legacyFileNames = ["beat_consistency_priors.json", "beat_consistency_priors_featureless.json"]
+
     private init() {
+        removeLegacyFiles()
         loadFromDisk()
         loadFeaturelessFromDisk()
+    }
+
+    /// Deletes the earlier builds' feature files (`legacyFileNames`); a
+    /// failure is logged and leaves them, unread.
+    private func removeLegacyFiles() {
+        let dir = diskURL.deletingLastPathComponent()
+        for name in Self.legacyFileNames {
+            let url = dir.appendingPathComponent(name)
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+            attempt("beatConsistencyPriors.removeLegacy") { try FileManager.default.removeItem(at: url) }
+        }
     }
 
     /// Wire up the archive-change listener once the collector exists.
@@ -307,13 +328,18 @@ final class BeatConsistencyPriorsCache {
 
     /// Score one night's beat consistency. Nil when the session carries no RR
     /// series, or when too few windows were valid for it to feed the baseline.
+    /// The sleep window is placed on the beats' clock
+    /// (`BeatConsistency.sleepWindowOnBeatClock`), as the scored night's is.
     nonisolated private static func baselineFeatures(from prior: HRVSession) -> BeatConsistency.Features? {
         guard let series = prior.rrSeries, !series.points.isEmpty else { return nil }
+        let sleep = BeatConsistency.sleepWindowOnBeatClock(
+            sleepStartMs: prior.sleepStartMs, sleepEndMs: prior.sleepEndMs, series: series, sessionStart: prior.startDate
+        )
         let result = BeatConsistency.score(
             rr: series.points,
             flags: prior.artifactFlags ?? [],
-            sleepStartMs: prior.sleepStartMs ?? 0,
-            sleepEndMs: prior.sleepEndMs ?? Int64(series.durationMs),
+            sleepStartMs: sleep.startMs,
+            sleepEndMs: sleep.endMs,
             baseline: nil
         )
         // Only nights with enough valid windows feed the baseline.

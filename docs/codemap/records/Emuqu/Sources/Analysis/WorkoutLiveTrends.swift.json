@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift",
- "hash": "9b53a19f03820aa1",
+ "hash": "0132b85069def8c0",
  "role": "Stateless math for live/historical workout analytics: mid-workout trend metrics (reverse split, HR drift, decoupling, HR slope, cadence drift, grade-adjusted pace, time-to-fade), live time-in-zone, Riegel race predictions, Daniels-style pace zones, Banister load projection/recovery time, and cross-workout history baselines.",
  "types": [
   "WorkoutLiveTrends: enum — namespace of trend functions over [WorkoutSample]",
@@ -11,7 +11,8 @@
   "RecoveryTimeEstimate: enum — hours until TSB>=0 at rest",
   "TrainingLoadProjection: enum — forward ATL/CTL/TSB projection using TrainingLoadSeries.Point.stepped",
   "TrainingLoadProjection.Day: struct — projected day",
-  "WorkoutHistoryBaselines: struct — sport-matched averages of pace/HR/alpha1 across recent archived workouts"
+  "WorkoutHistoryBaselines: struct — sport-matched averages of pace/HR/alpha1 across recent archived workouts",
+  "HRVSession: extension — activeWorkoutSeconds (moving time: duration less recorded pauses)"
  ],
  "state": [
   "mem:WorkoutLiveTrends.halfMetricsMinSeconds=600 (const)",
@@ -350,13 +351,15 @@
   },
   {
    "key": "func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
-   "hash": "61dca7ae4cf225ef",
-   "does": "Bins each sample's time delta (offset minus previous offset, first sample measured from 0) into the HR zone of that sample (fraction of userMaxHR); samples without HR or below 50 % max add nothing. Returns per-zone seconds, total, and the zone with the most seconds; on a tie the LOWER zone wins because Sequence.max(by:) keeps the first maximal element.",
+   "hash": "c3a9be03acc0bfe0",
+   "does": "Bins each sample's time delta (offset minus previous offset, first sample measured from 0, capped at Alpha1ReportCards.maxSampleGapSec, 5 s, so a dropout or pause is not credited) into the HR zone of that sample (fraction of userMaxHR); samples without HR or below 50 % max add nothing. Returns per-zone seconds, total, and the zone with the most seconds; on a tie the LOWER zone wins.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:Alpha1ReportCards.maxSampleGapSec"
+   ],
    "writes": [],
    "branches": [
     {
@@ -367,7 +370,7 @@
     {
      "at": "+4",
      "cond": "for each sample",
-     "effect": "accumulate dt=max(0,offset-prev)"
+     "effect": "accumulate dt=min(max(0,offset-prev), 5)"
     },
     {
      "at": "+7",
@@ -428,6 +431,27 @@
    "deps": {}
   },
   {
+   "key": "var HRVSession.activeWorkoutSeconds",
+   "hash": "5c91755a4ffc67b5",
+   "does": "A workout's moving time: duration less the seconds of its recorded pauses (WorkoutMetadata.pauseSpans), floored at 0; nil without a positive duration. Read by pace comparisons and race predictions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no positive duration",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e"
+   }
+  },
+  {
    "key": "func RaceTimePrediction.predict(from:sport:now:)",
    "hash": "c4d3eb69080af3a6",
    "does": "Predicted seconds per standard distance; strips the basis from predictWithBasis.",
@@ -471,7 +495,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "6a6354d0b7249a0c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "91de0fb7d877ce60",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)": "3f2b99adfbed514d"
    }
   },
@@ -488,10 +512,12 @@
   },
   {
    "key": "func RaceTimePrediction.candidatePool(from:sport:now:)",
-   "hash": "23713c2aa4e2a0bf",
-   "does": "Builds Basis list from sessions of matching sport with duration>0 and distance>=3000 m; returns those from the last 90 days, or all of them if none are recent.",
+   "hash": "cefc978840877723",
+   "does": "Builds Basis list from sessions of matching sport with moving time (activeWorkoutSeconds) > 0 and distance>=3000 m; returns those from the last 90 days, or all of them if none are recent.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var HRVSession.activeWorkoutSeconds"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -506,7 +532,9 @@
      "effect": "return all-history pool; else recent pool"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var HRVSession.activeWorkoutSeconds": "f8d4254af1c71134"
+   }
   },
   {
    "key": "func TrainingPaceZones.from5KPace(secPerKm:)",
@@ -668,16 +696,18 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)": "9e38aed1b6346fac",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)": "e8bfac2f8474eb6f",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)": "89b402bdee65ab11"
    }
   },
   {
    "key": "func WorkoutHistoryBaselines.distanceWeightedPace(_:)",
-   "hash": "efd3e902c006250d",
-   "does": "Sum of durations over sum of distances (sec/km) across sessions with distance>100 m and duration>60 s.",
+   "hash": "4b8fe9ce19a01f43",
+   "does": "Sum of moving times (activeWorkoutSeconds) over sum of distances (sec/km) across sessions with distance>100 m and moving time>60 s.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var HRVSession.activeWorkoutSeconds"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -697,7 +727,9 @@
      "effect": "return pace; else nil"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var HRVSession.activeWorkoutSeconds": "f8d4254af1c71134"
+   }
   },
   {
    "key": "func WorkoutHistoryBaselines.sampleWeightedAverages(_:)",

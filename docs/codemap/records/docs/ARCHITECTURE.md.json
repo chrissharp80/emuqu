@@ -1871,7 +1871,7 @@
    "does": "Says per-subsystem behaviour: LiveDFAAnalyzer 2-min window every 20 s with a +/-20% Kubios-style filter (cleanRRForDFA); WorkoutAlpha1Reanalyzer replays the pipeline; TopoElevationService (Services/, through the HTTPTransport it is given) NED 10 m then SRTM 30 m with a 15 m climb threshold; WebSearchService not @MainActor, its request awaited through its HTTPTransport; HRRCaptureService 120 s capture with strap/Watch/HealthKit tiers, strap streaming kept alive through the capture window so Tier 1 has strap data; LiveWorkoutBroker treats snapshots >12 s as nil; RouteLibrary.findMatch after ~500 m, both directions, <=30 m mean distance, routes in App Group saved_routes.json with legacy migration; WeatherService MET Norway with >=10 min between requests, 30-min TTL, 5 km refetch; RoadGeocodingService 15 m/60 s, 8 failures/30 s, 600 ms per-climb pacing; Concept2Manager PM5 0x0031/0x0032/0x0036 with power outside 1-1500 W dropped; FootPodManager RSC 0x1814 plus FTMS 0x1826/0x2AD2; ZwiftPeripheralBroadcaster 0x180D/0x1818 gated by enableZwiftBroadcast; WorkoutThreshold debounce 30 s / cooldown 120 s with Bool? evaluate; WorkoutPDFReport maxPDFPoints 250. Code: LiveDFAAnalyzer init(windowSec: 120, cadenceSec: 20) and ectopicRatio 0.20; HRRCaptureService captureWindowSec 120; LiveWorkoutBroker.staleAfterSec 12; RouteLibrary detectionTriggerMeters 500 / matchToleranceMeters 30; WeatherService cacheTTL 30 min, minimumRequestInterval 10 min, 5_000 m; SavedRoute climb geocoding sleeps 600_000_000 ns; Concept2Manager.plausibleStrokePowerWatts 1...1_500; FootPodManager 1814/1826/2AD2; Zwift UUIDs and enableZwiftBroadcast default false; WorkoutThreshold defaults 30/120.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_: [Double])",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)",
     "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)",
@@ -1884,7 +1884,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "5656cbdeb6baee1a",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_: [Double])": "cfc5bcaa2df35d02",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "ef22a598a8881280",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "3446776e2575bc4f",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "88d1cd9b077c9eb7",

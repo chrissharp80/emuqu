@@ -41,7 +41,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.headlineScore": "8e2d8fe668e71121",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendFeelingSteps(_:score:)": "4c3d7250052b2bf4",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendScoreSteps(_:score:gates:)": "679bb6b801c223b5",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendScoreSteps(_:score:gates:)": "44e331f90240ee4c",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendTrainingLoadSteps(_:)": "69c3b5613abf1b5f",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendTrendSteps(_:score:gates:)": "32c76a4167cbcb8d",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.postExerciseSteps(readiness:recoveryScore:)": "3d8e99be317f513f",
@@ -291,13 +291,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendHighHRVBlockedReason(_:gates:)": "ff698a4d3dd51205"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendHighHRVBlockedReason(_:gates:)": "c45469de7dff76c4"
    }
   },
   {
    "key": "func AnalysisSummaryGenerator.appendHighHRVBlockedReason(_:gates:)",
-   "hash": "d1fb7dcc6a64e402",
-   "does": "Blocked reason ordered by safety: cumulative load elevated (easier) sentence; else load hold reason; else today's-night reason.",
+   "hash": "49053b0a96c3b2cf",
+   "does": "Blocked reason ordered by safety: cumulative load elevated → easy-or-moderate-today sentence (no injury-risk claim); else load hold reason; else today's-night reason.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.PushGates.cumulativeLoadElevated",
@@ -313,7 +313,7 @@
     {
      "at": "+1",
      "cond": "cumulativeLoadElevated",
-     "effect": "spike-injury sentence"
+     "effect": "easy-or-moderate sentence"
     },
     {
      "at": "+3",
@@ -419,11 +419,11 @@
   },
   {
    "key": "func AnalysisSummaryGenerator.appendScoreSteps(_:score:gates:)",
-   "hash": "22852ff006e4c707",
-   "does": "Score-band steps: >=80 well recovered, >=60 adequate, >=40 incomplete, else poor.",
+   "hash": "48d1ca49f2716bd8",
+   "does": "Score-band steps: >=80 well recovered (passing the score), >=60 adequate, >=40 incomplete, else poor.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendWellRecoveredSteps(_:gates:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendWellRecoveredSteps(_:score:gates:)",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendAdequateRecoverySteps(_:gates:)",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendIncompleteRecoverySteps(_:gates:)",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendPoorRecoverySteps(_:gates:)"
@@ -451,36 +451,41 @@
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendAdequateRecoverySteps(_:gates:)": "d87b96a33962bcc4",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendIncompleteRecoverySteps(_:gates:)": "8e5c0d8c5d3f34eb",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendPoorRecoverySteps(_:gates:)": "c929e0a0edf18b4a",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendWellRecoveredSteps(_:gates:)": "393fd70929d90a3f"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendWellRecoveredSteps(_:score:gates:)": "d75d56eb1e21452b"
    }
   },
   {
-   "key": "func AnalysisSummaryGenerator.appendWellRecoveredSteps(_:gates:)",
-   "hash": "274315ab3e7704cf",
-   "does": "Well-recovered: blocked → capacity-without-readiness steps; else push and consolidated lines, plus good-sleep line when isGoodSleep.",
+   "key": "func AnalysisSummaryGenerator.appendWellRecoveredSteps(_:score:gates:)",
+   "hash": "c1adc7cdcf8b9aee",
+   "does": "Well-recovered steps: when the push gates say not to push, the capacity-without-readiness steps; otherwise the high-intensity line only for an Excellent score (ScoreVerdict, rounded >= 90) and the 'good score — normal training fits today' line for a Good one, then the consolidated-recovery line and, with good sleep, the sleep line.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendCapacityWithoutReadinessSteps(_:gates:)",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
    ],
-   "reads": [
-    "mem:NarrativeLanguage.isEnglish"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "gates.shouldNotPush",
-     "effect": "capacity-without-readiness steps; else push lines"
+     "cond": "shouldNotPush",
+     "effect": "capacity-without-readiness steps"
     },
     {
-     "at": "+8",
-     "cond": "isGoodSleep",
-     "effect": "append maintain-sleep line"
+     "at": "+6",
+     "cond": "Excellent verdict",
+     "effect": "high-intensity line; else normal-training line"
+    },
+    {
+     "at": "+10",
+     "cond": "good sleep",
+     "effect": "sleep line"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::func AnalysisSummaryGenerator.appendCapacityWithoutReadinessSteps(_:gates:)": "70c8bd7a41d162f2",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "44c36cfa15477f52",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },

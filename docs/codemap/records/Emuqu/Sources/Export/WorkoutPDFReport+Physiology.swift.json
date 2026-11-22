@@ -263,7 +263,7 @@
     "Emuqu/Sources/Export/WorkoutPDFRenderer+Layout.swift::func WorkoutPDFRenderer.drawTwoColumnRows(_:startY:contentW:)": "461597f92f96fe3c",
     "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRClassification(_:at:contentW:)": "bcb4637fc10db2d0",
     "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawHRRUnavailable(at:contentW:)": "90e70f12de597931",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.hrrRows(_:bundle:)": "56bc6c11687e888a",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.hrrRows(_:bundle:)": "b0c55f47dd35dddb",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
@@ -288,8 +288,8 @@
   },
   {
    "key": "func WorkoutPDFPhysiologyPages.hrrRows(_:bundle:)",
-   "hash": "2c36ea20c209fc94",
-   "does": "Returns rows for the 1-min drop (with the heart rate at stop it is measured from) and absolute HR + provenance, and the same for 2 min, when present.",
+   "hash": "9e283d75e6a7ad4b",
+   "does": "Returns rows for the 1-min drop: Apple's computed value as the drop alone (its stop and +60 s rates are derived, so not shown); otherwise the drop with the heart rate at stop it is measured from, plus absolute HR + provenance; and the drop + absolute HR for 2 min, when present.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute",
@@ -301,12 +301,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "1-min reading exists",
-     "effect": "adds two rows"
+     "at": "+4",
+     "cond": "1-min reading is Apple's computed value",
+     "effect": "adds the drop row only"
     },
     {
      "at": "+6",
+     "cond": "other 1-min reading exists",
+     "effect": "adds two rows"
+    },
+    {
+     "at": "+10",
      "cond": "2-min reading exists",
      "effect": "adds two rows"
     }

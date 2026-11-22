@@ -166,6 +166,8 @@ enum CSVExporter {
     }
 
     /// One CSV row: the GPS fix plus whatever the nearest 1 Hz sample carried.
+    /// A fix with no altitude (negative vertical accuracy) leaves the
+    /// elevation cell empty, as the other unknown cells are, rather than 0.0.
     private static func trackpointRow(
         fix: CLLocation,
         cumulative: Double,
@@ -182,7 +184,7 @@ enum CSVExporter {
             "\(secondsFromStart)",
             String(format: "%.6f", fix.coordinate.latitude),
             String(format: "%.6f", fix.coordinate.longitude),
-            String(format: "%.1f", units.metresToElev(fix.altitude)),
+            fix.verticalAccuracy >= 0 ? String(format: "%.1f", units.metresToElev(fix.altitude)) : "",
             String(format: "%.3f", units.metresToDist(cumulative)),
             matched?.heartRate.map { "\($0)" } ?? "",
             matched.flatMap(\.paceSecPerKm).map { String(format: "%.0f", secPerKmToSecPerUnit($0)) } ?? "",
