@@ -63,17 +63,17 @@
   },
   {
    "key": "func AssistantViewModel.storeSummary(_:droppedCount:)",
-   "hash": "8b0bf970c05e7465",
-   "does": "Trims the collected summary of a completed stream; when non-empty stores it as priorSummary and persists it to UserDefaults (assistant.priorSummary); when empty logs a warning naming how many dropped turns were left out and keeps the previous summary.",
+   "hash": "3d374c4634a98ad8",
+   "does": "Trims the collected summary of a completed stream; when non-empty stores it as priorSummary and saves it sealed beside the history (ConversationStore.saveSummary); when empty logs a warning naming how many dropped turns were left out and keeps the previous summary.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:UserDefaults.set"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)"
    ],
    "reads": [],
    "writes": [
     "mem:AssistantViewModel.priorSummary",
-    "ud:assistant.priorSummary"
+    "file:<AppGroup|Documents|tmp>/Assistant/conversation_summary.json (sealed, completeFileProtectionUnlessOpen)"
    ],
    "branches": [
     {
@@ -83,6 +83,8 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "c5c0f800ac025f4e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "aae2d41709b8e22b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -104,6 +106,34 @@
     }
    ],
    "deps": {}
+  },
+  {
+   "key": "func AssistantViewModel.summaryBatch(_:provider:)",
+   "hash": "bec8c1db58f19533",
+   "does": "Pure: the oldest turns that fit one summarization call on the provider — as many as its conversationTokenBudget holds (estimateTokens + 4 per turn), always at least the first — each with its text cut to budget × 4 characters, ids kept so the summary marker advances.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each turn, oldest first",
+     "effect": "add it while it fits"
+    },
+    {
+     "at": "+6",
+     "cond": "batch non-empty and the turn would pass the budget",
+     "effect": "stop; the first turn always goes in"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "e3b46c70fc101f71",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)": "7cc0913bb85c3f93"
+   }
   },
   {
    "key": "func AssistantViewModel.summarizationPrompt(_:)",
@@ -220,19 +250,19 @@
   },
   {
    "key": "func AssistantViewModel.runAutoFactExtraction(userText:assistantText:)",
-   "hash": "c628838396050281",
-   "does": "Background fact extraction: picks Apple if available else the active provider/model, refuses when that provider needs consent, sends an extraction prompt (8 s timeout), parses {\"facts\":[...]} and stores the survivors on the main actor.",
+   "hash": "f32618e523467ff6",
+   "does": "Background fact extraction: picks Apple if available else the active provider/model, stops unless mayExtractFacts allows it (Flo on and its notice accepted, the provider can take a turn and is switched on, consent given), sends an extraction prompt (8 s timeout), parses {\"facts\":[...]} and stores the survivors on the main actor as inferred facts.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.extractionPrompt(userText:assistantText:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.parseExtractedFacts(_:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)",
-    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)",
     "dyn:AIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:) → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:91|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.mayExtractFacts(with:)"
    ],
    "reads": [
     "mem:ProviderRegistry.apple.isAvailable",
@@ -255,23 +285,61 @@
     },
     {
      "at": "+6",
-     "cond": "provider requires consent",
-     "effect": "log and return without sending; else continue"
+     "cond": "a gate stops it",
+     "effect": "return without sending (mayExtractFacts logged why)"
     },
     {
-     "at": "+15",
+     "at": "+12",
      "cond": "collect nil (failure/timeout, logged by collect) OR parse nil",
      "effect": "return silently (no facts stored); else store facts"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)": "653a27bc681d0691",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "bf1088b06f58af5e",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.extractionPrompt(userText:assistantText:)": "a710835444f4e0f0",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.mayExtractFacts(with:)": "5ddb2fb605a79207",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.parseExtractedFacts(_:)": "effcafa030f2d10b",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "d6551226cbf3089d",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "aae2d41709b8e22b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.mayExtractFacts(with:)",
+   "hash": "a39d3ebe0ceedd8a",
+   "does": "True when fact extraction may send: Flo is on and its notice accepted (aiIsAllowed), the provider can take a turn and is switched on (ProviderRegistry.canSend), and it needs no data-sharing consent; each refusal is logged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.aiIsAllowed(disclaimerAccepted:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.hasAcceptedDisclaimer",
+    "mem:SettingsManager.settings.enableAIAssistant",
+    "mem:FeatureFlags provider*Enabled",
+    "mem:ProviderConsentTracker.acknowledgedProviders"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "Flo off / notice not accepted, or the provider cannot take a turn",
+     "effect": "log, return false"
+    },
+    {
+     "at": "+5",
+     "cond": "provider requires consent",
+     "effect": "log, return false; else true"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.aiIsAllowed(disclaimerAccepted:)": "7e73dffeed2f3e9b",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "7b0cb0f1c0ee5aac",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -279,12 +347,12 @@
   },
   {
    "key": "func AssistantViewModel.store(extractedFacts:)",
-   "hash": "1a4df4913f82a906",
-   "does": "For each extracted fact: trim, drop if it fails factPassesAutoExtractFilter, else factsStore.add (which dedups).",
+   "hash": "b098dcff054e0cf1",
+   "does": "For each extracted fact: trim, drop if it fails factPassesAutoExtractFilter, else factsStore.add with origin .inferred (taken from model output, never labelled as set by the user; the store dedups).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.factPassesAutoExtractFilter(_:)",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:origin:)"
    ],
    "reads": [],
    "writes": [
@@ -303,7 +371,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:origin:)": "7b073d2d38c04085",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.factPassesAutoExtractFilter(_:)": "759e14d0af20d1af"
    }
   },

@@ -280,7 +280,11 @@ struct ChatInputBar: View {
     /// before dictation stays in front of the transcript.
     private func toggleDictation() {
         if speech.isRecording {
-            draft = Self.joined(draftBeforeDictation, speech.stop())
+            // `stop()` waits for the recognizer's final words.
+            Task {
+                let dictated = await speech.stop()
+                draft = Self.joined(draftBeforeDictation, dictated)
+            }
             return
         }
         draftBeforeDictation = draft

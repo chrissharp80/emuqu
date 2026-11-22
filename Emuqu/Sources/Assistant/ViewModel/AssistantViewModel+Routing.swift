@@ -64,7 +64,7 @@ extension AssistantTurnRouter {
         return TurnRouter.Inputs(
             routingMode: AppDependencies.current.app.settingsManager.settings.routingMode,
             selectedProviderID: owner.registry.activeProvider.id,
-            selectedProviderIsAvailable: owner.registry.activeProvider.isAvailable,
+            selectedProviderIsAvailable: ProviderRegistry.canSend(to: owner.registry.activeProvider),
             selectedModel: owner.registry.activeModel,
             isVoiceTurn: owner.nextSendIsVoice,
             providerOrder: owner.registry.allProviders.map(\.id),
@@ -239,14 +239,35 @@ extension AssistantTurnRouter {
     /// Any prior in-flight stream is cancelled before the reference is
     /// replaced. Without that, rapid sends would leak background tasks that
     /// keep consuming network + tokens after their UI turn is superseded.
-    func dispatch() {
+    ///
+    /// `replyID` is the reply `regenerateLast()` replaces. It is removed only
+    /// once the routed provider may take the turn, so a refused regeneration
+    /// leaves the conversation as it was. A refused new message takes back
+    /// the user turn `send()` appended, so the thread never ends on a
+    /// question nothing will answer, and a typed one goes back to the input
+    /// bar (`ComposerState.returnedDraft`).
+    func dispatch(regenerating replyID: UUID? = nil) {
         let routed = routeTurnAndLogOverride()
-        let (provider, model, voiceMode) = (routed.provider, routed.model, routed.voiceMode)
-        guard provider.isAvailable else {
+        let (provider, voiceMode) = (routed.provider, routed.voiceMode)
+        guard ProviderRegistry.canSend(to: provider) else {
             owner.errorMessage = AssistantViewModel.unavailableMessage(for: provider.id)
+            if replyID == nil, let unsent = withdrawTrailingUserTurn(), !voiceMode {
+                owner.composerState.returnedDraft = unsent
+            }
             return
         }
-        guard consentGateAllowsDispatch(provider: provider, voiceMode: voiceMode) else { return }
+        guard consentGateAllowsDispatch(provider: provider, voiceMode: voiceMode, regenerating: replyID) else { return }
+        if let replyID, let index = liveTurnIndex(for: replyID) {
+            owner.turns.remove(at: index)
+            owner.store.save(owner.turns)
+        }
+        startStream(routed)
+    }
+
+    /// Reserves the reply's turn and starts the task that fills it,
+    /// cancelling any stream still running.
+    private func startStream(_ routed: TurnRoute) {
+        let (provider, model, voiceMode) = (routed.provider, routed.model, routed.voiceMode)
         let turnID = reserveAssistantPlaceholderTurn(provider: provider, model: model, tier: routed.tier).id
         owner.isStreaming = true
         owner.errorMessage = nil
@@ -291,7 +312,7 @@ extension AssistantTurnRouter {
         generation: Int
     ) async {
         await refreshPreFlightMetrics()
-        let assembled = await assembleContextAndTools(provider: provider, model: model)
+        let assembled = await assembleContextAndTools(provider: provider, model: model, turnID: turnID)
         let systemPrompt = await composeSystemPromptForTurn(
             rendered: assembled.rendered, voiceMode: voiceMode, toolMode: !assembled.tools.isEmpty
         )
@@ -422,17 +443,33 @@ extension AssistantTurnRouter {
     /// message back. `send()` and `regenerateLast()` check the active
     /// provider's consent before they reach here, and routing only moves a
     /// turn to a consented provider, so in practice this never fires.
-    func consentGateAllowsDispatch(provider: AIProvider, voiceMode: Bool) -> Bool {
+    ///
+    /// A held regeneration (`replyID` set) removes nothing: the reply it
+    /// would replace is still in place, and the request is held as a
+    /// regeneration of the question before it.
+    func consentGateAllowsDispatch(provider: AIProvider, voiceMode: Bool, regenerating replyID: UUID? = nil) -> Bool {
         guard AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id) else { return true }
-        if let last = owner.turns.last, last.role == .user {
-            owner.turns.removeLast()
-            owner.store.save(owner.turns)
+        if replyID != nil, let question = owner.turns.last(where: { $0.role == .user }) {
             owner.pendingConsentRequest = AssistantViewModel.PendingConsentRequest(
-                provider: provider.id, text: last.text, fromVoice: voiceMode, regenerate: false
+                provider: provider.id, text: question.text, fromVoice: false, regenerate: true
+            )
+        } else if replyID == nil, let unsent = withdrawTrailingUserTurn() {
+            owner.pendingConsentRequest = AssistantViewModel.PendingConsentRequest(
+                provider: provider.id, text: unsent, fromVoice: voiceMode, regenerate: false
             )
         }
         debugLog("[Assistant] dispatch blocked — routed provider \(provider.id.rawValue) has no data-sharing consent; surfacing consent sheet", level: .warning)
         return false
+    }
+
+    /// Takes back the user turn a refused send appended, saving the history
+    /// so a relaunch does not bring it back. Returns its text, or nil when
+    /// the thread does not end on a user turn.
+    private func withdrawTrailingUserTurn() -> String? {
+        guard let last = owner.turns.last, last.role == .user else { return nil }
+        owner.turns.removeLast()
+        owner.store.save(owner.turns)
+        return last.text
     }
 
     /// Placeholder-reservation stage of
@@ -543,12 +580,16 @@ extension AssistantTurnRouter {
     /// diagnostic signal.
     ///
     /// Token-aware truncation: producers expect alternating user/assistant
-    /// ending with user, so the empty assistant placeholder we reserved is
-    /// stripped first, then the oldest owner.turns drop until we're under the
-    /// per-provider token budget. Dropped owner.turns get summarized so context
-    /// isn't lost — one extra short call on the provider this turn was routed
-    /// to, only when
-    /// turns not yet in the summary have fallen out of the window.
+    /// ending with user, so the history is cut just before the assistant
+    /// placeholder `turnID` reserved, then the oldest owner.turns drop until
+    /// we're under the per-provider token budget. Cut at the placeholder, not
+    /// at the last turn: a question the medical guard answered on the device
+    /// while this turn waited (`send` appends that pair after the
+    /// placeholder) is not part of this turn's history. Dropped owner.turns
+    /// get summarized so context isn't lost — one extra short call on the
+    /// provider this turn was routed to, only when turns not yet in the
+    /// summary have fallen out of the window, one budget-sized batch per send
+    /// (`AssistantViewModel.summaryBatch`).
     ///
     /// `owner.factRegistryAndTools()` is synchronous — no `await` (Swift 6 warns "no
     /// async operations occur within 'await'"). It is MainActor-isolated, but
@@ -556,14 +597,19 @@ extension AssistantTurnRouter {
     /// isolation is satisfied without the keyword.
     func assembleContextAndTools(
         provider: AIProvider,
-        model: ModelOption
+        model: ModelOption,
+        turnID: UUID
     ) async -> AssembledContext {
         let supportsToolUse = provider.id != .apple
         let rendered = supportsToolUse ? "" : await owner.contextSource.currentContext().compactRender()
-        let (outbound, dropped) = AssistantViewModel.truncateForSend(Array(owner.turns.dropLast()), provider: provider.id)
+        let history = liveTurnIndex(for: turnID).map { Array(owner.turns[..<$0]) } ?? Array(owner.turns.dropLast())
+        let (outbound, dropped) = AssistantViewModel.truncateForSend(history, provider: provider.id)
         let newlyDropped = owner.unsummarizedTurns(in: dropped)
         if !newlyDropped.isEmpty {
-            await owner.updateSummaryWith(droppedTurns: newlyDropped, provider: provider, model: model, contextRendered: rendered)
+            await owner.updateSummaryWith(
+                droppedTurns: AssistantViewModel.summaryBatch(newlyDropped, provider: provider.id),
+                provider: provider, model: model, contextRendered: rendered
+            )
         }
         let (factRegistry, allTools) = self.owner.factRegistryAndTools()
         factRegistry.beginTurn()
@@ -672,7 +718,14 @@ extension AssistantTurnRouter {
     /// model unavailable, network, auth, no credit) may move on to another
     /// provider, through `handleFallbackableFailure`, as far as the routing
     /// mode allows; `AIProviderError.isFallbackable` is false for a refusal,
-    /// so it cannot take that path either.
+    /// so it cannot take that path either. A failure after the turn ran a
+    /// mutating tool arrives as `PickedModelFailure` and is shown, not handed
+    /// on (`AssistantToolRunner.runToolUseLoop`).
+    ///
+    /// The user's Stop arrives as `CancellationError` or, from a provider
+    /// stream, as `AIProviderError.cancelled` while the task is cancelled;
+    /// both end the turn quietly. Shown as a failure, the second put
+    /// "Request cancelled." on whatever turn the user had started since.
     ///
     /// Returns true when the reply completed normally: the tool loop
     /// finished, or a fallback answered in its place. A stopped, refused or
@@ -685,7 +738,7 @@ extension AssistantTurnRouter {
                 factRegistry: attempt.factRegistry, turnID: attempt.turnID
             )
             return true
-        } catch is CancellationError {
+        } catch let error where AssistantToolRunner.isStop(error) {
             // swallow-ok: cancellation is the expected outcome of the user tapping
             // stop; the partial response is kept and the streaming flag is dropped
             // by the caller.

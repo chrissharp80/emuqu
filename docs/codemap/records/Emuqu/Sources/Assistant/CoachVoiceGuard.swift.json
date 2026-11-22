@@ -306,16 +306,16 @@
   },
   {
    "key": "func CoachVoiceGuard.scrub(_:)",
-   "hash": "299c7487e1c70411",
-   "does": "Scrubs a reply: selects active rules, returns the input unchanged if empty or no rule matches anywhere; otherwise splits into sentence segments and rewrites each matching segment's core with its rule's deflection (collecting (reason, sentence) triggers), tidying only rewritten segments so untouched sentences stay byte-identical; if no single segment matched, delegates to deflectStraddlingMatch; else returns the rebuilt text plus triggers. Called from AssistantViewModel+Context.swift, AssistantViewModel+Routing.swift, VoiceConversationController+Speech.swift, VoiceConversationController+Control.swift and tests.",
+   "hash": "e0ad9b532937203f",
+   "does": "Scrubs a reply: selects active rules and returns the input unchanged if it is empty or no rule matches anywhere. Otherwise splits it into sentence segments once; a segment that is a sentence of the app's own safety copy (its safetyCopyKey is in safetyCopySentences) is passed through byte-identical, and the runs of segments between such sentences are each scrubbed by scrubRun (per-sentence rewrite, straddling-match fallback). Returns the rebuilt text with every run's triggers. Called from AssistantViewModel+Context.swift, AssistantViewModel+Routing.swift, VoiceConversationController+Speech.swift, VoiceConversationController+Control.swift and tests.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.safetyCopySentences",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.safetyCopyKey(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrubRun(_:among:)"
    ],
    "reads": [],
    "writes": [],
@@ -323,27 +323,67 @@
     {
      "at": "+2",
      "cond": "output is empty OR no active rule matches the whole text (incl. emphasis-stripped)",
-     "effect": "true: return Result(scrubbed: output, triggers: []) unchanged; false: continue with per-sentence rewrite"
+     "effect": "true: return Result(scrubbed: output, triggers: []) unchanged; false: continue"
     },
     {
      "at": "+9",
      "cond": "for each sentence segment",
-     "effect": "rewrite returns either the original segment or its deflected form"
+     "effect": "safety-copy sentence or part of the current run"
     },
     {
-     "at": "+11",
+     "at": "+10",
+     "cond": "segment is not a sentence of the app's safety copy",
+     "effect": "true: added to the current run; false: the run so far is scrubbed (scrubRun), then the segment is appended unchanged and a new run starts"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.safetyCopyKey(_:)": "793af889cc4063c9",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrubRun(_:among:)": "454b90ca8c6e7020",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.safetyCopySentences": "c2fe3273f33045b3",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuard.scrubRun(_:among:)",
+   "hash": "37be7fa90c24a0af",
+   "does": "The per-sentence scrub, on text that holds no sentence of the app's safety copy: returns it unchanged when empty or when no active rule matches anywhere; otherwise rewrites each matching sentence segment's core with its rule's deflection (collecting (reason, sentence) triggers), tidying only rewritten segments so untouched sentences stay byte-identical; if the whole text matched but no single segment did, delegates to deflectStraddlingMatch; else returns the rebuilt text plus triggers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "text empty OR no active rule matches the whole text",
+     "effect": "return it unchanged with no triggers"
+    },
+    {
+     "at": "+8",
+     "cond": "for each sentence segment",
+     "effect": "rewrite returns the original segment or its deflected form"
+    },
+    {
+     "at": "+10",
      "cond": "segment was rewritten",
      "effect": "append tidy(rewritten); else append the segment as is"
     },
     {
-     "at": "+13",
-     "cond": "triggers is empty after per-sentence pass (whole text matched but no single sentence did)",
-     "effect": "true: return deflectStraddlingMatch(...); false: return rebuilt with triggers"
+     "at": "+12",
+     "cond": "no single sentence matched (the match straddles a terminator)",
+     "effect": "return deflectStraddlingMatch(...); else the rebuilt text with triggers"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)": "d124fe9413d15941",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
@@ -412,6 +452,44 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31"
+   }
+  },
+  {
+   "key": "var CoachVoiceGuard.safetyCopySentences",
+   "hash": "1e14eef381eb1ce1",
+   "does": "Every sentence of MedicalQueryGuard.cannedReplies, read once in the in-app language and once in English (NarrativeLanguage.english, the copy rule B of the system prompt quotes), split with sentenceSegments and keyed by safetyCopyKey, as a Set. Rebuilt on each read; scrub reads it only after a rule has matched.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.cannedReplies",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.safetyCopyKey(_:)"
+   ],
+   "reads": [
+    "mem:LanguageManager.shared.bundle"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.safetyCopyKey(_:)": "793af889cc4063c9",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.cannedReplies": "fd3737a40f20234e",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b"
+   }
+  },
+  {
+   "key": "func CoachVoiceGuard.safetyCopyKey(_:)",
+   "hash": "deceb485ad88637b",
+   "does": "Pure: a sentence as compared with the safety copy — inline emphasis markers removed (withoutInlineEmphasis), typographic apostrophes (U+2018, U+2019, U+02BC) folded to ', whitespace runs collapsed to single spaces with the ends trimmed, lowercased.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420"
    }
   },
   {

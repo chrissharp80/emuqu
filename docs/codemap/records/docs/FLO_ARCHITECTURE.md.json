@@ -41,7 +41,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch(regenerating:)",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:completed:)"
    ],
@@ -108,12 +108,12 @@
    "does": "Claims dispatch() on AssistantTurnRouter routes, re-checks key/consent, reserves a placeholder turn, bumps streamGeneration and starts runDispatchedTurn, which refreshes metrics, assembles context (Apple compactRender, others none; truncateForSend; ToolRetriever targetK 40; trimTools), composes the prompt, runs the stream with error policy (guardrail refusals shown; fallbackable errors go to handleFallbackableFailure, which cuts orderedFallbackProviders to TurnRouter.failureFallback and shows PickedModelFailure when nothing is allowed, or the original error when every fallback fails; a fallback's answer replaces the failed partial text under the fallback's badge, the partial text comes back when none answers, and a failure that leaves text marks the reply incomplete), drops an empty turn, and if still the current generation sets the 'No answer came back from the AI' error for a dropped turn with no error set that was not stopped (reportEmptyReply, so voice speaks its recovery line), clears the Apple registry and applies CoachVoiceGuard + background fact extraction (only for a reply that completed normally), then finishStream(generation:) dispatches a queued message. Matches AssistantViewModel+Routing.swift (runDispatchedTurn, runStreamWithErrorPolicy, handleFallbackableFailure, applyPostStreamEffects) and AssistantViewModel+Tools.swift (runFallback, settle, handleStreamFailure).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch(regenerating:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.routeTurnAndLogOverride()",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reserveAssistantPlaceholderTurn(provider:model:tier:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:turnID:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:completed:)",
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)",
@@ -862,7 +862,7 @@
    "does": "Claims UserFactsStore persists Assistant/user_facts.json sealed like the conversation, with add (case-normalized dedupe), remove and clear written or erased at once (set-aside user_facts.undecodable-* copies included) and reporting whether it is on disk, Settings saying so when not and offering Forget everything while a copy remains; clearKeepingBackup/restoreCleared (the assistant's wipe, returning the erased count or nil when it failed, and its undo, copy in memory until the app quits), systemPromptBlock. Matches UserFactsStore.swift and AIAssistantSettingsPage.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:origin:)",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()",

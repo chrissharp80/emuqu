@@ -1162,7 +1162,7 @@
    "does": "Claims routing: non-Apple selection or Manual → user's pick; voice with Apple selected → first available consented cloud (default model) else Apple; Quick/Deep pin the tier, Auto uses SmartProviderRouter (bumping session tier/turn count); Deep with a cloud mapping is capped at 50/day then downgraded to .auto; TierProviderMapper quick → Apple, auto → consented Grok then DeepSeek else Apple, deep → same mid-tier cloud; action-intent override moves tool-needing turns off Apple to the first consented cloud. Matches TurnRouter, SmartProviderRouter.dailyTier3Cap = 50 and TierProviderMapper.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch(regenerating:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.resolveProviderForThisTurn()",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)",
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)",

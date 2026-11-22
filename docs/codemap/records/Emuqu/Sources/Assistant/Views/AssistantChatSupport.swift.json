@@ -414,8 +414,8 @@
   },
   {
    "key": "func ChatInputBar.toggleDictation()",
-   "hash": "41389e0dd58b2776",
-   "does": "If recording, stops SpeechInputManager and puts the text typed before dictation followed by its final transcript in draft; otherwise remembers the current draft as draftBeforeDictation and starts dictation asynchronously, showing any start error (LocalizedError description or localizedDescription) in the alert. A second tap while start() awaits permissions is ignored by SpeechInputManager.start (isStarting guard).",
+   "hash": "97ec52743b95400e",
+   "does": "If recording, starts a task that awaits SpeechInputManager.stop() (which waits for the recognizer's final words) and then puts the text typed before dictation followed by that final transcript in draft; otherwise remembers the current draft as draftBeforeDictation and starts dictation asynchronously, showing any start error (LocalizedError description or localizedDescription) in the alert. A second tap while start() awaits permissions is ignored by SpeechInputManager.start (isStarting guard).",
    "entry": "mic button tap",
    "calls": [
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()",
@@ -428,7 +428,7 @@
     {
      "at": "+1",
      "cond": "speech.isRecording",
-     "effect": "draft = joined(text before, speech.stop()); return"
+     "effect": "Task: draft = joined(text before, await speech.stop()); return"
     },
     {
      "at": "+9",
@@ -443,7 +443,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.start()": "ba5c684196dfff57",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()": "fa2b9b6187823abb",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()": "9b36d52513445124",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)": "db0645396bac441f"
    }
   },

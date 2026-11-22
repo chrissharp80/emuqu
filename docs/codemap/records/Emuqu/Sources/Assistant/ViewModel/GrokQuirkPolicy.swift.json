@@ -25,8 +25,8 @@
   },
   {
    "key": "func GrokQuirkPolicy.announceWithoutCallNudge(outbound:buffer:)",
-   "hash": "a56c84978b533fe2",
-   "does": "After a text-only round: computes the round's new text for the live turn; if provider is Grok, under 2 retries, text looks like an announce-without-call, and the last outbound user turn asked for live data, increments the retry count, rewinds the buffer to round start and returns a synthetic user nudge turn; else nil. Called from AssistantToolRunner.runToolUseLoop.",
+   "hash": "1173b82ebb374330",
+   "does": "After a text-only round: computes the round's new text for the live turn; if provider is Grok, under 2 retries, text looks like an announce-without-call, and the last outbound user turn asked for live data, increments the retry count, rewinds the buffer to round start and returns a synthetic user nudge turn; else nil. Called from AssistantToolRunner.runToolUseLoop. The log line carries the text's length only, never the reply itself.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",
@@ -56,17 +56,17 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.lastUserAskedForLiveData(_:)": "fd11b96f3d140762",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.lastUserAskedForLiveData(_:)": "3bb867881efab7cd",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.looksLikeAnnounceButDidntCall(_:)": "7be3f43bea1560dd",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.rewindToRoundStart()": "9615c9c70ebcdbdd",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.rewindToRoundStart()": "53994125beb5818f",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func GrokQuirkPolicy.substituteFallbackIfTurnEndedBlankOrAnnounced()",
-   "hash": "10bfb80376e304c1",
-   "does": "At normal end of a turn: for Grok only, if the live turn's trimmed text is empty or looks like an announce-without-call, replaces it with a localized 'Sorry — I didn't finish that answer' message and saves the conversation.",
+   "hash": "40e81679729ab8a4",
+   "does": "At normal end of a turn: for Grok only, if the live turn's trimmed text is empty or looks like an announce-without-call, replaces it with a localized 'Sorry — I didn't finish that answer' message and saves the conversation. The log line carries the text's length only, never the reply itself.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",

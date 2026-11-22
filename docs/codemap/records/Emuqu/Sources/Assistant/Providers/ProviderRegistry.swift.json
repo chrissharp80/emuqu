@@ -185,15 +185,16 @@
   },
   {
    "key": "func ProviderRegistry.refreshAvailabilityCache()",
-   "hash": "3186d54eb4f11617",
-   "does": "Recomputes activeProviderAvailable (active provider isAvailable, a Keychain read for cloud providers), assigning only on change to avoid Observation churn; emits a keyboard-perf signpost.",
+   "hash": "9c95727c5c3f90af",
+   "does": "Recomputes activeProviderAvailable as canSend(to: activeProvider) (isAvailable, a Keychain read for cloud providers, and its Settings switch on), assigning only on change to avoid Observation churn; emits a keyboard-perf signpost.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)",
-    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:37|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)"
    ],
    "reads": [
-    "kc:com.chrissharp.flowrecovery.assistant.apikey"
+    "kc:com.chrissharp.flowrecovery.assistant.apikey",
+    "mem:FeatureFlags provider*Enabled"
    ],
    "writes": [
     "mem:ProviderRegistry.activeProviderAvailable"
@@ -206,6 +207,7 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b"
@@ -291,6 +293,25 @@
    }
   },
   {
+   "key": "func ProviderRegistry.canSend(to:)",
+   "hash": "17f0698a6ae4d4ee",
+   "does": "Whether a turn may go to the provider: isAvailable (a key, or Apple Intelligence on this device) AND its Settings switch is on (isEnabled; Apple always).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)",
+    "dyn:AIProvider.isAvailable → Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:37|Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.isAvailable|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.isAvailable|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.isAvailable|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.isAvailable"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.assistant.apikey",
+    "mem:FeatureFlags provider*Enabled"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "016373538fb3a9ab"
+   }
+  },
+  {
    "key": "func ProviderRegistry.setActive(provider:model:)",
    "hash": "b963e78317afa01e",
    "does": "Sets the active provider with the requested model if in its catalog, else its default/first model; persists and refreshes availability.",
@@ -356,10 +377,11 @@
   },
   {
    "key": "func ProviderRegistry.keysChanged()",
-   "hash": "3ac52d51c7d9527e",
-   "does": "After key or switch changes: if the active provider lost its key or was switched off, switches to the first visible available provider; always refreshes availability.",
+   "hash": "1b489b5ccc3dea7e",
+   "does": "After key or switch changes: if the active provider cannot take a turn (canSend false), switches to the first visible available provider; when there is none and the active provider is switched off, selects Apple Intelligence (as launch does), so a switched-off provider never stays selected; a provider that only lost its key stays selected. Always refreshes availability.",
    "entry": "Called from SwiftUI: AssistantChatSupport onAppear/scenePhase active, settings sheet onDismiss, AIAssistantSettingsPage after key edits.",
    "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.visibleProviders",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.setActive(provider:model:)",
@@ -371,13 +393,24 @@
    "branches": [
     {
      "at": "+3",
-     "cond": "active unavailable or disabled AND a visible available provider exists",
-     "effect": "setActive(provider: fallback) with default model; otherwise keeps the current (possibly unusable) selection."
+     "cond": "active provider cannot take a turn",
+     "effect": "look for a replacement; else nothing changes"
+    },
+    {
+     "at": "+4",
+     "cond": "a visible available provider exists",
+     "effect": "setActive(provider: fallback) with its default model"
+    },
+    {
+     "at": "+6",
+     "cond": "none, and the active provider is switched off",
+     "effect": "setActive(provider: apple); a keyless but enabled provider stays selected"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "016373538fb3a9ab",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "6b3fc66f2b218808",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "451ecd4680290ef6",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.setActive(provider:model:)": "7e94801a91b5710a",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.visibleProviders": "6bc56ccb2a666bf0"
    }

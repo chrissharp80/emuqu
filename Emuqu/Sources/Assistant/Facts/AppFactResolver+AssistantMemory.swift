@@ -119,7 +119,24 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         guard autoMemoryOn || Self.latestUserMessageContains(args["user_quote"]) else {
             return Self.userRequestRequired("save a memory fact while auto-memory is off")
         }
-        return Self.storeFact(text)
+        return MainActor.assumeIsolated {
+            Self.saveMemoryFact(text, store: AppDependencies.current.assistant.userFactsStore, context: .live)
+        }
+    }
+
+    /// Saves a fact once it is the user's: the text is in their own latest
+    /// message, or they confirmed it (`DestructiveActionContext.gateUnlessUserStated`).
+    /// A fact the model wrote from something it read — a web page, an email,
+    /// a contact's notes — would otherwise ride in every future system prompt.
+    /// Saved as the user's (`UserFactsStore.Fact.Origin.user`), since only
+    /// their words or their yes get it this far.
+    @MainActor
+    static func saveMemoryFact(_ text: String, store: UserFactsStore, context: DestructiveActionContext) -> FactValue {
+        let question = "Save \"\(text)\" to your memory? Reply yes to confirm."
+        if let unconfirmed = context.gateUnlessUserStated([text], action: "assistant.memory.add", target: text, question: question) {
+            return unconfirmed
+        }
+        return storeFact(text, in: store)
     }
 
     /// Every saved fact rides in every system prompt, so the tool holds it
@@ -130,15 +147,14 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
     /// when the store kept an existing fact with the same text (it ignores
     /// case and trailing punctuation), and `evicted` lists the oldest facts
     /// dropped to stay within `UserFactsStore.maxFacts`.
-    private static func storeFact(_ text: String) -> FactValue {
-        let (added, evicted): (Bool, [String]) = MainActor.assumeIsolated {
-            let store = AppDependencies.current.assistant.userFactsStore
-            let before = store.facts
-            store.add(text)
-            let afterIDs = Set(store.facts.map(\.id))
-            let beforeIDs = Set(before.map(\.id))
-            return (afterIDs.contains { !beforeIDs.contains($0) }, before.filter { !afterIDs.contains($0.id) }.map(\.text))
-        }
+    @MainActor
+    private static func storeFact(_ text: String, in store: UserFactsStore) -> FactValue {
+        let before = store.facts
+        store.add(text, origin: .user)
+        let afterIDs = Set(store.facts.map(\.id))
+        let beforeIDs = Set(before.map(\.id))
+        let added = afterIDs.contains { !beforeIDs.contains($0) }
+        let evicted = before.filter { !afterIDs.contains($0.id) }.map(\.text)
         guard added else {
             return .record(["added": .boolean(false), "text": .string(text), "note": .string("already saved — an existing fact has the same text")])
         }
@@ -152,8 +168,9 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
     call this with user_quote set to their words from that message. Only when `assistant.memory.auto_extract_enabled` is true may you also save, unasked, a durable non-health fact that should outlive this conversation \
     (training goal, hard preference, recurring constraint); never save health or medical details the user didn't ask you to keep. EXAMPLE: 'remember I'm training for a marathon in October' → text='Training for a \
     marathon in October', user_quote='remember I'm training for a marathon in October'. Required param: text (the thing to remember, plain English, ≤160 chars; longer text is refused). With auto-memory off, a call without a \
-    user_quote found in the user's latest message is refused. De-duplicates against existing facts case-insensitively: added=false means it was already saved. At 25 facts the oldest is dropped and named in evicted_oldest — \
-    tell the user.
+    user_quote found in the user's latest message is refused. When text is not in the user's own words from their latest message, the first call saves nothing and returns status=confirmation_required with an ask_user \
+    question: ask it and end your reply; call again with the same text only if their next message is a plain yes. De-duplicates against existing facts case-insensitively: added=false means it was already saved. At 25 facts \
+    the oldest is dropped and named in evicted_oldest — tell the user.
     """
 
     /// Whether `quote` is the user's own words from their most recent chat
@@ -181,6 +198,17 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         let normalized = normalizedForQuote(message)
         if needle == normalized { return true }
         return isMeaningfulSpan(needle) && normalized.contains(needle)
+    }
+
+    /// Whether `value` appears in `message` as whole words, ignoring case,
+    /// whitespace and punctuation: the user said it, rather than the model
+    /// having taken it from something it read. "chris@example.com" is stated
+    /// by "add chris@example.com as Chris"; "Chris" is not stated by
+    /// "Christina".
+    static func isStated(_ value: String, in message: String?) -> Bool {
+        let needle = normalizedForQuote(value)
+        guard !needle.isEmpty, let message else { return false }
+        return (" " + normalizedForQuote(message) + " ").contains(" " + needle + " ")
     }
 
     /// At least three words and twelve characters.
