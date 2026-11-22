@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift",
- "hash": "890a1681d3bc5673",
+ "hash": "96ea655a6d9c766d",
  "role": "Push half of CloudKit session sync: batch selection with exponential backoff, record preparation (HealthKit strip, compress, encrypt, temp CKAsset), conflict/zone/prep-failure handling, zone management, live-backup forwarders and the timeout/no-progress watchdog helpers used by the full sync.",
  "types": [
   "CloudSyncError: enum — LocalizedError with single case encryptionUnavailable (cloud key missing; fail closed)",
@@ -15,7 +15,7 @@
   "mem:CloudKitSyncManager.maxBackoffExponent (nonisolated static let 6)",
   "file:<tmp>/ck_<sessionId>_<8hex>.gz (CKAsset temp file, completeFileProtectionUntilFirstUserAuthentication, removed by cleanupTempAsset)",
   "ck:HRVSession record fields written: sessionId, startDate, isDeleted=0, modifiedAt (via CloudKitSessionFreshness.stampRecord), sessionData (CKAsset)",
-  "ck:HRVSession isDeleted = keptOnDeviceMarker (2): a session kept on the device that read it out of Apple Health, payload removed (markKeptOnDevice)"
+  "ck:HRVSession isDeleted = keptOnDeviceMarker (2): a session excluded from upload (CloudUploadExclusion: HealthKit-sourced or sample data) and kept on this device, payload removed (markKeptOnDevice)"
  ],
  "toplevel": "Declares the two error enums and the static push tuning constants; pushCycleCounter starts at 0 per process and advances on every push cycle that reaches the batch. PreparedUpload is declared Sendable and holds a CKRecord. Comments note the failure counts behind the backoff are in memory only. keptOnDeviceMarker (nonisolated static let 2) is the isDeleted value of a record kept on one device.",
  "units": [
@@ -542,7 +542,7 @@
   },
   {
    "key": "func CloudKitSyncManager.keepOnDevice(_:)",
-   "hash": "677dfa0708a0a705",
+   "hash": "80c25d461380b085",
    "does": "Keeps a session excluded from upload (CloudUploadExclusion: HealthKit-sourced or sample data) on this device: if it was uploaded or pending, removes the payload of its CKRecord and marks it kept on device (markKeptOnDevice; no tombstone, no outright delete); on success or when no copy exists, marks it local-only and saves local_only_sessions.json; on other failures marks it failed and returns.",
    "entry": null,
    "calls": [

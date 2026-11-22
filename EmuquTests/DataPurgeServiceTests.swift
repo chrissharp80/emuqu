@@ -249,7 +249,7 @@ final class DataPurgeServiceTests: XCTestCase {
     /// Read from the file, not only from memory: `clear()` empties the list
     /// at once, and only the queued write shows whether the facts left disk.
     func testPurgeClearsTheUserFacts() async throws {
-        userFactsStore.add("purge-marker-\(UUID().uuidString)")
+        userFactsStore.add("purge-marker-\(UUID().uuidString)", origin: .user)
         XCTAssertFalse(userFactsStore.facts.isEmpty, "Sanity: facts seeded")
 
         let report = try await purge()
