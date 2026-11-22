@@ -117,6 +117,8 @@ struct FitnessTabView: View {
     /// hero picks up "Re-smooth elevation" / "Re-analyze α1" rewrites
     /// without the user having to close and reopen the tab.
     @State var latestWorkoutSession: HRVSession?
+    /// `latestWorkoutSession`'s GPS route, decoded off the main actor with it.
+    @State var latestWorkoutRoute: [CLLocation] = []
     @State var latestWorkoutLoadFailed = false
     /// A tapped Recent workout couldn't be read; drives the load-failure alert.
     @State var recentWorkoutLoadFailed = false
@@ -733,30 +735,45 @@ struct FitnessTabView: View {
     /// Health import uses — so it can't count twice in training load. The
     /// reported duration is capped at 48 h like the session's samples, so one
     /// bad timestamp can't print millions of minutes.
+    ///
+    /// The read, parse and archive write run on a detached task
+    /// (`importGPXFile`), not the main actor; only the message lands here.
     private func importGPX(from url: URL) {
+        let archive = collector.archive
+        let starts = archive.entries.filter { $0.sessionType == .workout }.map(\.date)
+        Task {
+            let outcome = await Task.detached(priority: .userInitiated) {
+                Self.importGPXFile(url, archive: archive, existingStarts: starts)
+            }.value
+            switch outcome {
+            case .duplicate:
+                importMessage = String(localized: "This workout is already in your history, so it wasn't imported again.", bundle: LanguageManager.appBundle)
+            case .imported(let sport, let dur, let points):
+                collector.notifyArchiveChanged()
+                importMessage = String(localized: "Imported \(sport.localizedName) (\(dur) min, \(points) GPS points).", bundle: LanguageManager.appBundle)
+            case .failed(let reason):
+                importMessage = String(localized: "Import failed: \(reason)", bundle: LanguageManager.appBundle)
+            }
+        }
+    }
+
+    /// Reads the security-scoped file, parses it as a recorded workout,
+    /// refuses one whose start matches `existingStarts`, and archives the
+    /// rest. Off the main actor.
+    nonisolated private static func importGPXFile(_ url: URL, archive: SessionArchive, existingStarts: [Date]) -> GPXImportOutcome {
         let accessing = url.startAccessingSecurityScopedResource()
         defer {
             if accessing { url.stopAccessingSecurityScopedResource() }
         }
         do {
             let parsed = try GPXImporter.parseWorkout(data: try Data(contentsOf: url))
-            guard !isArchivedWorkout(startingAt: parsed.startDate) else {
-                importMessage = String(localized: "This workout is already in your history, so it wasn't imported again.", bundle: LanguageManager.appBundle)
-                return
-            }
-            let session = GPXImporter.buildSession(from: parsed)
-            _ = try collector.archive.archive(session)
-            collector.notifyArchiveChanged()
+            guard !HealthWorkoutImporter.isAlreadyArchived(start: parsed.startDate, existingStarts: existingStarts) else { return .duplicate }
+            _ = try archive.archive(GPXImporter.buildSession(from: parsed))
             let dur = min(max(0, Int(parsed.endDate.timeIntervalSince(parsed.startDate))), 48 * 3_600) / 60
-            importMessage = String(localized: "Imported \(parsed.sport.localizedName) (\(dur) min, \(parsed.track.count) GPS points).", bundle: LanguageManager.appBundle)
+            return .imported(sport: parsed.sport, minutes: dur, points: parsed.track.count)
         } catch {
-            importMessage = String(localized: "Import failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
+            return .failed(error.localizedDescription)
         }
-    }
-
-    private func isArchivedWorkout(startingAt start: Date) -> Bool {
-        let starts = collector.archive.entries.filter { $0.sessionType == .workout }.map(\.date)
-        return HealthWorkoutImporter.isAlreadyArchived(start: start, existingStarts: starts)
     }
 
     /// Listener for Watch → iOS Save & Done confirmations. The app-level
@@ -863,4 +880,13 @@ final class RecorderBox {
         guard recorder == nil else { return }
         recorder = WorkoutRecorder(core: core, conversation: conversation)
     }
+}
+
+/// What a GPX import came to, handed from the detached import to the tab.
+private enum GPXImportOutcome: Sendable {
+    /// A workout with the same start is already archived; nothing was written.
+    case duplicate
+    case imported(sport: Sport, minutes: Int, points: Int)
+    /// The read, parse or archive write threw; the error's description.
+    case failed(String)
 }

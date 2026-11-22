@@ -130,6 +130,13 @@ struct FitnessPostSummaryView: View {
     @State var routeHistory: FitnessSummaryCards.RouteHistorySummary?
     /// Bumped by every route-history load; only the newest load's result lands.
     @State var routeHistoryGeneration = 0
+    /// For a session saved before analysis snapshots existed: the snapshot
+    /// built off the main actor by `backfillAnalysisSnapshotIfNeeded`, shown
+    /// until (or instead of, when the write is declined) the stored one, so
+    /// no render iterates the samples. Nil until it lands.
+    @State var builtAnalysis: WorkoutAnalysisSnapshot?
+    /// Bumped by every backfill; only the newest build lands in `builtAnalysis`.
+    @State var analysisGeneration = 0
 
     var track: [CLLocation] { cachedTrack }
     /// The splits card's rows and unit, resolved with the track.
@@ -392,12 +399,11 @@ struct FitnessPostSummaryView: View {
 
     /// Prime the refresh so any saved-while-open changes from a previous open
     /// of this session take effect immediately — its first landing also
-    /// builds the exports and route-history baseline, once — and kick the
-    /// one-shot legacy snapshot backfill (a no-op once the session has a
-    /// snapshot).
+    /// builds the exports and route-history baseline, once. The legacy
+    /// snapshot backfill runs from `invalidateCachedExports`, against the
+    /// copy that reload applied.
     private func primeSummary() {
         reloadFromArchive()
-        Task { await backfillAnalysisSnapshotIfNeeded() }
     }
 
     /// Fired both from `.onAppear` and from every
@@ -459,6 +465,10 @@ struct FitnessPostSummaryView: View {
         exportsReady = false
         Task { await generateExportsInBackground() }
         Task { await loadRouteHistorySummary() }
+        // A new copy may carry other samples: the analysis built for the old
+        // one no longer applies, and is rebuilt off the main actor.
+        builtAnalysis = nil
+        Task { await backfillAnalysisSnapshotIfNeeded() }
     }
 
     /// Decode the track once and write GPX/CSV/TCX to temp files on a

@@ -1,18 +1,19 @@
 {
  "file": "Emuqu/Sources/Views/FitnessTabView.swift",
- "hash": "471c5cc0a95d46bf",
+ "hash": "24674d691dd2546f",
  "role": "Root view of the Fitness tab: routes between the recording screen and the default dashboard by recorder phase, owns the summary sheet, GPX export/preview/share, GPX and Apple Health import entry points, workout delete, and workout start; also declares WorkoutSummaryItem, PhaseObservingStateBody and the shared RecorderBox.",
  "types": [
   "WorkoutSummaryItem: struct — Identifiable sheet item (session + isJustCompleted)",
   "FitnessTabView: struct (View) — Fitness tab root",
   "PhaseObservingStateBody: struct (View, private, generic) — switches recording/default body on recorder.lifecycle.phase",
-  "RecorderBox: class (@Observable, @MainActor, final) — shared holder of the single WorkoutRecorder"
+  "RecorderBox: class (@Observable, @MainActor, final) — shared holder of the single WorkoutRecorder",
+  "GPXImportOutcome: private enum (Sendable) — duplicate / imported(sport, minutes, points) / failed(reason), handed from the detached GPX import to the tab"
  ],
  "state": [
   "static RecorderBox.shared (FitnessTabView.swift:786)",
   "mem:RecorderBox.recorder (FitnessTabView.swift:787)",
   "ud:fitness.getMeBack.disclaimerSeenV1 — FitnessTabView.getMeBackDisclaimerSeenKey (FitnessTabView.swift:107; read/written in FitnessTabView+Sections.swift:49,61)",
-  "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, gpxShareURL (set only while a share is pending or shown), gpxSharePresented, gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutLoadFailed, recentWorkoutLoadFailed, workoutDeleteFailed (the summary sheet's delete alert), pendingRecentDeleteId (the Recent workout awaiting delete confirmation), recentWorkoutDeleteFailed (the tab's delete alert)"
+  "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, gpxShareURL (set only while a share is pending or shown), gpxSharePresented, gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutRoute (its decoded GPS route), latestWorkoutLoadFailed, recentWorkoutLoadFailed, workoutDeleteFailed (the summary sheet's delete alert), pendingRecentDeleteId (the Recent workout awaiting delete confirmation), recentWorkoutDeleteFailed (the tab's delete alert)"
  ],
  "toplevel": "Stored @State initialisers: planModel = WorkoutPlanModel(), all others empty/false/nil/0. Environment: dependencies, RRCollector, ArchiveSignal, VoiceConversationController, SettingsManager. RecorderBox.shared is a static singleton constructed lazily; the header and PhaseObservingStateBody comments say the recorder lives in that app-wide box and that both WorkoutRecorder and WorkoutLifecycle are @Observable.",
  "units": [
@@ -1099,72 +1100,92 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPX(from:)": "f4f6621a6641e28c"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPX(from:)": "a4077cf81f8e1918"
    }
   },
   {
    "key": "func FitnessTabView.importGPX(from:)",
-   "hash": "6733e7b1f9248f49",
-   "does": "Reads a security-scoped GPX file, parses it as a workout, refuses if an archived workout has the same start, else builds an HRVSession, archives it, notifies, and reports sport/duration (capped 48 h)/GPS point count.",
+   "hash": "062a89d027d172c5",
+   "does": "Collects the archived workout start dates on the main actor, runs importGPXFile on a detached task (read, parse, duplicate check, archive write), then sets importMessage from the outcome: 'already in your history', 'Imported <sport> (<min> min, <n> GPS points).' (after posting the archive-changed signal) or 'Import failed: <reason>'.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parseWorkout(data:defaultSport:)",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.isArchivedWorkout(startingAt:)",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.buildSession(from:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPXFile(_:archive:existingStarts:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "file:user-picked GPX (security-scoped)",
     "mem:SessionArchive.entries"
    ],
    "writes": [
-    "archive:SessionArchive.archive",
     "notif:archive changed (RRCollector.notifyArchiveChanged)",
+    "mem:FitnessTabView.importMessage"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "outcome .duplicate",
+     "effect": "'already in your history'"
+    },
+    {
+     "at": "+10",
+     "cond": "outcome .imported",
+     "effect": "notify, imported message"
+    },
+    {
+     "at": "+13",
+     "cond": "outcome .failed",
+     "effect": "'Import failed: <reason>'"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "7ee167777e5501ae",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPXFile(_:archive:existingStarts:)": "91932ff45a26ac06"
+   }
+  },
+  {
+   "key": "func FitnessTabView.importGPXFile(_:archive:existingStarts:)",
+   "hash": "b55b031ea675c460",
+   "does": "Nonisolated, off the main actor: opens the security-scoped file (closed on exit), parses it as a workout, returns .duplicate when HealthWorkoutImporter.isAlreadyArchived matches its start, else builds and archives the session and returns .imported with sport, duration in minutes (capped 48 h) and GPS point count; any read/parse/archive error returns .failed with its description.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parseWorkout(data:defaultSport:)",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.buildSession(from:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)"
+   ],
+   "reads": [
+    "file:user-picked GPX (security-scoped)"
+   ],
+   "writes": [
+    "archive:SessionArchive.archive",
     "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive, Archive.swift:470)"
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "security-scoped access started",
      "effect": "true → stopAccessing in defer"
     },
     {
      "at": "+7",
-     "cond": "start time already archived",
-     "effect": "true → importMessage 'already in your history', return"
+     "cond": "start already archived",
+     "effect": ".duplicate"
     },
     {
-     "at": "+16",
+     "at": "+11",
      "cond": "catch parse/read/archive error",
-     "effect": "importMessage 'Import failed: <error>'"
+     "effect": ".failed(description)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.buildSession(from:)": "763d10ef1091b055",
     "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parseWorkout(data:defaultSport:)": "b9bc9dc832b4f121",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.isArchivedWorkout(startingAt:)": "704cf76d45829788"
-   }
-  },
-  {
-   "key": "func FitnessTabView.isArchivedWorkout(startingAt:)",
-   "hash": "ec0c2eef1e039019",
-   "does": "Collects start dates of archived workouts and asks HealthWorkoutImporter.isAlreadyArchived whether `start` matches one.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)"
-   ],
-   "reads": [
-    "mem:SessionArchive.entries"
-   ],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)": "1b21847bb67f3db3"
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)": "1b21847bb67f3db3",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f"
    }
   },
   {

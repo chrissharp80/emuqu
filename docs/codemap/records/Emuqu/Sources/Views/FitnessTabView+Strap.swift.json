@@ -30,7 +30,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCardContent(latest:)": "e37cbe011006d7df",
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.loadLatestWorkoutSession()": "3a1bd266c2be698a",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.loadLatestWorkoutSession()": "7c6f4df4e7f94008",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.heroReloadKey": "a4a6ba8ec7e9c62c"
    }
   },
@@ -267,29 +267,31 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCardBody(session:latest:facts:)": "becbe92a1fe8e0cf",
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroFacts(session:)": "2d768a931cb70c8f"
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCardBody(session:latest:facts:)": "5c87985c517e6544",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroFacts(session:)": "e947729ec1effec2"
    }
   },
   {
    "key": "func FitnessStrapSection.heroCardBody(session:latest:facts:)",
-   "hash": "4b16f245303f34c9",
-   "does": "Hero body: top row (sport icon + label + relative time), headline distance/duration/pace, optional mini route trace, and the badge row; padded and styled with HeroCardChrome.",
+   "hash": "70205cc4e6e536dd",
+   "does": "Hero body: top row (sport icon + label + relative time), headline distance/duration/pace, the mini route trace from the already decoded latestWorkoutRoute when the workout has a polyline, and the badge row; padded and styled with HeroCardChrome.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroTopRow(sport:latest:)",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func heroHeadline(facts:)",
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPolylinePreview(polyline:startDate:duration:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPolylinePreview(route:)",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroBadgesRow(peakHR:elevation:alpha1Avg:trimp:loadSource:hrTSS:)",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.HeroCardChrome.body(content:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:FitnessTabView.latestWorkoutRoute (binding)"
+   ],
    "writes": [],
    "branches": [
     {
      "at": "+5",
      "cond": "facts.polyline non-nil",
-     "effect": "true → heroPolylinePreview with session startDate/duration; false → no trace"
+     "effect": "true → heroPolylinePreview(route:); false → no trace"
     }
    ],
    "deps": {
@@ -297,7 +299,7 @@
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "85adfaeef60b74e7",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.HeroCardChrome.body(content:)": "46cd8dd803bd5776",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroBadgesRow(peakHR:elevation:alpha1Avg:trimp:loadSource:hrTSS:)": "58eb6093d464e626",
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPolylinePreview(polyline:startDate:duration:)": "2077940cca9653b4",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPolylinePreview(route:)": "92aba8ba7f1142f2",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroTopRow(sport:latest:)": "58faeeb7f25d490f",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func heroHeadline(facts:)": "2f2d60c9ff773c81"
    }
@@ -318,15 +320,16 @@
   },
   {
    "key": "func FitnessStrapSection.heroFacts(session:)",
-   "hash": "bd86f7bcc368bad6",
-   "does": "Resolves HeroFacts from session.workoutMetadata: sport (nil when absent), formatted distance, duration string, pace, peak HR from samples, mean α1, preferredTrainingLoad (power TSS over TRIMP), hrTSS, elevation gain, GPS polyline.",
+   "hash": "baeccb3024ae20e3",
+   "does": "Resolves HeroFacts from session.workoutMetadata: sport (nil when absent), formatted distance, active (un-paused) duration string (WorkoutActiveTime), pace, peak HR from samples, mean α1, preferredTrainingLoad (power TSS over TRIMP), hrTSS, elevation gain, GPS polyline.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroDurationString(_:)",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPaceString(session:meta:)",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroAlpha1Average(meta:)",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)"
    ],
    "reads": [
     "mem:UnitsPreference (stored units)"
@@ -346,7 +349,8 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroAlpha1Average(meta:)": "593d4877081b0f5c",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroDurationString(_:)": "12faf1fa31f0679b",
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPaceString(session:meta:)": "6995e7adf78989e4"
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPaceString(session:meta:)": "e17fbfdbb79c4274",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "2ab0c1cf6cea2ea6"
    }
   },
   {
@@ -373,10 +377,11 @@
   },
   {
    "key": "func FitnessStrapSection.heroPaceString(session:meta:)",
-   "hash": "c42dab5b1e7defc6",
-   "does": "Returns formatted pace via UnitsPreference.formatPace(elapsedSec:distanceMeters:) only when distance >100 m and duration >10 s; else nil.",
+   "hash": "71f6dc4e69d937c8",
+   "does": "Formatted pace from active (un-paused) seconds (WorkoutActiveTime) over distance via UnitsPreference.formatPace(elapsedSec:distanceMeters:), as the summary hero computes it, only when distance >100 m and that time >10 s; else nil.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)"
    ],
    "reads": [],
@@ -389,7 +394,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "9f6523aed76afcae"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "9f6523aed76afcae",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "2ab0c1cf6cea2ea6"
    }
   },
   {
@@ -457,25 +463,23 @@
    }
   },
   {
-   "key": "func FitnessStrapSection.heroPolylinePreview(polyline:startDate:duration:)",
-   "hash": "891e6c5e45cddce7",
-   "does": "Decodes the stored GPS polyline into CLLocations via GPXExporter.decode on every render and draws a route trace when ≥2 points.",
+   "key": "func FitnessStrapSection.heroPolylinePreview(route:)",
+   "hash": "603e7053b606fa48",
+   "does": "Stroke trace of the given route's coordinates on a tight box (polylineTrace) when it has at least 2 points; nothing otherwise. Decodes nothing.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.polylineTrace(coords:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
-     "cond": "decoded.count >= 2",
-     "effect": "true → polylineTrace; false → nothing rendered"
+     "at": "+2",
+     "cond": "route.count >= 2",
+     "effect": "trace; else nothing"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.polylineTrace(coords:)": "104216f1c20b2cca"
    }
   },
@@ -683,12 +687,13 @@
   },
   {
    "key": "func FitnessStrapSection.loadLatestWorkoutSession()",
-   "hash": "13e66c2738f2e41c",
-   "does": "Loads the newest workout session lightweight (no rrSeries) on a detached task via retrieveLightweightOrLog, then writes latestWorkoutSession and latestWorkoutLoadFailed through the bindings unless the task was cancelled.",
+   "hash": "7054667077bc91f7",
+   "does": "Loads the newest workout session lightweight (no rrSeries) and decodes its GPS polyline (decodedRoute) on one detached task, then writes latestWorkoutSession, latestWorkoutRoute and latestWorkoutLoadFailed through the bindings unless the task was cancelled. With no workout, clears all three.",
    "entry": null,
    "calls": [
     "closure:recentWorkoutEntries — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:52) → Emuqu/Sources/Views/FitnessTabView.swift:529",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.decodedRoute(_:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieveLightweightOrLog",
@@ -696,22 +701,46 @@
    ],
    "writes": [
     "mem:FitnessTabView.latestWorkoutSession (binding)",
-    "mem:FitnessTabView.latestWorkoutLoadFailed (binding)"
+    "mem:FitnessTabView.latestWorkoutLoadFailed (binding)",
+    "mem:FitnessTabView.latestWorkoutRoute (binding)"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "there is at least one workout entry",
-     "effect": "false → clears latestWorkoutSession and failed flag, returns"
+     "effect": "false → clears latestWorkoutSession, the route and the failed flag, returns"
     },
     {
-     "at": "+15",
+     "at": "+17",
      "cond": "Task.isCancelled after the detached read",
-     "effect": "true → returns without writing (superseded by newer key); false → stores result; nil result sets latestWorkoutLoadFailed = true"
+     "effect": "true → returns without writing (superseded by newer key); false → stores result and route; nil result sets latestWorkoutLoadFailed = true"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.decodedRoute(_:)": "cd316ce7d9ecb994"
+   }
+  },
+  {
+   "key": "func FitnessStrapSection.decodedRoute(_:)",
+   "hash": "80b58d7dbeca9199",
+   "does": "Nonisolated: the session's GPS polyline decoded to locations (GPXExporter.decode); empty without one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no polyline",
+     "effect": "[]"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "40d04f34ec0697be"
    }
   },
   {

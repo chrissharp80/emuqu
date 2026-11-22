@@ -64,7 +64,10 @@ struct HealthWorkoutImportSheet: View {
     /// and not an HKWorkout, so it has no id of its own to key on.
     private static let manualRebuildRow = UUID()
 
+    /// One import or rebuild at a time: `busyRow` names the one working, and
+    /// a second would overwrite it and be cleared by whichever finished first.
     private func startManualRebuild(at start: Date, sport: Sport) {
+        guard busyRow == nil else { return }
         Task { await manualRebuild(at: start, sport: sport) }
     }
 
@@ -73,7 +76,7 @@ struct HealthWorkoutImportSheet: View {
         defer { busyRow = nil }
         switch await importer.rebuild(startingAt: start, sport: sport) {
         case let .success(session):
-            store(session, markingDone: Self.manualRebuildRow)
+            await store(session, markingDone: Self.manualRebuildRow)
         case let .failure(reason):
             failureMessage = Self.message(for: reason)
         }
@@ -266,13 +269,19 @@ struct HealthWorkoutImportSheet: View {
 
     // MARK: - Actions
 
+    /// The interrupted scan reads each candidate's file, so it runs on a
+    /// detached task.
     private func load() async {
         guard candidates == nil else { return }
-        interrupted = importer.interruptedSessions(archive: archive)
+        let archive = archive
+        interrupted = await Task.detached(priority: .userInitiated) {
+            HealthWorkoutImporter.scanInterruptedSessions(archive: archive)
+        }.value
         candidates = await importer.candidates(archive: archive)
     }
 
     private func startRebuild(_ stub: HealthWorkoutImporter.InterruptedSession) {
+        guard busyRow == nil else { return }
         Task { await rebuild(stub) }
     }
 
@@ -281,7 +290,7 @@ struct HealthWorkoutImportSheet: View {
         defer { busyRow = nil }
         switch await importer.rebuild(stub) {
         case let .success(session):
-            store(session, markingDone: stub.id)
+            await store(session, markingDone: stub.id)
         case let .failure(reason):
             failureMessage = Self.message(for: reason)
         }
@@ -308,6 +317,7 @@ struct HealthWorkoutImportSheet: View {
     }
 
     private func startImport(_ candidate: HealthWorkoutImporter.Candidate) {
+        guard busyRow == nil else { return }
         Task { await importWorkout(candidate) }
     }
 
@@ -321,19 +331,28 @@ struct HealthWorkoutImportSheet: View {
             )
             return
         }
-        store(session, markingDone: candidate.id)
+        await store(session, markingDone: candidate.id)
     }
 
     /// A rebuild reuses the interrupted stub's id, which iCloud already holds,
     /// so the write asks for a re-upload; the archive only sends one when the
-    /// id was already archived, and a new import syncs as usual.
-    private func store(_ session: HRVSession, markingDone id: UUID) {
-        do {
-            _ = try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
-            completedRows.insert(id)
-            onImported()
-        } catch {
-            failureMessage = error.localizedDescription
+    /// id was already archived, and a new import syncs as usual. The write
+    /// (encode, encrypt, hash) runs on a detached task.
+    private func store(_ session: HRVSession, markingDone id: UUID) async {
+        let archive = archive
+        let failure = await Task.detached(priority: .userInitiated) { () -> String? in
+            do {
+                _ = try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
+                return nil
+            } catch {
+                return error.localizedDescription
+            }
+        }.value
+        if let failure {
+            failureMessage = failure
+            return
         }
+        completedRows.insert(id)
+        onImported()
     }
 }

@@ -1467,16 +1467,17 @@
   },
   {
    "key": "func MorningReanalysisControls.exportRRData(onFailure:)",
-   "hash": "df7967ea1361448b",
-   "does": "Writes the displayed session's RR series as a CSV (rrExportHeader provenance comments + rrCSVRows) to tmp under rrExportFilename and sets exportURL to preview/share it (MorningResultsView deletes the file when the sheet closes). With no series, or when the write throws, logs and calls onFailure with 'Couldn't create the CSV file.'",
+   "hash": "b865d1da5f288585",
+   "does": "Builds the provenance header (rrExportHeader) and the tmp file name (rrExportFilename) on the main actor, then builds the rows and writes the CSV on a detached task (writeRRCSV); on success sets exportURL to preview/share it (MorningResultsView deletes the file when the sheet closes). With no series, or when the write fails, calls onFailure with 'Couldn't create the CSV file.'",
    "entry": "Export RR button, via the MorningResultsView forwarder",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportHeader(series:)",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func writeRRCSV(header:points:to:)",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportFilename()",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
     "closure:onFailure — sets MorningResultsView.exportErrorMessage",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
@@ -1490,9 +1491,9 @@
      "effect": "log, onFailure, return"
     },
     {
-     "at": "+13",
-     "cond": "write throws",
-     "effect": "log, onFailure"
+     "at": "+14",
+     "cond": "written",
+     "effect": "exportURL set; else onFailure"
     }
    ],
    "deps": {
@@ -1501,7 +1502,7 @@
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportFilename()": "92d2a35ab0172a81",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.rrExportHeader(series:)": "531e8f9668b44379",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)": "0cecab337fcf1bcd",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func writeRRCSV(header:points:to:)": "bc335ada0ee29295",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
@@ -1651,6 +1652,31 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
+   }
+  },
+  {
+   "key": "func writeRRCSV(header:points:to:)",
+   "hash": "659f583aa2386411",
+   "does": "Writes header + rrCSVRows(points) to the URL atomically as UTF-8 and logs; false (logged) when the write throws. Runs off the main actor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/Emuqu_RR_<date>.csv"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "write threw",
+     "effect": "log, false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func rrCSVRows(points:)": "0cecab337fcf1bcd"
    }
   },
   {

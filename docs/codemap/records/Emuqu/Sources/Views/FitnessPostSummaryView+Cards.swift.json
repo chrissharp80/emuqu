@@ -977,7 +977,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)": "863a874d96dcc48f",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.describe(_:)": "fdc776ce50ce36f4",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.saveResmoothedElevation(gain:loss:)": "43c70b2820cf916b"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.saveResmoothedElevation(gain:loss:)": "55a957e71049cdad"
    }
   },
   {
@@ -1039,12 +1039,15 @@
   },
   {
    "key": "func FitnessSummaryCards.saveResmoothedElevation(gain:loss:)",
-   "hash": "a755ae762376b796",
-   "does": "Writes the DEM gain/loss into the archived session (and rebuilds its analysis snapshot) via writeResmoothedElevation, then sets refreshedSession, posts the collector's archive-changed signal and clears the preview; shows 'Session not found in archive.' or 'Couldn't save: …' on failure.",
+   "hash": "f2ddafd84804cd61",
+   "does": "Writes the DEM gain/loss into the archived session (and rebuilds its analysis snapshot) through writeResmoothedElevation on a detached task, then on success sets refreshedSession, posts the collector's archive-changed signal and clears the preview; shows 'Session not found in archive.' or 'Couldn't save: …' otherwise. Busy flag held throughout.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.writeResmoothedElevation(gain:loss:)",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.writeResmoothedElevation(_:gain:loss:archive:settings:)",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
@@ -1054,48 +1057,49 @@
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "writeResmoothedElevation returns nil (not in archive)",
-     "effect": "elevResmoothError = 'Session not found in archive.', return"
+     "at": "+10",
+     "cond": "write returned a session",
+     "effect": "refresh, notify, clear preview"
     },
     {
-     "at": "+12",
-     "cond": "writeResmoothedElevation throws",
+     "at": "+15",
+     "cond": "write returned nil (not in archive)",
+     "effect": "elevResmoothError = 'Session not found in archive.'"
+    },
+    {
+     "at": "+17",
+     "cond": "write threw",
      "effect": "elevResmoothError = 'Couldn't save: <error>'"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.writeResmoothedElevation(gain:loss:)": "d701b637248f48b7"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.writeResmoothedElevation(_:gain:loss:archive:settings:)": "3c984e37da9cd21d",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "b9111aa256097aa1"
    }
   },
   {
-   "key": "func FitnessSummaryCards.writeResmoothedElevation(gain:loss:)",
-   "hash": "670ef86910bb47c3",
-   "does": "Snapshots the user's max HR / weight (UserSettingsBridge) and, via updateArchived, sets the archived workout's elevationGainMeters/LossMeters and rebuilds its analysisSnapshot from the updated session. Returns the stored session, or nil when it is not in the archive; rethrows archive errors.",
+   "key": "func FitnessSummaryCards.writeResmoothedElevation(_:gain:loss:archive:settings:)",
+   "hash": "be8ab5a83b3060a4",
+   "does": "Nonisolated: read-modify-write of the archived session (updateArchived) setting elevationGainMeters/LossMeters and rebuilding the analysis snapshot; returns the stored session, nil when it is not in the archive, or the thrown error, as a Result.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func rebuildAnalysisSnapshot(_:settings:)"
    ],
-   "reads": [
-    "mem:AppDependencies.current.storage.sessionArchive",
-    "mem:SettingsManager.settingsSnapshot (via UserSettingsBridge)"
-   ],
+   "reads": [],
    "writes": [
     "archive:SessionArchive.update (elevationGainMeters/LossMeters, analysisSnapshot)"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)": "8fbbfffdfad51c16",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func rebuildAnalysisSnapshot(_:settings:)": "3a65d30fc6c5331d",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "b9111aa256097aa1"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func rebuildAnalysisSnapshot(_:settings:)": "3a65d30fc6c5331d"
    }
   },
   {
@@ -1175,7 +1179,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.runReanalyze()": "b4540547856ca506",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.runReanalyze()": "49fd43cf215b491d",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "bb3b268fd0780e93"
    }
   },
@@ -1218,8 +1222,8 @@
   },
   {
    "key": "func FitnessSummaryCards.runReanalyze()",
-   "hash": "83026c411f88f8e2",
-   "does": "Sets the busy flag, recomputes α1 off-main and persists the refreshed samples; shows 'Not enough RR data to re-analyze.' when nothing came back.",
+   "hash": "d76f838d51a26abc",
+   "does": "Sets the busy flag, recomputes α1 off-main and awaits persisting the refreshed samples; shows 'Not enough RR data to re-analyze.' when nothing came back.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.recomputeAlpha1()",
@@ -1238,7 +1242,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.persistReanalyzedSamples(_:readingCount:)": "1e4c19304ddee12f",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.persistReanalyzedSamples(_:readingCount:)": "26df3fd01d7815bf",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.recomputeAlpha1()": "5cb3a0467ae1fc95"
    }
   },
@@ -1267,15 +1271,16 @@
   },
   {
    "key": "func FitnessSummaryCards.persistReanalyzedSamples(_:readingCount:)",
-   "hash": "c9b41b6a115d4a9f",
-   "does": "Writes the re-analysed samples (with α1-enriched splits and a rebuilt analysis snapshot) to the archive, then sets refreshedSession, clears the Alpha1StatsCache in the same main-actor turn (its key ignores α1 values) and posts the archive-changed signal; shows a save error or 'Session not found in archive.' on failure.",
+   "hash": "9d81330809f70a37",
+   "does": "Awaits storeReanalyzedSamples (the archive write off the main actor: samples, α1-enriched splits, rebuilt snapshot), then sets refreshedSession, clears the Alpha1StatsCache in the same main-actor turn (its key ignores α1 values) and posts the archive-changed signal; shows a save error or 'Session not found in archive.' otherwise.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.writeReanalyzedSamples(_:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.storeReanalyzedSamples(_:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.alpha1StatsCache",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [
@@ -1286,14 +1291,19 @@
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "writeReanalyzedSamples throws",
-     "effect": "reanalyzeError = 'Couldn't save re-analyzed α1: …', return"
+     "at": "+3",
+     "cond": "stored a session",
+     "effect": "carry on to publish"
+    },
+    {
+     "at": "+5",
+     "cond": "nil (not in archive)",
+     "effect": "reanalyzeError = 'Session not found in archive.', return"
     },
     {
      "at": "+8",
-     "cond": "result nil (not in archive)",
-     "effect": "reanalyzeError = 'Session not found in archive.', return"
+     "cond": "write threw",
+     "effect": "reanalyzeError = 'Couldn't save re-analyzed α1: …', return"
     }
    ],
    "deps": {
@@ -1303,41 +1313,49 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.alpha1StatsCache": "f1b54711087a1c5b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.writeReanalyzedSamples(_:)": "fb30368105850f94"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.storeReanalyzedSamples(_:)": "c7e778e0e6946792"
    }
   },
   {
-   "key": "func FitnessSummaryCards.writeReanalyzedSamples(_:)",
-   "hash": "46cf13b1d07d6eeb",
-   "does": "Computes α1-enriched splits, snapshots max HR / weight (UserSettingsBridge) and, via updateArchived, replaces the archived workout's samples and (when computed) splits and rebuilds its analysisSnapshot from them.",
+   "key": "func FitnessSummaryCards.storeReanalyzedSamples(_:)",
+   "hash": "829b3549bb04dd68",
+   "does": "Builds the α1-enriched splits and the settings snapshot on the main actor, then runs writeReanalyzedSamples on a detached task and returns its Result.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.alpha1EnrichedSplits(samples:)",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func rebuildAnalysisSnapshot(_:settings:)"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.writeReanalyzedSamples(_:_:splits:archive:settings:)"
    ],
-   "reads": [
-    "mem:AppDependencies.current.storage.sessionArchive",
-    "mem:SettingsManager.settingsSnapshot (via UserSettingsBridge)"
-   ],
+   "reads": [],
    "writes": [
-    "archive:SessionArchive.update (samples, splits, analysisSnapshot)"
+    "archive:SessionArchive.update (samples/splits/analysisSnapshot)"
    ],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "enrichedSplits non-nil",
-     "effect": "stored splits replaced; nil → splits left unchanged"
-    }
-   ],
+   "branches": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.alpha1EnrichedSplits(samples:)": "bfe3a189e7e1c050",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)": "8fbbfffdfad51c16",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func rebuildAnalysisSnapshot(_:settings:)": "3a65d30fc6c5331d",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.writeReanalyzedSamples(_:_:splits:archive:settings:)": "a9390d043bca0eb2",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func UserSettingsBridge.snapshot()": "b9111aa256097aa1"
+   }
+  },
+  {
+   "key": "func FitnessSummaryCards.writeReanalyzedSamples(_:_:splits:archive:settings:)",
+   "hash": "9aa26692476bc39f",
+   "does": "Nonisolated: read-modify-write of the archived session (updateArchived) storing the samples, the enriched splits when given (else keeping the stored ones) and a rebuilt analysis snapshot; returns the stored session, nil when not archived, or the thrown error, as a Result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func rebuildAnalysisSnapshot(_:settings:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update (samples/splits/analysisSnapshot)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)": "8fbbfffdfad51c16",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func rebuildAnalysisSnapshot(_:settings:)": "3a65d30fc6c5331d"
    }
   },
   {

@@ -654,34 +654,42 @@ extension FitnessSummaryCards {
     /// behind us. Relying solely on the archive observer to close the loop is
     /// fragile — if it doesn't fire (timing quirks, view-lifecycle edge cases)
     /// the user sees "saved" but the number doesn't change on screen — so
-    /// both paths run.
+    /// both paths run. The archive write runs on a detached task.
     func saveResmoothedElevation(gain: Double, loss: Double) async {
         elevResmoothing = true
         defer { elevResmoothing = false }
-        do {
-            guard let updated = try writeResmoothedElevation(gain: gain, loss: loss) else {
-                elevResmoothError = String(localized: "Session not found in archive.", bundle: LanguageManager.appBundle)
-                return
-            }
+        let id = session.id
+        let archive = AppDependencies.current.storage.sessionArchive
+        let settings = UserSettingsBridge.snapshot()
+        let outcome = await Task.detached(priority: .userInitiated) {
+            Self.writeResmoothedElevation(id, gain: gain, loss: loss, archive: archive, settings: settings)
+        }.value
+        switch outcome {
+        case .success(let updated?):
             refreshedSession = updated
             collector.notifyArchiveChanged()
             elevResmoothPreview = nil
-            debugLog("[ResmoothElevation] rewrote gain=\(Int(gain)) loss=\(Int(loss)) for session \(session.id)")
-        } catch {
+            debugLog("[ResmoothElevation] rewrote gain=\(Int(gain)) loss=\(Int(loss)) for session \(id)")
+        case .success(nil):
+            elevResmoothError = String(localized: "Session not found in archive.", bundle: LanguageManager.appBundle)
+        case .failure(let error):
             elevResmoothError = String(localized: "Couldn't save: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
         }
     }
 
     /// Stores the new gain / loss on the archived session and rebuilds its
     /// analysis snapshot (VAM, grade-adjusted pace, narratives) from them;
-    /// nil when the session is no longer in the archive.
-    private func writeResmoothedElevation(gain: Double, loss: Double) throws -> HRVSession? {
-        let archive = AppDependencies.current.storage.sessionArchive
-        let settings = UserSettingsBridge.snapshot()
-        return try Self.updateArchived(session.id, in: archive) { stored in
-            stored.workoutMetadata?.elevationGainMeters = gain
-            stored.workoutMetadata?.elevationLossMeters = loss
-            rebuildAnalysisSnapshot(&stored, settings: settings)
+    /// nil when the session is no longer in the archive, the error when the
+    /// write threw.
+    nonisolated private static func writeResmoothedElevation(
+        _ id: UUID, gain: Double, loss: Double, archive: SessionArchive, settings: UserSettingsBridge
+    ) -> Result<HRVSession?, Error> {
+        Result {
+            try updateArchived(id, in: archive) { stored in
+                stored.workoutMetadata?.elevationGainMeters = gain
+                stored.workoutMetadata?.elevationLossMeters = loss
+                rebuildAnalysisSnapshot(&stored, settings: settings)
+            }
         }
     }
 
@@ -771,7 +779,7 @@ extension FitnessSummaryCards {
             reanalyzeError = String(localized: "Not enough RR data to re-analyze.", bundle: LanguageManager.appBundle)
             return
         }
-        persistReanalyzedSamples(refreshedSamples, readingCount: readings.count)
+        await persistReanalyzedSamples(refreshedSamples, readingCount: readings.count)
     }
 
     /// Off-thread: the DFA pass over a ~60-min RR series is a few hundred
@@ -797,17 +805,18 @@ extension FitnessSummaryCards {
     /// bump the archive signal — both paths, so the open sheet refreshes
     /// unconditionally and the fitness tab behind us reloads too. The splits'
     /// mean α1 is recomputed from the new samples so the splits table agrees
-    /// with the re-analysed trace.
-    private func persistReanalyzedSamples(_ refreshedSamples: [WorkoutSample], readingCount: Int) {
-        let updated: HRVSession?
-        do {
-            updated = try writeReanalyzedSamples(refreshedSamples)
-        } catch {
-            reanalyzeError = String(localized: "Couldn't save re-analyzed α1: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
-            return
-        }
-        guard let updated else {
+    /// with the re-analysed trace. The archive write runs on a detached task
+    /// (`storeReanalyzedSamples`), not the main actor.
+    private func persistReanalyzedSamples(_ refreshedSamples: [WorkoutSample], readingCount: Int) async {
+        let updated: HRVSession
+        switch await storeReanalyzedSamples(refreshedSamples) {
+        case .success(let session?):
+            updated = session
+        case .success(nil):
             reanalyzeError = String(localized: "Session not found in archive.", bundle: LanguageManager.appBundle)
+            return
+        case .failure(let error):
+            reanalyzeError = String(localized: "Couldn't save re-analyzed α1: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
             return
         }
         refreshedSession = updated
@@ -823,15 +832,28 @@ extension FitnessSummaryCards {
     /// Stores the re-analysed samples and their α1-enriched splits on the
     /// archived session and rebuilds its analysis snapshot (α1 mean / min /
     /// max, band seconds, narratives) from them; nil when the session is no
-    /// longer in the archive.
-    private func writeReanalyzedSamples(_ refreshedSamples: [WorkoutSample]) throws -> HRVSession? {
+    /// longer in the archive, the error when the write threw.
+    private func storeReanalyzedSamples(_ refreshedSamples: [WorkoutSample]) async -> Result<HRVSession?, Error> {
+        let id = session.id
         let enrichedSplits = alpha1EnrichedSplits(samples: refreshedSamples)
         let archive = AppDependencies.current.storage.sessionArchive
         let settings = UserSettingsBridge.snapshot()
-        return try Self.updateArchived(session.id, in: archive) { stored in
-            stored.workoutMetadata?.samples = refreshedSamples
-            if let enrichedSplits { stored.workoutMetadata?.splits = enrichedSplits }
-            rebuildAnalysisSnapshot(&stored, settings: settings)
+        return await Task.detached(priority: .userInitiated) {
+            Self.writeReanalyzedSamples(id, refreshedSamples, splits: enrichedSplits, archive: archive, settings: settings)
+        }.value
+    }
+
+    /// The write, off the main actor; splits are replaced only when enriched.
+    nonisolated private static func writeReanalyzedSamples(
+        _ id: UUID, _ refreshedSamples: [WorkoutSample], splits enrichedSplits: [Split]?,
+        archive: SessionArchive, settings: UserSettingsBridge
+    ) -> Result<HRVSession?, Error> {
+        Result {
+            try updateArchived(id, in: archive) { stored in
+                stored.workoutMetadata?.samples = refreshedSamples
+                stored.workoutMetadata?.splits = enrichedSplits ?? stored.workoutMetadata?.splits
+                rebuildAnalysisSnapshot(&stored, settings: settings)
+            }
         }
     }
 
