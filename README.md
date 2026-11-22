@@ -233,10 +233,13 @@ Emuqu is developed by one person, pushing to `main`. Five workflows live in
 - **`ci.yml`** runs on every pull request and push to `main` at scope `unit`,
   on demand at any scope, and is called by `testflight.yml` at scope `full`
   before a release. It runs lint and budgets, the test suite with coverage, the
-  strict-concurrency check and Thread Sanitizer. Coverage is enforced against
+  strict-concurrency check and Thread Sanitizer, which runs the suite serially
+  after a deliberately racing canary test proves that a race fails the run. Coverage is enforced against
   three ratcheted floors (overall, logic and views) read from `.ci/` at run time.
 - **`performance.yml`** runs the analysis performance tests on demand.
-- **`security.yml`** runs CodeQL for Swift and dependency review on demand.
+- **`security.yml`** runs CodeQL for Swift and dependency review on demand. The
+  review first checks that every Swift package pin is in GitHub's dependency
+  graph, so a review that left them out fails instead of passing.
 - **`testflight.yml`** builds and uploads to TestFlight, gated on `ci.yml`.
 
 The macOS build, the unit suite and Thread Sanitizer run on every pull request
@@ -287,7 +290,7 @@ until you turn it on, and the hosted AI providers ask for consent first.
 
 | Feature | What leaves the device | Where it goes |
 |---|---|---|
-| iCloud sync, once turned on | Session backups, raw RR data and settings, encrypted by the app before upload. Nothing read from Apple Health is uploaded: each device reads Health itself | Your own private CloudKit container |
+| iCloud sync, once turned on | Session backups, raw RR data and settings, encrypted by the app before upload. Nothing read from Apple Health is uploaded: each device reads Health itself | Your own private CloudKit container, for the iCloud account sync was turned on with; signed into another account, sync turns itself off |
 | AI assistant, hosted | Your question, the data the model asks the app for, and on every turn a short block with your latest and previous recovery score, RMSSD, SDNN and heart rate, last night's heart rate and sleep, your location during a live workout, and the facts saved to the assistant's memory | The provider you choose, with your own API key, after its consent screen. DeepSeek processes and stores data in the People's Republic of China. |
 | AI assistant, Apple Intelligence | In Quick, nothing, apart from a web search or map lookup it makes. If you've consented to Grok or DeepSeek, Auto sends the questions that need more reasoning, and Deep sends every question, to that provider, with the same data a hosted turn carries. In every mode, voice turns and requests to email, get directions or search the web go to the first hosted provider you've consented to, if you have one | On-device; a web search goes to the service below, a map lookup to Apple Maps, a turn sent to a hosted provider to that provider |
 | Voice conversation, when the device or language can't transcribe on the device | Your speech | Apple's speech recognition service |

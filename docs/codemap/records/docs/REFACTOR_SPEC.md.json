@@ -309,7 +309,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "be1e45efca604118",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.InstalledScope.end()": "2883f22c40d81b31",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)": "7deb301260afd282"
    }
   },
   {
@@ -424,16 +425,16 @@
   {
    "key": "§ Code Refactor Specification > Eliminate Bloat, Duplication, and Dead Weight > Dead Code Removal",
    "hash": "ac8a32e78b1b3766",
-   "does": "Rule: delete unused code; prove use or quarantine then delete. Gate: scripts/check_no_orphan_swift.sh (ci.yml:379) checks only that Swift files are in the project, not unused symbols.",
+   "does": "Rule: delete unused code; prove use or quarantine then delete. Gate: scripts/check_no_orphan_swift.sh ('No orphaned Swift files' step in ci.yml) checks only that Swift files are in the project, not unused symbols.",
    "entry": null,
    "calls": [
-    "scripts/check_no_orphan_swift.sh::fn is_synced"
+    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_no_orphan_swift.sh::fn is_synced": "858518fd5f060177"
+    ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files": "4986a8f812605eb7"
    }
   },
   {
@@ -478,8 +479,8 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)": "01e85aecb6178d45",
     ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current": "242b5be18b5a6ab6",
-    ".github/workflows/security.yml::job dependency-review": "4665797cb224b382",
-    ".github/workflows/security.yml::step dependency-review/Review dependencies": "2ad042b1c466a046",
+    ".github/workflows/security.yml::job dependency-review": "f544cc3ea5ca4098",
+    ".github/workflows/security.yml::step dependency-review/Review dependencies": "0879a4916a66beb0",
     "Makefile::target sbom-check": "46aecc781adb961a",
     "Makefile::target sbom-guard": "b6d05ef975bc25ca",
     "scripts/generate_sbom.py::def main": "b4f89810431d3b58"
@@ -585,7 +586,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f"
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b"
    }
   },
   {

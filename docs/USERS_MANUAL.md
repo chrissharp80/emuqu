@@ -118,7 +118,7 @@ On a night Apple Health returns no sleep (Sleep Focus off, or no Apple Watch wor
 
 Three icons live in the top-right toolbar:
 
-- **🔔 Notifications** — opens the Notifications settings page.
+- **🔔 Notifications** — opens the Notifications settings page. Its **Daily morning report** has a **Format** picker: **Teaser** never shows the score; **Full readout** always does; **Auto** (the default) sends a teaser until you have 30 nights of readings, then the score and guidance, but only while Show Previews in iPhone Settings → Notifications is not set to Always, so the score stays off the Lock Screen.
 - **📤 Send Report** (paperplane icon) — menu offering:
   - **Send recovery report** — today's overnight session as a PDF. Disabled if no overnight session exists.
   - **Send daily report** — today's combined daily summary as a PDF (recovery + workout pairing for the day). Disabled if no daily pair exists.
@@ -361,7 +361,7 @@ For daytime 2-5 minute readings:
 - Breathing mandala for coherence (breathe with it for better results)
 - **Voice guide** — Toggle on/off for spoken "Breathe in" / "Breathe out" cues
 - Stats row: Beats collected, elapsed time, average RR interval
-- **"Stop Early"** button available
+- **"Stop Early"** button available; a reading with at least 120 beats is still saved
 
 **After Recording:**
 - "Reading Complete" card shows RMSSD, HR, and Readiness/SDNN
@@ -383,7 +383,7 @@ After recording completes, shows:
 **For Extended Recordings:**
 - The full Recovery Report opens automatically once analysis completes
 - Shows RMSSD, Readiness score, HR, sleep data (if available), training load, vitals, and overnight charts
-- **"Done"** button saves the session. **"Discard"** button rejects it.
+- **"Done"** button saves the session. **"Discard"** button rejects it, after asking (see *Notes Section* below).
 - If H10 device data improves the score, an upward arrow indicator appears on the readiness card
 
 **For Quick Readings:**
@@ -544,7 +544,11 @@ healthy.
 A small set of `[ACTION]` tools let the AI act on your data, not just
 read it. The AI will only invoke these on explicit, unambiguous
 instruction — never inferred — and always reads the result back to
-you for confirmation:
+you for confirmation. When what it would save (a memory fact, an email
+contact, your address, a route's new name) is not in your own words in
+your latest message, it asks you first and changes nothing until you
+say yes; an email draft or a new contact is staged only when your latest
+message asked for it:
 
 - **Saved routes** — rename one ("rename Daily 1 to Morning Loop"),
   save a recent workout to your library ("save my last walk as Long
@@ -955,7 +959,7 @@ Chart labels adapt to context: "Overnight Summary" / "Heart Rate Overnight" / "H
   - **Visualizations** (only for sessions with raw RR data): Overnight HR chart with analysis window highlight, Poincaré plot with SD1/SD2 ellipse, PSD graph with VLF/LF/HF band coloring, RR tachogram with artifact markers, data quality summary, window selection info
   - **Analysis Summary**: Full narrative analysis from the summary generator
 - **"Delete"** (if viewing from History): after a confirmation, moves the reading to the Trash. You can restore it from **Settings → iCloud & Data → Trash** for 90 days; after that it is deleted
-- **"Reanalyze"**: Re-runs analysis using the current window selection method. Useful when algorithm updates improve scoring.
+- **"Reanalyze"**: Re-runs analysis using the current window selection method. Useful when algorithm updates improve scoring. It asks first, because the new score replaces the saved one (the beat data is not changed); if the re-analysis cannot run, an alert says so and the score stays as it was.
 
 ---
 
@@ -979,7 +983,9 @@ the full post-workout report. The hero shows:
 
 Below the hero: workout-count tiles for the past 7/30 days, a passive
 activity card (phone-tracked steps/distance), the **Get Me Back card**
-(see below), and a recent-workouts list.
+(see below), and a recent-workouts list. Long-press a recent workout for
+**Delete Workout**: it asks first, then moves the workout to the Trash
+(restore it from **Settings → iCloud & Data → Trash**).
 
 ### Get Me Back mode
 
@@ -1050,6 +1056,8 @@ Footpod disconnects the moment the workout ends.
    in when a threshold breaches past its debounce. Each threshold has its
    own debounce + cooldown so it never nags. Supported: heart rate (bpm),
    power as % of FTP, elevation gain, grade, elapsed time and distance.
+   With imperial units (Settings → Profile → Units), a distance or climb
+   cue is spoken in miles or feet.
 6. Optionally bind a **route** — three ways to do this:
    - **Discover trails near me** (the big terracotta button) searches
      OpenStreetMap for hiking / mountain biking / road cycling trails in
@@ -1118,7 +1126,7 @@ ask about a workout.
 After any GPS workout, the post-summary shows an **"Add to my route
 library"** action. Name it ("Daily 1", "Long loop", "Saturday hill") and
 the route is saved. Manage them in **Settings → My Routes** (rename,
-delete).
+delete; a delete asks first, and the coach stops recognising that route).
 
 Next time the app sees you running a saved route — **in either
 direction** — it recognises it after about 500 m and binds it to the
@@ -1223,6 +1231,9 @@ Cards shown (each appears only if its underlying data is present):
 - **Splits** — per-km (metric) or per-mile (imperial), with pace + HR.
 - **Export** — GPX / CSV / TCX to Strava, Garmin Connect, TrainingPeaks,
   etc.
+
+Deleting a workout from the summary asks first, then moves it to the
+Trash, where you can restore it from **Settings → iCloud & Data → Trash**.
 
 ### Training load — how TRIMP and HRSS are computed
 
@@ -1417,7 +1428,7 @@ on the Dashboard tab inside the app.
 The watchOS app extends an in-progress iOS workout to the wrist. It is **not a standalone recorder** — every canonical workout is still written by the iOS app, with one entry per workout in HealthKit. The Watch app exists for three reasons:
 
 1. **Live workout view on the wrist** (`WatchLiveView`) — current HR, elapsed time, distance, pace, and current sport, mirrored from the iOS recorder via `WCSession`.
-2. **HKWorkoutSession keep-alive** (`WatchWorkoutManager`) — while iOS is recording via Polar, the Watch keeps a parallel `HKWorkoutSession` running so wrist HR is dense (1 Hz) and the Watch stays awake without dimming. The Watch's session never finalizes into a separate `HKWorkout` — `session.end()` is called without writing one, which is what prevents the duplicate "Apple Watch — Outdoor Walk" entries that competitor apps produce. The iPhone normally ends it when the workout stops. If you tap End on the Watch while the iPhone is unreachable, or the iPhone app sends nothing for 30 minutes, the Watch ends its session and stops the heart-rate sensor on its own; a session ended for silence starts again if the iPhone comes back still recording.
+2. **HKWorkoutSession keep-alive** (`WatchWorkoutManager`) — while iOS is recording via Polar, the Watch keeps a parallel `HKWorkoutSession` running so wrist HR is dense (1 Hz) and the Watch stays awake without dimming. The Watch's session never finalizes into a separate `HKWorkout` — `session.end()` is called without writing one, which is what prevents the duplicate "Apple Watch — Outdoor Walk" entries that competitor apps produce. The iPhone normally ends it when the workout stops. If you tap End on the Watch while the iPhone is unreachable, or the iPhone app sends nothing for 30 minutes, the Watch ends its session and stops the heart-rate sensor on its own, and shows "Ended on Watch. Open Emuqu on your iPhone to finish the workout."; a session ended for silence starts again if the iPhone comes back still recording.
 3. **HR fallback** — if the phone's Polar strap disconnects mid-workout (sweat, the user takes it off for HRR capture, range loss), the Watch's wrist HR is forwarded back to the phone via `WCSession.sendMessage` so HRR capture and live HR can still succeed.
 
 ### Watch strap pairing
@@ -1433,6 +1444,7 @@ A separate Bluetooth pipeline on the Watch (`WatchStrapConnector`) lets the Watc
 ### Known Watch limitations
 
 - The Watch app is a **viewer + remote + HR source**, not a standalone recorder. If your iPhone is dead, the Watch alone will not produce a workout.
+- Start on the Watch is refused while the iPhone is already recording a workout ("A workout is already recording on your iPhone.").
 - HealthKit authorization on the Watch is separate from iOS — the Watch app prompts the first time you tap Start. The auth-failure case is surfaced, so the strap-drop fallback does not fail silently when the prompt was denied or never appeared.
 - watchOS `HKWorkoutSession.start()` can throw at app cold-start before `HKHealthStore` is fully booted; the manager logs the start failure into `lastStartError` and surfaces it to the Watch UI so the user knows wrist-HR fallback won't fire.
 
@@ -1519,7 +1531,13 @@ awake samples plus an in-bed sample. Stages are estimates, so they are not
 written as deep, REM or core. Resting heart rate is written for overnight
 readings only, one per night. Sessions and workouts built from Apple Health
 data never write their readings back; a workout rebuilt from Apple Health
-adds only the workout itself.
+adds only the workout itself. A workout's active energy is written net of
+your resting metabolism (which Apple Watch already records as resting
+energy), so Apple Health shows less active energy than the gross calories
+in the app's own summary. When a reading or workout is exported again (after you
+trim a workout, for example, or from another of your devices), the new copy
+replaces Emuqu's earlier one in Apple Health; samples from other apps and
+devices are never touched.
 
 ### Appearance
 - **Background Theme**: Light / Dim / Dark — choose your preferred look with a color preview for each option
@@ -1565,8 +1583,11 @@ There is no on/off switch on this page. To turn Flo off, use **Settings → Perf
 API keys are stored in the iOS Keychain on this device only — they are never synced to iCloud and are sent only to the corresponding provider when you actively chat with it.
 
 ### iCloud & Data
-- **iCloud Sync**: Toggle automatic CloudKit backup (off by default). Readings from Apple Health are never uploaded; scores Emuqu computes from them are, encrypted on your iPhone first. Each device reads Apple Health itself
+- **iCloud Sync**: Toggle automatic CloudKit backup (off by default). Readings from Apple Health are never uploaded; scores Emuqu computes from them are, encrypted on your iPhone first. Each device reads Apple Health itself. Sample nights are never uploaded
+  - Sync belongs to the iCloud account it was turned on for. If this device is later signed into a different iCloud account, or Emuqu's data in iCloud is deleted (by **Delete All My Data** on any of your devices, or in iCloud settings), sync turns itself off, nothing is uploaded, and a line under the switch says why. Your sessions stay on the device. Turn iCloud Sync on again to back up to the account you are signed into now
 - **Sync Status**: Current state (idle / syncing / error) and last sync time
+- **Force iCloud Sync**: Runs a sync now and says how many sessions it uploaded, or that nothing was synced because another sync may still be running
+- **Back Up Settings to iCloud** / **Restore Settings from iCloud**: Back Up replaces the settings copy in iCloud with this device's, even a newer one; the automatic backup after a change only replaces an older copy. Restore asks first
 - **Import RR Data**: Import RR interval data from other apps and devices. Supported formats:
   - **CSV** — Comma-separated RR intervals (auto-detects milliseconds vs seconds)
   - **JSON** — Array of RR interval values
@@ -1586,11 +1607,14 @@ API keys are stored in the iOS Keychain on this device only — they are never s
 - **Recent Errors**: Shows recent error log with count badge
 - **Export Diagnostic Log**: Share the debug log with support. Health values and GPS coordinates are removed from it, but it can contain parts of what you said to Flo by voice and the names of nearby streets. It goes only where you choose to send it
 - **Reanalyze All Sessions**: Re-runs the current analysis algorithm on all historical sessions. Useful after algorithm updates to get consistent scoring across your entire history.
-- **Clear Actions**: Clear error log, clear crash report
-- **Advanced Diagnostics Toggle**: When enabled, reveals diagnostic tools (archive diagnostics, repair, raw log viewer) inline.
+- **Clear Actions**: Clear error log, clear crash report; each asks first
+- **Advanced Diagnostics Toggle**: When enabled, reveals diagnostic tools (archive diagnostics, repair, raw log viewer, Clear All Logs) inline. Clear All Logs asks first: it deletes the debug log and every crash log. **Archive Diagnostics → Repair Archive** rebuilds the archive index from the session files it can read and deletes no file; if it cannot finish, it says so. Archive Diagnostics deletes no data: to delete your data, use **Delete All My Data** below.
 
 ### Advanced Data Controls
 - **Delete All My Data**: erases everything the app stores on this iPhone and its iCloud copy, and removes your API keys. You type the phrase `DELETE MY DATA`, then confirm once more. It cannot be undone. It is unavailable while a recording is in progress (a reading, a night, even paused, a strap recording or a workout) or a reading is waiting to be accepted: stop the recording, or accept or discard the reading, first. The free-trial record and the encryption keys stay in the keychain; they hold no health data.
+  - iCloud Sync is turned off before the iCloud copy is deleted, and stays off afterwards. Your other devices stop syncing too, with a notice under their iCloud Sync switch.
+  - If a recording starts while the iCloud copy is being deleted, nothing on this iPhone is deleted and you are told to stop the recording and run it again.
+  - Samples Emuqu wrote to Apple Health are not removed; the report at the end says where to remove them in the Health app.
 
 ### Help & Support
 - **Help Center**: Opens the searchable help article library (see [Help Center](#help-center) section below)
@@ -1624,7 +1648,7 @@ Manage deleted sessions.
   - Date and time
   - Beat count
   - **Restore button** (green arrow): Recovers and re-analyzes the session
-  - **Permanent delete button** (red X): Removes the session for good: its file, its raw backup, its iCloud copy, the route a workout filed in your trail history, and the HRV samples it wrote to Apple Health. A session that cannot be removed stays in the Trash, and the screen says how many could not be removed. When HRV samples cannot be deleted from Apple Health, it says so and where to remove them in the Health app. The message stays until your next action
+  - **Permanent delete button** (red X): asks first, then removes the session for good: its file, its raw backup, its iCloud copy, the route a workout filed in your trail history, and everything it wrote to Apple Health (HRV, heart rate, resting heart rate, sleep and the workout). A session that cannot be removed stays in the Trash, and the screen says how many could not be removed. When samples cannot be deleted from Apple Health, it says so and where to remove them in the Health app. The message stays until your next action
 - Footer: "Deleted sessions stay here for 90 days unless you remove them sooner."
 - **"Permanently Delete All"** button with confirmation dialog
 
@@ -1652,15 +1676,15 @@ Recover sessions that have raw backups but aren't in the main archive.
 | **SDNN** | Standard Deviation of NN intervals. Overall variability measure. | 50-100+ ms |
 | **pNN50** | Percentage of successive intervals differing >50ms. | >20% |
 | **Avg HR** | Average heart rate over the whole recording, beats the artifact filter rejected left out. This is the Avg HR at the top of the report, on the overnight chart and in the session details. | Varies by fitness |
-| **Min/Max HR** | Lowest and highest heart rate over the whole recording. Min is the lowest 30-second average, so one long beat can't set it. | -- |
+| **Min/Max HR** | Lowest and highest heart rate over the whole recording, each taken as a 30-second average (the lowest and the highest), so one long or one fast beat can't set it. | -- |
 | **Mean HR** (time-domain metrics) | Average heart rate in the analysis window the score is taken from: about five and a half minutes of calm sleep. Sleep HR, resting heart rate and your heart-rate baseline use this number, so nights compare like with like. | Varies by fitness |
 
 ### Frequency Domain Metrics
 | Metric | Description |
 |--------|-------------|
 | **LF Power** | Low Frequency power (0.04-0.15 Hz). Mix of sympathetic and parasympathetic activity. |
-| **HF Power** | High Frequency power (0.15-0.4 Hz). Primarily parasympathetic (vagal) activity. |
-| **LF/HF Ratio** | Balance between sympathetic and parasympathetic. Lower generally indicates better recovery. |
+| **HF Power** | High Frequency power (0.15-0.4 Hz), the band most closely tied to parasympathetic (vagal) activity at ordinary breathing rates. Breathing slower than about 9 breaths a minute, as the breathing mandala paces you, moves the power into LF, so HF drops. |
+| **LF/HF Ratio** | LF power divided by HF power. Read it as a trend against your own baseline: neither LF nor LF/HF is a sympathetic index on its own (Billman 2013), and slow breathing raises it. |
 
 ### Nonlinear Metrics
 | Metric | Description |
@@ -1673,7 +1697,7 @@ Recover sessions that have raw backups but aren't in the main archive.
 | Metric | Description |
 |--------|-------------|
 | **Stress Index** | Baevsky's stress index. Lower values indicate less physiological stress. |
-| **Readiness Score** | Training readiness on a 0-10 scale. Measures capacity to absorb additional training load with a training-load base (CTL/ATL capacity ratio, today's strain, recent-load-vs-usual-range), modulated by your recovery score. |
+| **Readiness Score** | A 1-10 score that starts at a neutral 5 and rewards being near your own norm: RMSSD close to your usual level, DFA α1 in its resting band, and the PNS/SNS balance. Recent hard training lifts it, since low HRV is expected then. Because it rewards nearness rather than height, a night well above your usual HRV can still score low. The **Training Readiness** gauge on the morning report is a different measure, built from training load (see *Recovery Score Card*). |
 | **Recovery Score** | Research-informed 0-100 score from HRV (60%) + Sleep (25%) + Vitals (15%) with ln(RMSSD) z-score normalization against your personal baseline of your last 60 recorded nights. Comeback mode shifts a Tier 3 score to HRV 80% / Sleep 20% / Vitals 0% for 21 days post illness/injury. Three-tier system adapts to available data; training load is not in the score (lives on the parallel Load & Trajectory page). |
 | **Comeback mode** | 21-day recovery-weighting toggle for users returning from illness or injury. Settings → Modes → "Comeback mode". Auto-expires after 21 days. |
 
@@ -1752,7 +1776,7 @@ Emuqu has no server and no account. Nothing is ever sent to the developer. The f
 
 - **On the device.** Your data lives in the app's private container until you delete it or delete the app. Raw RR backups sit in the app's App Group container, which iOS removes with the app. Your recordings, raw backups, workout routes, settings, saved routes, email contacts, trails and Flo's chat and memory are encrypted by the app with a key kept in this device's keychain, on top of iOS's own file protection.
 - **What deleting the app leaves.** iOS keeps an app's keychain items after the app is deleted. Emuqu's are your API keys, the keys that encrypt your recordings and your iCloud copies, and a record of your free trial and of any beta access. Use **Delete All My Data** before deleting the app to remove the API keys. The other items hold no health data; the trial record stays so that reinstalling continues the same trial.
-- **iCloud sync** is off until you turn it on (on its page during setup, or in Settings → iCloud & Data). Once on, recordings, their analysis and your settings go to your own iCloud CloudKit private database, encrypted on the device before upload. Nothing read from Apple Health is uploaded — sleep, vitals, VO2max, Apple Watch heart rate, and profile values filled from Health stay on the device, and each of your devices reads Health itself.
+- **iCloud sync** is off until you turn it on (on its page during setup, or in Settings → iCloud & Data). Once on, recordings, their analysis and your settings go to your own iCloud CloudKit private database, encrypted on the device before upload. Sync stays with the iCloud account it was turned on for: signed into another account, it turns itself off and uploads nothing there until you turn it on again. Nothing read from Apple Health is uploaded — sleep, vitals, VO2max, Apple Watch heart rate, and profile values filled from Health stay on the device, and each of your devices reads Health itself.
 - **Cloud AI** (Anthropic, OpenAI, Google, xAI, DeepSeek), only with your own key and after you accept that provider's data-sharing notice. Anthropic, OpenAI and xAI say they do not train their models on what you send through their APIs unless you have opted in with them. Google does not use what you send with a paid Gemini key to improve its products; with a free key it may, including health data, and people may review it. DeepSeek says it may use what you send to train its models, with an opt-out by email to privacy@deepseek.com. It receives your chat, the tool results the model asks for, your saved memory facts in every conversation, and, on every cloud tool round, a live-state block: the latest recovery score and tier, RMSSD, SDNN, mean HR, overnight HR, sleep duration and efficiency, the previous day's score, RMSSD and mean HR, and your location during a live workout. A provider without tool support gets a compact summary of the whole context instead. Routing can send turns to a consented cloud even while Apple Intelligence is selected (see *Adaptive Routing*).
 - **Other services:**
   - **Tavily** — web search queries, if you add a Tavily key; Tavily may use parts of them to improve its results. With web search on while using Claude, Anthropic runs the searches.

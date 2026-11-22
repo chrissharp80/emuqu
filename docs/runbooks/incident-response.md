@@ -53,6 +53,14 @@ between phone + Watch + iPad, or the dashboard shows stale data.
 4. **Don't** mass-reset user state. Each user's CloudKit data is
    private to their iCloud account; you can't write to it.
 
+**A single user whose sync stopped is usually not an incident.** iCloud Sync
+turns itself off, with a notice under its switch, when the device is signed
+into a different Apple ID from the one sync was turned on for, or when the
+app's data was deleted from iCloud (Delete All My Data on another device, or
+the iCloud settings) (`CloudAccountGuard.stopSync`). Local data is kept and
+nothing is uploaded. Once the user has checked they are on the right account,
+turning iCloud Sync back on records that account and uploads again.
+
 ---
 
 ## C. Crash spike
