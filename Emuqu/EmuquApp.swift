@@ -762,13 +762,14 @@ struct EmuquApp: App {
     /// Why a Watch Start can't go ahead, answered before the start runs so
     /// the Watch shows the reason. The Watch starts with the strap as its
     /// source, and the start refuses a strap that is mid-recording
-    /// (`WorkoutHRSourceResolver`) or already feeding a workout on the phone
-    /// (`startWorkoutFromWatch` ignores a start while one is recording or
-    /// finalizing).
+    /// (`WorkoutHRSourceResolver`), and a start while a workout is already
+    /// recording or finalizing on the phone (`startWorkoutFromWatch` ignores
+    /// one), each with its own reason.
     private func watchStartRefusal(sportRaw: String) -> WatchControlRefusal? {
         guard Sport(rawValue: sportRaw) != nil else { return .unknownSport }
         if let refusal = watchAccessRefusal() { return refusal }
-        guard !collector.polarManager.isRecordingOnDevice, !isWorkoutInProgress else { return .strapBusy }
+        guard !collector.polarManager.isRecordingOnDevice else { return .strapBusy }
+        guard !isWorkoutInProgress else { return .workoutInProgress }
         return nil
     }
 

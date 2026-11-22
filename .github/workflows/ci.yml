@@ -145,9 +145,13 @@ jobs:
         # get caught. `require` carries whether a baseline was found, so the
         # next step demands a comparison only when one is possible: a gate that
         # cannot compare must say so, not fail as though a budget were raised.
+        # The input reaches the script through `env:`, never spliced into it,
+        # so its text is data to the shell and not code.
+        env:
+          BASELINE_INPUT: ${{ inputs.baseline-ref }}
         run: |
           set -euo pipefail
-          ref="${{ inputs.baseline-ref }}"
+          ref="${BASELINE_INPUT}"
           if [[ -z "$ref" ]]; then
             if git rev-parse --verify --quiet HEAD~1 >/dev/null; then
               ref="$(git rev-parse HEAD~1)"

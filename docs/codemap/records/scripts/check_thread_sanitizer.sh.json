@@ -1,15 +1,16 @@
 {
  "file": "scripts/check_thread_sanitizer.sh",
- "hash": "4efdbad46ebbc36c",
- "role": "CI gate (ci.yml thread-sanitizer job when inputs.scope != 'gates'; make thread-sanitizer, a prerequisite of make ci) that runs the EmuquTests unit target under Thread Sanitizer and fails on any TSan warning, any test failure, or a run in which no test case executed.",
+ "hash": "797196aad3ae169b",
+ "role": "CI gate (ci.yml thread-sanitizer job when inputs.scope != 'gates'; make thread-sanitizer, a prerequisite of make ci) that first proves a planted race (ThreadSanitizerCanaryTests with EMUQU_TSAN_CANARY=1) is reported and fails the run, then runs the EmuquTests unit target under Thread Sanitizer, serially and with halt_on_error=1, and fails on any TSan warning, any test failure, or a run in which no test case executed.",
  "types": [],
  "state": [
   "env:SCHEME/PROJECT/TSAN_DERIVED_DATA (default build/DD-tsan)/DESTINATION",
-  "file:$TMPDIR/tsan.XXXXXX log (temp, removed on EXIT)",
+  "file:$TMPDIR/tsan.XXXXXX log and tsan-canary.XXXXXX log (temp, removed on EXIT)",
   "mem:heartbeat (pid of the progress subshell, empty when none is running)",
+  "env:TEST_RUNNER_TSAN_OPTIONS=halt_on_error=1 and TEST_RUNNER_EMUQU_TSAN_CANARY=1 (passed to xcodebuild, which hands them to the test host without the prefix)",
   "env:GITHUB_STEP_SUMMARY (append)"
  ],
- "toplevel": "set -euo pipefail; sources lib/preflight.sh and lib/xcodebuild.sh (no cd to repo root; relies on cwd). DESTINATION defaults to select_simulator_destination.sh output. gate_mktemp log (exit on failure); EXIT trap runs stop_heartbeat and removes the log. Starts a background heartbeat subshell (stderr discarded) that every 60 s prints the minutes elapsed and the count of \"' passed\" lines in the log so far. Runs `xcodebuild test \"$XCODEBUILD_PINNED\" -enableThreadSanitizer YES -only-testing:EmuquTests` (packages held to the committed Package.resolved) into the log with set +e, then stop_heartbeat and prints the total minutes taken. gate_require_nonempty on the log (empty -> exit 70). Counts 'WARNING: ThreadSanitizer' lines, and test CASE results only: lines matching `Test [Cc]ase '<name>' passed` / `... failed` (serial `Test Case '-[...]'` and parallel-worker `Test case '...' passed on 'Clone ...'` formats; `Test Suite` lines are not counted). races>0 -> prints 20 lines after each warning, exit 1. status != 0: if failed>0 prints the first 20 `' failed` lines; else greps build-error markers (both greps `|| true`, so no match or SIGPIPE cannot end the script) and tails 40 log lines; exits with xcodebuild's status. status 0 with zero passed test cases -> prints an error and the last 40 log lines, exit 1 (zero races from zero tests is not a pass). Else appends the race and passed-test counts to GITHUB_STEP_SUMMARY when set.",
+ "toplevel": "set -euo pipefail; sources lib/preflight.sh and lib/xcodebuild.sh (no cd to repo root; relies on cwd). DESTINATION defaults to select_simulator_destination.sh output. gate_mktemp log (exit on failure); EXIT trap runs stop_heartbeat and removes both logs; gate_mktemp canary log (exit on failure). Canary: run_sanitized into the canary log with -only-testing EmuquTests/ThreadSanitizerCanaryTests and TEST_RUNNER_EMUQU_TSAN_CANARY=1 (set +e); gate_require_nonempty on it; unless it holds a 'WARNING: ThreadSanitizer' line AND xcodebuild exited non-zero, prints both facts and the last 40 log lines and exits 1 (the setup cannot see races). Then starts a background heartbeat subshell (stderr discarded) that every 60 s prints the minutes elapsed and the count of \"' passed\" lines so far, runs run_sanitized into the log for EmuquTests (set +e), stop_heartbeat, prints the minutes taken. gate_require_nonempty on the log (empty -> exit 70). Counts 'WARNING: ThreadSanitizer' lines, and test CASE results only: lines matching `Test [Cc]ase '<name>' passed` / `... failed` (`Test Suite` lines are not counted). races>0 -> prints 20 lines after each warning, exit 1. status != 0: if failed>0 prints the first 20 `' failed` lines; else greps build-error markers (both greps `|| true`) and tails 40 log lines; exits with xcodebuild's status. status 0 with zero passed test cases -> prints an error and the last 40 log lines, exit 1. Else appends the race and passed-test counts to GITHUB_STEP_SUMMARY when set. verify_gates_fail.sh runs it against a stand-in xcodebuild.",
  "units": [
   {
    "key": "fn stop_heartbeat",
@@ -35,9 +36,32 @@
     }
    ],
    "deps": {}
+  },
+  {
+   "key": "fn run_sanitized",
+   "hash": "aeb6c6e6a9185028",
+   "does": "One instrumented `xcodebuild test` run: `env TEST_RUNNER_TSAN_OPTIONS=halt_on_error=1 <extra NAME=value args> xcodebuild test \"$XCODEBUILD_PINNED\" -project -scheme -destination -derivedDataPath -enableThreadSanitizer YES -parallel-testing-enabled NO -only-testing:<selector>`, stdout and stderr into <log>; returns xcodebuild's status.",
+   "entry": "Called twice from the script body: the canary run and the suite run.",
+   "calls": [
+    "ext:env",
+    "ext:xcodebuild test"
+   ],
+   "reads": [
+    "env:XCODEBUILD_PINNED",
+    "env:PROJECT",
+    "env:SCHEME",
+    "env:DESTINATION",
+    "env:DERIVED"
+   ],
+   "writes": [
+    "file:<log> (truncated and written)"
+   ],
+   "branches": [],
+   "deps": {}
   }
  ],
  "deps": {
+  "scripts/check_thread_sanitizer.sh::fn run_sanitized": "82b631abdc683244",
   "scripts/check_thread_sanitizer.sh::fn stop_heartbeat": "0d77903c8a784aeb"
  }
 }

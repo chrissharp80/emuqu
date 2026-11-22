@@ -68,6 +68,11 @@ ALLOWED = {
 # URLComponents (`components.host = "x"`, `host: "x"`). Hosts the USER types
 # (a custom base URL for a self-hosted model) are not the developer's and
 # cannot be listed here; this gate is about the hosts the code names.
+#
+# The match is lexical. A host assembled from pieces at runtime, or held in a
+# bare string constant that reaches a URL some other way, is not seen; those
+# are left to review. Bare domain strings are not matched on their own because
+# the assistant's source lists name dozens of sites the app never contacts.
 URL = re.compile(r"https?://([A-Za-z0-9.-]+)")
 HOST = re.compile(r"(?:\.host\s*=\s*|\bhost:\s*)\"([A-Za-z0-9.-]+)\"")
 
@@ -105,15 +110,22 @@ status=$?
 # Analytics / tracking / crash-reporting SDKs, in the project and in the
 # resolved package graph. Presence alone contradicts the policy.
 BANNED='firebase|mixpanel|amplitude|segment\.com|sentry|bugsnag|crashlytics|appsflyer|posthog|datadog|adjust\.com|braze|onesignal|flurry|newrelic'
-hits=$(grep -riE "$BANNED" \
-    Emuqu.xcodeproj/project.pbxproj \
-    Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved \
-    2>/dev/null | wc -l | tr -d ' ')
+DEPENDENCY_FILES=(
+    Emuqu.xcodeproj/project.pbxproj
+    Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+)
+# A moved or empty file would grep as zero hits and read as "no SDK".
+for file in "${DEPENDENCY_FILES[@]}"; do
+    if [[ ! -s "$file" ]]; then
+        echo "check_no_developer_endpoint: $file is missing or empty; cannot check the dependency graph." >&2
+        exit 2
+    fi
+done
+hits=$(grep -iE "$BANNED" "${DEPENDENCY_FILES[@]}" | wc -l | tr -d ' ')
 
 if [[ "$hits" != "0" ]]; then
     echo "check_no_developer_endpoint: analytics/telemetry SDK detected in the dependency graph." >&2
-    grep -riE "$BANNED" Emuqu.xcodeproj/project.pbxproj \
-        Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved 2>/dev/null | head -5 >&2
+    grep -iE "$BANNED" "${DEPENDENCY_FILES[@]}" | head -5 >&2
     exit 1
 fi
 

@@ -9,17 +9,16 @@ import XCTest
 ///   • The tab renders without a paired strap (default case for App
 ///     Store reviewers).
 ///   • The sport-picker / start-workout flow is reachable.
-///   • The "Discover trails near me" entry is present (or skipped if
-///     disabled in this build).
+///   • The trail search is reachable from the pre-flight of a GPS sport.
 ///
 /// We do NOT actually start a workout because the workout recorder
 /// owns BLE / GPS / audio resources we can't release cleanly from a
 /// simulator UI test.
 ///
-/// Build variant note: a user can disable the Fitness tab via Settings
-/// → Modes → Hide Fitness tab. When hidden, the tab simply doesn't
-/// exist in the tab bar — these tests `XCTSkipUnless` in that case
-/// rather than fail.
+/// A user can hide the Fitness tab (Settings → Training → Hide Fitness
+/// tab), but every test here launches a fresh install, where it is shown.
+/// A missing tab is therefore a regression, and the tests fail on it
+/// rather than skip.
 @MainActor
 final class FitnessTabUITests: XCTestCase {
 
@@ -38,15 +37,15 @@ final class FitnessTabUITests: XCTestCase {
     }
 
     @discardableResult
-    private func navigateToFitness() throws -> XCUIElement {
+    private func navigateToFitness() -> XCUIElement {
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: UITestTiming.s(8)), "Tab bar required")
         let fitnessTab = UITestFind.tabButton(in: tabBar,
                                               identifier: UITestID.tabFitness,
                                               title: UITestID.tabFitnessTitle)
-        try XCTSkipUnless(
+        XCTAssertTrue(
             fitnessTab.waitForExistence(timeout: UITestTiming.s(3)),
-            "Fitness tab hidden in this build (Settings → Modes → Hide Fitness tab)"
+            "A fresh install shows the Fitness tab — \(UITestFind.onScreen(app))"
         )
         fitnessTab.tap()
         return fitnessTab
@@ -59,7 +58,7 @@ final class FitnessTabUITests: XCTestCase {
     /// hero card — any one is sufficient evidence the surface is
     /// alive.
     func testFitnessTabRenders() throws {
-        _ = try navigateToFitness()
+        navigateToFitness()
         let sportPredicate = NSPredicate(
             format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@ OR label CONTAINS[c] %@ OR label CONTAINS[c] %@",
             "Run", "Walk", "Bike", "Hike"
@@ -105,14 +104,17 @@ final class FitnessTabUITests: XCTestCase {
     /// never lived at the top level — it appears in the workout pre-flight once
     /// a GPS sport is selected. So the test walked the real path now.
     func testRoutePickerReachableForGPSSports() throws {
-        try navigateToFitness()
+        navigateToFitness()
 
         // `WorkoutPreflightView` only renders once `recorderBox.recorder` is
-        // non-nil, which on a cold simulator is a race rather than a failure.
+        // non-nil. The tab binds the recorder on its first appearance, a
+        // runloop tick later and with no hardware needed, so the wait covers a
+        // cold simulator; a pre-flight that never comes up is the failure this
+        // test exists to catch.
         let runChip = app.buttons["fitness.sport.run"]
-        try XCTSkipUnless(
+        XCTAssertTrue(
             runChip.waitForExistence(timeout: UITestTiming.s(15)),
-            "Workout pre-flight never came up on this simulator (no recorder); nothing to reach"
+            "The workout pre-flight must come up on the Fitness tab — \(UITestFind.onScreen(app))"
         )
         runChip.tap()
 
@@ -140,7 +142,7 @@ final class FitnessTabUITests: XCTestCase {
     /// On a fresh install the strap is unpaired — we should NOT see a
     /// modal alert that blocks interaction.
     func testFitnessTabNoHardwareDoesNotBlockInteraction() throws {
-        _ = try navigateToFitness()
+        navigateToFitness()
         // Wait briefly for any modal alerts to surface.
         let alert = app.alerts.firstMatch
         XCTAssertFalse(

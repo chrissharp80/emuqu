@@ -343,7 +343,7 @@ extension VitalsHealthQueries {
         manager.vitalsObserverQueries.append(query)
         manager.healthStore.execute(query)
         let typeName = type.identifier
-        manager.healthStore.enableBackgroundDelivery(for: type, frequency: .immediate) { success, error in
+        manager.healthStore.enableBackgroundDelivery(for: type, frequency: .immediate) { @Sendable success, error in
             guard !success else { return }
             debugLog("[HealthKitManager] Background delivery for \(typeName) not enabled: \(error?.localizedDescription ?? "no error given")")
         }

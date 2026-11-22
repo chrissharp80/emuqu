@@ -102,26 +102,26 @@ ACTUAL_COUNT=$(printf '%s\n' "$REAL_HITS" | grep -c . || true)
 # gain annotations without any new file appearing — and that drift is easy
 # to miss, since the FILE check above exits first and the count check never
 # gets to report it. If this number needs bumping, re-verify each new
-# annotation rather than raising it to make CI green. What makes the
-# individually admitted escapes safe:
-#   • SettingsManager.swift:16  — `nonisolated(unsafe) static let shared`;
-#     Swift guarantees run-once, thread-safe `static let` init.
-#   • LanguageManager.swift:35  — `locale`; written only in the run-once
-#     `init` and in `@MainActor setLanguage` (single call site).
-#   • LanguageManager.swift:47  — `bundle`; same writers, and a class
-#     reference (pointer-atomic) for its ~3,547 nonisolated readers.
-#   • RRCollector.swift:303 — `_liveHRVSnapshotMirror`; NSLock-guarded,
-#     documented in-place at lines 291-302.
-#   • WorkoutStartCue.swift (start-cue synthesizer spoken off main) and
-#     WatchConnectivityBridge+Session.swift (asynchronous Watch reply) —
-#     removing these by moving the work onto the main actor is a behaviour
-#     regression, not a cleanup.
+# annotation rather than raising it to make CI green. What makes each
+# admitted escape safe is written beside it in its file, and the ALLOWLIST
+# comments above name the owner where the file does not say it at the type.
+# Two are kept on purpose rather than as debt: WorkoutStartCue.swift (start-cue
+# synthesizer spoken off main) and WatchConnectivityBridge+Session.swift
+# (asynchronous Watch reply). Removing those by moving the work onto the main
+# actor is a behaviour regression, not a cleanup.
 BUDGET_FILE=".ci/unchecked_sendable_budget.txt"
 if [[ ! -f "$BUDGET_FILE" ]]; then
     echo "check_unchecked_sendable: missing $BUDGET_FILE" >&2
     exit 2
 fi
 BASELINE_COUNT="$(tr -d '[:space:]' < "$BUDGET_FILE")"
+# A whole number only: `[ "$ACTUAL_COUNT" -gt "$BASELINE_COUNT" ]` with an empty
+# or decimal budget is an error, which `if` reads as false, so the gate would
+# report OK.
+if [[ ! "$BASELINE_COUNT" =~ ^[0-9]+$ ]]; then
+    echo "check_unchecked_sendable: $BUDGET_FILE is not a whole number" >&2
+    exit 2
+fi
 
 if [ "$ACTUAL_COUNT" -gt "$BASELINE_COUNT" ]; then
     echo "WARN: total @unchecked Sendable / nonisolated(unsafe) count is $ACTUAL_COUNT (baseline $BASELINE_COUNT)."
