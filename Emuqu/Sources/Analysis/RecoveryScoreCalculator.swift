@@ -56,7 +56,17 @@ enum RecoveryScoreCalculator {
         /// before these were stored. Absent on those factors.
         let facts: ScoreFactorFacts?
 
-        enum Impact: String, Codable { case positive, neutral, negative }
+        enum Impact: String, Codable {
+            case positive, neutral, negative
+
+            /// An impact a newer build added reads as `.neutral` instead of
+            /// failing the breakdown and the session holding it; the next
+            /// re-score writes it again.
+            init(from decoder: Decoder) throws {
+                let raw = try decoder.singleValueContainer().decode(String.self)
+                self = Impact(rawValue: raw) ?? .neutral
+            }
+        }
 
         init(
             label: String, detail: String, score: Double, weight: Double, impact: Impact,

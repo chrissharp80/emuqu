@@ -68,7 +68,16 @@ extension UserSettings {
         decodeExportAndPerformance(from: container)
         decodeCoachAutomation(from: container)
         // Last: setting a profile field above may clear its marker.
-        profileFieldsFromHealth = Self.decoded(Set<HealthProfileField>.self, .profileFieldsFromHealth, from: container, default: [])
+        profileFieldsFromHealth = Self.decodedHealthProfileFields(from: container)
+    }
+
+    /// The Apple Health markers, read as strings so a field a newer build
+    /// added is dropped on its own instead of emptying the whole set: an
+    /// empty set would let `withoutHealthFilledProfile` put the known
+    /// Health-filled values into the iCloud backup.
+    private static func decodedHealthProfileFields(from container: KeyedDecodingContainer<CodingKeys>) -> Set<HealthProfileField> {
+        let raw = decoded([String].self, .profileFieldsFromHealth, from: container, default: [])
+        return Set(raw.compactMap(HealthProfileField.init(rawValue:)))
     }
 
     /// Identity, sleep schedule and session-merge preferences.
