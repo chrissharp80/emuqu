@@ -264,13 +264,14 @@ final class CrashLogManager: Sendable {
     /// file. Crash content can include stack-frame variable dumps with
     /// HRV / heart rate / location values from the active session;
     /// those must not leave the device through a shared text file. Uses
-    /// the same scrubber as the persistent debug log.
+    /// the same scrubber as the persistent debug log. Written to the export
+    /// folder (`ExportFile`) with complete protection, replacing any earlier
+    /// crash export.
     func exportCrashLog() -> URL? {
         guard let content = previousCrashLog else { return nil }
 
         let timestamp = Self.reportDateFormatter("yyyyMMdd_HHmmss").string(from: Date())
         let fileName = "Emuqu_Crash_\(timestamp).txt"
-        let exportURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
 
         let scrubbed = content
             .components(separatedBy: "\n")
@@ -278,8 +279,7 @@ final class CrashLogManager: Sendable {
             .joined(separator: "\n")
 
         do {
-            try scrubbed.write(to: exportURL, atomically: true, encoding: .utf8)
-            return exportURL
+            return try ExportFile.write(Data(scrubbed.utf8), named: fileName, replacingPrefix: "Emuqu_Crash_")
         } catch {
             debugLog("[CrashLogManager] Failed to write crash log export: \(error)", level: .warning)
             return nil

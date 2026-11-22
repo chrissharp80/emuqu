@@ -1,12 +1,12 @@
 {
  "file": "EmuquTests/RedactionPatternTests.swift",
- "hash": "f232f359f2a2ec47",
+ "hash": "3f9227e6b39b9c41",
  "role": "Pins that every regex DebugLogger's log redactor and MetricsVerifier use compiles (they fail open on a malformed pattern), by keeping a verbatim copy, compiling the two runtime-composed production patterns (DebugLogger.metricValuePattern / valueChainPattern), and scraping raw-string literals from the source files at test time; and asserts what DebugLogger.scrubPHI actually leaves of sample log lines.",
  "types": [
   "RedactionPatternTests: class — XCTestCase for DebugLogger redaction pattern compilation"
  ],
  "state": [
-  "mem:RedactionPatternTests.patterns (4 verbatim copies of DebugLog.swift's raw-string patterns: lat/lon, metric names incl. \\w*score, unit, separator)",
+  "mem:RedactionPatternTests.patterns (6 verbatim copies of DebugLog.swift's raw-string patterns: lat/lon, metric names incl. \\w*score, unit, separator, key/value, bpm unit)",
   "mem:RedactionPatternTests.failOpenSources (DebugLog.swift, MetricsVerifier.swift paths)",
   "mem:RedactionPatternTests.failOpenCoveredElsewhere (MedicalTermLexicon.swift → CoachVoiceGuardTests.testEveryConceptCompiles)",
   "file:<repo>/Emuqu/Sources/Utilities/DebugLog.swift and Emuqu/Sources/Assistant/MetricsVerifier.swift read via #filePath"
@@ -16,7 +16,7 @@
   {
    "key": "func RedactionPatternTests.testEveryRedactionPatternCompiles()",
    "hash": "8adab178d90ff135",
-   "does": "Asserts each of the 4 copied redaction patterns compiles with NSRegularExpression.",
+   "does": "Asserts each of the copied redaction patterns compiles with NSRegularExpression.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [],
    "reads": [],
@@ -25,7 +25,7 @@
     {
      "at": "+1",
      "cond": "for each pattern in Self.patterns",
-     "effect": "XCTAssertNoThrow per pattern; loop over 4 entries"
+     "effect": "XCTAssertNoThrow per pattern"
     }
    ],
    "deps": {}
@@ -74,8 +74,81 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "368d0627695b64ef",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.redactValueChains(in:)": "47f2f851e771f6bc",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)": "98e41a0944128cbf",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "68f645e05bacaaed"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "7bf0551ca86415fb"
    }
+  },
+  {
+   "key": "func RedactionPatternTests.testScrubPHIRedactsUnlistedNamedValues()",
+   "hash": "4acc2ac98d4495bb",
+   "does": "Asserts scrubPHI redacts named values whose key is not allow-listed (nadir/max after 'HR:', perceivedReadiness, total, frozenReadiness, restingHR/maxHR/bodyWeightKg), a bracketed list and an Optional(...) value.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "7bf0551ca86415fb"
+   }
+  },
+  {
+   "key": "func RedactionPatternTests.testScrubPHIKeepsCountsAndIdentifiers()",
+   "hash": "a020baff5ecb2a32",
+   "does": "Asserts a timestamped line with beatCount/attempt/schemaVersion/code and a line with a UUID session and a hex id pass through scrubPHI unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "7bf0551ca86415fb"
+   }
+  },
+  {
+   "key": "func RedactionPatternTests.testScrubPHIRedactsProseHeartRateAndSleep()",
+   "hash": "43841def45f10696",
+   "does": "Asserts scrubPHI redacts a bpm value and a bpm range (unit kept), 'RR 850ms' and 'weight 72 kg'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "7bf0551ca86415fb"
+   }
+  },
+  {
+   "key": "func RedactionPatternTests.testLastKeyWordSplitsCamelAndSnakeCase()",
+   "hash": "d01826c99ad41407",
+   "does": "Asserts lastKeyWord of beatCount, rr_points, maxHR and count.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.lastKeyWord(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.lastKeyWord(_:)": "8c70ecaf1b3ce73a"
+   }
+  },
+  {
+   "key": "func RedactionPatternTests.testKeyValueAndUnitPatternsCompile()",
+   "hash": "7038028676265f84",
+   "does": "Asserts DebugLogger.keyValuePattern and heartRateUnitPattern compile.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:NSRegularExpression.init(pattern:options:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "func RedactionPatternTests.testCompiledPatternReturnsNilOnMalformedInput()",

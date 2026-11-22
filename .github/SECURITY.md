@@ -84,16 +84,22 @@ the App Group container is set to
 while the phone is locked during overnight recording and screen-locked
 workouts, or every write in that window fails. It is still encrypted at rest.
 
-Lines are passed through `scrubPHI`, which redacts health values: a number
-after a health-metric name (RMSSD, heart rate, sleep score and the like), the
-further numbers chained to one by an arrow or comparison, and latitude and
-longitude values. Session IDs are not redacted: they are random UUIDs, kept so
-that lines can be tied to a session. Lines are scrubbed once, as they are
-flushed to disk, and an export of the log file returns that scrubbed content.
-With Persistent Logging off, the export comes from the in-memory buffer and
-each line is scrubbed as it is exported; the error-catalog export is scrubbed
-the same way. An export is written to a temporary directory with no file
-protection so the share sheet can open it. `make log-redaction-guard` fails the build when a log call interpolates a
+Lines are passed through `scrubPHI`, which redacts health values. A named
+value (`key=42`, `key: 42`) is redacted unless the key's last word is on a
+short allow-list of counts and identifiers (`beatCount`, `attempt`,
+`schemaVersion` and the like), so a new key is covered without anyone naming
+it. A number after a health-metric name in prose (RMSSD, heart rate, sleep
+score and the like), any number in bpm, the further numbers chained to one by
+an arrow, comparison, comma or range dash, and latitude and longitude values
+are redacted too. Session IDs are not redacted: they are random UUIDs, kept so
+that lines can be tied to a session. Lines are scrubbed as they are flushed to
+disk, and an export of the log file scrubs every line again, so lines an older
+build flushed are covered. With Persistent Logging off, the export comes from
+the in-memory buffer and each line is scrubbed as it is exported; the
+error-catalog export is scrubbed the same way. An export is written to the
+app's temporary `Exports` folder with complete file protection (readable only
+while the phone is unlocked, when the share sheet reads it), replaces the
+previous export, and is removed at the next launch. `make log-redaction-guard` fails the build when a log call interpolates a
 raw health or identifying value.
 
 ### Privacy manifest (`PrivacyInfo.xcprivacy`)
