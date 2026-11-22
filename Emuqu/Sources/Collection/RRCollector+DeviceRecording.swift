@@ -29,11 +29,13 @@ extension DeviceRecordingSession {
 
     /// Start a new collection session (device internal recording)
     /// H10: exercise recording. Verity Sense: offline PPI recording.
+    ///
+    /// Refused while a night is paused or being ended: that night owns the
+    /// current session and the recording phase, and an ending is still taking
+    /// its recording off the strap.
     /// - Parameter sessionType: The type of session (overnight, nap, or quick)
     func startSession(sessionType: SessionType = .overnight) async throws {
-        guard collector.polarManager.connectionState == .connected else {
-            throw RRCollector.CollectorError.notConnected
-        }
+        try collector.requireConnectedWithNoNightHeld(starting: "a strap recording")
         // The strap's own answer, not a flag a stopped recording left behind.
         await collector.polarManager.recording.refreshRecordingState(
             until: Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds)
@@ -86,12 +88,11 @@ extension DeviceRecordingSession {
     ///
     /// While a night's ending is in progress the strap's recording is that
     /// night's, which the ending downloads itself; nothing is done and nil is
-    /// returned.
+    /// returned. While a workout records, the strap's recording is the
+    /// workout's backup: it is left alone, `alreadyRecording` is shown, and
+    /// nil is returned.
     func stopSession() async throws -> HRVSession? {
-        guard !collector.streamingLifecycle.isEndingOvernight else {
-            debugLog("[RRCollector] Not stopping the strap recording: a night's ending is in progress")
-            return nil
-        }
+        guard !collector.strapRecordingIsHeldElsewhere("stopping") else { return nil }
         guard collector.polarManager.connectionState == .connected else {
             throw RRCollector.CollectorError.notConnected
         }
@@ -246,6 +247,12 @@ extension DeviceRecordingSession {
     /// persisted recording state, or an archived placeholder. Nil when none
     /// is on record, and the recording is then filed by its own start.
     ///
+    /// The current session counts only when it is a device-internal
+    /// recording (the one started here, or its failed download Retry is
+    /// for). A quick reading or a streamed night left on screen is not the
+    /// strap's recording, and filing the beats under its id would merge them
+    /// into that session.
+    ///
     /// Archive recovery handles the "app was killed overnight" case: the
     /// persisted-state file didn't restore (either lost, corrupted, or never
     /// reached disk), but the archive still has a placeholder overnight
@@ -254,7 +261,7 @@ extension DeviceRecordingSession {
     /// stays in the archive with 0 RR points and a default score — causing the
     /// dashboard to pick the wrong one.
     func resolveBaseSession() -> HRVSession? {
-        if let current = collector.currentSession { return current }
+        if let current = collector.currentSession, current.deviceProvenance?.recordingMode == .deviceInternal { return current }
         if let persisted = collector.getPersistedRecordingState() {
             debugLog("[RRCollector] Using persisted recording state for session start time: \(persisted.startTime)")
             return Self.collectingSession(from: persisted)

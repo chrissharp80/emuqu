@@ -126,11 +126,11 @@ Inputs are the streamed points `S` and the internal points `I` (possibly absent)
 3. If `I` is valid and `S` is invalid: use `I`.
 4. If both are valid, compute `diff = |#I − #S|` and `pct = 100·diff / max(#I, #S)`. If `#I < #S` and `pct > 5`, go to step 5. Otherwise use `I` (preferred).
 5. **Gap detection on `I`.** For consecutive internal beats `prev, next`, a gap exists when `next.t_ms − prev.endMs > prev.rr_ms + 2000`. The gap spans `[prev.endMs, next.t_ms]`.
-6. **Gap fill.** Select streamed beats whose effective time `wallClockMs ?? t_ms` lies inside any gap (inclusive). Streamed `t_ms` is not used because it lags after Bluetooth packet loss. If there are no gaps, or no streamed beat falls in any gap, the composite fails.
-7. **Merge.** Two-pointer merge of `I` with the gap-fill beats, ordered by `I.t_ms` versus the streamed beat's effective time. When an internal beat is emitted, *all* following streamed beats within `|Δ| < 50 ms` of it are skipped, and vice versa (cluster-aware de-duplication). Emitted streamed beats have `t_ms` rewritten to `wallClockMs`.
+6. **Gap fill.** Select streamed beats whose effective time `wallClockMs ?? t_ms` lies inside any gap (inclusive) or outside the span `I` recorded (before its first beat or after its last beat's end). Streamed `t_ms` is not used because it lags after Bluetooth packet loss. A strap file is a sum of intervals, so it has no gaps of its own; for it this selects the stretch the strap was not yet, or no longer, recording. If no streamed beat is selected, the composite fails.
+7. **Merge.** Two-pointer merge of `I` with the selected streamed beats, ordered by `I.t_ms` versus the streamed beat's effective time. When an internal beat is emitted, *all* following streamed beats within `|Δ| < 50 ms` of it are skipped, and vice versa (cluster-aware de-duplication). Emitted streamed beats have `t_ms` rewritten to `wallClockMs`.
 8. If the composite fails, use `S` (the larger set), not `I`.
 
-*Why it works.* The two sources fail differently. The strap's memory is immune to Bluetooth range, phone sleep and app suspension, so it is the primary record. The stream is a live second copy that survives a strap-side interruption. Merging only inside the internal file's own gaps uses the stream exactly where it adds beats and nowhere else; the phone's arrival clock rarely falls within 50 ms of the strap's own beat times, so merging the whole stream would duplicate most of the night. Matching on the arrival clock rather than streamed `t_ms` places each filled beat at its true time, because beat-sum time stops advancing during packet loss. When the shortfall cannot be explained by fillable gaps, the larger series is the better record, so the stream is used.
+*Why it works.* The two sources fail differently. The strap's memory is immune to Bluetooth range, phone sleep and app suspension, so it is the primary record. The stream is a live second copy that survives a strap-side interruption. Merging only inside the internal file's own gaps and outside its span uses the stream exactly where it adds beats and nowhere else; the phone's arrival clock rarely falls within 50 ms of the strap's own beat times, so merging the whole stream would duplicate most of the night. Matching on the arrival clock rather than streamed `t_ms` places each filled beat at its true time, because beat-sum time stops advancing during packet loss. When the stream adds no beat the internal file lacks, the larger series is the better record, so the stream is used.
 
 #### 3.1.4 Dating an undated strap recording
 
@@ -879,8 +879,9 @@ function selectSource(S, I):
     pct = 100*|#I-#S| / max(#I,#S)
     if not (#I < #S and pct > 5): return I
     gaps = [(I[k-1].end, I[k].t) for k where I[k].t - I[k-1].end > I[k-1].rr + 2000]
-    fill = [s in S where any gap contains (s.wall ?? s.t)]
-    if gaps empty or fill empty: return S
+    fill = [s in S where any gap contains (s.wall ?? s.t)
+                     or (s.wall ?? s.t) < I.first.t or (s.wall ?? s.t) > I.last.end]
+    if fill empty: return S
     return mergeDedup(I, fill, tol=50ms)       // rebase fill.t := fill.wall
 
 function mergeDedup(A, B, tol):
