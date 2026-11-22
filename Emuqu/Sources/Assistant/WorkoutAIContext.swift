@@ -128,6 +128,11 @@ struct WorkoutAIContext: Equatable {
     /// Seconds since the last strap-derived HR beat. `nil` when source isn't
     /// strap. Large values (>10) mean we're silently falling back to Watch HR.
     let strapSilentSec: Double?
+    /// The Watch's wrist heart rate is arriving now (a plausible reading
+    /// received within `HRArbitration.wristHRMaxAgeSec`), so a strap that
+    /// drops out falls through to it. False with no Watch, or one that has
+    /// stopped sending.
+    let wristHeartRateLive: Bool
 
     // MARK: Resolved location (human-readable, fed into voice context)
     //

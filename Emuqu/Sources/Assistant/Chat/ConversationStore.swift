@@ -181,21 +181,50 @@ final class ConversationStore: @unchecked Sendable {
             .appendingPathComponent(history.deletingPathExtension().lastPathComponent + "_summary.json")
     }
 
+    /// Where an older build left the summary in plain text, kept until the
+    /// sealed file that replaces it is written.
+    private struct LegacySummary {
+        let defaults: UserDefaults
+        let key: String
+    }
+
+    /// Queue-only. Set when a plain summary was found with no sealed file;
+    /// cleared by the first successful `writeSummary`, which removes it.
+    private var legacySummary: LegacySummary?
+
+    /// The last `loadSummary` found the sealed file present but unreadable
+    /// (the phone locked, or the seal key unavailable), and no summary has
+    /// been written or cleared since.
+    private let summaryUnreadable = OSAllocatedUnfairLock(initialState: false)
+
+    /// True while the sealed summary holds text the caller could not read:
+    /// `loadSummary` is worth calling again once the phone is unlocked.
+    var summaryNeedsReload: Bool { summaryUnreadable.withLock { $0 } }
+
     /// The stored summary, or nil when there is none or it cannot be read
     /// now. A summary an older build left in plain text under `key` in
     /// `defaults` is moved into the sealed file when there is no file yet,
-    /// and removed from `defaults` once the file is written.
+    /// and removed from `defaults` as soon as a sealed summary is written:
+    /// by this move, or by a later `saveSummary` when this write fails (the
+    /// seal key can be unavailable early in a background launch). When the
+    /// sealed file is present, whether or not it can be read now, it holds
+    /// a later summary than the plain one, so the plain one is removed.
     func loadSummary(migratingFrom defaults: UserDefaults, key: String) -> String? {
-        switch AssistantStoreFile.read(summaryURL, caller: "ConversationStore") {
-        case let .json(data):
-            return attempt("conversationStore.decodeSummary") { try JSONDecoder().decode(StoredSummary.self, from: data) }?.text
-        case .unreadable, .undecodable:
-            return nil
-        case .missing:
+        let stored = AssistantStoreFile.read(summaryURL, caller: "ConversationStore")
+        let unreadable: Bool
+        if case .unreadable = stored { unreadable = true } else { unreadable = false }
+        summaryUnreadable.withLock { $0 = unreadable }
+        if case .missing = stored {
             guard let legacy = defaults.string(forKey: key) else { return nil }
-            if queue.sync(execute: { writeSummary(legacy) }) { defaults.removeObject(forKey: key) }
+            queue.sync {
+                legacySummary = LegacySummary(defaults: defaults, key: key)
+                _ = writeSummary(legacy)
+            }
             return legacy
         }
+        defaults.removeObject(forKey: key)
+        guard case let .json(data) = stored else { return nil }
+        return attempt("conversationStore.decodeSummary") { try JSONDecoder().decode(StoredSummary.self, from: data) }?.text
     }
 
     /// Seals and writes the summary on the store's queue, after any write
@@ -207,10 +236,18 @@ final class ConversationStore: @unchecked Sendable {
         }
     }
 
-    /// Queue-only.
+    /// Queue-only. Once a summary is sealed on disk, the plain copy an older
+    /// build left (`legacySummary`) is removed from its defaults, and the file
+    /// no longer holds a summary the caller has not read.
     private func writeSummary(_ text: String) -> Bool {
-        guard let data = attempt("conversationStore.encodeSummary", { try JSONEncoder().encode(StoredSummary(text: text)) }) else { return false }
-        return AssistantStoreFile.write(data, to: summaryURL, caller: "ConversationStore")
+        guard let data = attempt("conversationStore.encodeSummary", { try JSONEncoder().encode(StoredSummary(text: text)) }),
+              AssistantStoreFile.write(data, to: summaryURL, caller: "ConversationStore") else { return false }
+        summaryUnreadable.withLock { $0 = false }
+        if let legacy = legacySummary {
+            legacy.defaults.removeObject(forKey: legacy.key)
+            legacySummary = nil
+        }
+        return true
     }
 
     // MARK: - Protected data
@@ -332,6 +369,7 @@ final class ConversationStore: @unchecked Sendable {
             saveScheduled = false
             writePending = false
             unreadableOnDisk.withLock { $0 = false }
+            summaryUnreadable.withLock { $0 = false }
             return true
         }
     }

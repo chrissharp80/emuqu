@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/SpokenTextChunker.swift",
- "hash": "46819ba174fc43d1",
+ "hash": "9cd92952b6ed5d73",
  "role": "Buffers streamed LLM text deltas and emits whole sentences (markdown stripped) for AVSpeechSynthesizer; finalize() flushes the tail.",
  "types": [
   "SpokenTextChunker: final class — sentence-boundary buffer for TTS"
@@ -9,7 +9,8 @@
   "mem:SpokenTextChunker.sentenceEnders (static let '.','!','?','\\n')",
   "mem:SpokenTextChunker.pendingBuffer (private(set) var, per instance; instance held at VoiceConversationController.textChunker)",
   "mem:SpokenTextChunker.maxLinkLabelLength (static let 80: the longest open '[label' still read as a link being streamed)",
-  "mem:SpokenTextChunker.markdownPatterns (static let regex list)"
+  "mem:SpokenTextChunker.markdownPatterns (static let regex list)",
+  "mem:SpokenTextChunker.safetyCopy (var CoachVoiceGuard.SafetyCopyProgress, per instance; advanced by VoiceConversationController.speak, reset by reset())"
  ],
  "toplevel": "Static sentenceEnders set, maxLinkLabelLength (80), and the ordered markdownPatterns regex list (single * between letters and _ between word chars, *word* emphasis, list markers, numbered markers, ATX headers, [label](url)->label).",
  "units": [
@@ -67,14 +68,21 @@
   },
   {
    "key": "func SpokenTextChunker.reset()",
-   "hash": "9e3683cbc8d029ce",
-   "does": "Empties pendingBuffer without emitting.",
+   "hash": "57942fa262fe3dbd",
+   "does": "Empties pendingBuffer without emitting and starts safetyCopy afresh (a reset marks the start of a new reply).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::init CoachVoiceGuard.SafetyCopyProgress()"
+   ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:SpokenTextChunker.pendingBuffer",
+    "mem:SpokenTextChunker.safetyCopy"
+   ],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::init CoachVoiceGuard.SafetyCopyProgress()": "538511165af05fc1"
+   }
   },
   {
    "key": "func SpokenTextChunker.withdrawLast(_:)",

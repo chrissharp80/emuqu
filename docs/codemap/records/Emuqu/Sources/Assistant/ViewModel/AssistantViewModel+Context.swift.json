@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift",
- "hash": "b5c6738123abf96c",
+ "hash": "5f28282a5c91169b",
  "role": "Extension of AssistantViewModel for what the model is given: dropped-turn summarisation, per-provider token-budget truncation, background auto-fact extraction, announce-without-call / live-data heuristics used by GrokQuirkPolicy, provider-agnostic prompt-audit encoders; plus the round-local StreamTextBuffer that throttles streamed text to the live turn, scrubs it through CoachVoiceGuard sentence by sentence, and manages the voice speakable cursor.",
  "types": [
   "AssistantViewModel: extension — summarisation, truncation, fact extraction, heuristics, audit encoders",
@@ -13,7 +13,7 @@
   "static AssistantViewModel.questionPrefixes / appStateMarkers (auto-extract filter lists)",
   "static AssistantViewModel.strongAnnounceTriggers / weakAnnounceTriggers (announce-without-call lists)",
   "static AssistantViewModel.liveDataPhrases (multi-word live-data phrases, substring match) / liveDataWords (single metric words, whole-word match)",
-  "StreamTextBuffer.owner, turnID, roundStartTextLen, pendingChunks, lastPublishAt, publishIntervalMs=33",
+  "StreamTextBuffer.owner, turnID, roundStartTextLen, pendingChunks, lastPublishAt, publishIntervalMs=33, safetyCopy (CoachVoiceGuard.SafetyCopyProgress, fresh per round)",
   "uses ud:assistant.priorSummary via AssistantViewModel.summaryKey (declared AssistantViewModel.swift:104)"
  ],
  "toplevel": "Static let initializers hold prompt text and phrase lists. StreamTextBuffer stored-property initializers: pendingChunks='', lastPublishAt=.distantPast, publishIntervalMs=33. The 'Prompt-audit encoders' MARK block is a comment only (prompt-audit encoders section header placed before the announce detector).",
@@ -83,7 +83,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "c5c0f800ac025f4e",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "17e2087064119470",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "aae2d41709b8e22b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -752,38 +752,35 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "de325b016047ec5c",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.scrubbing(_:)": "51877cb3f8179dd6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "ed30692d7732bb7c",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.scrubbing(_:)": "21b98668bd816ed2",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "9ab2aeb75102c673"
    }
   },
   {
    "key": "func StreamTextBuffer.scrubbing(_:)",
-   "hash": "4857468cd91432af",
-   "does": "Returns text unchanged when CoachVoiceGuard finds no prohibited language; otherwise returns the scrubbed text and logs each trigger reason via owner.recordCoachVoiceInterception.",
+   "hash": "461b914f0a7fb53b",
+   "does": "Runs every published piece through CoachVoiceGuard.scrub(_:continuing:) with the round's safetyCopy progress (clean pieces too, so the app's canned safety reply is recognised across flushes, opening sentence first), logs each trigger reason via owner.recordCoachVoiceInterception, and returns the scrubbed text.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:continuing:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.recordCoachVoiceInterception(reason:)"
    ],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "mem:StreamTextBuffer.safetyCopy"
+   ],
+   "writes": [
+    "mem:StreamTextBuffer.safetyCopy"
+   ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "no prohibited language",
-     "effect": "return original text"
-    },
-    {
-     "at": "+3",
+     "at": "+2",
      "cond": "for each trigger",
      "effect": "log interception reason"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "b9254c0b8e1b4c88",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:continuing:)": "a1527d95f2031cb1",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.recordCoachVoiceInterception(reason:)": "f89574ba57070270",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
@@ -813,39 +810,42 @@
   },
   {
    "key": "func StreamTextBuffer.rewindToRoundStart()",
-   "hash": "8c7dcd73d31781e1",
-   "does": "Pulls speakableTextCursor[turnID] back to roundStartTextLen when it points past it (a sentence published before this round's tool_use, or the round-end advance on the Grok announce-retry path), then truncates the live turn's text back to roundStartTextLen and saves when it grew this round; no-op if the turn is gone. The voice controller re-syncs its spoken position to the lowered cursor (VoiceAudioPipeline.speakUpToCursor).",
+   "hash": "500671d00cc8561d",
+   "does": "Starts the round's safetyCopy progress afresh (the withdrawn text leads into nothing published next), then pulls speakableTextCursor[turnID] back to roundStartTextLen when it points past it (a sentence published before this round's tool_use, or the round-end advance on the Grok announce-retry path), then truncates the live turn's text back to roundStartTextLen and saves when it grew this round; the cursor and text steps are skipped if the turn is gone. The voice controller re-syncs its spoken position to the lowered cursor (VoiceAudioPipeline.speakUpToCursor).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::init CoachVoiceGuard.SafetyCopyProgress()",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)"
    ],
    "reads": [
     "mem:AssistantViewModel.turns"
    ],
    "writes": [
+    "mem:StreamTextBuffer.safetyCopy",
     "mem:AssistantViewModel.turns",
     "mem:AssistantViewModel.speakableTextCursor",
     "file:conversation.json (ConversationStore, App Group)"
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+4",
      "cond": "turn gone",
      "effect": "return"
     },
     {
-     "at": "+3",
+     "at": "+5",
      "cond": "cursor past the round start",
      "effect": "cursor = round start."
     },
     {
-     "at": "+7",
+     "at": "+9",
      "cond": "text longer than round-start length",
      "effect": "truncate and save; else nothing"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::init CoachVoiceGuard.SafetyCopyProgress()": "538511165af05fc1",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::var StreamTextBuffer.currentIndex": "99f8297f3d164d42"
    }
   }

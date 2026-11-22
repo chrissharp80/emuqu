@@ -1800,8 +1800,8 @@
   },
   {
    "key": "func PartialReplyTests.testEveryMutationToolThePromptNamesIsTreatedAsMutating()",
-   "hash": "ecaf3b0652c2c776",
-   "does": "Every non-artifact name in mutatingToolNames appears, backticked, in the tool overlay's text.",
+   "hash": "39dc9cee693f0bd8",
+   "does": "Both directions: every non-artifact name in mutatingToolNames appears, backticked, in the tool overlay's text; and every backticked name in the overlay's MUTATION TOOLS list (between 'MUTATION TOOLS' and 'Their descriptions start', which must both be found, with at least one name) is in mutatingToolNames.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [],
    "reads": [],
@@ -1811,9 +1811,16 @@
      "at": "+1",
      "cond": "for each non-artifact mutating tool",
      "effect": "assert the overlay names it"
+    },
+    {
+     "at": "+13",
+     "cond": "for each tool the MUTATION TOOLS list names",
+     "effect": "assert mutatingToolNames contains it"
     }
    ],
-   "deps": {}
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
+   }
   },
   {
    "key": "func PartialReplyTests.testSummaryBatchFitsTheProvidersHistoryBudget()",
