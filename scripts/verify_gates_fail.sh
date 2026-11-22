@@ -222,7 +222,7 @@ check "empty_range/unguarded_count_arithmetic" \
 check "doc_counts/stale" \
     "./scripts/check_doc_file_counts.sh" \
     "docs/MAINTAINERS.md" \
-    "import pathlib;p=pathlib.Path('docs/MAINTAINERS.md');s=p.read_text();o='### 5.1 \`Analysis/\` — physiology math + scoring (~75 files)';assert s.count(o)==1;p.write_text(s.replace(o,'### 5.1 \`Analysis/\` — physiology math + scoring (~7 files)'))"
+    "import pathlib,re;p=pathlib.Path('docs/MAINTAINERS.md');s=p.read_text();r=r'(### 5\\.1 \`Analysis/\` — physiology math \\+ scoring \\(~)\\d+( files\\))';assert len(re.findall(r,s))==1;p.write_text(re.sub(r,r'\\g<1>7\\g<2>',s))"
 
 # Raw `Int64(interval * 1000)` on stored dates is a shape that ships live
 # defects.
