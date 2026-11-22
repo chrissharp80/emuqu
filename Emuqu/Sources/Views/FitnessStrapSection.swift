@@ -18,13 +18,14 @@ struct FitnessStrapSection {
     /// Read for the training-load pause (integration off or a break).
     let settings: UserSettings
 
-    /// Date helpers and the delete action stay owned by the view and arrive as
-    /// closures — they read view state this type does not hold.
+    /// Date helpers and the delete request stay owned by the view and arrive
+    /// as closures — they read view state this type does not hold.
+    /// `requestDeleteWorkout` only asks: the view confirms before deleting.
     let recentWorkoutEntries: () -> [SessionArchiveEntry]
     let withinDays: (Date, Int) -> Bool
     let relativeDate: (Date) -> String
     let formattedDate: (Date) -> String
-    let deleteWorkout: (UUID) -> Void
+    let requestDeleteWorkout: (UUID) -> Void
 
     @Binding var lastCompletedSession: HRVSession?
     @Binding var latestWorkoutSession: HRVSession?
@@ -55,7 +56,7 @@ extension FitnessTabView {
             withinDays: { withinDays($0, $1) },
             relativeDate: { relativeDate($0) },
             formattedDate: { formattedDate($0) },
-            deleteWorkout: { deleteWorkout($0) },
+            requestDeleteWorkout: { pendingRecentDeleteId = $0 },
             lastCompletedSession: $lastCompletedSession,
             latestWorkoutSession: $latestWorkoutSession,
             latestWorkoutLoadFailed: $latestWorkoutLoadFailed,

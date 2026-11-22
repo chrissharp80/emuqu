@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift",
- "hash": "7aa5a5908b7d4e43",
- "role": "ArchiveDiagnosticsView: the archive diagnostics/maintenance settings screen (index listing, file-system scan, repair, clear-all, RR storage audit, MetricKit/memory trace links). Split out of ExportAndArchiveViews.swift.",
+ "hash": "a01d3e9441755567",
+ "role": "ArchiveDiagnosticsView: the archive diagnostics/maintenance settings screen (index listing, file-system scan, repair, RR storage audit, MetricKit/memory trace links). It deletes nothing; its Actions footer points to Delete All My Data. Split out of ExportAndArchiveViews.swift.",
  "types": [
   "ArchiveDiagnosticsView: struct (View) — archive diagnostics/maintenance screen"
  ],
  "state": [
-  "mem:ArchiveDiagnosticsView.diagnosticInfo/isRepairing/showingRepairConfirm/showingClearConfirm/repairResult/showingResult/rrAuditReport/rrAuditRunning (@State)",
-  "file:<group.com.chrissharp.flowrecovery>/<AppConfig.archiveDirectoryName> (scanned / wiped)",
+  "mem:ArchiveDiagnosticsView.diagnosticInfo/isRepairing/showingRepairConfirm/repairResult/showingResult/rrAuditReport/rrAuditRunning (@State)",
+  "file:<group.com.chrissharp.flowrecovery>/<AppConfig.archiveDirectoryName> (scanned)",
   "mem:ArchiveDiagnosticsView.metricKitHistory/memoryTrace (@State, loaded once per appear)",
   "static ArchiveDiagnosticsView.nonSessionFileNames (index, deleted list and CloudKitSyncState sidecars)"
  ],
@@ -33,7 +33,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "721ebb1967d3572f",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.withAlerts(_:)": "7b269bdd33611630",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.withAlerts(_:)": "52d2f62401aa3f22",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.actionsSection": "88711fcaf3c9a5ff",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.archiveIndexSection": "5bcae996dab4228f",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.fileSystemSection": "9477d047680ac837",
@@ -42,12 +42,11 @@
   },
   {
    "key": "func ArchiveDiagnosticsView.withAlerts(_:)",
-   "hash": "40b1040b1ce95650",
-   "does": "Attaches three alerts: 'Repair Archive?' (repairDialogActions), 'Clear All Data?' (clearDialogActions, message says iCloud copies sync back), and 'Result' showing repairResult.",
+   "hash": "f8e101b703e673fe",
+   "does": "Attaches two alerts: 'Repair Archive?' (repairDialogActions; message says the index is rebuilt from the readable session files and no file is deleted) and 'Result' showing repairResult.",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.repairDialogActions",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.clearDialogActions",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
@@ -57,7 +56,6 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.clearDialogActions": "6cdbc15ffa92d190",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.repairDialogActions": "376201105b1d1925"
    }
   },
@@ -91,10 +89,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.actionsSection2": "27a3b55155f70063",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.actionsSection2": "b921639b7b90f305",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.demoSessionSection": "cfe8021c85d8f206",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.rrStorageAuditSection": "0b3d909fa6e5be5c",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.systemDiagnosticsSection": "48aa23a7187b333f"
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.systemDiagnosticsSection": "1c31a0659c9c8741"
    }
   },
   {
@@ -114,13 +112,12 @@
   },
   {
    "key": "var ArchiveDiagnosticsView.actionsSection2",
-   "hash": "0c9a870a67216558",
-   "does": "Section 'Actions' with refresh, repair and clear-all buttons; repair and clear-all are disabled while a repair runs.",
+   "hash": "70613b827de0cbf1",
+   "does": "Section 'Actions' with the refresh and repair buttons (repair disabled while a repair runs) and a footer pointing to Settings → Advanced Data Controls → Delete All My Data for deleting data.",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.refreshButton",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.repairArchiveButton",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.clearAllArchiveDataButton",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -128,7 +125,6 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.clearAllArchiveDataButton": "d585a61c8c00e48b",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.refreshButton": "04f639c302efc391",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.repairArchiveButton": "7a0949c08b9ef687"
    }
@@ -161,23 +157,6 @@
    "reads": [],
    "writes": [
     "mem:ArchiveDiagnosticsView.showingRepairConfirm"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
-   }
-  },
-  {
-   "key": "var ArchiveDiagnosticsView.clearAllArchiveDataButton",
-   "hash": "c38537955fe5f5bc",
-   "does": "Destructive button 'Clear All Archive Data' setting showingClearConfirm.",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:ArchiveDiagnosticsView.showingClearConfirm"
    ],
    "branches": [],
    "deps": {
@@ -365,13 +344,13 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.encryptedFileReport(_:)": "8d07acc64a0afb86"
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.encryptedFileReport(_:)": "b7473442a5f1e8a4"
    }
   },
   {
    "key": "func ArchiveDiagnosticsView.encryptedFileReport(_:)",
-   "hash": "5753f906dd9b9318",
-   "does": "Lists up to 10 .encrypted file names, '… and N more', and a hint to run Repair; '' when none.",
+   "hash": "c1bf402f208a2108",
+   "does": "Lists up to 10 .encrypted file names, '… and N more', and a line saying Repair Archive leaves these files in place; '' when none.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -401,13 +380,13 @@
   },
   {
    "key": "func ArchiveDiagnosticsView.performRepair()",
-   "hash": "ca02ca1dee38c1f9",
-   "does": "Sets isRepairing, notes the index size, runs SessionArchive.repairArchive() on a detached task (deletes .encrypted files, rebuilds index from .json files, saves index), posts the archive-changed signal, then reports 'N sessions recovered' as rebuilt size minus the earlier size (never below 0), shows the result and refreshes diagnostics.",
+   "hash": "c348c82d6c347436",
+   "does": "Sets isRepairing, notes the index size, runs repair(_:) (SessionArchive.repairArchive: rebuilds the index from the readable .json files and saves it; deletes nothing) on a detached task, clears isRepairing and posts the archive-changed signal, sets repairResult from repairMessage (recovered count on success, 'Repair did not finish' with the error when it threw), shows the result and refreshes diagnostics.",
    "entry": "Repair alert 'Repair' button",
    "calls": [
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.repair(_:)",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.repairMessage(_:indexedBefore:)",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
    ],
@@ -415,7 +394,6 @@
     "file:archive dir"
    ],
    "writes": [
-    "file:archive/*.encrypted (deleted)",
     "archive:index.json (rebuilt)",
     "mem:ArchiveDiagnosticsView.isRepairing",
     "mem:ArchiveDiagnosticsView.repairResult"
@@ -423,76 +401,62 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "c2062cc1de9004ba",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "721ebb1967d3572f"
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "721ebb1967d3572f",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.repair(_:)": "ab8247907075a0d1",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.repairMessage(_:indexedBefore:)": "1ffd8972380ccb5b"
    }
   },
   {
-   "key": "func ArchiveDiagnosticsView.clearAllData()",
-   "hash": "93d0c1f40b4c9998",
-   "does": "Runs wipeArchiveDirectory on a detached task; on success resets the archive's in-memory index and CloudKitSyncManager's local sync state (its sidecar files were in the wiped directory) and bumps ArchiveSignal; shows outcome message and refreshes diagnostics. RawRRBackup is a separate store and is left alone.",
-   "entry": "Clear alert 'Clear Everything' button",
+   "key": "func ArchiveDiagnosticsView.repair(_:)",
+   "hash": "6fcfe30c8e1ba50e",
+   "does": "Runs SessionArchive.repairArchive() and wraps its rebuilt-index count, or the error it threw, in a Result.",
+   "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.wipeArchiveDirectory()",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()"
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()"
    ],
-   "reads": [],
+   "reads": [
+    "file:archive dir"
+   ],
    "writes": [
-    "archive:SessionArchive in-memory index (reset)",
-    "file:<app group>/<archiveDirectoryName> (deleted + recreated)",
-    "mem:ArchiveDiagnosticsView.repairResult",
-    "mem:CloudKitSyncManager sync state (reset)",
-    "notif:flowRecoveryArchiveChanged (via ArchiveSignal)"
+    "archive:index.json (rebuilt)"
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "outcome.cleared",
-     "effect": "true: reset archive memory + notify; false: only message"
+     "at": "+3",
+     "cond": "catch: repairArchive threw",
+     "effect": ".failure(error)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "680e37edf08e252a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "bbe42fe440420a22",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "721ebb1967d3572f",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.wipeArchiveDirectory()": "24670f117ebc0d1e",
-    "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)": "f79ab86b571700d2"
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "199a7f7ad1a4abdf",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
   {
-   "key": "func ArchiveDiagnosticsView.wipeArchiveDirectory()",
-   "hash": "9f862013f819a65c",
-   "does": "Deletes and recreates <App Group>/<archiveDirectoryName>; returns (true, 'All archive data cleared. Restart…') or (false, error message).",
+   "key": "func ArchiveDiagnosticsView.repairMessage(_:indexedBefore:)",
+   "hash": "19c5578d28c65bb0",
+   "does": "Result text: on success 'Repair complete. N sessions recovered.' with N = rebuilt size minus indexedBefore, never below 0; on failure 'Repair did not finish: <error>'.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.containerUnavailableMessage",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
-   "writes": [
-    "file:<app group>/<archiveDirectoryName>"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "App Group container URL unavailable",
-     "effect": "nil: (false, container-unavailable message); else continue"
+     "cond": ".success",
+     "effect": "recovered-count text"
     },
     {
-     "at": "+10",
-     "cond": "removeItem/createDirectory threw",
-     "effect": "catch: (false, 'Error clearing data: …'); a removeItem success followed by createDirectory failure leaves the archive dir missing and reports failure, so the in-memory index is not reset"
+     "at": "+5",
+     "cond": ".failure",
+     "effect": "failure text with the error"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.containerUnavailableMessage": "7f929502a887fe2c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -674,8 +638,8 @@
   },
   {
    "key": "var ArchiveDiagnosticsView.systemDiagnosticsSection",
-   "hash": "3015a31788ac547c",
-   "does": "Section 'System Diagnostics' with explanation, keyboard-capture link and diagnosticsLinks; a .task loads the diagnostic files once per appear.",
+   "hash": "3c83fc47a5a968a3",
+   "does": "Section 'System Diagnostics' with explanation, keyboard-capture link and diagnosticsLinks; a .task awaits loadDiagnosticFiles once per appear.",
    "entry": ".task on appear",
    "calls": [
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.captureKeyboardPerformanceProfileSection",
@@ -688,7 +652,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.loadDiagnosticFiles()": "033c47b0898e924c",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.loadDiagnosticFiles()": "bd7cb4e2bc88eedc",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.captureKeyboardPerformanceProfileSection": "eef8711cd93c026e",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::var ArchiveDiagnosticsView.diagnosticsLinks": "3561b510cf704254",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
@@ -696,9 +660,27 @@
   },
   {
    "key": "func ArchiveDiagnosticsView.loadDiagnosticFiles()",
-   "hash": "1465c3fb0a96c9d6",
-   "does": "Reads MetricKit history and the last 1000 memory-trace samples from SystemDiagnosticsManager into @State.",
+   "hash": "6d2542ee1261e87f",
+   "does": "Awaits readDiagnosticFiles (off the main actor) for the MetricKit history and the last 1000 memory-trace samples, then stores both in @State.",
    "entry": "systemDiagnosticsSection .task",
+   "calls": [
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.readDiagnosticFiles(from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ArchiveDiagnosticsView.metricKitHistory/memoryTrace"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.readDiagnosticFiles(from:)": "f5ce7ea686ca9905"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.readDiagnosticFiles(from:)",
+   "hash": "c12dfc2bb7cebf26",
+   "does": "Nonisolated async, so it runs on the global executor: reads the MetricKit history and the last 1000 memory-trace samples from the given SystemDiagnosticsManager and hands both arrays back (sending).",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readMetricKitHistory()",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)"
@@ -706,12 +688,9 @@
    "reads": [
     "file:MetricKit JSONL / memory trace (tails)"
    ],
-   "writes": [
-    "mem:ArchiveDiagnosticsView.metricKitHistory/memoryTrace"
-   ],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readMetricKitHistory()": "0843a026cf147954",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)": "c03af3f4f81c30ae"
    }
@@ -805,24 +784,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.performRepair()": "e85e78b786f8ea40"
-   }
-  },
-  {
-   "key": "var ArchiveDiagnosticsView.clearDialogActions",
-   "hash": "1cb96372b60c5148",
-   "does": "Clear alert buttons: Cancel (no-op) and destructive 'Clear Everything' → clearAllData().",
-   "entry": "Alert button taps",
-   "calls": [
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.clearAllData()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.clearAllData()": "a656e05e4286c260"
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.performRepair()": "f4769976ab32a943"
    }
   },
   {

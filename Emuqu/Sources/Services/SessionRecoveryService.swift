@@ -387,16 +387,22 @@ final class SessionRecoveryService {
         }
     }
 
-    /// Mark sessions as intentionally deleted.
-    func deleteLostSessions(_ sessionIds: [UUID]) {
+    /// Mark sessions as intentionally deleted. Returns the ids whose mark was
+    /// stored; an id whose mark could not be saved is left out (and stays a
+    /// lost session), so the caller removes only what was really dismissed.
+    @discardableResult
+    func deleteLostSessions(_ sessionIds: [UUID]) -> Set<UUID> {
+        var marked: Set<UUID> = []
         for id in sessionIds {
             do {
                 try archive.markAsDeleted(id)
+                marked.insert(id)
             } catch {
                 debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to mark session \(id.uuidString.prefix(8)) as deleted: \(error)")
             }
         }
-        debugLog("[SessionRecoveryService] Marked \(sessionIds.count) lost sessions as deleted")
+        debugLog("[SessionRecoveryService] Marked \(marked.count) of \(sessionIds.count) lost sessions as deleted")
+        return marked
     }
 
     // MARK: - Shared Backup Helpers

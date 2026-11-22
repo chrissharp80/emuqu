@@ -45,7 +45,9 @@ extension RRCollector {
         await recovery.permanentlyDelete(ids)
     }
 
-    func deleteLostSessions(_ sessionIds: [UUID]) {
+    /// The ids whose deletion mark was stored.
+    @discardableResult
+    func deleteLostSessions(_ sessionIds: [UUID]) -> Set<UUID> {
         recovery.deleteLostSessions(sessionIds)
     }
 

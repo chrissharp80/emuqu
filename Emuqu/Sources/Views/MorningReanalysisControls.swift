@@ -35,4 +35,8 @@ struct MorningReanalysisControls {
     @Binding var manualPickMessage: String?
     @Binding var strapMergeWorking: Bool
     @Binding var strapMergeMessage: String?
+    /// A method picked from the Analysis Window menu, awaiting confirmation.
+    @Binding var pendingWindowMethod: WindowSelectionMethod?
+    /// Set when a re-analysis returned no session; the view alerts.
+    @Binding var reanalysisDeclined: Bool
 }

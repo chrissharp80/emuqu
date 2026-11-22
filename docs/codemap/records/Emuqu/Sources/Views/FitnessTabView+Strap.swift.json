@@ -903,7 +903,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.deleteWorkoutButton(_:title:)": "294a3a43bba674a0",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.deleteWorkoutButton(_:title:)": "bbb867f0b1809cb8",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.openRecentWorkout(_:)": "73c935503ea51b35",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.recentRowLabel(entry:)": "23adb4145a3cf704"
    }
@@ -936,16 +936,18 @@
   },
   {
    "key": "func FitnessStrapSection.deleteWorkoutButton(_:title:)",
-   "hash": "b0dbbf2d32edfaa2",
-   "does": "Destructive 'Delete Workout' button calling the bound deleteWorkout closure with the entry's session id.",
+   "hash": "9be9b0aa12101f0d",
+   "does": "Destructive 'Delete Workout' context-menu button calling the bound requestDeleteWorkout closure with the entry's session id; the tab then asks for confirmation before deleting.",
    "entry": "SwiftUI context-menu button action",
    "calls": [
-    "closure:deleteWorkout — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:56) → Emuqu/Sources/Views/FitnessTabView.swift:556"
+    "closure:requestDeleteWorkout — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:59) → sets FitnessTabView.pendingRecentDeleteId"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+   }
   },
   {
    "key": "func FitnessStrapSection.recentRowLabel(entry:)",

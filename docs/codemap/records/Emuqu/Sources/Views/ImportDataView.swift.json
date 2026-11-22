@@ -200,19 +200,20 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.importedResults(session:result:)": "b225361ec9095d6e",
+    "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.importedResults(session:result:)": "cae8f2687018e300",
     "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.saveImportToolbarItem": "032c4eabf49176ce"
    }
   },
   {
    "key": "func ImportDataView.importedResults(session:result:)",
-   "hash": "28099351ebaf44fe",
-   "does": "Builds MorningResultsView with the imported session/result and cachedRecentSessions; onDiscard clears the import; onUpdateTags hands the report's Tags & Notes edits to applyReportTags (onto the reading Done saves and its archived copy); onUpdateSleep (measured Apple Health sleep handed over by the results screen) is kept in importedSleep and applied to the reading when Done saves it, since the unsaved reading is not in the archive yet.",
+   "hash": "f41e8dad9a6837e3",
+   "does": "Builds MorningResultsView with the imported session/result and cachedRecentSessions; onDiscard clears the import, and the Discard confirmation says the imported reading is dropped unsaved and the imported file is not changed; onUpdateTags hands the report's Tags & Notes edits to applyReportTags (onto the reading Done saves and its archived copy); onUpdateSleep (measured Apple Health sleep handed over by the results screen) is kept in importedSleep and applied to the reading when Done saves it, since the unsaved reading is not in the archive yet.",
    "entry": "SwiftUI view builder; closures fired by MorningResultsView buttons",
    "calls": [
-    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
+    "init MorningResultsView(session:result:recentSessions:onDiscard:discardMessage:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
     "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.discardImport()",
-    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.applyReportTags(_:notes:sessionId:)"
+    "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.applyReportTags(_:notes:sessionId:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "mem:ImportDataView @State (view-local)"
@@ -222,9 +223,10 @@
    ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.applyReportTags(_:notes:sessionId:)": "1ef0d3a1fc55435e",
     "Emuqu/Sources/Views/ImportDataView.swift::func ImportDataView.discardImport()": "68b55f53222cf238",
-    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "77c1bc60f515191c"
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:discardMessage:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "5d56309a54e28237"
    }
   },
   {

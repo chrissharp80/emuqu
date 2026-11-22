@@ -76,16 +76,46 @@ extension MorningReanalysisControls {
         }
     }
 
-    /// Persist the pick so the next session opens with the user's most recent
-    /// choice — without this it was view-local only and got lost when the sheet
-    /// closed.
+    /// Picking a method re-scores and re-saves the reading, so the pick only
+    /// asks: the view's confirmation runs `applyWindowMethod`.
     private func selectWindowMethod(_ method: WindowSelectionMethod) {
         guard vm.selectedMethod != method else { return }
+        pendingWindowMethod = method
+    }
+
+    /// The confirmed pick. Re-scores the reading with `method`. Once that
+    /// lands, a reading that is not a past night also makes `method` the
+    /// default, so the next session opens with the user's most recent choice;
+    /// a past night's pick re-scores that night only. A declined re-analysis
+    /// puts the previous method back and raises `reanalysisDeclined`.
+    func applyWindowMethod(_ method: WindowSelectionMethod) {
+        guard let onReanalyze else { return }
+        let previous = vm.selectedMethod
+        let becomesDefault = !vm.isHistoricalSession
         vm.selectedMethod = method
-        AppDependencies.current.app.settingsManager.settings.defaultWindowSelectionMethod = method
         isManualWindowMode = false
         manualResult = nil
-        reanalyzeWithMethod(method)
+        vm.isReanalyzing = true
+        Task {
+            let updatedSession = await onReanalyze(vm.displaySession, method)
+            await MainActor.run {
+                finishWindowMethod(updatedSession, method: method, previous: previous, becomesDefault: becomesDefault)
+            }
+        }
+    }
+
+    /// A declined re-analysis puts the previous method back; one that landed
+    /// makes `method` the default when the reading is not a past night.
+    @MainActor
+    private func finishWindowMethod(
+        _ updatedSession: HRVSession?, method: WindowSelectionMethod, previous: WindowSelectionMethod, becomesDefault: Bool
+    ) {
+        if updatedSession == nil {
+            vm.selectedMethod = previous
+        } else if becomesDefault {
+            AppDependencies.current.app.settingsManager.settings.defaultWindowSelectionMethod = method
+        }
+        applyReanalyzedSession(updatedSession)
     }
 
     /// A bigger chevron and a bordered, button-like surface make the
@@ -771,21 +801,15 @@ extension MorningReanalysisControls {
         }
     }
 
-    func reanalyzeWithMethod(_ method: WindowSelectionMethod) {
-        guard let onReanalyze else { return }
-        vm.isReanalyzing = true
-        Task {
-            let updatedSession = await onReanalyze(vm.displaySession, method)
-            await MainActor.run { applyReanalyzedSession(updatedSession) }
-        }
-    }
-
     /// A nil result means the reanalysis declined (no RR data, in-flight
-    /// duplicate); the displayed session stays as it was.
+    /// duplicate); the displayed session stays as it was and
+    /// `reanalysisDeclined` tells the user so.
     @MainActor
     private func applyReanalyzedSession(_ updatedSession: HRVSession?) {
         if let updatedSession {
             vm.reanalyzedSession = updatedSession
+        } else {
+            reanalysisDeclined = true
         }
         vm.isReanalyzing = false
     }

@@ -904,7 +904,7 @@ Comprehensive recovery report accessed from Dashboard or History.
 - **Highest SDNN** — Finds your highest total heart rate variability (sympathetic + parasympathetic).
 - **Highest Total Power** — Uses SDNN as a stand-in for total power, so it picks the same window as Highest SDNN: your highest total heart rate variability (sympathetic + parasympathetic).
 
-Selecting a method instantly re-runs this night's analysis and updates all metrics on the page. The app also remembers your pick: every report you open afterwards shows it in this picker, and the Dashboard's re-analyze uses it, even though each of those nights keeps the method it was analysed with until you re-run it. New recordings are always analysed with Best Recovery.
+Selecting a method first asks you to confirm, because it replaces the night's saved score: it then re-runs this night's analysis, saves the new score and updates all metrics on the page. If the re-analysis cannot run, an alert says so and the score stays as it was. A pick made on today's report is also remembered: every report you open afterwards shows it in this picker, and the Dashboard's re-analyze uses it, even though each of those nights keeps the method it was analysed with until you re-run it. A pick made on a past night re-scores that night only. New recordings are always analysed with Best Recovery.
 
 **Choose Your Own Window**: Tap the "Choose Window" button to enter manual mode. In this mode:
 1. The HRV chart shows a hint: "Drag across the chart to analyze that window"
@@ -945,7 +945,7 @@ Chart labels adapt to context: "Overnight Summary" / "Heart Rate Overnight" / "H
 
 ### Notes Section
 - Text field for session notes
-- Notes and tag changes are saved when you tap **Done** or close the report (a swipe down included). **Discard** throws the reading away, and its tag and note changes with it
+- Notes and tag changes are saved when you tap **Done** or close the report (a swipe down included). **Discard** first asks you to confirm, saying what you lose (a night is left out of your baseline and moves to the Trash; a quick reading moves to the Trash; an import is dropped unsaved), then throws the reading away, and its tag and note changes with it
 
 ### Action Buttons
 - **"Email Report"**: Choose the sections; Emuqu builds a PDF report and attaches it to a new email:
@@ -1629,11 +1629,11 @@ Manage deleted sessions.
 Recover sessions that have raw backups but aren't in the main archive.
 
 ### Features
-- List of lost sessions with date, beat count, duration estimate
+- List of lost sessions with date and beat count
 - **"Recover All"** button to batch recover
 - **Edit mode** with multi-select for batch deletion
 - **Swipe to delete** individual sessions
-- Confirmation dialog before deletion
+- A confirmation before every deletion, swipe included: a deleted session is no longer offered for recovery, and its raw backup files stay on the device. A deletion that cannot be saved leaves the session in the list and says so
 
 ---
 

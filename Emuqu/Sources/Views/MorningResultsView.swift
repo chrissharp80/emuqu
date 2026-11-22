@@ -26,6 +26,12 @@ struct MorningResultsView: View {
     /// Required callback - either discard (for new sessions) or simple dismiss
     let onDiscard: () -> Void
 
+    /// What the Discard confirmation tells the user they lose. Discard (shown
+    /// when there is no `onDelete`) throws the reading away, so it always
+    /// asks first; each caller states its own consequence (Trash, baseline,
+    /// an import never saved). Nil falls back to a plain "discards" line.
+    let discardMessage: String?
+
     // Optional callbacks for history view features
     var onDelete: (() -> Void)?
     var onReanalyze: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)?
@@ -63,11 +69,18 @@ struct MorningResultsView: View {
     @State var exportURL: IdentifiableURL?
     @State var emailURL: IdentifiableURL?
     @State var showingReanalyzeConfirmation = false
+    /// The window method picked from the Analysis Window menu, waiting for
+    /// the confirmation: picking one re-scores and re-saves the reading.
+    @State var pendingWindowMethod: WindowSelectionMethod?
+    /// The last re-analysis came back with no session (no beat data, or one
+    /// already running): the score is unchanged and the alert says so.
+    @State var reanalysisDeclined = false
     @State var isManualWindowMode = false
     @State var manualResult: HRVAnalysisResult?
     @State var showReportSectionPicker = false
     @State var showEmailSectionPicker = false
     @State var showingDeleteConfirmation = false
+    @State var showingDiscardConfirmation = false
     @State var showingUnlinkConfirmation = false
     @State var pendingUnlinkSegmentId: UUID?
     @State var removedSegmentIds: Set<UUID> = []
@@ -144,6 +157,7 @@ struct MorningResultsView: View {
         result: HRVAnalysisResult,
         recentSessions: [HRVSession] = [],
         onDiscard: @escaping () -> Void,
+        discardMessage: String? = nil,
         onDelete: (() -> Void)? = nil,
         onReanalyze: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)? = nil,
         onUpdateTags: (([ReadingTag], String?) -> Void)? = nil,
@@ -158,6 +172,7 @@ struct MorningResultsView: View {
         self.result = result
         self.recentSessions = recentSessions
         self.onDiscard = onDiscard
+        self.discardMessage = discardMessage
         self.onDelete = onDelete
         self.onReanalyze = onReanalyze
         self.onUpdateTags = onUpdateTags
@@ -512,7 +527,7 @@ struct MorningResultsView: View {
     }
 
     private func withDialogs(_ content: some View) -> some View {
-        withSegmentUnlinkFailedAlert(content)
+        withDiscardAndRescoreDialogs(withSegmentUnlinkFailedAlert(content))
             .confirmationDialog(
                 Text(String(localized: "Delete Reading", bundle: LanguageManager.appBundle)),
                 isPresented: $showingDeleteConfirmation,
@@ -529,6 +544,39 @@ struct MorningResultsView: View {
                 isPresented: $showingUnlinkConfirmation,
                 titleVisibility: .visible
             ) { removeSegmentActions } message: { removeSegmentMessage }
+    }
+
+    /// The Discard confirmation, which states what the reading's caller
+    /// loses, and the Analysis Window pick's confirmation (it re-scores and
+    /// re-saves the reading).
+    private func withDiscardAndRescoreDialogs(_ content: some View) -> some View {
+        withReanalysisDeclinedAlert(content)
+            .confirmationDialog(
+                Text(String(localized: "Discard this reading?", bundle: LanguageManager.appBundle)),
+                isPresented: $showingDiscardConfirmation,
+                titleVisibility: .visible
+            ) { discardReadingActions } message: { discardReadingMessage }
+            .confirmationDialog(
+                Text(String(localized: "Re-analyze Session", bundle: LanguageManager.appBundle)),
+                isPresented: pendingWindowMethodBinding,
+                titleVisibility: .visible,
+                presenting: pendingWindowMethod
+            ) { method in
+                windowMethodActions(method)
+            } message: { method in
+                windowMethodMessage(method)
+            }
+    }
+
+    /// Raised by `applyReanalyzedSession` when a re-analysis came back with
+    /// no session: the score on screen and on disk is unchanged.
+    private func withReanalysisDeclinedAlert(_ content: some View) -> some View {
+        content.alert(
+            String(localized: "This reading wasn't re-analyzed. Its score is unchanged.", bundle: LanguageManager.appBundle),
+            isPresented: $reanalysisDeclined
+        ) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+        }
     }
 
     /// Raised by `unlinkPendingSegment` when the unlink was not stored.
@@ -549,6 +597,23 @@ struct MorningResultsView: View {
         Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
     }
 
+    /// Discard throws the reading away, so its Tags & Notes edits are dropped
+    /// rather than handed to `onUpdateTags` (a save for a reading about to be
+    /// deleted or rejected), and marked handled so the sheet's onDisappear
+    /// does not hand them off either.
+    @ViewBuilder
+    private var discardReadingActions: some View {
+        Button(String(localized: "Discard", bundle: LanguageManager.appBundle), role: .destructive) {
+            savedTagsAndNotes = SavedTagsAndNotes(tags: vm.selectedTags, notes: vm.notes)
+            onDiscard()
+        }
+        Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
+    }
+
+    private var discardReadingMessage: some View {
+        Text(discardMessage ?? String(localized: "This discards the reading.", bundle: LanguageManager.appBundle))
+    }
+
     private var deleteReadingMessage: some View {
         Text(String(localized: "This moves the reading to the Trash. You can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle))
     }
@@ -562,7 +627,34 @@ struct MorningResultsView: View {
     }
 
     private var reanalyzeMessage: some View {
-        Text(String(localized: "This will re-run the analysis algorithms on your existing RR data. Your raw data is safe and will not be modified.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "This re-runs the analysis on this reading's beat data and saves the new score in place of the current one. The beat data itself is not changed.", bundle: LanguageManager.appBundle))
+    }
+
+    private var pendingWindowMethodBinding: Binding<Bool> {
+        Binding(
+            get: { pendingWindowMethod != nil },
+            set: { if !$0 { pendingWindowMethod = nil } }
+        )
+    }
+
+    @ViewBuilder
+    private func windowMethodActions(_ method: WindowSelectionMethod) -> some View {
+        Button(String(localized: "Re-analyze", bundle: LanguageManager.appBundle)) {
+            pendingWindowMethod = nil
+            reanalysis.applyWindowMethod(method)
+        }
+        Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {
+            pendingWindowMethod = nil
+        }
+    }
+
+    /// A past night's pick re-scores that night only; tonight's also becomes
+    /// the method new readings start with (`applyWindowMethod`).
+    private func windowMethodMessage(_ method: WindowSelectionMethod) -> some View {
+        let name = method.displayName
+        return Text(vm.isHistoricalSession
+            ? String(localized: "This re-scores this past reading with \(name) and saves the new score in place of the current one. The beat data itself is not changed.", bundle: LanguageManager.appBundle)
+            : String(localized: "This re-scores the reading with \(name) and saves the new score in place of the current one. New readings will also use \(name). The beat data itself is not changed.", bundle: LanguageManager.appBundle))
     }
 
     @ViewBuilder
