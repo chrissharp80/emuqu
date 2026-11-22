@@ -27,6 +27,11 @@ import XCTest
 final class CloudPayloadCodecTests: XCTestCase {
     private let payload = Data("the quick brown fox jumps over the lazy dog".utf8)
 
+    override func setUp() {
+        super.setUp()
+        standInForConfirmedICloudAccount()
+    }
+
     // MARK: - Round trip
 
     func testEncodedPayloadDecodesBackToTheOriginal() throws {
@@ -271,6 +276,24 @@ final class CloudPayloadCodecTests: XCTestCase {
 final class CloudSettingsRecordTests: XCTestCase {
     private let zoneID = CKRecordZone.ID(zoneName: "UserSettings", ownerName: CKCurrentUserDefaultName)
 
+    override func setUp() {
+        super.setUp()
+        standInForConfirmedICloudAccount()
+    }
+
+    /// A push replaces only an older cloud copy: one edited after this
+    /// device's last change is kept, and so is any dated copy while this
+    /// device has no change time; an undated copy never wins.
+    func testOnlyAnOlderCloudCopyIsReplaced() {
+        let earlier = Date(timeIntervalSince1970: 1_000)
+        let later = Date(timeIntervalSince1970: 2_000)
+        XCTAssertTrue(CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt: later, localEditedAt: earlier))
+        XCTAssertFalse(CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt: earlier, localEditedAt: later))
+        XCTAssertFalse(CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt: later, localEditedAt: later))
+        XCTAssertTrue(CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt: later, localEditedAt: nil))
+        XCTAssertFalse(CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt: nil, localEditedAt: nil))
+    }
+
     private func emptyRecord() -> CKRecord {
         CKRecord(recordType: "UserSettings", recordID: CKRecord.ID(recordName: "primary", zoneID: zoneID))
     }
@@ -395,6 +418,29 @@ final class CloudSettingsRecordTests: XCTestCase {
             guard case CloudKitSettingsSync.RestoreError.cloudCopyMalformed = error else {
                 return XCTFail("expected cloudCopyMalformed, got \(error)")
             }
+        }
+    }
+}
+
+extension XCTestCase {
+    /// `CloudPayloadCodec.sealForUpload` creates a cloud key only while the
+    /// signed-in iCloud account is the one sync is enabled for
+    /// (`CloudAccountIdentity.isConfirmed`), and a test host has none. A test
+    /// that seals stands in for one; the recorded account and any stop notice
+    /// are put back when it ends.
+    func standInForConfirmedICloudAccount() {
+        let defaults = UserDefaults.standard
+        let recorded = CloudAccountIdentity.recordedAccount
+        let stopReason = defaults.string(forKey: CloudAccountIdentity.stopReasonKey)
+        XCTAssertTrue(CloudAccountIdentity.adopt("emuqu-tests", generation: CloudAccountIdentity.checkGeneration))
+        addTeardownBlock {
+            if let recorded {
+                UserDefaults.standard.set(recorded, forKey: CloudAccountIdentity.recordedKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: CloudAccountIdentity.recordedKey)
+            }
+            if let stopReason { UserDefaults.standard.set(stopReason, forKey: CloudAccountIdentity.stopReasonKey) }
+            CloudAccountIdentity.revokeConfirmation()
         }
     }
 }

@@ -95,6 +95,9 @@ final class SessionArchive: @unchecked Sendable {
     /// the ones with a recorded deletion time, until the file reads (or,
     /// undecodable, is moved aside).
     var deletedIndexReadFailed = false
+    /// Recordings folded into a same-night session this launch, by their own
+    /// id (`archivedId(of:)`). Same lock contract as `index`.
+    private var foldedInto: [UUID: UUID] = [:]
     let fileManager = FileManager.default
     let archiveLock = NSLock()
 
@@ -135,11 +138,19 @@ final class SessionArchive: @unchecked Sendable {
     /// removed the files. Without this the index stayed in memory until a
     /// restart, and the first save after the purge — a sleep refresh, a tag
     /// edit — wrote every deleted session's metadata back to `index.json`.
+    /// The read-failure flags go too: the files they were about are gone, and
+    /// a save that first merged the unread index (`mergeIndexThatFailedToLoad`)
+    /// failed on the missing file, so every archive write failed until a
+    /// relaunch.
     func resetInMemoryStateAfterPurge() {
         archiveLock.lock()
         index = []
         newerBuildIndexEntries = IndexEntriesFromNewerBuild()
         deletedSessionIds = []
+        indexReadFailed = false
+        indexDecodeFailed = false
+        deletedIndexReadFailed = false
+        foldedInto = [:]
         sortedEntriesCache = nil
         sessionIdLookup = nil
         archiveLock.unlock()
@@ -477,6 +488,14 @@ final class SessionArchive: @unchecked Sendable {
     /// Routine rewrites (refreshes, stamps, migrations, re-encryption) leave
     /// it false: a second device rewriting its older copy must not replace
     /// the newer one in iCloud.
+    ///
+    /// A recording folded into a same-night session (`sameNightMerge`, the
+    /// entry then has the other id) changed that session, whatever
+    /// `requestingReupload` says: the merge stamped it, and it is queued to
+    /// upload again, since its id was uploaded before the merge and the push
+    /// takes each id once. The fold is remembered for this launch
+    /// (`archivedId(of:)`), so the direct upload that follows finds the
+    /// session the recording went into.
     @discardableResult
     func archive(_ session: HRVSession, skipSameNightMerge: Bool, requestingReupload: Bool = false) throws -> SessionArchiveEntry {
         var session = session
@@ -490,12 +509,20 @@ final class SessionArchive: @unchecked Sendable {
             archiveLock.unlock()
             throw error
         }
+        let folded = entry.sessionId != session.id
+        if folded { foldedInto[session.id] = entry.sessionId }
         archiveLock.unlock()
         NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: session.id)
-        if requestingReupload, wasArchived || entry.sessionId != session.id {
+        if folded || (requestingReupload && wasArchived) {
             postReuploadRequest(for: entry.sessionId)
         }
         return entry
+    }
+
+    /// The id a recording was archived under: its own, or that of the
+    /// same-night session it was folded into during this launch.
+    func archivedId(of id: UUID) -> UUID {
+        archiveLock.withLock { foldedInto[id] } ?? id
     }
 
     /// Change fields of the archived copy in place: read, change and write

@@ -335,6 +335,11 @@ extension ArchiveMigrations {
     ///    pull path stops re-downloading it (otherwise each full sync
     ///    re-pulls the "duplicate" and the next launch deletes it again,
     ///    forever).
+    /// 6. What the user added to a retired copy (tags, notes, the morning
+    ///    feeling, perceived readiness) is carried into the keeper first
+    ///    (`carryUserContent`); a copy that cannot be read for it is not
+    ///    retired this pass. The tombstone deletes the copy on every device,
+    ///    so content left on it was lost everywhere.
     func removeDuplicates() {
         guard archive.sessionMergeModeProvider() != .off else { return }
         let quarantineWork = duplicateQuarantineWork()
@@ -418,14 +423,15 @@ extension ArchiveMigrations {
 
     /// Phase 1: identify duplicates under lock. The
     /// keeper-ranking + containment selection is the pure
-    /// `duplicatesToQuarantine(...)`, called on a snapshot of the archive.index;
-    /// the lock-held section only gathers the snapshot and maps the
-    /// selected ids back to file URLs.
+    /// `duplicateRetirements(...)`, called on a snapshot of the archive.index;
+    /// the lock-held section gathers the snapshot, carries each retired
+    /// copy's user content into its keeper (`carryUserContent(to:)`), and maps
+    /// the ids that may go back to file URLs.
     private func duplicateQuarantineWork() -> [(UUID, URL)] {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         let overnightEntries = archive.index.filter { $0.sessionType == .overnight }
-        let quarantineIds = Self.duplicatesToQuarantine(
+        let retirements = Self.duplicateRetirements(
             overnightEntries: overnightEntries,
             linkedIds: Self.linkedSessionIdSet(in: overnightEntries),
             schedule: archive.sleepScheduleProvider(),
@@ -436,9 +442,83 @@ extension ArchiveMigrations {
             overnightEntries.map { ($0.sessionId, $0) },
             uniquingKeysWith: { first, _ in first }
         )
-        return quarantineIds.compactMap { id in
+        return carryUserContent(to: retirements).compactMap { id in
             entriesById[id].map { (id, archive.resolveFileURL(for: $0)) }
         }
+    }
+
+    /// Carry each retired copy's user content into its keeper, keeper by
+    /// keeper, and return the retired ids whose content is in a keeper. A
+    /// keeper or copy that cannot be read, or a keeper that cannot be
+    /// written, keeps its copies out of this pass: retiring them would lose
+    /// what only they hold. A keeper that changed is stamped and queued to
+    /// upload again, as any edit made here is. Caller holds `archiveLock`.
+    private func carryUserContent(to retirements: [DuplicateRetirement]) -> [UUID] {
+        var retirable: [UUID] = []
+        var changedKeepers: Set<UUID> = []
+        for (keeperId, group) in Dictionary(grouping: retirements, by: \.keeper) {
+            guard let changed = carryUserContent(of: group.map(\.loser), intoKeeper: keeperId) else { continue }
+            if changed { changedKeepers.insert(keeperId) }
+            retirable += group.map(\.loser)
+        }
+        if !changedKeepers.isEmpty {
+            NotificationCenter.default.post(
+                name: .flowRecoveryArchiveSessionsNeedReupload, object: nil, userInfo: ["sessionIds": changedKeepers]
+            )
+        }
+        return retirable
+    }
+
+    /// Carry the content of the copies `loserIds` into the keeper and write it
+    /// stamped when that changed it; true when it did. Nil, logged, when a
+    /// session cannot be read or the keeper cannot be written. Caller holds
+    /// `archiveLock`.
+    private func carryUserContent(of loserIds: [UUID], intoKeeper keeperId: UUID) -> Bool? {
+        do {
+            guard var keeper = try archive._retrieve(keeperId) else { return false }
+            var changed = false
+            for loser in try loserIds.compactMap({ try archive._retrieve($0) }) {
+                changed = Self.carryUserContent(from: loser, into: &keeper) || changed
+            }
+            guard changed else { return false }
+            keeper.modifiedAt = CloudKitSessionFreshness.stamp()
+            _ = try archive._archive(keeper, skipSameNightMerge: true)
+            return true
+        } catch {
+            debugLog("[Archive] dedupe: could not carry the content of \(loserIds.count) duplicate(s) into \(keeperId.uuidString.prefix(8)) — kept this pass: \(error)", level: .warning)
+            return nil
+        }
+    }
+
+    /// The keeper with what the user added to a retired copy of the same
+    /// recording: the tags it lacks, the copy's notes (taken when the keeper
+    /// has none, appended when both differ), and the morning feeling, its
+    /// tags and the perceived readiness when the keeper has none. False when
+    /// nothing changed. The keeper's sleep and window edits stay its own:
+    /// they belong to the analysis its score was computed from.
+    static func carryUserContent(from loser: HRVSession, into keeper: inout HRVSession) -> Bool {
+        let keeperTagIds = Set(keeper.tags.map(\.id))
+        let newTags = loser.tags.filter { !keeperTagIds.contains($0.id) }
+        keeper.tags += newTags
+        let notes = mergedNotes(keeper.notes, loser.notes)
+        let notesChanged = notes != keeper.notes
+        keeper.notes = notes
+        let takesFeeling = keeper.morningFeeling == nil && loser.morningFeeling != nil
+        if takesFeeling {
+            keeper.morningFeeling = loser.morningFeeling
+            keeper.morningFeelingTags = keeper.morningFeelingTags ?? loser.morningFeelingTags
+        }
+        let takesReadiness = keeper.perceivedReadiness == nil && loser.perceivedReadiness != nil
+        if takesReadiness { keeper.perceivedReadiness = loser.perceivedReadiness }
+        return !newTags.isEmpty || notesChanged || takesFeeling || takesReadiness
+    }
+
+    /// The keeper's notes with a retired copy's: the copy's when the keeper
+    /// has none, both, blank-line apart, when they differ.
+    static func mergedNotes(_ keeper: String?, _ loser: String?) -> String? {
+        guard let loser, !loser.isEmpty, loser != keeper else { return keeper }
+        guard let keeper, !keeper.isEmpty else { return loser }
+        return keeper + "\n\n" + loser
     }
 
     /// Move each duplicate's file into QuarantinedDuplicates/, returning where
@@ -513,7 +593,8 @@ extension ArchiveMigrations {
     /// - Linked sessions (either side of a link) are protected.
     /// - Nights with any entry younger than `Tuning.dedupeSafetyWindow`
     ///   (24 h) are skipped — CloudKit may still be reconciling.
-    /// - Keeper ranking: has recoveryScore > has meanRMSSD > newest date.
+    /// - Keeper ranking: has recoveryScore > has meanRMSSD > newest date >
+    ///   lowest session id, so every device keeps the same copy.
     /// - A loser is quarantined only when its time range is ≥
     ///   `Tuning.duplicateContainmentRatio` (85%) contained in the
     ///   keeper's; disjoint same-night segments are split nights and are
@@ -529,25 +610,47 @@ extension ArchiveMigrations {
         now: Date,
         mergeMode: SessionMergeMode
     ) -> [UUID] {
+        duplicateRetirements(
+            overnightEntries: overnightEntries, linkedIds: linkedIds, schedule: schedule, now: now, mergeMode: mergeMode
+        ).map(\.loser)
+    }
+
+    /// One duplicate to retire, and the entry kept in its place.
+    struct DuplicateRetirement: Equatable {
+        let loser: UUID
+        let keeper: UUID
+    }
+
+    /// `duplicatesToQuarantine`'s decision, with the keeper of each retired id.
+    static func duplicateRetirements(
+        overnightEntries: [SessionArchiveEntry],
+        linkedIds: Set<UUID>,
+        schedule: SleepSchedule,
+        now: Date,
+        mergeMode: SessionMergeMode
+    ) -> [DuplicateRetirement] {
         guard mergeMode != .off else { return [] }
         let grouped = Dictionary(grouping: overnightEntries) { entry -> Date in
             schedule.overnightWindowStart(relativeTo: entry.date)
         }
-        var quarantineIds: [UUID] = []
+        var retirements: [DuplicateRetirement] = []
         for (_, dayEntries) in grouped where dayEntries.count > 1 {
             let unlinked = dayEntries.filter { !linkedIds.contains($0.sessionId) }
             guard unlinked.count > 1 else { continue }
             if hasRecentEntry(unlinked, now: now) { continue }
-            quarantineIds += containedDuplicates(in: unlinked)
+            retirements += containedDuplicates(in: unlinked)
         }
-        return quarantineIds
+        return retirements
     }
 
-    /// Rank one night's candidates and return the ids of those whose time
-    /// range is mostly inside the keeper's. A scored entry beats an unscored
-    /// one, an entry with RMSSD beats one without, and the later start breaks
-    /// remaining ties.
-    private static func containedDuplicates(in unlinked: [SessionArchiveEntry]) -> [UUID] {
+    /// Rank one night's candidates and return those whose time range is
+    /// mostly inside the keeper's. A scored entry beats an unscored one, an
+    /// entry with RMSSD beats one without, the later start breaks remaining
+    /// ties, and the session id breaks a tie on the start. The ranking must
+    /// not depend on the order the entries come in: each device holds its
+    /// index in its own order, and two devices keeping different copies of
+    /// one night tombstoned both, which deleted the night everywhere.
+    private static func containedDuplicates(in unlinked: [SessionArchiveEntry]) -> [DuplicateRetirement] {
         let sorted = unlinked.sorted { a, b in
             let aHasScore = a.recoveryScore != nil
             let bHasScore = b.recoveryScore != nil
@@ -555,11 +658,12 @@ extension ArchiveMigrations {
             let aHasRMSSD = a.meanRMSSD != nil
             let bHasRMSSD = b.meanRMSSD != nil
             if aHasRMSSD != bHasRMSSD { return aHasRMSSD }
-            return a.date > b.date
+            if a.date != b.date { return a.date > b.date }
+            return a.sessionId.uuidString < b.sessionId.uuidString
         }
         guard let keeper = sorted.first, let keeperEnd = keeper.endDate else { return [] }
         return sorted.dropFirst().filter { isContained($0, inKeeper: keeper, keeperEnd: keeperEnd) }
-            .map(\.sessionId)
+            .map { DuplicateRetirement(loser: $0.sessionId, keeper: keeper.sessionId) }
     }
 
     /// Whether a losing entry's range is ≥85% covered by the keeper's. A

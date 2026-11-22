@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Storage/Archive+Migrations.swift",
- "hash": "b51dcb928786e9d6",
+ "hash": "d2926c0d0c21252f",
  "role": "ArchiveMigrations' deferred repairs: flag-gated index backfills (recovery score, endDate, meanHR/stress, sleep index fields, legacy Elite HRV stress/score), duplicate quarantine of same-night overnights, and re-linking of same-night split segments, plus the reupload notification name.",
  "types": [
   "ArchiveMigrations: extension — migrations over SessionArchive state",
@@ -8,7 +8,8 @@
   "ArchiveMigrations.QuarantineMove: struct (private) — a retired file's quarantine and archive URLs",
   "ArchiveMigrations.RelinkWork: struct (private) — parent entry, file URL, ids to link",
   "ArchiveMigrations.RelinkResult: struct (private) — new hash and link chain",
-  "Notification.Name: extension — flowRecoveryArchiveSessionsNeedReupload"
+  "Notification.Name: extension — flowRecoveryArchiveSessionsNeedReupload",
+  "ArchiveMigrations.DuplicateRetirement: struct (Equatable) — a duplicate to retire and its keeper"
  ],
  "state": [
   "ud:FlowRecovery.migration.recoveryScores.v1.done",
@@ -50,7 +51,7 @@
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateRecoveryScores()": "b60491853b274d71",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateSleepIndexFields()": "918ea66fe1806d96",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()": "3d58a77a5be6a8fc",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()": "349f9e8ec8c5e07c",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()": "61565741fa3fc269",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "7691596c91c3e28b"
    }
   },
@@ -476,7 +477,7 @@
   {
    "key": "func ArchiveMigrations.removeDuplicates()",
    "hash": "2b6f718351c7b1f8",
-   "does": "Unless merge mode is .off: picks same-night overnight duplicates (≥85% contained in a better-ranked keeper, nights older than 24 h, unlinked), moves their files to QuarantinedDuplicates/ outside the lock (each under a name no earlier copy holds), then under the lock retires them from the index with tombstones (retireQuarantined); when either index save fails, the in-memory state is put back and the moved files are moved back from where quarantine put them (restoreFromQuarantine), and any file that will not move back stays retired, so the index never names a file that is not there.",
+   "does": "Unless merge mode is .off: picks same-night overnight duplicates (≥85% contained in a better-ranked keeper, nights older than 24 h, unlinked) and carries each one's user content (tags, notes, morning feeling, perceived readiness) into its keeper first, skipping any it cannot carry, then moves their files to QuarantinedDuplicates/ outside the lock (each under a name no earlier copy holds), then under the lock retires them from the index with tombstones (retireQuarantined); when either index save fails, the in-memory state is put back and the moved files are moved back from where quarantine put them (restoreFromQuarantine), and any file that will not move back stays retired, so the index never names a file that is not there.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateQuarantineWork()",
@@ -496,7 +497,8 @@
     "file:<archiveDirectory>/index.json",
     "file:<archiveDirectory>/deleted.json",
     "file:<archiveDirectory>/<uuid>.json",
-    "file:<archiveDirectory>/QuarantinedDuplicates/"
+    "file:<archiveDirectory>/QuarantinedDuplicates/",
+    "notif:flowRecoveryArchiveSessionsNeedReupload (keepers that took content)"
    ],
    "branches": [
     {
@@ -521,7 +523,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateQuarantineWork()": "ff8a759a74b9b6f5",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateQuarantineWork()": "ac5233f9cba75814",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.quarantineFiles(_:)": "a5c1abf0aeaa31eb",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.restoreFromQuarantine(_:)": "e2eafaa0cb1b1817",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.retireQuarantined(_:)": "b4c3c202f3eca77f",
@@ -625,12 +627,13 @@
   },
   {
    "key": "func ArchiveMigrations.duplicateQuarantineWork()",
-   "hash": "04c448db05246e64",
-   "does": "Under the lock, runs the pure duplicatesToQuarantine over overnight entries (linked ids protected, current schedule/now/merge mode) and maps the chosen ids to their file URLs.",
+   "hash": "9896977737b14bb4",
+   "does": "Under the lock, runs the pure duplicateRetirements over overnight entries (linked ids protected, current schedule/now/merge mode), carries the retired copies' user content into their keepers (carryUserContent(to:)), and maps the ids that may go to their file URLs.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateRetirements(overnightEntries:linkedIds:schedule:now:mergeMode:)",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.linkedSessionIdSet(in:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.carryUserContent(to:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
     "ext:Date()"
    ],
@@ -638,14 +641,154 @@
     "mem:SessionArchive.index",
     "mem:SettingsManager.settingsSnapshot (sleepSchedule/sessionMergeMode/effectiveMergeGapSeconds via SessionArchive providers)"
    ],
-   "writes": [],
+   "writes": [
+    "file:<archiveDirectory>/<keeper uuid>.json",
+    "file:<archiveDirectory>/index.json",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.carryUserContent(to:)": "09f4cbea28ffbf35",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateRetirements(overnightEntries:linkedIds:schedule:now:mergeMode:)": "4b5c755334d53a19",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.linkedSessionIdSet(in:)": "5fef6caa918661db"
    }
+  },
+  {
+   "key": "func ArchiveMigrations.carryUserContent(to:)",
+   "hash": "e54fae2181041265",
+   "does": "Caller holds archiveLock. Groups the retirements by keeper and carries each group's content into its keeper (carryUserContent(of:intoKeeper:)); a group that could not be carried is left out of this pass. Posts flowRecoveryArchiveSessionsNeedReupload for the keepers that changed. Returns the retirable ids.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.carryUserContent(of:intoKeeper:)",
+    "ext:NotificationCenter.post"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each keeper group",
+     "effect": "carry"
+    },
+    {
+     "at": "+4",
+     "cond": "carrying failed (nil)",
+     "effect": "skip the group; its copies are not retired this pass"
+    },
+    {
+     "at": "+5",
+     "cond": "the keeper changed",
+     "effect": "noted for the re-upload request"
+    },
+    {
+     "at": "+8",
+     "cond": "any keeper changed",
+     "effect": "post the re-upload request"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.carryUserContent(of:intoKeeper:)": "3e6106ece4cbe211"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.carryUserContent(of:intoKeeper:)",
+   "hash": "8a42a130f7ccd76c",
+   "does": "Caller holds archiveLock. Reads the keeper and each retired copy (_retrieve), carries each copy's content into the keeper (carryUserContent(from:into:)), and when that changed it stamps modifiedAt and writes the keeper (_archive, merge skipped); returns whether it changed. A missing keeper is false, a missing copy is skipped; a read or write that throws is logged and nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._retrieve(_:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.carryUserContent(from:into:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/<uuid>.json",
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/<keeper uuid>.json",
+    "file:<archiveDirectory>/index.json",
+    "mem:SessionArchive.index"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "keeper not found",
+     "effect": "false"
+    },
+    {
+     "at": "+7",
+     "cond": "nothing carried",
+     "effect": "false, nothing written"
+    },
+    {
+     "at": "+11",
+     "cond": "a read or the write threw",
+     "effect": "log, nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.carryUserContent(from:into:)": "a66d30ee4eab420a",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)": "d4934c6761bf3325",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._retrieve(_:)": "a5b7183a74f1552e",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "4c10324f8b76c2f3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.carryUserContent(from:into:)",
+   "hash": "d31e0d8ed7fafb47",
+   "does": "Pure: adds the copy's tags the keeper lacks (by id), merges the notes (mergedNotes), takes the copy's morning feeling (and its tags when the keeper has none) and perceived readiness when the keeper has none; returns whether anything changed. Sleep and window edits are not carried: they belong to the keeper's own analysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.mergedNotes(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "keeper has no morning feeling and the copy has one",
+     "effect": "take it, and the copy's feeling tags when the keeper has none (??)"
+    },
+    {
+     "at": "+13",
+     "cond": "keeper has no perceived readiness and the copy has one",
+     "effect": "take it"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.mergedNotes(_:_:)": "407270773fd8ac1c"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.mergedNotes(_:_:)",
+   "hash": "9f433600728af8c0",
+   "does": "Pure: the keeper's notes when the copy's are empty, nil or the same; the copy's when the keeper has none; otherwise both, a blank line apart.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "copy's notes empty, nil or equal",
+     "effect": "keeper's"
+    },
+    {
+     "at": "+2",
+     "cond": "keeper's empty or nil",
+     "effect": "copy's"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func ArchiveMigrations.quarantineFiles(_:)",
@@ -759,8 +902,23 @@
   },
   {
    "key": "func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)",
-   "hash": "e6ef2cd1f06d36a6",
-   "does": "Pure: groups overnight entries by night anchor; for nights with >1 unlinked entry and no entry younger than dedupeSafetyWindow (24 h, hasRecentEntry — the rule relink uses), returns ids of losers ≥85% contained in the keeper.",
+   "hash": "c37a45ddf1efcba4",
+   "does": "Pure: the loser ids of duplicateRetirements.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateRetirements(overnightEntries:linkedIds:schedule:now:mergeMode:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateRetirements(overnightEntries:linkedIds:schedule:now:mergeMode:)": "4b5c755334d53a19"
+   }
+  },
+  {
+   "key": "func ArchiveMigrations.duplicateRetirements(overnightEntries:linkedIds:schedule:now:mergeMode:)",
+   "hash": "eb1f6ac7e33df5af",
+   "does": "Pure: groups overnight entries by night anchor; for nights with >1 unlinked entry and no entry younger than dedupeSafetyWindow (24 h, hasRecentEntry — the rule relink uses), returns each loser ≥85% contained in the keeper, with that keeper.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)",
@@ -793,14 +951,15 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "54265da0046fd3e1",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.containedDuplicates(in:)": "3951adbba0382e4c",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.containedDuplicates(in:)": "2923e94a1107d55a",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.hasRecentEntry(_:now:)": "3a67b7b524869556"
    }
   },
   {
    "key": "func ArchiveMigrations.containedDuplicates(in:)",
-   "hash": "94791ce2ade26386",
-   "does": "Pure: ranks a night's entries (has recoveryScore > has meanRMSSD > later start) and returns ids of the non-keepers whose ranges are mostly inside the keeper's; [] when the keeper has no endDate.",
+   "hash": "efc580272c024c9e",
+   "does": "Pure: ranks a night's entries (has recoveryScore > has meanRMSSD > later start > lower session id string, so the order the entries come in, which differs per device, never decides) and returns the non-keepers whose ranges are mostly inside the keeper's, each with the keeper's id; [] when the keeper has no endDate.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.isContained(_:inKeeper:keeperEnd:)"
@@ -816,16 +975,22 @@
     {
      "at": "+7",
      "cond": "exactly one has meanRMSSD",
-     "effect": "that one ranks first; else later date first"
+     "effect": "that one ranks first"
     },
     {
-     "at": "+10",
+     "at": "+8",
+     "cond": "different start dates",
+     "effect": "later first; else lower session id first"
+    },
+    {
+     "at": "+11",
      "cond": "no keeper or keeper.endDate nil",
      "effect": "return []"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.isContained(_:inKeeper:keeperEnd:)": "2c72b5b031af5e75"
    }
   },

@@ -113,15 +113,20 @@ enum CloudPayloadCodec {
     /// file can be repaired in place, but an upload cannot be taken back. A
     /// skipped upload is retried on a later cycle.
     ///
-    /// Creates a key when the device has none. That never displaces a key
-    /// another backup depends on: each key has its own Keychain account. A key
-    /// existing here does not prove another device can decrypt: the item is
-    /// synchronizable, but whether iCloud Keychain is on and has synced is not
-    /// observable from this device.
+    /// Creates a key when the device has none, and only while the signed-in
+    /// iCloud account is the one sync is enabled for
+    /// (`CloudAccountIdentity.isConfirmed`): the key is synchronizable, so one
+    /// created after an Apple ID switch would travel into the new account's
+    /// iCloud Keychain, and its owner would hold a key that opens every record
+    /// sealed with it. That never displaces a key another backup depends on:
+    /// each key has its own Keychain account. A key existing here does not
+    /// prove another device can decrypt: the item is synchronizable, but
+    /// whether iCloud Keychain is on and has synced is not observable from
+    /// this device.
     static func sealForUpload(_ payload: Data) throws -> Data {
         let key: SymmetricKey
         do {
-            key = try writingKey()
+            key = try writingKey(mayCreate: CloudAccountIdentity.isConfirmed)
         } catch {
             debugLog("[Cloud] No cloud backup key available: \(error.localizedDescription)", level: .error)
             throw CloudSyncError.encryptionUnavailable
@@ -129,9 +134,11 @@ enum CloudPayloadCodec {
         return try seal(payload, with: key)
     }
 
-    /// Wrap `payload` in the versioned, encrypted envelope.
+    /// Wrap `payload` in the versioned, encrypted envelope. The codec's own
+    /// round trip; nothing bound for iCloud uses it, every upload goes
+    /// through `sealForUpload`.
     static func encode(_ payload: Data) throws -> Data {
-        try seal(payload, with: writingKey())
+        try seal(payload, with: writingKey(mayCreate: true))
     }
 
     private static func seal(_ payload: Data, with key: SymmetricKey) throws -> Data {
@@ -214,11 +221,16 @@ enum CloudPayloadCodec {
     /// Creation is serialized and re-checks under the lock: two first writers
     /// (settings push, session push, live backup) would otherwise each add a
     /// key under its own account. The usual path, a key already stored, takes
-    /// no lock.
-    private static func writingKey() throws -> SymmetricKey {
+    /// no lock. Without `mayCreate` a missing key throws
+    /// `CloudSyncError.encryptionUnavailable` instead.
+    private static func writingKey(mayCreate: Bool) throws -> SymmetricKey {
         if let primary = try primaryKey() { return primary }
         return try keyCreation.withLock { _ in
             if let primary = try primaryKey() { return primary }
+            guard mayCreate else {
+                debugLog("[Cloud] No cloud backup key, and none is created before the iCloud account is confirmed", level: .warning)
+                throw CloudSyncError.encryptionUnavailable
+            }
             return try create()
         }
     }

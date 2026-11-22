@@ -273,11 +273,13 @@ extension CloudPullCoordinator {
     /// made again where the replacement is written
     /// (`CloudKitSessionFreshness.replaceIfStillNewer`); the edit, and its
     /// pending upload, are then kept.
+    ///
+    /// When the stall watchdog fired, or the account changed, while it
+    /// downloaded, nothing is replaced: the next sync decides again.
     private func replaceLocalCopy(from assetURL: URL, sessionId: UUID, remote copy: RemoteCopy) async -> RecordOutcome {
         do {
-            var remote = try await Task.detached(priority: .utility) {
-                try Self.decodeSessionAsset(at: assetURL)
-            }.value
+            var remote = try await Task.detached(priority: .utility) { try Self.decodeSessionAsset(at: assetURL) }.value
+            guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return RecordOutcome() }
             // The record's date is the one the next pull compares against.
             remote.modifiedAt = copy.modifiedAt
             guard let replacement = try CloudKitSessionFreshness.replaceIfStillNewer(sessionId, with: remote, onTie: copy.onTie, in: manager.archive) else {

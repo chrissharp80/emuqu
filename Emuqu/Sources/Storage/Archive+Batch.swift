@@ -107,8 +107,10 @@ extension ArchiveStore {
             guard var existingSession = try _retrieve(entry.sessionId) else {
                 throw SessionArchive.ArchiveError.fileNotFound
             }
-            // Update with any new/better data from import
+            // Update with any new/better data from import: an edit made here,
+            // stamped and queued to upload again (`postBatchChangeNotifications`).
             guard archive.mergeSessionData(from: session, into: &existingSession) else { return }
+            existingSession.modifiedAt = CloudKitSessionFreshness.stamp()
             try _archive(existingSession)
             outcome.updatedIds.append(existingSession.id)
         } catch {
@@ -148,12 +150,19 @@ extension ArchiveStore {
     ///
     /// Also posts per-id for content-merged sessions (see
     /// `BatchOutcome.updatedIds`) so per-session caches invalidate precisely.
+    /// Those sessions are also queued to upload again: each was uploaded
+    /// before the merge changed it, and the push takes each id once.
     private func postBatchChangeNotifications(_ outcome: BatchOutcome) {
         for id in outcome.updatedIds {
             NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: id)
         }
         if !outcome.newEntries.isEmpty || !outcome.updatedIds.isEmpty {
             NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: nil)
+        }
+        if !outcome.updatedIds.isEmpty {
+            NotificationCenter.default.post(
+                name: .flowRecoveryArchiveSessionsNeedReupload, object: nil, userInfo: ["sessionIds": Set(outcome.updatedIds)]
+            )
         }
     }
 }

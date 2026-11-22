@@ -401,13 +401,13 @@
   },
   {
    "key": "func ArchiveDiagnosticsView.performRepair()",
-   "hash": "ca02ca1dee38c1f9",
-   "does": "Sets isRepairing, notes the index size, runs SessionArchive.repairArchive() on a detached task (deletes .encrypted files, rebuilds index from .json files, saves index), posts the archive-changed signal, then reports 'N sessions recovered' as rebuilt size minus the earlier size (never below 0), shows the result and refreshes diagnostics.",
+   "hash": "a43dd88119b65efe",
+   "does": "Sets isRepairing, notes the index size, runs SessionArchive.repairArchive() on a detached task (repairOffMain: rebuilds the index from .json files and saves it, its throw kept), posts the archive-changed signal, then shows repairMessage ('N sessions recovered' as rebuilt size minus the earlier size, or 'Repair failed' with the reason) and refreshes diagnostics.",
    "entry": "Repair alert 'Repair' button",
    "calls": [
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.repairOffMain(_:)",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.repairMessage(for:indexedBefore:)",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
    ],
@@ -415,18 +415,63 @@
     "file:archive dir"
    ],
    "writes": [
-    "file:archive/*.encrypted (deleted)",
     "archive:index.json (rebuilt)",
     "mem:ArchiveDiagnosticsView.isRepairing",
-    "mem:ArchiveDiagnosticsView.repairResult"
+    "mem:ArchiveDiagnosticsView.repairResult",
+    "mem:ArchiveDiagnosticsView.showingResult"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "c2062cc1de9004ba",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "721ebb1967d3572f"
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "721ebb1967d3572f",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.repairMessage(for:indexedBefore:)": "e8548c5fbec35838",
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.repairOffMain(_:)": "1b26e87228fc52f2"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.repairOffMain(_:)",
+   "hash": "1ae71846f59a6189",
+   "does": "Runs SessionArchive.repairArchive() on a detached user-initiated task and returns its count, or its error, as a Result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()"
+   ],
+   "reads": [
+    "file:archive dir"
+   ],
+   "writes": [
+    "archive:index.json (rebuilt)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "e98fb2919c182834"
+   }
+  },
+  {
+   "key": "func ArchiveDiagnosticsView.repairMessage(for:indexedBefore:)",
+   "hash": "b9ec964c0e874936",
+   "does": "The repair alert's localized text: 'Repair complete. N sessions recovered.' with N = count − indexedBefore (never below 0), or 'Repair failed: <reason>'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "success",
+     "effect": "recovered count line"
+    },
+    {
+     "at": "+5",
+     "cond": "failure",
+     "effect": "repair-failed line with the error"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -458,8 +503,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "680e37edf08e252a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "bbe42fe440420a22",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "a63f77fe3636669e",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "0750c9995bad9e7d",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.refreshDiagnostics()": "721ebb1967d3572f",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.wipeArchiveDirectory()": "24670f117ebc0d1e",
     "EmuquTests/WorkoutTickLogicTests.swift::func WorkoutTickLogicTests.cleared(_:)": "f79ab86b571700d2"
@@ -624,6 +669,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.orphanedBackupIds(archivedIds:archive:backup:)": "79b131012865dd6a",
     "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.auditRow(_:_:color:)": "d599d68633438e3b"
    }
   },
@@ -805,7 +851,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.performRepair()": "e85e78b786f8ea40"
+    "Emuqu/Sources/Views/ArchiveDiagnosticsView.swift::func ArchiveDiagnosticsView.performRepair()": "7e6fde46b0d37ea0"
    }
   },
   {

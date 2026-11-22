@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Storage/Archive.swift",
- "hash": "ab6c031ab15d742d",
+ "hash": "ea6b26321ef4f301",
  "role": "Defines SessionArchive, the lock-guarded facade over the on-disk session archive (index.json, deleted.json, per-session encrypted JSON files in the App Group archive directory): init/boot, orphan adoption, archive/update/retrieve API and read-health counters.",
  "types": [
   "SessionArchive: class (@unchecked Sendable) — archive facade; all index/tombstone/counter state guarded by archiveLock",
@@ -26,7 +26,8 @@
   "file:<archiveDir>/deleted.json (deletedIndexFile)",
   "mem:SessionArchive.sessionDecoder/lightweightSessionDecoder/sessionEncoder/indexEncoder (static shared coders)",
   "notif:flowRecoveryArchiveChanged (posted)",
-  "notif:flowRecoveryArchiveSessionsNeedReupload (posted)"
+  "notif:flowRecoveryArchiveSessionsNeedReupload (posted)",
+  "mem:SessionArchive.foldedInto (private [UUID: UUID]: recordings folded into a same-night session this launch, by their own id; archiveLock)"
  ],
  "toplevel": "static let shared = SessionArchive() builds the production instance lazily with default providers that read AppDependencies.current.app.settingsManager.settingsSnapshot; `let fileManager = FileManager.default`, `let archiveLock = NSLock()`; stored providers sleepScheduleProvider/sessionMergeModeProvider/mergeGapProvider set in init.",
  "units": [
@@ -71,8 +72,8 @@
   },
   {
    "key": "func SessionArchive.resetInMemoryStateAfterPurge()",
-   "hash": "763e95a0b9ab7ac0",
-   "does": "After 'Delete All My Data' removed files, clears in-memory index, newerBuildIndexEntries, deletedSessionIds, sortedEntriesCache and sessionIdLookup under archiveLock, then resets the read-health counters. Does not touch disk.",
+   "hash": "67b87e1d403f0d50",
+   "does": "After 'Delete All My Data' removed files, clears in-memory index, newerBuildIndexEntries, deletedSessionIds, the index / index-decode / deleted-index read-failure flags (so a save no longer tries to merge a purged, unreadable index), the fold map, sortedEntriesCache and sessionIdLookup under archiveLock, then resets the read-health counters. Does not touch disk.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetReadHealthCounters()"
@@ -82,6 +83,10 @@
     "mem:SessionArchive.index",
     "mem:SessionArchive.newerBuildIndexEntries",
     "mem:SessionArchive.deletedSessionIds",
+    "mem:SessionArchive.indexReadFailed",
+    "mem:SessionArchive.indexDecodeFailed",
+    "mem:SessionArchive.deletedIndexReadFailed",
+    "mem:SessionArchive.foldedInto",
     "mem:SessionArchive.sortedEntriesCache",
     "mem:SessionArchive.sessionIdLookup"
    ],
@@ -448,13 +453,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "5dc05159bc65d04f"
    }
   },
   {
    "key": "func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
-   "hash": "58ae888d4f106138",
-   "does": "Optionally stamps modifiedAt (whole seconds), then under archiveLock writes the session via _archive (merge unless skipped, encode, encrypt, hash, index save); posts flowRecoveryArchiveChanged (object = input session id) and, for a user edit of an already-archived (or merged-into) session, posts flowRecoveryArchiveSessionsNeedReupload. Rethrows write errors after unlocking.",
+   "hash": "a6127a8b561d9729",
+   "does": "Optionally stamps modifiedAt (whole seconds), then under archiveLock writes the session via _archive (merge unless skipped, encode, encrypt, hash, index save) and, when the recording was folded into a same-night session (the entry has another id), remembers the fold (foldedInto); posts flowRecoveryArchiveChanged (object = input session id) and posts flowRecoveryArchiveSessionsNeedReupload for the entry's id when the recording was folded (whatever requestingReupload says) or for a user edit of an already-archived session. Rethrows write errors after unlocking.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
@@ -469,31 +474,57 @@
     "file:<archiveDir>/<id>.json",
     "file:<archiveDir>/index.json",
     "notif:flowRecoveryArchiveChanged",
-    "notif:flowRecoveryArchiveSessionsNeedReupload"
+    "notif:flowRecoveryArchiveSessionsNeedReupload",
+    "mem:SessionArchive.foldedInto"
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "requestingReupload",
      "effect": "session.modifiedAt = stamp() (now, whole seconds); else stamp unchanged"
     },
     {
-     "at": "+9",
+     "at": "+8",
      "cond": "_archive throws",
      "effect": "unlocks and rethrows; no notification"
     },
     {
-     "at": "+15",
-     "cond": "requestingReupload AND (session was already in index OR it was merged into a different entry id)",
+     "at": "+13",
+     "cond": "folded into another entry",
+     "effect": "foldedInto[session.id] = entry id"
+    },
+    {
+     "at": "+16",
+     "cond": "folded, or requestingReupload for an already-archived session",
      "effect": "posts re-upload request for entry.sessionId; a brand-new session gets none (normal upload path covers it)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._archive(_:skipSameNightMerge:)": "d4934c6761bf3325",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.postReuploadRequest(for:)": "901b2aed212d9829",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "4c10324f8b76c2f3"
    }
+  },
+  {
+   "key": "func SessionArchive.archivedId(of:)",
+   "hash": "be8a7c6af43e7fbc",
+   "does": "Under archiveLock: the id of the same-night session the recording was folded into during this launch, else the id itself.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionArchive.foldedInto"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no fold recorded",
+     "effect": "?? the id itself"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func SessionArchive.update(_:requestingReupload:_:)",

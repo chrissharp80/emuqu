@@ -74,7 +74,8 @@ final class SyncSerializer {
 //   • Zone: "UserSettings" (separate from the HRVSession zone so a
 //     sessions-only fault recovery doesn't drag settings along).
 //   • Record type: "UserSettings".
-//   • Single record with fixed name "primary"; last-writer-wins.
+//   • Single record with fixed name "primary"; the later edit wins
+//     (`modifiedAt` against `localEditedAtKey`).
 //   • Fields written: `settingsPayload` (Bytes, the encrypted settings) and
 //     `modifiedAt` (Date, for the "last synced" UI). See
 //     `CloudSettingsRecord` for why, and for the two legacy fields every
@@ -108,7 +109,15 @@ final class CloudKitSettingsSync {
     /// the second save lost to the first with `.serverRecordChanged` although
     /// both came from this device.
     private let pushSerializer = SyncSerializer()
-    private var zoneEnsured = false
+    /// Whether this device created the UserSettings zone, kept across
+    /// launches: a zone it created that is gone was deleted (Delete All My
+    /// Data, or the iCloud settings), and is not created again behind the
+    /// user's back. Reset with the rest of the bookkeeping (`forgetZone`).
+    private static let zoneCreatedKey = "cloudkit.settingsZoneCreated"
+    /// When the settings on this device were last changed, as the record's
+    /// `modifiedAt` is compared with it: a push replaces only an older cloud
+    /// copy.
+    static let localEditedAtKey = "cloudkit.settingsLocalEditedAt"
     /// Sticky per-launch flag. Set when the UserSettings record type isn't
     /// in production schema yet — same retry-storm protection as
     /// `CloudKitSyncManager.schemaUnavailable`, applied to the settings
@@ -125,8 +134,17 @@ final class CloudKitSettingsSync {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.scheduleDebouncedPush() }
+            Task { @MainActor [weak self] in
+                UserDefaults.standard.set(Date(), forKey: CloudKitSettingsSync.localEditedAtKey)
+                self?.scheduleDebouncedPush()
+            }
         }
+    }
+
+    /// Forget the zone: after a remote wipe or an account change, the next
+    /// push creates it again for the account sync is then enabled for.
+    func forgetZone() {
+        UserDefaults.standard.removeObject(forKey: Self.zoneCreatedKey)
     }
 
     /// Push the current settings now, without debounce. Called by the
@@ -134,15 +152,25 @@ final class CloudKitSettingsSync {
     /// user only adjusts settings on one device per session, and by the
     /// "Back Up Settings" button.
     ///
+    /// The launch push replaces the cloud copy only when this device's
+    /// settings were changed after it was (`localEditedAtKey`): a device
+    /// with older settings launching replaced the copy the user had just
+    /// edited elsewhere, and a later restore brought back the stale values.
+    /// The button passes `replacingNewerCloudCopy`: the user asked for this
+    /// device's settings to be the backup.
+    ///
     /// True only when the settings were saved to iCloud. Anything else also
     /// leaves `status` as `.error` with the reason, including a push that was
     /// skipped or lost a conflict, so the button never reports a backup that
-    /// did not happen.
+    /// did not happen. A newer cloud copy left in place is not an error.
     @discardableResult
-    func pushImmediately() async -> Bool {
-        switch await performPush() {
+    func pushImmediately(replacingNewerCloudCopy: Bool = false) async -> Bool {
+        switch await performPush(replacingNewerCloudCopy: replacingNewerCloudCopy) {
         case .pushed:
             return true
+        case .keptNewerCloudCopy:
+            status = .idle
+            return false
         case let .skipped(reason), let .failed(reason):
             status = .error(reason)
             return false
@@ -154,13 +182,18 @@ final class CloudKitSettingsSync {
     /// on success so the UI can confirm "Restored from iCloud (April
     /// 27)". Throws when no cloud record exists, or when iCloud is
     /// unreachable.
+    ///
+    /// Reads only from the iCloud account sync is enabled for
+    /// (`CloudAccountGuard.confirmAccount`): another Apple ID's settings are
+    /// never restored onto this device. Creates no zone: a missing zone holds
+    /// no copy.
     func restoreFromCloud() async throws -> Date {
-        try await ensureZoneExists()
+        try await requireConfirmedAccount()
         let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         let record: CKRecord
         do {
             record = try await privateDB.record(for: recordID)
-        } catch let error as CKError where error.code == .unknownItem {
+        } catch let error as CKError where CloudHealthScrubCoordinator.meansNoRecord(error) {
             throw RestoreError.noCloudCopy
         }
         let settingsManager = AppDependencies.current.app.settingsManager
@@ -170,15 +203,39 @@ final class CloudKitSettingsSync {
         return modifiedAt
     }
 
-    enum RestoreError: LocalizedError {
+    /// Returns once the signed-in account is the one sync is enabled for;
+    /// throws `RestoreError.accountNotConfirmed` with the reason otherwise.
+    private func requireConfirmedAccount() async throws {
+        switch await AppDependencies.current.storage.cloudKitSyncManager.accountGuard.confirmAccount() {
+        case .confirmed:
+            return
+        case let .unavailable(message):
+            throw RestoreError.accountNotConfirmed(message)
+        case .stopped:
+            throw RestoreError.accountNotConfirmed(Self.syncOffMessage)
+        }
+    }
+
+    /// Why nothing goes to or comes from iCloud while sync is off: the
+    /// app's own reason when it turned sync off, else the plain line.
+    private static var syncOffMessage: String {
+        CloudAccountIdentity.stopReason?.message ?? String(localized: "iCloud sync is off", bundle: LanguageManager.appBundle)
+    }
+
+    enum RestoreError: LocalizedError, Equatable {
         case noCloudCopy
         case cloudCopyMalformed
         /// The copy is encrypted with a cloud key this device does not hold,
         /// usually because iCloud Keychain has not delivered it yet.
         case keyNotOnThisDevice
+        /// The signed-in iCloud account is not, or could not be confirmed
+        /// as, the one sync is enabled for; the message says why.
+        case accountNotConfirmed(String)
 
         var errorDescription: String? {
             switch self {
+            case let .accountNotConfirmed(message):
+                message
             case .noCloudCopy:
                 String(localized: "No iCloud backup found. Settings haven't been backed up yet from this Apple ID.", bundle: LanguageManager.appBundle)
             case .cloudCopyMalformed:
@@ -214,6 +271,8 @@ final class CloudKitSettingsSync {
     /// What a push did.
     private enum PushOutcome {
         case pushed
+        /// Not saved: iCloud holds settings edited after this device's.
+        case keptNewerCloudCopy
         /// Not attempted: sync off, onboarding unfinished, or schema paused.
         case skipped(String)
         /// Attempted and not saved.
@@ -221,10 +280,10 @@ final class CloudKitSettingsSync {
     }
 
     /// Runs `pushNow` behind any push already in flight.
-    private func performPush() async -> PushOutcome {
+    private func performPush(replacingNewerCloudCopy: Bool = false) async -> PushOutcome {
         var outcome = PushOutcome.skipped("")
         await pushSerializer.run { [self] in
-            outcome = await pushNow()
+            outcome = await pushNow(replacingNewerCloudCopy: replacingNewerCloudCopy)
         }
         return outcome
     }
@@ -245,21 +304,43 @@ final class CloudKitSettingsSync {
     /// before the user had been asked. Finishing onboarding is itself a
     /// settings change, so the first push follows it without a separate hook.
     ///
+    /// Nothing is written to an iCloud account other than the one sync is
+    /// enabled for (`CloudAccountGuard.confirmAccount`), and a zone found gone
+    /// is a deletion the user made: sync stops for them to opt in again
+    /// (`CloudAccountGuard.zoneWasDeleted`) instead of the zone being created
+    /// again.
+    ///
     /// Callers go through `performPush`, which serializes pushes.
-    private func pushNow() async -> PushOutcome {
+    private func pushNow(replacingNewerCloudCopy: Bool) async -> PushOutcome {
         if let skipped = pushSkipReason() { return .skipped(skipped) }
-        let sealed: Data
-        switch sealedLocalSettings() {
-        case let .ready(data): sealed = data
-        case let .unavailable(reason): return .failed(reason)
+        do {
+            try await requireConfirmedAccount()
+        } catch {
+            return .skipped(error.localizedDescription)
         }
-        status = .syncing
+        switch sealedLocalSettings() {
+        case let .ready(sealed):
+            status = .syncing
+            return await save(sealed, replacingNewerCloudCopy: replacingNewerCloudCopy)
+        case let .unavailable(reason):
+            return .failed(reason)
+        }
+    }
+
+    /// `pushNow`'s save of the sealed settings, and what each failure means.
+    private func save(_ sealed: Data, replacingNewerCloudCopy: Bool) async -> PushOutcome {
         do {
             try await ensureZoneExists()
-            try await saveSettingsRecord(sealed)
+            guard try await saveSettingsRecord(sealed, replacingNewer: replacingNewerCloudCopy) else {
+                debugLog("[CloudKitSettings] iCloud holds settings edited after this device's — left in place")
+                status = .idle
+                return .keptNewerCloudCopy
+            }
             status = .lastPushed(Date())
             debugLog("[CloudKitSettings] settings pushed (\(sealed.count) encrypted bytes)")
             return .pushed
+        } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
+            return await zoneWasDeleted(error)
         } catch let error as CKError where error.code == .serverRecordChanged {
             debugLog("[CloudKitSettings] push conflict (server has newer copy); will retry on next change", level: .warning)
             status = .idle
@@ -267,6 +348,16 @@ final class CloudKitSettingsSync {
         } catch {
             return .failed(handlePushFailure(error))
         }
+    }
+
+    /// The settings zone this device created is gone: the user deleted the
+    /// app's iCloud data. Not recreated; sync stops for the user to opt in
+    /// again (`CloudAccountGuard.zoneWasDeleted`), and the push reports why.
+    private func zoneWasDeleted(_ error: CKError) async -> PushOutcome {
+        debugLog("[CloudKitSettings] settings zone gone (\(error.code.rawValue)) — not recreated", level: .warning)
+        status = .idle
+        let message = await AppDependencies.current.storage.cloudKitSyncManager.accountGuard.zoneWasDeleted()
+        return .failed(message ?? Self.syncOffMessage)
     }
 
     /// Why nothing may be pushed right now, or nil when a push may go ahead.
@@ -306,7 +397,11 @@ final class CloudKitSettingsSync {
         }
     }
 
-    private func saveSettingsRecord(_ sealed: Data) async throws {
+    /// Save the sealed settings over the cloud copy, dated with this device's
+    /// last settings change. False, with nothing written, when the cloud copy
+    /// was edited after that change (`CloudSettingsRecord.cloudCopyIsNewer`)
+    /// and `replacingNewer` is false. A replacing push dates the copy now.
+    private func saveSettingsRecord(_ sealed: Data, replacingNewer: Bool) async throws -> Bool {
         let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         let record: CKRecord
         do {
@@ -314,8 +409,16 @@ final class CloudKitSettingsSync {
         } catch let error as CKError where error.code == .unknownItem {
             record = CKRecord(recordType: recordType, recordID: recordID)
         }
-        CloudSettingsRecord.write(sealed, to: record, modifiedAt: Date())
+        let localEditedAt = UserDefaults.standard.object(forKey: Self.localEditedAtKey) as? Date
+        let cloudEditedAt = record[CloudSettingsRecord.modifiedAtField] as? Date
+        if !replacingNewer, CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt: cloudEditedAt, localEditedAt: localEditedAt) {
+            return false
+        }
+        let editedAt = replacingNewer ? Date() : (localEditedAt ?? Date())
+        CloudSettingsRecord.write(sealed, to: record, modifiedAt: editedAt)
         try await privateDB.save(record)
+        if replacingNewer { UserDefaults.standard.set(editedAt, forKey: Self.localEditedAtKey) }
+        return true
     }
 
     /// A permanent schema error means the CloudKit UserSettings record type
@@ -379,11 +482,14 @@ final class CloudKitSettingsSync {
     }
 
     /// Saving a zone that already exists succeeds, so any error here is a
-    /// real failure and is passed on rather than read as "zone exists".
+    /// real failure and is passed on rather than read as "zone exists". Once
+    /// created it is not saved again (`zoneCreatedKey`): a save into a zone
+    /// that is gone then fails with `.zoneNotFound`, which `pushNow` reads as
+    /// the user's deletion.
     private func ensureZoneExists() async throws {
-        guard !zoneEnsured else { return }
+        guard !UserDefaults.standard.bool(forKey: Self.zoneCreatedKey) else { return }
         try await privateDB.save(CKRecordZone(zoneID: zoneID))
-        zoneEnsured = true
+        UserDefaults.standard.set(true, forKey: Self.zoneCreatedKey)
     }
 }
 
@@ -428,6 +534,17 @@ enum CloudSettingsRecord {
     static let legacyJSONField = "settingsJSON"
     static let legacyDeviceNameField = "deviceName"
     static let modifiedAtField = "modifiedAt"
+
+    /// Whether the cloud copy, edited at `cloudEditedAt`, is newer than this
+    /// device's settings, last changed at `localEditedAt`. A copy with no
+    /// date is never newer. Settings this device has no change time for
+    /// (changed before the time was kept) are older than any dated copy: the
+    /// cloud copy may hold an edit made elsewhere, and unknown is not newer.
+    static func cloudCopyIsNewer(cloudEditedAt: Date?, localEditedAt: Date?) -> Bool {
+        guard let cloudEditedAt else { return false }
+        guard let localEditedAt else { return true }
+        return cloudEditedAt > localEditedAt
+    }
 
     /// The settings JSON as it may be uploaded: profile values filled from
     /// Apple Health are left out (`UserSettings.withoutHealthFilledProfile`).

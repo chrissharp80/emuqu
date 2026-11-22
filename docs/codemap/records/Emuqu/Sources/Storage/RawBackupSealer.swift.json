@@ -59,18 +59,18 @@
    }
   },
   {
-   "key": "requirement SealableBackupStore.backup(points:sessionId:deviceId:captureDate:)",
-   "hash": "8fa1e184af6fa347",
-   "does": "Protocol requirement: write points as the session's one-shot backup and index it; returns the entry, throws when it would replace a fuller backup or the write fails.",
+   "key": "requirement SealableBackupStore.backupOnAppendQueue(points:sessionId:deviceId:captureDate:)",
+   "hash": "a9357a5fe27efdbc",
+   "does": "Protocol requirement: write points as the session's one-shot backup and index it, the caller being on the store's appendQueue; returns the entry, throws when it would replace a fuller backup or the write fails.",
    "entry": "Called through `some SealableBackupStore` by RawBackupSealer.adoptFullerBackup.",
    "calls": [
-    "dyn:SealableBackupStore.backup → Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)"
+    "dyn:SealableBackupStore.backupOnAppendQueue → Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backupOnAppendQueue(points:sessionId:deviceId:captureDate:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e6ebfa51ed45acda"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backupOnAppendQueue(points:sessionId:deviceId:captureDate:)": "6841f4ffdbcb0ec7"
    }
   },
   {
@@ -326,7 +326,7 @@
    "deps": {
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
-    "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.adoptFullerBackup(_:in:)": "2206fcb4e2913f7c",
+    "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.adoptFullerBackup(_:in:)": "d8223687beb2c1a0",
     "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.holdsAnything(of:entry:in:)": "2f13fcd1c6c674ae",
     "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.removeSupersededPlaintext(of:entry:)": "331eccb5e54981c8",
     "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.resealPointFiles(_:)": "2be3a8f89cbfc2d1",
@@ -430,13 +430,13 @@
   },
   {
    "key": "func RawBackupSealer.adoptFullerBackup(_:in:)",
-   "hash": "d280a0eaa38ed216",
-   "does": "When the store has a row for the session and OneShotBackupName.fullerUnindexedBackup finds a fuller unindexed file in directory, backs its points up through the store's backup() (device id and capture date kept: encrypted under a fresh name, indexed, the replaced file and append files removed) and, when the row was archived, marks the new row archived. Any failure is logged and swallowed, so the rest of the repair still runs.",
+   "hash": "a37e8b815f09897c",
+   "does": "When the store has a row for the session and OneShotBackupName.fullerUnindexedBackup finds a fuller unindexed file in directory, backs its points up through the store's backupOnAppendQueue (the repair already runs on appendQueue) (device id and capture date kept: encrypted under a fresh name, indexed, the replaced file and append files removed) and, when the row was archived, marks the new row archived. Any failure is logged and swallowed, so the rest of the repair still runs.",
    "entry": null,
    "calls": [
     "dyn:SealableBackupStore.existingIndexEntry → Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.existingIndexEntry(_:)",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.fullerUnindexedBackup(than:in:)",
-    "dyn:SealableBackupStore.backup → Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)",
+    "dyn:SealableBackupStore.backup → Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backupOnAppendQueue(points:sessionId:deviceId:captureDate:)",
     "dyn:SealableBackupStore.markAsArchived → Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.markAsArchived(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -463,7 +463,7 @@
     },
     {
      "at": "+6",
-     "cond": "listing or backup() threw",
+     "cond": "listing or backupOnAppendQueue threw",
      "effect": "log warning; repair continues"
     }
    ],

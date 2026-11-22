@@ -601,7 +601,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         XCTAssertThrowsError(try cold.retrieve(session.id), "Corrupt-hash entry must throw on retrieve")
 
         // Run repair.
-        let recovered = cold.repairArchive()
+        let recovered = try cold.repairArchive()
         XCTAssertGreaterThan(recovered, 0, "Repair should rebuild at least one entry")
 
         // Now retrieve must succeed — repair rebuilt the hash from the
@@ -848,6 +848,7 @@ extension ArchiveIntegrityTests {
 
     /// The iCloud record a device that still held the session would upload.
     private func liveRecord(of session: HRVSession) throws -> CKRecord {
+        standInForConfirmedICloudAccount()
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         let payload = try CloudPayloadCodec.sealForUpload(DataCompression.compress(encoder.encode(session)))

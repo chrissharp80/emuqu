@@ -55,9 +55,9 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.archiveOne(_:into:)": "56b3a788554d19db",
-    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.postBatchChangeNotifications(_:)": "5df6dc15c59d4457",
+    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.postBatchChangeNotifications(_:)": "968bf53ebd6b4906",
     "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.savePartialBatch(_:)": "14d2e091fe819dbd",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "2d06ba44e8e8015c"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "bc9f8909df43d2dd"
    }
   },
   {
@@ -154,8 +154,9 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.indexBatchEntry(_:into:)": "93fe52fae0960eab",
-    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.mergeIntoExisting(_:entry:outcome:)": "deffb517b385dddb",
+    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.mergeIntoExisting(_:entry:outcome:)": "0489e0db73cd8248",
     "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.writeBatchSession(_:)": "fd0ce3a20e97e73d",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.isCopy(_:of:)": "a45e64befc2d33ec",
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.mergeTarget(for:sameSleepGap:)": "2ba6aba0529159ea",
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.sameSleepGap(for:)": "47f346a2d3754e60",
@@ -164,14 +165,15 @@
   },
   {
    "key": "func ArchiveStore.mergeIntoExisting(_:entry:outcome:)",
-   "hash": "6cf624347e303da9",
-   "does": "Loads the existing target session, merges the incoming data into it via SessionMerger; when anything changed re-archives the existing session (_archive saves the index itself) and records its id as updated. A target that cannot be loaded (retrieve throws or misses) or re-archived is logged at warning and the error rethrown, ending the batch.",
+   "hash": "f7bc1f72a63b461c",
+   "does": "Loads the existing target session, merges the incoming data into it via SessionMerger; when anything changed stamps modifiedAt (an edit made here), re-archives the existing session (_archive saves the index itself) and records its id as updated. A target that cannot be loaded (retrieve throws or misses) or re-archived is logged at warning and the error rethrown, ending the batch.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)",
     "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeSessionData(from:into:)",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)"
    ],
    "reads": [
     "mem:SessionArchive.index",
@@ -189,20 +191,23 @@
      "effect": "throw ArchiveError.fileNotFound (rethrown below)"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "mergeSessionData reported no change",
      "effect": "return without writing; not counted"
     },
     {
-     "at": "+11",
+     "at": "+13",
      "cond": "catch: retrieve, lookup miss or _archive threw",
      "effect": "log warning and rethrow"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "92f6b2132190f7b5",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)": "24c88f25992eca37",
     "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeSessionData(from:into:)": "130682e15f59bee7",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "4c10324f8b76c2f3",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -232,15 +237,16 @@
   },
   {
    "key": "func ArchiveStore.postBatchChangeNotifications(_:)",
-   "hash": "8bd1bfc45d872f64",
-   "does": "Posts .flowRecoveryArchiveChanged with object=id for each merged session, then one with object=nil when anything was added or merged.",
+   "hash": "315a2b8e6c883c06",
+   "does": "Posts .flowRecoveryArchiveChanged with object=id for each merged session, then one with object=nil when anything was added or merged; when sessions were merged, posts flowRecoveryArchiveSessionsNeedReupload with their ids, since each was uploaded before the merge changed it.",
    "entry": null,
    "calls": [
     "ext:NotificationCenter.post"
    ],
    "reads": [],
    "writes": [
-    "notif:flowRecoveryArchiveChanged"
+    "notif:flowRecoveryArchiveChanged",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
    ],
    "branches": [
     {
@@ -252,6 +258,11 @@
      "at": "+4",
      "cond": "any new or updated entries",
      "effect": "post the batch-level nil notification; else nothing"
+    },
+    {
+     "at": "+7",
+     "cond": "any updated entries",
+     "effect": "post the re-upload request for them"
     }
    ],
    "deps": {}

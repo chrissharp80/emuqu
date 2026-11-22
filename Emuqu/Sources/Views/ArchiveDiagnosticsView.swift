@@ -258,15 +258,30 @@ struct ArchiveDiagnosticsView: View {
         let archive = collector.archive
         let indexedBefore = archive.entries.count
         Task {
-            let count = await Task.detached(priority: .userInitiated) { archive.repairArchive() }.value
+            let outcome = await Self.repairOffMain(archive)
             isRepairing = false
             // Screens keyed on the archive signal reload the rebuilt index.
             collector.notifyArchiveChanged()
-            // repairArchive returns the rebuilt index's size; recovered is what it added.
-            let recovered = max(0, count - indexedBefore)
-            repairResult = String(localized: "Repair complete. \(recovered) sessions recovered.", bundle: LanguageManager.appBundle)
+            repairResult = Self.repairMessage(for: outcome, indexedBefore: indexedBefore)
             showingResult = true
             await refreshDiagnostics()
+        }
+    }
+
+    /// `repairArchive` on a detached task, its throw kept in the result.
+    private static func repairOffMain(_ archive: SessionArchive) async -> Result<Int, any Error> {
+        await Task.detached(priority: .userInitiated) { Result { try archive.repairArchive() } }.value
+    }
+
+    /// What the repair alert says: how many sessions the rebuilt index added
+    /// (`repairArchive` returns its size), or why the repair failed.
+    private static func repairMessage(for outcome: Result<Int, any Error>, indexedBefore: Int) -> String {
+        switch outcome {
+        case let .success(count):
+            let recovered = max(0, count - indexedBefore)
+            return String(localized: "Repair complete. \(recovered) sessions recovered.", bundle: LanguageManager.appBundle)
+        case let .failure(error):
+            return String(localized: "Repair failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
         }
     }
 

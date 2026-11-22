@@ -312,7 +312,12 @@ exactly the devices entitled to read these backups. iCloud Keychain is
 end-to-end encrypted, so this does not hand Apple the key. A device that has to
 write before iCloud Keychain delivers the existing key creates one under its
 own account; sync carries all of them and `decode` tries each, since AES-GCM
-authentication rejects a wrong key outright.
+authentication rejects a wrong key outright. A key is created only while the
+signed-in iCloud account is confirmed as the one sync was enabled for
+(`CloudAccountIdentity`): a key made after an Apple ID switch would travel into
+the other account's iCloud Keychain. After such a switch, or once the app's
+iCloud data has been deleted, sync turns itself off and uploads nothing until
+the user turns it on again.
 
 Every upload is sealed by `CloudPayloadCodec.sealForUpload`, which throws
 rather than upload plaintext when there is no key to encrypt with. A key on

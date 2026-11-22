@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Storage/CloudKitSyncSupport.swift",
- "hash": "3ecbfece04dc2ec3",
+ "hash": "9c8bd8b16cae85b4",
  "role": "CloudKit sync support: timeout error, the snapshot-backfill notification name, the MainActor SyncSerializer that chains CloudKitSyncManager operations, the CloudKitSettingsSync singleton that backs UserSettings up to/restores it from an encrypted CloudKit record, the CloudSettingsRecord field layout, localized sync status strings, and CloudSessionPayload which strips (upload) and restores (pull) every HealthKit-derived reading in an HRVSession.",
  "types": [
   "SyncTimeoutError: enum — .timedOut/.stalled thrown by CloudKitSyncManager+Push runWithTimeout",
@@ -8,9 +8,9 @@
   "SyncSerializer: class (@MainActor) — serializes async closures by chaining Tasks",
   "CloudKitSettingsSync: class (@Observable @MainActor singleton) — debounced/immediate settings push, restore, one-time health scrub of stored record",
   "CloudKitSettingsSync.Status: enum — idle/syncing/lastPushed/error",
-  "CloudKitSettingsSync.RestoreError: enum — noCloudCopy/cloudCopyMalformed/keyNotOnThisDevice",
+  "CloudKitSettingsSync.RestoreError: enum (Equatable) — noCloudCopy/cloudCopyMalformed/keyNotOnThisDevice/accountNotConfirmed(String)",
   "CloudKitSettingsSync.SealedSettings: enum (private) — ready(Data)/unavailable(String)",
-  "CloudKitSettingsSync.PushOutcome: enum (private) — pushed / skipped(String) / failed(String)",
+  "CloudKitSettingsSync.PushOutcome: enum (private) — pushed / keptNewerCloudCopy / skipped(String) / failed(String)",
   "CloudSettingsRecord: enum — field names and encode/decode of settings record payload",
   "CloudSyncMessages: enum — localized status lines",
   "CloudSessionPayload: enum — HealthKit-reading stripping/restoring for session payloads",
@@ -23,10 +23,12 @@
   "mem:CloudKitSettingsSync.status (observable, read by Settings UI)",
   "mem:CloudKitSettingsSync.container (CKContainer AppConfig.iCloudContainerIdentifier)",
   "mem:CloudKitSettingsSync.recordType \"UserSettings\", zoneID UserSettings, recordName \"primary\"",
-  "mem:CloudKitSettingsSync.debounceTask / changeObserver / pushSerializer (SyncSerializer chaining pushes) / zoneEnsured / schemaUnavailable (per-launch sticky)",
+  "mem:CloudKitSettingsSync.debounceTask / changeObserver / pushSerializer (SyncSerializer chaining pushes) / schemaUnavailable (per-launch sticky)",
   "ud:FlowRecovery.cloudkit.settingsHealthScrub.v1.done (CloudKitSettingsSync.scrubbedKey)",
   "ck:UserSettings fields settingsPayload, modifiedAt, legacy settingsJSON, legacy deviceName (CloudSettingsRecord constants)",
-  "mem:CloudSessionPayload.healthKitDeviceIds {healthkit-import, healthkit-rebuild}, appleWatchDeviceId \"apple-watch\", heartRateContextKeys {hr, peak_hr}, healthKitFactorLabels {Sleep, Vitals}"
+  "mem:CloudSessionPayload.healthKitDeviceIds {healthkit-import, healthkit-rebuild}, appleWatchDeviceId \"apple-watch\", heartRateContextKeys {hr, peak_hr}, healthKitFactorLabels {Sleep, Vitals}",
+  "ud:cloudkit.settingsZoneCreated (CloudKitSettingsSync.zoneCreatedKey: this device created the UserSettings zone)",
+  "ud:cloudkit.settingsLocalEditedAt (CloudKitSettingsSync.localEditedAtKey: when this device's settings last changed)"
  ],
  "toplevel": "CloudKitSettingsSync.shared is created lazily on first access (static let); its private init registers the settings-change observer. CloudKitSettingsSync stored-property initializers build CKContainer(identifier: AppConfig.iCloudContainerIdentifier) and the UserSettings zone ID. SyncSerializer.previous starts as an empty completed Task. SyncSerializer carries @ObservationIgnored although the class is not @Observable (no effect).",
  "units": [
@@ -88,8 +90,8 @@
   },
   {
    "key": "init CloudKitSettingsSync()",
-   "hash": "b0da93fbb48d47ba",
-   "does": "Private singleton init: registers a NotificationCenter observer on .flowRecoverySettingsChanged (main queue) that hops to MainActor and calls scheduleDebouncedPush().",
+   "hash": "cce005037ae81b06",
+   "does": "Private singleton init: registers a NotificationCenter observer on .flowRecoverySettingsChanged (main queue) that hops to MainActor, stores now as this device's settings edit time (localEditedAtKey) and calls scheduleDebouncedPush().",
    "entry": "Runs on first access of CloudKitSettingsSync.shared (static let); the observer closure is invoked by NotificationCenter",
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.scheduleDebouncedPush()",
@@ -99,20 +101,34 @@
     "notif:flowRecoverySettingsChanged"
    ],
    "writes": [
-    "mem:CloudKitSettingsSync.changeObserver"
+    "mem:CloudKitSettingsSync.changeObserver",
+    "ud:cloudkit.settingsLocalEditedAt (on each settings change)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.scheduleDebouncedPush()": "b937ac6209558cfb"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.scheduleDebouncedPush()": "0af5c0e455d4ddb5"
    }
   },
   {
-   "key": "func CloudKitSettingsSync.pushImmediately()",
-   "hash": "75eb7e34f8bb5820",
-   "does": "Pushes settings now via performPush() (queued behind any push in flight); returns true when saved, otherwise (skipped or failed) sets status = .error(reason) and returns false.",
+   "key": "func CloudKitSettingsSync.forgetZone()",
+   "hash": "06df46ff693f8dac",
+   "does": "Removes the settings-zone-created flag, so the next push saves the zone again.",
    "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:cloudkit.settingsZoneCreated"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitSettingsSync.pushImmediately(replacingNewerCloudCopy:)",
+   "hash": "3a365bed806d5c3b",
+   "does": "Runs performPush now (behind any push in flight), passing whether a newer cloud copy may be replaced (the Back Up button: true; the launch push: false). Returns true only when saved; a newer cloud copy left in place sets status .idle and returns false; skipped or failed sets status .error(reason) and returns false.",
+   "entry": "Called by EmuquApp's launch hook (pushSettingsToCloudAfterLaunch) and the Back Up Settings button (DataSettingsPage.backupSettingsNow, replacing)",
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush()"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush(replacingNewerCloudCopy:)"
    ],
    "reads": [],
    "writes": [
@@ -121,26 +137,32 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "outcome .pushed",
-     "effect": "return true"
+     "cond": ".pushed",
+     "effect": "true"
     },
     {
      "at": "+4",
-     "cond": "outcome .skipped or .failed",
-     "effect": "status=.error(reason), return false"
+     "cond": ".keptNewerCloudCopy",
+     "effect": "status .idle, false"
+    },
+    {
+     "at": "+7",
+     "cond": ".skipped or .failed",
+     "effect": "status .error(reason), false"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush()": "21eb2e0e95f62b1a"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush(replacingNewerCloudCopy:)": "f51b427f02efc53f"
    }
   },
   {
    "key": "func CloudKitSettingsSync.restoreFromCloud()",
-   "hash": "2d672da2d7108ee8",
-   "does": "Restores settings from iCloud: ensures the zone exists, fetches record 'primary', extracts the settings JSON (legacy plaintext or decrypted payload), overlays this device's Health-filled profile fields, hands it to SettingsManager.restoreFromJSON, and returns the record's modifiedAt (or now).",
+   "hash": "1841bcd3692a5674",
+   "does": "Restores settings from iCloud: requires the confirmed iCloud account (requireConfirmedAccount; another account's settings are never restored), fetches record 'primary' without creating the zone, extracts the settings JSON (legacy plaintext or decrypted payload), overlays this device's Health-filled profile fields, hands it to SettingsManager.restoreFromJSON, and returns the record's modifiedAt (or now).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.requireConfirmedAccount()",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.restorable(_:keepingProfileOf:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
@@ -152,13 +174,17 @@
     "mem:SettingsManager.settings"
    ],
    "writes": [
-    "file:user_settings.json (via SettingsManager.restoreFromJSON)",
-    "ck:UserSettings zone (created by ensureZoneExists)"
+    "file:user_settings.json (via SettingsManager.restoreFromJSON)"
    ],
    "branches": [
     {
+     "at": "+1",
+     "cond": "account not confirmed",
+     "effect": "throws RestoreError.accountNotConfirmed"
+    },
+    {
      "at": "+6",
-     "cond": "CKError .unknownItem on fetch",
+     "cond": "CKError unknownItem, zoneNotFound or userDeletedZone on fetch",
      "effect": "throws RestoreError.noCloudCopy; any other fetch error propagates to caller"
     },
     {
@@ -168,10 +194,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.restoreFromJSON(_:)": "b1194aebe7eb7521",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()": "3e3af2a571e6fbbf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "cbe5cd4ccaecc694",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.restoreFromJSON(_:)": "8e05daecb181bb22",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "ce3859c45e532228",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.requireConfirmedAccount()": "8c436685e6f6649a",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.restorable(_:keepingProfileOf:)": "8c9fa4951f64d8c6",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "ea385178c3d9bbad",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "4ce4f9874bc8e29f",
@@ -180,9 +206,77 @@
    }
   },
   {
+   "key": "func CloudKitSettingsSync.requireConfirmedAccount()",
+   "hash": "56e4e047a05d7749",
+   "does": "Runs the sync manager's account check; returns when confirmed, else throws RestoreError.accountNotConfirmed with the check's reason or, when sync is stopped, syncOffMessage.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.syncOffMessage"
+   ],
+   "reads": [
+    "net:CloudKit userRecordID"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "confirmed",
+     "effect": "returns"
+    },
+    {
+     "at": "+4",
+     "cond": "unavailable",
+     "effect": "throws accountNotConfirmed(message)"
+    },
+    {
+     "at": "+6",
+     "cond": "stopped",
+     "effect": "throws accountNotConfirmed(syncOffMessage)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.syncOffMessage": "b9291462fb93729f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "71598a6e60000bb7"
+   }
+  },
+  {
+   "key": "var CloudKitSettingsSync.syncOffMessage",
+   "hash": "4f2f6d7b903c9264",
+   "does": "The message of the reason the app stopped sync (CloudAccountIdentity.stopReason), else the localized 'iCloud sync is off'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.stopReason",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:cloudkit.syncStoppedReason"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no stop reason",
+     "effect": "'iCloud sync is off'"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message": "fc75f12bef78c376",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.stopReason": "51e9a5028ec44682"
+   }
+  },
+  {
    "key": "var CloudKitSettingsSync.RestoreError.errorDescription",
-   "hash": "46e36b2dbe5cc2fd",
-   "does": "Localized text for RestoreError cases.",
+   "hash": "50ba44d91524d667",
+   "does": "Localized text for RestoreError cases; accountNotConfirmed returns its own message.",
    "entry": "LocalizedError witness; shown by SettingsPages+Data restore alert via localizedDescription",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -192,16 +286,21 @@
    "branches": [
     {
      "at": "+2",
+     "cond": ".accountNotConfirmed",
+     "effect": "its message"
+    },
+    {
+     "at": "+4",
      "cond": ".noCloudCopy",
      "effect": "\"No iCloud backup found...\""
     },
     {
-     "at": "+4",
+     "at": "+6",
      "cond": ".cloudCopyMalformed",
      "effect": "\"The iCloud backup couldn't be read.\""
     },
     {
-     "at": "+6",
+     "at": "+8",
      "cond": ".keyNotOnThisDevice",
      "effect": "iCloud Keychain key-not-delivered message"
     }
@@ -213,11 +312,11 @@
   {
    "key": "func CloudKitSettingsSync.scheduleDebouncedPush()",
    "hash": "b017542b166a3703",
-   "does": "Cancels any pending debounce task and starts a new MainActor task that sleeps 2 s and then calls performPush(); a .failed outcome (conflict, settings not loaded, encryption or CloudKit error) is shown as status .error(reason), a .skipped one (sync off, onboarding unfinished) leaves status alone. Skipped entirely while the schema is unavailable.",
+   "does": "Cancels any pending debounce task and starts a new MainActor task that sleeps 2 s and then calls performPush() (a newer cloud copy is not replaced); a .failed outcome (conflict, settings not loaded, encryption, deleted zone or CloudKit error) is shown as status .error(reason), a .skipped one (sync off, onboarding unfinished, account not confirmed) or a kept newer cloud copy leaves status alone. Skipped entirely while the schema is unavailable.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush()"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush(replacingNewerCloudCopy:)"
    ],
    "reads": [
     "mem:CloudKitSettingsSync.schemaUnavailable"
@@ -244,88 +343,157 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush()": "21eb2e0e95f62b1a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush(replacingNewerCloudCopy:)": "f51b427f02efc53f",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
   {
-   "key": "func CloudKitSettingsSync.performPush()",
-   "hash": "00993e8e3a3a2a54",
-   "does": "Runs pushNow() inside pushSerializer, so the debounced push, the launch push and the Back Up button push one after another instead of interleaving at their awaits; returns pushNow's outcome.",
+   "key": "func CloudKitSettingsSync.performPush(replacingNewerCloudCopy:)",
+   "hash": "3638d213515d1c65",
+   "does": "Runs pushNow(replacingNewerCloudCopy:) inside pushSerializer, behind any push already in flight, and returns its outcome.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushNow()"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushNow(replacingNewerCloudCopy:)"
    ],
-   "reads": [
-    "mem:CloudKitSettingsSync.pushSerializer"
-   ],
-   "writes": [
-    "mem:SyncSerializer.previous"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushNow()": "3c797e19d86f8665",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushNow(replacingNewerCloudCopy:)": "5bd9b9e58e150a31",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94"
    }
   },
   {
-   "key": "func CloudKitSettingsSync.pushNow()",
-   "hash": "f6e1b62952ccab57",
-   "does": "Pushes encrypted settings: .skipped(reason) if sync off/onboarding incomplete/schema paused; seals local settings (Health-filled fields removed); sets .syncing; ensures zone; fetches-or-creates and saves record 'primary'; sets .lastPushed and returns .pushed; failures return .failed(reason).",
-   "entry": "Only through performPush (serialized).",
+   "key": "func CloudKitSettingsSync.pushNow(replacingNewerCloudCopy:)",
+   "hash": "103bbd191c70d4b4",
+   "does": "One settings push: skipped (with the reason) while sync is off, onboarding unfinished or the schema paused (pushSkipReason), or while the iCloud account is not confirmed (requireConfirmedAccount); failed when the local settings are not fully loaded or cannot be sealed; otherwise sets status .syncing and saves the sealed settings (save).",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushSkipReason()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.requireConfirmedAccount()",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.sealedLocalSettings()",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.saveSettingsRecord(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.handlePushFailure(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.save(_:replacingNewerCloudCopy:)"
    ],
    "reads": [
-    "mem:SettingsManager.settings",
+    "mem:UserSettings.iCloudSyncEnabled",
+    "mem:UserSettings.hasCompletedOnboarding",
     "mem:CloudKitSettingsSync.schemaUnavailable"
    ],
    "writes": [
-    "mem:CloudKitSettingsSync.status",
-    "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)"
+    "mem:CloudKitSettingsSync.status"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "pushSkipReason non-nil",
-     "effect": "return .skipped(reason) without touching status"
+     "effect": ".skipped(reason)"
     },
     {
      "at": "+4",
-     "cond": "case .ready(data)",
-     "effect": "use sealed bytes"
+     "cond": "account not confirmed",
+     "effect": ".skipped(reason)"
     },
     {
-     "at": "+5",
-     "cond": "case .unavailable(reason)",
-     "effect": "return .failed(reason) (sealedLocalSettings may already have set status .error)"
+     "at": "+8",
+     "cond": "sealed settings ready",
+     "effect": "status .syncing; save"
     },
     {
-     "at": "+14",
-     "cond": "CKError .serverRecordChanged",
-     "effect": "log warning, status=.idle, return .failed(localized conflict message); no retry"
+     "at": "+11",
+     "cond": "settings unavailable",
+     "effect": ".failed(reason)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushSkipReason()": "199f3f097b4951af",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.requireConfirmedAccount()": "8c436685e6f6649a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.save(_:replacingNewerCloudCopy:)": "dd9553ec4ee7a3b1",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.sealedLocalSettings()": "68ffe3321b5a93af"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.save(_:replacingNewerCloudCopy:)",
+   "hash": "b11e4051b6767185",
+   "does": "Ensures the zone (created once per account) and saves the sealed settings over the cloud copy (saveSettingsRecord). A cloud copy edited after this device's settings, not replaced, is logged, status .idle, .keptNewerCloudCopy. A save logs and sets .lastPushed, .pushed. A zone found gone goes to zoneWasDeleted (sync stops; not recreated); a conflict sets .idle and fails with the localized 'another device updated' line; other errors go to handlePushFailure.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.saveSettingsRecord(_:replacingNewer:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.zoneWasDeleted(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.handlePushFailure(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitSettingsSync.status",
+    "ck:UserSettings record \"primary\"",
+    "ck:UserSettings zone"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "saveSettingsRecord returned false (cloud copy newer)",
+     "effect": "log, status .idle, .keptNewerCloudCopy"
     },
     {
-     "at": "+18",
+     "at": "+11",
+     "cond": "CKError zoneNotFound or userDeletedZone",
+     "effect": "zoneWasDeleted"
+    },
+    {
+     "at": "+13",
+     "cond": "CKError serverRecordChanged",
+     "effect": "log, status .idle, .failed(conflict line)"
+    },
+    {
+     "at": "+17",
      "cond": "any other error",
-     "effect": "handlePushFailure: schema error pauses sync for the launch, otherwise status=.error(desc); returns .failed(message)"
+     "effect": ".failed(handlePushFailure)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()": "3e3af2a571e6fbbf",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()": "cde9576c813cc055",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.handlePushFailure(_:)": "c1c98629b4ecb56a",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushSkipReason()": "199f3f097b4951af",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.saveSettingsRecord(_:)": "b256f713df37da58",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.sealedLocalSettings()": "68ffe3321b5a93af",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.saveSettingsRecord(_:replacingNewer:)": "5cf0812af7ad4a30",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.zoneWasDeleted(_:)": "008296b59491649d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func CloudKitSettingsSync.zoneWasDeleted(_:)",
+   "hash": "5932815cd6b4e5bc",
+   "does": "The settings zone this device created is gone: logs, sets status .idle, asks CloudAccountGuard.zoneWasDeleted (sync stops for the user's deletion or another account) and fails with its reason or syncOffMessage. The zone is not recreated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.syncOffMessage"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CloudKitSettingsSync.status"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "?? — no reason returned (sync stopped)",
+     "effect": "syncOffMessage"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "42ad9add2c66cf12",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.syncOffMessage": "b9291462fb93729f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "71598a6e60000bb7",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -415,38 +583,57 @@
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.currentSettingsJSON()": "e5f73e52eee3c919",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.uploadable(_:)": "4c24b41735228125",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "88b5cfd374d70c6c",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "dc014259171401bf",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
-   "key": "func CloudKitSettingsSync.saveSettingsRecord(_:)",
-   "hash": "dad135f7b2656ffa",
-   "does": "Fetches record 'primary' (or creates a new CKRecord of type UserSettings when absent), writes the sealed payload/modifiedAt and clears legacy fields, and saves it.",
+   "key": "func CloudKitSettingsSync.saveSettingsRecord(_:replacingNewer:)",
+   "hash": "028d344f819b7fbc",
+   "does": "Fetches record 'primary' (a new one when unknownItem). Unless replacingNewer, returns false without writing when the cloud copy was edited after this device's last settings change (CloudSettingsRecord.cloudCopyIsNewer of the record's modifiedAt and localEditedAtKey). Otherwise writes the sealed payload dated with the local edit time (now when replacing, or when none is stored), saves, stores that time as the local edit time when replacing, and returns true.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)",
     "ext:CKDatabase.record(for:)",
-    "ext:CKDatabase.save"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt:localEditedAt:)",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)",
+    "ext:CKDatabase.save(CKRecord)"
    ],
    "reads": [
-    "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)"
+    "ck:UserSettings record \"primary\"",
+    "ud:cloudkit.settingsLocalEditedAt"
    ],
    "writes": [
-    "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)"
+    "ck:UserSettings record \"primary\"",
+    "ud:cloudkit.settingsLocalEditedAt"
    ],
    "branches": [
     {
      "at": "+5",
-     "cond": "CKError .unknownItem on fetch",
-     "effect": "create a fresh CKRecord; other errors propagate"
+     "cond": "CKError unknownItem",
+     "effect": "a new record"
+    },
+    {
+     "at": "+10",
+     "cond": "not replacing and the cloud copy is newer",
+     "effect": "returns false, nothing written"
+    },
+    {
+     "at": "+13",
+     "cond": "replacing",
+     "effect": "dated now; else the local edit time (?? now)"
+    },
+    {
+     "at": "+16",
+     "cond": "replacing",
+     "effect": "the date stored as the local edit time"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "d095a70f8795f9e9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "cbe5cd4ccaecc694",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt:localEditedAt:)": "8cedcb649d95f305",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "feed3afb796d51b4",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "4ce4f9874bc8e29f"
    }
@@ -540,7 +727,7 @@
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "ea385178c3d9bbad",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "feed3afb796d51b4",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "4ce4f9874bc8e29f",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "88b5cfd374d70c6c",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "dc014259171401bf",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -574,29 +761,51 @@
   },
   {
    "key": "func CloudKitSettingsSync.ensureZoneExists()",
-   "hash": "941ac7a945a88cef",
-   "does": "Saves the UserSettings zone once per launch; errors propagate.",
+   "hash": "2140e40552809a97",
+   "does": "Saves the UserSettings zone unless this device already created it (zoneCreatedKey, kept across launches); then sets the flag. Errors propagate; a zone that is gone later is not recreated here.",
    "entry": null,
    "calls": [
     "ext:CKDatabase.save(CKRecordZone)"
    ],
    "reads": [
-    "mem:CloudKitSettingsSync.zoneEnsured"
+    "ud:cloudkit.settingsZoneCreated"
    ],
    "writes": [
-    "mem:CloudKitSettingsSync.zoneEnsured",
+    "ud:cloudkit.settingsZoneCreated",
     "ck:UserSettings zone"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "zoneEnsured",
-     "effect": "return; else save zone and set flag"
+     "cond": "zone already created by this device",
+     "effect": "return; else save zone and set the flag"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "4ce4f9874bc8e29f"
    }
+  },
+  {
+   "key": "func CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt:localEditedAt:)",
+   "hash": "e00157f1c3af8fbe",
+   "does": "Pure: false when the cloud copy has no date; true when this device has no edit time; otherwise whether the cloud date is later than the local one.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no cloud date",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "no local edit time",
+     "effect": "true"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func CloudSettingsRecord.uploadable(_:)",

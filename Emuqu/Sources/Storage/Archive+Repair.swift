@@ -5,7 +5,10 @@ import Foundation
 extension SessionArchive {
     /// Repair a corrupted archive by rebuilding the index from the .json files.
     /// Call this manually from Settings > Debug when needed
-    /// - Returns: Number of sessions recovered
+    /// - Returns: The rebuilt index's size
+    /// - Throws: When the archive folder cannot be listed, or the rebuilt
+    ///   index cannot be saved. A count returned over a failed save read as a
+    ///   repair, while the rebuilt index was gone at the next launch.
     ///
     /// Files with other extensions (`*.encrypted`, which no current writer
     /// produces) are left alone: the repair never deletes a file it has not
@@ -21,16 +24,10 @@ extension SessionArchive {
     /// there, intact. Only genuinely missing files (no entry to fall back to)
     /// get dropped.
     @discardableResult
-    func repairArchive() -> Int {
+    func repairArchive() throws -> Int {
         archiveLock.lock()
         defer { archiveLock.unlock() }
-        let files: [URL]
-        do {
-            files = try fileManager.contentsOfDirectory(at: archiveDirectory, includingPropertiesForKeys: nil)
-        } catch {
-            debugLog("[Archive] Repair: Could not list directory: \(error.localizedDescription)")
-            return 0
-        }
+        let files = try archiveFolderContents()
         index = rebuiltIndex(from: files).sorted { $0.date > $1.date }
         // Dropped now, not by `saveIndex`: a save that fails before it gets
         // there would leave them serving the index this repair replaced.
@@ -40,8 +37,20 @@ extension SessionArchive {
             try saveIndex()
         } catch {
             debugLog("[Archive] ⚠️ Failed to save index after repair: \(error)")
+            throw error
         }
         return index.count
+    }
+
+    /// The files in the archive folder; the listing's failure is logged and
+    /// thrown.
+    private func archiveFolderContents() throws -> [URL] {
+        do {
+            return try fileManager.contentsOfDirectory(at: archiveDirectory, includingPropertiesForKeys: nil)
+        } catch {
+            debugLog("[Archive] Repair: Could not list directory: \(error.localizedDescription)")
+            throw error
+        }
     }
 
     private func rebuiltIndex(from files: [URL]) -> [SessionArchiveEntry] {

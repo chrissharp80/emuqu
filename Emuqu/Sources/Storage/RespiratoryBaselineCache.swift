@@ -42,6 +42,12 @@ enum RespiratoryBaselineCache {
 /// under different `UserDefaults` keys through the helpers below. Snapshots
 /// stored by earlier builds also carry a `sampleCount` key, which decoding
 /// ignores.
+///
+/// A baseline is a HealthKit reading, so the stored bytes are sealed with the
+/// app's key (`JSONFileSeal.app`); UserDefaults goes into device backups. A
+/// snapshot an older build wrote in plain JSON still reads. With no key
+/// reachable nothing is written, and a read that cannot open the bytes is a
+/// miss: the scorer then queries HealthKit as it does with no cache.
 struct BaselineSnapshot: Codable {
     let value: Double
     let lastUpdated: Date
@@ -53,17 +59,17 @@ struct BaselineSnapshot: Codable {
     /// decode, or it is older than `maxAgeSeconds`.
     static func read(key: String, maxAgeSeconds: TimeInterval) -> BaselineSnapshot? {
         guard let data = UserDefaults.standard.data(forKey: key),
-              let snap = try? JSONDecoder().decode(BaselineSnapshot.self, from: data)
+              let snap = attempt("\(key).decode", { try JSONFileSeal.app.openJSON(BaselineSnapshot.self, from: data, with: JSONDecoder()) })
         else { return nil }
         if Date().timeIntervalSince(snap.lastUpdated) > maxAgeSeconds { return nil }
         return snap
     }
 
-    /// Stores `value` under `key`, stamped now; an encode failure is logged
-    /// under `<key>.encode`.
+    /// Stores `value` under `key`, stamped now and sealed; an encode or seal
+    /// failure is logged under `<key>.encode`.
     static func write(_ value: Double, key: String) {
         let snap = BaselineSnapshot(value: value, lastUpdated: Date())
-        if let data = attempt("\(key).encode", { try JSONEncoder().encode(snap) }) {
+        if let data = attempt("\(key).encode", { try JSONFileSeal.app.sealJSON(snap, with: JSONEncoder()) }) {
             UserDefaults.standard.set(data, forKey: key)
         }
     }

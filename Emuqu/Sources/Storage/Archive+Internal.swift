@@ -191,6 +191,12 @@ extension ArchiveStore {
     /// leaving the night in a backup due for deletion. Thrown, the callers
     /// skip both, so the backup stays unarchived and Lost Sessions can recover
     /// the night once the read succeeds.
+    ///
+    /// A merge that changed the session is an edit made here: it is stamped,
+    /// so a device holding the older copy takes this one
+    /// (`CloudKitSessionFreshness`), and
+    /// `archive(_:skipSameNightMerge:requestingReupload:)` queues it to upload
+    /// again.
     private func sameNightMerge(
         of session: HRVSession, skipSameNightMerge: Bool
     ) throws -> SessionArchiveEntry? {
@@ -205,7 +211,7 @@ extension ArchiveStore {
             guard var existingSession = try _retrieve(existing.sessionId) else {
                 throw SessionArchive.ArchiveError.fileNotFound
             }
-            _ = archive.mergeSessionData(from: session, into: &existingSession)
+            if archive.mergeSessionData(from: session, into: &existingSession) { existingSession.modifiedAt = CloudKitSessionFreshness.stamp() }
             // Re-archive the merged existing session (this is a re-archive, won't recurse)
             return try _archive(existingSession)
         } catch {
@@ -719,11 +725,14 @@ extension ArchiveStore {
 
     /// A deletion made on another device: out of the index with a tombstone,
     /// as `delete` does, but the file is removed rather than kept in the
-    /// Trash, since that device holds the restore. The delete does not depend
-    /// on the file: one that is already gone leaves the deletion in place, and
-    /// one that will not go is moved into the Trash instead, where expiry
-    /// (`discardTrashed`) removes it. Left in the archive folder, the orphan
-    /// scan would adopt it back once its tombstone was forgotten.
+    /// Trash, since that device holds the restore. A file that is already
+    /// gone leaves the deletion in place, and one that will not go is moved
+    /// into the Trash instead, where expiry (`discardTrashed`) removes it.
+    /// One that will do neither stays where it is, so the session goes back
+    /// into the index and the error is thrown, as `delete` does: left in the
+    /// archive folder with nothing listing it, the health data stayed on the
+    /// device while the deletion counted as done, and the orphan scan would
+    /// adopt it back once its tombstone was forgotten. The caller retries.
     func deleteWithoutTrash(_ id: UUID) throws {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
@@ -734,7 +743,14 @@ extension ArchiveStore {
         guard archive.fileManager.fileExists(atPath: fileURL.path),
               attempt("Archive.deleteWithoutTrash.removeFile", { try archive.fileManager.removeItem(at: fileURL) }) == nil
         else { return }
-        attempt("Archive.deleteWithoutTrash.moveToTrash") { try moveToTrash(fileURL, id: id) }
+        do {
+            try moveToTrash(fileURL, id: id)
+        } catch {
+            debugLog("[Archive] ⚠️ Could not remove or move the file of \(id.uuidString.prefix(8)), deleted on another device; keeping it: \(error)", level: .warning)
+            undoDrop(entry)
+            attempt("Archive.deleteWithoutTrash.restoreIndex") { try archive.saveIndex() }
+            throw error
+        }
     }
 
     /// Remove from the active archive.index (in-memory) then persist both indexes,

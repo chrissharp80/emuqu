@@ -1,13 +1,15 @@
 {
  "file": "Emuqu/Sources/Storage/DataCompression.swift",
- "hash": "d577ab15abd05b25",
+ "hash": "5a229331659f732e",
  "role": "ZLIB (raw DEFLATE via Apple Compression) compress/decompress used for session JSON and live-backup payloads before CloudPayloadCodec encryption.",
  "types": [
   "DataCompression: enum — compress/decompress",
   "DataCompression.CompressionError: enum — compressionFailed/decompressionFailed/invalidBufferPointer"
  ],
- "state": [],
- "toplevel": "",
+ "state": [
+  "mem:DataCompression.maxDecompressedSize (static let 128 MiB: the most any payload may decompress to)"
+ ],
+ "toplevel": "maxDecompressedSize caps every decompression at 128 MiB.",
  "units": [
   {
    "key": "var DataCompression.CompressionError.errorDescription",
@@ -81,24 +83,31 @@
   },
   {
    "key": "func DataCompression.decompress(_:)",
-   "hash": "4cf2d88fa7ba092d",
-   "does": "Decompresses ZLIB data starting with a 16x buffer and doubling up to 1024x; throws decompressionFailed if output never fits.",
+   "hash": "e35e338c954d3706",
+   "does": "Decompresses ZLIB data starting with a 16x buffer and doubling, up to 1024x the input but never past maxDecompressedSize (128 MiB); throws decompressionFailed once output does not fit in the largest buffer allowed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decodeOnce(_:sourceSize:destinationSize:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:DataCompression.maxDecompressedSize"
+   ],
    "writes": [],
    "branches": [
     {
      "at": "+5",
-     "cond": "destinationSize <= 1024x source",
-     "effect": "try decodeOnce; loop exits → throw decompressionFailed"
+     "cond": "loop",
+     "effect": "try decodeOnce at the current size"
     },
     {
      "at": "+6",
      "cond": "decodeOnce returned data",
-     "effect": "return it; nil → double buffer"
+     "effect": "return it; nil → grow"
+    },
+    {
+     "at": "+10",
+     "cond": "already at the cap",
+     "effect": "throw decompressionFailed; else double, clamped to the cap"
     }
    ],
    "deps": {

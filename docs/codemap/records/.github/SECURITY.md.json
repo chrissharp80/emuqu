@@ -310,32 +310,34 @@
   },
   {
    "key": "§ Security Policy > Data at Rest > iCloud (CloudKit private database) — app-encrypted with a portable key",
-   "hash": "150b5a9e27b29c46",
-   "does": "All CloudKit uploads (sessions, live RR backups, settings) are sealed by CloudPayloadCodec.sealForUpload with AES-GCM-256 under a synchronizable key; multiple per-account keys are tried on decode; a key on this device does not show another device can decrypt; framing: EMQC magic + version byte opened with the cloud keys, the older FR prefix decrypted with EncryptionManager's device archive key (readable only on the writing device), and payloads with neither prefix returned unchanged as legacy compressed records — each chosen by prefix, not by a failed decryption (CloudPayloadCodec.decode); sealForUpload throws rather than upload plaintext when there is no key.",
+   "hash": "d91d465ae94975e7",
+   "does": "All CloudKit uploads (sessions, live RR backups, settings) are sealed by CloudPayloadCodec.sealForUpload with AES-GCM-256 under a synchronizable key; multiple per-account keys are tried on decode; a key on this device does not show another device can decrypt; framing: EMQC magic + version byte opened with the cloud keys, the older FR prefix decrypted with EncryptionManager's device archive key (readable only on the writing device), and payloads with neither prefix returned unchanged as legacy compressed records — each chosen by prefix, not by a failed decryption (CloudPayloadCodec.decode); sealForUpload throws rather than upload plaintext when there is no key. A key is created only while the signed-in iCloud account is confirmed as the one sync was enabled for (CloudAccountIdentity); after an Apple ID switch or the iCloud data's deletion sync turns itself off and uploads nothing until the user turns it on.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey(mayCreate:)",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.compressedPayload(for:)",
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.compressedPoints(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.sealedLocalSettings()",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "be903b8b907a5e7c",
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.compressedPoints(_:)": "620e79302b6a35c6",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.compressedPayload(for:)": "1d56bd4d249f2025",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.sealedLocalSettings()": "68ffe3321b5a93af",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "07a8c15768d32cfc",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryAccount(among:)": "16b18d484a53c49f",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "88b5cfd374d70c6c",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "dc014259171401bf",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.storedKeys()": "502c7955b483adae",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "01ad8aa9e04c47de",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey(mayCreate:)": "d1580ed5dadfc38b",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de"
    }
   },
@@ -398,7 +400,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "55b023f3b89c01c0",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "924265dc676fce0e",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1"
    }
   },
@@ -418,7 +420,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.create()": "5c230cfebc3242c5",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "55b023f3b89c01c0",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "924265dc676fce0e",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "dfee940ff7356857"
    }

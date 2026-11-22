@@ -36,7 +36,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)": "8c84121510de7a12",
-    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.loadStore()": "2f378a4f63e58891",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.loadStore()": "1d51891d88da5dbb",
     "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.morningKey(for:calendar:)": "5ff479fd25c4dc6c"
    }
   },
@@ -70,9 +70,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.dayKey(_:)": "8c84121510de7a12",
-    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.loadStore()": "2f378a4f63e58891",
-    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.saveStore(_:)": "b765d57405cb2986",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.loadStore()": "1d51891d88da5dbb",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.saveStore(_:)": "c4e8632b49c92656"
    }
   },
   {
@@ -120,36 +119,42 @@
   },
   {
    "key": "func SleepDataCache.loadStore()",
-   "hash": "ffc21cd4ce58157c",
-   "does": "Loads and JSON-decodes the Store from SleepDataCache.v2.",
+   "hash": "bd71d9c67398e8ef",
+   "does": "Loads the Store from SleepDataCache.v2, opened with the app's key (JSONFileSeal.app; plain JSON an older build wrote passes through) and decoded.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)"
    ],
    "reads": [
-    "ud:SleepDataCache.v2"
+    "ud:SleepDataCache.v2",
+    "kc:AppConfig.keychainService / session-encryption-key (EncryptionManager, via JSONFileSeal.app)"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
      "cond": "no data under key",
-     "effect": "returns nil; else decodes via attempt (decode error logged, returns nil)"
+     "effect": "returns nil; else opens and decodes via attempt (an error logged, returns nil)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
    "key": "func SleepDataCache.saveStore(_:)",
-   "hash": "6f8ebfdb2729146b",
-   "does": "Encodes the Store and saves it under SleepDataCache.v2, then removes retired keys.",
+   "hash": "044ffdab85ccb9c8",
+   "does": "Encodes the Store, seals it with the app's key (JSONFileSeal.app) and saves it under SleepDataCache.v2, then removes retired keys.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)"
    ],
-   "reads": [],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key (EncryptionManager, via JSONFileSeal.app)"
+   ],
    "writes": [
     "ud:SleepDataCache.v2",
     "ud:SleepDataCache.v1"
@@ -157,11 +162,12 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "encoding succeeds",
-     "effect": "true: data written; false: encode error logged by attempt, store not written (retired keys still removed)"
+     "cond": "encode and seal succeed",
+     "effect": "true: data written; false: error (no key reachable) logged by attempt, store not written (retired keys still removed)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   }

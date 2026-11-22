@@ -136,14 +136,36 @@ struct CloudKitSyncState {
     // MARK: - Save
     //
     // Both saves are offered in async (preferred) and sync flavors. The async
-    // variants snapshot the relevant IDs on the calling actor and hop to a
-    // background thread for the JSON encode + atomic write. The sync variants
-    // remain for callers that are already off the main thread.
+    // variants snapshot the relevant IDs on the calling actor and queue the
+    // JSON encode + atomic write on `writeQueue`; the sync variants write on
+    // the same queue and wait for it.
+
+    /// One serial queue for every write of these files, so they land in the
+    /// order they were made. A write from its own detached task had no order:
+    /// an older snapshot could land last and undo a mark in the file (a Trash
+    /// restore's re-upload request, say), and after a relaunch the session
+    /// counted as uploaded. Each save takes its snapshot and queues its write
+    /// without suspending in between, so the queue's order is the order of
+    /// the snapshots.
+    private static let writeQueue = DispatchQueue(label: "com.emuqu.cloudkit.syncstate.write", qos: .utility)
+
+    /// Queue `write` on `writeQueue` and return once it has run.
+    private static func enqueueWrite(_ write: @escaping @Sendable () -> Void) async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            writeQueue.async {
+                write()
+                continuation.resume()
+            }
+        }
+    }
 
     func saveSyncState() {
         guard isLoaded else { return Self.logSkippedSave("sync state") }
-        Self.writeUUIDsSync(uploadedSessionIds, to: syncStateURL, label: "sync state")
-        Self.writeVersionsSync(recordVersions, to: recordVersionsURL)
+        let (snapshot, versions, url, versionsURL) = (uploadedSessionIds, recordVersions, syncStateURL, recordVersionsURL)
+        Self.writeQueue.sync {
+            Self.writeUUIDsSync(snapshot, to: url, label: "sync state")
+            Self.writeVersionsSync(versions, to: versionsURL)
+        }
     }
 
     func saveSyncStateAsync() async {
@@ -152,47 +174,49 @@ struct CloudKitSyncState {
         let versions = recordVersions
         let url = syncStateURL
         let versionsURL = recordVersionsURL
-        await Task.detached(priority: .utility) {
+        await Self.enqueueWrite {
             Self.writeUUIDsSync(snapshot, to: url, label: "sync state")
             Self.writeVersionsSync(versions, to: versionsURL)
-        }.value
+        }
     }
 
     func savePendingQueue() {
         guard isLoaded else { return Self.logSkippedSave("pending queue") }
-        Self.writeUUIDsSync(pendingUploadIds, to: pendingQueueURL, label: "pending queue")
+        let (snapshot, url) = (pendingUploadIds, pendingQueueURL)
+        Self.writeQueue.sync { Self.writeUUIDsSync(snapshot, to: url, label: "pending queue") }
     }
 
     func savePendingQueueAsync() async {
         guard isLoaded else { return Self.logSkippedSave("pending queue") }
         let snapshot = pendingUploadIds
         let url = pendingQueueURL
-        await Task.detached(priority: .utility) {
+        await Self.enqueueWrite {
             Self.writeUUIDsSync(snapshot, to: url, label: "pending queue")
-        }.value
+        }
     }
 
     func saveQuarantineQueue() {
         guard isLoaded else { return Self.logSkippedSave("quarantine queue") }
-        Self.writeUUIDsSync(quarantinedSessionIds, to: quarantineQueueURL, label: "quarantine queue")
+        let (snapshot, url) = (quarantinedSessionIds, quarantineQueueURL)
+        Self.writeQueue.sync { Self.writeUUIDsSync(snapshot, to: url, label: "quarantine queue") }
     }
 
     func saveQuarantineQueueAsync() async {
         guard isLoaded else { return Self.logSkippedSave("quarantine queue") }
         let snapshot = quarantinedSessionIds
         let url = quarantineQueueURL
-        await Task.detached(priority: .utility) {
+        await Self.enqueueWrite {
             Self.writeUUIDsSync(snapshot, to: url, label: "quarantine queue")
-        }.value
+        }
     }
 
     func saveLocalOnlyAsync() async {
         guard isLoaded else { return Self.logSkippedSave("local-only list") }
         let snapshot = localOnlySessionIds
         let url = localOnlyURL
-        await Task.detached(priority: .utility) {
+        await Self.enqueueWrite {
             Self.writeUUIDsSync(snapshot, to: url, label: "local-only list")
-        }.value
+        }
     }
 
     /// The ids stored at `url`; empty, with the failure logged, when the file
@@ -357,11 +381,16 @@ struct CloudKitSyncState {
         uploadedRemovedBeforeLoad.removeAll()
         pendingRemovedBeforeLoad.removeAll()
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.cloudKitChangeToken)
-        let fm = FileManager.default
-        _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: syncStateURL) }
-        _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: pendingQueueURL) }
-        _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: quarantineQueueURL) }
-        _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: localOnlyURL) }
-        _ = attempt("CloudKitSyncState.remove") { try fm.removeItem(at: recordVersionsURL) }
+        // On the write queue, behind any save still queued: one landing after
+        // the removal would write the bookkeeping back.
+        let urls = [syncStateURL, pendingQueueURL, quarantineQueueURL, localOnlyURL, recordVersionsURL]
+        Self.writeQueue.sync { Self.removeFiles(urls) }
+    }
+
+    /// Remove each file; a failure is logged.
+    private static func removeFiles(_ urls: [URL]) {
+        for url in urls {
+            _ = attempt("CloudKitSyncState.remove") { try FileManager.default.removeItem(at: url) }
+        }
     }
 }

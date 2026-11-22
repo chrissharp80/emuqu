@@ -52,16 +52,19 @@
   },
   {
    "key": "func CloudPayloadCodec.sealForUpload(_:)",
-   "hash": "020406da4d455e15",
-   "does": "Seals a payload bound for CloudKit (session records, live backups, settings): gets writingKey() (created when the device has none) and returns seal(_:with:) under it. When no key can be read or made it logs the error and throws CloudSyncError.encryptionUnavailable, so nothing is uploaded unencrypted.",
+   "hash": "049d846c1ba507fe",
+   "does": "Seals a payload bound for CloudKit (session records, live backups, settings): gets writingKey, which may create a key only while the iCloud account is confirmed (CloudAccountIdentity.isConfirmed: a synchronizable key made after an Apple ID switch would travel into the new account's iCloud Keychain), and returns seal(_:with:) under it. When no key can be read, or none may be made, it logs and throws CloudSyncError.encryptionUnavailable, so nothing is uploaded unencrypted.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey(mayCreate:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.seal(_:with:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)"
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)",
+    "mem:CloudAccountIdentity.launch",
+    "ud:cloudkit.accountIdentity"
    ],
    "writes": [
     "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>) (new key when none)"
@@ -69,23 +72,24 @@
    "branches": [
     {
      "at": "+3",
-     "cond": "writingKey() throws",
+     "cond": "writingKey throws",
      "effect": "log the error and throw CloudSyncError.encryptionUnavailable; otherwise seal under the key"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "be903b8b907a5e7c",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.seal(_:with:)": "6360506784c81a5e",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "01ad8aa9e04c47de",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey(mayCreate:)": "d1580ed5dadfc38b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func CloudPayloadCodec.encode(_:)",
-   "hash": "b307c9aea438a554",
-   "does": "Seals the payload with seal(_:with:) under writingKey() (created when the device has none); key and seal errors propagate unchanged.",
+   "hash": "6f9a0ee6466b2191",
+   "does": "The codec's own round trip (nothing bound for iCloud uses it): seals the payload with seal(_:with:) under writingKey(mayCreate: true) (created when the device has none); key and seal errors propagate unchanged.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey(mayCreate:)",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.seal(_:with:)"
    ],
    "reads": [
@@ -97,7 +101,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.seal(_:with:)": "6360506784c81a5e",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "01ad8aa9e04c47de"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey(mayCreate:)": "d1580ed5dadfc38b"
    }
   },
   {
@@ -206,14 +210,15 @@
    }
   },
   {
-   "key": "func CloudPayloadCodec.writingKey()",
-   "hash": "accac846892bc5e2",
-   "does": "Returns the stored key under the primary account (no lock); when there is none, takes the keyCreation lock, re-checks, and only then creates a new key, so concurrent first writers create one key between them. Keychain read failures propagate (no key minted over a locked Keychain).",
+   "key": "func CloudPayloadCodec.writingKey(mayCreate:)",
+   "hash": "282d03f51c11b159",
+   "does": "Returns the stored key under the primary account (no lock); when there is none, takes the keyCreation lock, re-checks, and creates a new key only when mayCreate, so concurrent first writers create one key between them; without mayCreate logs and throws CloudSyncError.encryptionUnavailable. Keychain read failures propagate (no key minted over a locked Keychain).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryKey()",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.create()",
-    "ext:OSAllocatedUnfairLock.withLock"
+    "ext:OSAllocatedUnfairLock.withLock",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)"
@@ -230,13 +235,24 @@
     },
     {
      "at": "+3",
-     "cond": "still none under the lock",
-     "effect": "create(); else return the key another writer created"
+     "cond": "another writer created one under the lock",
+     "effect": "return it"
+    },
+    {
+     "at": "+4",
+     "cond": "none, and creating is not allowed",
+     "effect": "log, throw CloudSyncError.encryptionUnavailable"
+    },
+    {
+     "at": "+8",
+     "cond": "none, creating allowed",
+     "effect": "create()"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.create()": "5c230cfebc3242c5",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryKey()": "895e137f23afad45"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.primaryKey()": "895e137f23afad45",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {

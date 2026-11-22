@@ -17,8 +17,8 @@
  "units": [
   {
    "key": "func CloudPullCoordinator.pullRemoteChanges()",
-   "hash": "1cc188322ae60821",
-   "does": "Clears lastPullErrorMessage, lists all remote records, processes them one by one; unless cancelled, re-queues sessions missing from iCloud, persists sync state and pending queue, runs backfills when anything was added/refreshed, bumps pullVersion when anything changed. Missing zone → recreate; other errors → recorded.",
+   "hash": "17691941394616f9",
+   "does": "Clears lastPullErrorMessage, lists all remote records, processes them one by one; unless cancelled or the iCloud account is no longer confirmed, re-queues sessions missing from iCloud, persists sync state and pending queue, runs backfills when anything was added/refreshed, bumps pullVersion when anything changed. Missing zone → handleMissingZone (sync stops; nothing recreated); other errors → recorded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.fetchAllRemoteRecords()",
@@ -28,10 +28,12 @@
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.runPostPullBackfills(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleMissingZone(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handlePullFailure(_:)"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handlePullFailure(_:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed"
    ],
    "reads": [
-    "ck:HRVSession/HRVSessions"
+    "ck:HRVSession/HRVSessions",
+    "mem:CloudAccountIdentity.launch"
    ],
    "writes": [
     "mem:CloudKitSyncManager.lastPullErrorMessage",
@@ -43,7 +45,7 @@
    "branches": [
     {
      "at": "+5",
-     "cond": "Task cancelled (stall watchdog)",
+     "cond": "Task cancelled (stall watchdog) or account no longer confirmed",
      "effect": "returns after processing; state not saved here, next sync redoes it"
     },
     {
@@ -69,14 +71,15 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "be903b8b907a5e7c",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.fetchAllRemoteRecords()": "2d3047c64b0ac180",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleMissingZone(_:)": "111d5722ecc17447",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleMissingZone(_:)": "79e158c40c534dd7",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handlePullFailure(_:)": "9ecf56e9735915c1",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecords(_:)": "9241f84ee6db533a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.reuploadSessionsMissingFromCloud(_:)": "1dcb0d1d2e457b16",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecords(_:)": "1174dfefcd6e3a0f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.reuploadSessionsMissingFromCloud(_:)": "95c83b2cf08d00e1",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.runPostPullBackfills(_:)": "b6aeeeafc2ecb116",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "f6b7dad7c8d3ce2b",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e52297fe4b9ce11f"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "944b5b68fbd5fec8",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "127a86f7e860268d"
    }
   },
   {
@@ -110,10 +113,11 @@
   },
   {
    "key": "func CloudPullCoordinator.reuploadSessionsMissingFromCloud(_:)",
-   "hash": "c4c880e31a5c2bac",
-   "does": "Only when every listed result succeeded: finds uploaded ids absent from the listing that still exist locally and were not intentionally deleted; ids missing in this and the previous listing are markRemoved (re-queued); stores this listing's missing set.",
+   "hash": "b3e8be5a18eb57f2",
+   "does": "Only while the iCloud account is confirmed and when every listed result succeeded: finds uploaded ids absent from the listing that still exist locally and were not intentionally deleted; ids missing in this and the previous listing are markRemoved (re-queued); stores this listing's missing set.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)",
@@ -123,7 +127,8 @@
     "mem:CloudKitSyncState.uploadedSessionIds",
     "mem:CloudKitSyncManager.missingFromLastListing",
     "mem:SessionArchive.index",
-    "mem:SessionArchive.deletedSessionIds"
+    "mem:SessionArchive.deletedSessionIds",
+    "mem:CloudAccountIdentity.launch"
    ],
    "writes": [
     "mem:CloudKitSyncManager.missingFromLastListing",
@@ -133,21 +138,26 @@
    "branches": [
     {
      "at": "+1",
+     "cond": "account not confirmed",
+     "effect": "returns — nothing re-queued for another account"
+    },
+    {
+     "at": "+2",
      "cond": "any per-record failure in results",
      "effect": "returns — no re-queue on partial listing"
     },
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "result is .success",
      "effect": "closure true for success"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "none confirmed missing twice",
      "effect": "returns after storing missing set"
     },
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "for each confirmed id",
      "effect": "markRemoved"
     }
@@ -155,23 +165,26 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "be903b8b907a5e7c",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func CloudPullCoordinator.processRemoteRecords(_:)",
-   "hash": "b634d40d1dcba760",
-   "does": "Reads the sessions deleted forever (ForgottenSessions.ids) once, then iterates results in order; a record the listing could not return is logged and recorded as the pull's error (noteListingFailure), so the sync ends as an error; processes each successful record with that set, noting progress and accumulating new/deleted/refreshed counts and backfill ids; stops on cancellation.",
+   "hash": "1785b0f0f0daaf68",
+   "does": "Reads the sessions deleted forever (ForgottenSessions.ids) once, then iterates results in order; a record the listing could not return is logged and recorded as the pull's error (noteListingFailure), so the sync ends as an error; processes each successful record with that set, noting progress and accumulating new/deleted/refreshed counts and backfill ids; stops on cancellation or when the iCloud account is no longer confirmed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.noteListingFailure(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed"
    ],
    "reads": [
-    "ud:sessionRecovery.forgottenBackupIds"
+    "ud:sessionRecovery.forgottenBackupIds",
+    "mem:CloudAccountIdentity.launch"
    ],
    "writes": [
     "mem:CloudKitSyncManager.lastSyncProgressAt",
@@ -185,7 +198,7 @@
     },
     {
      "at": "+6",
-     "cond": "Task cancelled",
+     "cond": "Task cancelled or account not confirmed",
      "effect": "break"
     },
     {
@@ -201,8 +214,9 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "1c0f4f2c06999790",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "be903b8b907a5e7c",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.noteListingFailure(_:)": "91a3d07e543a9cf6",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "c959bfe60e03edc3",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "df67e29f7a5a8f92",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "230cd5464dd541a4"
    }
   },
@@ -250,47 +264,30 @@
   },
   {
    "key": "func CloudPullCoordinator.handleMissingZone(_:)",
-   "hash": "f331ada536fe8123",
-   "does": "Logs; tries to recreate the zone; on success re-queues every uploaded session (markRemoved) and persists state; on failure logs error and sets a localized lastPullErrorMessage.",
+   "hash": "b23e803c5d951124",
+   "does": "The session zone is gone: logs and hands it to CloudAccountGuard.zoneWasDeleted, which re-checks the account and stops sync (the user's deletion, or another account); nothing is recreated or re-queued. When the account cannot be checked, its reason becomes lastPullErrorMessage.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.recreateZoneAfterNotFound()",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()"
    ],
-   "reads": [
-    "mem:CloudKitSyncState.uploadedSessionIds"
-   ],
+   "reads": [],
    "writes": [
-    "mem:CloudKitSyncState.uploadedSessionIds",
-    "mem:CloudKitSyncState.pendingUploadIds",
-    "file:<archiveDir>/sync_state.json",
-    "file:<archiveDir>/record_versions.json",
-    "file:<archiveDir>/pending_uploads.json",
     "mem:CloudKitSyncManager.lastPullErrorMessage",
-    "ck:zone HRVSessions"
+    "mem:SettingsManager.settings.iCloudSyncEnabled (when sync stops)"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "zone recreated",
-     "effect": "re-queue all uploaded ids; else error message"
-    },
-    {
-     "at": "+4",
-     "cond": "for each uploaded id",
-     "effect": "markRemoved"
+     "cond": "account could not be checked (message returned)",
+     "effect": "lastPullErrorMessage = message; else sync was stopped"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.recreateZoneAfterNotFound()": "b05267ceb09249f0",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "f6b7dad7c8d3ce2b",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e52297fe4b9ce11f",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "42ad9add2c66cf12",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -326,8 +323,8 @@
   },
   {
    "key": "func CloudPullCoordinator.processRemoteRecord(_:forgotten:)",
-   "hash": "8d9da3b3adf9f2b3",
-   "does": "Per record: non-UUID name, or a session deleted forever here (in forgotten) → nothing (never imported, refreshed or marked uploaded); tombstone (isDeleted == 1) not locally restored → delete local copy; already held or intentionally deleted → refreshIfRemoteIsNewer; else fetch asset and import as new, passing the record's change tag.",
+   "hash": "f0de69e549b98fe2",
+   "does": "Per record: non-UUID name, or a session deleted forever here (in forgotten) → nothing (never imported, refreshed or marked uploaded); tombstone (isDeleted == 1) not locally restored → delete local copy; a record kept on another device (isDeleted == keptOnDeviceMarker) → a copy held here counts as uploaded, nothing imported or refreshed; otherwise a restore made on another device after this one's deletion is adopted first (adoptRestoreIfNewer); already held or intentionally deleted → refreshIfRemoteIsNewer; else fetch asset and import as new, passing the record's change tag.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)",
@@ -335,7 +332,8 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.isKnownLocally(_:)",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.refreshIfRemoteIsNewer(_:sessionId:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.adoptRestoreIfNewer(_:sessionId:)"
    ],
    "reads": [
     "ck:HRVSession.isDeleted",
@@ -350,26 +348,37 @@
      "effect": "RecordOutcome() (ignored)"
     },
     {
-     "at": "+6",
-     "cond": "isDeleted ?? 0 == 1 and the session not restored locally from Trash",
+     "at": "+3",
+     "cond": "?? — isDeleted missing or not Int64",
+     "effect": "treated as 0 (live)"
+    },
+    {
+     "at": "+7",
+     "cond": "isDeleted == 1 and the session not restored locally from Trash",
      "effect": "handleDeletedRecord; a locally restored one falls through so its upload overrides the tombstone"
     },
     {
-     "at": "+10",
+     "at": "+11",
+     "cond": "isDeleted == keptOnDeviceMarker",
+     "effect": "isKnownLocally (marks a held copy uploaded); RecordOutcome()"
+    },
+    {
+     "at": "+16",
      "cond": "isKnownLocally",
      "effect": "refreshIfRemoteIsNewer"
     },
     {
-     "at": "+11",
+     "at": "+17",
      "cond": "no asset obtainable",
      "effect": "RecordOutcome() (retried next pull)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.refreshIfRemoteIsNewer(_:sessionId:)": "13125b2e2dd27aaa",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "bd5476ac4f6795e0",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "3b97ddad5f810ff9",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)": "fb7ea0a650ecd090",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.adoptRestoreIfNewer(_:sessionId:)": "cb88960f764393fa",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "cbf6a6c0edb695ed",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "e3a2bd514515bfca",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)": "5669d2a4971d777e",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.isKnownLocally(_:)": "cb9c31dfa4be5279",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
     "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)": "7e1c3c567d6e2222"
@@ -377,27 +386,78 @@
   },
   {
    "key": "func CloudPullCoordinator.assetURL(for:)",
-   "hash": "e0c831d9a5e65465",
-   "does": "Returns the record's sessionData asset file URL, fetching the full record if the listing lacked it; nil with log when absent.",
+   "hash": "bb41546bdb96f29d",
+   "does": "Returns the record's sessionData asset file URL, fetching the full record if the listing lacked it; nil when the fetch failed (recordWithAsset reports that). A record that came back without an asset is logged and recorded as the pull's error (localized 'no recording attached'), so the sync does not read Up to date.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.recordWithAsset(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "ck:HRVSession.sessionData"
    ],
-   "writes": [],
+   "writes": [
+    "mem:CloudKitSyncManager.lastPullErrorMessage"
+   ],
    "branches": [
     {
      "at": "+1",
-     "cond": "no full record, no CKAsset or no fileURL",
-     "effect": "logs 'No asset data' and returns nil (no error message set unless the fetch itself failed)"
+     "cond": "the full record could not be fetched",
+     "effect": "nil (error set by recordWithAsset)"
+    },
+    {
+     "at": "+2",
+     "cond": "no CKAsset or no fileURL",
+     "effect": "logs, sets lastPullErrorMessage, returns nil"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.recordWithAsset(_:)": "44093a0f77cd74d8",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.fileURL(_:)": "acbd0989051106ca",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func CloudPullCoordinator.adoptRestoreIfNewer(_:sessionId:)",
+   "hash": "e411506cbe7e84b4",
+   "does": "When this device holds no copy, has the session marked deleted, and the record carries a restore dated after that deletion (TrashRestoreCoordinator.restoreIsNewer), drops the local deletion and the Trash copy (adoptFromAnotherDevice) so the same pull imports the session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deletionTime(of:)",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.restoreIsNewer(_:thanDeletionAt:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.adoptFromAnotherDevice(_:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds",
+    "ud:archive.deletionTimes",
+    "ck:HRVSession.isDeleted",
+    "ck:CKRecord.modificationDate"
+   ],
+   "writes": [
+    "mem:SessionArchive.deletedSessionIds",
+    "file:<archiveDir>/deleted.json",
+    "file:<archiveDir>/Trash/<id>.json (removed)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "held here, not deleted here, or no newer restore",
+     "effect": "returns; nothing changed"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deletionTime(of:)": "b55b78716df66353",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.adoptFromAnotherDevice(_:)": "9b5041fd0a0e0090",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.restoreIsNewer(_:thanDeletionAt:)": "c1cf0346294fe1af"
    }
   },
   {
@@ -474,18 +534,20 @@
   },
   {
    "key": "func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)",
-   "hash": "0cb416dd044629a2",
-   "does": "Decodes the asset off-main, archives it with skipSameNightMerge: true (on main actor), marks uploaded and remembers the record's change tag (version) as the one this copy matches; returns new=1 with backfillId; failures go to importFailure.",
+   "hash": "5e7e65bb2ecfd7a8",
+   "does": "Decodes the asset off-main; when the task was cancelled (stall watchdog) or the iCloud account is no longer confirmed meanwhile, imports nothing. Otherwise archives it with skipSameNightMerge: true (on main actor), marks uploaded and remembers the record's change tag (version) as the one this copy matches; returns new=1 with backfillId; failures go to importFailure.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importFailure(_:sessionIdString:)"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importFailure(_:sessionIdString:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed"
    ],
    "reads": [
-    "file:CKAsset fileURL"
+    "file:CKAsset fileURL",
+    "mem:CloudAccountIdentity.launch"
    ],
    "writes": [
     "file:<archiveDir>/<id>.json",
@@ -496,14 +558,20 @@
    ],
    "branches": [
     {
-     "at": "+11",
+     "at": "+9",
+     "cond": "cancelled or account not confirmed after the decode",
+     "effect": "RecordOutcome(); the next sync imports it"
+    },
+    {
+     "at": "+14",
      "cond": "decode or archive throws",
      "effect": "importFailure"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "bd5476ac4f6795e0",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "5dc05159bc65d04f",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "be903b8b907a5e7c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "cbf6a6c0edb695ed",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)": "dc8ab6c016fb95fa",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importFailure(_:sessionIdString:)": "11bc16b70e1efb90",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "98960771cca73957",
@@ -557,9 +625,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "bd5476ac4f6795e0",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "cbf6a6c0edb695ed",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "07a8c15768d32cfc",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "0fb6cb687624ba7f"
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "ba4910735f02f4e8"
    }
   },
   {
@@ -583,21 +651,21 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "3b97ddad5f810ff9",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "e3a2bd514515bfca",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)",
-   "hash": "8e14172743787015",
-   "does": "If the session exists locally, deletes it without keeping a Trash copy (deleteWithoutTrash: tombstoned, file removed directly, so a Trash that cannot take it does not block the deletion) and discards any earlier Trash copy; always markDeleted in sync state. Returns (0, deleted count).",
+   "hash": "9984460ea7f52dfb",
+   "does": "If the session exists locally, removes the local copy (removeLocalCopy). When that throws, the copy stays in the archive and in the sync state: logged, the pull's error is set to a localized 'could not be removed, tried again at the next sync', and (0, 0) returned without markDeleted, so the next pull, which lists the tombstone again, retries. Otherwise markDeleted in sync state and returns (0, deleted count).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.removeLocalCopy(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "mem:SessionArchive.index"
@@ -608,25 +676,78 @@
     "ud:archive.deletionTimes",
     "mem:CloudKitSyncState.uploadedSessionIds",
     "mem:CloudKitSyncState.pendingUploadIds",
-    "mem:CloudKitSyncState.recordVersions"
+    "mem:CloudKitSyncState.recordVersions",
+    "mem:CloudKitSyncManager.lastPullErrorMessage"
    ],
    "branches": [
     {
      "at": "+2",
      "cond": "session exists locally",
-     "effect": "deleteWithoutTrash + discardTrashed, deletedCount=1; else only markDeleted"
+     "effect": "removeLocalCopy, deletedCount=1; else only markDeleted"
     },
     {
-     "at": "+7",
-     "cond": "deleteWithoutTrash throws (an index or tombstone save failed)",
-     "effect": "logged at info and swallowed; deletedCount stays 0 but markDeleted still removes the id from uploaded/pending. The session stays in archive.entries and is not in uploadedSessionIds, so pendingPushBatch (CloudKitSyncManager+Push.swift:171-173) queues it for upload again; that upload meets the tombstone and applyDeletionMetDuringUpload retries the delete. The tombstone also re-enters this path on every later pull"
+     "at": "+6",
+     "cond": "removeLocalCopy throws",
+     "effect": "log, set lastPullErrorMessage, return (0, 0); sync state kept for the retry"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.removeLocalCopy(_:)": "c1a889cb81d020ef",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "8a446a48eda5e5d6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func CloudPullCoordinator.removeLocalCopy(_:)",
+   "hash": "b617d8e11145bb62",
+   "does": "Removes the local copy of a session deleted on another device. One queued to upload (pendingUploadIds: an unsynced change made here) is moved to this device's Trash (SessionArchive.delete) so the change can be recovered; when the Trash cannot take it, logged, and it is removed as any other copy. Any other copy is removed without the Trash (deleteWithoutTrash, which throws when the file will neither go nor move into the Trash), then any Trash copy is discarded; a Trash copy that will not go is logged and left for the Trash expiry.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.pendingUploadIds",
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "file:<archiveDir>/<id>.json",
+    "file:<archiveDir>/Trash/<id>.json",
+    "mem:SessionArchive.deletedSessionIds",
+    "file:<archiveDir>/deleted.json",
+    "file:<archiveDir>/index.json",
+    "ud:archive.deletionTimes"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "the session is queued to upload",
+     "effect": "move it to the Trash and return"
+    },
+    {
+     "at": "+5",
+     "cond": "the Trash could not take it",
+     "effect": "log; fall through to the direct removal"
+    },
+    {
+     "at": "+9",
+     "cond": "deleteWithoutTrash throws",
+     "effect": "propagates; the session is kept"
+    },
+    {
+     "at": "+10",
+     "cond": "a Trash copy could not be discarded",
+     "effect": "log; left for the Trash expiry"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)": "7f526b7970e30e76",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f558ffc445c3ff7c",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "8a446a48eda5e5d6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }

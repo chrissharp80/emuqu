@@ -207,11 +207,16 @@ struct DataSettingsPage: View {
         }
     }
 
+    /// With sync on, its status; with sync off because the app stopped it
+    /// (another iCloud account, or the iCloud data deleted), why, until the
+    /// user turns it on again.
     @ViewBuilder
     private var iCloudSyncDetail: some View {
         if settingsManager.settings.iCloudSyncEnabled {
             syncStatusRow
             syncLastSyncRow
+        } else if let stopReason = CloudAccountIdentity.stopReason {
+            Text(stopReason.message).foregroundColor(AppTheme.alert).font(.caption)
         }
     }
 
@@ -567,7 +572,7 @@ struct DataSettingsPage: View {
         guard !isBackingUpSettings else { return }
         isBackingUpSettings = true
         Task {
-            let saved = await dependencies.storage.cloudKitSettingsSync.pushImmediately()
+            let saved = await dependencies.storage.cloudKitSettingsSync.pushImmediately(replacingNewerCloudCopy: true)
             await MainActor.run { finishSettingsBackup(saved: saved) }
         }
     }
