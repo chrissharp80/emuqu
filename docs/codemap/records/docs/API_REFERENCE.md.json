@@ -2230,8 +2230,8 @@
   },
   {
    "key": "§ Emuqu — API Reference > AI Assistant > ZwiftPeripheralBroadcaster",
-   "hash": "5bc78fd04a248d02",
-   "does": "ZwiftPeripheralBroadcaster @Observable @MainActor singleton: isAdvertising, subscriberCount, startBroadcasting/stopBroadcasting/update(heartRate:powerWatts:); CBPeripheralManager advertising Heart Rate 0x180D and Cycling Power 0x1818; off by default, gated on UserSettings.enableZwiftBroadcast; WorkoutRecorder starts advertising via deferZwiftBroadcast, stops it at workout stop, and every tick pushZwiftBroadcasterUpdate calls update(heartRate:powerWatts:) with live HR and power (a no-op while not advertising); needs bluetooth-peripheral background mode. Matches ZwiftPeripheralBroadcaster.swift:82-139, WorkoutRecorder+Start.swift:493, WorkoutRecorder+Ticker.swift:235,842-849, WorkoutRecorder+Stop.swift:133.",
+   "hash": "9fa8ef432beed35d",
+   "does": "ZwiftPeripheralBroadcaster @Observable @MainActor singleton: isAdvertising, subscriberCount, startBroadcasting/stopBroadcasting/update(heartRate:powerWatts:); CBPeripheralManager advertising Heart Rate 0x180D and Cycling Power 0x1818; off by default, gated on UserSettings.enableZwiftBroadcast and on this device's acceptance of the broadcaster disclosure (BroadcasterDisclosure.allowsBroadcast, kept outside the iCloud settings backup); WorkoutRecorder starts advertising via deferZwiftBroadcast, stops it at workout stop, and every tick pushZwiftBroadcasterUpdate calls update(heartRate:powerWatts:) with live HR and power (a no-op while not advertising); needs bluetooth-peripheral background mode. Matches ZwiftPeripheralBroadcaster.swift:82-139, WorkoutRecorder+Start.swift:493, WorkoutRecorder+Ticker.swift:235,842-849, WorkoutRecorder+Stop.swift:133.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()",
@@ -2239,18 +2239,20 @@
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.configureServices()",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcast()",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.pushZwiftBroadcasterUpdate()"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.pushZwiftBroadcasterUpdate()",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcast()": "1c62c05e9753ee7f",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcast()": "7872a44a264ff044",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.pushZwiftBroadcasterUpdate()": "2d7f247431c0fe86",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.configureServices()": "bcee43bd3aefbfa0",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "962d535849c8d225",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.stopBroadcasting()": "e0499216657110ef",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "88d1cd9b077c9eb7"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "88d1cd9b077c9eb7",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)": "cf774c1bba4c4382"
    }
   },
   {

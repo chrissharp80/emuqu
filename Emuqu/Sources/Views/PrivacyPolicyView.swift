@@ -226,6 +226,21 @@ struct PrivacyPolicyView: View {
         )
     }
 
+    /// The BLE heart-rate and power broadcaster. Not a service: the data goes
+    /// to whatever is in Bluetooth range. Keep in step with
+    /// `BroadcasterDisclosureSheet` and `BroadcasterDisclosure`.
+    private static var broadcastBlock: PolicyBlock {
+        PolicyBlock(
+            title: String(localized: "Bluetooth Sensor Broadcast", bundle: LanguageManager.appBundle),
+            sentences: [
+                String(localized: "If you turn on Broadcast as BLE sensor in Settings → Wearables and accept its explanation on that device, your iPhone sends your live heart rate and power over Bluetooth during workouts.", bundle: LanguageManager.appBundle),
+                String(localized: "Apps such as Zwift use them as a heart-rate monitor and power meter.", bundle: LanguageManager.appBundle),
+                String(localized: "Any Bluetooth device in range, usually about 10 m, can read them while the workout runs. No HRV, location, identity or Apple Health data is sent.", bundle: LanguageManager.appBundle),
+                String(localized: "It is off by default and stops when the workout ends.", bundle: LanguageManager.appBundle)
+            ]
+        )
+    }
+
     /// The Guideline 5.1.1(i) third-party statement. It names each service,
     /// says data reaches it only when the user uses its feature (and, for AI
     /// and search, only after the user adds a key and agrees), and that each
@@ -327,6 +342,7 @@ struct PrivacyPolicyView: View {
             policyBlock(Self.otherServicesBlock)
             policyBlock(Self.thirdPartyBlock)
             servicePolicyLinks
+            policyBlock(Self.broadcastBlock)
         }
     }
 

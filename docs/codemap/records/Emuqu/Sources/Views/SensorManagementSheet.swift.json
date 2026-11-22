@@ -1,23 +1,25 @@
 {
  "file": "Emuqu/Sources/Views/SensorManagementSheet.swift",
- "hash": "8dd5493f524321b2",
- "role": "Fitness-tab 'Sensors' sheet: manage the Polar strap (pair, reconnect, disconnect, stop scan, swipe-to-forget), Stryd/FTMS foot pod or bike trainer, and Concept2 PM5, each as a List section driven by its manager's connection state.",
+ "hash": "7c2d7f36102169dd",
+ "role": "Fitness-tab 'Sensors' sheet: manage the Polar strap (pair, reconnect, disconnect, stop scan, swipe-to-forget; Disconnect and Forget of the connected strap ask for confirmation while it feeds a recording), Stryd/FTMS foot pod or bike trainer, and Concept2 PM5, each as a List section driven by its manager's connection state.",
  "types": [
   "SensorManagementSheet: struct View — the sheet; Polar section built inline",
+  "SensorManagementSheet.StrapRelease: enum — a pending .disconnect or .forget(KnownDevice) waiting for confirmation",
   "FootPodRow: private struct View — FootPodManager (via dependencies) read into AccessorySensorRow",
   "PM5Row: private struct View — Concept2Manager (via dependencies) read into AccessorySensorRow",
   "AccessorySensorRow: private struct View — shared status/badge/buttons/discovered list for a BLE accessory (Link, Device, Content, Actions)",
   "DiscoveredSensorButton: private struct View — one tap-to-pair row for a scanned device (Polar, foot pod and PM5)"
  ],
  "state": [],
- "toplevel": "No globals. Accessibility identifiers 'sensors.root' (26) and 'sensors.pairStrap' (198) used by UI tests.",
+ "toplevel": "No globals. @State pendingRelease: StrapRelease? (nil until a Disconnect/Forget during a recording asks for confirmation). Accessibility identifiers 'sensors.root' and 'sensors.pairStrap' used by UI tests.",
  "units": [
   {
    "key": "var SensorManagementSheet.body",
-   "hash": "02476e523b53e5bc",
-   "does": "List with polar, foot pod and PM5 sections, inline 'Sensors' title and a Done toolbar button calling onDismiss.",
+   "hash": "613321414566e6dc",
+   "does": "List with polar, foot pod and PM5 sections wrapped in the strap-release confirmation (withStrapReleaseConfirmation), inline 'Sensors' title and a Done toolbar button calling onDismiss.",
    "entry": "SwiftUI body; presented from FitnessTabView.swift:396; Done button invokes onDismiss closure; snapshot test UncoveredScreenSnapshotTests.swift:92",
    "calls": [
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.withStrapReleaseConfirmation(_:)",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.polarSection",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.footPodSection",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.pm5Section",
@@ -29,9 +31,37 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.withStrapReleaseConfirmation(_:)": "131e46e655a07041",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.footPodSection": "3b6f29593a8cec18",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.pm5Section": "f4ee502fbcf0c72b",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.polarSection": "0172f3cbb363b113"
+   }
+  },
+  {
+   "key": "func SensorManagementSheet.withStrapReleaseConfirmation(_:)",
+   "hash": "e87088cf1bc8a38d",
+   "does": "Attaches the confirmation dialog for a pending strap release ('Disconnect the strap during a recording?': the recording stops getting beats from it and the app won't reconnect on its own), shown while pendingRelease is set; its button is strapReleaseConfirmButton, and dismissing it clears pendingRelease without dropping the link.",
+   "entry": "SwiftUI view-body evaluation (wraps the sheet's List in body)",
+   "calls": [
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.strapReleaseConfirmButton(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SensorManagementSheet.pendingRelease"
+   ],
+   "writes": [
+    "mem:SensorManagementSheet.pendingRelease"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "pendingRelease != nil",
+     "effect": "dialog shown; dismissal sets pendingRelease = nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.strapReleaseConfirmButton(_:)": "bcf65f2e7579b5e6"
    }
   },
   {
@@ -73,12 +103,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.body": "d24a8f3767e2bf79",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.body": "1a167e155433e22f",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.connectionStateBadge": "f5f67699d7e67a8a",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.polarColor": "20d01e464e91dd95",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.polarIcon": "9b737c7b267b54a3",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.polarSubtitle": "fd93421fcfd0890e",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.polarTitle": "87e897ed49aed49a",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.polarTitle": "7d55449fe91d4b22",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
@@ -140,7 +170,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.cancelConnectionPolarButton": "d83ca3b27bfbf32c",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.disconnectPolarButton": "5f12c3e85a6b9fb1",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.disconnectPolarButton": "520adff705df871b",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.pairAnotherButton3": "52a68ff99b7851db",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.pairStrapButton": "15cddb1ad1f3432d",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.reconnectButton2": "564480dfdd5688f6",
@@ -149,10 +179,11 @@
   },
   {
    "key": "var SensorManagementSheet.disconnectPolarButton",
-   "hash": "a92d8ae9af939dd2",
-   "does": "Destructive 'Disconnect' button calling polarManager.disconnect().",
+   "hash": "2a69f46b9bbb3352",
+   "does": "Destructive 'Disconnect' button: while the strap feeds a recording (strapIsRecording) it only sets pendingRelease = .disconnect, which opens the confirmation; otherwise it calls polarManager.disconnect() at once.",
    "entry": "Button tap",
    "calls": [
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.strapIsRecording",
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()",
     "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()",
@@ -161,6 +192,7 @@
    ],
    "reads": [],
    "writes": [
+    "mem:SensorManagementSheet.pendingRelease",
     "mem:PolarManager.connectionState",
     "mem:PolarManager.connectedDeviceId",
     "mem:PolarManager.connectedDeviceType",
@@ -171,12 +203,63 @@
     "mem:PolarManager.currentHeartRate",
     "mem:PolarManager.lastError"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "strapIsRecording",
+     "effect": "true: pendingRelease = .disconnect (confirmation first); false: disconnect now"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "42e43b3d408dd061",
     "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift::func StrapDiscoveryCoordinator.disconnect()": "79bd1724416fb0de",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.noteUserDisconnect()": "095dcaaf90c1d6ea",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.strapIsRecording": "c1f6ee6445aca005"
+   }
+  },
+  {
+   "key": "var SensorManagementSheet.strapIsRecording",
+   "hash": "13555c9abbce2868",
+   "does": "True while the strap feeds a recording: PolarManager is streaming (a quick reading, overnight stream or workout) or its recording state is not idle.",
+   "entry": "Read by disconnectPolarButton and forget(_:)",
+   "calls": [],
+   "reads": [
+    "mem:PolarManager.isStreaming",
+    "mem:PolarManager.recordingState"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98"
+   }
+  },
+  {
+   "key": "func SensorManagementSheet.strapReleaseConfirmButton(_:)",
+   "hash": "eced9ff898ea158a",
+   "does": "The confirmation dialog's destructive button, labelled Disconnect or Forget for the pending release: clears pendingRelease, then disconnects the strap or forgets the device (forgetNow).",
+   "entry": "Tap on the confirmation dialog's button",
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.forgetNow(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SensorManagementSheet.pendingRelease",
+    "mem:PolarManager.knownDevices"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "release",
+     "effect": ".disconnect: polarManager.disconnect(); .forget(device): forgetNow(device)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "42e43b3d408dd061",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.forgetNow(_:)": "3a2b8a5873f5bcd3"
    }
   },
   {
@@ -308,15 +391,45 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/SavedRoutesPage.swift::func SavedRoutesPage.swipeActions(for:)": "e28f5bde317137ec",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.forget(_:)": "4dad710c01d36ef1",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.forget(_:)": "c7c7b33478b75833",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
    "key": "func SensorManagementSheet.forget(_:)",
-   "hash": "7fd4f04f36ca245c",
-   "does": "Forgets a paired strap: disconnects first when it is the connected strap, cancels the attempt when it is the strap being connected, then removes it from known devices (persisted).",
+   "hash": "e0c648ac7c145339",
+   "does": "Swipe Forget of a paired strap: when it is the connected strap and the strap feeds a recording, sets pendingRelease = .forget(device) so the user confirms first; otherwise forgets it now (forgetNow).",
    "entry": "Swipe action tap",
+   "calls": [
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.strapIsRecording",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.forgetNow(_:)"
+   ],
+   "reads": [
+    "mem:PolarManager.connectionState",
+    "mem:PolarManager.connectedDeviceId"
+   ],
+   "writes": [
+    "mem:SensorManagementSheet.pendingRelease",
+    "mem:PolarManager.knownDevices"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "strapIsRecording and connected to this strap",
+     "effect": "true: pendingRelease = .forget(device); false: forgetNow"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func SensorManagementSheet.forgetNow(_:)": "3a2b8a5873f5bcd3",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var SensorManagementSheet.strapIsRecording": "c1f6ee6445aca005"
+   }
+  },
+  {
+   "key": "func SensorManagementSheet.forgetNow(_:)",
+   "hash": "4627912a03e30462",
+   "does": "Forgets a paired strap: disconnects first when it is the connected strap, cancels the attempt when it is the strap being connected, then removes it from known devices (persisted).",
+   "entry": "Called by forget(_:) and by the confirmation's Forget (strapReleaseConfirmButton)",
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()",
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelConnection()",
@@ -536,24 +649,33 @@
   },
   {
    "key": "var SensorManagementSheet.polarTitle",
-   "hash": "44f5389f2e643886",
-   "does": "First known device's name, or 'Polar Strap' when none paired.",
+   "hash": "c36dcb545ccab2a0",
+   "does": "The name of the strap connected or being connected now (its known-device name, else its device type's name, else 'Polar Strap'); with no link, the first known device's name, or 'Polar Strap' when none is paired.",
    "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "mem:PolarManager.knownDevices"
+    "mem:PolarManager.connectedDeviceId",
+    "mem:PolarManager.pendingDeviceId",
+    "mem:PolarManager.knownDevices",
+    "mem:PolarManager.connectedDeviceType"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "knownDevices.first?.name ?? 'Polar Strap'",
-     "effect": "no known devices uses 'Polar Strap'; a connected strap is always in knownDevices (adoptConnectedDevice sets .connected and addKnownDevice together, StrapLinkCoordinator.swift:139-142), so the fallback shows while connected only after the user swipe-forgets the connected strap"
+     "at": "+2",
+     "cond": "connectedDeviceId ?? pendingDeviceId exists",
+     "effect": "true: that device's known name ?? connectedDeviceType.displayName ?? 'Polar Strap'"
+    },
+    {
+     "at": "+6",
+     "cond": "no linked device",
+     "effect": "knownDevices.first?.name ?? 'Polar Strap'"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },

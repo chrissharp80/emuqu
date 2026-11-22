@@ -83,7 +83,9 @@ struct Verification {
         )
     }
 
-    private let config: Config
+    /// Read by the Record tab's Data Quality card, so its ticks judge a result
+    /// by the limits that produced it.
+    let config: Config
 
     init(config: Config = .default) {
         self.config = config

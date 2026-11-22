@@ -266,9 +266,19 @@ extension RecordView {
         if let verification = sessionState.verificationResult {
             RecordVerificationSection(
                 verification: verification,
-                recoveryWindow: sessionState.recoveryWindow
+                recoveryWindow: sessionState.recoveryWindow,
+                limits: verificationLimits
             )
         }
+    }
+
+    /// The limits the shown result was verified against: a quick reading by
+    /// the relaxed streaming verifier (the only one that verifies `.quick`
+    /// sessions), everything else by the overnight one.
+    private var verificationLimits: Verification.Config {
+        sessionState.currentSession?.sessionType == .quick
+            ? collector.streamingVerification.config
+            : collector.verification.config
     }
 
     /// Results Preview for quick readings (tap to see full results)
@@ -368,7 +378,7 @@ extension RecordView {
             onUpdateSleep: { dependencies.collection.reanalysisService.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) },
             onAdjustSleep: { adjustMorningSleep($0, for: session) },
             onUnlinkSegment: { dependencies.collection.reanalysisService.unlinkSegment(segmentId: $0, fromSession: session.id) },
-            linkedSegments: collector.archive.linkedSegments(for: session)
+            linkedSegments: presentation.linkedSegments
         )
     }
 

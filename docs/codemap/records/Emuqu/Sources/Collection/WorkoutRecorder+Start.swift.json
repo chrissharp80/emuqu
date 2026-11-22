@@ -682,21 +682,23 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcast()": "1c62c05e9753ee7f",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcast()": "7872a44a264ff044",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func deferGeocodingReset()": "a2913bfdcc2ec046"
    }
   },
   {
    "key": "func WorkoutSessionLifecycle.deferZwiftBroadcast()",
-   "hash": "da70f1e230186425",
-   "does": "If Zwift broadcast is enabled, queues a main-actor Task that, only while the workout is still recording, starts the BLE peripheral HR/power broadcaster and logs its duration.",
+   "hash": "4b7f679ee762ad5a",
+   "does": "If Zwift broadcast is enabled and this device accepted the broadcaster disclosure (BroadcasterDisclosure.allowsBroadcast; a setting restored from the iCloud backup without that acceptance does nothing), queues a main-actor Task that, only while the workout is still recording, starts the BLE peripheral HR/power broadcaster and logs its duration.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()",
-    "closure:WorkoutRecorder.settingsProvider"
+    "closure:WorkoutRecorder.settingsProvider",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)"
    ],
    "reads": [
     "mem:UserSettings.enableZwiftBroadcast",
+    "ud:settings.broadcaster.acknowledged",
     "mem:WorkoutLifecycle.phase"
    ],
    "writes": [
@@ -705,8 +707,8 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "settings.enableZwiftBroadcast",
-     "effect": "false: return; true: defers"
+     "cond": "settings.enableZwiftBroadcast && this device accepted the disclosure",
+     "effect": "false: return, nothing advertised; true: defers"
     },
     {
      "at": "+4",
@@ -717,11 +719,12 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.ms(_:_:)": "3382b3dafe7f09ff",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "fe2ee2aad08b1498",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "962d535849c8d225",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "f306ef98d67e6cfb",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)": "cf774c1bba4c4382"
    }
   },
   {

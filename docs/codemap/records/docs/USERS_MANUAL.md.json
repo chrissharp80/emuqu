@@ -641,8 +641,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Record Tab > Data Recovery",
-   "hash": "0141a7dc0540d3d4",
-   "does": "Claims device-memory recovery alerts (Recover Data / Discard & Start Fresh / Retry Fetch) and, after a crash mid-recording, a launch 'Session Interrupted' alert with Resume, Save as Complete (Save to Archive when not resumable) and Dismiss, where Dismiss only stops the alert for that session and the backup stays recoverable from Settings → iCloud & Data → Recover Lost Sessions.",
+   "hash": "5521a15f02ad965b",
+   "does": "Claims device-memory recovery alerts (Recover Data; 'Delete from [Device Name]', which confirms first and deletes the only copy, stopping a running recording; Retry Fetch) and, after a crash mid-recording, a launch 'Session Interrupted' alert with Resume, Save as Complete (Save to Archive when not resumable) and Dismiss, where Dismiss only stops the alert for that session and the backup stays recoverable from Settings → iCloud & Data → Recover Lost Sessions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.body",
@@ -665,7 +665,7 @@
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "8256130028c86fa4",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedSession()": "203321a74b19c5f8",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resumeInterruptedSession()": "49c41cb4f5e67435",
-    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.body": "9acd34a2140a855d"
+    "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.body": "1233ec33fc037287"
    }
   },
   {
@@ -2033,12 +2033,13 @@
   },
   {
    "key": "§ Emuqu User Manual > Fitness Tab > Zwift / TrainerRoad / Rouvy broadcaster",
-   "hash": "2d3d3cd31e6ed7c2",
-   "does": "Claims enableZwiftBroadcast (Settings → Wearables, first-enable explainer) advertises HR + Cycling Power services; off by default.",
+   "hash": "aa003ae51510c3a9",
+   "does": "Claims enableZwiftBroadcast (Settings → Wearables, first-enable explainer that each device has to accept; a setting restored from iCloud on a new device stays off there until accepted) advertises HR + Cycling Power services; off by default.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.broadcastToggle",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.broadcasterDisclosure",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcastAndGeocodingReset()",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcast()",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()",
@@ -2053,16 +2054,17 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcast()": "1c62c05e9753ee7f",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcast()": "7872a44a264ff044",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcastAndGeocodingReset()": "8822b266eb92bf2a",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.pushZwiftBroadcasterUpdate()": "2d7f247431c0fe86",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.configureServices()": "bcee43bd3aefbfa0",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "47c2173f4146162c",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "ef15547ae1ec005b",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()": "ed610baf6d09794b",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "fe2ee2aad08b1498",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.stopBroadcasting()": "f9978354ce61985e",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "297cbefb6dac851f",
-    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.broadcastToggle": "227e8d8307f2ca4c",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "962d535849c8d225",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.stopBroadcasting()": "e0499216657110ef",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "88d1cd9b077c9eb7",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)": "cf774c1bba4c4382",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.broadcastToggle": "cfa87d53343f488c",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.broadcasterDisclosure": "0395b86f1cdb8eec"
    }
   },

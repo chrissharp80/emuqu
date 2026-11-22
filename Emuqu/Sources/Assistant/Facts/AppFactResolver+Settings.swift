@@ -58,12 +58,15 @@ struct AppSettingsNamespace: FactNamespaceResolver {
         ) { .boolean(self.settings().enableTrainingLoadIntegration) }
     }
 
+    /// What Settings → Wearables shows on this device: the setting, and this
+    /// device's acceptance of the broadcast disclosure. A setting restored from
+    /// iCloud without that acceptance does not broadcast, so it reads as off.
     private var appSettingsZwiftBroadcastOnEntry: FactEntry {
         .fixed(
             key: "app.settings.zwift_broadcast_on",
-            description: "Whether the Zwift / TrainerRoad / Rouvy BLE peripheral broadcast is enabled in Settings. The actual advertising state is at app.devices.zwift_broadcast.advertising.",
+            description: "Whether the Zwift / TrainerRoad / Rouvy BLE peripheral broadcast is enabled in Settings on this device. The actual advertising state is at app.devices.zwift_broadcast.advertising.",
             valueType: "Bool"
-        ) { .boolean(self.settings().enableZwiftBroadcast) }
+        ) { .boolean(BroadcasterDisclosure.allowsBroadcast(settingEnabled: self.settings().enableZwiftBroadcast)) }
     }
 
     private var appSettingsHealthkitExportOnEntry: FactEntry {
