@@ -221,13 +221,13 @@
   },
   {
    "key": "func SessionRecoveryCoordinator.permanentlyDelete(_:)",
-   "hash": "9b625ceb8d360ae7",
-   "does": "Deletes the sessions from the Trash for good through SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:), handing it removeExportedHRV to delete each removed session's HRV in Apple Health; returns the TrashDeletionOutcome (discardable).",
+   "hash": "2578d62872e36b6e",
+   "does": "Deletes the sessions from the Trash for good through SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:), handing it removeHealthExports to delete everything each removed session exported to Apple Health (HRV, heart rate, resting heart rate, sleep, workouts); returns the TrashDeletionOutcome (discardable).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)",
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.removeExportedHRV(of:over:)"
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.removeHealthExports(of:over:)"
    ],
    "reads": [],
    "writes": [
@@ -237,39 +237,39 @@
     "ud:sessionRecovery.forgottenBackupIds",
     "ck:live backup delete",
     "archive:deletedIds",
-    "hk:heartRateVariabilitySDNN"
+    "hk:heartRateVariabilitySDNN, heartRate, restingHeartRate, sleepAnalysis, workouts (the session's own exports, deleted)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.removeExportedHRV(of:over:)": "c82b13a8fd66635e",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.removeHealthExports(of:over:)": "683fa0d38fdd74db",
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "75439d381f39246d",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)": "ad8d9f5fcf49819c"
    }
   },
   {
-   "key": "func SessionRecoveryCoordinator.removeExportedHRV(of:over:)",
-   "hash": "5570b78bec88b4eb",
-   "does": "Deletes the HRV samples the session exported to Apple Health over its span (HealthWriteAndObserve.removeExportedHRV through collector.healthKit.writes); true when that worked, false with the error logged at .error.",
+   "key": "func SessionRecoveryCoordinator.removeHealthExports(of:over:)",
+   "hash": "71611f6e02b4f06d",
+   "does": "Deletes everything the session exported to Apple Health over its recording span (HealthWriteAndObserve.removeExports); true when every removal worked, false (logged at error level) when any failed.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthWriteAndObserve.removeExports(sessionId:from:to:)",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
-    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.removeExportedHRV(sessionId:from:to:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
-    "hk:heartRateVariabilitySDNN"
+    "hk:the session's exported samples and workouts (deleted)"
    ],
    "branches": [
     {
      "at": "+4",
-     "cond": "HealthKit threw",
-     "effect": "log at .error, false"
+     "cond": "a removal failed",
+     "effect": "logged, returns false"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.removeExportedHRV(sessionId:from:to:)": "42edd3adb4abba69",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "936b8a496469997e",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthWriteAndObserve.removeExports(sessionId:from:to:)": "980c692590529480",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }

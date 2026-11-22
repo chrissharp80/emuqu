@@ -1,11 +1,13 @@
 {
  "file": "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift",
- "hash": "e849b13c91e0e82f",
- "role": "WorkoutRecoveryService extension that copies user-entered and non-recomputable fields from the archived copy of a workout into a session rebuilt from backups (trim, recover-from-strap, recover-route-from-Watch), so the rebuild does not lose tags/notes/feeling/HRR/weather/power or the Apple Health export stamp.",
+ "hash": "dfbf6b66486b588d",
+ "role": "WorkoutRecoveryService extension that copies user-entered and non-recomputable fields from the archived copy of a workout into a session rebuilt from backups (trim, recover-from-strap, recover-route-from-Watch), so the rebuild does not lose tags/notes/feeling/HRR/weather/power; an Apple Health export stamp Emuqu wrote is dropped instead, so the rebuild is exported again and replaces the copy in Health, while an import from Health keeps its stamp.",
  "types": [
   "WorkoutRecoveryService: extension — carryForward and its field-group helpers"
  ],
- "state": [],
+ "state": [
+  "WorkoutRecoveryService.importedFromHealthDeviceId = \"healthkit-import\" (private static)"
+ ],
  "toplevel": "",
  "units": [
   {
@@ -39,24 +41,44 @@
     "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryMeasuredFields(from:into:)": "81495c364e94c1af",
     "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryPowerFields(from:into:)": "31123cbf85bb2e40",
     "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySamples(from:into:metadata:)": "cb0be121a2f65af8",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySessionFields(from:into:)": "c09dbabc1882fb5f",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySessionFields(from:into:)": "bd81bc99db915411",
     "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryUserFields(from:into:)": "2d4559e9ac67d1e2",
     "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.coversSameTime(_:_:)": "7e133a628f873010"
    }
   },
   {
    "key": "func WorkoutRecoveryService.carrySessionFields(from:into:)",
-   "hash": "43fbb1d3a30836aa",
-   "does": "Overwrites the rebuilt session's tags, notes, deviceProvenance, linkedSessionIds, aiContext, perceivedReadiness, morningFeeling(+tags), trainingSnapshot, healthKitExportedAt and healthKitExportFailureCount with the archived values (unconditional, not nil-coalesced).",
+   "hash": "bf17bda5ef18504d",
+   "does": "Overwrites the rebuilt session's tags, notes, deviceProvenance, linkedSessionIds, aiContext, perceivedReadiness, morningFeeling(+tags) and trainingSnapshot with the archived values (unconditional, not nil-coalesced). The export stamp: when Emuqu exported the archived copy (wasExportedByEmuqu), healthKitExportedAt and the failure count are cleared so the rebuild is exported again; otherwise both are carried.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.wasExportedByEmuqu(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "Emuqu exported the archived copy",
+     "effect": "stamp and failure count cleared; else carried from the archived copy"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "a0e51cc84d1b105c",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.wasExportedByEmuqu(_:)": "7c40791626573adf"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryService.wasExportedByEmuqu(_:)",
+   "hash": "4b8397c711a3610d",
+   "does": "Whether Apple Health holds a copy of the session that Emuqu saved: it carries an export stamp, and is not a workout imported from Apple Health (device id 'healthkit-import', stamped because it is Health's own).",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
-    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "a0e51cc84d1b105c"
-   }
+   "deps": {}
   },
   {
    "key": "func WorkoutRecoveryService.coversSameTime(_:_:)",

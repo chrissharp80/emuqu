@@ -1,12 +1,13 @@
 {
  "file": "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift",
  "hash": "e5cb639dd9b6f112",
- "role": "HealthWriteAndObserve extension: writing sleep back to HealthKit (save-then-replace, sole-source gate), the per-session metric exports after acceptance (HRV, HR, RHR, sleep; failures reported to the caller), and the sleep observer with its debounced cache warm and wake push. Shared categoryResult and averageMeasuredEfficiency helpers.",
+ "role": "HealthWriteAndObserve extension: writing sleep back to HealthKit (save-then-replace with sync identifiers, sole-source gate) and its delete-forever removal, the per-session metric exports after acceptance (HRV, HR, RHR, sleep; failures reported to the caller), and the sleep observer (HealthSampleWatch: observer query, persisted anchor, background delivery) with its debounced cache warm and wake push. Shared categoryResult and averageMeasuredEfficiency helpers.",
  "types": [
-  "HealthWriteAndObserve: extension — sleep export, session metric exports, sleep observer (struct declared in HealthWriteAndObserve.swift, @MainActor, holds manager)"
+  "HealthWriteAndObserve: extension — sleep export and removal, session metric exports, sleep observer (struct declared in HealthWriteAndObserve.swift, @MainActor, holds manager)"
  ],
  "state": [
   "ud:SleepDataCache.v2 (written via SleepDataCache.write)",
+  "ud:HealthSampleWatch.sleepAnchor.v1 (the sleep observer's anchor)",
   "mem:HealthKitManager.sleepObserverQuery",
   "mem:HealthKitManager.sleepDataVersion",
   "mem:HealthKitManager.sleepCacheWarmTask"
@@ -60,14 +61,15 @@
   },
   {
    "key": "func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)",
-   "hash": "df7778009549d19e",
-   "does": "Exports a night to Apple Health: requires sleep boundaries and some sleep, builds an inBed sample plus one sample per stage interval (asleepUnspecified/awake) tagged with ExternalUUID, and when any sample is valid replaces the session's earlier sleep export with them through sampleReplacer (sleepReplacement: saved before the earlier one is deleted, serialized per session). A night with nothing valid to write leaves the earlier export untouched.",
+   "hash": "ad627193a3f6b6de",
+   "does": "Exports a night to Apple Health: requires sleep boundaries and some sleep, builds an inBed sample plus one sample per stage interval (asleepUnspecified/awake) under the session's sleep identities and a fresh sync version, and when any sample is valid replaces the session's earlier sleep export with them through sampleReplacer (sleepReplacement: saved before the earlier one is deleted, serialized per session). A night with nothing valid to write leaves the earlier export untouched.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepExportSamples(sleepData:sleepType:sessionId:inBedStart:sleepEnd:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepExportSamples(sleepData:sleepType:sessionId:inBedStart:sleepEnd:version:)",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepReplacement(sleepType:sessionId:)",
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)"
    ],
@@ -104,7 +106,7 @@
      "effect": "?? sleepStart: inBed sample starts at sleepStart"
     },
     {
-     "at": "+17",
+     "at": "+18",
      "cond": "no samples built (all intervals invalid)",
      "effect": "returns; the earlier export stays in Health"
     }
@@ -112,8 +114,9 @@
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "b1313059a7250728",
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "f58c07f55431753c",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepExportSamples(sleepData:sleepType:sessionId:inBedStart:sleepEnd:)": "1eb4eee361ed8145",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepReplacement(sleepType:sessionId:)": "4573aa050685f899",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)": "dc7538c29edef3aa",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepExportSamples(sleepData:sleepType:sessionId:inBedStart:sleepEnd:version:)": "836d4f78f45173e8",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepReplacement(sleepType:sessionId:)": "9ef63677648a56da",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "0415c974b73264d3",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
@@ -122,9 +125,40 @@
    }
   },
   {
+   "key": "func HealthWriteAndObserve.removeExportedSleep(sessionId:)",
+   "hash": "a4c9a4a987c81efa",
+   "does": "For a session deleted forever: deletes every sleep sample it exported (its sleep identity, any date) as a sleepReplacement with nothing to save, so it waits for an export of the session still running. Without HealthKit or the type it does nothing; errors propagate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepReplacement(sleepType:sessionId:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)"
+   ],
+   "reads": [
+    "hk:sleepAnalysis (own source)"
+   ],
+   "writes": [
+    "hk:sleepAnalysis (deletes the session's samples)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable or sleepAnalysis type nil",
+     "effect": "returns, nothing deleted"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "f58c07f55431753c",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.sleepReplacement(sleepType:sessionId:)": "9ef63677648a56da",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "0415c974b73264d3"
+   }
+  },
+  {
    "key": "func HealthWriteAndObserve.sleepReplacement(sleepType:sessionId:)",
-   "hash": "d78efd92c0dfe56c",
-   "does": "Builds the sleep HealthSampleReplacement: sleepAnalysis type, no date limit, the sleep query timeout, label 'sleep export', the session's UUID as the serial key, matching HealthExportIdentity.belongsToSession(.sleep).",
+   "hash": "30253974420f2863",
+   "does": "Builds the sleep HealthSampleReplacement: sleepAnalysis type, no date limit, the sleep query timeout for the read and the background aggregate timeout for the save and delete, label 'sleep export', the session's UUID as the serial key, matching HealthExportIdentity.belongsToSession(.sleep).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)"
@@ -134,16 +168,18 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)": "4eff3985738c831e",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "2f3f27aa0cd39f4d",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.sleepQueryTimeoutSec": "d08bd1229a3acdde"
    }
   },
   {
-   "key": "func HealthWriteAndObserve.sleepExportSamples(sleepData:sleepType:sessionId:inBedStart:sleepEnd:)",
-   "hash": "da826b287219bc51",
-   "does": "Builds the export samples: an inBed category sample [inBedStart, sleepEnd] and one per stage interval with HealthExportIdentity series-member ExternalUUIDs and Source=Emuqu metadata; invalid spans are dropped by HealthSampleFactory. Tested by HealthSampleFactoryTests.",
+   "key": "func HealthWriteAndObserve.sleepExportSamples(sleepData:sleepType:sessionId:inBedStart:sleepEnd:version:)",
+   "hash": "7bfa36a5a16faf1b",
+   "does": "Builds the export samples: an inBed category sample [inBedStart, sleepEnd] and one per stage interval, each with the export metadata of its HealthExportIdentity series-member identity at `version` (ExternalUUID, sync identifier, sync version, Source=Emuqu); invalid spans are dropped by HealthSampleFactory. Tested by HealthSampleFactoryTests.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.categorySample(type:value:start:end:metadata:)",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.hkSleepValue(for:)"
    ],
@@ -151,12 +187,13 @@
    "writes": [],
    "branches": [
     {
-     "at": "+24",
+     "at": "+23",
      "cond": "inBed sample nil (end before start)",
      "effect": "?? [] — only stage samples returned"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)": "7ee0ef3efc415d6e",
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "b798540327ba6b0c",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.hkSleepValue(for:)": "8aac2af1cb68668c",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.categorySample(type:value:start:end:metadata:)": "95a4320e8a59a041",
@@ -453,7 +490,7 @@
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "b1313059a7250728",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "f58c07f55431753c",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "cc8e27ff941bb596",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "7b9e26db535cb5c3",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.otherSourceWroteSleep(from:to:sleepType:)": "8d6ed111e296cb2b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -486,7 +523,7 @@
   {
    "key": "func HealthWriteAndObserve.startObservingSleepData()",
    "hash": "5af74771bdfca906",
-   "does": "Stops any existing sleep observer, creates the 48 h-bounded anchored observer query, stores it on the manager, executes it and enables immediate background delivery for sleepAnalysis, logging a warning when HealthKit reports the registration failed.",
+   "does": "Stops any existing sleep observer, creates the sleep observer query (makeSleepObserverQuery: HealthSampleWatch, reading what was added since the stored anchor), stores it on the manager, executes it and enables immediate background delivery for sleepAnalysis, logging a warning when HealthKit reports the registration failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.stopObservingSleepData()",
@@ -521,16 +558,16 @@
    "deps": {
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "f58c07f55431753c",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.stopObservingSleepData()": "9d7417475aaca888",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func makeSleepObserverQuery(for:owner:)": "15e06f7a4b64044c",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func makeSleepObserverQuery(for:owner:)": "50db74cc35c6e0b5",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func HealthWriteAndObserve.handleSleepSamplesArrived(_:)",
-   "hash": "b58d9d3250bf6f7a",
-   "does": "Filters newly-delivered samples to category samples from other sources (the observer already drops this app's own), takes the latest endDate, schedules a debounced SleepDataCache warm for that date and asks MorningNotificationScheduler to deliver the wake-triggered morning push if appropriate.",
-   "entry": "HKAnchoredObjectQuery updateHandler set in makeSleepObserverQuery, after a MainActor hop, when HealthKit delivers new sleep samples",
+   "hash": "91b6fe6110845846",
+   "does": "Takes the category samples among newly-delivered other-source samples (the watcher already drops this app's own), takes the latest endDate, schedules a debounced SleepDataCache warm for that date and asks MorningNotificationScheduler to deliver the wake-triggered morning push if appropriate.",
+   "entry": "The sleep observer's delivery closure (makeSleepObserverQuery, HealthSampleWatch), after a MainActor hop, when HealthKit has new sleep samples from another source, foreground or background launch",
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.scheduleSleepCacheWarm(referenceDate:)",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd:)"
@@ -543,8 +580,8 @@
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "no non-own category samples (max endDate nil)",
+     "at": "+2",
+     "cond": "no category samples (max endDate nil)",
      "effect": "returns without warming or pushing"
     }
    ],
@@ -661,30 +698,33 @@
   },
   {
    "key": "func makeSleepObserverQuery(for:owner:)",
-   "hash": "844388d1211a6028",
-   "does": "Builds an HKAnchoredObjectQuery over sleep samples overlapping [now-48h, open end) (default non-strict predicate, so samples ENDING after creation-48h; window fixed at creation), ignoring initial results; its updateHandler (weak manager) drops samples this app wrote, and when any remain hops to the MainActor, increments manager.sleepDataVersion and calls handleSleepSamplesArrived with them.",
+   "hash": "954a1cb63d409eef",
+   "does": "Builds the sleep observer through HealthSampleWatch.observerQuery (anchor key 'HealthSampleWatch.sleepAnchor.v1', the manager's store): each batch of other sources' added sleep samples, while the manager is alive, hops to the MainActor, increments manager.sleepDataVersion and calls handleSleepSamplesArrived with them.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.handleSleepSamplesArrived(_:)",
-    "ext:HKAnchoredObjectQuery"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.handleSleepSamplesArrived(_:)"
    ],
    "reads": [
-    "hk:sleepAnalysis"
+    "hk:sleepAnalysis",
+    "ud:HealthSampleWatch.sleepAnchor.v1"
    ],
    "writes": [
-    "mem:HealthKitManager.sleepDataVersion"
+    "mem:HealthKitManager.sleepDataVersion",
+    "ud:HealthSampleWatch.sleepAnchor.v1"
    ],
    "branches": [
     {
-     "at": "+17",
-     "cond": "manager gone OR no new samples from another source",
-     "effect": "update ignored (the app's own exports bump nothing); else bumps sleepDataVersion and handles samples"
+     "at": "+10",
+     "cond": "manager gone",
+     "effect": "batch ignored; else bumps sleepDataVersion and handles the samples"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.handleSleepSamplesArrived(_:)": "853c301177939c1a",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.handleSleepSamplesArrived(_:)": "3081e38e43884bd0",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "936b8a496469997e",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)": "954971d68df38c94",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.sleepDataVersion": "5af31be207fd7d67"
    }
   }

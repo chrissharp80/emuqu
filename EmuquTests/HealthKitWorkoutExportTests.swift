@@ -12,6 +12,7 @@ import XCTest
 final class HealthKitWorkoutExportTests: XCTestCase {
     private let start = Date(timeIntervalSince1970: 1_622_534_400)
     private var clock: WorkoutWallClock { WorkoutWallClock(startDate: start) }
+    private let stamp = HealthKitWorkoutExport.ExportStamp(sessionId: UUID(), version: 7)
 
     private func sample(
         _ offsetSec: Int, hr: Int? = nil, distance: Double? = nil, mets: Double? = nil
@@ -23,31 +24,31 @@ final class HealthKitWorkoutExportTests: XCTestCase {
 
     func testHeartRateSamplesAreEmittedPerReading() {
         let samples = [sample(0, hr: 120), sample(10, hr: 130), sample(20, hr: 140)]
-        XCTAssertEqual(HealthKitWorkoutExport.heartRateSamples(from: samples, clock: clock).count, 3)
+        XCTAssertEqual(HealthKitWorkoutExport.heartRateSamples(from: samples, clock: clock, stamp: stamp).count, 3)
     }
 
     func testTicksWithoutAHeartRateAreSkipped() {
         // The strap drops out mid-workout; those ticks must not become samples.
         let samples = [sample(0, hr: 120), sample(10), sample(20, hr: 140)]
-        XCTAssertEqual(HealthKitWorkoutExport.heartRateSamples(from: samples, clock: clock).count, 2)
+        XCTAssertEqual(HealthKitWorkoutExport.heartRateSamples(from: samples, clock: clock, stamp: stamp).count, 2)
     }
 
     func testHeartRateSampleCarriesTheRightValueAndTime() {
-        let out = HealthKitWorkoutExport.heartRateSamples(from: [sample(60, hr: 152)], clock: clock)
+        let out = HealthKitWorkoutExport.heartRateSamples(from: [sample(60, hr: 152)], clock: clock, stamp: stamp)
         let s = try? XCTUnwrap(out.first)
         XCTAssertEqual(s?.quantity.doubleValue(for: HKUnit(from: "count/min")), 152)
         XCTAssertEqual(s?.startDate, start.addingTimeInterval(60))
     }
 
     func testNoSamplesProducesNothing() {
-        XCTAssertTrue(HealthKitWorkoutExport.heartRateSamples(from: [], clock: clock).isEmpty)
+        XCTAssertTrue(HealthKitWorkoutExport.heartRateSamples(from: [], clock: clock, stamp: stamp).isEmpty)
     }
 
     /// Apple Watch heart rate read from Apple Health is not written back as
     /// Emuqu's: the Watch already saved it.
     func testRowsFilledFromAppleHealthAreNotWrittenBack() {
         let samples = [sample(0, hr: 120), sample(10, hr: 130), sample(20, hr: 140)]
-        let out = HealthKitWorkoutExport.heartRateSamples(from: samples, clock: clock, skipping: [10])
+        let out = HealthKitWorkoutExport.heartRateSamples(from: samples, clock: clock, stamp: stamp, skipping: [10])
         XCTAssertEqual(out.map(\.startDate), [start, start.addingTimeInterval(20)])
     }
 
@@ -121,7 +122,7 @@ final class HealthKitWorkoutExportTests: XCTestCase {
         // Cumulative 0, 100, 250 -> deltas 100 and 150. Writing cumulative
         // values instead would triple-count the distance in Health.
         let samples = [sample(0, distance: 0), sample(10, distance: 100), sample(20, distance: 250)]
-        let out = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock)
+        let out = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock, stamp: stamp)
         let metres = out.map { $0.quantity.doubleValue(for: .meter()) }
         XCTAssertEqual(metres, [100, 150])
     }
@@ -131,14 +132,14 @@ final class HealthKitWorkoutExportTests: XCTestCase {
         // ticks must not emit — a negative delta would subtract from the
         // user's Health total. The first reading is real travel and does.
         let samples = [sample(0, distance: 100), sample(10, distance: 100), sample(20, distance: 90)]
-        let out = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock)
+        let out = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock, stamp: stamp)
         XCTAssertEqual(out.count, 1, "only the advancing reading emits")
         XCTAssertEqual(out.first?.quantity.doubleValue(for: .meter()), 100)
     }
 
     func testTotalDistanceMatchesTheFinalCumulativeReading() {
         let samples = (0 ..< 20).map { sample($0 * 10, distance: Double($0) * 45) }
-        let out = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock)
+        let out = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock, stamp: stamp)
         let total = out.reduce(0.0) { $0 + $1.quantity.doubleValue(for: .meter()) }
         XCTAssertEqual(total, 19 * 45, accuracy: 0.001, "deltas must sum to the distance actually travelled")
     }
@@ -146,14 +147,14 @@ final class HealthKitWorkoutExportTests: XCTestCase {
     func testRowingWritesNoDistance() {
         // An erg's metres are not walking or running distance.
         let samples = [sample(0, distance: 0), sample(10, distance: 100)]
-        XCTAssertTrue(HealthKitWorkoutExport.distanceSamples(from: samples, sport: .row, clock: clock).isEmpty)
+        XCTAssertTrue(HealthKitWorkoutExport.distanceSamples(from: samples, sport: .row, clock: clock, stamp: stamp).isEmpty)
     }
 
     func testCyclingUsesTheCyclingDistanceType() {
         // Filing a ride under walking/running distance corrupts both metrics.
         let samples = [sample(0, distance: 0), sample(10, distance: 100)]
-        let ride = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .bike, clock: clock)
-        let run = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock)
+        let ride = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .bike, clock: clock, stamp: stamp)
+        let run = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock, stamp: stamp)
         XCTAssertEqual(ride.first?.quantityType, HKQuantityType.quantityType(forIdentifier: .distanceCycling))
         XCTAssertEqual(run.first?.quantityType, HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning))
     }
@@ -163,8 +164,8 @@ final class HealthKitWorkoutExportTests: XCTestCase {
     /// HealthKit exception, so the ticks are taken in time order.
     func testOutOfOrderTicksStillWriteForwardSpans() {
         let samples = [sample(20, distance: 250, mets: 8), sample(0, distance: 0, mets: 8), sample(10, distance: 100, mets: 8)]
-        let distance = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock)
-        let energy = HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, bodyWeightKg: 75)
+        let distance = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock, stamp: stamp)
+        let energy = HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: 75)
         XCTAssertEqual(distance.map { $0.quantity.doubleValue(for: .meter()) }, [100, 150])
         XCTAssertEqual(energy.count, 3)
         XCTAssertTrue((distance + energy).allSatisfy { $0.endDate >= $0.startDate })
@@ -172,7 +173,7 @@ final class HealthKitWorkoutExportTests: XCTestCase {
 
     func testNonFiniteDistanceIsRejected() {
         let samples = [sample(0, distance: 0), sample(10, distance: .infinity)]
-        XCTAssertTrue(HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock).isEmpty)
+        XCTAssertTrue(HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock, stamp: stamp).isEmpty)
     }
 
     // MARK: - Active energy
@@ -180,7 +181,7 @@ final class HealthKitWorkoutExportTests: XCTestCase {
     func testEnergyIsEmittedForTicksWithMETs() {
         let samples = [sample(0, mets: 8), sample(60, mets: 8), sample(120, mets: 8)]
         let out = HealthKitWorkoutExport.activeEnergySamples(
-            from: samples, clock: clock, bodyWeightKg: 75
+            from: samples, clock: clock, stamp: stamp, bodyWeightKg: 75
         )
         XCTAssertFalse(out.isEmpty)
         XCTAssertTrue(out.allSatisfy { $0.quantity.doubleValue(for: .kilocalorie()) > 0 })
@@ -188,7 +189,7 @@ final class HealthKitWorkoutExportTests: XCTestCase {
 
     func testTicksWithoutMETsAreSkipped() {
         let out = HealthKitWorkoutExport.activeEnergySamples(
-            from: [sample(0), sample(60)], clock: clock, bodyWeightKg: 75
+            from: [sample(0), sample(60)], clock: clock, stamp: stamp, bodyWeightKg: 75
         )
         XCTAssertTrue(out.isEmpty)
     }
@@ -196,8 +197,8 @@ final class HealthKitWorkoutExportTests: XCTestCase {
     func testHeavierAthleteBurnsMoreForTheSameEffort() {
         // kcal scales with body mass; if it did not, the formula is wrong.
         let samples = [sample(0, mets: 8), sample(60, mets: 8)]
-        let light = HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, bodyWeightKg: 60)
-        let heavy = HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, bodyWeightKg: 100)
+        let light = HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: 60)
+        let heavy = HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: 100)
         let lightKcal = light.reduce(0.0) { $0 + $1.quantity.doubleValue(for: .kilocalorie()) }
         let heavyKcal = heavy.reduce(0.0) { $0 + $1.quantity.doubleValue(for: .kilocalorie()) }
         XCTAssertGreaterThan(heavyKcal, lightKcal)
@@ -206,9 +207,9 @@ final class HealthKitWorkoutExportTests: XCTestCase {
     func testHarderEffortBurnsMore() {
         let easy = [sample(0, mets: 4), sample(60, mets: 4)]
         let hard = [sample(0, mets: 12), sample(60, mets: 12)]
-        let easyKcal = HealthKitWorkoutExport.activeEnergySamples(from: easy, clock: clock, bodyWeightKg: 75)
+        let easyKcal = HealthKitWorkoutExport.activeEnergySamples(from: easy, clock: clock, stamp: stamp, bodyWeightKg: 75)
             .reduce(0.0) { $0 + $1.quantity.doubleValue(for: .kilocalorie()) }
-        let hardKcal = HealthKitWorkoutExport.activeEnergySamples(from: hard, clock: clock, bodyWeightKg: 75)
+        let hardKcal = HealthKitWorkoutExport.activeEnergySamples(from: hard, clock: clock, stamp: stamp, bodyWeightKg: 75)
             .reduce(0.0) { $0 + $1.quantity.doubleValue(for: .kilocalorie()) }
         XCTAssertGreaterThan(hardKcal, easyKcal)
     }
@@ -218,14 +219,34 @@ final class HealthKitWorkoutExportTests: XCTestCase {
         // crash while writing to Health.
         let samples = [sample(0, mets: .nan), sample(60, mets: .infinity)]
         XCTAssertTrue(
-            HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, bodyWeightKg: 75).isEmpty
+            HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: 75).isEmpty
         )
+    }
+
+    /// Health's Active Energy is energy above rest, and Compendium METs
+    /// include the 1 MET of resting metabolism, so it is left out: a
+    /// 60-minute 3.5-MET walk for a 70 kg user writes (3.5 − 1) × 3.5 × 70 ×
+    /// 60 / 200 kcal, not 3.5 × 3.5 × 70 × 60 / 200.
+    func testActiveEnergyIsNetOfRestingMetabolism() {
+        let samples = [sample(3_600, mets: 3.5)]
+        let kcal = HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: 70)
+            .reduce(0.0) { $0 + $1.quantity.doubleValue(for: .kilocalorie()) }
+        XCTAssertEqual(kcal, 2.5 * 3.5 * 70 * 60 / 200, accuracy: 0.001)
+    }
+
+    /// Sitting still is resting metabolism and nothing more: no active energy.
+    func testOneMETWritesNoActiveEnergy() {
+        let samples = [sample(0, mets: 1), sample(60, mets: 1)]
+        XCTAssertTrue(
+            HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: 75).isEmpty
+        )
+        XCTAssertEqual(HealthKitWorkoutExport.netMETs(0.5), 0)
     }
 
     func testNegativeMETsAreRejected() {
         let samples = [sample(0, mets: -5), sample(60, mets: -5)]
         XCTAssertTrue(
-            HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, bodyWeightKg: 75).isEmpty
+            HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: 75).isEmpty
         )
     }
 
@@ -240,7 +261,7 @@ final class HealthKitWorkoutExportTests: XCTestCase {
 
     func testHeartRateAfterAPauseSitsAtItsWallClockMoment() {
         let samples = [sample(10, hr: 120), sample(15, hr: 125), sample(20, hr: 140)]
-        let out = HealthKitWorkoutExport.heartRateSamples(from: samples, clock: pausedClock)
+        let out = HealthKitWorkoutExport.heartRateSamples(from: samples, clock: pausedClock, stamp: stamp)
         XCTAssertEqual(out.map(\.startDate), [10, 15, 620].map { start.addingTimeInterval($0) })
     }
 
@@ -248,7 +269,7 @@ final class HealthKitWorkoutExportTests: XCTestCase {
     /// no distance is spread over the paused minutes.
     func testDistanceAfterAPauseNeverSpansThePause() {
         let samples = [sample(10, distance: 50), sample(15, distance: 75), sample(20, distance: 100)]
-        let out = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: pausedClock)
+        let out = HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: pausedClock, stamp: stamp)
         XCTAssertEqual(out.map(\.startDate), [0, 10, 615].map { start.addingTimeInterval($0) })
         XCTAssertEqual(out.map(\.endDate), [10, 15, 620].map { start.addingTimeInterval($0) })
         XCTAssertEqual(out.map { $0.quantity.doubleValue(for: .meter()) }, [50, 25, 25])
@@ -258,8 +279,8 @@ final class HealthKitWorkoutExportTests: XCTestCase {
     /// after the pause, not across it.
     func testEnergyAfterAPauseNeverSpansThePause() {
         let samples = [sample(10, mets: 8), sample(20, mets: 8)]
-        let paused = HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: pausedClock, bodyWeightKg: 75)
-        let unpaused = HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, bodyWeightKg: 75)
+        let paused = HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: pausedClock, stamp: stamp, bodyWeightKg: 75)
+        let unpaused = HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: 75)
         XCTAssertEqual(paused.map(\.startDate), [0, 615].map { start.addingTimeInterval($0) })
         XCTAssertEqual(paused.map(\.endDate), [10, 620].map { start.addingTimeInterval($0) })
         XCTAssertEqual(
@@ -283,6 +304,56 @@ final class HealthKitWorkoutExportTests: XCTestCase {
         let events = HealthKitWorkoutExport.pauseEvents(of: pausedClock, endDate: start.addingTimeInterval(400))
         XCTAssertEqual(events.map(\.type), [.pause])
         XCTAssertTrue(HealthKitWorkoutExport.pauseEvents(of: pausedClock, endDate: start.addingTimeInterval(15)).isEmpty)
+    }
+
+    // MARK: - Re-export
+
+    /// Every sample carries the session's identity as its sync identifier,
+    /// unique within the export, and the export's version, so exporting the
+    /// session again replaces each one instead of adding a copy.
+    func testSamplesCarryTheSessionsSyncIdentity() {
+        let samples = [sample(0, hr: 120, distance: 0, mets: 8), sample(10, hr: 130, distance: 50, mets: 8)]
+        let all = HealthKitWorkoutExport.heartRateSamples(from: samples, clock: clock, stamp: stamp)
+            + HealthKitWorkoutExport.distanceSamples(from: samples, sport: .run, clock: clock, stamp: stamp)
+            + HealthKitWorkoutExport.activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: 75)
+        let ids = all.compactMap { $0.metadata?[HKMetadataKeySyncIdentifier] as? String }
+        XCTAssertEqual(ids.count, all.count)
+        XCTAssertEqual(Set(ids).count, ids.count, "unique within the export")
+        XCTAssertTrue(ids.allSatisfy {
+            HealthExportIdentity.isSeriesMember($0, sessionId: stamp.sessionId, metric: .workout)
+        })
+        XCTAssertTrue(all.allSatisfy { $0.metadata?[HKMetadataKeySyncVersion] as? Int == 7 })
+        XCTAssertEqual(stamp.metadataOfWorkout[HKMetadataKeySyncIdentifier] as? String, stamp.workoutIdentity)
+        XCTAssertTrue(HealthExportIdentity.isSummary(stamp.workoutIdentity, sessionId: stamp.sessionId, metric: .workout))
+    }
+
+    /// An earlier copy of the session is found by its identity, or, when it
+    /// was saved before workouts had one, by starting in the same second.
+    /// Another session's workout is never matched.
+    func testEarlierExportsAreMatchedByIdentityOrLegacyStart() {
+        let other = HealthExportIdentity.summary(sessionId: UUID(), metric: .workout)
+        let cases: [(String?, Date, Bool)] = [
+            (stamp.workoutIdentity, start.addingTimeInterval(3_600), true),
+            (nil, start, true),
+            (nil, start.addingTimeInterval(5), false),
+            (other, start, false)
+        ]
+        for (externalUUID, startDate, expected) in cases {
+            XCTAssertEqual(
+                HealthKitWorkoutExport.EarlierExport.isEarlierExport(
+                    externalUUID: externalUUID, startDate: startDate, sessionId: stamp.sessionId, sessionStart: start
+                ),
+                expected
+            )
+        }
+    }
+
+    /// Stopped while paused: the recorder ends the pause at the stop, so the
+    /// pause runs to the workout's end, with no resume after it.
+    func testAPauseEndingAtTheStopRunsToTheEnd() {
+        let events = HealthKitWorkoutExport.pauseEvents(of: pausedClock, endDate: start.addingTimeInterval(615))
+        XCTAssertEqual(events.map(\.type), [.pause])
+        XCTAssertEqual(events.first?.dateInterval.start, start.addingTimeInterval(15))
     }
 
     func testAWorkoutWithoutPausesHasNoPauseEvents() {

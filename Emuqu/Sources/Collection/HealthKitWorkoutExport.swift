@@ -19,9 +19,20 @@ import HealthKit
 // Energy calculation: the METs × 3.5 × kg × min / 200 formula the
 // post-summary also uses, with the user's real body weight from settings,
 // applied tick interval by tick interval (ticks without METs add nothing).
-// The post-summary card applies it once to the average METs over the active
-// time, so the two totals can differ when ticks lack METs or have gaps.
+// Compendium METs are gross: they include the 1 MET of resting metabolism.
+// Health's Active Energy is energy above rest (Apple Watch writes basal
+// energy separately), so the export writes net energy, METs − 1, floored at
+// zero. The post-summary card shows gross kcal from the average METs over
+// the active time, so the two totals differ by that resting share, and
+// further when ticks lack METs or have gaps.
 // Reference: Ainsworth 2011, Compendium of Physical Activities.
+//
+// Re-export: a session's workout, its samples and its route carry the
+// session's identity as ExternalUUID and sync identifier
+// (`HealthExportIdentity.metadata`). Exporting the session again (after a
+// trim or a rebuild, or from a second device) saves the new copy first, then
+// deletes what earlier exports of the session saved and HealthKit did not
+// already replace, so Health keeps one copy.
 //
 // Pauses: `WorkoutSample.offsetSec` counts active seconds only, while
 // Health keeps the wall clock. Every sample is placed at its wall-clock
@@ -29,12 +40,17 @@ import HealthKit
 // event pair, so Health's duration and pace leave the paused time out.
 
 enum HealthKitWorkoutExport {
-    /// Save a finished workout to HealthKit. Idempotent only by caller —
-    /// calling twice writes two workouts. Safe to call without auth; it just
-    /// fails cleanly with `.authorizationNotGranted`. Errors are surfaced via
-    /// thrown exceptions so the caller can log; Emuqu's current
+    /// Save a finished workout to HealthKit, replacing every earlier export
+    /// of the same session (`EarlierExport`). Safe to call without auth; it
+    /// just fails cleanly with `.authorizationNotGranted`. Errors are
+    /// surfaced via thrown exceptions so the caller can log; Emuqu's current
     /// policy is to ignore HK export failures and keep the in-app session
     /// canonical.
+    ///
+    /// The earlier exports are found before the save and deleted after it,
+    /// so a failed save leaves them in Health. A failed delete throws after
+    /// the new workout is saved: the caller then leaves the session
+    /// unstamped, and the next export finds and deletes both earlier copies.
     ///
     /// Heart rate goes with the workout only when `writesHeartRate` is true,
     /// which by default is the Apple Health export setting with its heart-rate
@@ -57,25 +73,167 @@ enum HealthKitWorkoutExport {
     @MainActor
     static func export(
         session: HRVSession,
-        store: HKHealthStore,
+        healthKit: HealthKitManager,
         bodyWeightKg: Double,
         writesHeartRate: Bool = writesWorkoutHeartRate
     ) async throws {
         guard let metadata = session.workoutMetadata, let endDate = session.endDate else {
             throw ExportError.missingRequiredFields
         }
+        let store = healthKit.healthStore
         guard isWritable(HKObjectType.workoutType(), in: store) else {
             throw ExportError.authorizationNotGranted
         }
-        let workout = try await saveWorkout(
+        let sampleStore = healthKit.sampleReplacer.store
+        let earlier = try await EarlierExport.find(sessionId: session.id, startDate: session.startDate, in: sampleStore)
+        let stamp = ExportStamp(sessionId: session.id, version: HealthExportIdentity.nextSyncVersion())
+        let saved = try await saveWorkout(
             metadata: metadata, startDate: session.startDate, endDate: endDate,
             samples: sampleOptions(for: session, bodyWeightKg: bodyWeightKg, writesHeartRate: writesHeartRate),
-            store: store
+            stamp: stamp, store: store
         )
-        if !CloudSessionPayload.isHealthKitSourced(session) {
-            await attachRouteToSavedWorkout(session: session, metadata: metadata, workout: workout, store: store)
+        let routeSaved = await attachRouteToSavedWorkout(session: session, metadata: metadata, workout: saved.workout, stamp: stamp, store: store)
+        try await earlier.delete(keeping: saved.syncIds.union(routeSaved ? [stamp.routeIdentity] : []), from: sampleStore)
+        debugLog("[HKExport] saved workout \(session.id) as HKWorkout (sport=\(metadata.sport.rawValue), duration=\(Int(session.duration ?? 0))s), replacing \(earlier.workouts.count) earlier")
+    }
+
+    /// Delete every workout this app exported for a session deleted forever,
+    /// with the samples and route saved with each. Found as the export finds
+    /// earlier copies (`EarlierExport.find`); `startDate` is the recording's
+    /// start, which finds a copy saved before workouts carried an identity.
+    /// Without HealthKit there is nothing to delete. Errors propagate, so the
+    /// caller can say the workout is still in Health.
+    @MainActor
+    static func removeExports(sessionId: UUID, startDate: Date, healthKit: HealthKitManager) async throws {
+        guard healthKit.isHealthKitAvailable else { return }
+        let sampleStore = healthKit.sampleReplacer.store
+        let earlier = try await EarlierExport.find(sessionId: sessionId, startDate: startDate, in: sampleStore)
+        try await earlier.delete(keeping: [], from: sampleStore)
+        debugLog("[HKExport] removed \(earlier.workouts.count) exported workout(s) of \(sessionId.uuidString.prefix(8))")
+    }
+
+    /// Who an export's objects belong to, and which export wrote them: every
+    /// object it saves carries an identity derived from `sessionId` and
+    /// `version` as its sync version (`HealthExportIdentity.metadata`).
+    struct ExportStamp: Equatable {
+        let sessionId: UUID
+        let version: Int
+
+        /// The workout's own identity.
+        var workoutIdentity: String {
+            HealthExportIdentity.summary(sessionId: sessionId, metric: .workout)
         }
-        debugLog("[HKExport] saved workout \(session.id) as HKWorkout (sport=\(metadata.sport.rawValue), duration=\(Int(session.duration ?? 0))s)")
+
+        /// The route's identity.
+        var routeIdentity: String {
+            HealthExportIdentity.seriesMember(sessionId: sessionId, metric: .workout, suffix: "route")
+        }
+
+        /// The metadata of the workout itself.
+        var metadataOfWorkout: [String: Any] {
+            HealthExportIdentity.metadata(workoutIdentity, version: version)
+        }
+
+        /// The metadata of the route.
+        var metadataOfRoute: [String: Any] {
+            HealthExportIdentity.metadata(routeIdentity, version: version)
+        }
+
+        /// The metadata of the `index`th sample of a `kind` series saved with
+        /// the workout.
+        func sampleMetadata(_ kind: String, index: Int) -> [String: Any] {
+            HealthExportIdentity.metadata(
+                HealthExportIdentity.seriesMember(sessionId: sessionId, metric: .workout, suffix: "\(kind)-\(index)"),
+                version: version
+            )
+        }
+    }
+
+    /// What earlier exports of a session saved: the workouts, and the samples
+    /// and routes saved with each, all from this app.
+    @MainActor
+    struct EarlierExport {
+        let workouts: [HKWorkout]
+        let samples: [HKSample]
+
+        /// How far either side of the session's start an earlier copy is
+        /// looked for. A rebuild keeps the session's start, so this only has
+        /// to reach a workout whose start moved by a recovery, and the match
+        /// is the session's identity, so it reaches nothing else.
+        static let searchPadding: TimeInterval = 25 * 3600
+
+        /// This app's workouts near `startDate` that `isEarlierExport`
+        /// matches, and what was saved with each. The reads are bounded and
+        /// fail closed: a read that does not answer throws, rather than go on
+        /// as if there were nothing to replace.
+        static func find(sessionId: UUID, startDate: Date, in store: any HealthSampleStore) async throws -> EarlierExport {
+            let timeout = HealthKitManager.backgroundAggregateQueryTimeoutSec
+            let span = DateInterval(start: startDate.addingTimeInterval(-searchPadding), end: startDate.addingTimeInterval(searchPadding))
+            let workouts = try await store.ownSamples(
+                of: HKObjectType.workoutType(), in: span, timeout: timeout, label: "earlier workout export"
+            ).compactMap { $0 as? HKWorkout }.filter { workout in
+                isEarlierExport(
+                    externalUUID: workout.metadata?[HKMetadataKeyExternalUUID] as? String,
+                    startDate: workout.startDate, sessionId: sessionId, sessionStart: startDate
+                )
+            }
+            var samples: [HKSample] = []
+            for workout in workouts {
+                for (type, _) in HealthKitManager.workoutExportSampleTypes {
+                    samples += try await store.ownSamples(
+                        of: type, savedWith: workout, timeout: timeout, label: "earlier workout samples"
+                    )
+                }
+            }
+            return EarlierExport(workouts: workouts, samples: samples)
+        }
+
+        /// Whether a workout this app saved is an export of the session: it
+        /// carries the session's workout identity, or it carries no identity
+        /// at all (saved before workouts had one) and starts in the same
+        /// second as the session. Another session's export always carries
+        /// its own identity, so it is never matched.
+        nonisolated static func isEarlierExport(
+            externalUUID: String?, startDate: Date, sessionId: UUID, sessionStart: Date
+        ) -> Bool {
+            guard let externalUUID else { return abs(startDate.timeIntervalSince(sessionStart)) < 1 }
+            return HealthExportIdentity.isSummary(externalUUID, sessionId: sessionId, metric: .workout)
+        }
+
+        /// Delete the samples first, then the workouts, leaving out any whose
+        /// sync identifier is in `keeping`: a new export saved under that
+        /// identifier, and HealthKit replaced the earlier object with it.
+        /// Each sample type is deleted on its own, so a type whose writing
+        /// the user switched off (which HealthKit will not delete either)
+        /// does not keep the others; the first error is thrown once all
+        /// have been tried.
+        func delete(keeping: Set<String>, from store: any HealthSampleStore) async throws {
+            let left = (samples + workouts.map { $0 as HKSample }).filter { object in
+                HealthExportIdentity.syncIdentifier(of: object).map { !keeping.contains($0) } ?? true
+            }
+            var firstError: Error?
+            for group in Self.byType(left) {
+                do {
+                    try await store.delete(group)
+                } catch {
+                    let type = group.first?.sampleType.identifier ?? ""
+                    debugLog("[HKExport] could not delete \(group.count) earlier \(type): \(error.localizedDescription)", level: .warning)
+                    firstError = firstError ?? error
+                }
+            }
+            if let firstError { throw firstError }
+        }
+
+        /// The objects grouped by type, workouts last, so a workout is never
+        /// deleted while samples saved with it remain.
+        private static func byType(_ objects: [HKSample]) -> [[HKSample]] {
+            let workoutType = HKObjectType.workoutType()
+            let groups = Dictionary(grouping: objects) { $0.sampleType.identifier }
+            let order = groups.keys.sorted { lhs, rhs in
+                (lhs == workoutType.identifier ? 1 : 0, lhs) < (rhs == workoutType.identifier ? 1 : 0, rhs)
+            }
+            return order.compactMap { groups[$0] }
+        }
     }
 
     /// Whether a saved workout carries its heart rate: Apple Health export on,
@@ -110,40 +268,50 @@ enum HealthKitWorkoutExport {
         )
     }
 
+    /// The saved workout and the sync identifiers of it and the samples
+    /// saved with it.
     @MainActor
     private static func saveWorkout(
-        metadata: WorkoutMetadata, startDate: Date, endDate: Date, samples options: SampleOptions, store: HKHealthStore
-    ) async throws -> HKWorkout {
+        metadata: WorkoutMetadata, startDate: Date, endDate: Date, samples options: SampleOptions,
+        stamp: ExportStamp, store: HKHealthStore
+    ) async throws -> (workout: HKWorkout, syncIds: Set<String>) {
         let builder = HKWorkoutBuilder(
             healthStore: store, configuration: workoutConfiguration(for: metadata.sport), device: .local()
         )
         let clock = WorkoutWallClock(startDate: startDate, pauseSpans: metadata.pauseSpans)
         try await builder.beginCollection(at: startDate)
-        try await addSampleSeries(metadata: metadata, clock: clock, options: options, store: store, to: builder)
+        var syncIds = try await addSampleSeries(
+            metadata: metadata, clock: clock, options: options, stamp: stamp, store: store, to: builder
+        )
         let events = pauseEvents(of: clock, endDate: endDate)
         if !events.isEmpty {
             try await builder.addWorkoutEvents(events)
         }
+        try await builder.addMetadata(stamp.metadataOfWorkout)
         try await builder.endCollection(at: endDate)
         guard let workout = try await builder.finishWorkout() else {
             throw ExportError.workoutNotSaved
         }
-        return workout
+        syncIds.insert(stamp.workoutIdentity)
+        return (workout, syncIds)
     }
 
     /// The workout is already saved. A route that cannot be attached must not
     /// fail the export: the caller would leave the session unstamped, and the
-    /// next backfill would save the same workout again.
+    /// next backfill would save the same workout again. True when a route
+    /// was saved. A workout built from Apple Health's samples gets none.
     private static func attachRouteToSavedWorkout(
-        session: HRVSession, metadata: WorkoutMetadata, workout: HKWorkout, store: HKHealthStore
-    ) async {
+        session: HRVSession, metadata: WorkoutMetadata, workout: HKWorkout, stamp: ExportStamp, store: HKHealthStore
+    ) async -> Bool {
+        guard !CloudSessionPayload.isHealthKitSourced(session) else { return false }
         do {
-            try await attachRoute(
+            return try await attachRoute(
                 metadata: metadata, duration: session.duration, startDate: session.startDate,
-                workout: workout, store: store
+                workout: workout, stamp: stamp, store: store
             )
         } catch {
             debugLog("[HKExport] workout \(session.id) saved without its route: \(error.localizedDescription)", level: .warning)
+            return false
         }
     }
 
@@ -154,7 +322,8 @@ enum HealthKitWorkoutExport {
         return configuration
     }
 
-    /// Attaches each sample series the user lets Emuqu write.
+    /// Attaches each sample series the user lets Emuqu write, and returns the
+    /// sync identifiers of the samples it added.
     ///
     /// A builder rejects a batch whose type the user has switched off, and the
     /// whole export fails with it — so turning off Cycling Distance would stop
@@ -165,27 +334,25 @@ enum HealthKitWorkoutExport {
         metadata: WorkoutMetadata,
         clock: WorkoutWallClock,
         options: SampleOptions,
+        stamp: ExportStamp,
         store: HKHealthStore,
         to builder: HKWorkoutBuilder
-    ) async throws {
+    ) async throws -> Set<String> {
         let samples = options.writesDistanceAndEnergy ? metadata.samples ?? [] : []
         let series = [
-            options.writesHeartRate ? heartRateSamples(of: metadata, clock: clock) : [],
-            distanceSamples(from: samples, sport: metadata.sport, clock: clock),
-            activeEnergySamples(from: samples, clock: clock, bodyWeightKg: options.bodyWeightKg)
+            options.writesHeartRate ? heartRateSamples(of: metadata, clock: clock, stamp: stamp) : [],
+            distanceSamples(from: samples, sport: metadata.sport, clock: clock, stamp: stamp),
+            activeEnergySamples(from: samples, clock: clock, stamp: stamp, bodyWeightKg: options.bodyWeightKg)
         ]
-        var skipped: [String] = []
-        for batch in series {
-            guard let type = batch.first?.sampleType else { continue }
-            guard isWritable(type, in: store) else {
-                skipped.append(type.identifier)
-                continue
-            }
+        let writable = series.filter { $0.first.map { isWritable($0.sampleType, in: store) } ?? false }
+        let skipped = series.compactMap { $0.first?.sampleType }.filter { !isWritable($0, in: store) }
+        for batch in writable {
             try await builder.addSamples(batch)
         }
         if !skipped.isEmpty {
-            debugLog("[HKExport] writing is off in Health for \(skipped.joined(separator: ", ")) — workout saved without those samples")
+            debugLog("[HKExport] writing is off in Health for \(skipped.map(\.identifier).joined(separator: ", ")) — workout saved without those samples")
         }
+        return Set(writable.joined().compactMap(HealthExportIdentity.syncIdentifier(of:)))
     }
 
     static func isWritable(_ type: HKObjectType, in store: HKHealthStore) -> Bool {
@@ -194,8 +361,9 @@ enum HealthKitWorkoutExport {
 
     /// A pause event where each pause began and a resume event where the
     /// workout went on, so Health's duration and pace leave the paused time
-    /// out. A pause still running at `endDate` (stopped while paused) gets no
-    /// resume, and the builder counts it as paused to the end; one that began
+    /// out. A pause that runs to `endDate` (stopped while paused: the
+    /// recorder ends the pause at the stop) gets no resume, and the builder
+    /// counts it as paused to the end; one that began
     /// at or after `endDate` is left out, as the builder takes no event
     /// outside the workout.
     static func pauseEvents(of clock: WorkoutWallClock, endDate: Date) -> [HKWorkoutEvent] {
@@ -220,30 +388,39 @@ enum HealthKitWorkoutExport {
     /// Reference: Ainsworth 2011, Compendium of Physical Activities.
     private static let mlOxygenPerKgPerMET = 3.5
     private static let mlOxygenPerKcal = 200.0
+    /// Resting metabolism, by the definition of the MET.
+    private static let restingMETs = 1.0
     /// Below this a window is rounding noise and is not worth a sample.
     private static let minimumKcalPerSample = 0.01
 
     /// The workout's own heart rate: the rows Apple Health filled are left out.
-    private static func heartRateSamples(of metadata: WorkoutMetadata, clock: WorkoutWallClock) -> [HKQuantitySample] {
+    private static func heartRateSamples(
+        of metadata: WorkoutMetadata, clock: WorkoutWallClock, stamp: ExportStamp
+    ) -> [HKQuantitySample] {
         heartRateSamples(
-            from: metadata.samples ?? [], clock: clock, skipping: Set(metadata.healthKitHROffsets ?? [])
+            from: metadata.samples ?? [], clock: clock, stamp: stamp, skipping: Set(metadata.healthKitHROffsets ?? [])
         )
     }
 
     /// Per-tick heart rate, as instantaneous (zero-length) samples at each
     /// tick's wall-clock moment, leaving out the rows at `skipping` offsets
-    /// (heart rate read from Apple Health).
+    /// (heart rate read from Apple Health). Each carries the export's
+    /// `stamp`, numbered in the order written.
     static func heartRateSamples(
-        from samples: [WorkoutSample], clock: WorkoutWallClock, skipping healthKitOffsets: Set<Int> = []
+        from samples: [WorkoutSample], clock: WorkoutWallClock, stamp: ExportStamp, skipping healthKitOffsets: Set<Int> = []
     ) -> [HKQuantitySample] {
         guard let hrType = HKQuantityType.quantityType(forIdentifier: .heartRate) else { return [] }
-        return samples.compactMap { s in
-            guard let bpm = s.heartRate, !healthKitOffsets.contains(s.offsetSec) else { return nil }
+        var out: [HKQuantitySample] = []
+        for s in samples {
+            guard let bpm = s.heartRate, !healthKitOffsets.contains(s.offsetSec) else { continue }
             let when = clock.date(atActiveOffset: s.offsetSec)
-            return HealthSampleFactory.quantitySample(
-                type: hrType, value: Double(bpm), unit: HKUnit(from: "count/min"), start: when, end: when
+            let sample = HealthSampleFactory.quantitySample(
+                type: hrType, value: Double(bpm), unit: HKUnit(from: "count/min"), start: when, end: when,
+                metadata: stamp.sampleMetadata("hr", index: out.count)
             )
+            if let sample { out.append(sample) }
         }
+        return out
     }
 
     /// One delta-distance sample per tick, spanning the interval since the
@@ -260,11 +437,13 @@ enum HealthKitWorkoutExport {
     /// wall clock and never cross a pause (`WorkoutWallClock.interval`).
     /// `delta.isFinite` defends against the (unlikely) case where
     /// dist arithmetic produces an infinity. NaN already short-circuits on
-    /// `dist > lastDistance` (NaN > x is always false).
+    /// `dist > lastDistance` (NaN > x is always false). Each carries the
+    /// export's `stamp`, numbered in the order written.
     static func distanceSamples(
         from samples: [WorkoutSample],
         sport: Sport,
-        clock: WorkoutWallClock
+        clock: WorkoutWallClock,
+        stamp: ExportStamp
     ) -> [HKQuantitySample] {
         guard let distanceTypeId = distanceType(for: sport),
               let distType = HKQuantityType.quantityType(forIdentifier: distanceTypeId) else { return [] }
@@ -278,7 +457,8 @@ enum HealthKitWorkoutExport {
             lastDistance = dist
             let span = clock.interval(fromActiveOffset: spanStart, to: s.offsetSec)
             let sample = HealthSampleFactory.quantitySample(
-                type: distType, value: delta, unit: .meter(), start: span.start, end: span.end
+                type: distType, value: delta, unit: .meter(), start: span.start, end: span.end,
+                metadata: stamp.sampleMetadata("distance", index: out.count)
             )
             spanStart = s.offsetSec
             if let sample { out.append(sample) }
@@ -299,11 +479,15 @@ enum HealthKitWorkoutExport {
     /// Per-window active energy. Better than one session total because it
     /// lets Apple Health plot calorie burn over time and attribute it to the
     /// right activity-ring minute. The kcal are worked out over the active
-    /// seconds between ticks; the sample sits on the wall clock and never
-    /// crosses a pause (`WorkoutWallClock.interval`).
+    /// seconds between ticks from the net METs (`netMETs`), so Health's
+    /// Active Energy leaves out the resting metabolism Apple Watch already
+    /// writes as basal energy; the sample sits on the wall clock and never
+    /// crosses a pause (`WorkoutWallClock.interval`). Each carries the
+    /// export's `stamp`, numbered in the order written.
     static func activeEnergySamples(
         from samples: [WorkoutSample],
         clock: WorkoutWallClock,
+        stamp: ExportStamp,
         bodyWeightKg: Double
     ) -> [HKQuantitySample] {
         guard let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else { return [] }
@@ -316,15 +500,22 @@ enum HealthKitWorkoutExport {
             let prevOffset = idx > 0 ? ordered[idx - 1].offsetSec : 0
             let durationSec = max(1, s.offsetSec - prevOffset)
             let minutes = Double(durationSec) / 60.0
-            let kcal = (mets * mlOxygenPerKgPerMET * bodyWeightKg * minutes) / mlOxygenPerKcal
+            let kcal = (netMETs(mets) * mlOxygenPerKgPerMET * bodyWeightKg * minutes) / mlOxygenPerKcal
             guard kcal > minimumKcalPerSample else { continue }
             let span = clock.interval(fromActiveOffset: prevOffset, to: s.offsetSec)
             let sample = HealthSampleFactory.quantitySample(
-                type: energyType, value: kcal, unit: .kilocalorie(), start: span.start, end: span.end
+                type: energyType, value: kcal, unit: .kilocalorie(), start: span.start, end: span.end,
+                metadata: stamp.sampleMetadata("energy", index: out.count)
             )
             if let sample { out.append(sample) }
         }
         return out
+    }
+
+    /// The METs above rest: gross Compendium METs less the 1 MET of resting
+    /// metabolism, never below zero.
+    static func netMETs(_ grossMETs: Double) -> Double {
+        max(0, grossMETs - restingMETs)
     }
 
     /// The ticks sorted by offset. Live ticks already are; a merged or
@@ -334,8 +525,10 @@ enum HealthKitWorkoutExport {
         samples.sorted { $0.offsetSec < $1.offsetSec }
     }
 
-    /// Attaches the GPS polyline to an already-persisted workout. No-op for
-    /// indoor sports, a missing polyline, or a polyline that decodes empty.
+    /// Attaches the GPS polyline to an already-persisted workout, under the
+    /// export's route identity, and says whether a route was saved. No-op
+    /// (false) for indoor sports, a missing polyline, or a polyline that
+    /// decodes empty.
     ///
     /// The route keeps `GPXExporter.decode`'s evenly spread times and is not
     /// moved around pauses: the polyline stores no fix times, and fixes keep
@@ -347,23 +540,25 @@ enum HealthKitWorkoutExport {
         duration: TimeInterval?,
         startDate: Date,
         workout: HKWorkout,
+        stamp: ExportStamp,
         store: HKHealthStore
-    ) async throws {
-        guard metadata.sport.usesGPS, let polyline = metadata.gpsPolyline else { return }
+    ) async throws -> Bool {
+        guard metadata.sport.usesGPS, let polyline = metadata.gpsPolyline else { return false }
         guard isWritable(HKSeriesType.workoutRoute(), in: store) else {
             debugLog("[HKExport] writing is off in Health for workout routes — workout saved without its route")
-            return
+            return false
         }
         let track = GPXExporter.decode(
             polyline: polyline,
             startDate: startDate,
             duration: duration
         )
-        guard !track.isEmpty else { return }
+        guard !track.isEmpty else { return false }
 
         let routeBuilder = HKWorkoutRouteBuilder(healthStore: store, device: .local())
         try await routeBuilder.insertRouteData(track)
-        _ = try await routeBuilder.finishRoute(with: workout, metadata: nil)
+        _ = try await routeBuilder.finishRoute(with: workout, metadata: stamp.metadataOfRoute)
+        return true
     }
 
     // MARK: - Helpers

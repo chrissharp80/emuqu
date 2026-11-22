@@ -8,8 +8,17 @@ extension WorkoutRecoveryService {
     /// on any finished workout, and each rebuilds the session from its backups
     /// under the same id. A rebuild that started empty would drop the
     /// user's tags, notes and feeling, the heart-rate recovery, weather and
-    /// power figures, and the Apple Health export stamp, which would send the
-    /// workout to Apple Health a second time on the next back-fill.
+    /// power figures.
+    ///
+    /// The Apple Health export stamp is not carried when the archived copy
+    /// was exported: the copy in Health describes the workout as it was
+    /// (a trimmed ten-hour walk stays ten hours there), so the rebuild is left
+    /// unstamped, with no failures counted, and the next back-fill exports
+    /// it again. That export replaces the earlier one
+    /// (`HealthKitWorkoutExport.export`), so Health keeps one copy. Any
+    /// other copy keeps its stamp and failure count: a workout imported from
+    /// Apple Health is stamped because it is Health's own, and must never be
+    /// written back.
     static func carryForward(from archived: HRVSession, into session: inout HRVSession) {
         carrySessionFields(from: archived, into: &session)
         guard let old = archived.workoutMetadata, var new = session.workoutMetadata else { return }
@@ -35,8 +44,24 @@ extension WorkoutRecoveryService {
         session.morningFeeling = archived.morningFeeling
         session.morningFeelingTags = archived.morningFeelingTags
         session.trainingSnapshot = archived.trainingSnapshot
-        session.healthKitExportedAt = archived.healthKitExportedAt
-        session.healthKitExportFailureCount = archived.healthKitExportFailureCount
+        if wasExportedByEmuqu(archived) {
+            session.healthKitExportedAt = nil
+            session.healthKitExportFailureCount = nil
+        } else {
+            session.healthKitExportedAt = archived.healthKitExportedAt
+            session.healthKitExportFailureCount = archived.healthKitExportFailureCount
+        }
+    }
+
+    /// The device id `ImportedWorkoutBuilder.Source.appleHealth` stamps on a
+    /// workout read out of Apple Health, whose stamp says it is already there.
+    private static let importedFromHealthDeviceId = "healthkit-import"
+
+    /// Whether Apple Health holds a copy of the session that Emuqu saved: it
+    /// is stamped, and the stamp is not the one an import from Health
+    /// carries (that workout is Health's own, never exported).
+    static func wasExportedByEmuqu(_ archived: HRVSession) -> Bool {
+        archived.healthKitExportedAt != nil && archived.deviceProvenance?.deviceId != importedFromHealthDeviceId
     }
 
     /// True when the rebuild starts and ends where the archived copy did, so

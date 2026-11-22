@@ -1150,25 +1150,31 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Storage & Sync > Apple Health Export",
-   "hash": "ec06e9a505e5ba0e",
-   "does": "Claims Health export writes a windowed SDNN series or a single summary (exportHRV), a heart-rate series (exportHeartRateSeries), one resting HR per overnight night, sleep stage HKCategorySamples plus inBed stamped with HKMetadataKeyExternalUUID, that every re-write saves before deleting the earlier samples and runs one at a time per session, each Health call bounded by a timeout (HealthSampleReplacer), and skips samples for Health-sourced sessions; code in Collection/HealthKitManager+{HRV,HeartRate,Sleep}.swift. Code matches.",
+   "hash": "cd3e9f610ae54708",
+   "does": "Claims Health export writes a windowed SDNN series or a single summary (exportHRV), a heart-rate series (exportHeartRateSeries), one resting HR per overnight night, sleep stage HKCategorySamples plus inBed stamped with HKMetadataKeyExternalUUID; that every sample and workout also carries the identity as HKMetadataKeySyncIdentifier with a rising sync version (HealthExportIdentity.metadata); that every re-write saves before deleting the earlier samples HealthKit did not already replace and runs one at a time per session, each Health call bounded by a timeout (HealthSampleReplacer); that a workout export replaces earlier workouts of the session (HealthKitWorkoutExport.export) and writes net active energy; that a trimmed or rebuilt workout is exported again; that deleting forever removes every exported metric (HealthWriteAndObserve.removeExports); and skips samples for Health-sourced sessions. Code matches.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportHRV(session:result:)",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRateSeries(from:sessionStart:sessionId:)",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)",
-    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)"
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthWriteAndObserve.removeExports(sessionId:from:to:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportHRV(session:result:)": "85f021672855315f",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRateSeries(from:sessionStart:sessionId:)": "824be87d5915a1e0",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)": "7ee0ef3efc415d6e",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportHRV(session:result:)": "634a1738c15997d2",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRateSeries(from:sessionStart:sessionId:)": "8c078b3eae594a28",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)": "d25c8497c038c027",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "cc8e27ff941bb596",
-    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "0415c974b73264d3"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "7b9e26db535cb5c3",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "26c67d8ab67eca74",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "0415c974b73264d3",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthWriteAndObserve.removeExports(sessionId:from:to:)": "980c692590529480"
    }
   },
   {
@@ -1499,12 +1505,12 @@
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.releaseWhenIdle()": "36b65598928d202c",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)": "5638c6846b7c2360",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.claimCuePlayback()": "7ea6a900219fdbcd",
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.start()": "dbfc96e8ad39986f",
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.start()": "78bf1e28a5aa20d3",
     "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.decimatedBreadcrumbFixes(track:origin:)": "a9eaaa4d8020d6c7",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.configureManagerForBackgroundTracking()": "c31914253f98cd58",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.locationManager(_:didUpdateLocations:)": "15c98b0acffb59c1",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startBarometricAltitudeUpdates()": "226d1f481aefa463",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::init WorkoutLocationManager()": "a95fe8eb981617c6",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::init WorkoutLocationManager()": "9a1613ce604f88cd",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:sessionId:)": "994ce3b33e8f759e",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.breadcrumbLabel(sport:start:)": "5c469d77faf7e3da",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "34bd0ca2ce4e37f0",
@@ -1541,8 +1547,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Navigation & Location Subsystems > `WorkoutLocationManager`",
-   "hash": "50cf9f0deade8211",
-   "does": "Says WorkoutLocationManager uses kCLLocationAccuracyBestForNavigation with the location background mode, is active during a recording workout, owns the altimeter for barometric elevation, and is lazily created on first access (start() for GPS sports) so the recorder's init does not pay the CLLocationManager + altimeter setup on the main actor. Code: desiredAccuracy BestForNavigation and allowsBackgroundLocationUpdates = true in WorkoutLocationManager.swift; it owns a CMAltimeter; WorkoutRecorder.location creates it lazily on first read.",
+   "hash": "733c71978c1c2fda",
+   "does": "Says WorkoutLocationManager uses kCLLocationAccuracyBest (not the navigation level meant for external power) with the location background mode, is active during a recording workout, owns the altimeter for barometric elevation, and is lazily created on first access (start() for GPS sports) so the recorder's init does not pay the CLLocationManager + altimeter setup on the main actor. Code: desiredAccuracy Best and allowsBackgroundLocationUpdates = true in WorkoutLocationManager.swift; it owns a CMAltimeter; WorkoutRecorder.location creates it lazily on first read.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)"
@@ -2008,7 +2014,7 @@
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.accumulateGPSElevationFallback(from:to:)": "a7ee0d900ec38f97",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.creditMovement(from:to:)": "3bd46d97d987821b",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startBarometricAltitudeUpdates()": "226d1f481aefa463",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyElevationMetrics(to:)": "6927a9127c43613d"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyElevationMetrics(to:)": "e01909ec3c0ded61"
    }
   },
   {

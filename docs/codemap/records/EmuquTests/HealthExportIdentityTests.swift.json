@@ -1,6 +1,6 @@
 {
  "file": "EmuquTests/HealthExportIdentityTests.swift",
- "hash": "d55c82ce6d01cc4e",
+ "hash": "4668695073f34660",
  "role": "XCTest suite for the HKMetadataKeyExternalUUID naming scheme (HealthExportIdentity) that scopes which app-written Health samples a re-export deletes: exact summary match, prefix series match, no cross-metric or cross-session reach, stable string format.",
  "types": [
   "HealthExportIdentityTests: class — XCTestCase over HealthExportIdentity summary/series/predicates"
@@ -221,7 +221,7 @@
   },
   {
    "key": "func HealthExportIdentityTests.testIdentityFormatIsStable()",
-   "hash": "79b1dce5df5d523c",
+   "hash": "af35a99e4194d28f",
    "does": "Pins exact identity strings: '<uuid>-hr', '<uuid>-hr-7', '<uuid>-rhr', '<uuid>-sdnn-0', '<uuid>-rmssd-2', '<uuid>-sleep-inbed'.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
@@ -238,6 +238,42 @@
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesMember(sessionId:metric:suffix:)": "b798540327ba6b0c",
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.seriesPrefix(sessionId:metric:)": "7783f847d9bd3ac0",
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "6366e07ca5f14857"
+   }
+  },
+  {
+   "key": "func HealthExportIdentityTests.testMetadataCarriesTheIdentityAsTheSyncIdentifier()",
+   "hash": "edcf3a32c3c9c181",
+   "does": "Asserts HealthExportIdentity.metadata puts the identity in both ExternalUUID and the sync identifier, the version in the sync version, keeps the extra key and sets Source=Emuqu.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)": "7ee0ef3efc415d6e",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.summary(sessionId:metric:)": "6366e07ca5f14857"
+   }
+  },
+  {
+   "key": "func HealthExportIdentityTests.testSyncVersionsOnlyGoUp()",
+   "hash": "7daa5affaadd5891",
+   "does": "Asserts nextSyncVersion rises on a second call in the same millisecond and again when the clock is set back an hour.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)"
+   ],
+   "reads": [
+    "mem:HealthExportIdentity.lastSyncVersion"
+   ],
+   "writes": [
+    "mem:HealthExportIdentity.lastSyncVersion"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)": "dc7538c29edef3aa"
    }
   },
   {

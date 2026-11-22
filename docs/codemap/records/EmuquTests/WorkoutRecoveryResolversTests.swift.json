@@ -713,20 +713,12 @@
    }
   },
   {
-   "key": "func WorkoutRecoveryResolversTests.testCarryForwardKeepsUserFieldsAndTheExportStamp()",
-   "hash": "90ee071a25f8199d",
-   "does": "Asserts carryForward copies notes, healthKitExportedAt and workoutFeeling from the archived session, takes partialDataReason from the archive (nil), and keeps the rebuild's own distance.",
+   "key": "func WorkoutRecoveryResolversTests.testCarryForwardKeepsUserFieldsAndDropsTheExportStamp()",
+   "hash": "73b03e2c7bbf869d",
+   "does": "Carries an exported archived workout into a rebuild and asserts the notes and feeling are kept, the export stamp and failure count are cleared (the rebuild is exported again), partialDataReason restored and the rebuild's own distance kept.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySessionFields(from:into:)",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryUserFields(from:into:)",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.coversSameTime(_:_:)",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryMeasuredFields(from:into:)",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySamples(from:into:metadata:)",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryPowerFields(from:into:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)"
    ],
    "reads": [],
    "writes": [],
@@ -734,13 +726,26 @@
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "fe9cf4d8a1a8bdb5",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryMeasuredFields(from:into:)": "81495c364e94c1af",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryPowerFields(from:into:)": "31123cbf85bb2e40",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySamples(from:into:metadata:)": "cb0be121a2f65af8",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carrySessionFields(from:into:)": "c09dbabc1882fb5f",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryUserFields(from:into:)": "2d4559e9ac67d1e2",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.coversSameTime(_:_:)": "7e133a628f873010"
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "831fac62d7fe8a12"
+   }
+  },
+  {
+   "key": "func WorkoutRecoveryResolversTests.testCarryForwardKeepsTheStampOfAWorkoutImportedFromHealth()",
+   "hash": "26a85d16e0444511",
+   "does": "Carries a stamped workout imported from Apple Health (device id 'healthkit-import') into a rebuild and asserts the stamp is kept and wasExportedByEmuqu is false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.wasExportedByEmuqu(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "831fac62d7fe8a12",
+    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.wasExportedByEmuqu(_:)": "7c40791626573adf"
    }
   }
  ],

@@ -80,23 +80,24 @@ extension SessionRecoveryCoordinator {
         return session
     }
 
-    /// Deletes sessions from the Trash for good, and the HRV samples each
-    /// exported to Apple Health
-    /// (`SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)`).
+    /// Deletes sessions from the Trash for good, and everything each
+    /// exported to Apple Health: HRV, heart rate, resting heart rate, sleep
+    /// and workouts (`HealthWriteAndObserve.removeExports`,
+    /// `SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)`).
     @discardableResult
     func permanentlyDelete(_ ids: [UUID]) async -> TrashDeletionOutcome {
         await recoveryService.permanentlyDelete(ids) { id, span in
-            await removeExportedHRV(of: id, over: span)
+            await removeHealthExports(of: id, over: span)
         }
     }
 
-    /// False (logged) when HealthKit could not delete them.
-    private func removeExportedHRV(of id: UUID, over span: ClosedRange<Date>) async -> Bool {
+    /// False (logged) when HealthKit could not delete all of them.
+    private func removeHealthExports(of id: UUID, over span: ClosedRange<Date>) async -> Bool {
         do {
-            try await collector.healthKit.writes.removeExportedHRV(sessionId: id, from: span.lowerBound, to: span.upperBound)
+            try await collector.healthKit.writes.removeExports(sessionId: id, from: span.lowerBound, to: span.upperBound)
             return true
         } catch {
-            debugLog("[Recovery] HRV samples of \(id.uuidString.prefix(8)) could not be deleted from Apple Health: \(error)", level: .error)
+            debugLog("[Recovery] Apple Health samples of \(id.uuidString.prefix(8)) could not all be deleted: \(error)", level: .error)
             return false
         }
     }
