@@ -682,44 +682,21 @@ struct GetMeBackView: View {
         .tint(.blue)
     }
 
-    @ViewBuilder
+    /// The brightness panel the toolbar's settings button shows. The slider
+    /// writes through `applyBrightness`, so this view keeps owning the
+    /// override that leaving the screen or the app reverts.
     private var settingsPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(String(localized: "Screen brightness", bundle: LanguageManager.appBundle))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.textSecondary)
-            brightnessSliderRow
-            Text(String(localized: "Defaults to your system brightness. Drag down to save battery; reverts when you leave this screen.", bundle: LanguageManager.appBundle))
-                .font(.caption2)
-                .foregroundStyle(AppTheme.textSecondary)
-        }
-        .padding(12)
-        .background(Color.gray.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-
-    private var brightnessSliderRow: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "sun.min")
-                .foregroundStyle(AppTheme.textSecondary)
-            brightnessSlider
-            Image(systemName: "sun.max.fill")
-                .foregroundStyle(AppTheme.textSecondary)
-        }
-    }
-
-    private var brightnessSlider: some View {
-        Slider(
-            value: Binding(
-                get: { brightnessOverride },
-                set: { newValue in
-                    brightnessOverride = newValue
-                    UIScreen.main.brightness = CGFloat(newValue)
-                    didSetBrightnessOverride = true
-                }
-            ),
-            in: 0.05 ... 1.0
+        GetMeBackBrightnessPanel(
+            brightness: Binding(get: { brightnessOverride }, set: { applyBrightness($0) })
         )
+    }
+
+    /// Sets the screen to the slider's value and marks the override, so
+    /// `resetScreenState` and `handleScenePhase` hand the system brightness back.
+    private func applyBrightness(_ newValue: Double) {
+        brightnessOverride = newValue
+        UIScreen.main.brightness = CGFloat(newValue)
+        didSetBrightnessOverride = true
     }
 
     // MARK: - Helpers

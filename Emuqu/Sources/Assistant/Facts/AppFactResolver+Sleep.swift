@@ -839,7 +839,8 @@ struct RecoveryNamespace: FactNamespaceResolver {
             key: "recovery.score.latest",
             description: """
             The newest recovery score (0–100) — this morning's only when is_today is true; days_ago says how old it is otherwise \
-            (no strap overnight leaves it days old), so present an older one as that day's, never as today's. Plus its context: training_readiness (0–10, separate from the score), data_quality (good / preSleep / insufficient — cite this to caveat a poor reading), morning_feeling (1–5, what the user \
+            (no strap overnight leaves it days old), so present an older one as that day's, never as today's. Plus its context: training_readiness (0–10, separate from the score), \
+            data_quality (good / preSleep / insufficient — cite this to caveat a poor reading), morning_feeling (1–5, what the user \
             SAID before seeing the score), morning_feeling_tags (e.g. infection/hangover/sore), perceived_readiness (0–1), and notes. Composite of HRV 60% / Sleep 25% / Vitals 15% (v3.3.nov2026); comeback mode shifts a Tier 3 score to 80/20/0. Training \
             load lives on the Load & Trajectory page, not in the score. Source of truth for 'how recovered am I?', 'am I ready to train?', and 'did I say I felt bad this morning?'.
             """,

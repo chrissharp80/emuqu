@@ -454,7 +454,7 @@
   {
    "key": "§ Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Per > 3. Methods > 3.3 Runtime number verification > 3.3.2 Algorithm (app-state family)",
    "hash": "698240ed6fc35d38",
-   "does": "Specifies the app-state algorithm: normalize English spelled numbers 0-999 (hundreds, the 'one-sixty' form, tens+ones, ones/teens, optional 'negative', 'point' + any number of digit words) recording rewrites; run metric regexes; read each match's sentence from its start to the end of the claim's clause (first separator , ; ( — – spaced hyphen vs versus compared but while whereas from) and drop it on a time or target/comparison marker; negate 'negative'; compare with tolerance; recovery dual scale; sleep only when the text mentions sleep, with norm/other-night filters; remap offsets snapping to rewrites; replace spans back-to-front skipping overlaps. The live family runs normalization, matching, markers, tolerance and remap too, with the 'your X is'/'X right now' shape and an optional unit. Code: MetricsVerifier.verifyAppStateClaims/verifyLive/correctedText/claimsMatching/discrepancy/isAboutTheCurrentValue/clauseEnd/sentenceRange/isInSleepSentence/isNotAboutLastNight/normalizeSpelledNumbers/normalizeWithRewrites/remap/originalOffset/spelledNumberPattern/spelledNumberReplacement/spelledInteger.",
+   "does": "Specifies the app-state algorithm: normalize English spelled numbers 0-999 (hundreds, the 'one-sixty' form, tens+ones, ones/teens, optional 'negative', 'point' + any number of digit words) recording rewrites; run metric regexes; read each match's sentence from its start to the end of the claim's clause (first separator , ; ( — – spaced hyphen vs versus compared but while whereas from) and drop it on a time or target/comparison marker; negate 'negative'; compare with tolerance; recovery dual scale; sleep only when the text mentions sleep, with norm/other-night filters; remap offsets snapping to rewrites; replace spans back-to-front skipping overlaps. The live family runs normalization, matching, markers, tolerance and remap too, with the 'your X is'/'X right now' shape and an optional unit. Code: MetricsVerifier.verifyAppStateClaims/verifyLive/correctedText/claimsMatching/discrepancy/isAboutTheCurrentValue/clauseEnd/sentenceRange/isInSleepSentence/isNotAboutLastNight/normalizeSpelledNumbers/remap and SpelledNumberNormalizer.normalizeWithRewrites/originalOffset/spelledNumberPattern/spelledNumberReplacement/spelledInteger.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)",
@@ -469,12 +469,12 @@
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isInSleepSentence(_:in:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isNotAboutLastNight(_:in:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.normalizeWithRewrites(_:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.remap(_:from:to:rewrites:)",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.originalOffset(of:rewrites:snapToEnd:)",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::var MetricsVerifier.spelledNumberPattern",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledNumberReplacement(_:)",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledInteger(_:)"
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.originalOffset(of:rewrites:snapToEnd:)",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::var SpelledNumberNormalizer.spelledNumberPattern",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.spelledNumberReplacement(_:)",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.spelledInteger(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -488,16 +488,16 @@
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isInSleepSentence(_:in:)": "60d6c95ffe60d0f3",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.isNotAboutLastNight(_:in:)": "1f6f49e158e6f5a6",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeSpelledNumbers(_:)": "0cfccfbc2dce2608",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)": "b09a93db5731f415",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.originalOffset(of:rewrites:snapToEnd:)": "f8f072d810f1fc34",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.remap(_:from:to:rewrites:)": "6928dda260b7f90c",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.remap(_:from:to:rewrites:)": "b556e5a1de1f3ead",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sentenceRange(containing:in:)": "16c9313148accead",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledInteger(_:)": "55333f5034d0fbe0",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledNumberReplacement(_:)": "444ce802bd9c228f",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)": "6879608aa4982139",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)": "3256aa664e5cf316",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyLive(_:values:)": "fee970f18a54e16d",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::var MetricsVerifier.spelledNumberPattern": "8338a8fd7b9f99c5"
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.normalizeWithRewrites(_:)": "b09a93db5731f415",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.originalOffset(of:rewrites:snapToEnd:)": "f8f072d810f1fc34",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.spelledInteger(_:)": "767641f1727b4533",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.spelledNumberReplacement(_:)": "95326b9aaf427571",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::var SpelledNumberNormalizer.spelledNumberPattern": "23a1d643beaf3990"
    }
   },
   {

@@ -479,7 +479,7 @@ extension HeartRateHealthQueries {
             let sample = meanHR(of: windowPoints).flatMap { hr in
                 hrSample(
                     hr, type: hrType, sessionStart: sessionStart, sessionId: sessionId, version: version,
-                    index: samples.count, windowStartMs: windowStart, windowEndMs: windowEnd
+                    index: samples.count, windowMs: windowStart..<windowEnd
                 )
             }
             if let sample { samples.append(sample) }
@@ -488,16 +488,18 @@ extension HeartRateHealthQueries {
         return samples
     }
 
+    /// The sample for one minute: `windowMs` is the minute as milliseconds
+    /// from `sessionStart`, from its first millisecond up to the next minute's.
     nonisolated private static func hrSample(
         _ hr: Double, type: HKQuantityType, sessionStart: Date, sessionId: UUID, version: Int,
-        index: Int, windowStartMs: Int64, windowEndMs: Int64
+        index: Int, windowMs: Range<Int64>
     ) -> HKQuantitySample? {
         HealthSampleFactory.quantitySample(
             type: type,
             value: hr,
             unit: HKUnit.count().unitDivided(by: .minute()),
-            start: sessionStart.addingTimeInterval(Double(windowStartMs) / 1000),
-            end: sessionStart.addingTimeInterval(Double(windowEndMs) / 1000),
+            start: sessionStart.addingTimeInterval(Double(windowMs.lowerBound) / 1000),
+            end: sessionStart.addingTimeInterval(Double(windowMs.upperBound) / 1000),
             metadata: HealthExportIdentity.metadata(
                 HealthExportIdentity.seriesMember(sessionId: sessionId, metric: .heartRate, index: index), version: version
             )

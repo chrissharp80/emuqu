@@ -127,7 +127,7 @@ struct HistoryView: View {
     /// Session-type filter, tag filter and the search field.
     private var filterHeader: some View {
         VStack(spacing: 0) {
-            sessionTypeFilterBar
+            SessionTypeFilterBar(selection: $viewModel.selectedSessionType)
                 .padding(.horizontal)
                 .padding(.top, 8)
             tagFilterBar
@@ -573,88 +573,6 @@ struct HistoryView: View {
         }
     }
 
-    // MARK: - Session Type Filter Bar
-
-    /// Five chips: All / Extended / Naps / Quick / Breathe. There is no
-    /// Workouts chip: workouts live in the Fitness tab. "Extended" is the
-    /// spec's term for overnight.
-    private var sessionTypeFilterBar: some View {
-        // A bare HStack forces all 5 chips to share
-        // the screen width, so "Extended" wrapped to 3 lines while the
-        // shorter labels stayed on one. Horizontal ScrollView lets each
-        // chip size to its content (matches the tagFilterBar pattern
-        // immediately below in this file).
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                allFilterButton
-
-                extendedFilterButton
-
-                napFilterButton
-
-                quickFilterButton
-
-                breatheFilterButton
-            }
-            .padding(.vertical, 1) // prevents shadow-clipping at chip edges
-        }
-    }
-
-    private var allFilterButton: some View {
-        SessionTypeFilterButton(
-            title: String(localized: "All", bundle: LanguageManager.appBundle),
-            icon: "list.bullet",
-            isSelected: viewModel.selectedSessionType == nil,
-            color: AppTheme.primary
-        ) {
-            viewModel.selectedSessionType = nil
-        }
-    }
-
-    private var extendedFilterButton: some View {
-        SessionTypeFilterButton(
-            title: String(localized: "Extended", bundle: LanguageManager.appBundle),
-            icon: SessionType.overnight.icon,
-            isSelected: viewModel.selectedSessionType == .overnight,
-            color: AppTheme.primary
-        ) {
-            viewModel.selectedSessionType = .overnight
-        }
-    }
-
-    private var napFilterButton: some View {
-        SessionTypeFilterButton(
-            title: String(localized: "Naps", bundle: LanguageManager.appBundle),
-            icon: SessionType.nap.icon,
-            isSelected: viewModel.selectedSessionType == .nap,
-            color: AppTheme.mist
-        ) {
-            viewModel.selectedSessionType = .nap
-        }
-    }
-
-    private var quickFilterButton: some View {
-        SessionTypeFilterButton(
-            title: String(localized: "Quick", bundle: LanguageManager.appBundle),
-            icon: SessionType.quick.icon,
-            isSelected: viewModel.selectedSessionType == .quick,
-            color: AppTheme.sage
-        ) {
-            viewModel.selectedSessionType = .quick
-        }
-    }
-
-    private var breatheFilterButton: some View {
-        SessionTypeFilterButton(
-            title: String(localized: "Breathe", bundle: LanguageManager.appBundle),
-            icon: SessionType.breathe.icon,
-            isSelected: viewModel.selectedSessionType == .breathe,
-            color: AppTheme.sdnnColor
-        ) {
-            viewModel.selectedSessionType = .breathe
-        }
-    }
-
     // MARK: - Empty State
 
     private var emptyState: some View {
@@ -768,35 +686,6 @@ extension HistoryView {
                 .contentShape(Rectangle())
         }
         .accessibilityAddTraits(viewModel.selectedTags.isEmpty ? .isSelected : [])
-    }
-}
-
-// MARK: - Session Type Filter Button
-
-private struct SessionTypeFilterButton: View {
-    let title: String
-    let icon: String
-    let isSelected: Bool
-    let color: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.caption)
-                Text(title)
-                    .font(.subheadline)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(isSelected ? color : color.opacity(0.15))
-            .foregroundColor(isSelected ? .white : color)
-            .cornerRadius(8)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(String(localized: "\(title) filter", bundle: LanguageManager.appBundle))
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

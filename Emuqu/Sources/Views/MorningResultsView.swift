@@ -463,7 +463,9 @@ struct MorningResultsView: View {
     // present (see FitnessTabView's summary sheet).
     private func withSheets(_ content: some View) -> some View {
         content
-            .sheet(isPresented: $showingScoreExplainer) { scoreExplainerSheet }
+            .sheet(isPresented: $showingScoreExplainer) {
+                RecoveryScoreExplainerSheet { showingScoreExplainer = false }
+            }
             .sheet(item: reportFileSheetBinding) { sheet in
                 switch sheet {
                 case .preview(let identifiable): PDFPreviewView(url: identifiable.url)
@@ -483,62 +485,14 @@ struct MorningResultsView: View {
         )
     }
 
-    @ViewBuilder
-    private var scoreExplainerSheet: some View {
-        if let article = HelpContent.recoveryScore.articles.first(where: { $0.id == "understanding-score" })?.localized {
-            NavigationStack { scoreExplainerArticle(article) }
-        }
-    }
-
-    private func scoreExplainerArticle(_ article: HelpArticle) -> some View {
-        HelpArticleView(article: article)
-            .toolbar { scoreExplainerToolbar }
-    }
-
-    @ToolbarContentBuilder
-    private var scoreExplainerToolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button(String(localized: "Done", bundle: LanguageManager.appBundle)) {
-                showingScoreExplainer = false
-            }
-        }
-    }
-
+    /// The report's mail composer, addressed from the user's recovery-report
+    /// defaults (`RecoveryReportMailComposer`).
     private func reportMailComposer(_ identifiable: IdentifiableURL) -> some View {
-        let reportDate = session.endDate ?? session.startDate
-        let dateStr = reportDate.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(LanguageManager.appLocale))
-        return MailComposerView(
-            subject: String(localized: "Recovery Report – \(dateStr)", bundle: LanguageManager.appBundle),
-            recipients: reportRecipients,
-            ccRecipients: reportCCRecipients,
+        RecoveryReportMailComposer(
+            settings: dependencies.app.settingsManager.settings,
+            reportDate: session.endDate ?? session.startDate,
             attachmentURL: identifiable.url
         )
-    }
-
-    // Reading `defaultRecoveryEmailRecipient` alone leaves the
-    // field BLANK when the user has only set the legacy generic
-    // `defaultEmailRecipient` ("reports pre-pop email regressed").
-    // So fall back through the same `resolvedDefaultEmailRecipient`
-    // chain that MainTabView's report mailer + AssistantChatView's
-    // per-message mailer use (recovery → training → legacy
-    // generic). Same for the CC list.
-    private var reportRecipients: [String] {
-        let settings = dependencies.app.settingsManager.settings
-        if let recovery = settings.defaultRecoveryEmailRecipient,
-           !recovery.trimmingCharacters(in: .whitespaces).isEmpty {
-            return [recovery]
-        }
-        return settings.resolvedDefaultEmailRecipient.map { [$0] } ?? []
-    }
-
-    private var reportCCRecipients: [String] {
-        let settings = dependencies.app.settingsManager.settings
-        let recoveryCC = (settings.defaultRecoveryEmailCC ?? "")
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        if !recoveryCC.isEmpty { return recoveryCC }
-        return settings.resolvedDefaultEmailCC
     }
 
     private func withDialogs(_ content: some View) -> some View {
@@ -798,50 +752,21 @@ struct MorningResultsView: View {
     // Data loading (fetchHealthKitSleep, fetchLiveTrainingContext, fetchDayTrimp)
     // is handled by MorningResultsViewModel.loadInitialData().
 
-    /// Graceful empty/error state for a session that couldn't
-    /// produce a usable analysis (no HRV metrics, no score), instead of
-    /// a row of near-blank "—" cards. Offers a
-    /// re-analyze retry when raw beat data is on disk, and otherwise lets
-    /// the user dismiss/delete. Kept inside the app's card style + the
-    /// shared EmptyState component used elsewhere.
+    /// The screen for a reading with no usable analysis
+    /// (`UnreadableReadingState`): Re-analyze only when raw beat data is on
+    /// disk and the caller can re-analyze, Delete only when it can delete;
+    /// each asks first through this view's confirmation dialogs.
     private var unreadableSessionState: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                unreadableEmptyState
-
-                // Subjective fallback so the morning still has a takeaway
-                // even when the physiological read failed.
-                unreadableFallbackCard
-            }
-            .padding()
-        }
-        .background(AppTheme.background.ignoresSafeArea())
-    }
-
-    private var unreadableEmptyState: some View {
-        EmptyState(
-            glyph: "waveform.path.ecg",
-            headline: String(localized: "This reading didn't process", bundle: LanguageManager.appBundle),
-            message: String(localized: "We couldn't pull usable heart-rate variability from this session — it may have been too short, too noisy, or interrupted before enough clean data was captured. Your raw data is safe.", bundle: LanguageManager.appBundle),
-            primaryLabel: (vm.hasRawData && onReanalyze != nil)
-                ? String(localized: "Re-analyze", bundle: LanguageManager.appBundle)
-                : nil,
-            primaryAction: { showingReanalyzeConfirmation = true },
-            secondaryLabel: onDelete != nil
-                ? String(localized: "Delete reading", bundle: LanguageManager.appBundle)
-                : nil,
-            secondaryAction: { showingDeleteConfirmation = true }
-        )
-        .padding(.top, 40)
-    }
-
-    private var unreadableFallbackCard: some View {
-        SubjectiveReadinessCard(
+        UnreadableReadingState(
+            canReanalyze: vm.hasRawData && onReanalyze != nil,
+            canDelete: onDelete != nil,
             perceivedReadiness: Binding(
                 get: { vm.displaySession.perceivedReadiness },
                 set: { vm.updatePerceivedReadiness($0) }
             ),
-            quality: vm.displaySession.hrvDataQuality ?? .insufficient
+            quality: vm.displaySession.hrvDataQuality ?? .insufficient,
+            onReanalyze: { showingReanalyzeConfirmation = true },
+            onDelete: { showingDeleteConfirmation = true }
         )
     }
 }
