@@ -63,6 +63,12 @@ jobs:
       - name: Documentation, SBOM, no phone-home, pinned packages
         run: make doc-links sbom-guard sbom-check no-phone-home xcodebuild-pinned-guard
 
+      - name: The Python ports still reproduce the Swift test expectations
+        # The whitepapers' cross-implementation check (Tools/validation):
+        # 119 cases, each mirroring a Swift unit test. Run here so the
+        # recorded match keeps holding as the ports are touched.
+        run: make validation-ports
+
       - name: The gates themselves are wired and fail closed
         run: make gates-wired-guard
 

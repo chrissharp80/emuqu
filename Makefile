@@ -7,7 +7,7 @@ PROJECT ?= Emuqu.xcodeproj
 # Package.resolved. Defined once, in scripts/lib/xcodebuild.sh.
 include scripts/lib/xcodebuild.sh
 
-.PHONY: release-build coremotion-isolation-guard hr-feed-link-guard science-register scoring-governance shared-root-guard explicit-deps-guard logger-self-reference-guard clean-build empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard xcodebuild-pinned-guard snapshot-refs-guard ci-local ci-local-unit verify-gates sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks privacy-gates claims-gates localization-gates source-rules dependency-gates concurrency-gates build-gates test-hygiene debt-gates
+.PHONY: validation-ports release-build coremotion-isolation-guard hr-feed-link-guard science-register scoring-governance shared-root-guard explicit-deps-guard logger-self-reference-guard clean-build empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard xcodebuild-pinned-guard snapshot-refs-guard ci-local ci-local-unit verify-gates sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks privacy-gates claims-gates localization-gates source-rules dependency-gates concurrency-gates build-gates test-hygiene debt-gates
 
 lint:
 	@swiftlint lint --config .swiftlint.yml
@@ -176,6 +176,14 @@ orphan-swift-guard:
 copy-perimeter:
 	@python3 Tools/copy_linter/lint.py
 
+# The Python ports of the analysis code reproduce the Swift tests'
+# expectations (Tools/validation), in a venv with pinned numpy and SciPy.
+validation-ports:
+	@python3 -m venv build/validation-venv
+	@build/validation-venv/bin/pip install --quiet --disable-pip-version-check --requirement Tools/validation/requirements.txt
+	@build/validation-venv/bin/python -I Tools/validation/test_ports.py > build/validation-ports.txt 2>&1 || { cat build/validation-ports.txt; exit 1; }
+	@tail -1 build/validation-ports.txt
+
 # Ten broken relative links and four documentation
 # constants that contradicted the .ci/ values they described. Both classes
 # were written accurately and went stale, so they are now enforced.
@@ -258,8 +266,9 @@ ci-local-unit:
 # user said or where they were, the app never phones home or prompts early.
 privacy-gates: infoplist-guard log-redaction-guard no-phone-home eager-prompt-guard
 # Claims: no copy says what a wellness app may not, every heuristic has a
-# validation status, and a score changes only with a new scoring version.
-claims-gates: copy-perimeter perimeter-sync science-register scoring-governance
+# validation status, a score changes only with a new scoring version, and the
+# whitepapers' reimplementation still matches the Swift tests.
+claims-gates: copy-perimeter perimeter-sync science-register scoring-governance validation-ports
 # Every string resolves, in every language, with its arguments in order.
 localization-gates: localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard locale-format-guard
 # Shapes that crashed or broke a recording in the field, and the code rules

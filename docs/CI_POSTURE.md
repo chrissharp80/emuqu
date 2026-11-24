@@ -4,8 +4,9 @@ Every pull request and every push to `main` runs two workflows:
 
 - `gates.yml`: the script gates that need only bash and python (copy perimeter,
   science register, scoring governance, localization, documentation, SBOM,
-  source-hygiene guards, the tech-debt budgets and refactor-spec
-  conformance) on an **ubuntu** runner in about a minute.
+  source-hygiene guards, the tech-debt budgets, refactor-spec conformance,
+  and the Python ports of the analysis code against the Swift tests'
+  expectations) on an **ubuntu** runner in a minute or two.
 - `ci.yml` at scope `unit`: SwiftLint and the budgets, strict concurrency, the
   macOS build, the unit suite with the Views coverage floor, and the unit suite
   under Thread Sanitizer, on GitHub's standard macOS runner. The jobs run in
