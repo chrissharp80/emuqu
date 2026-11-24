@@ -41,7 +41,7 @@ extension MorningSessionPipeline {
                 points: points, baseSession: baseSession, dataSource: dataSource, reconnectCount: reconnectCount,
                 streamingBeats: streamingBeats, deviceBeats: deviceBeats, deviceId: collector.polarManager.connectedDeviceId,
                 isBackgroundRefinement: isBackgroundRefinement, settings: settingsSnapshot(for: baseSession),
-                trainingContext: freshContext, cachedTrainingLoad: collector.cachedTrainingLoad,
+                trainingContext: freshContext, cachedTrainingLoad: collector.scoring.cachedTrainingLoad,
                 prefetchedSleepData: prefetchedSleepData,
                 statusCallback: { [weak collector] status in collector?.morningCoordination.morningStatus = status }
             )

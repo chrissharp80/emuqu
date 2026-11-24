@@ -453,7 +453,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
     // MARK: - createTrainingContext
 
     func testCreateTrainingContextReturnsNilWithoutCachedLoad() {
-        collector.cachedTrainingLoad = nil
+        collector.scoring.cachedTrainingLoad = nil
         XCTAssertNil(collector.createTrainingContext(relativeTo: Date()))
     }
 
@@ -484,7 +484,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
         collector.settingsManager.settings.vo2MaxOverride = nil
         collector.settingsManager.settings.useHealthKitVO2Max = false
-        collector.cachedTrainingLoad = nil
+        collector.scoring.cachedTrainingLoad = nil
 
         let config = collector.scoring.currentANSConfig
         XCTAssertNil(config.vo2Max)
@@ -534,7 +534,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
         XCTAssertNil(collector.deviceStatus.connectedDeviceType)
         XCTAssertEqual(collector.deviceStatus.connectionState, .disconnected)
         XCTAssertEqual(collector.deviceStatus.recordingState, .idle)
-        XCTAssertNil(collector.recentPausedSession)
+        XCTAssertNil(collector.sessionState.recentPausedSession)
         XCTAssertNil(collector.deviceStatus.fetchProgress)
         XCTAssertNil(collector.sessionState.lastError)
         XCTAssertNil(collector.sessionState.verificationResult)
@@ -551,6 +551,6 @@ final class RRCollectorObservableStateTests: XCTestCase {
     }
 
     func testUseDeviceInternalBackupForOvernightStreamingDefaultsTrue() {
-        XCTAssertTrue(collector.useDeviceBackupForOvernight)
+        XCTAssertTrue(collector.overnightRun.usesDeviceBackup)
     }
 }

@@ -672,7 +672,7 @@ extension SessionRecoveryCoordinator {
         }
         await MainActor.run { enterPausedState(session) }
         // Resume arms the strap by the night's own capture choice, not the default.
-        if let usesDeviceBackup = collector.getPersistedCaptureMode() { collector.useDeviceBackupForOvernight = usesDeviceBackup }
+        if let usesDeviceBackup = collector.getPersistedCaptureMode() { collector.overnightRun.usesDeviceBackup = usesDeviceBackup }
         collector.control.persistPausedSessionState(sessionId: session.id)
         collector.clearPersistedRecordingState()
         return true

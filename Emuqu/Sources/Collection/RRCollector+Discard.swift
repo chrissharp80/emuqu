@@ -37,7 +37,7 @@ extension CollectorSessionControl {
         let session = collector.sessionState.currentSession
         debugLog("[RRCollector] 🗑 Discarding recording \(session?.id.uuidString.prefix(8) ?? "-")")
         await collector.overnightStreaming.endDeviceRecordingArming()
-        let strapArmed = collector.overnightDeviceBackupActive
+        let strapArmed = collector.overnightRun.deviceBackupActive
         stopStreamingWithoutKeeping()
         let strapCopyKept = strapArmed ? await clearStrapCopy() : false
         if let session { await removeKeptCopies(of: session.id) }
@@ -126,7 +126,7 @@ extension CollectorSessionControl {
         _ = collector.polarManager.stopStreaming()
         collector.polarManager.battery.recordRecordingHours(elapsedHours)
         collector.streamingLifecycle.isOvernightStreaming = false
-        collector.overnightDeviceBackupActive = false
+        collector.overnightRun.deviceBackupActive = false
         collector.deviceStatus.isStreaming = false
         collector.sessionState.isCollecting = false
         collector.sessionState.collectedPoints = []

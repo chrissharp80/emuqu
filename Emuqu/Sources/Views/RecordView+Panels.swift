@@ -84,8 +84,8 @@ extension RecordPanels {
 
     /// What the H10's own recording is doing tonight, for the status card.
     private var strapBackupState: OvernightStreamingStatus.StrapBackup {
-        guard collector.useDeviceBackupForOvernight, deviceStatus.connectedDeviceType != .veritySense else { return .notRequested }
-        return collector.overnightDeviceBackupActive ? .recording : .starting
+        guard collector.overnightRun.usesDeviceBackup, deviceStatus.connectedDeviceType != .veritySense else { return .notRequested }
+        return collector.overnightRun.deviceBackupActive ? .recording : .starting
     }
 
     private var overnightHeader: some View {

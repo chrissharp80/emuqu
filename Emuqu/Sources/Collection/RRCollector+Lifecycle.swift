@@ -13,7 +13,7 @@ extension RRCollector {
             startTime: startTime,
             sessionType: sessionType,
             phase: sessionState.recordingPhase.description,
-            useDeviceInternalBackup: useDeviceBackupForOvernight
+            useDeviceInternalBackup: overnightRun.usesDeviceBackup
         )
         guard PersistedRecordingState.save(state) else {
             debugLog("[RRCollector] Could not persist recording state for session \(sessionId.uuidString.prefix(8)) — a crash now would not offer it at launch", level: .error)

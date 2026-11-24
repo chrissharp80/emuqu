@@ -238,7 +238,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 900, count: 500))
         let collector = makeCollector(radio)
         collector.polarManager.isRecordingOnDevice = true
-        collector.useDeviceBackupForOvernight = true
+        collector.overnightRun.usesDeviceBackup = true
         collector.deviceFetchPolicy = .skipByUser
 
         let points = await collector.overnightStreaming.fetchNightFromStrap(
@@ -262,7 +262,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         radio.refuse("fetchExercise", times: 50, with: PolarErrors.deviceError(description: "transfer failed"))
         let collector = makeCollector(radio)
         collector.polarManager.isRecordingOnDevice = true
-        collector.useDeviceBackupForOvernight = true
+        collector.overnightRun.usesDeviceBackup = true
 
         let points = await collector.overnightStreaming.fetchNightFromStrap(
             baseSession: HRVSession(startDate: start), streamingPoints: streamWithGap(minutes: 30), isVeritySense: false
@@ -281,8 +281,8 @@ final class StrapRecoveryFlowTests: XCTestCase {
         let lastNight = Date().addingTimeInterval(-30 * 3600)
         radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 500))
         let collector = makeCollector(radio)
-        collector.useDeviceBackupForOvernight = true
-        collector.overnightDeviceBackupActive = false
+        collector.overnightRun.usesDeviceBackup = true
+        collector.overnightRun.deviceBackupActive = false
 
         let points = await collector.overnightStreaming.fetchNightFromStrap(
             baseSession: HRVSession(startDate: Date().addingTimeInterval(-3 * 3600)),
@@ -299,15 +299,15 @@ final class StrapRecoveryFlowTests: XCTestCase {
     func testTheGateClearsTheNightsArming() async {
         let radio = FakeStrapRadio()
         let collector = makeCollector(radio)
-        collector.useDeviceBackupForOvernight = true
-        collector.overnightDeviceBackupActive = true
+        collector.overnightRun.usesDeviceBackup = true
+        collector.overnightRun.deviceBackupActive = true
         collector.deviceFetchPolicy = .skipByUser
 
         _ = await collector.overnightStreaming.fetchNightFromStrap(
             baseSession: HRVSession(startDate: Date().addingTimeInterval(-3 * 3600)), streamingPoints: [], isVeritySense: false
         )
 
-        XCTAssertFalse(collector.overnightDeviceBackupActive)
+        XCTAssertFalse(collector.overnightRun.deviceBackupActive)
     }
 
     // MARK: - A strap the link dropped

@@ -45,8 +45,8 @@ final class StrapArmingTests: XCTestCase {
         manager.batteryLevel = battery
         let collector = RRCollector(polarManager: manager, healthKit: HealthKitManager(), archive: archive)
         collectors.append(collector)
-        collector.armingRetryInterval = 0.05
-        collector.useDeviceBackupForOvernight = true
+        collector.overnightRun.armingRetryInterval = 0.05
+        collector.overnightRun.usesDeviceBackup = true
         collector.streamingLifecycle.isOvernightStreaming = true
         collector.overnightStreaming.launchDeviceRecordingLoop()
         return collector
@@ -81,7 +81,7 @@ final class StrapArmingTests: XCTestCase {
         XCTAssertEqual(starts(radio), 1, "the strap was asked again on the same battery")
 
         collector.polarManager.batteryLevel = 100
-        try await waitUntil { collector.overnightDeviceBackupActive }
+        try await waitUntil { collector.overnightRun.deviceBackupActive }
         XCTAssertEqual(starts(radio), 2)
         XCTAssertNil(collector.sessionState.lastError, "the notice stayed after the strap armed")
     }
@@ -101,7 +101,7 @@ final class StrapArmingTests: XCTestCase {
         radio.refuse("startRecording", times: 1, with: PolarErrors.deviceError(description: "busy"))
         let collector = armingNight(radio)
 
-        try await waitUntil { collector.overnightDeviceBackupActive }
+        try await waitUntil { collector.overnightRun.deviceBackupActive }
 
         XCTAssertEqual(starts(radio), 2, "armed on the retry, with no link change")
     }
@@ -122,7 +122,7 @@ final class StrapArmingTests: XCTestCase {
         await sleepQuietly(300_000_000, context: "what used to wake the arming loop")
 
         XCTAssertEqual(radio.calls.count, attempts, "the strap was touched after the night began to end")
-        XCTAssertNil(collector.overnightArmingTask)
+        XCTAssertNil(collector.overnightRun.armingTask)
     }
 
     /// The start itself refuses, before touching the strap, when its session

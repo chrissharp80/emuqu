@@ -232,7 +232,7 @@ extension CollectorSessionControl {
     /// to save it for resume.
     private func handleReconnectExhaustedDuringOvernight() {
         guard collector.streamingLifecycle.isOvernightStreaming else { return }
-        if collector.overnightDeviceBackupActive {
+        if collector.overnightRun.deviceBackupActive {
             debugLog("[RRCollector] Reconnect exhausted, but H10 internal backup is recording the full night — NOT pausing; the strap keeps recording and the morning stop will fetch it", level: .warning)
             collector.polarManager.reconnectExhausted = false
             return
@@ -268,7 +268,7 @@ extension CollectorSessionControl {
         Task.detached(priority: .utility) { [weak owner = collector] in
             let result = CollectorSessionControl.findRecentPausedSessionOffMain(archive: archive, maxGap: maxGap)
             await MainActor.run { [weak owner] in
-                owner?.recentPausedSession = result
+                owner?.sessionState.recentPausedSession = result
             }
         }
     }

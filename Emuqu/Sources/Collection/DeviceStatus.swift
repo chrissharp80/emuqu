@@ -13,9 +13,8 @@ import Observation
 /// `isStreaming = false` as a night ends, ahead of the binding, which pushes
 /// the same `false` once `PolarManager` stops streaming.
 ///
-/// Readers: inject via `@Environment(DeviceStatus.self) var deviceStatus`.
-/// `RRCollector` also exposes read-through getters onto this object
-/// (e.g. `collector.isDeviceConnected`).
+/// Readers: inject via `@Environment(DeviceStatus.self) var deviceStatus`,
+/// or reach it as `collector.deviceStatus`.
 @MainActor
 @Observable
 final class DeviceStatus {
