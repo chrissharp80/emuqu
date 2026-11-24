@@ -5,12 +5,12 @@ import Foundation
 ///
 /// The caller (typically `AssistantContextSource`) gathers the sessions,
 /// settings, baselines and training load from its data sources and hands them
-/// in; the builder never reads the session archive or HealthKit. It does read
-/// a few process-wide services through `AppDependencies.current`: the live
-/// workout and HRV brokers, the ambient location cache, the body weight in
-/// settings (workout calories), and the shared `AnalysisSummaryCache`, which
-/// it also writes. Tests that need those fixed override them on
-/// `AppDependencies.current`.
+/// in; the builder never reads the session archive or HealthKit. The few
+/// process-wide services it reads come in `services`: the live workout and
+/// HRV brokers, the ambient location cache, the body weight in settings
+/// (workout calories), and the shared `AnalysisSummaryCache`, which it also
+/// writes. A test that needs those fixed builds the `ContextServices` from a
+/// container with overrides.
 ///
 /// All inputs except `userSettings` are optional. Missing data degrades
 /// gracefully — the resulting context simply omits the corresponding
@@ -19,6 +19,7 @@ enum ContextBuilder {
     /// The summaries are generated before the context is assembled, so the
     /// lite snapshots of those sessions carry the titles generated here.
     static func build(
+        services: ContextServices,
         latestSession: HRVSession?,
         yesterdaySession: HRVSession? = nil,
         recentSessions: [HRVSession],
@@ -38,9 +39,9 @@ enum ContextBuilder {
         liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil
     ) -> AssistantContext {
         let summary = computeOrFetchSummary(
-            session: latestSession, recentSessions: recentSessions, sleepInput: sleepInput, sleepTrend: sleepTrend,
+            cache: services.analysisSummaryCache, session: latestSession, recentSessions: recentSessions, sleepInput: sleepInput, sleepTrend: sleepTrend,
             trainingContext: trainingContext, userSettings: userSettings, liveLoadSnapshot: liveLoadSnapshot, baselineStats: baselineStats)
-        let diagnostic = yesterdayDiagnostic(session: yesterdaySession, recentSessions: recentSessions, userSettings: userSettings, baselineStats: yesterdayBaselineStats)
+        let diagnostic = yesterdayDiagnostic(cache: services.analysisSummaryCache, session: yesterdaySession, recentSessions: recentSessions, userSettings: userSettings, baselineStats: yesterdayBaselineStats)
         let titles = summaryTitles([(latestSession, summary), (yesterdaySession, diagnostic)])
         return AssistantContext(
             generatedAt: Date(),
@@ -52,16 +53,16 @@ enum ContextBuilder {
             yesterdayDiagnostic: diagnostic, recent: recentLiteSnapshots(recentSessions, liveLoad: liveLoadSnapshot, titles: titles),
             baselines: buildBaselineSnapshot(baseline: baseline, stats: baselineStats),
             trends7Day: trends7Day.map { buildTrendSnapshot(summary: $0, periodLabel: "7 Days") }, trends30Day: trends30Day.map { buildTrendSnapshot(summary: $0, periodLabel: "30 Days") },
-            analysisSummary: summary, recentWorkouts: buildWorkoutHistory(sessions: recentSessions),
-            liveWorkout: AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot(), liveHRVSession: AppDependencies.current.assistant.liveHRVBroker.currentSnapshot(),
-            ambientLocation: buildAmbientLocationSnapshot(), liveWorkoutSamples: liveWorkoutSamples()
+            analysisSummary: summary,
+            recentWorkouts: buildWorkoutHistory(sessions: recentSessions, weightKg: services.settingsManager.settingsSnapshot.effectiveBodyWeightKg),
+            liveWorkout: services.liveWorkoutBroker.currentSnapshot(), liveHRVSession: services.liveHRVBroker.currentSnapshot(),
+            ambientLocation: buildAmbientLocationSnapshot(services.ambientLocationService), liveWorkoutSamples: liveWorkoutSamples(services.liveWorkoutBroker)
         )
     }
 
     /// The live workout's samples, captured only while a workout snapshot is
     /// live so the context's HR history matches its `liveWorkout`.
-    private static func liveWorkoutSamples() -> [WorkoutSample]? {
-        let broker = AppDependencies.current.assistant.liveWorkoutBroker
+    private static func liveWorkoutSamples(_ broker: LiveWorkoutBroker) -> [WorkoutSample]? {
         return broker.currentSnapshot() == nil ? nil : broker.currentSamples()
     }
 
@@ -82,12 +83,14 @@ enum ContextBuilder {
     /// the generator reads the load frozen on yesterday's session instead.
     /// `baselineStats` is the baseline yesterday's night was scored against.
     private static func yesterdayDiagnostic(
+        cache: AnalysisSummaryCache,
         session: HRVSession?,
         recentSessions: [HRVSession],
         userSettings: UserSettings,
         baselineStats: BaselineTracker.RecoveryBaselineStats?
     ) -> AssistantContext.AnalysisSummarySnapshot? {
         computeOrFetchSummary(
+            cache: cache,
             session: session,
             recentSessions: recentSessions,
             sleepInput: AnalysisSleepInput(from: session?.sleepSnapshot),
@@ -133,7 +136,7 @@ enum ContextBuilder {
     /// are safe from any Swift Concurrency context (Tasks, detached
     /// work, cooperative pool workers).
     ///
-    /// Reading `AppDependencies.current.location.roadGeocodingService.current`
+    /// Reading `RoadGeocodingService.current`
     /// directly via `MainActor.assumeIsolated { ... }` would
     /// crash (EXC_BREAKPOINT) when the builder runs from a
     /// non-MainActor thread, which is most of the time when
@@ -144,9 +147,11 @@ enum ContextBuilder {
     /// The resolved address only ages by distance (handled inside
     /// RoadGeocodingService); a 5-minute-old name is still correct if the user
     /// hasn't moved a block.
-    private static func buildAmbientLocationSnapshot() -> AssistantContext.AmbientLocationSnapshot? {
-        let rawLoc = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 600)
-        let road = AppDependencies.current.location.ambientLocationService.cachedResolvedAddress(maxAgeSec: 600)
+    private static func buildAmbientLocationSnapshot(
+        _ location: AmbientLocationService
+    ) -> AssistantContext.AmbientLocationSnapshot? {
+        let rawLoc = location.cachedLocation(maxAgeSec: 600)
+        let road = location.cachedResolvedAddress(maxAgeSec: 600)
         guard rawLoc != nil || road != nil else { return nil }
         return AssistantContext.AmbientLocationSnapshot(
             road: road?.road,
@@ -195,6 +200,7 @@ enum ContextBuilder {
     /// `NarrativeLanguage.english`, so this entry never matches a summary
     /// Morning Results cached in the display language.
     private static func computeOrFetchSummary(
+        cache: AnalysisSummaryCache,
         session: HRVSession?,
         recentSessions: [HRVSession],
         sleepInput: AnalysisSleepInput,
@@ -207,7 +213,6 @@ enum ContextBuilder {
         guard let session, let result = session.analysisResult else { return nil }
         let training = Self.trainingContext(for: session, live: trainingContext)
         return NarrativeLanguage.english { () -> AssistantContext.AnalysisSummarySnapshot? in
-            let cache = AppDependencies.current.assistant.analysisSummaryCache
             let inputs = generatorInputsHash(recentSessions: recentSessions, sleep: sleepInput, sleepTrend: sleepTrend,
                                              training: training, liveLoad: liveLoadSnapshot, baselineStats: baselineStats)
             let fingerprint = AnalysisSummaryCache.fingerprint(for: session, inputs: inputs)
@@ -339,20 +344,22 @@ extension ContextBuilder {
     ///
     /// Separate from `recent`, which is HRV-flavoured. Builds from the same
     /// sessions array so we don't re-query the archive.
-    private static func buildWorkoutHistory(sessions: [HRVSession]) -> [AssistantContext.WorkoutHistoryEntry] {
+    private static func buildWorkoutHistory(
+        sessions: [HRVSession], weightKg: Double
+    ) -> [AssistantContext.WorkoutHistoryEntry] {
         sessions
             .filter { $0.sessionType == .workout }
             .sorted { $0.startDate > $1.startDate }
             .prefix(30)
-            .map { workoutHistoryEntry($0) }
+            .map { workoutHistoryEntry($0, weightKg: weightKg) }
     }
 
     /// One workout as a history entry. Duration, pace and calories use the
     /// active (un-paused) time, as the workout card does.
-    private static func workoutHistoryEntry(_ s: HRVSession) -> AssistantContext.WorkoutHistoryEntry {
+    private static func workoutHistoryEntry(_ s: HRVSession, weightKg: Double) -> AssistantContext.WorkoutHistoryEntry {
         let meta = s.workoutMetadata
         let duration = WorkoutActiveTime.seconds(samples: meta?.samples, wallClock: s.duration).map { Int($0) }
-        let derived = derivedSampleMetrics(samples: meta?.samples ?? [], durationSec: duration)
+        let derived = derivedSampleMetrics(samples: meta?.samples ?? [], durationSec: duration, weightKg: weightKg)
         return AssistantContext.WorkoutHistoryEntry(
             date: s.startDate, sport: meta?.sport.rawValue ?? "unknown", durationSec: duration,
             distanceMeters: meta?.distanceMeters, elevationGainMeters: meta?.elevationGainMeters,
@@ -393,7 +400,8 @@ extension ContextBuilder {
     /// the samples carried that value (no foot-pod / no bike sensor).
     private static func derivedSampleMetrics(
         samples: [WorkoutSample],
-        durationSec: Int?
+        durationSec: Int?,
+        weightKg: Double
     ) -> DerivedSampleMetrics {
         var out = DerivedSampleMetrics()
         let hrs = samples.compactMap { $0.heartRate }
@@ -401,7 +409,7 @@ extension ContextBuilder {
         if !hrs.isEmpty { out.avgHR = Double(hrs.reduce(0, +)) / Double(hrs.count) }
         let mets = samples.compactMap { $0.mets }
         if !mets.isEmpty { out.avgMETs = mets.reduce(0, +) / Double(mets.count) }
-        out.kcal = estimatedCalories(avgMETs: out.avgMETs, durationSec: durationSec)
+        out.kcal = estimatedCalories(avgMETs: out.avgMETs, durationSec: durationSec, weightKg: weightKg)
         let cadences = samples.compactMap { $0.cadenceStepsPerMin }
         if !cadences.isEmpty {
             out.avgCadenceSpm = Int(round(Double(cadences.reduce(0, +)) / Double(cadences.count)))
@@ -412,11 +420,10 @@ extension ContextBuilder {
     }
 
     /// Compendium kcal formula using the user's current weight from settings
-    /// (else the 75 kg fallback `effectiveBodyWeightKg` exposes) over the
-    /// active duration the caller passes, as the post-summary card computes it.
-    private static func estimatedCalories(avgMETs: Double?, durationSec: Int?) -> Double? {
+    /// (`effectiveBodyWeightKg`, which falls back to 75 kg) over the active
+    /// duration the caller passes, as the post-summary card computes it.
+    private static func estimatedCalories(avgMETs: Double?, durationSec: Int?, weightKg: Double) -> Double? {
         guard let avg = avgMETs, let dur = durationSec, dur > 0 else { return nil }
-        let weightKg = AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveBodyWeightKg
         return (avg * 3.5 * weightKg * (Double(dur) / 60.0)) / 200.0
     }
 

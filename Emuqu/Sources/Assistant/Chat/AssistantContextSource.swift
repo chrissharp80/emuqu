@@ -18,11 +18,12 @@ import Foundation
 /// session's frozen snapshots — never re-queries HealthKit, so it's fast
 /// and won't trigger permission prompts.
 final class AssistantContextSource: Sendable {
-    static let shared = AssistantContextSource()
-
     private let queue = DispatchQueue(label: "com.chrissharp.flowrecovery.assistant.contextsource", qos: .userInitiated)
+    private let services: ContextServices
 
-    private init() {}
+    init(services: ContextServices) {
+        self.services = services
+    }
 
     // MARK: - Public
 
@@ -32,7 +33,7 @@ final class AssistantContextSource: Sendable {
     ///
     /// The canonical live training-load snapshot resolves on
     /// MainActor BEFORE `build()` goes to a background queue. Calling
-    /// `MainActor.assumeIsolated { TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache) }` inside the
+    /// `MainActor.assumeIsolated { TrainingLoadRegistry.live(from: trainingMetricsCache) }` inside the
     /// downstream AnalysisSummaryGenerator's cumulative-load gate instead
     /// traps when invoked off-main (the queue.async closure
     /// runs on a serial bg queue). Capturing here and threading through is the
@@ -51,15 +52,15 @@ final class AssistantContextSource: Sendable {
     /// lock-protected and safe to read from the build queue.
     func currentContext() async -> AssistantContext {
         let (liveLoadSnapshot, tracker) = await MainActor.run {
-            (TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache), RRCollector.current?.baselineTracker)
+            (TrainingLoadRegistry.live(from: self.services.trainingMetricsCache), RRCollector.current?.baselineTracker)
         }
         return await withCheckedContinuation { continuation in
             queue.async {
                 var context = self.build(liveLoadSnapshot: liveLoadSnapshot, baselineTracker: tracker)
-                let broker = AppDependencies.current.assistant.liveWorkoutBroker
+                let broker = self.services.liveWorkoutBroker
                 context.liveWorkout = broker.currentSnapshot()
                 context.liveWorkoutSamples = context.liveWorkout == nil ? nil : broker.currentSamples()
-                context.liveHRVSession = AppDependencies.current.assistant.liveHRVBroker.currentSnapshot()
+                context.liveHRVSession = self.services.liveHRVBroker.currentSnapshot()
                 continuation.resume(returning: context)
             }
         }
@@ -77,7 +78,7 @@ final class AssistantContextSource: Sendable {
         liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad?,
         baselineTracker: BaselineTracker?
     ) -> AssistantContext {
-        let settings = AppDependencies.current.app.settingsManager.settingsSnapshot
+        let settings = services.settingsManager.settingsSnapshot
         let recentSessions = recentLightweightSessions()
         let overnightSessions = recentSessions.filter { $0.sessionType == .overnight }
         let latestSession = overnightSessions.first ?? recentSessions.first
@@ -86,7 +87,7 @@ final class AssistantContextSource: Sendable {
             session.flatMap { baselineTracker?.recoveryBaselineStats(excludingNightOf: $0, sleepSchedule: settings.sleepSchedule) }
         }
         return ContextBuilder.build(
-            latestSession: latestSession, yesterdaySession: yesterdaySession, recentSessions: recentSessions,
+            services: services, latestSession: latestSession, yesterdaySession: yesterdaySession, recentSessions: recentSessions,
             sleepInput: AnalysisSleepInput(from: latestSession?.sleepSnapshot),
             sleepTrend: .recentNights(before: latestSession, in: recentSessions),
             trainingContext: latestSession?.trainingSnapshot,
@@ -102,7 +103,7 @@ final class AssistantContextSource: Sendable {
     /// Lightweight sessions (no rrSeries blob) for the last ~30 days,
     /// newest first.
     private func recentLightweightSessions() -> [HRVSession] {
-        let archive = AppDependencies.current.storage.sessionArchive
+        let archive = services.sessionArchive
         let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date.distantPast
         return archive.store.entries
             .filter { $0.date >= cutoff }

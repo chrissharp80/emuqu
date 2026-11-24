@@ -11,7 +11,8 @@
 # for the reanalysis service, its coordinator and the scoring context; fact
 # namespaces get a `FactServices` from `AppFactResolverFactory.build`, and the
 # workout recorder and its parts a `WorkoutServices` from `RecorderBox`, and
-# the chat view model, its router and tool runner a `ChatServices`), and
+# the chat view model, its router and tool runner a `ChatServices`, and the
+# assistant's context source and builder a `ContextServices`), and
 # their tests construct them with substitutes. One new
 # `AppDependencies.current` read in them hides an edge again and puts the
 # tests back on the live services.
@@ -53,6 +54,9 @@ EXPLICIT_PATTERNS=(
     "Emuqu/Sources/Collection/WorkoutAIContextBuilder.swift"
     "Emuqu/Sources/Collection/WorkoutServices.swift"
     "Emuqu/Sources/Assistant/ViewModel/*.swift"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder*.swift"
+    "Emuqu/Sources/Assistant/Context/ContextServices.swift"
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift"
 )
 APP_DIRS=("Emuqu" "EmuquWatch Watch App")
 

@@ -57,6 +57,11 @@ extension HeatAcclimationCache {
     static let shared = HeatAcclimationCache(archive: .shared, settingsManager: .shared, healthKit: .shared)
 }
 
+extension AssistantContextSource {
+    /// The app's context source, over the app's archive, settings and live brokers.
+    static let shared = AssistantContextSource(services: ContextServices(.current))
+}
+
 extension AssistantViewModel {
     /// The app's chat: one transcript, one provider choice.
     static let shared = AssistantViewModel(services: ChatServices(.current))
