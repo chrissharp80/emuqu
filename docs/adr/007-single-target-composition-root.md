@@ -72,7 +72,8 @@ code reaches it, the same timing as the accessors themselves. The assistant's
 fact namespaces and the live workout recorder follow the same shape:
 `AppFactResolverFactory.build` hands each namespace a `FactServices`, and
 `RecorderBox` hands the recorder a `WorkoutServices`, and the chat view model
-is built with a `ChatServices`, each a list of the
+is built with a `ChatServices` and the context source with a `ContextServices`,
+each a list of the
 services that code may reach, resolved on use. The same script fails on an
 `AppDependencies.current` read in any of those files, and in the models,
 storage and analysis layers.

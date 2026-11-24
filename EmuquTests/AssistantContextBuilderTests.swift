@@ -104,6 +104,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         let today = makeSession(recoveryScore: 7.5)
 
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: today,
             recentSessions: [today],
             userSettings: settings
@@ -137,6 +138,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         let session = makeSession(recoveryScore: 6.0) // no sleep, no training
 
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: session,
             recentSessions: [session],
             userSettings: settings
@@ -159,6 +161,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         let session = makeSession(recoveryScore: 8.0, sleep: sleep, training: training)
 
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: session,
             recentSessions: [session],
             userSettings: settings
@@ -186,6 +189,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         }
 
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: sessions.first,
             recentSessions: sessions,
             userSettings: settings
@@ -206,6 +210,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         let paused = makeSession(startOffset: -3 * 86400, recoveryScore: 5, state: .paused)
 
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: complete1,
             recentSessions: [complete1, collecting, complete2, paused],
             userSettings: settings
@@ -228,6 +233,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         let session = makeSession(recoveryScore: 7)
 
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: session,
             recentSessions: [session],
             userSettings: settings,
@@ -242,6 +248,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         let session = makeSession(recoveryScore: 7)
 
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: session,
             recentSessions: [session],
             userSettings: settings
@@ -256,6 +263,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         let settings = makeUserSettings()
 
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: nil,
             recentSessions: [],
             userSettings: settings
@@ -274,6 +282,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         let yesterday = makeSession(startOffset: -86400, recoveryScore: 6)
 
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: today,
             yesterdaySession: yesterday,
             recentSessions: [today, yesterday],
@@ -317,6 +326,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         today.trainingSnapshot = makeTraining()
 
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: today, recentSessions: [today], userSettings: settings
         )
         let cloud = context.renderLiveStateForCloud(now: Self.referenceNow.addingTimeInterval(28800))
@@ -337,6 +347,7 @@ final class AssistantContextBuilderTests: XCTestCase {
             analysisResult: nil, artifactFlags: nil, recoveryScore: 8.1
         )
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: session, recentSessions: [session], userSettings: makeUserSettings()
         )
         let cloud = context.renderLiveStateForCloud(now: wake.addingTimeInterval(5 * 86400))
@@ -351,7 +362,8 @@ final class AssistantContextBuilderTests: XCTestCase {
     func testCompactRenderHeadsTheLatestSessionWithItsDay() {
         let session = makeSession(recoveryScore: 8.2)
         let wake = session.endDate ?? session.startDate
-        let context = ContextBuilder.build(latestSession: session, recentSessions: [session], userSettings: makeUserSettings())
+        let context = ContextBuilder.build(
+            services: ContextServices(.current), latestSession: session, recentSessions: [session], userSettings: makeUserSettings())
         guard let snapshot = context.today else { return XCTFail("the latest session is in the context") }
         XCTAssertEqual(AssistantContext.compactSessionHeader(snapshot, now: wake), "--- Session — TODAY ---")
         let stale = AssistantContext.compactSessionHeader(snapshot, now: wake.addingTimeInterval(4 * 86400))
