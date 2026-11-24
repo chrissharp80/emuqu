@@ -146,6 +146,49 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertFalse(fetched(radio))
     }
 
+    // MARK: - Which archived night a download belongs to
+
+    /// A finished night is never taken for the strap's unfinished recording,
+    /// whatever its score: a 0.8 on the 0-10 scale is a real bad night, and
+    /// a night scored before the composite score existed has no score at all.
+    func testAFinishedNightIsNotTakenForTheRecordingWhateverItsScore() throws {
+        let collector = makeCollector(FakeStrapRadio())
+        var night = completeNight(startingAt: Date().addingTimeInterval(-9 * 3600))
+        night.deviceProvenance = collector.deviceRecording.deviceRecordingProvenance()
+        _ = try archive.archive(night, skipSameNightMerge: true)
+        XCTAssertNil(archive.store.entries.first { $0.sessionId == night.id }?.recoveryScore, "the fixture should be a night with no score")
+
+        XCTAssertNil(collector.deviceRecording.resolveBaseSession(), "a finished night was taken for the strap's recording")
+    }
+
+    /// The night the strap was recording, still unfinished in the archive
+    /// after the app lost its recording state, is the one the download joins.
+    func testTheUnfinishedStrapNightIsTheOneTheDownloadJoins() throws {
+        let collector = makeCollector(FakeStrapRadio())
+        var night = completeNight(startingAt: Date().addingTimeInterval(-8 * 3600))
+        night.state = .failed
+        night.deviceProvenance = collector.deviceRecording.deviceRecordingProvenance()
+        _ = try archive.archive(night, skipSameNightMerge: true)
+
+        XCTAssertEqual(collector.deviceRecording.resolveBaseSession()?.id, night.id)
+    }
+
+    func testOnlyAStrapRecordedNightThatNeverFinishedIsUnfinished() {
+        let strap = DeviceProvenance.current(deviceId: deviceId, deviceModel: "H10", firmwareVersion: nil, recordingMode: .deviceInternal)
+        var night = completeNight()
+        night.deviceProvenance = strap
+        for (state, unfinished) in [(HRVSession.SessionState.collecting, true), (.analyzing, true), (.failed, true), (.complete, false), (.paused, false)] {
+            night.state = state
+            XCTAssertEqual(DeviceRecordingSession.isUnfinishedStrapNight(night), unfinished, "\(state)")
+        }
+        night.state = .collecting
+        night.deviceProvenance = nil
+        XCTAssertFalse(DeviceRecordingSession.isUnfinishedStrapNight(night), "a night with no strap provenance")
+        night.deviceProvenance = strap
+        night.sessionType = .nap
+        XCTAssertFalse(DeviceRecordingSession.isUnfinishedStrapNight(night), "a nap")
+    }
+
     // MARK: - Discard after Recover
 
     /// A night new to the archive is saved for review with the id Discard

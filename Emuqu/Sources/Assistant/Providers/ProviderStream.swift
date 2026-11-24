@@ -160,11 +160,17 @@ struct SSEEvent: Equatable, Sendable {
     let data: String
 }
 
-/// The events in a reply's lines, for every cloud provider. A `data:` line
-/// with a non-empty payload is an event; an `event:` line names the events
-/// after it until a blank line ends the event; comments (`:` keep-alives)
-/// and other lines are skipped. The task's cancellation is checked after
-/// every line read, so Stop ends the read at the next line.
+/// The events in a reply's lines, for every cloud provider. An event's
+/// payload is its `data:` lines joined by newlines, so one JSON value written
+/// across several lines arrives whole. It is complete once it holds a whole
+/// JSON value (or `[DONE]`), at a blank line, or when the lines end: the line
+/// reader in use may drop the blank lines, so the payload itself has to say
+/// where it ends. A payload that never becomes whole is passed on as it is
+/// at those points, or once it holds `maxPendingLines` lines, and the provider
+/// reports it malformed. An `event:` line names the
+/// events after it until a blank line; comments (`:` keep-alives) and other
+/// lines are skipped. The task's cancellation is checked after every line
+/// read, so Stop ends the read at the next line.
 struct SSEEvents<Lines: AsyncSequence>: AsyncSequence where Lines.Element == String {
     typealias Element = SSEEvent
 
@@ -181,6 +187,11 @@ struct SSEEvents<Lines: AsyncSequence>: AsyncSequence where Lines.Element == Str
     struct Iterator: AsyncIteratorProtocol {
         var lines: Lines.AsyncIterator
         var eventName: String?
+        /// The data lines of the event being read, not yet a whole value.
+        var pending: [String] = []
+        /// Lines a payload may hold before it is passed on unfinished, so a
+        /// broken stream cannot grow it without bound.
+        static var maxPendingLines: Int { 256 }
 
         /// The next event, nil when the lines end. Throws what reading a
         /// line throws, or `CancellationError` once the task is cancelled.
@@ -189,19 +200,51 @@ struct SSEEvents<Lines: AsyncSequence>: AsyncSequence where Lines.Element == Str
                 try Task.checkCancellation()
                 if let completed = event(from: line) { return completed }
             }
-            return nil
+            return takePending()
         }
 
         /// The event `line` completes, if any, keeping the current event
-        /// name up to date: a blank line clears it, an `event:` line sets it.
+        /// name up to date: a blank line ends the event and clears it, an
+        /// `event:` line sets it.
         private mutating func event(from line: String) -> SSEEvent? {
-            if line.isEmpty || line.hasPrefix("event:") {
-                eventName = line.isEmpty ? nil : Self.value(of: line, after: "event:")
+            if line.isEmpty {
+                defer { eventName = nil }
+                return takePending()
+            }
+            if line.hasPrefix("event:") {
+                eventName = Self.value(of: line, after: "event:")
                 return nil
             }
             guard line.hasPrefix("data:") else { return nil }
             let payload = Self.value(of: line, after: "data:")
-            return payload.isEmpty ? nil : SSEEvent(name: eventName, data: payload)
+            return payload.isEmpty ? nil : event(adding: payload)
+        }
+
+        /// Adds one data line's payload to the event being read.
+        private mutating func event(adding payload: String) -> SSEEvent? {
+            pending.append(payload)
+            let whole = Self.isWhole(pending.joined(separator: "\n"))
+            return whole || pending.count >= Self.maxPendingLines ? takePending() : nil
+        }
+
+        /// The event being read, as it stands; nil when there is none.
+        private mutating func takePending() -> SSEEvent? {
+            guard !pending.isEmpty else { return nil }
+            defer { pending.removeAll() }
+            return SSEEvent(name: eventName, data: pending.joined(separator: "\n"))
+        }
+
+        /// Whether `payload` is a complete event: the `[DONE]` sentinel or one
+        /// whole JSON value.
+        private static func isWhole(_ payload: String) -> Bool {
+            guard payload != "[DONE]" else { return true }
+            do {
+                _ = try JSONSerialization.jsonObject(with: Data(payload.utf8), options: .fragmentsAllowed)
+                return true
+            } catch {
+                // swallow-ok: not a whole value yet is the answer, not a failure; the provider decodes the event itself.
+                return false
+            }
         }
 
         /// The text after a field's `prefix`, trimmed of spaces and tabs.

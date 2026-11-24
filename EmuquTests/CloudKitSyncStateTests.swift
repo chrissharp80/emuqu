@@ -178,4 +178,38 @@ final class CloudKitSyncStateTests: XCTestCase {
         state.loadAll()
         XCTAssertTrue(state.uploadedSessionIds.isEmpty, "Should start empty when file is corrupted")
     }
+
+    // MARK: - A write that did not land
+
+    /// A save that cannot write its file is remembered, so the sync that made
+    /// it is not reported as done; the next save that lands clears it.
+    func testAFailedWriteIsRememberedUntilAWriteLands() throws {
+        var state = makeSyncState()
+        state.loadAll()
+        state.uploadedSessionIds = [UUID()]
+        try FileManager.default.removeItem(at: tempDir)
+        // A file where the folder was: every write into it fails.
+        try Data().write(to: tempDir)
+
+        state.saveSyncState()
+        XCTAssertTrue(state.hasUnsavedBookkeeping, "a write that failed was not noted")
+
+        try FileManager.default.removeItem(at: tempDir)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        state.saveSyncState()
+        XCTAssertFalse(state.hasUnsavedBookkeeping, "a write that landed left the failure noted")
+    }
+
+    /// Another state's failed write is not this one's.
+    func testAFailedWriteBelongsToItsOwnFiles() throws {
+        var state = makeSyncState()
+        state.loadAll()
+        let other = CloudKitSyncState(syncStateURL: tempDir.appendingPathComponent("missing", isDirectory: true).appendingPathComponent("sync_state.json"))
+        var loadedOther = other
+        loadedOther.loadAll()
+        loadedOther.savePendingQueue()
+
+        XCTAssertTrue(loadedOther.hasUnsavedBookkeeping)
+        XCTAssertFalse(state.hasUnsavedBookkeeping)
+    }
 }

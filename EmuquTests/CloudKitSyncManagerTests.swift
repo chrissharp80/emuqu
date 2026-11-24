@@ -340,6 +340,38 @@ final class CloudKitSyncManagerTests: XCTestCase {
         XCTAssertTrue(CloudKitSyncManager.isPermanentSchemaError(nsError))
     }
 
+    // MARK: - A failed save, on every upload path
+
+    /// The batch push and the direct upload hand a failed save to one
+    /// handler, so a deleted zone is recognised the same on both.
+    func testADeletedZoneIsRecognisedForEveryUploadPath() {
+        XCTAssertTrue(CloudKitSyncManager.isZoneGone(CKError(.zoneNotFound)))
+        XCTAssertTrue(CloudKitSyncManager.isZoneGone(CKError(.userDeletedZone)))
+        XCTAssertFalse(CloudKitSyncManager.isZoneGone(CKError(.networkFailure)))
+        XCTAssertFalse(CloudKitSyncManager.isZoneGone(CKError(.serverRecordChanged)))
+    }
+
+    /// A save that failed for a passing reason is queued for a retry and
+    /// lets the push go on.
+    func testATransientSaveFailureQueuesTheSessionForARetry() async {
+        let id = UUID()
+        let stops = await manager.handleSaveFailure(ckError(.networkFailure, message: "Network unavailable"), sessionId: id)
+
+        XCTAssertFalse(stops)
+        XCTAssertTrue(manager.state.pendingUploadIds.contains(id))
+    }
+
+    /// A schema the container lacks stops the push and queues nothing: no
+    /// retry this launch can succeed.
+    func testAMissingSchemaStopsThePushWithoutQueueing() async {
+        let id = UUID()
+        let schema = ckError(.serverRejectedRequest, message: "Cannot create new type HRVSession in production schema")
+        let stops = await manager.handleSaveFailure(schema, sessionId: id)
+
+        XCTAssertTrue(stops)
+        XCTAssertFalse(manager.state.pendingUploadIds.contains(id))
+    }
+
     // MARK: - Remote Deletion (GDPR / App Store)
     //
     // `deleteAllRemoteData()` itself needs a network + signed-in iCloud

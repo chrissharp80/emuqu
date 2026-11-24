@@ -932,10 +932,9 @@ S = "HRVReferenceValidationTests"
 
 def _fixtures():
     import json
-    import subprocess
     root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-    src = subprocess.run(["git", "-C", root, "show", "b87eb64:EmuquTests/HRVReferenceFixtures.swift"],
-                         capture_output=True, text=True, check=True).stdout
+    with open(os.path.join(root, "EmuquTests", "HRVReferenceFixtures.swift"), encoding="utf-8") as f:
+        src = f.read()
     body = src.split('static let json = """', 1)[1].split('"""', 1)[0]
     return json.loads(body.replace("\n", ""))["records"]
 

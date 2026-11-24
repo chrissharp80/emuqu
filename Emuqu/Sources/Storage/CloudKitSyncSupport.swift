@@ -752,6 +752,11 @@ enum CloudSyncMessages {
     }
     static var noInternet: String { String(localized: "No internet connection", bundle: LanguageManager.appBundle) }
     static var storageFull: String { String(localized: "iCloud storage full", bundle: LanguageManager.appBundle) }
+    /// The sync ran, but this device could not save its record of what was
+    /// uploaded; the next sync runs again rather than waiting its interval.
+    static var progressNotSaved: String {
+        String(localized: "Sync progress could not be saved on this device — retrying", bundle: LanguageManager.appBundle)
+    }
     static var previousSyncTimedOut: String {
         String(localized: "Previous sync timed out — retrying", bundle: LanguageManager.appBundle)
     }

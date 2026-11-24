@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Manages durable sync state for CloudKitSyncManager: which sessions have been
 /// uploaded, which are pending retry, and failure counts for backoff.
@@ -151,6 +152,26 @@ struct CloudKitSyncState {
     /// snapshots.
     private static let writeQueue = DispatchQueue(label: "com.emuqu.cloudkit.syncstate.write", qos: .utility)
 
+    /// The files whose last write failed, by path. A write that succeeds
+    /// takes its file off; one that fails puts it on. Shared by every write
+    /// (they run on `writeQueue`), read by `hasUnsavedBookkeeping`.
+    private static let failedWrites = OSAllocatedUnfairLock(initialState: Set<String>())
+
+    /// Whether the last write of any of this state's files failed, so what is
+    /// on disk is older than what this sync did. A sync that ends with this
+    /// set is not reported as done (`CloudKitSyncManager.finishSuccessfulSync`).
+    var hasUnsavedBookkeeping: Bool {
+        let paths = Set([syncStateURL, pendingQueueURL, quarantineQueueURL, localOnlyURL, recordVersionsURL].map(\.path))
+        return Self.failedWrites.withLock { !$0.isDisjoint(with: paths) }
+    }
+
+    /// Records whether the write of `url` landed.
+    private static func noteWrite(of url: URL, succeeded: Bool) {
+        failedWrites.withLock { failed in
+            if succeeded { failed.remove(url.path) } else { failed.insert(url.path) }
+        }
+    }
+
     /// Queue `write` on `writeQueue`, before the first suspension, and return
     /// once it has run. On the main actor, as its callers are, so the write
     /// is queued in the order they call.
@@ -265,8 +286,10 @@ struct CloudKitSyncState {
         do {
             let stored = Dictionary(uniqueKeysWithValues: versions.map { ($0.key.uuidString, $0.value) })
             try JSONEncoder().encode(stored).write(to: url, options: .atomic)
+            noteWrite(of: url, succeeded: true)
         } catch {
-            debugLog("[CloudKit] Failed to save record versions: \(error)")
+            debugLog("[CloudKit] Failed to save record versions: \(error)", level: .error)
+            noteWrite(of: url, succeeded: false)
         }
     }
 
@@ -281,8 +304,10 @@ struct CloudKitSyncState {
             let uuidStrings = ids.map { $0.uuidString }
             let data = try JSONEncoder().encode(uuidStrings)
             try data.write(to: url, options: .atomic)
+            noteWrite(of: url, succeeded: true)
         } catch {
-            debugLog("[CloudKit] Failed to save \(label): \(error)")
+            debugLog("[CloudKit] Failed to save \(label): \(error)", level: .error)
+            noteWrite(of: url, succeeded: false)
         }
     }
 
