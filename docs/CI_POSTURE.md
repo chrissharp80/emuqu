@@ -4,7 +4,7 @@ Every pull request and every push to `main` runs two workflows:
 
 - `gates.yml`: the script gates that need only bash and python (copy perimeter,
   science register, scoring governance, localization, documentation, SBOM,
-  source-hygiene guards, the code map, the tech-debt budgets and refactor-spec
+  source-hygiene guards, the tech-debt budgets and refactor-spec
   conformance) on an **ubuntu** runner in about a minute.
 - `ci.yml` at scope `unit`: SwiftLint and the budgets, strict concurrency, the
   macOS build, the unit suite with the Views coverage floor, and the unit suite
@@ -74,7 +74,6 @@ baseline differs between them (below).
 | **Localization** | Coverage across every locale, bundle reachability, literal resolution, orphaned catalogue keys, locale-aware decimal formatting |
 | **Supply chain** | SBOM currency, SBOM drift against `Package.resolved` and the in-app acknowledgements, every `xcodebuild` run pinned to `Package.resolved` |
 | **Documentation** | Link and constant integrity, comment `file:line` citations resolve, documented file counts match the tree |
-| **Change tracking** | Code map: every function, script, workflow step and doc section has a record written after its code last changed, and a record whose callee changed since fails the check until it is re-read |
 | **Tests about the tests** | Snapshot references committed, UI-test fresh-install reset, coverage floors (overall / logic / views) |
 | **The gates themselves** | `verify_gates_fail.sh` plants a violation per gate and requires each to go red; `check_gate_preflight.sh` requires each to fail closed on a missing input; `check_gates_wired.sh` requires each to actually run in `ci.yml` |
 

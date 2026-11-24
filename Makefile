@@ -7,7 +7,7 @@ PROJECT ?= Emuqu.xcodeproj
 # Package.resolved. Defined once, in scripts/lib/xcodebuild.sh.
 include scripts/lib/xcodebuild.sh
 
-.PHONY: release-build coremotion-isolation-guard hr-feed-link-guard science-register scoring-governance shared-root-guard explicit-deps-guard dated-comment-budget no-unowned-guard logger-self-reference-guard license-header-guard clean-build date-ms-guard doc-counts-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard xcodebuild-pinned-guard snapshot-refs-guard ci-local ci-local-unit verify-gates gate-preflight sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard aggregate-type-size comment-citations perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links codemap-setup codemap-guard codemap-report codemap-impact ci setup-hooks
+.PHONY: release-build coremotion-isolation-guard hr-feed-link-guard science-register scoring-governance shared-root-guard explicit-deps-guard dated-comment-budget no-unowned-guard logger-self-reference-guard license-header-guard clean-build date-ms-guard doc-counts-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard xcodebuild-pinned-guard snapshot-refs-guard ci-local ci-local-unit verify-gates gate-preflight sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard aggregate-type-size comment-citations perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks
 
 lint:
 	@swiftlint lint --config .swiftlint.yml
@@ -208,25 +208,6 @@ no-phone-home:
 xcodebuild-pinned-guard:
 	@./scripts/check_xcodebuild_pinned.sh
 
-# The code map (docs/codemap) has a current record for every unit. The inventory
-# needs tree-sitter; codemap-setup installs the pinned, hash-checked wheels into
-# .venv-codemap. See docs/codemap/README.md.
-codemap-setup:
-	@[ -x .venv-codemap/bin/python ] && .venv-codemap/bin/python -c "import tree_sitter, tree_sitter_swift" 2>/dev/null \
-		|| ./scripts/codemap/setup_venv.sh
-
-codemap-guard: codemap-setup
-	@CODEMAP_PYTHON=.venv-codemap/bin/python ./scripts/check_codemap.sh
-
-# Everything the current branch's changes can affect, against origin/main (or BASE=<ref>):
-# callers up to their triggers, tests, docs, shared state and open findings.
-codemap-impact: codemap-setup
-	@.venv-codemap/bin/python scripts/codemap/codemap.py impact --base $${BASE:-origin/main}
-
-# Builds the browsable report into build/codemap. Serve it: python3 -m http.server -d build/codemap
-codemap-report: codemap-setup
-	@.venv-codemap/bin/python scripts/codemap/codemap.py report build/codemap
-
 # Each gate fails closed when its input is missing.
 # A gate that reports clean without measuring is worse than no gate.
 gate-preflight:
@@ -315,7 +296,7 @@ ci-local-unit:
 # Order matters. Make stops at the first failing target, so the static gates
 # (seconds) come first, then the Release build, then Thread Sanitizer, and the
 # test suite (the slow part) last.
-ci: lint lint-budget debt-budget budget-monotonicity infoplist-guard sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard explicit-deps-guard spec-conformance locale-format-guard sbom-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard date-ms-guard doc-counts-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard copy-perimeter perimeter-sync science-register scoring-governance comment-citations aggregate-type-size doc-links strict-concurrency-enabled no-phone-home xcodebuild-pinned-guard sbom-check codemap-guard gate-preflight verify-gates release-build thread-sanitizer test-coverage
+ci: lint lint-budget debt-budget budget-monotonicity infoplist-guard sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard explicit-deps-guard spec-conformance locale-format-guard sbom-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard date-ms-guard doc-counts-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard copy-perimeter perimeter-sync science-register scoring-governance comment-citations aggregate-type-size doc-links strict-concurrency-enabled no-phone-home xcodebuild-pinned-guard sbom-check gate-preflight verify-gates release-build thread-sanitizer test-coverage
 
 # Every gate that builds the app writes its derived data under build/ in its
 # own directory (coverage, Thread Sanitizer, mutation runs, the clean-room

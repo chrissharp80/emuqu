@@ -44,7 +44,6 @@ so you can verify before answering.
 | Understand storage / iCloud sync | [§8.5](#85-storage-sync--export) | [`ARCHITECTURE.md`](ARCHITECTURE.md#storage--sync) |
 | Add a translation / localize a string | [§9.2](#92-localization) | [`LOCALIZATION.md`](LOCALIZATION.md) |
 | Build, test, or ship | [§10](#10-build-test-ci--tooling) | `Makefile`, `.github/` |
-| See what a function does, who calls it, or everything a change can affect | [§10 The code map](#the-code-map) | [`codemap/README.md`](codemap/README.md) |
 | Handle an incident / App Store rejection / data-deletion request | [§11](#11-operations--runbooks) | [`runbooks/`](runbooks/) |
 | Find the right doc for a topic | [§4](#4-documentation-map) | `docs/` |
 | Look up a domain term (RMSSD, α1, TRIMP, ATL/CTL/TSB…) | [§12](#12-glossary) | — |
@@ -292,7 +291,6 @@ the index; the others are the depth.**
 | [`CI_POSTURE.md`](CI_POSTURE.md) | What CI runs, where, and what it costs | — |
 | [`REVIEW.md`](REVIEW.md) | Review checklist for a change | — |
 | [`adr/`](adr/) | Architecture decision records | — |
-| [`codemap/README.md`](codemap/README.md) | **The code map** — a record for every function, script target, workflow step and doc section; the call graph; the CI rules that keep it current; the impact report | — |
 | [`runbooks/`](runbooks/) | Operational playbooks — incident, hotfix, App Store rejection, data deletion | — |
 
 ### Topic ownership — one source of truth per topic
@@ -342,12 +340,11 @@ drift — treat them as scale indicators, not invariants. Directories are under
 | `Emuqu.xcodeproj/` | Xcode project (last upgraded with Xcode 26.6; CI selects Xcode 26.6). |
 | `Emuqu.xctestplan` | Test plan used by CI + `make test`. |
 | `docs/` | All documentation (§4). |
-| `docs/codemap/` | The code map: one record per source file and per unit, kept current by CI (§10, [The code map](#the-code-map)). |
 | `scripts/` | CI/dev shell + python (coverage floor, lint budgets, sim destination, hook install). |
 | `Tools/copy_linter/` | `lint.py` + `prohibited_terms.json` — "copy perimeter" that blocks prohibited medical-claim language. |
 | `.ci/` | Plain-text numeric budgets (swiftlint warnings, large-file count, coverage floor, `try?` budget, shared-usage budget). |
 | `.github/` | `workflows/` (`ci.yml`, `gates.yml`, `security.yml`, `performance.yml`, `testflight.yml`), CODEOWNERS, dependabot, `SECURITY.md`. |
-| `.githooks/pre-commit` | SwiftFormat + SwiftLint + the code-map check before commit (install via `make setup-hooks`). |
+| `.githooks/pre-commit` | SwiftFormat + SwiftLint before commit (install via `make setup-hooks`). |
 | `Makefile` | Dev/CI entry points (§10). |
 | `README.md`, `LICENSE` | Overview; PolyForm Strict 1.0.0 source-available, no-derivatives license. |
 | `.swiftlint.yml` / `.swiftformat` | Lint & format config. |
@@ -482,7 +479,6 @@ Swift file with explicit pbxproj build membership, use
 > not to copy: when
 > you touch a view for another reason, lift its computation into a testable
 > free function rather than adding to the inline pile.
-
 
 SwiftUI screens (thin logic). Roots: `MainTabView` (nav), `DashboardV2View`,
 `RecordView`, `FitnessTabView`, `CoachHomeV2View`, `MoreMenuView`. Detail views
@@ -1070,11 +1066,7 @@ make test          # xcodebuild test (sim auto-selected)
 make test-coverage # enforces the coverage floors in .ci/min_coverage*.txt
 make debt-budget   # enforce the tech-debt budgets in .ci/*.txt
 make ci            # the full lint + budgets + coverage suite (what CI runs)
-make setup-hooks   # install .githooks/pre-commit (SwiftFormat + SwiftLint + code map)
-
-make codemap-guard  # the code map is current (records, re-checks)
-make codemap-impact # everything this branch's changes can affect, against origin/main
-make codemap-report # browsable map in build/codemap (serve it with python3 -m http.server)
+make setup-hooks   # install .githooks/pre-commit (SwiftFormat + SwiftLint)
 
 make ci-local      # every gate the WORKFLOW runs, ~2 min, no simulator
 make ci-local-unit # the above plus the Release build, unit suite and Thread Sanitizer
@@ -1335,67 +1327,6 @@ Counting the two budgets, for a file or for the tree:
 bash scripts/check_refactor_spec_conformance.sh
 ```
 
-
-### The code map
-
-`docs/codemap/records/` holds a record for every unit of code: each Swift
-function, initializer, computed property and protocol requirement, each script
-function, Makefile target and workflow step, and each Markdown section. A record
-says what the unit does, what triggers it, what it calls, what shared state it
-reads and writes, and what each branch does. Full
-reference: [`codemap/README.md`](codemap/README.md).
-
-The call graph combines the calls the records name with the calls, property
-reads, protocol dispatch and closure assignments found mechanically in the code.
-`make codemap-impact` answers "what else can this change break?" for every unit
-a branch changed, nearest first: the test suites to run (as `xcodebuild`
-`-only-testing:` arguments), its callers and what each relies on, code elsewhere
-that is alike and may need the same change, the shared state it touches and who
-else touches it, then the user-facing entry points and docs that reach it. Pull
-requests get the same list in the `gates.yml` job summary.
-`scripts/codemap/measure.py` checks it against the history: of the units real
-commits had to change together, how many it would have named.
-The commands read the graph from a persistent index in
-`build/codemap-index.sqlite` (`scripts/codemap/index.py`) that re-reads only the
-files and records that changed since the last command; `index.py --verify`
-checks it against a build from scratch.
-
-`make codemap-guard` (also in `make ci`, both workflows and the pre-commit hook)
-fails when:
-
-- a unit or file has no record, or the record is empty;
-- the code changed after its record was last stamped;
-- a unit's callee now describes different behaviour from when the unit was
-  last checked, or the unit now calls something it was not checked against
-  ("re-check" lines), until it is re-read and stamped or acknowledged;
-- a record names a unit that no longer exists;
-- a record cites a line number (`file:line`) instead of naming the unit,
-  target or file.
-
-`codemap.py status` lists every problem. A change to what one function does
-sends every certain caller back to be re-read, and onward while behaviour
-keeps changing. Tests are not sent back (running them checks them); a caller
-is checked against what a callee returns and writes (`does` or its
-`contract`, `entry`, `writes`), not what it reads; records list only the
-state their own code touches (`impact` shows the whole reach); and a wrapper
-names what it runs in `delegates`, so its callers are checked against that
-instead.
-
-For a change: run `make codemap-impact` first and read what it lists; make the
-change (carry a moved file or renamed unit over with `codemap.py move`); rewrite
-each record the guard lists; re-read each re-check caller (`codemap.py status
---by-callee` groups them under the callee that changed) and either update it
-or, when it is unaffected, clear it with `codemap.py ack`; then stamp, in one
-pass, once the callees' records are written. A record with a `contract` sends
-its callers back only when the contract changes, not when its description is
-reworded. The procedure is in
-[`codemap/README.md`](codemap/README.md#changing-code).
-
-The guard proves records were stamped after the code and its callees changed.
-It cannot prove a record is right; review does that. The graph has no type
-checker behind it: where a name could mean several units the impact report
-lists them all as possible callers, and only certain edges trigger re-checks.
-
 ### CI/CD (`.github/workflows/`)
 
 - **`ci.yml`** — every pull request and push to `main` (scope `unit`),
@@ -1433,8 +1364,7 @@ lists them all as possible callers, and only certain edges trigger re-checks.
     writes the scope and the job's result to the run summary.
 - **`gates.yml`** — on pushes to `main` and every pull request, ubuntu runner:
   the script gates from `make ci` that need only bash and python (no SwiftLint,
-  no Xcode), including the code-map check. On a pull request it also writes the
-  code-map impact report to the job summary. About a minute. `main` requires
+  no Xcode). About a minute. `main` requires
   this job ("Script gates (no Xcode)") and the five `ci.yml` jobs above to
   pass, on a branch that is up to date with `main`, before anything merges.
 - **`security.yml`** — `workflow_dispatch` only — CodeQL over the Swift
@@ -1622,7 +1552,6 @@ This guide is a **map**. Its value is that it stays true. Rules for keeping it s
    | Add a subsystem or move ownership | §8, §9 |
    | Add a doc under `docs/` | §4 |
    | Add a domain term | §12 |
-   | Change any code, script, workflow or doc | its records in [`codemap/`](codemap/README.md) (the CI guard lists them) |
 
 4. **Anchors drift.** `file:line` citations go stale as files change — treat a
    wrong line number as a "refresh me" flag, not a lie. Symbol names are more

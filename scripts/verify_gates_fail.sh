@@ -639,52 +639,6 @@ check "uitest_fresh_install/dropped_flag" \
     "EmuquUITests/DashboardUITests.swift" \
     "import pathlib;p=pathlib.Path('EmuquUITests/DashboardUITests.swift');s=p.read_text();t=s.replace('app.launchArguments += [\"-UITests\", \"-UITests-FreshInstall\"]','app.launchArguments += [\"-UITests\"]',1);assert t!=s;p.write_text(t)"
 
-# A unit with no record, and a unit whose code changed after its record was
-# written, must both turn the code map red.
-CODEMAP_PY=python3
-[[ -x .venv-codemap/bin/python ]] && CODEMAP_PY=.venv-codemap/bin/python
-check "codemap/unrecorded_function" \
-    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
-    "Emuqu/Sources/Utilities/Errors.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedUnrecorded() -> Int { 1 }'+chr(10))"
-
-check "codemap/stale_record" \
-    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
-    "Emuqu/Sources/Utilities/Extensions.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Extensions.swift');s=p.read_text();t=s.replace('static func hoursMinutes(minutes: Int) -> String {','static func hoursMinutes(minutes: Int) -> String {'+chr(10)+'        let planted = 0; _ = planted',1);assert t!=s;p.write_text(t)"
-
-# A callee whose record now says it does something different (here: a new
-# effect in `writes`, which callers are checked against with or without a
-# contract) sends its certain callers back: the check stays red until each is
-# re-read and stamped or acknowledged. A record naming a callee that no longer
-# exists is red too.
-check "codemap/callee_behaviour_changed" \
-    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
-    "docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json" \
-    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json');r=json.loads(p.read_text());u=[x for x in r['units'] if x['key']=='func DebugLogger.scrubPHI(_:)'];assert len(u)==1;u[0]['writes']=list(u[0].get('writes') or [])+['mem:Planted.state'];p.write_text(json.dumps(r,indent=1,ensure_ascii=False)+chr(10))"
-
-check "codemap/call_to_missing_unit" \
-    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
-    "docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json" \
-    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json');r=json.loads(p.read_text());u=[x for x in r['units'] if x['key']=='func DebugLogger.scrubPHI(_:)'];assert len(u)==1;u[0]['calls'].append('Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.plantedMissing()');p.write_text(json.dumps(r,indent=1,ensure_ascii=False)+chr(10))"
-
-check "codemap/line_number_citation" \
-    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
-    "docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json" \
-    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json');r=json.loads(p.read_text());r['role']+=' (see DebugLog.swift:12)';p.write_text(json.dumps(r,indent=1,ensure_ascii=False)+chr(10))"
-
-# A change that records a new high-severity finding, instead of fixing it, must
-# break the open-findings ratchet. Findings and their budgets live in the local,
-# untracked overlay (do_not_ship/codemap), so the plant builds a temporary
-# overlay: a copy of the local one when it exists, else empty budgets of 0. The
-# gate is pointed at it through CODEMAP_OVERLAY; with none there, the ratchet does
-# not run and the gate is green before the plant.
-PLANT_OVERLAY="$BACKUP_DIR/codemap-overlay"
-check "codemap/new_high_finding" \
-    "CODEMAP_OVERLAY=$PLANT_OVERLAY CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
-    "docs/codemap/records/Emuqu/Sources/Utilities/Errors.swift.json" \
-    "import json,pathlib,shutil;src=pathlib.Path('do_not_ship/codemap');d=pathlib.Path('$PLANT_OVERLAY');shutil.copytree(src,d) if src.is_dir() else [d.mkdir(parents=True),(d/'codemap_open_high.txt').write_text('0'+chr(10)),(d/'codemap_open_med.txt').write_text('0'+chr(10))];p=d/'flags/Emuqu/Sources/Utilities/Errors.swift.json';p.parent.mkdir(parents=True,exist_ok=True);r=json.loads(p.read_text()) if p.is_file() else {'file':[],'units':{}};r['file'].append({'kind':'broken','sev':'high','text':'planted','evidence':[]});p.write_text(json.dumps(r,indent=1)+chr(10))"
-
 # The Thread Sanitizer gate needs a simulator build, so here it runs against a
 # stand-in xcodebuild that behaves as the real one does in the two ways the gate
 # depends on: a race report reaches the output only when parallel testing is
