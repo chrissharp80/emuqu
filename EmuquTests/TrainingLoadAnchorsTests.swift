@@ -73,20 +73,14 @@ final class TrainingLoadAnchorsTests: XCTestCase {
     /// A ride stored with NP but no power TSS: the row's figure and the
     /// figure ATL/CTL count come from one function. NP 200 W at FTP 250 W
     /// over a moving hour is IF 0.8 → 64 TSS.
-    func testComputedPowerTSSIsThePrecedenceReadTimeFigure() throws {
-        let manager = AppDependencies.current.app.settingsManager
-        let original = manager.settings
-        defer { manager.settings = original }
-        manager.settings.cyclingFTPWatts = 250
-
+    func testPowerTSSIsThePrecedenceReadTimeFigure() throws {
+        let ftp = TrainingLoadPrecedence.FTPAnchors(running: nil, cycling: 250)
         var ride = WorkoutMetadata(sport: .bike)
         ride.normalizedPowerWatts = 200
         ride.samples = (0 ... 60).map { WorkoutSample(offsetSec: $0 * 60, heartRate: nil, mets: nil) }
 
-        let shown = try XCTUnwrap(ride.computedPowerTSS)
-        let counted = try XCTUnwrap(
-            TrainingLoadPrecedence.readTimePowerTSS(ride, ftp: .current(manager.settings))
-        )
+        let shown = try XCTUnwrap(ride.powerTSS(ftp: ftp))
+        let counted = try XCTUnwrap(TrainingLoadPrecedence.readTimePowerTSS(ride, ftp: ftp))
         XCTAssertEqual(shown, counted, accuracy: 1e-9)
         XCTAssertEqual(shown, 64, accuracy: 1e-9)
     }
