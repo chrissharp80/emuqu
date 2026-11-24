@@ -259,14 +259,14 @@ final class SavedRouteStore {
     /// Per-climb failures (geocoder returns no match for the coordinate)
     /// silently leave that climb's roadName as nil — better than
     /// fabricating a wrong street name.
-    func enrichWithRoadNames(routeID: UUID) {
+    func enrichWithRoadNames(routeID: UUID, geocoder: RoadGeocodingService) {
         Task { [weak self] in
             guard let self else { return }
             guard let route = self.routes.first(where: { $0.id == routeID }) else { return }
             if route.enrichedClimbs != nil { return }
             let runtimeRoute = route.toRoute()
             guard !runtimeRoute.climbs.isEmpty else { return }
-            let enriched = await Self.climbsWithRoadNames(on: runtimeRoute)
+            let enriched = await Self.climbsWithRoadNames(on: runtimeRoute, geocoder: geocoder)
             await MainActor.run { [enriched] in
                 self.applyEnrichedClimbs(enriched, to: routeID)
             }
@@ -280,7 +280,7 @@ final class SavedRouteStore {
     /// Paced deliberately — Apple's CLGeocoder is rate-limited at ~50 reqs/min
     /// device-wide. A 600 ms gap is a ~100 reqs/min ceiling, but a route only
     /// needs 2–8 lookups, so bursts stay safely under.
-    private static func climbsWithRoadNames(on route: Route) async -> [Route.Climb] {
+    private static func climbsWithRoadNames(on route: Route, geocoder: RoadGeocodingService) async -> [Route.Climb] {
         var enriched: [Route.Climb] = []
         for climb in route.climbs {
             let coordinate = coordinate(atDistanceMeters: climb.startDistanceMeters, on: route)
@@ -289,19 +289,17 @@ final class SavedRouteStore {
                 endDistanceMeters: climb.endDistanceMeters,
                 gainMeters: climb.gainMeters,
                 averageGradePercent: climb.averageGradePercent,
-                roadName: await roadName(at: coordinate)
+                roadName: await roadName(at: coordinate, geocoder: geocoder)
             ))
             await sleepQuietly(600_000_000, context: "enriched")
         }
         return enriched
     }
 
-    private static func roadName(at coordinate: CLLocationCoordinate2D?) async -> String? {
+    private static func roadName(at coordinate: CLLocationCoordinate2D?, geocoder: RoadGeocodingService) async -> String? {
         guard let coordinate else { return nil }
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        return await Task { @MainActor in
-            await AppDependencies.current.location.roadGeocodingService.reverseGeocodeQueued(location)?.thoroughfare
-        }.value
+        return await geocoder.reverseGeocodeQueued(location)?.thoroughfare
     }
 
     /// Replace the saved route in the store with its enriched version.

@@ -15,7 +15,7 @@ extension FitnessPostSummaryView {
     var summary: FitnessSummaryCards {
         FitnessSummaryCards(
             session: session, track: track, units: units,
-            collector: collector, savedRouteStore: savedRouteStore,
+            collector: collector, savedRouteStore: savedRouteStore, roadGeocoder: dependencies.location.roadGeocodingService,
             settingsManager: settingsManager,
             refreshedSession: $refreshedSession,
             gpxExport: $gpxExport, csvExport: $csvExport, tcxExport: $tcxExport,

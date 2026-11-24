@@ -22,6 +22,7 @@ struct FitnessSummaryCards {
     let units: UnitsPreference
     let collector: RRCollector
     let savedRouteStore: SavedRouteStore
+    let roadGeocoder: RoadGeocodingService
 
     let settingsManager: SettingsManager
 

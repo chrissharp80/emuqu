@@ -415,7 +415,7 @@ extension FitnessSummaryCards {
         // names will appear within ~5–15 s as CLGeocoder responds. Once
         // enriched, the AI coach will say "the climb on Elm Street" on
         // the next workout, without any extra tap.
-        savedRouteStore.enrichWithRoadNames(routeID: saved.id)
+        savedRouteStore.enrichWithRoadNames(routeID: saved.id, geocoder: roadGeocoder)
     }
 
     /// `recapCardShareButton` is the Recap Card: a
