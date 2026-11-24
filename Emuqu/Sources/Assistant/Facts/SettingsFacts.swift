@@ -123,8 +123,8 @@ struct WebSearchNamespace: FactNamespaceResolver {
             // AssistantViewModel tool-use loop; `assumeIsolated`
             // satisfies the actor-isolation check on
             // `ProviderRegistry.activeProvider`.
-            let providerHasNativeSearch = MainActor.assumeIsolated { providerHasNativeSearch() }
-            return .boolean(enabled && (hasTavilyKey || providerHasNativeSearch))
+            let nativeSearch = MainActor.assumeIsolated { providerHasNativeSearch() }
+            return .boolean(enabled && (hasTavilyKey || nativeSearch))
         }
     }
 
