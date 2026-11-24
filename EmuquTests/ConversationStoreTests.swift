@@ -290,6 +290,7 @@ final class ConversationStoreTests: XCTestCase {
     func testTheAssistantReloadsASummaryThatWasUnreadableWhenItWasCreated() async throws {
         try FileManager.default.createDirectory(at: summaryFileURL, withIntermediateDirectories: true)
         let viewModel = AssistantViewModel(
+            services: ChatServices(.current),
             store: makeStore(),
             factsStore: UserFactsStore(fileURL: tempDir.appendingPathComponent("user_facts.json"))
         )

@@ -870,7 +870,6 @@ private struct PhaseObservingStateBody<Recording: View, Default: View>: View {
 /// Watch can start a workout cold.
 @Observable
 final class RecorderBox {
-    static let shared = RecorderBox(services: WorkoutServices(.current))
     var recorder: WorkoutRecorder?
     /// What the recorder it binds is handed.
     private let services: WorkoutServices

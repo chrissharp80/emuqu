@@ -10,7 +10,8 @@
 # `AppDependencies.purgeStores`, and `AppDependencies.makeSessionReanalysis`
 # for the reanalysis service, its coordinator and the scoring context; fact
 # namespaces get a `FactServices` from `AppFactResolverFactory.build`, and the
-# workout recorder and its parts a `WorkoutServices` from `RecorderBox`), and
+# workout recorder and its parts a `WorkoutServices` from `RecorderBox`, and
+# the chat view model, its router and tool runner a `ChatServices`), and
 # their tests construct them with substitutes. One new
 # `AppDependencies.current` read in them hides an edge again and puts the
 # tests back on the live services.
@@ -51,6 +52,7 @@ EXPLICIT_PATTERNS=(
     "Emuqu/Sources/Collection/WorkoutFinalizer.swift"
     "Emuqu/Sources/Collection/WorkoutAIContextBuilder.swift"
     "Emuqu/Sources/Collection/WorkoutServices.swift"
+    "Emuqu/Sources/Assistant/ViewModel/*.swift"
 )
 APP_DIRS=("Emuqu" "EmuquWatch Watch App")
 

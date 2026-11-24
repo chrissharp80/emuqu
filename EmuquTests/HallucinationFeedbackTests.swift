@@ -69,6 +69,7 @@ final class HallucinationFeedbackTests: XCTestCase {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
         let viewModel = AssistantViewModel(
+            services: ChatServices(.current),
             store: ConversationStore(fileURL: dir.appendingPathComponent("conversation.json")),
             factsStore: UserFactsStore(fileURL: dir.appendingPathComponent("user_facts.json"))
         )

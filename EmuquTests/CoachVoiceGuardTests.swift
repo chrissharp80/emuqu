@@ -662,6 +662,7 @@ final class CoachVoiceGuardTests: XCTestCase {
             }
         }
         let viewModel = AssistantViewModel(
+            services: ChatServices(.current),
             store: ConversationStore(fileURL: directory.appendingPathComponent("chat.json")),
             factsStore: UserFactsStore(fileURL: directory.appendingPathComponent("facts.json"))
         )

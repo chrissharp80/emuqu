@@ -562,7 +562,9 @@ extension VoiceConversationController {
 enum InterjectionGate {
     @MainActor
     static func maySend(to provider: ProviderID, disclaimerAccepted: Bool) -> Bool {
-        guard AssistantViewModel.aiIsAllowed(disclaimerAccepted: disclaimerAccepted) else {
+        guard AssistantViewModel.aiIsAllowed(
+            disclaimerAccepted: disclaimerAccepted, settings: AppDependencies.current.app.settingsManager.settings
+        ) else {
             debugLog("[VoiceConv] interjection skipped — Flo is off or its notice isn't accepted", level: .info)
             return false
         }
