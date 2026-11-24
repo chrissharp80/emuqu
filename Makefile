@@ -180,7 +180,7 @@ copy-perimeter:
 # expectations (Tools/validation), in a venv with pinned numpy and SciPy.
 validation-ports:
 	@python3 -m venv build/validation-venv
-	@build/validation-venv/bin/pip install --quiet --disable-pip-version-check --requirement Tools/validation/requirements.txt
+	@build/validation-venv/bin/pip install --quiet --disable-pip-version-check --only-binary=:all: --requirement Tools/validation/requirements.txt
 	@build/validation-venv/bin/python -I Tools/validation/test_ports.py > build/validation-ports.txt 2>&1 || { cat build/validation-ports.txt; exit 1; }
 	@tail -1 build/validation-ports.txt
 
