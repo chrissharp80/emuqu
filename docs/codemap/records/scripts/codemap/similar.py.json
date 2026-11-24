@@ -1,16 +1,14 @@
 {
  "file": "scripts/codemap/similar.py",
- "hash": "57cbd4b530c95f25",
- "role": "Finds units whose code is alike, for `impact`'s same-code-elsewhere section: reduces each unit's code to tokens and 4-token runs and scores pairs by the rare runs they share. Imported by codemap.py (impact) and measure.py.",
- "types": [
-  "Index"
- ],
+ "hash": "b4a1ab957147f5dd",
+ "role": "Reduces a unit's code to tokens and 4-token runs for the same-code-elsewhere comparison; index.py stores the runs and scores pairs by the rare runs they share. Imported by index.py.",
+ "types": [],
  "state": [
   "TOKEN: the token pattern (string literals, numbers, identifiers, operators and punctuation)",
   "CAMEL: splits identifiers at camel case",
   "WIDTH: 4, the run length"
  ],
- "toplevel": "Module docstring, `from __future__ import annotations`, imports (collections, math, re), the three constants above and the Index class statement.",
+ "toplevel": "Module docstring, `from __future__ import annotations`, `import re`, and the three constants above.",
  "units": [
   {
    "key": "def tokens",
@@ -43,75 +41,6 @@
    "deps": {
     "scripts/codemap/similar.py::def tokens": "26b6b58587ded822"
    }
-  },
-  {
-   "key": "def Index.__init__",
-   "hash": "5e5631ea1a38bf77",
-   "does": "Builds the run set of every given unit (# comments stripped for files other than .swift/.c/.m/.h), each run's rarity log(units / units having it), and, for runs that at most 50 units have, the list of units that have each.",
-   "entry": null,
-   "calls": [
-    "scripts/codemap/similar.py::def shingles"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:Index.sets",
-    "mem:Index.idf",
-    "mem:Index.posting"
-   ],
-   "branches": [],
-   "deps": {
-    "scripts/codemap/similar.py::def shingles": "213d581420d8aa74"
-   }
-  },
-  {
-   "key": "def Index.similar",
-   "hash": "9d3fd59637a17bdf",
-   "does": "The units sharing the largest rarity-weighted part of a node's runs: for every other unit that shares an indexed run, the shared weight divided by the larger of the two units' total weights; keeps those scoring at least `minimum` (default 0.35), best first, up to `limit` (default 15), scores rounded to 2 places. A unit whose total weight is under 25 (too little distinctive code) gets [].",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:Index.sets",
-    "mem:Index.idf",
-    "mem:Index.posting"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "total weight under 25",
-     "effect": "[]"
-    },
-    {
-     "at": "+15",
-     "cond": "score at least minimum",
-     "effect": "kept"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "def unit_texts",
-   "hash": "0c3c0965421b5bfb",
-   "does": "Maps every unit of every non-Markdown file with units to its code (its start to end lines); a file that cannot be read is skipped.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "file:every in-scope code file"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "Markdown or no units",
-     "effect": "skipped"
-    },
-    {
-     "at": "+8",
-     "cond": "file cannot be read",
-     "effect": "skipped"
-    }
-   ],
-   "deps": {}
   }
  ],
  "deps": {

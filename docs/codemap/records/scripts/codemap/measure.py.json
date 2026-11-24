@@ -73,19 +73,15 @@
   },
   {
    "key": "def main",
-   "hash": "d8e2b606323de76e",
-   "does": "Builds the records, inventory, call graph, alike-code index and store users, then for every commit whose changed units still existing number 2 to MAX_UNITS (argument, default 25): for each changed unit, whether impact of any changed non-test unit in another file names it (code: a certain caller at any distance, a state partner or an alike unit; tests: the unit's suite is among the suites reaching it). Prints the commit count and, for code and tests, found of total and the percentage. Returns 0.",
+   "hash": "ab095a89d436e380",
+   "does": "Opens the index (open_index) and, answering from it (View over records, callers, units and stores), for every commit whose changed units still existing number 2 to MAX_UNITS (argument, default 25): for each changed unit, whether impact of any changed non-test unit in another file names it (code: a certain caller at any distance, a state partner or an alike unit; tests: the unit's suite is among the suites reaching it). Prints the commit count and, for code and tests, found of total and the percentage. Returns 0.",
    "entry": null,
    "calls": [
     "scripts/codemap/measure.py::def history",
     "scripts/codemap/measure.py::def main.impact",
-    "scripts/codemap/codemap.py::def all_records",
-    "scripts/codemap/inventory.py::def inventory",
-    "scripts/codemap/graph.py::def build",
-    "scripts/codemap/graph.py::def callers",
-    "scripts/codemap/codemap.py::def store_users_of",
-    "scripts/codemap/similar.py::def unit_texts",
-    "scripts/codemap/similar.py::def Index.__init__"
+    "scripts/codemap/index.py::def open_index",
+    "scripts/codemap/index.py::def View.__init__",
+    "scripts/codemap/index.py::def Index.unit"
    ],
    "reads": [],
    "writes": [],
@@ -102,27 +98,23 @@
     }
    ],
    "deps": {
-    "scripts/codemap/codemap.py::def all_records": "3e3143a0d4a0752c",
-    "scripts/codemap/codemap.py::def store_users_of": "5fa02aac7a38b13b",
-    "scripts/codemap/graph.py::def build": "ef0c2b441ef89093",
-    "scripts/codemap/graph.py::def callers": "2e1adfd6947d355c",
-    "scripts/codemap/inventory.py::def inventory": "9c1468b9894854e2",
+    "scripts/codemap/index.py::def Index.unit": "010dc2859bc0a581",
+    "scripts/codemap/index.py::def View.__init__": "4c062bb7d9de6d25",
+    "scripts/codemap/index.py::def open_index": "89e30daef005e70a",
     "scripts/codemap/measure.py::def history": "f52c1fad1146fa17",
-    "scripts/codemap/measure.py::def main.impact": "b52c70ac1cb368fc",
-    "scripts/codemap/similar.py::def Index.__init__": "b620e70bbb4b6dbf",
-    "scripts/codemap/similar.py::def unit_texts": "2659005a61d39cf1"
+    "scripts/codemap/measure.py::def main.impact": "31d749e70f23b8ce"
    }
   },
   {
    "key": "def main.impact",
-   "hash": "e121fa74be98b89f",
-   "does": "Memoized: (every certain caller at any distance, state partner and alike unit; the (file, class) suites of the tests reaching it) for a node.",
+   "hash": "8e1e658997a98f0f",
+   "does": "Memoized: (every certain caller at any distance, state partner and alike unit (Index.similar); the (file, class) suites of the tests reaching it) for a node.",
    "entry": null,
    "calls": [
     "scripts/codemap/codemap.py::def walk_callers",
     "scripts/codemap/codemap.py::def state_partners",
     "scripts/codemap/codemap.py::def record_of",
-    "scripts/codemap/similar.py::def Index.similar"
+    "scripts/codemap/index.py::def Index.similar"
    ],
    "reads": [],
    "writes": [],
@@ -131,13 +123,13 @@
     "scripts/codemap/codemap.py::def record_of": "439da59188c303b1",
     "scripts/codemap/codemap.py::def state_partners": "e0bf53148027f949",
     "scripts/codemap/codemap.py::def walk_callers": "6a394696ffbe1bc9",
-    "scripts/codemap/similar.py::def Index.similar": "9840c95b26367f0e"
+    "scripts/codemap/index.py::def Index.similar": "a65a972085270eca"
    }
   }
  ],
  "deps": {
   "scripts/codemap/measure.py::def history": "f52c1fad1146fa17",
-  "scripts/codemap/measure.py::def main": "90d4499610edca86",
-  "scripts/codemap/measure.py::def main.impact": "b52c70ac1cb368fc"
+  "scripts/codemap/measure.py::def main": "da14cf7950afe7d5",
+  "scripts/codemap/measure.py::def main.impact": "31d749e70f23b8ce"
  }
 }

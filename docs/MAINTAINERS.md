@@ -1355,6 +1355,10 @@ else touches it, then the user-facing entry points and docs that reach it. Pull
 requests get the same list in the `gates.yml` job summary.
 `scripts/codemap/measure.py` checks it against the history: of the units real
 commits had to change together, how many it would have named.
+The commands read the graph from a persistent index in
+`build/codemap-index.sqlite` (`scripts/codemap/index.py`) that re-reads only the
+files and records that changed since the last command; `index.py --verify`
+checks it against a build from scratch.
 
 `make codemap-guard` (also in `make ci`, both workflows and the pre-commit hook)
 fails when:

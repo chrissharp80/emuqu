@@ -1,14 +1,14 @@
 {
  "file": "scripts/codemap/graph.py",
- "hash": "cbcc6317e6f407c3",
- "role": "The code map's call graph: parses every Swift file with tree-sitter for calls, property reads, bare references, conformances and closure assignments; resolves each to unit keys as certain or possible edges; adds recorded calls, protocol-requirement dispatch and Makefile/workflow/script wiring. Imported by codemap.py (check, stamp, impact, callers) and report.py.",
+ "hash": "994537e871dd79a2",
+ "role": "The code map's call graph: parses every Swift file with tree-sitter for calls, property reads, bare references, conformances and closure assignments; resolves each to unit keys as certain or possible edges; adds recorded calls, protocol-requirement dispatch and Makefile/workflow/script wiring. `build` is the from-scratch definition; index.py keeps the same graph up to date incrementally from the same parts (unit_table, recorded_edges, swift_file, Resolver, wiring_edges, assemble). Imported by index.py and codemap.py.",
  "types": [],
  "state": [
   "COMMON: member names (count, map, load, save, start, reset, ...) so common in Swift/Foundation/SwiftUI that a unique repo match on an unknown receiver is only a possible edge",
   "NOT_A_REFERENCE: syntax-node parent types under which a simple_identifier is a declaration, label, type or member name rather than a reference",
   "FUNC_KINDS / PROP_KINDS: inventory unit kinds that can be called / read as properties"
  ],
- "toplevel": "Module docstring defining certain and possible edges, `from __future__ import annotations`, imports (collections, re, Path, NS_CODE from inventory) the three constants above, TEST_TARGETS (EmuquTests/, EmuquUITests/) and is_test_file. tree_sitter is imported inside build().",
+ "toplevel": "Module docstring defining certain and possible edges, `from __future__ import annotations`, imports (collections, re, Path, NS_CODE from inventory), the three constants above, TEST_TARGETS (EmuquTests/, EmuquUITests/), is_test_file, _PARSER (the lazily made Swift parser) and the Resolver class statement. tree_sitter is imported inside swift_file.",
  "units": [
   {
    "key": "def _swift_refs",
@@ -252,159 +252,39 @@
   },
   {
    "key": "def build",
-   "hash": "c1d7e56257a0e59d",
-   "does": "Builds the whole graph. Nodes: every inventory unit (`path::key`) and every file (`path::`). Edges, each certain or possible (certain is never downgraded): (1) every `path::key` call named in a record (not ext:/dyn:/closure:) -> certain. (2) Swift: _swift_refs over every .swift file, conformances merged. A call on an implicit receiver whose name is a repo type is an initializer call: inits of that type whose labels match (certain if one). Calls/reads on self/super/implicit resolve within the unit's own type family (type, superclasses, protocols, transitively); an implicit one with no match falls back to same-file units, then to global functions. A receiver that is a repo type resolves within that type's family; a framework or unknown receiver resolves against every unit of that name and label set, and a single match on a COMMON name is only possible. Certainty is decided on every candidate the name matches; two filters then drop candidates the reference cannot mean and never promote what is left, so they only remove edges: a property-style read on a framework or unknown receiver drops functions that need an argument (takes_arguments), and a reference from outside the test targets drops units inside them (is_test_file). An implicit property name with no match is ignored (a local). One candidate -> certain, several -> possible; a call with no candidate whose name is an assigned stored closure -> possible edges to the assigning units. (3) Each protocol requirement -> certain edge to each same-named, label-compatible function in a type conforming to that protocol. (4) Non-Swift code: a Makefile target -> its prerequisites; target recipes, workflow jobs and steps -> each `make`/`$(MAKE)` target and each scripts/ or Tools/ .sh/.py path (file node); a job -> its steps; Python and shell functions -> local functions (and, for Python, top-level defs imported from sibling modules via `from m import a` or `import m` + `m.a`) named in their body; file-level code outside units -> local functions and scripts it names. For each certain edge it also records why it is certain: 'recorded', 'initializer', 'own type', 'same file', 'global function', 'typed receiver', 'unique name', 'protocol requirement' or 'build wiring' (an edge certain by several routes keeps every reason). Returns {'edges': {src: {dst: kind}}, 'units': {node: inventory entry with file}, 'why': {(src, dst): sorted reasons}}.",
+   "hash": "ccd6490508aa613d",
+   "does": "Builds the whole graph from scratch: the unit table, every record's recorded calls, swift_file for every Swift file in the inventory, each file's references resolved by one Resolver, its protocol-requirement edges and the build wiring, assembled into {'edges': {src: {dst: kind}}, 'units': ..., 'why': {(src, dst): reasons}}. The commands read the same graph from index.py; index.py --verify compares the two.",
    "entry": null,
    "calls": [
-    "scripts/codemap/graph.py::def _swift_refs",
-    "scripts/codemap/graph.py::def _labels_match",
-    "scripts/codemap/graph.py::def build.add",
-    "scripts/codemap/graph.py::def build.short",
-    "scripts/codemap/graph.py::def build.family",
-    "scripts/codemap/graph.py::def build.candidates",
-    "ext:tree_sitter Parser",
-    "scripts/codemap/graph.py::def is_test_file",
-    "scripts/codemap/graph.py::def build.takes_arguments"
+    "scripts/codemap/graph.py::def unit_table",
+    "scripts/codemap/graph.py::def recorded_edges",
+    "scripts/codemap/graph.py::def swift_file",
+    "scripts/codemap/graph.py::def Resolver.__init__",
+    "scripts/codemap/graph.py::def Resolver.resolve_file",
+    "scripts/codemap/graph.py::def Resolver.protocol_edges",
+    "scripts/codemap/graph.py::def wiring_edges",
+    "scripts/codemap/graph.py::def assemble"
    ],
    "reads": [
-    "file:every in-scope source file"
+    "file:every in-scope Swift file"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+24",
-     "cond": "recorded unit no longer in the inventory",
-     "effect": "its recorded calls skipped"
-    },
-    {
-     "at": "+27",
-     "cond": "recorded call names a unit",
-     "effect": "certain edge"
-    },
-    {
-     "at": "+92",
-     "cond": "bare call of a repo type name",
-     "effect": "edges to its label-matching inits"
-    },
-    {
-     "at": "+98",
-     "cond": "own-instance reference",
-     "effect": "candidates within the own type family"
-    },
-    {
-     "at": "+100",
-     "cond": "implicit reference with no own-family match",
-     "effect": "same-file units, else global functions"
-    },
-    {
-     "at": "+105",
-     "cond": "receiver is a repo type",
-     "effect": "candidates within that type family"
-    },
-    {
-     "at": "+109",
-     "cond": "unknown receiver, unique match, common name",
-     "effect": "possible edge only"
-    },
-    {
-     "at": "+112",
-     "cond": "bare name with no unit match",
-     "effect": "ignored (local variable or framework symbol)"
-    },
-    {
-     "at": "+115",
-     "cond": "candidates found",
-     "effect": "certain when exactly one, else possible to each"
-    },
-    {
-     "at": "+116",
-     "cond": "no candidate, name is an assigned closure property",
-     "effect": "possible edges to each assigning unit"
-    },
-    {
-     "at": "+122",
-     "cond": "unit is not a protocol requirement",
-     "effect": "skipped by the dispatch pass"
-    },
-    {
-     "at": "+129",
-     "cond": "same-named function in a conforming type with compatible labels",
-     "effect": "certain requirement -> implementation edge"
-    },
-    {
-     "at": "+135",
-     "cond": "not a script, Makefile, hook or workflow",
-     "effect": "skipped by the wiring pass"
-    },
-    {
-     "at": "+139",
-     "cond": "Python file",
-     "effect": "sibling-module imports added to the local names"
-    },
-    {
-     "at": "+157",
-     "cond": "Makefile target",
-     "effect": "prerequisite edges"
-    },
-    {
-     "at": "+162",
-     "cond": "target recipe, workflow job or step",
-     "effect": "make-target and script-path edges"
-    },
-    {
-     "at": "+169",
-     "cond": "workflow job",
-     "effect": "edges to its steps"
-    },
-    {
-     "at": "+173",
-     "cond": "Python or shell function",
-     "effect": "edges to local functions named in its body"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "scripts/codemap/graph.py::def _labels_match": "fad5a6532d27c5ea",
-    "scripts/codemap/graph.py::def _swift_refs": "3f7e869aea3769dd",
-    "scripts/codemap/graph.py::def _swift_refs.receiver": "50fc8fd0a003e7f0",
-    "scripts/codemap/graph.py::def build.add": "22bbccf54d5edc0d",
-    "scripts/codemap/graph.py::def build.candidates": "2f9073bfd27e08cc",
-    "scripts/codemap/graph.py::def build.family": "5313ec7d1c8cf951",
-    "scripts/codemap/graph.py::def build.short": "6f1c9df9eb0b9e97",
-    "scripts/codemap/graph.py::def build.takes_arguments": "426b63061d5438c3",
-    "scripts/codemap/graph.py::def is_test_file": "6bde3d56f8b2eb2e"
+    "scripts/codemap/graph.py::def Resolver.__init__": "f9bf06f5aedc1eda",
+    "scripts/codemap/graph.py::def Resolver.protocol_edges": "49bd746eca6d5130",
+    "scripts/codemap/graph.py::def Resolver.resolve_file": "d335821e89a61404",
+    "scripts/codemap/graph.py::def assemble": "577bb7649c323fa0",
+    "scripts/codemap/graph.py::def recorded_edges": "5fcffe019357d077",
+    "scripts/codemap/graph.py::def swift_file": "ac9eeb4ae15d2775",
+    "scripts/codemap/graph.py::def unit_table": "498e944f1ae562ad",
+    "scripts/codemap/graph.py::def wiring_edges": "08c37f78e0c7aadb"
    }
   },
   {
-   "key": "def build.add",
-   "hash": "80008aeeb5482828",
-   "does": "Adds edge a -> b of the given kind unless it is a self-edge or b is not a node; an existing certain edge is never downgraded to possible. For a certain edge it adds the reason to why[(a, b)].",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "self-edge or unknown target",
-     "effect": "nothing added"
-    },
-    {
-     "at": "+4",
-     "cond": "no certain edge yet",
-     "effect": "set to the given kind"
-    },
-    {
-     "at": "+6",
-     "cond": "kind is certain",
-     "effect": "reason added to why"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "def build.short",
-   "hash": "7f009d8d4e405c9e",
-   "does": "Last dot-separated component of a type path ('' for None).",
+   "key": "def unit_table",
+   "hash": "d9d0f9d0fdcc787f",
+   "does": "{node: inventory entry plus its file} for every unit, and a `path::` node of kind 'file' (name the path, lines 1 to the file's length) for every file.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -413,85 +293,280 @@
    "deps": {}
   },
   {
-   "key": "def build.family",
-   "hash": "8451eaa133ec10f8",
-   "does": "A type's short name with every name reachable through conforms (superclasses, protocols, their ancestors), transitively.",
-   "entry": null,
-   "calls": [
-    "scripts/codemap/graph.py::def build.short"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "name not yet visited",
-     "effect": "added and its inherited names queued"
-    }
-   ],
-   "deps": {
-    "scripts/codemap/graph.py::def build.short": "6f1c9df9eb0b9e97"
-   }
-  },
-  {
-   "key": "def build.takes_arguments",
-   "hash": "60486f208179c7f5",
-   "does": "Whether a unit is a function or initializer (FUNC_KINDS) with a parameter that has no default value.",
+   "key": "def assemble",
+   "hash": "683742f7cebb31d8",
+   "does": "The graph from (src, dst, kind, reason) contributions in any order: a contribution from or to a node not in `units`, or from a node to itself, is dropped; an edge is certain when any contribution is (never downgraded to possible); a certain edge keeps every reason given with a certain contribution, sorted.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "def build.candidates",
-   "hash": "cbf805c9920e35e2",
-   "does": "Units named `name` (Swift units and C/ObjC functions) that fit the reference: a call matches functions (whose labels bind, via _labels_match) and properties (a stored closure or computed value called); a property read matches properties and functions (a function reference). Optionally restricted to units with no enclosing type (global_only) or to units whose type is in `types`.",
-   "entry": null,
-   "calls": [
-    "scripts/codemap/graph.py::def _labels_match",
-    "scripts/codemap/graph.py::def build.short"
-   ],
-   "reads": [],
-   "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "call to something neither callable nor a property",
-     "effect": "excluded"
-    },
-    {
      "at": "+6",
-     "cond": "read of something neither a property nor a function",
-     "effect": "excluded"
+     "cond": "src or dst unknown, or src == dst",
+     "effect": "dropped"
     },
     {
      "at": "+8",
-     "cond": "function whose parameters cannot take these labels",
-     "effect": "excluded"
+     "cond": "no certain contribution yet",
+     "effect": "kind set to this one"
     },
     {
      "at": "+10",
-     "cond": "global functions only, unit has a type",
-     "effect": "excluded"
-    },
-    {
-     "at": "+12",
-     "cond": "type restriction, unit outside it",
-     "effect": "excluded"
+     "cond": "certain",
+     "effect": "reason kept"
     }
    ],
+   "deps": {}
+  },
+  {
+   "key": "def recorded_edges",
+   "hash": "79d85ba6caf4b38e",
+   "does": "A certain contribution, reason 'recorded', from each unit record to every `path::key` its `calls` names (not ext:/dyn:/closure: entries). The source unit's existence is checked later, by assemble.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def swift_file",
+   "hash": "00e67d4888377bef",
+   "does": "One Swift file's _swift_refs output (references, parameter lists, conformances, closure assignments) with unit start lines turned into node keys; the tree-sitter parser is made once, on first use.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def _swift_refs"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:_PARSER"
+   ],
+   "branches": [],
    "deps": {
-    "scripts/codemap/graph.py::def _labels_match": "fad5a6532d27c5ea",
-    "scripts/codemap/graph.py::def _swift_refs.receiver": "50fc8fd0a003e7f0",
-    "scripts/codemap/graph.py::def build.short": "6f1c9df9eb0b9e97"
+    "scripts/codemap/graph.py::def _swift_refs": "3f7e869aea3769dd"
    }
   },
   {
-   "key": "def callers",
-   "hash": "f3bc31da810380df",
-   "does": "Inverts the graph's edges: {callee: {caller: kind}}.",
+   "key": "def short",
+   "hash": "7f009d8d4e405c9e",
+   "does": "The last dotted part of a type name ('' for None).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def Resolver.__init__",
+   "hash": "235d836753883855",
+   "does": "Merges every Swift file's parameter lists, conformances and closure assignments, indexes units by name (Swift units and C/Objective-C functions), and takes the repository's types: every unit's short type name and every type that declares a conformance.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:Resolver.params",
+    "mem:Resolver.conforms",
+    "mem:Resolver.closure_assigns",
+    "mem:Resolver.by_name",
+    "mem:Resolver.repo_types"
+   ],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/graph.py::def _swift_refs.receiver": "50fc8fd0a003e7f0",
+    "scripts/codemap/graph.py::def short": "8a404d3b33d427f4"
+   }
+  },
+  {
+   "key": "def Resolver.family",
+   "hash": "bc3521217be68296",
+   "does": "A type's short name with every ancestor and protocol it conforms to, transitively.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:Resolver.conforms"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/graph.py::def short": "8a404d3b33d427f4"
+   }
+  },
+  {
+   "key": "def Resolver.takes_arguments",
+   "hash": "ac9571f8267262ec",
+   "does": "Whether a unit is a function or initializer with a parameter that has no default value.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:Resolver.params"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def Resolver.candidates",
+   "hash": "d02f6f199b5b7dee",
+   "does": "The units named `name` that a reference of `kind` can mean: a call matches functions whose labels bind (_labels_match) and properties; a property reference matches properties and functions; optionally only global ones, or only those whose short type is in `types`.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def _labels_match",
+    "scripts/codemap/graph.py::def short"
+   ],
+   "reads": [
+    "mem:Resolver.by_name",
+    "mem:Resolver.params"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/graph.py::def _labels_match": "fad5a6532d27c5ea",
+    "scripts/codemap/graph.py::def short": "8a404d3b33d427f4"
+   }
+  },
+  {
+   "key": "def Resolver.resolve_file",
+   "hash": "d67de094edfd2190",
+   "does": "(src, dst, kind, reason) for every reference of every unit of one file (resolve).",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def Resolver.resolve"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/graph.py::def Resolver.resolve": "ba8662ee20d1d4aa"
+   }
+  },
+  {
+   "key": "def Resolver.resolve",
+   "hash": "3ac81b42096fac72",
+   "does": "The edges one unit's references resolve to. A bare call of a repository type name goes to that type's label-matching initializers (certain if one, reason 'initializer'). A reference on self, super or an implicit receiver resolves within the unit's own type family ('own type'); an implicit one with no match falls back to same-file units ('same file'), then global functions ('global function'). A receiver typed by a repository type resolves within that type's family ('typed receiver'); any other receiver against every unit of that name ('unique name'). One candidate gives a certain edge unless the receiver was unresolved and the name is COMMON; then filters drop candidates the reference cannot mean (a property read on an unresolved receiver drops functions that need arguments; app code drops test-target units). An implicit property reference with no candidate is ignored; a call with none whose name is an assigned stored closure gives possible edges to the assigning units ('stored closure').",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def Resolver.family",
+    "scripts/codemap/graph.py::def Resolver.candidates",
+    "scripts/codemap/graph.py::def Resolver.takes_arguments",
+    "scripts/codemap/graph.py::def is_test_file",
+    "scripts/codemap/graph.py::def _labels_match",
+    "scripts/codemap/graph.py::def short"
+   ],
+   "reads": [
+    "mem:Resolver.by_name",
+    "mem:Resolver.repo_types",
+    "mem:Resolver.closure_assigns",
+    "mem:Resolver.params"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "empty name, self or super",
+     "effect": "skipped"
+    },
+    {
+     "at": "+8",
+     "cond": "implicit call of a repository type name",
+     "effect": "initializer edges"
+    },
+    {
+     "at": "+15",
+     "cond": "self, super or implicit receiver",
+     "effect": "own type family, then same file, then global functions"
+    },
+    {
+     "at": "+23",
+     "cond": "receiver typed by a repository type",
+     "effect": "that type's family"
+    },
+    {
+     "at": "+26",
+     "cond": "other receiver",
+     "effect": "every unit of that name, unresolved"
+    },
+    {
+     "at": "+33",
+     "cond": "one candidate and not (unresolved and COMMON)",
+     "effect": "certain; otherwise possible"
+    },
+    {
+     "at": "+34",
+     "cond": "property read on an unresolved receiver",
+     "effect": "functions needing arguments dropped"
+    },
+    {
+     "at": "+39",
+     "cond": "source outside the test targets",
+     "effect": "test-target candidates dropped"
+    },
+    {
+     "at": "+43",
+     "cond": "implicit property with no candidate",
+     "effect": "ignored"
+    },
+    {
+     "at": "+48",
+     "cond": "call with no candidate whose name is a stored closure",
+     "effect": "possible edges to the assigning units"
+    }
+   ],
+   "deps": {
+    "scripts/codemap/graph.py::def Resolver.candidates": "d187f0773c502ba6",
+    "scripts/codemap/graph.py::def Resolver.family": "be27d96b628cf21a",
+    "scripts/codemap/graph.py::def Resolver.takes_arguments": "6fae3c67e726f43f",
+    "scripts/codemap/graph.py::def _labels_match": "fad5a6532d27c5ea",
+    "scripts/codemap/graph.py::def _swift_refs.receiver": "50fc8fd0a003e7f0",
+    "scripts/codemap/graph.py::def is_test_file": "6bde3d56f8b2eb2e",
+    "scripts/codemap/graph.py::def short": "8a404d3b33d427f4"
+   }
+  },
+  {
+   "key": "def Resolver.protocol_edges",
+   "hash": "22326cc9386b4f5e",
+   "does": "A certain edge, reason 'protocol requirement', from each protocol requirement to each same-named, label-compatible function (not itself a requirement) of the protocol or a type that conforms to it.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def short",
+    "scripts/codemap/graph.py::def _labels_match"
+   ],
+   "reads": [
+    "mem:Resolver.conforms",
+    "mem:Resolver.by_name",
+    "mem:Resolver.params"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/graph.py::def _labels_match": "fad5a6532d27c5ea",
+    "scripts/codemap/graph.py::def short": "8a404d3b33d427f4"
+   }
+  },
+  {
+   "key": "def wiring_edges",
+   "hash": "b14d8ebd315f787d",
+   "does": "Certain contributions, reason 'build wiring', among scripts, Makefile targets and workflow jobs and steps: a target to its prerequisites; target recipes, jobs and steps to each `make`/`$(MAKE)` target and each scripts/ or Tools/ .sh/.py path (file node) they name; a job to its steps; Python and shell functions to the local functions (and, for Python, top-level defs imported from sibling modules) named in their body; a script's code outside units to its functions and the scripts it names.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/graph.py::def wiring_edges.add"
+   ],
+   "reads": [
+    "file:every script, Makefile and workflow in the inventory given"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/graph.py::def Resolver.resolve": "ba8662ee20d1d4aa",
+    "scripts/codemap/graph.py::def build": "b2ae839c6e336bd3",
+    "scripts/codemap/graph.py::def wiring_edges.add": "8b88bf414e76b4de"
+   }
+  },
+  {
+   "key": "def wiring_edges.add",
+   "hash": "e4fcc49d9e2bd2ff",
+   "does": "Appends one (src, dst, kind, reason) contribution to the list wiring_edges returns.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -501,6 +576,7 @@
   }
  ],
  "deps": {
-  "scripts/codemap/graph.py::def _swift_refs.receiver": "50fc8fd0a003e7f0"
+  "scripts/codemap/graph.py::def _swift_refs.receiver": "50fc8fd0a003e7f0",
+  "scripts/codemap/graph.py::def swift_file": "ac9eeb4ae15d2775"
  }
 }

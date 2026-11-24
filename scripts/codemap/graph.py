@@ -185,90 +185,125 @@ def _labels_match(decl: list[tuple[str, bool]] | None, labels: list[str], traili
 
 
 def build(inv: dict, records: dict, root: Path) -> dict:
-    """{"edges": {src: {dst: "certain"|"possible"}}, "units": {node: inventory entry plus its file}}"""
-    import tree_sitter as ts
-    import tree_sitter_swift as tss
-    parser = ts.Parser(ts.Language(tss.language()))
+    """{"edges": {src: {dst: "certain"|"possible"}}, "units": {node: inventory entry plus its file},
+    "why": {(src, dst): reasons}}, built from scratch: every Swift file parsed and every reference
+    resolved. The code map's commands read the same graph, kept up to date incrementally, from
+    index.py; this is the definition it is checked against (`index.py --verify`)."""
+    units = unit_table(inv)
+    found = recorded_edges(records)
+    swift = {f: swift_file(f, (root / f).read_bytes(), inv[f]["units"]) for f in inv if f.endswith(".swift")}
+    r = Resolver(units, swift)
+    for refs, _, _, _ in swift.values():
+        found += r.resolve_file(refs)
+    found += r.protocol_edges()
+    found += wiring_edges(inv, root, units)
+    return assemble(found, units)
 
+
+def unit_table(inv: dict) -> dict:
+    """{node: inventory entry plus its file} for every unit, and a `file` node per file."""
     units = {}
     for f, d in inv.items():
         units[f"{f}::"] = {"file": f, "key": "", "kind": "file", "name": f, "type": "", "start": 1, "end": d["lines"]}
         for u in d["units"]:
             units[f"{f}::{u['key']}"] = {"file": f, **u}
+    return units
 
+
+def assemble(found, units: dict) -> dict:
+    """The graph from (src, dst, kind, reason) contributions: an edge from or to a node that does not
+    exist, or to itself, is dropped; an edge is certain when any contribution is (never downgraded), and a
+    certain edge keeps every reason that made it certain."""
     edges = collections.defaultdict(dict)
-
     why = collections.defaultdict(set)
-
-    def add(a, b, kind, reason):
-        """Record an edge; for a certain one, also why it is certain (`why`)."""
-        if a == b or b not in units:
-            return
+    for a, b, kind, reason in found:
+        if a == b or a not in units or b not in units:
+            continue
         if edges[a].get(b) != "certain":
             edges[a][b] = kind
         if kind == "certain":
             why[(a, b)].add(reason)
+    return {"edges": {k: dict(v) for k, v in edges.items()}, "units": units,
+            "why": {k: sorted(v) for k, v in why.items()}}
 
-    # recorded calls (reader-resolved) are certain
+
+def recorded_edges(records: dict) -> list:
+    """Certain edges for every `path::key` a record's `calls` names (reader-resolved)."""
+    out = []
     for f, rec in records.items():
         for u in rec.get("units", []):
             src = f"{f}::{u['key']}"
-            if src not in units:
-                continue
             for c in u.get("calls") or []:
                 if isinstance(c, str) and "::" in c and not c.startswith(("ext:", "dyn:", "closure:")):
-                    add(src, c, "certain", "recorded")
+                    out.append((src, c, "certain", "recorded"))
+    return out
 
-    # ---- Swift
-    swift_files = [f for f in inv if f.endswith(".swift")]
-    all_refs, all_params, conforms, closure_assigns = {}, {}, collections.defaultdict(set), collections.defaultdict(set)
-    for f in swift_files:
-        raw = (root / f).read_bytes()
-        us = inv[f]["units"]
-        refs, params, conf, clos = _swift_refs(raw, parser, us)
-        key_at = {u["start"]: f"{f}::{u['key']}" for u in us}
-        for start, rs in refs.items():
-            if start in key_at:
-                all_refs[key_at[start]] = rs
-        for start, ps in params.items():
-            if start in key_at:
-                all_params[key_at[start]] = ps
-        for t, s in conf.items():
-            conforms[t] |= s
-        for name, starts in clos.items():
-            closure_assigns[name] |= {key_at[s] for s in starts if s in key_at}
 
-    def short(t):
-        return (t or "").split(".")[-1]
+_PARSER = []
 
-    def family(t):
+
+def swift_file(f: str, raw: bytes, us: list[dict]):
+    """One Swift file's (references by node, parameter lists by node, conformances, closure
+    assignments by name), with unit start lines turned into node keys."""
+    if not _PARSER:
+        import tree_sitter as ts
+        import tree_sitter_swift as tss
+        _PARSER.append(ts.Parser(ts.Language(tss.language())))
+    refs, params, conf, clos = _swift_refs(raw, _PARSER[0], us)
+    key_at = {u["start"]: f"{f}::{u['key']}" for u in us}
+    return ({key_at[s]: rs for s, rs in refs.items() if s in key_at},
+            {key_at[s]: ps for s, ps in params.items() if s in key_at},
+            {t: set(v) for t, v in conf.items()},
+            {n: {key_at[s] for s in starts if s in key_at} for n, starts in clos.items()})
+
+
+def short(t):
+    return (t or "").split(".")[-1]
+
+
+class Resolver:
+    """Resolves Swift references against every unit, given each Swift file's swift_file data."""
+
+    def __init__(self, units: dict, swift: dict):
+        self.units = units
+        self.params, self.conforms, self.closure_assigns = {}, collections.defaultdict(set), collections.defaultdict(set)
+        for refs, params, conf, clos in swift.values():
+            self.params.update(params)
+            for t, v in conf.items():
+                self.conforms[t] |= v
+            for n, v in clos.items():
+                self.closure_assigns[n] |= v
+        self.by_name = collections.defaultdict(list)
+        for k, u in units.items():
+            if u["kind"] != "file" and (k.split("::")[0].endswith(".swift") or u["kind"] in ("ns-cfunc", "ns-objcmethod")):
+                self.by_name[u["name"]].append(k)
+        # A receiver typed by a framework type (Text, Date, Array...) says nothing about which repo
+        # extension it reaches, so it is resolved like an unknown receiver.
+        self.repo_types = {short(u["type"]) for u in units.values() if u["type"]} | set(self.conforms)
+
+    def family(self, t):
         """A type with its ancestors and protocols, transitively."""
         out, todo = set(), [short(t)]
         while todo:
             x = todo.pop()
             if x and x not in out:
                 out.add(x)
-                todo.extend(conforms.get(x, ()))
+                todo.extend(self.conforms.get(x, ()))
         return out
 
-    by_name = collections.defaultdict(list)
-    for k, u in units.items():
-        if u["kind"] != "file" and (k.split("::")[0].endswith(".swift") or u["kind"] in ("ns-cfunc", "ns-objcmethod")):
-            by_name[u["name"]].append(k)
-
-    def takes_arguments(k):
+    def takes_arguments(self, k):
         """A function or initializer with a parameter that has no default value."""
-        return units[k]["kind"] in FUNC_KINDS and any(not has_default for _, has_default in all_params.get(k) or [])
+        return self.units[k]["kind"] in FUNC_KINDS and any(not d for _, d in self.params.get(k) or [])
 
-    def candidates(name, kind, labels, trailing, types=None, global_only=False):
+    def candidates(self, name, kind, labels, trailing, types=None, global_only=False):
         out = []
-        for k in by_name.get(name, ()):
-            u = units[k]
+        for k in self.by_name.get(name, ()):
+            u = self.units[k]
             if kind == "call" and u["kind"] not in FUNC_KINDS and u["kind"] not in PROP_KINDS:
                 continue
             if kind == "prop" and u["kind"] not in PROP_KINDS and u["kind"] not in FUNC_KINDS:
                 continue
-            if kind == "call" and u["kind"] in FUNC_KINDS and not _labels_match(all_params.get(k), labels, trailing):
+            if kind == "call" and u["kind"] in FUNC_KINDS and not _labels_match(self.params.get(k), labels, trailing):
                 continue
             if global_only and u["type"]:
                 continue
@@ -277,19 +312,24 @@ def build(inv: dict, records: dict, root: Path) -> dict:
             out.append(k)
         return out
 
-    # A receiver typed by a framework type (Text, Date, Array...) says nothing about which repo
-    # extension it reaches, so it is resolved like an unknown receiver.
-    repo_types = {short(u["type"]) for u in units.values() if u["type"]} | set(conforms)
-    for src, rs in all_refs.items():
+    def resolve_file(self, refs: dict) -> list:
+        """(src, dst, kind, reason) for every reference in one file's units."""
+        return [(src, dst, kind, reason) for src, rs in refs.items() for dst, kind, reason in self.resolve(src, rs)]
+
+    def resolve(self, src, rs):
+        """The edges one unit's references resolve to: [(dst, kind, reason)]."""
+        units, by_name, repo_types, closure_assigns = self.units, self.by_name, self.repo_types, self.closure_assigns
+        candidates, family, takes_arguments, params = self.candidates, self.family, self.takes_arguments, self.params
+        found = []
         own = family(units[src]["type"])
         for kind, name, labels, trailing, (rkind, rtype) in rs:
             if not name or name in ("self", "super"):
                 continue
             if kind == "call" and rkind == "implicit" and name in repo_types:
                 cs = [k for k in by_name.get("init", ()) if short(units[k]["type"]) == name
-                      and _labels_match(all_params.get(k), labels or [], trailing)]
+                      and _labels_match(params.get(k), labels or [], trailing)]
                 for k in cs:
-                    add(src, k, "certain" if len(cs) == 1 else "possible", "initializer")
+                    found.append((k, "certain" if len(cs) == 1 else "possible", "initializer"))
                 continue
             unresolved = False  # the receiver's type is unknown, or a framework type
             if rkind in ("self", "super", "implicit"):
@@ -324,22 +364,38 @@ def build(inv: dict, records: dict, root: Path) -> dict:
             if kind == "prop" and rkind == "implicit" and not cs:
                 continue
             for k in cs:
-                add(src, k, "certain" if sole else "possible", reason)
+                found.append((k, "certain" if sole else "possible", reason))
             if kind == "call" and not cs and name in closure_assigns:
                 for k in closure_assigns[name]:
-                    add(src, k, "possible", "stored closure")
+                    found.append((k, "possible", "stored closure"))
+        return found
 
-    # protocol requirement -> implementations
-    for k, u in units.items():
-        if u["kind"] != "protocol_function_declaration":
-            continue
-        proto = short(u["type"])
-        impl_types = {t for t, s in conforms.items() if proto in s} | {proto}
-        for c in by_name.get(u["name"], ()):
-            v = units[c]
-            if c != k and v["kind"] in FUNC_KINDS and v["kind"] != "protocol_function_declaration" \
-                    and short(v["type"]) in impl_types and _labels_match(all_params.get(c), [p[0] for p in all_params.get(k, [])], 0):
-                add(k, c, "certain", "protocol requirement")
+    def protocol_edges(self) -> list:
+        """A certain edge from each protocol requirement to each same-named, label-compatible function
+        of a type that conforms to the protocol."""
+        out = []
+        for k, u in self.units.items():
+            if u["kind"] != "protocol_function_declaration":
+                continue
+            proto = short(u["type"])
+            impl_types = {t for t, s in self.conforms.items() if proto in s} | {proto}
+            for c in self.by_name.get(u["name"], ()):
+                v = self.units[c]
+                if c != k and v["kind"] in FUNC_KINDS and v["kind"] != "protocol_function_declaration" \
+                        and short(v["type"]) in impl_types and _labels_match(self.params.get(c), [p[0] for p in self.params.get(k, [])], 0):
+                    out.append((k, c, "certain", "protocol requirement"))
+        return out
+
+
+def wiring_edges(inv: dict, root: Path, units: dict) -> list:
+    """Certain edges between scripts, Makefile targets and workflow jobs and steps: a target to its
+    prerequisites; recipes, jobs and steps to the targets they make and the scripts they run; a
+    job to its steps; script functions to the local (and, in Python, imported) functions they
+    name; and a script's top-level code to its functions and the scripts it runs."""
+    out = []
+
+    def add(a, b, kind, reason):
+        out.append((a, b, kind, reason))
 
     # ---- scripts, Makefile, workflows
     targets = {u["name"].split()[0]: k for k, u in units.items() if u["kind"] == "ns-target"}
@@ -398,13 +454,4 @@ def build(inv: dict, records: dict, root: Path) -> dict:
         for m in re.finditer(r"((?:scripts|Tools)/[\w/.+-]+\.(?:sh|py))", top):
             add(src, f"{m.group(1)}::", "certain", "build wiring")
 
-    return {"edges": {k: dict(v) for k, v in edges.items()}, "units": units,
-            "why": {k: sorted(v) for k, v in why.items()}}
-
-
-def callers(graph: dict) -> dict[str, dict[str, str]]:
-    out = collections.defaultdict(dict)
-    for a, ds in graph["edges"].items():
-        for b, kind in ds.items():
-            out[b][a] = kind
     return out

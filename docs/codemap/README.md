@@ -40,7 +40,7 @@ other files in its directory. `strings.json` is the key-by-key audit of the two 
 
 ## The call graph
 
-`scripts/codemap/graph.py` builds the graph every time it is needed, from two sources:
+`scripts/codemap/graph.py` defines the graph, from two sources:
 
 - the calls each record names (a reader resolved these, including dispatch through protocols and
   stored closures that the code alone does not show), and
@@ -65,6 +65,17 @@ arguments, and app code is never linked with a test target, so a match there is 
 Each certain edge also records why it is certain (a recorded call, the caller's own type, a
 typed receiver, a same-file or global function, a name that matches one unit, a protocol
 requirement, build wiring), so how much each kind of resolution is worth can be measured.
+
+Every command reads the graph from `scripts/codemap/index.py`, a persistent index in
+`build/codemap-index.sqlite` (untracked; deleting it is safe) that is brought up to date before each
+command and re-reads only what changed since. A file whose size or modification time changed is
+parsed again; its references are resolved again, and so are those of every file that refers to a
+name whose units were added, removed or re-signed, or to a type whose conformances changed. A
+changed record replaces only its own calls and stores. The code that builds the graph from
+scratch, `graph.build`, is the definition: `.venv-codemap/bin/python scripts/codemap/index.py
+--verify` compares the two and fails if they differ. With the index current, `impact` on one unit
+takes well under a second; editing a file costs about half a second more; a cold build (a fresh
+checkout, or after any change to the code map's own code) about 25 seconds.
 
 Certain edges drive the re-check rule below. Possible edges are listed by `impact` and the report,
 so a change can be checked against them by hand.
@@ -153,7 +164,7 @@ later; those show as no callers.
 `scripts/codemap/measure.py` measures it against the history: for every commit that changed 2 to
 25 mapped units, how many of the other units the commit had to change `impact` of its code would
 have named. Commits that bundle unrelated fixes count as misses, so the figure is a floor. At this
-revision: 87% of the co-changed test suites and 37% of the co-changed code units.
+revision: 87% of the co-changed test suites and 36% of the co-changed code units.
 
 On a pull request, `gates.yml` writes the same list to the job summary, even when the check
 failed. `codemap.py callers <path::key>` lists one unit's direct callers.
