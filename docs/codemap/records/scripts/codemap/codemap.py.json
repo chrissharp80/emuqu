@@ -975,9 +975,117 @@
    "deps": {}
   },
   {
+   "key": "def _mentions",
+   "hash": "dbb29d8ef98976e2",
+   "does": "The part of a caller's record that names `callee` (its short name: the last dotted part before '(' of the key): the first sentence of `does` (or `role`) or the first branch, as 'when COND: EFFECT', containing it as a word, cut to 240 characters; otherwise the first sentence of `does`; '' for no record.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no record",
+     "effect": "''"
+    },
+    {
+     "at": "+8",
+     "cond": "a sentence or branch names the callee",
+     "effect": "that text"
+    },
+    {
+     "at": "+10",
+     "cond": "none does",
+     "effect": "first sentence of does, or '' when empty"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "def _suite",
+   "hash": "3f419fd54862016e",
+   "does": "The `Target/Class` xcodebuild identifier of a test unit (top directory of its file and the first part of its type), or None when that is not one of test_classes (a type with test methods), so fixtures and helper extensions are not offered as suites.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "not a class with test methods",
+     "effect": "None"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "def walk_callers",
+   "hash": "6725b941909f8511",
+   "does": "Walks certain callers outward from a node, one call at a time (breadth first, callers sorted). Returns the distance of every caller reached, the callers whose record has an `entry` as (distance, node, entry), the test units reached (by distance) and the doc sections reached (by distance). Tests and doc sections end the walk on their branch; an entry point does not.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/codemap.py::def record_of"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "possible edge or already reached",
+     "effect": "skipped"
+    },
+    {
+     "at": "+12",
+     "cond": "caller is under a test root",
+     "effect": "recorded as a test, not walked past"
+    },
+    {
+     "at": "+14",
+     "cond": "caller is a Markdown section",
+     "effect": "recorded as a doc, not walked past"
+    },
+    {
+     "at": "+17",
+     "cond": "caller's record has an entry",
+     "effect": "recorded as an entry point; walk continues"
+    }
+   ],
+   "deps": {
+    "scripts/codemap/codemap.py::def record_of": "439da59188c303b1"
+   }
+  },
+  {
+   "key": "def store_users_of",
+   "hash": "35280ed3d38d8eff",
+   "does": "Maps every store named in a unit record's own reads and writes (text up to ' (', entries with ':' only) to the units that read it and the units that write it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def state_partners",
+   "hash": "dc7f610c5a578575",
+   "does": "For each store a unit's record writes: the other units that read it; for each store it reads: the other units that write it. Returns (writes|reads, store, units) for the stores with at least one such unit, writes first; non-string entries and a missing record give none.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "no other unit on the other side",
+     "effect": "store left out"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "def cmd_impact",
-   "hash": "d631faae326f9e60",
-   "does": "Prints, as Markdown, what a change can affect. Targets: the named `path::key` nodes, or changed_since(base) (base from `--base REF`, default origin/main). An unknown named node prints up to 15 nodes containing its short name and returns 2. For each target: what its record says it does; direct callers, certain listed in full with why each edge is certain (the graph's `why`) and possible up to 40; a walk up certain callers that stops at tests and doc sections (collected) and collects every caller with an `entry` as a trigger (up to 80 listed); for unit targets, each store it reads or writes (prefix up to ' (') with how many other units read and write it and up to 12 of them, then the stores its certain callees read and write transitively (state_through_callees, up to 60, each with up to 4 of the units that touch it); and the open flags on the target and its certain direct callers (present only when the local findings overlay is merged in). The same text is appended to $GITHUB_STEP_SUMMARY (up to 900,000 characters) when that is set. Returns 0.",
+   "hash": "3b7ef4154c51e3f9",
+   "does": "Prints, as Markdown, what a change can break, nearest first. Targets: the named `path::key` nodes, or changed_since(base) (base from `--base REF`, default origin/main). An unknown named node prints up to 15 nodes containing its short name and returns 2. Builds the inventory, records, call graph, the alike-code index (similar.Index over unit_texts) and the store users once. For each target: its contract, or what it does; 1) its certain and possible non-test, non-doc direct callers, each certain one with why the edge is certain (the graph's `why`) and the part of its record that names the target (_mentions), up to 20 possible; 2) the test suites (_suite over the tests walk_callers reaches; only classes with test methods) with how many calls away, nearest 25; 3) the units at least 35% alike (index.similar), skipped for a deleted unit; 4) for a unit with a record, the stores it shares (state_partners: readers of what it writes, other writers of what it reads, up to 8 each) and how many stores its certain callees write (state_through_callees); 5) the entry points walk_callers found, nearest 10; 6) the doc sections that describe it directly (one call away) and how many describe its callers; and, when the overlay has any, the open flags on it and its certain direct callers. A header gives the target count and the union of all suites as `-only-testing:` arguments: first those at most two calls away, then all when there are more. With no targets it says 'No mapped code changed.' The same text is appended to $GITHUB_STEP_SUMMARY (up to 900,000 characters) when that is set. Returns 0.",
    "entry": null,
    "calls": [
     "scripts/codemap/codemap.py::def all_records",
@@ -986,7 +1094,15 @@
     "scripts/codemap/graph.py::def callers",
     "scripts/codemap/codemap.py::def changed_since",
     "scripts/codemap/codemap.py::def record_of",
-    "scripts/codemap/codemap.py::def state_through_callees"
+    "scripts/codemap/codemap.py::def walk_callers",
+    "scripts/codemap/codemap.py::def store_users_of",
+    "scripts/codemap/codemap.py::def state_partners",
+    "scripts/codemap/codemap.py::def state_through_callees",
+    "scripts/codemap/codemap.py::def _mentions",
+    "scripts/codemap/codemap.py::def _suite",
+    "scripts/codemap/similar.py::def unit_texts",
+    "scripts/codemap/similar.py::def Index.__init__",
+    "scripts/codemap/similar.py::def Index.similar"
    ],
    "reads": [
     "env:GITHUB_STEP_SUMMARY"
@@ -996,75 +1112,68 @@
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+7",
      "cond": "--base given",
      "effect": "base taken from the next argument"
     },
     {
-     "at": "+5",
+     "at": "+8",
      "cond": "--base without a value",
      "effect": "error, 2"
     },
     {
-     "at": "+16",
+     "at": "+19",
      "cond": "a named node is not in the graph",
      "effect": "near matches printed, 2"
     },
     {
      "at": "+33",
-     "cond": "nothing mapped changed",
-     "effect": "'No mapped code changed.'"
+     "cond": "target has a record and is not deleted",
+     "effect": "its contract or does printed"
     },
     {
-     "at": "+38",
-     "cond": "target has a record and still exists",
-     "effect": "its description printed"
+     "at": "+60",
+     "cond": "deleted target",
+     "effect": "no alike code"
     },
     {
-     "at": "+51",
-     "cond": "possible edge or already visited",
-     "effect": "not walked"
-    },
-    {
-     "at": "+54",
-     "cond": "caller is test code",
-     "effect": "collected as a test, not walked further"
-    },
-    {
-     "at": "+57",
-     "cond": "caller is a doc section",
-     "effect": "collected as a doc, not walked further"
-    },
-    {
-     "at": "+61",
-     "cond": "caller has an outside trigger",
-     "effect": "listed as a trigger; walk continues past it"
-    },
-    {
-     "at": "+70",
+     "at": "+64",
      "cond": "unit target with a record",
      "effect": "shared-state section"
     },
     {
-     "at": "+77",
-     "cond": "store used by other units",
-     "effect": "listed with their counts"
+     "at": "+90",
+     "cond": "open flags present",
+     "effect": "findings section"
     },
     {
-     "at": "+94",
+     "at": "+97",
+     "cond": "no targets",
+     "effect": "'No mapped code changed.'"
+    },
+    {
+     "at": "+112",
      "cond": "running in GitHub Actions",
      "effect": "text appended to the job summary"
     }
    ],
    "deps": {
+    "scripts/codemap/codemap.py::def _mentions": "c7991eb49e33005c",
+    "scripts/codemap/codemap.py::def _suite": "08459c77b7a5fdd5",
     "scripts/codemap/codemap.py::def all_records": "3e3143a0d4a0752c",
     "scripts/codemap/codemap.py::def changed_since": "285d2cad525e2c75",
     "scripts/codemap/codemap.py::def main": "b2cec83bf52eabd8",
     "scripts/codemap/codemap.py::def record_of": "439da59188c303b1",
+    "scripts/codemap/codemap.py::def state_partners": "e0bf53148027f949",
     "scripts/codemap/codemap.py::def state_through_callees": "7fe173a50231c85b",
+    "scripts/codemap/codemap.py::def store_users_of": "5fa02aac7a38b13b",
+    "scripts/codemap/codemap.py::def walk_callers": "6a394696ffbe1bc9",
     "scripts/codemap/graph.py::def build": "ef0c2b441ef89093",
     "scripts/codemap/graph.py::def callers": "2e1adfd6947d355c",
-    "scripts/codemap/inventory.py::def inventory": "9c1468b9894854e2"
+    "scripts/codemap/inventory.py::def inventory": "9c1468b9894854e2",
+    "scripts/codemap/similar.py::def Index.__init__": "b620e70bbb4b6dbf",
+    "scripts/codemap/similar.py::def Index.similar": "9840c95b26367f0e",
+    "scripts/codemap/similar.py::def unit_texts": "2659005a61d39cf1"
    }
   },
   {
@@ -1208,7 +1317,7 @@
     "scripts/codemap/codemap.py::def cmd_ack_from": "f8b4e89c7a2a9cfb",
     "scripts/codemap/codemap.py::def cmd_callers": "1ae1f4ad344de40e",
     "scripts/codemap/codemap.py::def cmd_check": "0dba9d1833e521cd",
-    "scripts/codemap/codemap.py::def cmd_impact": "a7d6e1a29fc181f4",
+    "scripts/codemap/codemap.py::def cmd_impact": "0025f73854b0ead9",
     "scripts/codemap/codemap.py::def cmd_move": "d3afe24b00bef5c3",
     "scripts/codemap/codemap.py::def cmd_stamp": "a7ef841765c69a88",
     "scripts/codemap/codemap.py::def cmd_sync": "ea6b82466df26d40",

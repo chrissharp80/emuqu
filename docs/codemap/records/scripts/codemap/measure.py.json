@@ -1,0 +1,143 @@
+{
+ "file": "scripts/codemap/measure.py",
+ "hash": "28115f726a9003e5",
+ "role": "Measures `impact` against the git history: for each commit that changed 2 to MAX_UNITS mapped units, how many of the other units it changed (code units, and test suites) `impact` of its other code units would have named. Run by hand: `.venv-codemap/bin/python scripts/codemap/measure.py [MAX_UNITS]`.",
+ "types": [],
+ "state": [
+  "ROOT: the repository root (two directories up)",
+  "CACHE: build/codemap-history.json, changed units per commit id"
+ ],
+ "toplevel": "Module docstring, `from __future__ import annotations`, imports (json, subprocess, sys, Path), ROOT and CACHE, the scripts/codemap directory put on sys.path, `import inventory`, and `sys.exit(main(sys.argv[1:]))` when run as a script.",
+ "units": [
+  {
+   "key": "def _git",
+   "hash": "8a44aec087c6b4d2",
+   "does": "Runs git in the repository with the given arguments and returns its standard output (empty on failure).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def _units",
+   "hash": "2bf8151dc48464a2",
+   "does": "Maps each unit key of one file version (Swift through the inventory's Swift parser, other code through its script parser) to its hash.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def _swift_units",
+    "scripts/codemap/inventory.py::def _ns_units",
+    "scripts/codemap/inventory.py::def _finish"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/inventory.py::def _finish": "0bf0c07c685afe3d",
+    "scripts/codemap/inventory.py::def _ns_units": "40f7358c8334747e",
+    "scripts/codemap/inventory.py::def _swift_units": "55bf048db98f68af"
+   }
+  },
+  {
+   "key": "def history",
+   "hash": "723fa5ced4f07af4",
+   "does": "(commit, changed unit nodes) for every non-merge commit, newest first. For a commit not in the cache it parses each changed Swift or script file before and after and takes the units added or whose hash changed; a version that fails to parse is left out. Writes the cache back.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/measure.py::def _git",
+    "scripts/codemap/measure.py::def _units"
+   ],
+   "reads": [
+    "file:build/codemap-history.json"
+   ],
+   "writes": [
+    "file:build/codemap-history.json"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "commit not cached",
+     "effect": "computed from git"
+    },
+    {
+     "at": "+17",
+     "cond": "a version does not parse",
+     "effect": "that file left out"
+    }
+   ],
+   "deps": {
+    "scripts/codemap/measure.py::def _git": "7248c047bb37e86f",
+    "scripts/codemap/measure.py::def _units": "05e72e7145d87438"
+   }
+  },
+  {
+   "key": "def main",
+   "hash": "d8e2b606323de76e",
+   "does": "Builds the records, inventory, call graph, alike-code index and store users, then for every commit whose changed units still existing number 2 to MAX_UNITS (argument, default 25): for each changed unit, whether impact of any changed non-test unit in another file names it (code: a certain caller at any distance, a state partner or an alike unit; tests: the unit's suite is among the suites reaching it). Prints the commit count and, for code and tests, found of total and the percentage. Returns 0.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/measure.py::def history",
+    "scripts/codemap/measure.py::def main.impact",
+    "scripts/codemap/codemap.py::def all_records",
+    "scripts/codemap/inventory.py::def inventory",
+    "scripts/codemap/graph.py::def build",
+    "scripts/codemap/graph.py::def callers",
+    "scripts/codemap/codemap.py::def store_users_of",
+    "scripts/codemap/similar.py::def unit_texts",
+    "scripts/codemap/similar.py::def Index.__init__"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+19",
+     "cond": "fewer than 2 or more than MAX_UNITS changed units",
+     "effect": "commit skipped"
+    },
+    {
+     "at": "+25",
+     "cond": "no changed code unit in another file",
+     "effect": "unit not counted"
+    }
+   ],
+   "deps": {
+    "scripts/codemap/codemap.py::def all_records": "3e3143a0d4a0752c",
+    "scripts/codemap/codemap.py::def store_users_of": "5fa02aac7a38b13b",
+    "scripts/codemap/graph.py::def build": "ef0c2b441ef89093",
+    "scripts/codemap/graph.py::def callers": "2e1adfd6947d355c",
+    "scripts/codemap/inventory.py::def inventory": "9c1468b9894854e2",
+    "scripts/codemap/measure.py::def history": "f52c1fad1146fa17",
+    "scripts/codemap/measure.py::def main.impact": "b52c70ac1cb368fc",
+    "scripts/codemap/similar.py::def Index.__init__": "b620e70bbb4b6dbf",
+    "scripts/codemap/similar.py::def unit_texts": "2659005a61d39cf1"
+   }
+  },
+  {
+   "key": "def main.impact",
+   "hash": "e121fa74be98b89f",
+   "does": "Memoized: (every certain caller at any distance, state partner and alike unit; the (file, class) suites of the tests reaching it) for a node.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/codemap.py::def walk_callers",
+    "scripts/codemap/codemap.py::def state_partners",
+    "scripts/codemap/codemap.py::def record_of",
+    "scripts/codemap/similar.py::def Index.similar"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def record_of": "439da59188c303b1",
+    "scripts/codemap/codemap.py::def state_partners": "e0bf53148027f949",
+    "scripts/codemap/codemap.py::def walk_callers": "6a394696ffbe1bc9",
+    "scripts/codemap/similar.py::def Index.similar": "9840c95b26367f0e"
+   }
+  }
+ ],
+ "deps": {
+  "scripts/codemap/measure.py::def history": "f52c1fad1146fa17",
+  "scripts/codemap/measure.py::def main": "90d4499610edca86",
+  "scripts/codemap/measure.py::def main.impact": "b52c70ac1cb368fc"
+ }
+}

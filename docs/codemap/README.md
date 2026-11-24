@@ -128,17 +128,32 @@ and the reviewer's job.
 
 ## Impact
 
-`make codemap-impact` (or `codemap.py impact --base <ref>`) lists, for every unit whose code
-differs from `<ref>` (default `origin/main`), or for units named as `path::key`:
+`make codemap-impact` (or `codemap.py impact --base <ref>`) answers "if I change this, what else
+can break?" for every unit whose code differs from `<ref>` (default `origin/main`), or for units
+named as `path::key`. It starts with the test suites to run, as `-only-testing:` arguments for
+`xcodebuild`: first those that call the unit or a direct caller, then all of them. Then, for each
+unit, nearest first:
 
-- what the unit does (from its record);
-- its direct callers, certain and possible;
-- the units with an outside trigger (screens, actions, notifications, timers, launch) that reach
-  it through certain callers;
-- the tests and doc sections that reach it;
-- the shared state it reads and writes, and every other unit that reads or writes the same state;
-- the state it reaches through its certain callees, transitively, and which callee touches each;
-- with the overlay present, the open findings on it and on its direct callers.
+1. what it promises (its contract, or what it does);
+2. the code that calls it, certain and possible, why each certain edge is certain, and the part of
+   each caller's record that names it (what the caller relies on);
+3. the test suites that reach it through certain callers, with how many calls away;
+4. the same code elsewhere: units whose code is at least 35% alike (4-token runs weighted by how
+   rare they are in the repository), where a bug fixed in one is likely to be in the other;
+5. shared state: for each store it writes, the units that read it; for each store it reads, the
+   other units that write it; and how many stores its callees write;
+6. the entry points (screens, actions, notifications, timers, launch) that reach it, nearest ten;
+7. the doc sections that describe it, and how many describe its callers;
+8. with the overlay present, the open findings on it and on its direct callers.
+
+It follows calls, shared state and alike code. It does not see links that are neither: a type
+decoded by Swift's synthesized `Codable` code, a SwiftUI binding, or a closure stored and run
+later; those show as no callers.
+
+`scripts/codemap/measure.py` measures it against the history: for every commit that changed 2 to
+25 mapped units, how many of the other units the commit had to change `impact` of its code would
+have named. Commits that bundle unrelated fixes count as misses, so the figure is a floor. At this
+revision: 87% of the co-changed test suites and 37% of the co-changed code units.
 
 On a pull request, `gates.yml` writes the same list to the job summary, even when the check
 failed. `codemap.py callers <path::key>` lists one unit's direct callers.
@@ -146,8 +161,9 @@ failed. `codemap.py callers <path::key>` lists one unit's direct callers.
 ## Changing code
 
 1. Before changing a unit, run `make codemap-impact` or `codemap.py impact <path::key>` and read the
-   unit's record, its callers, the triggers and tests that reach it, the shared state, and (with the
-   overlay) the open findings. Those are the paths the change has to keep working.
+   unit's promise, its callers and what each relies on, the same code elsewhere, the shared state,
+   and (with the overlay) the open findings. Those are the paths the change has to keep working;
+   run the test suites it lists.
 2. Make the change, including whatever the impact list shows the callers need.
 3. `make codemap-guard` lists every record the change affects.
 4. For a moved or renamed file, or a renamed unit, run `codemap.py move <old path> <new path>
