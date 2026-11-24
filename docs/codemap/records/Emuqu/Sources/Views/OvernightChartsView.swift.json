@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/OvernightChartsView.swift",
- "hash": "3e7173975c455556",
+ "hash": "c5bcd3e9e83b5f3f",
  "role": "Overnight HR/HRV chart screen section: shared drawing helpers for the HR and HRV canvases, and OvernightChartsView, which computes OvernightStats in a detached task, gap-fills HR from HealthKit, and renders summary cards, the HRV chart and the HR chart.",
  "types": [
   "OvernightChartFormatters: enum — shared clock-time formatter accessor",
@@ -12,7 +12,7 @@
  "state": [
   "mem:OvernightChartsView.cachedOvernightStats (@State, view-local)"
  ],
- "toplevel": "OvernightChartsView stored properties: session, result, healthKitSleep, onReanalyzeAt (non-nil only in manual-window mode from MorningResultsView.swift), isManualWindowMode=false, manualResult, hideSleepRow=false, interChartContent. Convenience inits live in OvernightChartsView+Init.swift. OvernightChartDrawing.fullRecordingWindowFraction (nonisolated static let 0.8) is the share of the viewport above which an analysis window counts as the whole recording.",
+ "toplevel": "OvernightChartsView stored properties: session, result, healthKitSleep, onReanalyzeAt (non-nil only in manual-window mode from MorningResultsView.swift), isManualWindowMode=false, manualResult, hideSleepRow=false, interChartContent. The two initialisers (with and without inter-chart content) are at the end of this file, the only file that can see the private @State initial value; the constrained one (InterChartContent == EmptyView) is the entry point the #Preview and OvernightSnapshotTests use. OvernightChartDrawing.fullRecordingWindowFraction (nonisolated static let 0.8) is the share of the viewport above which an analysis window counts as the whole recording.",
  "units": [
   {
    "key": "var OvernightChartFormatters.clockTimeFormatter",
@@ -531,7 +531,7 @@
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.viewportBounds(_:hkSleep:session:dataStartMs:)",
-    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.withHealthKitHR(_:sessionStart:chartStartMs:chartEndMs:)"
+    "Emuqu/Sources/Views/OvernightStats.swift::func OvernightStats.withHealthKitHR(_:sessionStart:chartStartMs:chartEndMs:)"
    ],
    "reads": [],
    "writes": [],
@@ -549,7 +549,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
-    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.withHealthKitHR(_:sessionStart:chartStartMs:chartEndMs:)": "535f5b1dac453705",
+    "Emuqu/Sources/Views/OvernightStats.swift::func OvernightStats.withHealthKitHR(_:sessionStart:chartStartMs:chartEndMs:)": "535f5b1dac453705",
     "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.viewportBounds(_:hkSleep:session:dataStartMs:)": "64d9855c7e5e0272"
    }
   },
@@ -1168,6 +1168,28 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "22c20f7b6a05adb1",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "cbee109cd2303648"
    }
+  },
+  {
+   "key": "init OvernightChartsView(session:result:healthKitSleep:onReanalyzeAt:isManualWindowMode:manualResult:hideSleepRow:interChartContent:)",
+   "hash": "7b48a0a0b676a832",
+   "does": "Assigns session, result, HK sleep, onReanalyzeAt, manual mode/result, hideSleepRow and evaluates the interChartContent builder.",
+   "entry": "Called by MorningResultsView.overnightChartsSection.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "init OvernightChartsView(session:result:healthKitSleep:onReanalyzeAt:isManualWindowMode:manualResult:hideSleepRow:)",
+   "hash": "b683c15aac3b61e5",
+   "does": "Same assignments with interChartContent = EmptyView() for callers without inter-chart content.",
+   "entry": "Called by the #Preview in OvernightHRVChartCanvas.swift and OvernightSnapshotTests.",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   }
  ],
  "deps": {}

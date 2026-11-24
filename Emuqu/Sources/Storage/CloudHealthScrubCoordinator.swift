@@ -197,7 +197,7 @@ struct CloudHealthScrubCoordinator {
     private func clearTombstonePayload(_ record: CKRecord) async throws -> Outcome {
         guard record["sessionData"] != nil else { return .finished }
         record["sessionData"] = nil
-        try await manager.privateDB.save(record)
+        _ = try await manager.privateDB.save(record)
         return .finished
     }
 

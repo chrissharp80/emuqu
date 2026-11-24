@@ -1,55 +1,6 @@
 import SwiftUI
 
-// The convenience initialisers and the `OvernightStats` model, split out of
-// `OvernightChartsView.swift`. The chart bodies and stat
-// computation stay behind.
-
-// MARK: - Convenience init (no inter-chart content)
-
-// MARK: - ViewBuilder Init
-
-extension OvernightChartsView {
-    init(
-        session: HRVSession,
-        result: HRVAnalysisResult,
-        healthKitSleep: SleepData? = nil,
-        onReanalyzeAt: ((Int64) -> Void)? = nil,
-        isManualWindowMode: Bool = false,
-        manualResult: HRVAnalysisResult? = nil,
-        hideSleepRow: Bool = false,
-        @ViewBuilder interChartContent: () -> InterChartContent
-    ) {
-        self.session = session
-        self.result = result
-        self.healthKitSleep = healthKitSleep
-        self.onReanalyzeAt = onReanalyzeAt
-        self.isManualWindowMode = isManualWindowMode
-        self.manualResult = manualResult
-        self.hideSleepRow = hideSleepRow
-        self.interChartContent = interChartContent()
-    }
-}
-
-extension OvernightChartsView where InterChartContent == EmptyView {
-    init(
-        session: HRVSession,
-        result: HRVAnalysisResult,
-        healthKitSleep: SleepData? = nil,
-        onReanalyzeAt: ((Int64) -> Void)? = nil,
-        isManualWindowMode: Bool = false,
-        manualResult: HRVAnalysisResult? = nil,
-        hideSleepRow: Bool = false
-    ) {
-        self.session = session
-        self.result = result
-        self.healthKitSleep = healthKitSleep
-        self.onReanalyzeAt = onReanalyzeAt
-        self.isManualWindowMode = isManualWindowMode
-        self.manualResult = manualResult
-        self.hideSleepRow = hideSleepRow
-        interChartContent = EmptyView()
-    }
-}
+// The model of the overnight summary the charts show.
 
 // MARK: - Overnight Stats Model
 

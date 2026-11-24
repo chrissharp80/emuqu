@@ -153,12 +153,14 @@ struct StrapHeartRateFeed {
     /// Deliver every element of `stream` to `handle` in order until the stream
     /// ends, fails, or the task is cancelled, and report how it went.
     ///
-    /// Takes the sequence rather than the SDK so ordering, cancellation and
+    /// Takes the stream rather than the SDK so ordering, cancellation and
     /// failure handling are testable with a synthetic stream; what only a strap
-    /// proves is that the SDK's radio code emits samples.
-    static func drain<Stream: AsyncSequence>(
-        _ stream: Stream,
-        _ handle: (Stream.Element) -> Void
+    /// proves is that the SDK's radio code emits samples. The stream type is
+    /// concrete because on iOS 17 iteration calls the iterator off this actor,
+    /// which the compiler allows only for an iterator it knows is not isolated.
+    static func drain<Element>(
+        _ stream: AsyncThrowingStream<Element, Error>,
+        _ handle: (Element) -> Void
     ) async -> Pass {
         var pass = Pass()
         do {
@@ -169,10 +171,10 @@ struct StrapHeartRateFeed {
         return pass
     }
 
-    private static func forward<Stream: AsyncSequence>(
-        _ stream: Stream,
+    private static func forward<Element>(
+        _ stream: AsyncThrowingStream<Element, Error>,
         counting count: inout Int,
-        _ handle: (Stream.Element) -> Void
+        _ handle: (Element) -> Void
     ) async throws {
         for try await element in stream {
             guard !Task.isCancelled else { return }

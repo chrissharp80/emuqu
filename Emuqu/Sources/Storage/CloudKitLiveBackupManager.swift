@@ -164,7 +164,7 @@ final class CloudKitLiveBackupManager {
         try compressedData.write(to: tempURL)
         record["rrData"] = CKAsset(fileURL: tempURL)
         defer { _ = attempt("CloudKitLiveBackupManager.remove") { try FileManager.default.removeItem(at: tempURL) } }
-        try await privateDB.save(record)
+        _ = try await privateDB.save(record)
     }
 
     private func handleUploadFailure(_ error: Error) {

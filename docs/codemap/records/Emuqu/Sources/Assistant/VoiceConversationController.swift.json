@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Assistant/VoiceConversationController.swift",
- "hash": "7ce231b6658a8047",
+ "hash": "4ecc9d8384ebf597",
  "role": "Declares the @Observable @MainActor VoiceConversationController singleton that runs hands-free voice chat (STT -> shared AssistantViewModel -> streaming TTS) during workouts, its typed errors, its State enum (mirrored to the Watch), all its stored tuning constants and state, and the thin forwarding wrappers into VoiceAudioPipeline; also recognizer construction (boot/refreshLanguageForSession).",
  "types": [
-  "VoiceConversationController: class (@Observable @MainActor, NSObject) — voice chat state machine singleton; extended by +Control/+Pipeline(via VoiceAudioPipeline)/+Speech/+Audio",
+  "VoiceConversationController: class (@Observable @MainActor, NSObject, AVSpeechSynthesizerDelegate; the delegate callbacks are in +Speech) — voice chat state machine singleton; extended by +Control/+Pipeline(via VoiceAudioPipeline)/+Speech/+Audio",
   "VoiceConversationController.VoiceError: enum (LocalizedError) — recognizer/audio-session/audio-input startup failures with localized copy",
   "VoiceConversationController.State: enum — idle/starting/listening/speaking/triggerSpeaking with watchLabel strings",
   "VoiceTriggerQueue: struct — the coach triggers queued behind the conversation (capacity 8, oldest scripted line dropped first; a route line replaces a queued one and expires after 10 s); Trigger enum spokenLiteral(String) / aiPrompt(String, fallback: String?); private Entry struct (trigger, isRouteLine, queuedAt)"

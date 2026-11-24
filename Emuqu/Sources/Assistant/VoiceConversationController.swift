@@ -42,7 +42,7 @@ import UIKit
 // `VoiceInterruptDetector` is deferred.
 @Observable
 @MainActor
-final class VoiceConversationController: NSObject {
+final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
     /// Shared instance — there's only one mic + recognizer + synth at the
     /// hardware level, and we want the typed chat view AND any other surface
     /// (workout recording, future floating mic) to drive the same controller

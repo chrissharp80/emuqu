@@ -1,14 +1,14 @@
 {
  "file": "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift",
- "hash": "f3272de94dcc2e52",
- "role": "Declares HealthKitServiceProtocol, the @MainActor abstraction of the HealthKit queries MorningProcessingService, SessionAcceptanceService, ReanalysisService, HRVAnalysisPipeline and SleepBoundaryResolver make (so tests can inject MockHealthKitService); adds default-argument conveniences and the HealthKitManager conformance bridge.",
+ "hash": "666e7352d0f56215",
+ "role": "Declares HealthKitServiceProtocol, the @MainActor abstraction of the HealthKit queries MorningProcessingService, SessionAcceptanceService, ReanalysisService, HRVAnalysisPipeline and SleepBoundaryResolver make (so tests can inject MockHealthKitService); adds default-argument conveniences and the HealthKitManager members the protocol requires.",
  "types": [
   "HealthKitServiceProtocol: protocol — the HealthKit queries dispatched through it (sleep, nap minutes, RR and HR sleep estimates, daytime resting HR, training load, recovery vitals, session export)",
   "HealthKitServiceProtocol: extension — default-argument conveniences and nap default 0",
-  "HealthKitManager: extension — conformance + calculateTrainingLoad(relativeTo:) bridge"
+  "HealthKitManager: extension — calculateTrainingLoad(relativeTo:) and the other members the protocol requires (the conformance is declared on the class)"
  ],
  "state": [],
- "toplevel": "HealthKitManager declares conformance (bottom of file). Protocol also requires the nonisolated property isHealthKitAvailable. Authorization, sleep observers, trends, exports and dashboard queries are not requirements; callers use HealthKitManager directly.",
+ "toplevel": "HealthKitManager declares the conformance on its class in HealthKitManager.swift, the file that declares the type, as a Sendable conformance must be; this file holds only the members it requires. Protocol also requires the nonisolated property isHealthKitAvailable. Authorization, sleep observers, trends, exports and dashboard queries are not requirements; callers use HealthKitManager directly.",
  "units": [
   {
    "key": "requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",

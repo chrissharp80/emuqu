@@ -533,7 +533,7 @@ extension CloudKitSyncManager {
 
         let zone = CKRecordZone(zoneID: zoneID)
         do {
-            try await privateDB.save(zone)
+            _ = try await privateDB.save(zone)
             zoneCreated = true
         } catch let error as CKError where error.code == .serverRejectedRequest {
             // Usually the zone already exists. Confirmed by fetching it before

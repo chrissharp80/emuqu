@@ -671,7 +671,7 @@
   },
   {
    "key": "func CloudKitSettingsSync.saveSettingsRecord(_:replacingNewer:)",
-   "hash": "028d344f819b7fbc",
+   "hash": "21190c1e3c6c5f32",
    "does": "Fetches record 'primary' (a new one when unknownItem). Unless replacingNewer, returns false without writing when the cloud copy was edited after this device's last settings change (CloudSettingsRecord.cloudCopyIsNewer of the record's modifiedAt and localEditedAtKey). Otherwise writes the sealed payload dated with the local edit time (now when replacing, or when none is stored), saves, stores that time as the local edit time when replacing, and returns true.",
    "entry": null,
    "calls": [
@@ -749,7 +749,7 @@
   },
   {
    "key": "func CloudKitSettingsSync.scrubStoredRecord(keepingOutHealthFilledFrom:)",
-   "hash": "1d13044ed150341b",
+   "hash": "f40864f0f172c91b",
    "does": "One-time (per install) rewrite of the stored settings record while iCloud Sync is off: fetches it, re-seals it with Health-filled profile fields removed (using local markers), keeps its modifiedAt, saves, and sets the done flag. A record sealed with a key this device does not hold yet stays pending (retried on a later call).",
    "entry": null,
    "calls": [
@@ -839,7 +839,7 @@
   },
   {
    "key": "func CloudKitSettingsSync.ensureZoneExists()",
-   "hash": "0565f9294e0e97b4",
+   "hash": "8ea190036fc54874",
    "does": "Returns at once when this device already created the UserSettings zone (zoneCreatedKey, kept across launches). Otherwise, on a device that has synced sessions (the session manager's zoneCreated or lastSyncDate), first checks that the session zone is still in iCloud and throws CKError.zoneNotFound when it is gone (the app's iCloud data was deleted), creating nothing. Then saves the UserSettings zone and sets the flag. Errors propagate; a zone that is gone later is not recreated here.",
    "entry": null,
    "calls": [
