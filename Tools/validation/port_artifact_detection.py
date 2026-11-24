@@ -1,7 +1,7 @@
 """Python port of ArtifactDetector.detectArtifacts (whole-series classifier).
 
 Ported line by line from Emuqu/Sources/Analysis/ArtifactDetection.swift at
-commit e028039 (Config defaults: window 50 = HRVConstants.Artifacts.windowSize,
+commit b87eb64 (Config defaults: window 50 = HRVConstants.Artifacts.windowSize,
 ectopic 0.20, missed 0.50, extra 0.30, RR range 300...2000 ms).
 
 Input: list of integer rr_ms. Output: list of dicts {isArtifact, type, confidence}.

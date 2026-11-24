@@ -1,5 +1,5 @@
 """Bit-exact Python versions of the deterministic random sources used by the
-Emuqu unit tests at commit e028039, so their fixtures can be regenerated:
+Emuqu unit tests at commit b87eb64, so their fixtures can be regenerated:
   * DFAReferenceValidationTests.SeededGenerator (SplitMix64)
   * Swift stdlib Double.random(in: ClosedRange, using:) (Lemire next(upperBound:))
   * HRVSleepStageClassifierTests.deterministicOffset (LCG)

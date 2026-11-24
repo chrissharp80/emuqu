@@ -1,4 +1,4 @@
-"""Validation 1: HRVSleepStageClassifier (RR-only path, port @ e028039) vs PSG.
+"""Validation 1: HRVSleepStageClassifier (RR-only path, port @ b87eb64) vs PSG.
 
 Datasets
   slpdb 1.0.0  MIT-BIH Polysomnographic Database: RR from the .ecg beat
@@ -181,7 +181,7 @@ def main():
     pooled["n_records_classified"] = len(recs)
     os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
     out = os.path.join(HERE, "results", f"sleep_{db}_{mode}_{bounds}.json")
-    json.dump({"db": db, "mode": mode, "bounds": bounds, "commit": "e028039", "per_record": per, "pooled": pooled}, open(out, "w"), indent=1)
+    json.dump({"db": db, "mode": mode, "bounds": bounds, "commit": "b87eb64", "per_record": per, "pooled": pooled}, open(out, "w"), indent=1)
     print(json.dumps({k: v for k, v in pooled.items() if not k.startswith("cm")}, indent=1))
 
 

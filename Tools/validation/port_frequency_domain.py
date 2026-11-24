@@ -1,10 +1,10 @@
 """Python port of FrequencyDomainAnalyzer (Welch PSD on 4 Hz cubic-spline RR).
 
 Ported line by line from Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift
-at commit e028039 (computeFromCleanPairs, computePSD, the Welch, VLF and
+at commit b87eb64 (computeFromCleanPairs, computePSD, the Welch, VLF and
 single-window paths, natural cubic spline resampling, linear detrend, band
 integration). Band edges from HRVConstants.FrequencyBands
-(Emuqu/Sources/Utilities/Constants.swift @ e028039).
+(Emuqu/Sources/Utilities/Constants.swift @ b87eb64).
 
 Accelerate primitives mapped to numpy:
   vDSP_hann_windowD(.., vDSP_HANN_DENORM) -> w[n] = 0.5*(1 - cos(2*pi*n/N)), n=0..N-1

@@ -1,6 +1,6 @@
 # Emuqu technical white papers
 
-Five technical white papers by Chris Sharp. Papers 1 to 4 (v1.4) describe the methods in Emuqu (formerly Flow HRV, then Flow Recovery) at source revision `6b195c6` (2026-11-21), scoring version `v3.3.nov2026`. Paper 5 describes the design method used to build it. Where a paper and the code disagree, the code is authoritative. Emuqu is a consumer wellness app, not a medical device.
+Five technical white papers by Chris Sharp. Papers 1 to 4 (v1.4) describe the methods in Emuqu (formerly Flow HRV, then Flow Recovery) at source revision `44a11ce` (2026-11-21), scoring version `v3.3.nov2026`. Paper 5 describes the design method used to build it. Where a paper and the code disagree, the code is authoritative. Emuqu is a consumer wellness app, not a medical device.
 
 | # | Paper | Covers |
 |---|---|---|
@@ -12,4 +12,4 @@ Five technical white papers by Chris Sharp. Papers 1 to 4 (v1.4) describe the me
 
 Each paper's "What Is New" section lists the methods it discloses, with the earliest dated record of each; its "Provenance and Dates" section gives the repository lineage, public disclosures and authorship. The cross-implementation scripts for the measurement methods are in [`Tools/validation/`](../../Tools/validation/).
 
-Earlier versions were all published 2026-10-08: v1.0; v1.1 (prior-art comparison and provenance); v1.2 (method-first restructure); v1.3 of Papers 1–4 and v1.1 of Paper 5 (editorial review: series-wide format, corrected internal references, tightened claims). Published 2026-11-22: v1.4 of Papers 1 to 4, which brings them up to source revision `6b195c6` and scoring version `v3.3.nov2026`.
+Earlier versions were all published 2026-10-08: v1.0; v1.1 (prior-art comparison and provenance); v1.2 (method-first restructure); v1.3 of Papers 1–4 and v1.1 of Paper 5 (editorial review: series-wide format, corrected internal references, tightened claims). Published 2026-11-22: v1.4 of Papers 1 to 4, which brings them up to source revision `44a11ce` and scoring version `v3.3.nov2026`.

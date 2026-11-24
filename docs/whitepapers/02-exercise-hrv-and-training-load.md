@@ -6,7 +6,7 @@ Technical White Paper • v1.4 • 22 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 6b195c6 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 44a11ce (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
 
 Cite as: Sharp C. Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/02-exercise-hrv-and-training-load.md.
 
@@ -476,25 +476,25 @@ No public method for fusing phone and Watch strap streams was found. Emuqu uses 
 
 ## 5. What Is New
 
-Each statement gives only the part not found in a prior-art search made on 2026-10-08 (public source code, including FatMaxxer read directly at commit 3b10aa0 and GoldenCheetah; public vendor and app documentation; and the DFA α1 and training-load literature). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 9d89933) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
+Each statement gives only the part not found in a prior-art search made on 2026-10-08 (public source code, including FatMaxxer read directly at commit 3b10aa0 and GoldenCheetah; public vendor and app documentation; and the DFA α1 and training-load literature). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 01e2bae) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
 
 **N1 (Section 3.1.2). Live α1 is withheld, rather than shown with a reliability color, until the rolling 120 s window holds at least 64 beats *and* spans at least 118 s on the dropout-compensated beat clock of N2.** The 118 s is the window length minus one maximal RR interval, measured on the beat clock rather than on elapsed session time. Warm-up progress is shown as min(count/64, span/118), so 100% coincides with the gate passing.
 
 *Builds on:* FatMaxxer's elapsed-time reliability coloring and Watchletic's 160-beat minimum (Table 4.1) [21][22]; adds withholding the value on a dual beat-count and beat-clock span gate, with matching progress.
 
-*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: 64-beat gate, beat-only fill); emuqu-dev 7d6b4a6, 2026-09-03 (current form: 118 s span gate and min-of-ratios fill). Measured on the N2 clock from emuqu 14ecd58, 2026-10-06.
+*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: 64-beat gate, beat-only fill); emuqu-dev 7d6b4a6, 2026-09-03 (current form: 118 s span gate and min-of-ratios fill). Measured on the N2 clock from emuqu 1650c96, 2026-10-06.
 
 **N2 (Section 3.1.1). Each live beat is stamped with start = max(previous beat's end, arrival time − first arrival time + first beat's start), and that one clock both trims the rolling window and measures its span.** An offline closed form gives identical offsets: interval-sum time plus the running maximum of the wall-clock lead over the interval sum.
 
 *Builds on:* FatMaxxer's live window trimmed on arrival time, and its file replay that rebuilds time from the RR sum (Table 4.1) [21]; adds a single dropout-compensated clock shared by trimming and span measurement, with an equivalent offline form.
 
-*Earliest dated record:* emuqu 554540f, 2026-10-03 (first form: offline closed form); emuqu 14ecd58, 2026-10-06 (current form: live beat clock). The predecessor, trimming on wall-clock time (flow-recovery 95e7ae8, 2026-04-20), is prior art.
+*Earliest dated record:* emuqu 8abc6d7, 2026-10-03 (first form: offline closed form); emuqu 1650c96, 2026-10-06 (current form: live beat clock). The predecessor, trimming on wall-clock time (flow-recovery 95e7ae8, 2026-04-20), is prior art.
 
 **N3 (Section 3.1.3). A live artifact filter judges each beat against the upper median of up to five preceding *accepted* beats, interpolates marked beats in place, returns the count of marked beats with the series, and withholds α1 when that count exceeds 6% of the window.** Rejected beats never enter the reference. At least three accepted beats are needed to judge. The rule is 20% relative deviation, with 300–2000 ms bounds, and marked beats are replaced by linear interpolation.
 
 *Builds on:* FatMaxxer's previous-beat deviation filter, Watchletic's skipping of windows with too many corrections, AlphaHRV's 5% artifact assumption, HRV Logger's artifact rate (Table 4.2) [21][22][23][24], and Kubios median-referenced threshold correction [25][26]; adds an accepted-only trailing reference, in-place interpolation with a carried count, and refusal above 6%.
 
-*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: filter rules); emuqu-dev 7d6b4a6, 2026-09-03 (corrected count and 6% refusal); emuqu 4264ddb, 2026-11-21 (current form: beats lost in a dropout put back and counted).
+*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: filter rules); emuqu-dev 7d6b4a6, 2026-09-03 (corrected count and 6% refusal); emuqu 30e9326, 2026-11-21 (current form: beats lost in a dropout put back and counted).
 
 **N4 (Section 3.1.4). A five-state live α1 status runs the silence check first, and every non-ok state clears the published value, so the per-second sample stream records nil instead of the last α1.** The five states are:
 - warm-up, with a fill fraction;
@@ -505,19 +505,19 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* FatMaxxer's elapsed-time color states (Table 4.1) [21]; adds clearing the value, on screen and in the recorded samples, in every non-ok state, including silence and rejection.
 
-*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: warm-up, ok, stalled, fit failed); emuqu 14ecd58, 2026-10-06 (current form: clearing on every non-ok state). The too-many-artifacts state was added in emuqu-dev 7d6b4a6, 2026-09-03.
+*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: warm-up, ok, stalled, fit failed); emuqu 1650c96, 2026-10-06 (current form: clearing on every non-ok state). The too-many-artifacts state was added in emuqu-dev 7d6b4a6, 2026-09-03.
 
 **N5 (Section 3.2.1). A post-session α1 dip below 0.75 that recovers within one analyzer window (≤ 120 s) is labeled an ectopic "shadow".** An asymmetric span is excluded from α1 summary statistics and band time: from 60 s before the dip to 120 s after recovery. A dip still open at session end is left unlabeled, and so is one during which heart rate climbed by at least 10 bpm.
 
 *Builds on:* the general observation that ectopic beats lower α1 [34]; adds a window-length rule that identifies and excludes the affected span.
 
-*Earliest dated record:* flow-recovery 549f747, 2026-04-23 (first form: the same 120 s limit and 60/120 s padding); emuqu-dev 680bbee, 2026-08-25 (shared exclusion for all summary statistics). Later: a dip with a heart-rate climb kept as effort, and the crossing list on the same readings, emuqu 946c8b2, 2026-10-11.
+*Earliest dated record:* flow-recovery 549f747, 2026-04-23 (first form: the same 120 s limit and 60/120 s padding); emuqu-dev 680bbee, 2026-08-25 (shared exclusion for all summary statistics). Later: a dip with a heart-rate climb kept as effort, and the crossing list on the same readings, emuqu 896c1da, 2026-10-11.
 
 **N6 (Section 3.2.2). In the post-session summary statistics, a downward α1 threshold crossing is accepted only after α1 has stayed below the threshold for longer than the analyzer window (180 s against 120 s).** Time is counted per sample, capped at 5 s. Counting starts only after a 120 s warm-up, and only once α1 has first been seen at or above the threshold. The HR at the start of that sustained run is reported.
 
 *Builds on:* the HR at α1 = 0.75 as an aerobic-threshold proxy [2], and the ramp-regression and clustering threshold estimates of Runalyze and AI Endurance (Table 4.3) [27][28]; adds a sustain rule longer than the window, for arbitrary field sessions.
 
-*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: crossing without a sustain rule); emuqu 5c4a23d, 2026-10-04 (current form: armed-after-≥ 0.75 rule). The 120 s warm-up and 180 s sustain were added in flow-recovery 549f747, 2026-04-23, and the 5 s cap in emuqu 554540f, 2026-10-03.
+*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: crossing without a sustain rule); emuqu c0dff5b, 2026-10-04 (current form: armed-after-≥ 0.75 rule). The 120 s warm-up and 180 s sustain were added in flow-recovery 549f747, 2026-04-23, and the 5 s cap in emuqu 8abc6d7, 2026-10-03.
 
 **N7 (Section 3.3.1). A load-source ladder contains a route-history estimate tier with a conditional position.** The tier is promoted above every heart-rate-derived tier only when two conditions hold:
 - the estimate rests on at least one earlier run of the same saved route (confidence above the no-prior value of 0.4);
@@ -527,7 +527,7 @@ Otherwise the tier is used only when no other source exists.
 
 *Builds on:* the public fallback ladders of GoldenCheetah, TrainingPeaks and intervals.icu (Table 4.4) [12][29][30]; adds a conditional promotion rule driven by dropout evidence.
 
-*Earliest dated record:* flow-recovery b0967a8, 2026-05-12 (first form: ladder with the route estimate last); emuqu 554540f, 2026-10-03 (current form: promotion rule).
+*Earliest dated record:* flow-recovery b0967a8, 2026-05-12 (first form: ladder with the route estimate last); emuqu 8abc6d7, 2026-10-03 (current form: promotion rule).
 
 **N8 (Sections 3.4.1–3.4.2). The load of a workout with a failed heart-rate strap is estimated from the user's own TRIMP per meter on earlier runs of a user-named saved route, matched in either direction.** Matching starts after 500 m:
 - the live track must start within 150 m of the route;
@@ -543,10 +543,10 @@ An earlier run counts only if it:
 
 *Builds on:* intervals.icu's estimate of load from average HR with a model fitted to the athlete's earlier activities (Table 4.4) [12]; adds estimation from same-route history.
 
-*Earliest dated record:* flow-recovery fba6e27, 2026-04-26 (first form: route matching at 500 m and ≤ 30 m, both directions); emuqu 5c4a23d, 2026-10-04 (current form: 300-point subsample and 5 m thinning). Later steps:
+*Earliest dated record:* flow-recovery fba6e27, 2026-04-26 (first form: route matching at 500 m and ≤ 30 m, both directions); emuqu c0dff5b, 2026-10-04 (current form: 300-point subsample and 5 m thinning). Later steps:
 - TRIMP extrapolation: flow-recovery 6c127eb, 2026-04-27;
 - estimator type: flow-recovery b0967a8, 2026-05-12;
-- prior filters: emuqu 554540f, 2026-10-03.
+- prior filters: emuqu 8abc6d7, 2026-10-03.
 
 **N9 (Section 3.4.2). Earlier-run TRIMP-per-meter ratios below half their median are dropped, and the estimator then chooses between no estimate, a 60/40 blend, prior only and recorded only.** No estimate is made when the recorded ratio is ≥ 0.7 × the prior mean; the blend is 60/40 prior to recorded.
 
@@ -559,15 +559,15 @@ The confidence is min(0.85, 0.4 + 0.15·n) for n retained earlier runs, or 0.4 w
 
 *Builds on:* Banister TRIMP [9] as the per-run load measure; adds the outlier rule, case selection, distance scaling and confidence. No public estimator of this form was found in public code, vendor documentation or the training-load literature.
 
-*Earliest dated record:* flow-recovery 6c127eb, 2026-04-27 (first form: ratio and min(0.85, …) confidence); emuqu 5c4a23d, 2026-10-04 (current form: truncation rule). Later steps:
+*Earliest dated record:* flow-recovery 6c127eb, 2026-04-27 (first form: ratio and min(0.85, …) confidence); emuqu c0dff5b, 2026-10-04 (current form: truncation rule). Later steps:
 - 0.7 ×, 60/40 and 0.4 rules: flow-recovery b0967a8, 2026-05-12;
-- outlier drop: emuqu 554540f, 2026-10-03.
+- outlier drop: emuqu 8abc6d7, 2026-10-03.
 
 **N10 (Section 3.3.2). Power TSS is computed when a record is read, for workouts stored with normalized power but no TSS.** The FTP is user-entered, or estimated as 0.95 × the best 20-minute mean power over the last 90 days of running-family workouts. Only 20-minute windows with at least 90% per-second power coverage count.
 
 *Builds on:* the 0.95 × 20-minute convention [11] and Stryd's critical-power estimate from about 90 days of data (Table 4.4) [31]; adds read-time derivation for stored history and the coverage rule.
 
-*Earliest dated record:* flow-recovery b0967a8, 2026-05-12 (first form: 0.95 × best NP; read-time power TSS); emuqu 554540f, 2026-10-03 (current form: rolling 20-minute window with 90% coverage).
+*Earliest dated record:* flow-recovery b0967a8, 2026-05-12 (first form: 0.95 × best NP; read-time power TSS); emuqu 8abc6d7, 2026-10-03 (current form: rolling 20-minute window with 90% coverage).
 
 **N11 (Section 3.5.1). A training-readiness score combines a capacity-ratio map with an acute-fatigue term, a low-CTL branch, a damped ACWR penalty, a freshness bonus and an asymmetric blend with the morning recovery score.** The steps are:
 - **Acute fatigue.** A 72 h exponentially decaying term (τ = 24 h, weight 0.30, over workouts since the start of the morning reading's day) is added to ATL inside a piecewise capacity-ratio map.
@@ -592,7 +592,7 @@ The confidence is min(0.85, 0.4 + 0.15·n) for n retained earlier runs, or 0.4 w
 
 *Builds on:* standard Bluetooth heart-rate RR delivery to phone and watch; no public fusion method of this kind was found in public code (FatMaxxer, GoldenCheetah) or vendor documentation.
 
-*Earliest dated record:* flow-recovery 7b8c540, 2026-04-30 (first form: Watch relay without the silence gate); emuqu 554540f, 2026-10-03 (current form: 5 s gate). Earlier and intermediate records:
+*Earliest dated record:* flow-recovery 7b8c540, 2026-04-30 (first form: Watch relay without the silence gate); emuqu 8abc6d7, 2026-10-03 (current form: 5 s gate). Earlier and intermediate records:
 - strap connector: flow-recovery d381c96, 2026-04-29;
 - merge type: emuqu-dev c615ce5, 2026-09-02.
 
@@ -600,7 +600,7 @@ The confidence is min(0.85, 0.4 + 0.15·n) for n retained earlier runs, or 0.4 w
 
 *Builds on:* FatMaxxer's replay of a recorded RR file through its live pipeline, rebuilding time from the RR sum, and intervals.icu's post-ride DFA α1 (Table 4.3) [12][21]; adds the gap-corrected timeline and freshness-limited write-back.
 
-*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: offline re-run with the live parameters); emuqu 554540f, 2026-10-03 (current form: gap-corrected timeline and freshness-limited write-back). The 6% rejection was added in emuqu-dev 7d6b4a6, 2026-09-03.
+*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: offline re-run with the live parameters); emuqu 8abc6d7, 2026-10-03 (current form: gap-corrected timeline and freshness-limited write-back). The 6% rejection was added in emuqu-dev 7d6b4a6, 2026-09-03.
 
 **Prior work used, not presented as new.**
 - Detrended fluctuation analysis, its integration and box detrending, and the 4–16 / 16–64 scale ranges with 2^(1/8) log spacing [1].
@@ -627,9 +627,9 @@ The confidence is min(0.85, 0.4 + 0.15·n) for n retained earlier runs, or 0.4 w
 
 ## 6. Verification
 
-On 2026-10-08 a separate reimplementation was checked on public PhysioNet recordings [20]. The scripts that ran it are in `Tools/validation/`. The methods were reimplemented in Python from the Swift source at e028039. A port's results were accepted as the app's only after the port reproduced the app's own unit-test expectations.
+On 2026-10-08 a separate reimplementation was checked on public PhysioNet recordings [20]. The scripts that ran it are in `Tools/validation/`. The methods were reimplemented in Python from the Swift source at b87eb64. A port's results were accepted as the app's only after the port reproduced the app's own unit-test expectations.
 
-**Port fidelity.** The eight test suites the ports cover hold 128 test functions at e028039; the ports reproduce 109 of them, plus seven HRVSleepStageClassifierTests added at 0bf50c7 with the recording-break and artifact-gap rules, plus three cross-checks (α1 values quoted in a DFAReferenceValidationTests comment, a Welch-PSD comparison against SciPy, and a stale value quoted in an HRVReferenceValidationTests comment), and all 119 of those cases matched (`Tools/validation/test_ports_output.txt`). DFAAnalysisTests: 15 of 15. DFAReferenceValidationTests: 8 of 8. LiveDFAAnalyzerTests: 19 of 21 — the port covers the RR cleaning, correction counts and rejection thresholds, but not `testAlpha1IsNotProducedBeforeTheWindowIsFull` or `testAlpha1IsProducedOnceTheWindowIsFull`, so the live window-fill gate of §3.1 is verified only by the Swift tests. Also not reproduced: 8 of 36 HRVSleepStageClassifierTests, 6 of 14 TimeDomainTests and 3 of 9 HRVReferenceValidationTests. The ports mirror the code and tests at those commits, so the match does not by itself show that the current Swift code agrees with them; the Swift tests do that on every build. On the seeded known-exponent processes (white, 1/f and Brownian noise, 4096 samples), the port reproduces the app's measured α1 values exactly.
+**Port fidelity.** The eight test suites the ports cover hold 128 test functions at b87eb64; the ports reproduce 109 of them, plus seven HRVSleepStageClassifierTests added at fff2617 with the recording-break and artifact-gap rules, plus three cross-checks (α1 values quoted in a DFAReferenceValidationTests comment, a Welch-PSD comparison against SciPy, and a stale value quoted in an HRVReferenceValidationTests comment), and all 119 of those cases matched (`Tools/validation/test_ports_output.txt`). DFAAnalysisTests: 15 of 15. DFAReferenceValidationTests: 8 of 8. LiveDFAAnalyzerTests: 19 of 21 — the port covers the RR cleaning, correction counts and rejection thresholds, but not `testAlpha1IsNotProducedBeforeTheWindowIsFull` or `testAlpha1IsProducedOnceTheWindowIsFull`, so the live window-fill gate of §3.1 is verified only by the Swift tests. Also not reproduced: 8 of 36 HRVSleepStageClassifierTests, 6 of 14 TimeDomainTests and 3 of 9 HRVReferenceValidationTests. The ports mirror the code and tests at those commits, so the match does not by itself show that the current Swift code agrees with them; the Swift tests do that on every build. On the seeded known-exponent processes (white, 1/f and Brownian noise, 4096 samples), the port reproduces the app's measured α1 values exactly.
 
 **Artifact correction (nsr2db).** The test windows were 1,080 artifact-free 120 s windows from 54 records of the PhysioNet Normal Sinus Rhythm RR Interval Database (nsr2db; 24-hour ambulatory Holter recordings) [20], with clean α1 of 1.20 ± 0.28. They received premature ectopic beats with a compensatory pause, or missed beats, at fixed rates, following the design of Rogers et al. [5]. Each window had three seeded placements, giving 3,240 trials per artifact type and rate.
 
@@ -687,7 +687,7 @@ The project began as a general fitness app. Repository AI-Fitness-Coach (2025-02
 | chrissharp80/flow-recovery-dev | Flow Recovery | c48eeb9, 2026-03-01 | Squashed import; to 2026-03-15 | Private |
 | chrissharp80/flow-recovery | Flow Recovery | 39bfcd4, 2026-03-15 | 196 commits to 2026-08-12 | Private |
 | chrissharp80/emuqu-dev | Emuqu | d4e5cf8, 2026-08-16 | Squashed import; to 2026-09-04 | Private |
-| chrissharp80/emuqu | Emuqu | 9d89933, 2026-09-08 | Squashed import; current | Public (PolyForm Strict 1.0.0) |
+| chrissharp80/emuqu | Emuqu | 01e2bae, 2026-09-08 | Squashed import; current | Public (PolyForm Strict 1.0.0) |
 
 History has gaps from 2026-01-26 to 2026-03-01, 2026-08-12 to 2026-08-16 and 2026-09-04 to 2026-09-08, where each new repository began with a squashed import; a date at a squashed import is an upper bound for anything it contains. The pre-code design (v1 to v9.2 FINAL, completed 2026-01-08 21:06 CST) is described in Paper 5, Section 4: versions v1 and v3.0 have not been recovered; v2–v2.2 and v4.0–v9.1 survive in the author's Claude conversation record; v9.2 FINAL survives as a Google Drive document.
 
@@ -709,7 +709,7 @@ History has gaps from 2026-01-26 to 2026-03-01, 2026-08-12 to 2026-08-16 and 202
 - 2026-01-27: TestFlight beta opened (over 1,500 sessions by 2026-03-06; 45 testers and over 6,500 sessions by August 2026). A public TestFlight join link appeared in the project README by May 2026.
 - 2026-05-19: Substack article "A Powerfully Lazy Man's Way to Better Health" (Paper 1 lists what it disclosed).
 - 2026-08-10: Substack article "How I Build Production Software by Directing AI" (Paper 5 lists what it disclosed).
-- 2026-09-08: public repository github.com/chrissharp80/emuqu (first commit 9d89933).
+- 2026-09-08: public repository github.com/chrissharp80/emuqu (first commit 01e2bae).
 - 2026-10-08: these white papers.
 
 Neither Substack article disclosed any method in this paper.
@@ -718,7 +718,7 @@ Neither Substack article disclosed any method in this paper.
 Chris Sharp is the sole author of these papers and of the design, and the only person who commits to the repositories above. The code was written by AI coding assistants under his direction, and some commits carry "Claude" as author or co-author; he supplied the requirements, design direction, review, testing and acceptance, and wrote no code by hand. He developed the methods described here independently and did not learn them from anyone.
 
 ### 8.6 Document history
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.4, published 2026-11-22, describes source revision 6b195c6 (2026-11-21) and scoring version v3.3.nov2026. Changes from v1.3: the live and offline α1 cleaner puts back and counts beats lost in a dropout (Section 3.1.3); an auto-FTP scan that cannot read a workout for a reason that may clear is retried and only raises the estimate, while a workout that can never be read does not hold the scan open (Section 3.3.2); Apple Health workouts that were never authorized read as none, and a failed workout query leaves the previous load standing (Section 3.3.4); the route-estimate backfill is held open only by failures that may clear (Section 3.4.2); a dip with a 10 bpm heart-rate climb is not a shadow, and the crossing list walks the summary's readings (Sections 3.2.1, 3.2.3); the readiness acute term counts workouts since the start of the morning reading's day, and the narrative compares with the morning-anchor readiness (Sections 3.5.1–3.5.2); Watch-relayed strap beats are drained every tick, with only a batch under 10 s old feeding α1 and live HR (Section 3.6.1); and the port-fidelity counts are stated per suite (Section 6). Correction, 2026-11-23: Section 6's port counts restated from `Tools/validation/test_ports_output.txt` (119 cases, not 114), with the commits the ports mirror.
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.4, published 2026-11-22, describes source revision 44a11ce (2026-11-21) and scoring version v3.3.nov2026. Changes from v1.3: the live and offline α1 cleaner puts back and counts beats lost in a dropout (Section 3.1.3); an auto-FTP scan that cannot read a workout for a reason that may clear is retried and only raises the estimate, while a workout that can never be read does not hold the scan open (Section 3.3.2); Apple Health workouts that were never authorized read as none, and a failed workout query leaves the previous load standing (Section 3.3.4); the route-estimate backfill is held open only by failures that may clear (Section 3.4.2); a dip with a 10 bpm heart-rate climb is not a shadow, and the crossing list walks the summary's readings (Sections 3.2.1, 3.2.3); the readiness acute term counts workouts since the start of the morning reading's day, and the narrative compares with the morning-anchor readiness (Sections 3.5.1–3.5.2); Watch-relayed strap beats are drained every tick, with only a batch under 10 s old feeding α1 and live HR (Section 3.6.1); and the port-fidelity counts are stated per suite (Section 6). Correction, 2026-11-23: Section 6's port counts restated from `Tools/validation/test_ports_output.txt` (119 cases, not 114), with the commits the ports mirror.
 
 ---
 
@@ -1049,7 +1049,7 @@ for sample s: r = latest reading with r.t <= s.t
 
 **Table C.1.** Source files for each method.
 
-| Method | Files (repository paths at 6b195c6) |
+| Method | Files (repository paths at 44a11ce) |
 |---|---|
 | Live α1, beat clock, filter, status | `Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift` |
 | DFA core | `Emuqu/Sources/Analysis/DFAAnalysis.swift`; constants in `Emuqu/Sources/Utilities/Constants.swift` (`HRVConstants.DFA`) |

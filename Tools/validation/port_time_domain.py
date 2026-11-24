@@ -1,7 +1,7 @@
 """Python port of the RMSSD path of TimeDomainAnalyzer.computeTimeDomain.
 
 Ported line by line from Emuqu/Sources/Analysis/TimeDomainAnalysis.swift at
-commit e028039: computeTimeDomain (drop flagged beats; >= 10 clean beats),
+commit b87eb64: computeTimeDomain (drop flagged beats; >= 10 clean beats),
 successiveDifferences / adjacentDifferences (only beats adjacent in the
 ORIGINAL series, both kept by ectopicKeepMask, no recording break between),
 ectopicKeepMask / isWithinLocalMedian (local median of up to 10 neighbours

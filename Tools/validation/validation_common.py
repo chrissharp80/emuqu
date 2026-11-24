@@ -1,6 +1,6 @@
 """Shared helpers for the PhysioNet validation scripts (not ports of app code):
 beat-symbol sets, RR-series construction, agreement statistics, a minimal EDF
-channel reader. Commit under test: e028039.
+channel reader. Commit under test: b87eb64.
 """
 import math
 import os
@@ -12,7 +12,7 @@ import numpy as np
 # checkout (ignored by git). fetch_physionet.py downloads a database into <DATA_ROOT>/<db>.
 DATA_ROOT = os.environ.get("EMUQU_PHYSIONET_DIR") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, "build", "physionet")
-COMMIT = "e028039"
+COMMIT = "b87eb64"
 
 # WFDB beat annotation codes (PhysioNet "ecgcodes"); non-beat codes ('+', '~', '|', '"', 'x', '[', ']', '!' ...) are ignored.
 BEAT_SYMBOLS = set("NLRBAaJSVrFejnE/fQ?")

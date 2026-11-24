@@ -1,4 +1,4 @@
-"""Validation 3: effect of artifact handling on DFA alpha1 (ports @ e028039 of
+"""Validation 3: effect of artifact handling on DFA alpha1 (ports @ b87eb64 of
 DFAAnalyzer.compute and LiveDFAAnalyzer.cleanRRForDFA), by injecting known
 artifacts into clean normal-to-normal RR windows from the MIT-BIH Normal
 Sinus Rhythm Database (nsr2db 1.0.0, .ecg beat annotations, 128 Hz).
@@ -170,7 +170,7 @@ def main():
                   "corrected_fraction_mean": float(np.mean(fc_frac)), "corrected_fraction_median": float(np.median(fc_frac)),
                   "share_over_3pct": float(np.mean(np.array(fc_frac) > 0.03)), "share_over_6pct": float(np.mean(np.array(fc_frac) > 0.06)),
                   "alpha1_change": bland_altman(fc_app, fc_raw)}
-    out = {"db": "nsr2db 1.0.0", "commit": "e028039", "n_records_used": len({r for r, _ in windows}),
+    out = {"db": "nsr2db 1.0.0", "commit": "b87eb64", "n_records_used": len({r for r, _ in windows}),
            "n_windows": len(windows), "n_all_normal_windows": n_cand_total,
            "excluded_windows_corrector_flagged_clean": excl,
            "clean_alpha1_mean_sd": [float(np.mean(a0s)), float(np.std(a0s, ddof=1))],

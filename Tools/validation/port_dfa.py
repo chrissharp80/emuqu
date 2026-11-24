@@ -1,8 +1,8 @@
 """Python port of DFAAnalyzer.compute (DFA alpha1 / alpha2).
 
 Ported line by line from Emuqu/Sources/Analysis/DFAAnalysis.swift at commit
-e028039, plus the helper it delegates to, Statistics.linearRegression
-(Emuqu/Sources/Utilities/Statistics.swift @ e028039), and the constants in
+b87eb64, plus the helper it delegates to, Statistics.linearRegression
+(Emuqu/Sources/Utilities/Statistics.swift @ b87eb64), and the constants in
 HRVConstants.DFA / HRVConstants.MinimumBeats (Emuqu/Sources/Utilities/Constants.swift).
 
 Known numeric differences from the Swift build: vDSP_meanvD may sum in a
