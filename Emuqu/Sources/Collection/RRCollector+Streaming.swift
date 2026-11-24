@@ -241,7 +241,7 @@ extension CollectorSessionControl {
         let analyzingSession = publishAnalyzingSession(on: collector, baseSession: baseSession, series: series)
         let flags = collector.artifactDetector.detectArtifacts(in: series)
         if collector.settingsManager.settings.enableTrainingLoadIntegration {
-            collector.cachedTrainingLoad = await collector.healthKit.calculateTrainingLoad()
+            collector.scoring.cachedTrainingLoad = await collector.healthKit.calculateTrainingLoad()
         }
         let analysisResult = collector.analysisPipeline.analyzeFullSeries(
             series: series, flags: flags,

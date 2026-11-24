@@ -104,7 +104,7 @@ extension OvernightStreamingCoordinator {
         guard collector.polarManager.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }
         guard !collector.polarManager.isStreaming else { throw RRCollector.CollectorError.alreadyRecording }
         let session = HRVSession(sessionType: sessionType, deviceProvenance: .streaming(from: collector.polarManager))
-        collector.useDeviceBackupForOvernight = useDeviceInternalBackup
+        collector.overnightRun.usesDeviceBackup = useDeviceInternalBackup
         try collector.polarManager.startStreaming()  // primary data source
         // Only once streaming started: a failed start must not leave it sampling.
         AppDependencies.current.app.systemDiagnosticsManager.startSamplingDuringRecording()
@@ -135,8 +135,8 @@ extension OvernightStreamingCoordinator {
         collector.sessionState.isCollecting = true
         collector.streamingLifecycle.pausedBeatCount = 0
         collector.lastSeenReconnectCount = 0
-        collector.overnightDeviceBackupActive = false
-        collector.isOvernightEnding = false
+        collector.overnightRun.deviceBackupActive = false
+        collector.overnightRun.isEnding = false
         // A Skip from an earlier morning never reaches this night's download,
         // and an earlier session's error is not this night's.
         collector.deviceFetchPolicy = .automatic
@@ -175,7 +175,7 @@ extension OvernightStreamingCoordinator {
 
     private func logOvernightStreamingStart(session: HRVSession, sessionType: SessionType) {
         warnIfStrapBatteryMayRefuse()
-        debugLog("[RRCollector] ✅ Started overnight streaming (H10 internal recording, the primary source: \(collector.useDeviceBackupForOvernight ? "will arm" : "OFF"))")
+        debugLog("[RRCollector] ✅ Started overnight streaming (H10 internal recording, the primary source: \(collector.overnightRun.usesDeviceBackup ? "will arm" : "OFF"))")
         debugLog("[RRCollector] Session ID: \(session.id)")
         debugLog("[RRCollector] Session type: \(sessionType.rawValue)")
         debugLog("[RRCollector] Connected device: \(collector.polarManager.connectedDeviceId ?? "unknown")")
@@ -559,7 +559,7 @@ extension OvernightStreamingCoordinator {
     /// reset when it finishes.
     private func closeNightGate() {
         collector.deviceFetchPolicy = .automatic
-        collector.overnightDeviceBackupActive = false
+        collector.overnightRun.deviceBackupActive = false
     }
 
     /// The user's capture choice and the strap decide whether the night is
@@ -575,11 +575,11 @@ extension OvernightStreamingCoordinator {
     private func nightFetchAllowed(isVeritySense: Bool) -> Bool {
         if collector.deviceFetchPolicy == .skipByUser {
             debugLog("[RRCollector] Device fetch skipped by user")
-        } else if !collector.useDeviceBackupForOvernight {
+        } else if !collector.overnightRun.usesDeviceBackup {
             debugLog("[RRCollector] Skipping device fetch (capture mode: streaming only)")
         } else if isVeritySense {
             debugLog("[RRCollector] Skipping device fetch (Verity Sense uses streaming only)")
-        } else if !collector.overnightDeviceBackupActive, !collector.polarManager.isRecordingOnDevice {
+        } else if !collector.overnightRun.deviceBackupActive, !collector.polarManager.isRecordingOnDevice {
             debugLog("[RRCollector] Skipping device fetch (the strap was never armed for this night)", level: .warning)
         } else {
             return true

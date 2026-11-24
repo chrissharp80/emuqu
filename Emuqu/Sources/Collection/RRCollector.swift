@@ -44,36 +44,8 @@ final class RRCollector {
     /// Set by UI to control device fetch during morning processing.
     var deviceFetchPolicy: DeviceFetchPolicy = .automatic
 
-    /// True when overnight streaming should also use H10 internal memory as backup.
-    /// False means true streaming-only behavior (no internal recording + no morning fetch).
-    var useDeviceBackupForOvernight: Bool = true
-
-    /// True once the H10's internal recording has actually STARTED for the
-    /// current overnight session (the `.both` capture mode on an H10). While
-    /// this holds, the strap is capturing the full night to its own flash
-    /// memory independently of the BLE link — so a mid-night reconnect
-    /// exhaustion (transient iOS BLE reset, out-of-range trip) must NOT pause
-    /// and fetch, because fetching STOPS the recording and ends the night
-    /// early. It gates the `reconnectExhausted` auto-pause in
-    /// `RRCollector+Bindings` so those nights stay alive and are recovered from
-    /// the strap at wake instead. Reset at the start of every session and
-    /// once the ending's strap gate has read it (`fetchNightFromStrap`), which
-    /// downloads only a night that armed the strap.
-    var overnightDeviceBackupActive: Bool = false
-
-    /// Set first thing when a night begins to end (the morning stop or a
-    /// pause), before streaming stops or the link changes, and cleared when
-    /// a night or a resumed segment starts. The arming loop and
-    /// `startFreshRecording` refuse to arm while it is set.
-    var isOvernightEnding = false
-
-    /// The night's arming loop, so the end of the night can cancel it and
-    /// wait for it before the strap is stopped and downloaded.
-    @ObservationIgnored var overnightArmingTask: Task<Void, Never>?
-
-    /// How long the arming loop waits, on a link that does not change,
-    /// before trying again after a refusal that can clear up.
-    @ObservationIgnored var armingRetryInterval: TimeInterval = StrapRecordingPolicy.armingRetryIntervalSeconds
+    /// The night being recorded: its strap backup, its ending, its arming loop.
+    let overnightRun = OvernightRunState()
 
     // Archive update trigger — lives on a dedicated `ArchiveSignal` object so
     // views that only care about archive changes don't observe the full
@@ -95,13 +67,6 @@ final class RRCollector {
     // `collector.isDeviceConnected` / `collector.batteryLevel` etc. reads
     // through to it. SwiftUI views read
     // `deviceStatus` directly from the environment.
-
-    /// Cached result of `findRecentPausedSession()`, updated on every
-    /// `archiveSignal` bump. Forwarded from `SessionState` for back-compat.
-    var recentPausedSession: HRVSession? {
-        get { sessionState.recentPausedSession }
-        set { sessionState.recentPausedSession = newValue }
-    }
 
     /// Callback when streaming auto-completes
     var onStreamingComplete: (() -> Void)?
@@ -126,11 +91,6 @@ final class RRCollector {
     /// removed explicitly.
     @ObservationIgnored let notificationObservers = NotificationTokens()
     var lastSeenReconnectCount: Int = 0
-    /// The current (as-of-today) training load, held by `scoring`.
-    var cachedTrainingLoad: HealthKitManager.TrainingLoad? {
-        get { scoring.cachedTrainingLoad }
-        set { scoring.cachedTrainingLoad = newValue }
-    }
     var lastEmergencyFlush: Date?
 
     /// Backing storage for the lazy `recoveryService` computed property in +Recovery.

@@ -429,7 +429,7 @@ final class RecordingDiscardTests: XCTestCase {
         addTeardownBlock { @MainActor in
             collector.control.clearPausedSessionState()
             guard let savedId else { return }
-            collector.useDeviceBackupForOvernight = savedMode ?? true
+            collector.overnightRun.usesDeviceBackup = savedMode ?? true
             collector.control.persistPausedSessionState(sessionId: savedId)
         }
     }

@@ -12,7 +12,7 @@ extension CollectorSessionControl {
 
     func persistPausedSessionState(sessionId: UUID) {
         UserDefaults.standard.set(sessionId.uuidString, forKey: Self.pausedSessionIdKey)
-        UserDefaults.standard.set(collector.useDeviceBackupForOvernight, forKey: Self.pausedCaptureModeKey)
+        UserDefaults.standard.set(collector.overnightRun.usesDeviceBackup, forKey: Self.pausedCaptureModeKey)
     }
 
     func clearPausedSessionState() {
@@ -238,9 +238,9 @@ extension CollectorSessionControl {
             sessionType: parentSessionType(of: linkedSessionId), deviceProvenance: .streaming(from: collector.polarManager)
         )
         session.linkedSessionIds = [linkedSessionId]
-        collector.overnightDeviceBackupActive = false
+        collector.overnightRun.deviceBackupActive = false
         try collector.polarManager.startStreaming()
-        if collector.useDeviceBackupForOvernight, collector.polarManager.connectedDeviceType != .veritySense {
+        if collector.overnightRun.usesDeviceBackup, collector.polarManager.connectedDeviceType != .veritySense {
             launchResumeDeviceBackupRecording()
         }
         linkChildToParent(childId: session.id, parentId: linkedSessionId)
@@ -300,7 +300,7 @@ extension CollectorSessionControl {
         collector.sessionStartTime = Date()
         collector.streamingLifecycle.isStreamingMode = true
         collector.streamingLifecycle.isOvernightStreaming = true
-        collector.isOvernightEnding = false
+        collector.overnightRun.isEnding = false
         collector.streamingLifecycle.isPaused = false
         collector.sessionState.recordingPhase = .overnightStreaming
         collector.streamingLifecycle.pausedSession = nil
@@ -389,6 +389,6 @@ extension CollectorSessionControl {
         collector.streamingLifecycle.isPaused = true
         collector.streamingLifecycle.pausedBeatCount = session.rrSeries?.points.count ?? 0
         collector.sessionState.recordingPhase = .paused(sessionId: id)
-        if let usesDeviceBackup = persistedPausedCaptureMode() { collector.useDeviceBackupForOvernight = usesDeviceBackup }
+        if let usesDeviceBackup = persistedPausedCaptureMode() { collector.overnightRun.usesDeviceBackup = usesDeviceBackup }
     }
 }
