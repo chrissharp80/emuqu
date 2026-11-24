@@ -342,6 +342,7 @@ ul.tight{margin:0;padding-left:20px;display:grid;gap:4px;max-width:80ch}
     return `<div class="unit" id="u-${esc(k)}"><h4>${esc(u.type?u.type+'.':'')}${esc(u.name)} <span class="muted">:${u.start}–${u.end}</span></h4>
     <div class="ev">${esc(u.kind)} · second read: ${esc(u.verdict)}${reach}</div>
     <dl class="kv"><dt>does</dt><dd>${esc(u.does)}</dd>
+    ${u.contract?`<dt>contract</dt><dd>${esc(u.contract)}</dd>`:''}
     <dt>trigger</dt><dd>${u.entry?esc(u.entry):'<span class="muted">called from app code</span>'}</dd>
     <dt>calls</dt><dd>${list(u.calls,c=>callItem(c))}</dd>
     <dt>callers</dt><dd>${list(u.callers,c=>unitLink(c))}</dd>

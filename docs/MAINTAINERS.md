@@ -1364,9 +1364,14 @@ to what one function does sends every certain caller back to be re-read, and
 onward while behaviour keeps changing.
 
 For a change: run `make codemap-impact` first and read what it lists; make the
-change; rewrite each record the guard lists; re-read each re-check caller and
-update it if its behaviour changed too; stamp callees before callers. The
-procedure is in [`codemap/README.md`](codemap/README.md#changing-code).
+change (carry a moved file or renamed unit over with `codemap.py move`); rewrite
+each record the guard lists; re-read each re-check caller (`codemap.py status
+--by-callee` groups them under the callee that changed) and either update it
+or, when it is unaffected, clear it with `codemap.py ack`; then stamp, in one
+pass, once the callees' records are written. A record with a `contract` sends
+its callers back only when the contract changes, not when its description is
+reworded. The procedure is in
+[`codemap/README.md`](codemap/README.md#changing-code).
 
 The guard proves records were stamped after the code and its callees changed.
 It cannot prove a record is right; review does that. The graph has no type

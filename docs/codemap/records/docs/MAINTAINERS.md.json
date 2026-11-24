@@ -1361,8 +1361,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > The code map",
-   "hash": "681cfa732d5b83b6",
-   "does": "Describes docs/codemap/records (a record per Swift function, initializer, computed property, protocol requirement, script function, Makefile target, workflow step and Markdown section, with what it does, triggers, calls, shared state and branches); the call graph (recorded calls plus calls, property reads, protocol dispatch and closure assignments found in the code); make codemap-impact (callers up to triggers, tests, docs, shared state and its other users; the same list in the gates.yml PR job summary); and make codemap-guard (in make ci, both workflows and the pre-commit hook) failing on a missing or empty record or code changed since stamping, and counting the re-check lines (callee now describes different behaviour, a new certain callee, or a record naming a unit that no longer exists), which codemap.py status lists. Gives the change procedure (impact, change, rewrite, re-check, stamp callees first) with links to codemap/README.md, and states the limits: the guard proves timing, not correctness; without a type checker ambiguous names are possible callers and only certain edges trigger re-checks. Every claim matches codemap.py, graph.py and the workflows.",
+   "hash": "2eade9a55ba1ef28",
+   "does": "Describes docs/codemap/records (a record per Swift function, initializer, computed property, protocol requirement, script function, Makefile target, workflow step and Markdown section, with what it does, triggers, calls, shared state and branches); the call graph (recorded calls plus calls, property reads, protocol dispatch and closure assignments found in the code); make codemap-impact (callers up to triggers, tests, docs, shared state and its other users; the same list in the gates.yml PR job summary); and make codemap-guard (in make ci, both workflows and the pre-commit hook) failing on a missing or empty record or code changed since stamping, and counting the re-check lines (callee now describes different behaviour, a new certain callee, or a record naming a unit that no longer exists), which codemap.py status lists. Gives the change procedure (impact, change with codemap.py move for a moved file or renamed unit, rewrite, re-check via status --by-callee with ack for an unaffected caller, stamp in one pass once callees' records are written) and says a record with a contract sends its callers back only when the contract changes, with links to codemap/README.md, and states the limits: the guard proves timing, not correctness; without a type checker ambiguous names are possible callers and only certain edges trigger re-checks. Every claim matches codemap.py, graph.py and the workflows.",
    "entry": null,
    "calls": [
     "Makefile::target codemap-impact",
@@ -1386,7 +1386,7 @@
     "Makefile::target codemap-impact": "03eba22ded671ba7",
     "scripts/codemap/codemap.py::def budget_problems": "4b5252320a3020b3",
     "scripts/codemap/codemap.py::def cmd_impact": "192de9074058712d",
-    "scripts/codemap/codemap.py::def dependency_problems": "df4bf0f691649e50",
+    "scripts/codemap/codemap.py::def dependency_problems": "bd259b7be6811115",
     "scripts/codemap/graph.py::def build": "e683daa77ef33431"
    }
   },

@@ -68,7 +68,7 @@ def build(root: Path, records: dict, out: Path) -> int:
             by_file_keys[f].append(gk)
             fl_list = [{**fl, "status": STATUS.get(fl.get("found"), "later")} for fl in r.get("flags") or []]
             units[gk] = {"file": f, "name": u["name"], "type": u["type"], "kind": u["kind"], "start": u["start"], "end": u["end"],
-                         "area": a, "does": r.get("does", ""), "entry": r.get("entry"), "calls": r.get("calls") or [],
+                         "area": a, "does": r.get("does", ""), "contract": r.get("contract", ""), "entry": r.get("entry"), "calls": r.get("calls") or [],
                          "reads": r.get("reads") or [], "writes": r.get("writes") or [],
                          "branches": [{**b, "line": u["start"] + int(b["at"][1:]) if str(b.get("at", "")).startswith("+") else b.get("at")} for b in r.get("branches") or []],
                          "flags": fl_list, "current": r.get("hash") == u["hash"]}
@@ -276,7 +276,7 @@ def build(root: Path, records: dict, out: Path) -> int:
     dump("data/index.json", [[k, u["name"], u["area"], u["file"], u["start"], u.get("reach")] for k, u in units.items()])
     per_area = collections.defaultdict(dict)
     for k, u in units.items():
-        per_area[u["area"]][k] = {x: u.get(x) for x in ("name", "type", "kind", "file", "start", "end", "does", "entry", "calls",
+        per_area[u["area"]][k] = {x: u.get(x) for x in ("name", "type", "kind", "file", "start", "end", "does", "contract", "entry", "calls",
                                                         "callers", "possible_callers", "reads", "writes", "branches", "flags", "reach", "current")}
     for a in set(per_area) | set(area_files):
         dump(f"data/units/{a}.json", {"units": per_area.get(a, {}), "files": {f: files[f] for f in sorted(area_files.get(a, []))}})

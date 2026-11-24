@@ -79,11 +79,15 @@ pre-commit hook fail until the records for what you changed are current.
 2. Make the change.
 3. `make codemap-guard` lists every record to bring up to date. Rewrite each
    against the code as it now is.
-4. "re-check" lines (`codemap.py status` lists them) are callers whose callee
-   now does something different. Re-read each one; if its own behaviour
-   changed, change it or its record too.
-5. Stamp each record after you have re-read it, callees before callers:
-   `.venv-codemap/bin/python scripts/codemap/codemap.py stamp <path> [<key> ...]`.
+4. "re-check" lines are callers whose callee now does something different;
+   `codemap.py status --by-callee` lists them under each callee with what
+   changed. Re-read each one. If it is unaffected, clear it with
+   `codemap.py ack <callee> [<caller> ...]`; if its own behaviour changed,
+   change it or its record too.
+5. Stamp each record after you have re-read it, once its callees' records are
+   written; any number in one pass:
+   `.venv-codemap/bin/python scripts/codemap/codemap.py stamp <path>::<key> ...`.
+   A moved file or renamed unit is carried over first with `codemap.py move`.
 
 The full procedure is in [`docs/codemap/README.md`](docs/codemap/README.md).
 
