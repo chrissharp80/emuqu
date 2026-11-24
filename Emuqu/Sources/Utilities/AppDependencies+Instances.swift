@@ -70,6 +70,11 @@ extension VoiceConversationController {
     static let shared = VoiceConversationController(services: VoiceServices(.current))
 }
 
+extension BreadcrumbRecorder {
+    /// The app's Get Me Back trail recorder: one location manager, one trail.
+    static let shared = BreadcrumbRecorder(services: BreadcrumbServices(.current))
+}
+
 extension AssistantViewModel {
     /// The app's chat: one transcript, one provider choice.
     static let shared = AssistantViewModel(services: ChatServices(.current))

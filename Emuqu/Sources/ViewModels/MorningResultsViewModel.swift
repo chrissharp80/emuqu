@@ -73,7 +73,7 @@ final class MorningResultsViewModel {
     /// read against the load frozen with it, as the score detail and the PDF
     /// read it, not against today's.
     var adviceLiveLoad: TrainingLoadRegistry.TrainingLoad? {
-        isHistoricalSession ? nil : TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache)
+        isHistoricalSession ? nil : TrainingLoadRegistry.live(from: services.trainingMetricsCache)
     }
 
     /// The shared advice gate's read of the load the morning steps use, so the
@@ -140,11 +140,11 @@ final class MorningResultsViewModel {
     /// so two quick answers reach the archive in the order they were given
     /// and the last one is what stays stored.
     private func persistPerceivedReadiness(_ value: Double?, scored: HRVSession, revertTo previous: HRVSession) {
-        let sessionId = session.id
+        let (sessionId, archive) = (session.id, services.sessionArchive)
         let earlier = perceivedReadinessWrite
         perceivedReadinessWrite = Task {
             await earlier?.value
-            let archived = await Task.detached { Self.loadArchived(sessionId) }.value
+            let archived = await Task.detached { Self.loadArchived(sessionId, from: archive) }.value
             var rescored = archived.session ?? scored
             rescored.perceivedReadiness = value
             applyPerceivedReadinessScore(to: &rescored)
@@ -152,7 +152,7 @@ final class MorningResultsViewModel {
             let isArchived = archived.session != nil
             let readable = archived.readable
             let saved = await Task.detached {
-                readable && Self.writePerceivedReadiness(toWrite, isArchived: isArchived)
+                readable && Self.writePerceivedReadiness(toWrite, isArchived: isArchived, to: archive)
             }.value
             guard reanalyzedSession?.perceivedReadiness == value else { return }
             if saved { adoptArchivedSession(toWrite) } else { reanalyzedSession = previous }
@@ -161,9 +161,11 @@ final class MorningResultsViewModel {
 
     /// The archived copy of the session (nil when it is not archived yet), and
     /// whether the archive could be read at all.
-    nonisolated private static func loadArchived(_ id: UUID) -> (session: HRVSession?, readable: Bool) {
+    nonisolated private static func loadArchived(
+        _ id: UUID, from archive: SessionArchive
+    ) -> (session: HRVSession?, readable: Bool) {
         do {
-            let stored = try AppDependencies.current.storage.sessionArchive.retrieve(id)
+            let stored = try archive.retrieve(id)
             return (stored, true)
         } catch {
             debugLog("[MorningResultsVM] Could not read session to persist perceivedReadiness: \(error)", level: .warning)
@@ -174,9 +176,11 @@ final class MorningResultsViewModel {
     /// Store the rating and score fields of `rescored`: in place on the
     /// archived copy (`SessionArchive.update`), or by archiving `rescored`
     /// whole when the session is not archived yet. False when the write threw.
-    nonisolated private static func writePerceivedReadiness(_ rescored: HRVSession, isArchived: Bool) -> Bool {
+    nonisolated private static func writePerceivedReadiness(
+        _ rescored: HRVSession, isArchived: Bool, to archive: SessionArchive
+    ) -> Bool {
         do {
-            try storePerceivedReadiness(rescored, isArchived: isArchived)
+            try storePerceivedReadiness(rescored, isArchived: isArchived, to: archive)
             debugLog("[MorningResultsVM] Persisted perceivedReadiness=\(rescored.perceivedReadiness.map { String(format: "%.2f", $0) } ?? "nil")")
             return true
         } catch {
@@ -187,8 +191,9 @@ final class MorningResultsViewModel {
 
     /// The write behind `writePerceivedReadiness`: only the rating and score
     /// fields, in place, on an archived copy; the whole session otherwise.
-    nonisolated private static func storePerceivedReadiness(_ rescored: HRVSession, isArchived: Bool) throws {
-        let archive = AppDependencies.current.storage.sessionArchive
+    nonisolated private static func storePerceivedReadiness(
+        _ rescored: HRVSession, isArchived: Bool, to archive: SessionArchive
+    ) throws {
         guard isArchived else {
             try archive.archive(rescored, skipSameNightMerge: false, requestingReupload: true)
             return
@@ -335,7 +340,7 @@ final class MorningResultsViewModel {
         summaryMemo = (key, summary)
         // Share with the Assistant so it can reference any session the user has
         // ever opened in MorningResultsView (today, history reviews, etc.).
-        AppDependencies.current.assistant.analysisSummaryCache.set(
+        services.analysisSummaryCache.set(
             summary, forSessionId: displaySession.id,
             fingerprint: AnalysisSummaryCache.fingerprint(for: displaySession)
         )
@@ -424,12 +429,13 @@ final class MorningResultsViewModel {
         return LiveReadiness.compute(
             recoveryScore: compositeRecoveryScore,
             morningSession: displaySession,
-            liveMetrics: AppDependencies.current.analysis.trainingMetricsCache.current
+            liveMetrics: services.trainingMetricsCache.current
         )
     }
 
     // MARK: - Services
 
+    private let services: MorningResultsServices
     private let settingsManager: SettingsManager
     let healthKit: HealthKitManager
 
@@ -440,14 +446,15 @@ final class MorningResultsViewModel {
         session: HRVSession,
         result: HRVAnalysisResult,
         recentSessions: [HRVSession] = [],
-        settingsManager: SettingsManager = AppDependencies.current.app.settingsManager,
-        healthKit: HealthKitManager = AppDependencies.current.collection.healthKitManager
+        services: MorningResultsServices = MorningResultsServices(.current)
     ) {
         self.session = session
         self.result = result
         self.recentSessions = recentSessions
+        self.services = services
+        let settingsManager = services.settingsManager
         self.settingsManager = settingsManager
-        self.healthKit = healthKit
+        self.healthKit = services.healthKitManager
         selectedTags = Set(session.tags)
         notes = session.notes ?? ""
         selectedMethod = settingsManager.settings.defaultWindowSelectionMethod
@@ -642,7 +649,7 @@ final class MorningResultsViewModel {
     /// an older copy never replaces a newer one.
     func applyExternalArchiveUpdate() {
         let sessionId = session.id
-        let shown = displaySession
+        let (shown, archive) = (displaySession, services.sessionArchive)
         archiveUpdateGeneration &+= 1
         let generation = archiveUpdateGeneration
         // Decode and compare off the main actor. This fires on EVERY archive
@@ -650,7 +657,7 @@ final class MorningResultsViewModel {
         // re-analyze, sleep refresh, any other-session edit), and the full
         // retrieve (disk + AES-GCM decrypt + JSON decode) is too heavy for main.
         Task { [weak self] in
-            let stored = await Task.detached { Self.changedArchivedCopy(sessionId, comparedWith: shown) }.value
+            let stored = await Task.detached { Self.changedArchivedCopy(sessionId, comparedWith: shown, in: archive) }.value
             guard let self, let stored, generation == self.archiveUpdateGeneration else { return }
             self.adoptArchivedSession(stored)
             debugLog("[MorningResultsVM] external archive update applied — recoveryScore=\(stored.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil") frozenReadiness=\(stored.frozenReadiness.map { String(format: "%.1f", $0) } ?? "nil")")
@@ -663,8 +670,10 @@ final class MorningResultsViewModel {
 
     /// The archived copy when it differs from what the report shows; nil when
     /// it is unchanged, gone, or unreadable (logged).
-    nonisolated private static func changedArchivedCopy(_ id: UUID, comparedWith shown: HRVSession) -> HRVSession? {
-        guard let stored = AppDependencies.current.storage.sessionArchive.retrieveOrLog(id) else { return nil }
+    nonisolated private static func changedArchivedCopy(
+        _ id: UUID, comparedWith shown: HRVSession, in archive: SessionArchive
+    ) -> HRVSession? {
+        guard let stored = archive.retrieveOrLog(id) else { return nil }
         return reportsSame(stored, shown) ? nil : stored
     }
 
@@ -692,4 +701,20 @@ final class MorningResultsViewModel {
             recoveryVitals = vitals
         }
     }
+}
+
+/// The services the morning results view model reads, and nothing else.
+/// Each accessor resolves on use, as the container's do; a test substitutes
+/// one by building these from a container with that override set.
+struct MorningResultsServices: Sendable {
+    private let container: AppDependencies
+
+    init(_ container: AppDependencies) { self.container = container }
+
+    var analysisSummaryCache: AnalysisSummaryCache { container.assistant.analysisSummaryCache }
+    var healthKitManager: HealthKitManager { container.collection.healthKitManager }
+    var sessionArchive: SessionArchive { container.storage.sessionArchive }
+    var settingsManager: SettingsManager { container.app.settingsManager }
+    @MainActor
+    var trainingMetricsCache: TrainingMetricsCache { container.analysis.trainingMetricsCache }
 }

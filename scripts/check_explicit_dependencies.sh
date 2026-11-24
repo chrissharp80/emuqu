@@ -24,7 +24,8 @@
 # app target is a container swapped under running code.
 #
 # Rules, comment lines excepted:
-#   1. no `AppDependencies.current` in an EXPLICIT file;
+#   1. no `AppDependencies.current`, and no service list built from it
+#      (`XServices(.current)`), in an EXPLICIT file;
 #   2. no `AppDependencies.install(` in `Emuqu/` or the Watch target.
 # See docs/adr/007-single-target-composition-root.md.
 set -uo pipefail
@@ -61,6 +62,7 @@ EXPLICIT_PATTERNS=(
     "Emuqu/Sources/Assistant/VoiceConversationController*.swift"
     "Emuqu/Sources/Assistant/VoiceAudioPipeline*.swift"
     "Emuqu/Sources/Assistant/VoiceServices.swift"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift"
 )
 APP_DIRS=("Emuqu" "EmuquWatch Watch App")
 
@@ -86,7 +88,9 @@ code_hits() {
     grep -nHE "$pattern" "$@" 2>/dev/null | grep -vE '^[^:]+:[0-9]+:\s*(///|//|\*)' || true
 }
 
-lookups="$(code_hits 'AppDependencies\.current\b' "${explicit[@]}")"
+# `XServices(.current)` builds a service list from the container in force, so
+# it is the same lookup spelled shorter.
+lookups="$(code_hits 'AppDependencies\.current\b|Services\(\.current\)' "${explicit[@]}")"
 if [[ -n "$lookups" ]]; then
     echo "$lookups"
     echo "check_explicit_dependencies: \`AppDependencies.current\` is read in a file handed its dependencies (above)." >&2
