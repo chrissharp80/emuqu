@@ -10,8 +10,6 @@ import Foundation
 final class ProviderRegistry {
     // MARK: - Singleton
 
-    static let shared = ProviderRegistry()
-
     // MARK: - Providers
 
     // One instance each, shared by `allProviders` and `activeProvider`, so
@@ -80,7 +78,7 @@ final class ProviderRegistry {
     private(set) var activeModel: ModelOption
     /// Cached availability for the active provider.
     /// Each `AIProvider.isAvailable` call hits the Keychain via
-    /// `AppDependencies.current.providers.apiKeyStore.hasKey(for:)` → `SecItemCopyMatching`,
+    /// `APIKeyStore.hasKey(for:)` → `SecItemCopyMatching`,
     /// which is synchronous and ~1-3 ms. Hot paths (chat input bar's
     /// `canSend`, send button's color, prefab chip's enabled state)
     /// would call this 3-4 times per render, a noticeable main-thread
@@ -96,7 +94,11 @@ final class ProviderRegistry {
     /// cache at its default `false`, so a user with saved keys would get
     /// `composerState.canSend = false` and a send button disabled until
     /// they changed providers or updated a key.
-    private init() {
+    /// The key store, the provider switches and the perf signposts, resolved on use.
+    private let services: ProviderRegistryServices
+
+    init(services: ProviderRegistryServices) {
+        self.services = services
         let apple = AppleFoundationProvider()
         let anthropic = AnthropicProvider()
         let openai = OpenAIProvider()
@@ -109,7 +111,9 @@ final class ProviderRegistry {
         self.gemini = gemini
         self.grok = grok
         self.deepseek = deepseek
-        let restored = Self.restoreSelection(from: [apple, anthropic, openai, gemini, grok, deepseek], fallback: apple)
+        let restored = Self.restoreSelection(
+            from: [apple, anthropic, openai, gemini, grok, deepseek], fallback: apple, flags: services.featureFlags
+        )
         activeProvider = restored.provider
         activeModel = restored.model
         refreshAvailabilityCache()
@@ -117,12 +121,12 @@ final class ProviderRegistry {
 
     /// Restore last selection if it's still available, else fall back.
     private static func restoreSelection(
-        from all: [AIProvider], fallback: AIProvider
+        from all: [AIProvider], fallback: AIProvider, flags: FeatureFlags
     ) -> (provider: AIProvider, model: ModelOption) {
-        if let saved = savedSelection(from: all) { return saved }
+        if let saved = savedSelection(from: all, flags: flags) { return saved }
         // Otherwise: prefer Apple (free) if available, then any enabled
         // provider with a key
-        if let firstAvailable = all.first(where: { $0.isAvailable && isEnabled($0.id) }),
+        if let firstAvailable = all.first(where: { $0.isAvailable && isEnabled($0.id, flags: flags) }),
            let model = defaultModel(of: firstAvailable) {
             return (firstAvailable, model)
         }
@@ -133,12 +137,14 @@ final class ProviderRegistry {
     /// The provider the user picked last, if it is still available and
     /// switched on. A saved model ID that is no longer in the catalog
     /// (renamed in an update) keeps the provider and takes its default model.
-    private static func savedSelection(from all: [AIProvider]) -> (provider: AIProvider, model: ModelOption)? {
+    private static func savedSelection(
+        from all: [AIProvider], flags: FeatureFlags
+    ) -> (provider: AIProvider, model: ModelOption)? {
         let defaults = UserDefaults.standard
         guard let raw = defaults.string(forKey: providerKey),
               let providerID = ProviderID(rawValue: raw),
               let provider = all.first(where: { $0.id == providerID }),
-              provider.isAvailable, isEnabled(provider.id)
+              provider.isAvailable, isEnabled(provider.id, flags: flags)
         else { return nil }
         let savedModelID = defaults.string(forKey: modelKey)
         guard let model = provider.availableModels.first(where: { $0.apiID == savedModelID })
@@ -159,8 +165,8 @@ final class ProviderRegistry {
     /// A provider switched off in Settings counts as unavailable here, so
     /// the composer cannot send to it.
     func refreshAvailabilityCache() {
-        AppDependencies.current.app.keyboardPerfSignpost.event("ProviderRegistry.refreshAvailabilityCache")
-        let active = Self.canSend(to: activeProvider)
+        services.keyboardPerfSignpost.event("ProviderRegistry.refreshAvailabilityCache")
+        let active = canSend(to: activeProvider)
         if activeProviderAvailable != active { activeProviderAvailable = active }
     }
 
@@ -173,8 +179,8 @@ final class ProviderRegistry {
     /// removes the provider from the picker without requiring key removal.)
     var visibleProviders: [AIProvider] {
         allProviders.filter { provider in
-            guard provider.id == .apple || AppDependencies.current.providers.apiKeyStore.hasKey(for: provider.id) else { return false }
-            return Self.isEnabled(provider.id)
+            guard provider.id == .apple || services.apiKeyStore.hasKey(for: provider.id) else { return false }
+            return isEnabled(provider.id)
         }
     }
 
@@ -184,21 +190,25 @@ final class ProviderRegistry {
     /// turn to a provider without the picker (restore, fallback chain,
     /// routing) checks this too, so switching a provider off stops all
     /// traffic to it, not only its picker row.
-    static func isEnabled(_ id: ProviderID) -> Bool {
+    func isEnabled(_ id: ProviderID) -> Bool {
+        Self.isEnabled(id, flags: services.featureFlags)
+    }
+
+    private static func isEnabled(_ id: ProviderID, flags: FeatureFlags) -> Bool {
         switch id {
         case .apple: return true
-        case .anthropic: return AppDependencies.current.app.featureFlags.value(for: .providerAnthropicEnabled)
-        case .openai: return AppDependencies.current.app.featureFlags.value(for: .providerOpenAIEnabled)
-        case .gemini: return AppDependencies.current.app.featureFlags.value(for: .providerGeminiEnabled)
-        case .grok: return AppDependencies.current.app.featureFlags.value(for: .providerGrokEnabled)
-        case .deepseek: return AppDependencies.current.app.featureFlags.value(for: .providerDeepSeekEnabled)
+        case .anthropic: return flags.value(for: .providerAnthropicEnabled)
+        case .openai: return flags.value(for: .providerOpenAIEnabled)
+        case .gemini: return flags.value(for: .providerGeminiEnabled)
+        case .grok: return flags.value(for: .providerGrokEnabled)
+        case .deepseek: return flags.value(for: .providerDeepSeekEnabled)
         }
     }
 
     /// Whether a turn may go to `provider`: it has what it needs to answer
     /// (`isAvailable`: a key, or Apple Intelligence on this device) and its
     /// Settings switch is on.
-    static func canSend(to provider: AIProvider) -> Bool {
+    func canSend(to provider: AIProvider) -> Bool {
         provider.isAvailable && isEnabled(provider.id)
     }
 
@@ -234,10 +244,10 @@ final class ProviderRegistry {
     func keysChanged() {
         // If the active provider just lost its key or was switched off, fall
         // back to any working one.
-        if !Self.canSend(to: activeProvider) {
+        if !canSend(to: activeProvider) {
             if let fallback = visibleProviders.first(where: { $0.isAvailable }) {
                 setActive(provider: fallback)
-            } else if !Self.isEnabled(activeProvider.id) {
+            } else if !isEnabled(activeProvider.id) {
                 setActive(provider: apple)
             }
         }
@@ -249,4 +259,16 @@ final class ProviderRegistry {
         defaults.set(activeProvider.id.rawValue, forKey: Self.providerKey)
         defaults.set(activeModel.apiID, forKey: Self.modelKey)
     }
+}
+
+/// The services the provider registry reads, and nothing else. Each accessor
+/// resolves on use, as the container's do.
+struct ProviderRegistryServices: Sendable {
+    private let container: AppDependencies
+
+    init(_ container: AppDependencies) { self.container = container }
+
+    var apiKeyStore: APIKeyStore { container.providers.apiKeyStore }
+    var featureFlags: FeatureFlags { container.app.featureFlags }
+    var keyboardPerfSignpost: KeyboardPerfSignpost { container.app.keyboardPerfSignpost }
 }

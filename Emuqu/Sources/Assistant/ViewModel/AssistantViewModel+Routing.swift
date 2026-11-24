@@ -50,7 +50,7 @@ extension AssistantTurnRouter {
         var providerStates: [ProviderID: TurnRouter.ProviderState] = [:]
         for provider in owner.registry.allProviders {
             providerStates[provider.id] = TurnRouter.ProviderState(
-                isAvailable: provider.isAvailable && ProviderRegistry.isEnabled(provider.id),
+                isAvailable: provider.isAvailable && owner.registry.isEnabled(provider.id),
                 isConsented: !owner.services.providerConsentTracker.requiresConsent(provider.id),
                 supportsTools: Self.providerSupportsTools(provider),
                 defaultOrFirstModel: provider.availableModels.first(where: { $0.isDefault })
@@ -60,7 +60,7 @@ extension AssistantTurnRouter {
         return TurnRouter.Inputs(
             routingMode: owner.services.settingsManager.settings.routingMode,
             selectedProviderID: owner.registry.activeProvider.id,
-            selectedProviderIsAvailable: ProviderRegistry.canSend(to: owner.registry.activeProvider),
+            selectedProviderIsAvailable: owner.registry.canSend(to: owner.registry.activeProvider),
             selectedModel: owner.registry.activeModel,
             isVoiceTurn: owner.nextSendIsVoice,
             providerOrder: owner.registry.allProviders.map(\.id),
@@ -141,7 +141,7 @@ extension AssistantTurnRouter {
 
     private func enabledMappingSnapshot(_ mapping: TierProviderMapper.Mapping) -> TurnRouter.MappingSnapshot {
         let apple = owner.registry.apple
-        guard !ProviderRegistry.isEnabled(mapping.provider.id), apple.isAvailable,
+        guard !owner.registry.isEnabled(mapping.provider.id), apple.isAvailable,
               let appleModel = apple.availableModels.first(where: { $0.isDefault }) ?? apple.availableModels.first
         else {
             return TurnRouter.MappingSnapshot(
@@ -243,8 +243,8 @@ extension AssistantTurnRouter {
     func dispatch(regenerating replyID: UUID? = nil) {
         let routed = routeTurnAndLogOverride()
         let (provider, voiceMode) = (routed.provider, routed.voiceMode)
-        guard ProviderRegistry.canSend(to: provider) else {
-            owner.errorMessage = AssistantViewModel.unavailableMessage(for: provider.id)
+        guard owner.registry.canSend(to: provider) else {
+            owner.errorMessage = AssistantViewModel.unavailableMessage(for: provider.id, in: owner.registry)
             if replyID == nil, let unsent = withdrawTrailingUserTurn(), !voiceMode {
                 owner.composerState.returnedDraft = unsent
             }

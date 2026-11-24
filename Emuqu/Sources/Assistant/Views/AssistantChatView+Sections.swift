@@ -482,7 +482,7 @@ extension AssistantChatView {
         let consent = dependencies.providers.providerConsentTracker
         return registry.allProviders.contains { provider in
             provider.id != .apple && provider.isAvailable
-                && ProviderRegistry.isEnabled(provider.id) && !consent.requiresConsent(provider.id)
+                && registry.isEnabled(provider.id) && !consent.requiresConsent(provider.id)
         }
     }
 

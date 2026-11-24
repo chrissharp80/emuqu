@@ -656,7 +656,7 @@ extension AssistantToolRunner {
         var result: [(AIProvider, ModelOption)] = []
         for provider in owner.registry.allProviders
             where provider.id != primary.id && provider.id != .apple && provider.isAvailable
-                && ProviderRegistry.isEnabled(provider.id)
+                && owner.registry.isEnabled(provider.id)
                 && !owner.services.providerConsentTracker.requiresConsent(provider.id) {
             if let model = Self.defaultModel(of: provider) { result.append((provider, model)) }
         }
