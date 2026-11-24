@@ -43,8 +43,8 @@ extension OvernightStreamingCoordinator {
         collector.overnightArmingTask = nil
         task.cancel()
         do {
-            try await StrapDeadline.race(
-                seconds: Self.armingWindDownSeconds,
+            try await Deadline.race(
+                seconds: TimeInterval(Self.armingWindDownSeconds),
                 timeout: PolarManager.PolarError.fetchFailed("arming did not wind down")
             ) { await task.value }
         } catch {

@@ -13,7 +13,8 @@
 # What it looks for: interpolation of identifiable-person or raw-health values
 # directly into a log call. The app logs a LOT (deliberately — see
 # DebugLog.swift), and aggregate/derived numbers are fine to log. What is not
-# fine is a name, an email, a coordinate pair, or a raw RR/beat series.
+# fine is a name, an email, a coordinate pair, a raw RR/beat series, what the
+# user said or typed, or the name of the street or city they are on.
 #
 # This is deliberately conservative: it flags a small, high-signal set of
 # patterns rather than trying to classify every interpolation. False positives
@@ -45,6 +46,14 @@ SOURCE_ROOT="${SOURCE_ROOTS[0]}"
 # reached through the contact-specific properties below.
 PII_PATTERN='\\\(([^)]*\.)?(email|emailAddress|recipientEmail|fullName|firstName|lastName|contactName|recipientName|apiKey|token|bearer|password|secret)[^)]*\)'
 GEO_PATTERN='\\\([^)]*\.(latitude|longitude)[^)]*\)'
+# What the user said or typed (an assistant or web-search query, a voice
+# transcript, a prompt) and where they are (a street or city name), bare or
+# truncated with `.prefix(n)`, with or without a `?? "…"` fallback. A count or
+# a nil test (`\(query.count)`, `\(road == nil ? …)`) is not matched.
+USER_TEXT_PATTERN='\\\(([^)]*\.)?(query|q|transcript|utterance|userText|userMessage|prompt|question|thoroughfare|subThoroughfare|locality|subLocality|road|street|crossStreet)(\.prefix\([0-9]+\))?( \?\? "[^"]*")?\)'
+# The name of a saved route (free text the user typed) or of a place. A bare
+# `name` is not matched: in this codebase it mostly names a device or sport.
+PLACE_NAME_PATTERN='\\\(([^)]*\.)?(savedRoute|route|osmHit|placemark|mapItem)\.name\)'
 # A bare `\(rr)` and a member path `\(self.rrIntervals)` / `\(session.rr)` alike.
 # `samples` only bare: as a member it is a sample COUNT in this codebase
 # (`\(pass.samples)`), not a series.
@@ -157,6 +166,8 @@ report() {
 report "personal identifiers / credentials" "$PII_PATTERN"
 report "precise coordinates" "$GEO_PATTERN"
 report "raw beat/RR series" "$RAW_SERIES_PATTERN"
+report "user text / place names" "$USER_TEXT_PATTERN"
+report "route / place names" "$PLACE_NAME_PATTERN"
 
 if (( violations )); then
     cat <<'EOF'

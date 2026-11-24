@@ -104,7 +104,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocoderRequest(_:)": "afbe5e7469fc014c",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocoderRequest(_:)": "3774215148763dd0",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)": "c763d92a09df7b90",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)": "5fc216f77922d8f8"
    }
@@ -134,7 +134,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocoderRequest(_:)": "afbe5e7469fc014c",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocoderRequest(_:)": "3774215148763dd0",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)": "c763d92a09df7b90",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)": "5fc216f77922d8f8"
    }
@@ -142,10 +142,10 @@
   {
    "key": "func RoadGeocodingService.geocoderRequest(_:)",
    "hash": "09fad85d900bc9a7",
-   "does": "Runs one CLGeocoder request through runWithTimeout (5 s); when it gave nothing back and the geocoder is still working on a request (isGeocoding), cancels that request so the queue's next call does not fail against it. Returns the result, nil on a timeout or an error.",
+   "does": "Runs one CLGeocoder request through runWithTimeout (5 s); when it gave nothing back and the geocoder is still working on a request (isGeocoding), cancels that request so the queue's next call does not fail against it. Returns the result; nil on a timeout, an error, or at once when the caller is cancelled.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::func runWithTimeout(seconds:operation:)",
     "ext:CLGeocoder.isGeocoding",
     "ext:CLGeocoder.cancelGeocode",
     "closure:request (the caller's CLGeocoder call)"
@@ -164,7 +164,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "3ebe96c57aa110d7"
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "3ebe96c57aa110d7",
+    "Emuqu/Sources/Utilities/Deadline.swift::func runWithTimeout(seconds:operation:)": "9e18694990d5274e"
    }
   },
   {
@@ -474,7 +475,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "f1ca30241f252cbe",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "3076ecd344ee499c",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startIfIdle(enriched:_:)": "b08976374f5f6cc9"
    }
   },
@@ -493,7 +494,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.refreshNearestCrossStreet(for:currentRoad:)": "5a56c35a745ffd3e",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.refreshNearestCrossStreet(for:currentRoad:)": "753db3ed54f5276e",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.startIfIdle(enriched:_:)": "b08976374f5f6cc9"
    }
   },

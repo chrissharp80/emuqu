@@ -625,7 +625,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.resolveFinalizeTrainingContext(stopDate:)": "c911095a03c8a84f",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.resolveFinalizeTrainingContext(stopDate:)": "d1eadd422516350b",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "f306ef98d67e6cfb"
    }
   },
@@ -654,13 +654,13 @@
     },
     {
      "at": "+5",
-     "cond": "runWithTimeout returned a load within 1.5 s",
+     "cond": "runWithTimeout returned a load within 1.5 s (nil also at once when the caller is cancelled)",
      "effect": "false: logs and returns nil (session saved without trainingSnapshot; HealthKit query keeps running unawaited); true: TrainingContext(from:) which itself returns nil when load.metrics is nil"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingLoad(days:forMorningReading:relativeTo:)": "d36227967fc7d5f1",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.runWithTimeout(seconds:_:)": "86e491db7c8209b8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.runWithTimeout(seconds:_:)": "c28d65b8c7741a93",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.trainingContext(fromCached:relativeTo:)": "3352eb067351f1af",
     "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "fd7deac52d920bd3",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
@@ -694,16 +694,17 @@
   {
    "key": "func WorkoutFinalizer.runWithTimeout(seconds:_:)",
    "hash": "5f1f0f07ac9d7c2a",
-   "does": "Generic timeout race: forwards to the module-level runWithTimeout (continuation + FirstResultGate), returning the operation's value or nil after `seconds`; the operation keeps running unawaited.",
+   "does": "Generic timeout race: forwards to the module-level runWithTimeout (Deadline.race), returning the operation's value, or nil after `seconds` or at once when the caller is cancelled; the operation keeps running unawaited.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)"
+    "Emuqu/Sources/Utilities/Deadline.swift::func runWithTimeout(seconds:operation:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "5af466200d134c47"
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "5af466200d134c47",
+    "Emuqu/Sources/Utilities/Deadline.swift::func runWithTimeout(seconds:operation:)": "9e18694990d5274e"
    }
   },
   {
@@ -803,14 +804,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.wristHRQuery(from:to:healthKit:)": "aa398946e1e5e2a3",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.wristHRQuery(from:to:healthKit:)": "346dead54d4ec540",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func WorkoutFinalizer.wristHRQuery(from:to:healthKit:)",
    "hash": "df8dae6a880bae4f",
-   "does": "Runs fetchHeartRateSamples for the window under runWithTimeout(3 s), capturing the outcome as a Result (success samples or the thrown error); nil when the timeout won.",
+   "does": "Runs fetchHeartRateSamples for the window under runWithTimeout(3 s), capturing the outcome as a Result (success samples or the thrown error); nil when the timeout won or at once when the caller is cancelled.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.runWithTimeout(seconds:_:)",
@@ -829,7 +830,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "ababe979d0000127",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.runWithTimeout(seconds:_:)": "86e491db7c8209b8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.runWithTimeout(seconds:_:)": "c28d65b8c7741a93",
     "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },

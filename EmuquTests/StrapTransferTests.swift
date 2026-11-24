@@ -204,7 +204,7 @@ final class StrapTransferTests: XCTestCase {
     func testTheDeadlineReturnsWhenTheCallNeverDoes() async {
         let started = Date()
         do {
-            _ = try await StrapDeadline.race(seconds: 1, timeout: PolarManager.PolarError.fetchFailed("timeout")) {
+            _ = try await Deadline.race(seconds: 1, timeout: PolarManager.PolarError.fetchFailed("timeout")) {
                 await withUnsafeContinuation { (_: UnsafeContinuation<Void, Never>) in }
             }
             XCTFail("a call that never answers returned")

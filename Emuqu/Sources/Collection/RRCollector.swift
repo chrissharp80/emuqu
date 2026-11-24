@@ -241,41 +241,77 @@ final class RRCollector {
         }.value
     }
 
-    /// Decrypt the sessions in PARALLEL. `retrieveLightweight` holds
-    /// `archiveLock` only for the index lookup, not across the file
-    /// read+decrypt, so a TaskGroup fans the ~35-session decode across cores
-    /// instead of a one-at-a-time loop that leaves the dashboard lingering on
-    /// empty placeholders. Order is preserved by index. Also the decode of
+    /// Every archived session (lightweight), for a screen that charts the
+    /// whole history. Cancelling the calling task cancels the load: no new
+    /// read starts, and nil comes back rather than part of the history, so a
+    /// caller never shows or acts on an incomplete list.
+    func allSessionsAsync() async -> [HRVSession]? {
+        let entries = archive.entries
+        let archive = self.archive
+        let work = Task.detached(priority: .userInitiated) {
+            await Self.decodeInParallel(entries, archive: archive)
+        }
+        let sessions = await withTaskCancellationHandler {
+            await work.value
+        } onCancel: {
+            work.cancel()
+        }
+        return Task.isCancelled ? nil : sessions
+    }
+
+    /// At most this many sessions are read and decoded at once: enough to
+    /// keep every core busy, without queuing a task for each archived session
+    /// when a screen loads the whole history.
+    nonisolated static var decodeWidth: Int { max(2, ProcessInfo.processInfo.activeProcessorCount) }
+
+    /// Decrypt the sessions in PARALLEL, at most `decodeWidth` at a time.
+    /// `retrieveLightweight` holds `archiveLock` only for the index lookup,
+    /// not across the file read+decrypt, so a TaskGroup spreads the decode
+    /// across cores instead of a one-at-a-time loop that leaves the dashboard
+    /// lingering on empty placeholders. Each finished read starts the next;
+    /// once the task is cancelled no new read starts, and the reads already
+    /// running finish. Order is preserved by index; sessions that fail to
+    /// decode are left out. Also the decode of
     /// `recentSessionsAsync(limit:before:type:)`.
     nonisolated static func decodeInParallel(_ entries: [SessionArchiveEntry], archive: SessionArchive) async -> [HRVSession] {
         await withTaskGroup(of: (Int, HRVSession?).self) { group in
-            addDecodeTasks(&group, entries: entries, archive: archive)
-            return await collectIndexed(group, capacity: entries.count)
+            let first = min(decodeWidth, entries.count)
+            for index in 0 ..< first {
+                addDecodeTask(&group, index: index, entry: entries[index], archive: archive)
+            }
+            return await drainRefilling(&group, entries: entries, next: first, archive: archive)
         }
     }
 
-    nonisolated private static func addDecodeTasks(
+    /// Collect each finished read and start the next unread entry in its
+    /// place, until every started read has finished. No new read starts
+    /// once the task is cancelled. Returns the decoded sessions in the
+    /// entries' order.
+    nonisolated private static func drainRefilling(
         _ group: inout TaskGroup<(Int, HRVSession?)>,
         entries: [SessionArchiveEntry],
+        next start: Int,
         archive: SessionArchive
-    ) {
-        for (i, entry) in entries.enumerated() {
-            group.addTask { (i, archive.retrieveLightweightOrLog(entry.sessionId)) }
-        }
-    }
-
-    /// Drain the group, dropping the sessions that failed to decode and
-    /// restoring the caller's original ordering.
-    nonisolated private static func collectIndexed(
-        _ group: TaskGroup<(Int, HRVSession?)>,
-        capacity: Int
     ) async -> [HRVSession] {
+        var next = start
         var indexed: [(Int, HRVSession)] = []
-        indexed.reserveCapacity(capacity)
-        for await (i, session) in group {
-            session.map { indexed.append((i, $0)) }
+        indexed.reserveCapacity(entries.count)
+        while let finished = await group.next() {
+            finished.1.map { indexed.append((finished.0, $0)) }
+            guard next < entries.count, !Task.isCancelled else { continue }
+            addDecodeTask(&group, index: next, entry: entries[next], archive: archive)
+            next += 1
         }
         return indexed.sorted { $0.0 < $1.0 }.map(\.1)
+    }
+
+    nonisolated private static func addDecodeTask(
+        _ group: inout TaskGroup<(Int, HRVSession?)>,
+        index: Int,
+        entry: SessionArchiveEntry,
+        archive: SessionArchive
+    ) {
+        group.addTask { (index, archive.retrieveLightweightOrLog(entry.sessionId)) }
     }
 
     /// Load a single full session (with rrSeries) on a background thread.

@@ -165,7 +165,7 @@
   },
   {
    "key": "func WorkoutAIContextBuilder.attemptAutoRouteDetection(sport:)",
-   "hash": "dceccb26da884ddd",
+   "hash": "c75f93d42463a321",
    "does": "Saved-route auto-binding: once the GPS distance the location manager keeps (credited as fixes arrive, so the ticks between attempts cost nothing) reaches the later of 500 m (RouteLibrary.detectionTriggerMeters) and nextRouteDetectionAtMeters, schedules the next attempt another 500 m on, asks RouteLibrary.findMatch against the saved-route store with the live track, and on a match binds the planned route, marks it auto-detected and records the direction.",
    "entry": null,
    "calls": [
@@ -199,7 +199,7 @@
     {
      "at": "+15",
      "cond": "direction == .reverse",
-     "effect": "log suffix \"(reverse)\"; else empty"
+     "effect": "log suffix \"(reverse)\"; else empty. The route is logged by the first 8 characters of its id, not its name"
     }
    ],
    "deps": {

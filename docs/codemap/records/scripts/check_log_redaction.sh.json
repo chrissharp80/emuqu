@@ -1,13 +1,13 @@
 {
  "file": "scripts/check_log_redaction.sh",
- "hash": "e68295aec4dbb042",
- "role": "CI gate: log calls (debugLog, os.Logger values named logger or log and Logger(…) built in place at any level, os_log, NSLog, print, ...) must not interpolate PII/credential names, latitude/longitude, or raw RR/beat series.",
+ "hash": "55d5dea74f1a6033",
+ "role": "CI gate: log calls (debugLog, os.Logger values named logger or log and Logger(…) built in place at any level, os_log, NSLog, print, ...) must not interpolate PII/credential names, latitude/longitude, raw RR/beat series, what the user said or typed (query, transcript, prompt), or a street, city, place or saved-route name.",
  "types": [],
  "state": [
   "dir:Emuqu/Sources",
   "dir:EmuquWatch Watch App"
  ],
- "toplevel": "cd to repo root; sources preflight. SOURCE_ROOTS = args or Emuqu/Sources + watch app; a missing root -> exit 2. LOG_CALL covers debugLog, debugLogExternal, RuntimeLogger.shared.log, `logger.`/`log.` + debug/info/notice/warning/error/fault/trace/critical, `Logger(…)` followed (newline allowed) by one of those levels, os_log, os_signpost, NSLog and (Swift.)print. tmp via gate_mktemp (|| exit). Python writes one line per log call (LOG_CALL not preceded by a word character; the whole call found by string/interpolation-aware paren matching and joined onto one line) as file:line:call, skipping // lines and calls with `log-redaction-ok` on any of their lines or the line above; a Python failure -> exit 2. report() greps tmp for PII_PATTERN, GEO_PATTERN, RAW_SERIES_PATTERN (bare or member-path rr/rrValues/rrSeries/beats/rrIntervals, bare samples); any -> remediation text + exit 1; else clean with scanned count.",
+ "toplevel": "cd to repo root; sources preflight. SOURCE_ROOTS = args or Emuqu/Sources + watch app; a missing root -> exit 2. LOG_CALL covers debugLog, debugLogExternal, RuntimeLogger.shared.log, `logger.`/`log.` + debug/info/notice/warning/error/fault/trace/critical, `Logger(…)` followed (newline allowed) by one of those levels, os_log, os_signpost, NSLog and (Swift.)print. tmp via gate_mktemp (|| exit). Python writes one line per log call (LOG_CALL not preceded by a word character; the whole call found by string/interpolation-aware paren matching and joined onto one line) as file:line:call, skipping // lines and calls with `log-redaction-ok` on any of their lines or the line above; a Python failure -> exit 2. report() greps tmp for PII_PATTERN, GEO_PATTERN, RAW_SERIES_PATTERN (bare or member-path rr/rrValues/rrSeries/beats/rrIntervals, bare samples), USER_TEXT_PATTERN (query, q, transcript, utterance, userText, userMessage, prompt, question, thoroughfare, subThoroughfare, locality, subLocality, road, street, crossStreet, bare or member path, optionally .prefix(n) and a `?? \"…\"` fallback; a count or nil test does not match) and PLACE_NAME_PATTERN (savedRoute/route/osmHit/placemark/mapItem .name); any -> remediation text + exit 1; else clean with scanned count.",
  "units": [
   {
    "key": "fn report",

@@ -138,7 +138,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)": "4e22c51f15a1b246",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)": "fdd32d4ff1926cc8",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "5f4c9b1f9510f962",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
@@ -1161,16 +1161,16 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.deviceIsRecording()": "2f47be38d1efae66",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)": "4e22c51f15a1b246"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)": "fdd32d4ff1926cc8"
    }
   },
   {
    "key": "func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)",
-   "hash": "a5226124da7d6260",
-   "does": "Runs stopOnStrap under StrapDeadline with the attended stop budget, timing out with fetchFailed('strap stop timed out after Ns'), so a stale link cannot hang Discard or the Verity arming's set-aside.",
+   "hash": "b38922a48db10fec",
+   "does": "Runs stopOnStrap under Deadline.race with the attended stop budget, timing out with fetchFailed('strap stop timed out after Ns'), so a stale link cannot hang Discard or the Verity arming's set-aside.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::func Deadline.race(seconds:timeout:operation:)",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopOnStrap(api:deviceId:)"
    ],
    "reads": [],
@@ -1178,7 +1178,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopOnStrap(api:deviceId:)": "ac0291c27e36f540",
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "8d202b4b5ef89477"
+    "Emuqu/Sources/Utilities/Deadline.swift::func Deadline.race(seconds:timeout:operation:)": "25d7b1d60093b82d"
    }
   },
   {

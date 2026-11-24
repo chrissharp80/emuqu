@@ -511,8 +511,8 @@ extension StrapRecordingCoordinator {
     /// an arming.
     private func stopWithinBudget(api: any StrapRadio, deviceId: String) async throws {
         let seconds = StrapRecordingPolicy.TransferBudget.attended.stopSeconds
-        try await StrapDeadline.race(
-            seconds: seconds, timeout: PolarManager.PolarError.fetchFailed("strap stop timed out after \(seconds)s")
+        try await Deadline.race(
+            seconds: TimeInterval(seconds), timeout: PolarManager.PolarError.fetchFailed("strap stop timed out after \(seconds)s")
         ) {
             try await self.stopOnStrap(api: api, deviceId: deviceId)
         }

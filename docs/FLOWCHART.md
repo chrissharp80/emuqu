@@ -737,8 +737,8 @@ onboarding state — then passes both down to `DashboardV2View`. It coalesces
 reload bursts with a 50 ms guard (`lastDashboardReloadAt`) and holds no
 cross-tab session state; TrendsV2View and HistoryView load independently. Every
 load is driven off the same invalidation signal (`RRCollector.archiveVersion`)
-and uses the same underlying API (`recentSessionsAsync(limit:)`), but each
-view decides its own scope.
+and the same parallel lightweight decode (`decodeInParallel`, at most one read
+per core at a time), but each view decides its own scope.
 
 ```
 SessionArchive (single source of truth)
@@ -749,7 +749,8 @@ SessionArchive (single source of truth)
 
 RRCollector
   ├─ archiveVersion: Int — computed passthrough of ArchiveSignal.version, bumped on every mutation
-  └─ recentSessionsAsync(limit: Int?) → lightweight sessions
+  ├─ recentSessionsAsync(limit: Int?) → lightweight sessions
+  └─ allSessionsAsync() → every session lightweight; nil once its task is cancelled
 
 Invalidation signals (every view observes these):
   RRCollector.archiveVersion        — local mutation (save/delete/reanalyze)
@@ -759,7 +760,7 @@ View                Load on appear + on signal           Scope
 ─────────────────────────────────────────────────────────────────────────
 DashboardV2View     recentSessionsAsync(limit: 35)       35 newest
 (loaded by MainTabView)                                  (Recent strip = 30 days)
-TrendsV2View           recentSessionsAsync(limit: nil) then  ALL qualifying
+TrendsV2View        allSessionsAsync() then              ALL qualifying
                     filter .overnight && analysisResult
 HistoryView         archive.entries (lightweight)         All, paginated
                                                           display-only

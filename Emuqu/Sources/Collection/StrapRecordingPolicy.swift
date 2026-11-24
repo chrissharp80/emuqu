@@ -128,7 +128,7 @@ enum StrapRecordingPolicy {
     // MARK: - Transfers
 
     /// How long taking a recording off the strap may take, phase by phase.
-    /// Every phase runs under `StrapDeadline`, so a stale link that never
+    /// Every phase runs under `Deadline`, so a stale link that never
     /// answers ends in an error at the deadline instead of an endless spinner.
     struct TransferBudget: Equatable, Sendable {
         /// Status read, stop and the wait for the file to finalize. A

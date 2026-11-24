@@ -19,8 +19,8 @@
  "units": [
   {
    "key": "func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)",
-   "hash": "3711eaf4f4999f44",
-   "does": "If tools.count ≤ targetK returns tools unchanged (always, in production). Otherwise ensures the cached BM25 index for catalogHash, tokenizes the query, returns essentials only for empty queries or all-zero scores, else top-K above max(0.05, 10% of max) plus missing essentials, logging the ratio.",
+   "hash": "7746d962f209628c",
+   "does": "If tools.count ≤ targetK returns tools unchanged (always, in production). Otherwise ensures the cached BM25 index for catalogHash, tokenizes the query, returns essentials only for empty queries or all-zero scores, else top-K above max(0.05, 10% of max) plus missing essentials, logging the query's word count (never its text) and the ratio.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ensureIndex(for:hash:)",

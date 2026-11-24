@@ -420,7 +420,7 @@ extension VoiceAudioPipeline {
     /// is wrong, the user sees that and re-speaks.
     private func droppedAsEcho(_ transcript: String) -> Bool {
         if controller.looksLikeEcho(of: transcript) {
-            debugLog("[VoiceConv] 🔁 echo-guard dropped transcript (looked like bleed-through of AI's last reply): \"\(transcript)\" — re-arming listening", level: .warning)
+            debugLog("[VoiceConv] 🔁 echo-guard dropped a transcript of \(transcript.count) characters (looked like bleed-through of AI's last reply) — re-arming listening", level: .warning)
             AppDependencies.current.assistant.assistantInbox.flashTransientNotice(String(
                 localized: "Voice input matched the AI's last reply — likely echo. Tap to retry.",
                 bundle: LanguageManager.appBundle
@@ -429,7 +429,7 @@ extension VoiceAudioPipeline {
             return true
         }
         guard isMedicalRefusalEcho(transcript) else { return false }
-        debugLog("[VoiceConv] 🔁 medical-refusal echo trap — dropping transcript that re-triggers a refusal already on screen: \"\(transcript)\"", level: .warning)
+        debugLog("[VoiceConv] 🔁 medical-refusal echo trap — dropping a transcript of \(transcript.count) characters that re-triggers a refusal already on screen", level: .warning)
         reArmListening()
         return true
     }

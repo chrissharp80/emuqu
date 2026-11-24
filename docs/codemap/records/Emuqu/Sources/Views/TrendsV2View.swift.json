@@ -390,17 +390,17 @@
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "71598a6e60000bb7",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()": "b460c785d65cb9b3",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()": "c89b045820e7e696",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "83e84e37195e7c19"
    }
   },
   {
    "key": "func TrendsV2View.loadSessions()",
-   "hash": "68406d43061aebec",
-   "does": "MainActor, one load at a time: a call while a load runs sets reloadRequested and returns; the running load loops — clear reloadRequested, load every archive session lightweight via recentSessionsAsync(limit: nil), store into allSessions, rebuildDerived — until no new request arrived during the pass.",
+   "hash": "79e83775e6fdb6b8",
+   "does": "MainActor, one load at a time: a call while a load runs sets reloadRequested and returns; the running load loops — clear reloadRequested, load every archive session lightweight via allSessionsAsync, store into allSessions, rebuildDerived — until no new request arrived during the pass. A load whose task is cancelled (the view went away) returns without touching allSessions.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.allSessionsAsync()",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()"
    ],
    "reads": [
@@ -425,10 +425,16 @@
      "at": "+14",
      "cond": "reloadRequested set during the pass",
      "effect": "load again"
+    },
+    {
+     "at": "+14",
+     "cond": "allSessionsAsync returned nil (task cancelled)",
+     "effect": "return; allSessions keeps what it had"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "d0b0b578fa7f7968",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.allSessionsAsync()": "f54efd5e21775bd4",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "83e84e37195e7c19"
    }
   },

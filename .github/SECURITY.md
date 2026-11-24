@@ -95,12 +95,18 @@ are redacted too. Session IDs are not redacted: they are random UUIDs, kept so
 that lines can be tied to a session. Lines are scrubbed as they are flushed to
 disk, and an export of the log file scrubs every line again, so lines an older
 build flushed are covered. With Persistent Logging off, the export comes from
-the in-memory buffer and each line is scrubbed as it is exported; the
-error-catalog export is scrubbed the same way. An export is written to the
+the in-memory buffer and each line is scrubbed as it is exported. A log file
+that is there but cannot be read is not exported as an empty log: the export
+falls back to the in-memory buffer, and its header says the file could not be
+read. The error-catalog export is scrubbed the same way. An export is written to the
 app's temporary `Exports` folder with complete file protection (readable only
 while the phone is unlocked, when the share sheet reads it), replaces the
 previous export, and is removed at the next launch. `make log-redaction-guard` fails the build when a log call interpolates a
-raw health or identifying value.
+raw health or identifying value, a coordinate, what the user said or typed (an
+assistant or web-search query, a voice transcript, a prompt), or the name of a
+street, city, place or saved route. The scrubber only recognises numbers in
+known shapes, so free text and place names are kept out of the log at the call
+site: the app logs a length, a count or whether a name was found instead.
 
 ### Privacy manifest (`PrivacyInfo.xcprivacy`)
 

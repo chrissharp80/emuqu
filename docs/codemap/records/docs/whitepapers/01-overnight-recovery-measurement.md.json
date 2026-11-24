@@ -885,7 +885,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)": "69af74a0ae36c606",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)": "016ce7254b653cf5",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)": "2521b62450bd77f5",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:rrStart:)": "79d054c30c4e5168",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.snapshotHealthData(on:sessionEnd:sleepSchedule:)": "93fe0d90c08bfc13"
@@ -1224,8 +1224,8 @@
   },
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 6. Verification",
-   "hash": "3a0e5539bc710d13",
-   "does": "Points to Tools/validation/ for the cross-implementation scripts. Claims every build compares RMSSD/SDNN/pNN50 on 6,000 intervals from 20 nsr2db records against a reference implementation; the Python port (of the code at e028039) matched all 114 ported cases from eight suites but is partial (128 test functions at e028039, 14 not ported incl. live-DFA window-fill gating, arrival-clock dropout break, 8 sleep-stage percentile and 3 HRV-reference tests; some cases are comment-quoted values), so those behaviours are not confirmed; reports MIT-BIH artifact results, and lists science-register labels for v3.3.nov2026 (Table 6.1), matching Tools/science_register/register.json.",
+   "hash": "e0c2cbab40dece7c",
+   "does": "Points to Tools/validation/ for the cross-implementation scripts. Claims every build compares RMSSD/SDNN/pNN50 on 6,000 intervals from 20 nsr2db records against a reference implementation; the Python port (of the code at e028039, plus seven sleep-stage gap tests added at 0bf50c7) matched all 119 ported cases from eight suites but is partial (128 test functions at e028039, 109 ported and 19 not, incl. live-DFA window-fill gating, arrival-clock dropout break, five other time-domain, 8 sleep-stage percentile and 3 HRV-reference tests; three cases are comment-quoted values or a SciPy comparison), so those behaviours are not confirmed, and the ports mirror those commits, not the current Swift code, which the Swift tests check; reports MIT-BIH artifact results, and lists science-register labels for v3.3.nov2026 (Table 6.1), matching Tools/science_register/register.json.",
    "entry": null,
    "calls": [
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord()",
@@ -1342,8 +1342,8 @@
   },
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 8. Provenance and Dates > 8.6 Document history",
-   "hash": "92bf88a558ce6f19",
-   "does": "no behavioural claim: document version history, v1.0-v1.3 (2026-10-08) and v1.4 (2026-11-22, source revision 6b195c6, scoring version v3.3.nov2026) listing the sections v1.4 changed, including the break-free spectral resampling and the edit stamp after the latest seen iCloud stamp.",
+   "hash": "c4c6ad0a72b74d71",
+   "does": "no behavioural claim: document version history, v1.0-v1.3 (2026-10-08) and v1.4 (2026-11-22, source revision 6b195c6, scoring version v3.3.nov2026) listing the sections v1.4 changed, including the break-free spectral resampling and the edit stamp after the latest seen iCloud stamp; a correction dated 2026-11-23 restating Section 6's port counts (119 cases, not 114).",
    "entry": null,
    "calls": [],
    "reads": [],

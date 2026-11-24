@@ -53,7 +53,7 @@ struct TrendsV2View: View {
     /// now; the v1 plan calls for single-select chip semantics.
     @State private var selectedTagId: UUID?
     /// An `@State` populated once via
-    /// `recentSessionsAsync(limit: nil)` (lightweight loader, no
+    /// `allSessionsAsync()` (lightweight loader, no
     /// rrSeries deserialization), refreshed on selectedRange change
     /// and archive-version bump. Body reads from this without
     /// touching disk. A computed property calling
@@ -264,7 +264,10 @@ struct TrendsV2View: View {
             // Async loader runs on a background priority queue and uses
             // the lightweight retrieve path (skips rrSeries decode), so
             // the main thread never blocks on disk during nav transition.
-            allSessions = await collector.recentSessionsAsync(limit: nil)
+            // Nil once the view's task is cancelled (the screen went away):
+            // the load stops and nothing partial replaces the sessions.
+            guard let loaded = await collector.allSessionsAsync() else { return }
+            allSessions = loaded
             rebuildDerived()
         } while reloadRequested
     }

@@ -118,13 +118,13 @@ enum SavedRouteStepBuilder {
             CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
         }
         guard originalCoords.count >= 2 else {
-            debugLog("[SavedRouteStepBuilder] route '\(savedRoute.name)' has <2 trackpoints — abort", level: .info)
+            debugLog("[SavedRouteStepBuilder] route \(savedRoute.id.uuidString.prefix(8)) has <2 trackpoints — abort", level: .info)
             return nil
         }
         let direction = inferDirection(from: originalCoords, currentLocation: currentLocation)
         let coords = direction == .forward ? originalCoords : Array(originalCoords.reversed())
         let turnIndices = detectTurns(in: coords)
-        debugLog("[SavedRouteStepBuilder] '\(savedRoute.name)' \(direction.rawValue) — \(coords.count) trackpoints, \(turnIndices.count) turns detected", level: .info)
+        debugLog("[SavedRouteStepBuilder] route \(savedRoute.id.uuidString.prefix(8)) \(direction.rawValue) — \(coords.count) trackpoints, \(turnIndices.count) turns detected", level: .info)
         return await result(
             coords: coords, turnIndices: turnIndices, direction: direction, routeName: savedRoute.name
         )

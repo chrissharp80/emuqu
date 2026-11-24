@@ -648,21 +648,24 @@ final class DebugLogger {
     /// newest lines — the ones describing whatever the user just saw.
     ///
     /// With Persistent Logging off nothing is written to disk, so the export
-    /// comes from the in-memory ring buffer instead.
+    /// comes from the in-memory ring buffer instead. A log file that exists
+    /// but cannot be read also exports the in-memory buffer, and its header
+    /// says the file could not be read, so a failed read never passes for a
+    /// log with no entries.
     nonisolated func exportLogs() -> String {
-        guard persistentBox.withLock({ $0 }) else { return exportMemoryLogs() }
+        guard persistentBox.withLock({ $0 }) else {
+            return exportMemoryLogs(source: "in-memory buffer, last 7 days (Persistent Logging is off)")
+        }
         flushToDiskSync()
         // Read directly from disk for completeness — memory may be a subset
-        let rawContent = (try? String(contentsOf: logFileURL, encoding: .utf8)) ?? ""
-        // Scrubbed again on the way out: lines an earlier build flushed went
-        // through its narrower scrubber. Redaction is idempotent, so a line
-        // already scrubbed comes through unchanged. Off the main thread, as
-        // every caller is.
-        let diskContent = rawContent
-            .split(separator: "\n", omittingEmptySubsequences: false)
-            .map { Self.scrubPHI(String($0)) }
-            .joined(separator: "\n")
-
+        let rawContent: String
+        do {
+            rawContent = try Self.readLogFile(at: logFileURL)
+        } catch {
+            NSLog("[DebugLogger] reading the log file for export failed: %@", error.localizedDescription)
+            return exportMemoryLogs(source: Self.unreadableFileSource(error))
+        }
+        let diskContent = Self.scrubbedLines(rawContent)
         // Count newlines instead of `components(separatedBy:)`
         // which builds an array of every line (1MB log → 14k+ String
         // allocations, multi-second hang on main thread). A single pass
@@ -672,14 +675,38 @@ final class DebugLogger {
         return Self.exportHeader(entryCount: entryCount, source: source) + diskContent
     }
 
+    /// The log file's text: empty when there is no file yet (nothing has
+    /// been flushed since Persistent Logging was turned on); throws when a
+    /// file is there but cannot be read as UTF-8 text.
+    nonisolated static func readLogFile(at url: URL) throws -> String {
+        guard FileManager.default.fileExists(atPath: url.path) else { return "" }
+        return try String(contentsOf: url, encoding: .utf8)
+    }
+
+    /// The export header's source line when the log file could not be read.
+    nonisolated static func unreadableFileSource(_ error: Error) -> String {
+        "in-memory buffer, last 7 days (the log file could not be read: \(error.localizedDescription))"
+    }
+
+    /// Every line of `content` scrubbed again on the way out: lines an
+    /// earlier build flushed went through its narrower scrubber. Redaction is
+    /// idempotent, so a line already scrubbed comes through unchanged. Off
+    /// the main thread, as every caller is.
+    nonisolated private static func scrubbedLines(_ content: String) -> String {
+        content
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { scrubPHI(String($0)) }
+            .joined(separator: "\n")
+    }
+
     /// The in-memory ring buffer (last 7 days, at most `maxMemoryEntries`)
-    /// plus the entries not yet moved into it, scrubbed like the disk path.
-    nonisolated private func exportMemoryLogs() -> String {
+    /// plus the entries not yet moved into it, scrubbed like the disk path,
+    /// under a header naming `source`.
+    nonisolated private func exportMemoryLogs(source: String) -> String {
         let buffered = exportBuffer.withLock { $0 }
         let pending = pendingEntries.withLock { $0 }
         let lines = (buffered + pending).map { Self.scrubPHI($0.formatted) }
         let body = lines.isEmpty ? "" : lines.joined(separator: "\n") + "\n"
-        let source = "in-memory buffer, last 7 days (Persistent Logging is off)"
         return Self.exportHeader(entryCount: lines.count, source: source) + body
     }
 

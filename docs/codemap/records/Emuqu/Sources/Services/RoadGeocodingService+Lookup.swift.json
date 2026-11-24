@@ -15,7 +15,7 @@
  "units": [
   {
    "key": "func RoadGeocodingService.performLookup(at:enrichCrossStreet:)",
-   "hash": "e0b288f576d26480",
+   "hash": "96f3ed2b20dd3045",
    "does": "Runs one road lookup for a location: tries the MapKit tile search first; on a hit publishes it (source tiles) and runs cross-street enrichment; otherwise reverse-geocodes via the queued CLGeocoder, publishes the placemark-derived context (source geocoder-fallback) and enriches. A lookup cancelled by reset() returns before publishing. Returns with nothing published when the geocoder gives nothing.",
    "entry": null,
    "calls": [
@@ -43,8 +43,8 @@
     },
     {
      "at": "+4",
-     "cond": "tileResolved.road ?? \"?\" in the latency log",
-     "effect": "'?' when the tile context has no road (cannot happen: score requires thoroughfare)"
+     "cond": "tileResolved.road == nil in the latency log",
+     "effect": "'no road' (cannot happen: score requires thoroughfare), else 'road found'; the road name itself is not logged"
     },
     {
      "at": "+9",
@@ -55,15 +55,15 @@
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.context(from:at:)": "22ab4769837321f0",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.enrich(location:road:enabled:)": "b4538c0089b4c1be",
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.publishContext(_:at:source:)": "4af0c352c8c4bfa4",
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.resolveCurrentRoadFromMapTiles(at:)": "c2b21cf7150f9560",
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.reverseGeocode(_:lookupStartedAt:)": "888aad1b19c32fed",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.publishContext(_:at:source:)": "30322bbedc079b3e",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.resolveCurrentRoadFromMapTiles(at:)": "722ee6461991ac0d",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.reverseGeocode(_:lookupStartedAt:)": "36c0e0fcdeb1dee4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func RoadGeocodingService.reverseGeocode(_:lookupStartedAt:)",
-   "hash": "ed7a7f2a46b16fcb",
+   "hash": "01d4252eb08655d9",
    "does": "Reverse-geocodes through queuedGeocoderCall with a 5 s cap (geocoderRequest, which cancels a request still running when given up on); nil (timeout or CLGeocoder error) records a failure and logs; empty placemark list logs no-placemark and records a failure; otherwise logs latency and returns the first placemark.",
    "entry": null,
    "calls": [
@@ -72,7 +72,7 @@
     "ext:CLGeocoder.reverseGeocodeLocation",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)",
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.logNoPlacemark(at:geocoderStartedAt:lookupStartedAt:)",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.logNoPlacemark(geocoderStartedAt:lookupStartedAt:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -95,13 +95,13 @@
     },
     {
      "at": "+16",
-     "cond": "placemark.thoroughfare ?? \"?\" in log",
-     "effect": "'?' when the placemark has no street"
+     "cond": "placemark.thoroughfare == nil in log",
+     "effect": "'no road' when the placemark has no street, else 'road found'; the street name is not logged"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.logNoPlacemark(at:geocoderStartedAt:lookupStartedAt:)": "13aa1eec6c921e4d",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocoderRequest(_:)": "afbe5e7469fc014c",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.logNoPlacemark(geocoderStartedAt:lookupStartedAt:)": "5a34e1a9ec98e3e7",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.geocoderRequest(_:)": "3774215148763dd0",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)": "c763d92a09df7b90",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.queuedGeocoderCall(honoringBackoff:_:)": "5fc216f77922d8f8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
@@ -109,9 +109,9 @@
    }
   },
   {
-   "key": "func RoadGeocodingService.logNoPlacemark(at:geocoderStartedAt:lookupStartedAt:)",
-   "hash": "0dfc4894c6e79b4f",
-   "does": "Records a no-placemark failure via noteFailure and writes two debug log lines (coordinate truncated to 3 dp, latency).",
+   "key": "func RoadGeocodingService.logNoPlacemark(geocoderStartedAt:lookupStartedAt:)",
+   "hash": "cc529d723e17df59",
+   "does": "Records a no-placemark failure via noteFailure and writes two debug log lines: the failure count (no coordinate or place, the log being exportable) and the latency.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.noteFailure(reason:)",
@@ -169,16 +169,16 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.refreshNearestCrossStreet(for:currentRoad:)": "5a56c35a745ffd3e"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.refreshNearestCrossStreet(for:currentRoad:)": "753db3ed54f5276e"
    }
   },
   {
    "key": "func RoadGeocodingService.resolveCurrentRoadFromMapTiles(at:)",
-   "hash": "209bf2c0b7b74f3e",
+   "hash": "22a55b0aabb468cd",
    "does": "MKLocalSearch for 'street' addresses in a ~240 m box around the fix under a 5 s timeout; picks the best candidate scored against road direction; returns a context built from it if it lies within 50 m, else nil so the caller falls back to CLGeocoder.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::func runWithTimeout(seconds:operation:)",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.tileSearchRequest(around:)",
     "ext:MKLocalSearch.start",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -196,7 +196,7 @@
     {
      "at": "+1",
      "cond": "runWithTimeout returned a response",
-     "effect": "nil (timeout OR thrown search error, which runWithTimeout logs) → log 'no response (error logged above, or >5 s)' and return nil"
+     "effect": "nil (timeout, thrown search error, or caller cancellation; runWithTimeout logs the reason) → log 'no response (error logged above, or >5 s)' and return nil"
     },
     {
      "at": "+7",
@@ -206,19 +206,14 @@
     {
      "at": "+12",
      "cond": "best.distance <= 50 m",
-     "effect": "false → log too-far and return nil; true → return context"
-    },
-    {
-     "at": "+13",
-     "cond": "best.placemark.thoroughfare ?? \"?\" in log",
-     "effect": "'?' fallback (never used: candidates require thoroughfare)"
+     "effect": "false → log the distance only (no road name) and return nil; true → return context"
     }
    ],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.bestTileCandidate(in:near:)": "f6a3892ab7752d45",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.context(from:at:)": "22ab4769837321f0",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.tileSearchRequest(around:)": "093337516bb89255",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "3ebe96c57aa110d7",
+    "Emuqu/Sources/Utilities/Deadline.swift::func runWithTimeout(seconds:operation:)": "9e18694990d5274e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -332,8 +327,8 @@
   },
   {
    "key": "func RoadGeocodingService.publishContext(_:at:source:)",
-   "hash": "1454e7848e05672d",
-   "does": "Publishes a resolved context: sets current, mirrors it into AmbientLocationService.recordResolvedAddress, stamps lastLookupCoord/lastLookupAt, clears failure counter and backoff, logs only when the road name changes.",
+   "hash": "ef20041b91229370",
+   "does": "Publishes a resolved context: sets current, mirrors it into AmbientLocationService.recordResolvedAddress, stamps lastLookupCoord/lastLookupAt, clears failure counter and backoff, logs only when the road changes: the source and whether a street and a city were named, never the names.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
@@ -362,7 +357,7 @@
     {
      "at": "+17",
      "cond": "ctx.road / ctx.locality nil in log",
-     "effect": "'(no street)' / '(no city)' placeholders"
+     "effect": "'unknown' / 'named' for each; the names are not logged"
     }
    ],
    "deps": {
@@ -375,8 +370,8 @@
   },
   {
    "key": "func RoadGeocodingService.refreshNearestCrossStreet(for:currentRoad:)",
-   "hash": "b213a454cc7a6eea",
-   "does": "Finds the nearest cross street: first from the OSM road graph (applies it with radius = its distance and logs), else falls back to the MKLocalSearch 100/200 m scan.",
+   "hash": "77e10a580513a5a0",
+   "does": "Finds the nearest cross street: first from the OSM road graph (applies it with radius = its distance and logs that distance, not the name), else falls back to the MKLocalSearch 100/200 m scan.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.crossStreetFromRoadGraph(at:currentRoad:)",
@@ -396,7 +391,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.applyCrossStreet(_:distance:radius:searchedAgainstRoad:)": "74b031b46bd74388",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.applyCrossStreet(_:distance:radius:searchedAgainstRoad:)": "a14e6d54f354c0ed",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.crossStreetFromRoadGraph(at:currentRoad:)": "a0c01e6b80b3d56e",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.scanForCrossStreet(for:currentRoad:)": "24b74101b59a8837",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -430,7 +425,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.applyCrossStreet(_:distance:radius:searchedAgainstRoad:)": "74b031b46bd74388",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.applyCrossStreet(_:distance:radius:searchedAgainstRoad:)": "a14e6d54f354c0ed",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.bestCrossStreet(near:radius:currentRoad:)": "b8c3be4e1a218d32",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.logNoCrossStreetIfLastRadius(_:radii:currentRoad:)": "333bec525adfe71d"
    }
@@ -485,7 +480,7 @@
    "does": "Runs one MKLocalSearch 'street' address query under a 5 s timeout and returns (thoroughfare, distance) for every item whose thoroughfare is not the current road; nil on timeout/error.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::func runWithTimeout(seconds:operation:)",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.crossStreetRequest(near:radius:)",
     "ext:MKLocalSearch.start",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -511,7 +506,8 @@
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.crossStreetRequest(near:radius:)": "d93894754fa4a8b4",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.isSameStreet(_:_:)": "0c90e06f6d894644",
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "3ebe96c57aa110d7",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Deadline.swift::func runWithTimeout(seconds:operation:)": "9e18694990d5274e"
    }
   },
   {
@@ -665,8 +661,8 @@
   },
   {
    "key": "func RoadGeocodingService.applyCrossStreet(_:distance:radius:searchedAgainstRoad:)",
-   "hash": "b516c81c834eec16",
-   "does": "Applies a cross-street result when the task is not cancelled, a context exists and the road searched against still matches the current road (when both are known): replaces current with a copy carrying nearestCrossStreet, mirrors it into AmbientLocationService.recordResolvedAddress, and logs.",
+   "hash": "5fbc4490a36c83a5",
+   "does": "Applies a cross-street result when the task is not cancelled, a context exists and the road searched against still matches the current road (when both are known): replaces current with a copy carrying nearestCrossStreet, mirrors it into AmbientLocationService.recordResolvedAddress, and logs the distance and search radius (not the street name).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)",

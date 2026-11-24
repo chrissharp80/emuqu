@@ -1207,8 +1207,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.7 Privacy & security",
-   "hash": "3e8be37443381757",
-   "does": "Claims privacy: health data on device; iCloud sync private DB, encrypted, no Health data, acting only for the recorded iCloud account (CloudAccountGuard.confirmAccount); cloud providers receive chat, tool results, user facts, and the live-state block from AssistantContext.renderLiveStateForCloud (latest session score+tier, RMSSD, SDNN, mean HR, overnight HR nadir/mean, sleep duration+efficiency, note; previous day's recovery/RMSSD/mean HR; location during a live workout); delete tools and unstated writes wait for confirmation (gateUnlessUserStated); the broadcaster advertises only with this device's acceptance (BroadcasterDisclosure.allowsBroadcast, kept outside UserSettings); DebugLogger.scrubPHI redacts every named value whose key's last word is not in loggableKeyWords; CSV/GPX/TCX/report-PDF/log/crash exports via ExportFile.write with complete protection; the conversation summary sealed (ConversationStore.saveSummary); EntitlementAnchor keychain item synchronizable with kSecAttrAccessibleAfterFirstUnlock; API keys kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly; Dependabot monthly with open-pull-requests-limit: 0; copy linter in Tools/copy_linter.",
+   "hash": "7f2c9589eadabb56",
+   "does": "Claims privacy: health data on device; iCloud sync private DB, encrypted, no Health data, acting only for the recorded iCloud account (CloudAccountGuard.confirmAccount); cloud providers receive chat, tool results, user facts, and the live-state block from AssistantContext.renderLiveStateForCloud (latest session score+tier, RMSSD, SDNN, mean HR, overnight HR nadir/mean, sleep duration+efficiency, note; previous day's recovery/RMSSD/mean HR; location during a live workout); delete tools and unstated writes wait for confirmation (gateUnlessUserStated); the broadcaster advertises only with this device's acceptance (BroadcasterDisclosure.allowsBroadcast, kept outside UserSettings); DebugLogger.scrubPHI redacts every named value whose key's last word is not in loggableKeyWords, and free text and place names stay out of log calls (make log-redaction-guard fails a query, transcript, prompt, street, city or saved-route name, or coordinate interpolated into one); CSV/GPX/TCX/report-PDF/log/crash exports via ExportFile.write with complete protection; the conversation summary sealed (ConversationStore.saveSummary); EntitlementAnchor keychain item synchronizable with kSecAttrAccessibleAfterFirstUnlock; API keys kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly; Dependabot monthly with open-pull-requests-limit: 0; copy linter in Tools/copy_linter.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
@@ -1232,10 +1232,10 @@
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "08324bd52931b06a",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "7bf0551ca86415fb",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)": "cf774c1bba4c4382",
-    "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b",
-    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074"
+    "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b"
    }
   },
   {
