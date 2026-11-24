@@ -228,9 +228,9 @@ extension CloudPullCoordinator {
     /// A record marked kept on another device
     /// (`CloudKitSyncManager.keptOnDeviceMarker`) has no payload and is left
     /// alone; a copy held here counts as uploaded and stays as it is. A
-    /// restore made on another device after this one applied a deletion is
-    /// adopted here (`adoptRestoreIfNewer`), so the session comes back with
-    /// this pull.
+    /// restore made on another device after this one applied a deletion
+    /// (`isRestoreToAdopt`) is imported with this pull; the local deletion is
+    /// dropped only once the iCloud copy has downloaded and decoded.
     func processRemoteRecord(_ record: CKRecord, forgotten: Set<UUID>) async -> RecordOutcome {
         let sessionIdString = record.recordID.recordName
         guard let sessionId = UUID(uuidString: sessionIdString), !forgotten.contains(sessionId) else { return RecordOutcome() }
@@ -246,20 +246,20 @@ extension CloudPullCoordinator {
             _ = isKnownLocally(sessionId)
             return RecordOutcome()
         }
-        adoptRestoreIfNewer(record, sessionId: sessionId)
-        guard !isKnownLocally(sessionId) else { return await refreshIfRemoteIsNewer(record, sessionId: sessionId) }
-        guard let assetURL = await assetURL(for: record) else { return RecordOutcome() }
-        return await importPulledSession(
-            from: assetURL, sessionId: sessionId, sessionIdString: sessionIdString, version: record.recordChangeTag
-        )
+        let adopting = isRestoreToAdopt(record, sessionId: sessionId)
+        guard adopting || !isKnownLocally(sessionId) else { return await refreshIfRemoteIsNewer(record, sessionId: sessionId) }
+        guard let fetched = await assetFile(for: record) else { return RecordOutcome() }
+        return await importPulledSession(from: fetched, sessionId: sessionId, sessionIdString: sessionIdString, adoptingRestore: adopting)
     }
 
-    /// The local file of the record's backup, fetching the full record when
-    /// the listing left it out; nil when there is none. A live record that
+    /// The local file of the record's backup and the record it came from,
+    /// fetching the full record when the listing left it out; nil when there
+    /// is none. The file's date and change tag are the fetched record's: the
+    /// record may have been edited on another device since it was listed. A live record that
     /// carries no backup is kept as the pull's error, as a failed fetch is
     /// (`recordWithAsset`): the session is not imported, so the sync must not
     /// read "Up to date".
-    func assetURL(for record: CKRecord) async -> URL? {
+    func assetFile(for record: CKRecord) async -> (url: URL, record: CKRecord)? {
         guard let full = await recordWithAsset(record) else { return nil }
         guard let asset = full["sessionData"] as? CKAsset, let assetURL = asset.fileURL else {
             debugLog("[CloudKit] Pull: No asset data for \(record.recordID.recordName.prefix(8))", level: .warning)
@@ -269,21 +269,18 @@ extension CloudPullCoordinator {
             )
             return nil
         }
-        return assetURL
+        return (assetURL, full)
     }
 
     /// This device applied a deletion of the session (from another device,
     /// or its own), and another device has since restored it from its Trash:
     /// the record carries the restore marker, dated after the deletion here
-    /// (`TrashRestoreCoordinator.restoreIsNewer`). The deletion is dropped
-    /// (`adoptFromAnotherDevice`) so this pull imports the session, rather than
-    /// the daily re-check of local deletions doing it up to a day later. A
-    /// session deleted forever here never reaches this point.
-    private func adoptRestoreIfNewer(_ record: CKRecord, sessionId: UUID) {
-        guard !manager.archive.store.exists(sessionId), manager.archive.store.wasIntentionallyDeleted(sessionId),
-              TrashRestoreCoordinator.restoreIsNewer(record, thanDeletionAt: manager.archive.store.deletionTime(of: sessionId))
-        else { return }
-        manager.trashRestore.adoptFromAnotherDevice(sessionId)
+    /// (`TrashRestoreCoordinator.restoreIsNewer`). This pull imports the
+    /// session, rather than the daily re-check of local deletions doing it up
+    /// to a day later. A session deleted forever here never reaches this point.
+    private func isRestoreToAdopt(_ record: CKRecord, sessionId: UUID) -> Bool {
+        !manager.archive.store.exists(sessionId) && manager.archive.store.wasIntentionallyDeleted(sessionId)
+            && TrashRestoreCoordinator.restoreIsNewer(record, thanDeletionAt: manager.archive.store.deletionTime(of: sessionId))
     }
 
     /// The record with its backup file. A listed record carries only
@@ -354,9 +351,15 @@ extension CloudPullCoordinator {
     /// A record saved by a newer app version is skipped the same way: this
     /// build refuses to write it, and an error would keep sync failing on
     /// every pull until the app is updated.
+    ///
+    /// A restore adopted from another device (`adoptingRestore`) drops the
+    /// local deletion only after the copy decoded, so a failed download or
+    /// decode leaves the session in this device's Trash. A Trash copy left
+    /// here is removed once the session is in the archive.
     private func importPulledSession(
-        from assetURL: URL, sessionId: UUID, sessionIdString: String, version: String?
+        from fetched: (url: URL, record: CKRecord), sessionId: UUID, sessionIdString: String, adoptingRestore: Bool
     ) async -> RecordOutcome {
+        let (assetURL, version) = (fetched.url, fetched.record.recordChangeTag)
         do {
             let session = try await Task.detached(priority: .utility) {
                 try Self.decodeSessionAsset(at: assetURL, archiveKey: manager.archive.encryption)
@@ -364,7 +367,9 @@ extension CloudPullCoordinator {
             // The stall watchdog fired, or the account changed, while it
             // decoded: the next sync imports it.
             guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return RecordOutcome() }
+            guard !adoptingRestore || manager.trashRestore.adoptFromAnotherDevice(sessionId) else { return RecordOutcome() }
             try manager.archive.archive(session, skipSameNightMerge: true)
+            manager.archive.store.discardTrashed(sessionId)
             manager.state.markUploaded(sessionId)
             manager.state.noteRecordVersion(version, of: sessionId)
             return RecordOutcome(new: 1, backfillId: sessionId)

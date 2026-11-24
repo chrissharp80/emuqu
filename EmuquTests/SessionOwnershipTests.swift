@@ -26,6 +26,24 @@ final class SessionOwnershipTests: XCTestCase {
         XCTAssertEqual(HistoryViewModel.chainWinner([resumed, paused])?.sessionId, resumed.sessionId)
     }
 
+    // MARK: - The night a recovered recording joins
+
+    /// Recovery merges only into an overnight of the same night of the sleep
+    /// schedule, as the archive's own merge does: a recording that starts the
+    /// next evening is the next night, however close the spans.
+    func testRecoveryJoinsOnlyAnOvernightOfTheSameNight() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("SessionOwnershipTests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) } // swallow-ok: temporary test folder
+        let store = SessionArchive(directory: directory).store
+        let evening = try XCTUnwrap(Calendar.current.date(bySettingHour: 23, minute: 0, second: 0, of: night))
+        let archived = SessionArchiveEntry(
+            sessionId: UUID(), date: evening, endDate: evening.addingTimeInterval(7 * 3600),
+            fileHash: "h", filePath: "f", sessionType: .overnight
+        )
+        XCTAssertTrue(store.sharesNightAnchor(archived, start: evening.addingTimeInterval(5 * 3600)))
+        XCTAssertFalse(store.sharesNightAnchor(archived, start: evening.addingTimeInterval(24 * 3600)))
+    }
+
     // MARK: - Absorbing a night's segment
 
     /// A recovered fragment from early in the night holds none of a later,

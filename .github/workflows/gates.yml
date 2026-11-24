@@ -65,8 +65,10 @@ jobs:
 
       - name: The Python ports still reproduce the Swift test expectations
         # The whitepapers' cross-implementation check (Tools/validation):
-        # 119 cases, each mirroring a Swift unit test. Run here so the
-        # recorded match keeps holding as the ports are touched.
+        # 119 cases mirroring the Swift tests at the commits the whitepapers
+        # cite (b87eb64, fff2617), not the tests as they are now; the Swift
+        # suite checks the current code. Run here so the recorded match keeps
+        # holding as the ports are touched.
         run: make validation-ports
 
       - name: The gates themselves are wired and fail closed

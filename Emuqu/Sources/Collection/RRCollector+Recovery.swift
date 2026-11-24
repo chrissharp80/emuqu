@@ -166,19 +166,21 @@ extension SessionRecoveryCoordinator {
     /// rule and preference as every other merge (`SessionMerger.relation`,
     /// `ArchiveStore.mergeTarget`): a copy of the same recording first, else
     /// the nearest segment of the same sleep within the merge gap when merging
-    /// is on and the recording's start is known. A segment absorbed into
-    /// another entry's linked series (a paused night's earlier half) is never
-    /// the target: its night is the entry that absorbed it. Recordings further
-    /// apart stay separate nights.
+    /// is on and the recording's start is known. Only an overnight of the same
+    /// night of the sleep schedule is a candidate (`ArchiveStore.sharesNightAnchor`).
+    /// A segment absorbed into another entry's linked series (a paused night's
+    /// earlier half) is never the target: its night is the entry that absorbed
+    /// it. Recordings further apart stay separate nights.
     private func archivedNightToMergeInto(_ recording: StrapRecording, start: Date) -> HRVSession? {
         let settings = collector.settingsManager.settings
         let end = start.addingTimeInterval(StrapExerciseDecoder.durationSeconds(of: recording.points))
         let span = SessionMerger.span(start: start, end: end)
         let allowsSameSleep = settings.sessionMergeMode != .off && recording.startedAt != nil
-        let entries = collector.archive.store.entries
+        let store = collector.archive.store
+        let entries = store.entries
         let absorbed = Set(entries.flatMap { $0.linkedSessionIds ?? [] })
         let related = entries
-            .filter { $0.sessionType == .overnight && !absorbed.contains($0.sessionId) }
+            .filter { $0.sessionType == .overnight && !absorbed.contains($0.sessionId) && store.sharesNightAnchor($0, start: start) }
             .map { entry in
                 let entrySpan = SessionMerger.span(of: entry)
                 let relation = SessionMerger.relation(of: span, to: entrySpan, mergeGap: settings.effectiveMergeGapSeconds)

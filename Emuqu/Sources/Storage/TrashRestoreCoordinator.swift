@@ -73,15 +73,19 @@ struct TrashRestoreCoordinator {
     }
 
     /// Another device restored this session after this one deleted it: drop the
-    /// local deletion so the pull that follows brings the session back, and
-    /// empty this device's Trash copy, which nothing lists any more.
-    func adoptFromAnotherDevice(_ sessionId: UUID) {
+    /// local deletion so the iCloud copy can be written here. This device's
+    /// Trash copy stays on disk until that copy is in the archive
+    /// (`CloudPullCoordinator.importPulledSession`). True when the deletion
+    /// was dropped.
+    @discardableResult
+    func adoptFromAnotherDevice(_ sessionId: UUID) -> Bool {
         do {
             try manager.archive.store.unmarkAsDeleted(sessionId)
-            manager.archive.store.discardTrashed(sessionId)
             debugLog("[CloudKit] \(sessionId.uuidString.prefix(8)) was restored on another device — dropping this device's deletion", level: .info)
+            return true
         } catch {
             debugLog("[CloudKit] Could not adopt the restore of \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
+            return false
         }
     }
 }

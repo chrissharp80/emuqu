@@ -283,9 +283,17 @@ extension CloudPullCoordinator {
         )
         let decision = CloudKitSessionFreshness.decide(localModifiedAt: localModifiedAt, remoteModifiedAt: remoteModifiedAt, onTie: tie)
         guard decision == .importRemote, manager.archive.store.exists(sessionId),
-              let assetURL = await assetURL(for: record) else { return RecordOutcome() }
-        let remote = RemoteCopy(modifiedAt: remoteModifiedAt, version: record.recordChangeTag, onTie: tie)
-        return await replaceLocalCopy(from: assetURL, sessionId: sessionId, remote: remote)
+              let fetched = await assetFile(for: record) else { return RecordOutcome() }
+        return await replaceLocalCopy(from: fetched.url, sessionId: sessionId, remote: remoteCopy(of: fetched.record, sessionId: sessionId))
+    }
+
+    /// The date and change tag of the revision that was downloaded, which
+    /// may be newer than the listed one the decision read.
+    func remoteCopy(of fetched: CKRecord, sessionId: UUID) -> RemoteCopy {
+        let tie = CloudKitSessionFreshness.onTie(
+            serverVersion: fetched.recordChangeTag, heldVersion: manager.state.recordVersions[sessionId]
+        )
+        return RemoteCopy(modifiedAt: CloudKitSessionFreshness.modifiedAt(of: fetched), version: fetched.recordChangeTag, onTie: tie)
     }
 
     /// What `replaceLocalCopy` needs from the pulled record besides its file.

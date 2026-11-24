@@ -43,9 +43,15 @@ extension ArchiveStore {
               !(session.linkedSessionIds ?? []).contains(entry.sessionId)
         else { return false }
         guard session.sessionType == .overnight else { return true }
+        return sharesNightAnchor(entry, start: session.startDate)
+    }
+
+    /// The archived overnight `entry` and a recording starting at `start`
+    /// fall in the same night of the user's sleep schedule.
+    func sharesNightAnchor(_ entry: SessionArchiveEntry, start: Date) -> Bool {
         let schedule = archive.sleepScheduleProvider()
         return schedule.overnightWindowStart(relativeTo: entry.date)
-            == schedule.overnightWindowStart(relativeTo: session.startDate)
+            == schedule.overnightWindowStart(relativeTo: start)
     }
 
     /// The merge gap for a same-sleep fold-in of `session`: the user's gap
