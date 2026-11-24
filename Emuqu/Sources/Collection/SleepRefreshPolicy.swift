@@ -16,7 +16,7 @@ import Foundation
 ///  * when applying it, what has to change besides the display snapshot
 ///    (the ms boundaries WindowSelection actually scores from).
 enum SleepRefreshPolicy {
-    /// Honor user timeline edits (FLOWCHART §13.2/§14:
+    /// Honor user timeline edits (ADR 009:
     /// user edits are the source of truth). Every other automatic
     /// sleep path has this guard (`ReanalysisService.reanalyzeSession`
     /// and the `updateSessionSleepBoundaries` non-user branch);

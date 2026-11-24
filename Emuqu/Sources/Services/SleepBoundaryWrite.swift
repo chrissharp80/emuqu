@@ -124,7 +124,7 @@ enum SleepBoundaryWrite {
     /// HealthKit updates only apply if they bring more data.
     ///
     /// Never let an automatic update overwrite a user-adjusted timeline,
-    /// regardless of "more data" (FLOWCHART §13.2: user edits are the source
+    /// regardless of "more data" (ADR 009: user edits are the source
     /// of truth). The callers' own guards can read a stale `session` captured
     /// at view presentation; this gate reads the copy just retrieved from the
     /// archive, and `write` refuses the edit if that copy is no longer the

@@ -1,10 +1,10 @@
 # Architecture decision records
 
-These ADRs cover eight decisions a new maintainer
+These ADRs cover nine decisions a new maintainer
 would otherwise have to reconstruct from commit archaeology: the encryption
 fallback, the CI cost posture, the concurrency escapes, ratcheted debt
 budgets, no `unowned` back-references, Swift 6 strict concurrency, one app
-target with one composition root, and gates that guard behaviour rather than size.
+target with one composition root, gates that guard behaviour rather than size, and frozen accepted sessions.
 
 The first three are written up at length next to the code they govern, which is
 where the reasoning stays accurate. This index is the map.
@@ -19,6 +19,7 @@ where the reasoning stays accurate. This index is the map.
 | 006 | Swift 6 language mode is the concurrency gate | [`docs/adr/006-swift-6-strict-concurrency.md`](006-swift-6-strict-concurrency.md) |
 | 007 | One app target, one composition root | [`docs/adr/007-single-target-composition-root.md`](007-single-target-composition-root.md) |
 | 008 | Gates guard behaviour, not size | [`docs/adr/008-gates-guard-behaviour.md`](008-gates-guard-behaviour.md) |
+| 009 | An accepted session is frozen | [`docs/adr/009-accepted-sessions-are-frozen.md`](009-accepted-sessions-are-frozen.md) |
 
 ## 001 — Sensitive storage falls back, then repairs
 
@@ -140,3 +141,11 @@ expression can state it), a count above zero is a ratchet, and no gate measures
 a type's size or a document's line numbers.
 
 See [`008-gates-guard-behaviour.md`](008-gates-guard-behaviour.md).
+
+## 009 — An accepted session is frozen
+
+After acceptance a session changes only through a user action, a one-shot
+launch migration, today's sleep refresh, or a fill-in of values that were
+nil; opening a past night never rescores it.
+
+See [`009-accepted-sessions-are-frozen.md`](009-accepted-sessions-are-frozen.md).

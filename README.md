@@ -262,8 +262,6 @@ Everything is under [`docs/`](docs/). Start with the maintainers guide.
 | [`docs/FEATURES.md`](docs/FEATURES.md) | The complete feature list |
 | [`docs/USERS_MANUAL.md`](docs/USERS_MANUAL.md) | End-user guide to every tab, screen and feature |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Algorithms, design decisions, subsystem detail |
-| [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) | Public Swift API surface and contracts |
-| [`docs/FLOWCHART.md`](docs/FLOWCHART.md) | Recording to analysis to display, including the post-workout pipeline |
 | [`docs/TRAINING_LOAD.md`](docs/TRAINING_LOAD.md) | ATL, CTL and TSB from per-workout load to trajectory verdicts |
 | [`docs/VOICE_AND_TOOL_USE.md`](docs/VOICE_AND_TOOL_USE.md) | The assistant's fact catalogue, tool use and voice mode |
 | [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) | Source-of-truth rules and how a translation is added |

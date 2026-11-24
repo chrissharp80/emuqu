@@ -31,7 +31,7 @@ import UserNotifications
 ///     before scheduling.
 ///   • Reschedules on settings change, on a language change and at launch.
 ///
-/// **Known deferred — documented in FLOWCHART §16 Known Deferred:**
+/// **Not built:**
 ///   • 14-day re-engagement push (single reminder when the user has
 ///     not recorded an overnight session for 14 consecutive days).
 ///     Implementation is small (~100 LOC) but the payload + UX route

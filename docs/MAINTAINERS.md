@@ -10,8 +10,8 @@
 >
 > **Golden rule for this document:** it is a **map, not a mirror.** It records
 > structure, responsibilities, and pointers — not algorithm internals or full
-> API signatures (those live in [`ARCHITECTURE.md`](ARCHITECTURE.md) and
-> [`API_REFERENCE.md`](API_REFERENCE.md)). When the code and this map disagree,
+> API signatures (those live in [`ARCHITECTURE.md`](ARCHITECTURE.md) and in
+> the code). When the code and this map disagree,
 > **the code wins** — fix the map. See [§13 Keeping this document
 > current](#13-keeping-this-document-current).
 
@@ -280,8 +280,6 @@ the index; the others are the depth.**
 | [`FEATURES.md`](FEATURES.md) | The full feature list | — |
 | [`USERS_MANUAL.md`](USERS_MANUAL.md) | End-user behavior of every tab, screen, and feature | ~1800 ln |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | **Algorithms & design decisions** — recording strategy, HRV math, window selection, recovery-score tiers, sleep pipeline, storage, location subsystems, workout math | ~1510 ln |
-| [`API_REFERENCE.md`](API_REFERENCE.md) | **Public Swift API surface** — type signatures, model shapes, contracts | ~3240 ln |
-| [`FLOWCHART.md`](FLOWCHART.md) | **Data flow**, step-by-step: recording → analysis → display, workout pipeline, AI dispatch, session lifecycle, mutation contracts | ~1660 ln |
 | [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md) | **The AI module spec** — turn lifecycle, provider matrix, Fact/tool system, routing, voice, safety gates | ~440 ln |
 | [`VOICE_AND_TOOL_USE.md`](VOICE_AND_TOOL_USE.md) | AI fact catalog contents, tool-use path, voice-mode design, known failure modes | ~950 ln |
 | [`hrv-reference-data.md`](hrv-reference-data.md) | What the HRV-metric reference data validates, and what it cannot | — |
@@ -309,8 +307,6 @@ orientation *summary* that points onward — never a second copy of the details.
 | Physiology & algorithm design (HRV, scoring, sleep, windows) | `ARCHITECTURE.md` | link |
 | Training-load derivation (TRIMP → ATL/CTL/TSB) | `TRAINING_LOAD.md` | link |
 | **AI module internals** (routing, tool-use, providers, voice, prompt cache) | `FLO_ARCHITECTURE.md` (+ `VOICE_AND_TOOL_USE.md` for fact-catalog contents & voice field-notes) | link — `ARCHITECTURE.md` keeps **only** the fitness-integration seam |
-| Public Swift API shapes | `API_REFERENCE.md` | link |
-| Step-by-step data flow | `FLOWCHART.md` | link |
 | Coding standard | `REFACTOR_SPEC.md` | link |
 | Localization workflow | `LOCALIZATION.md` | link |
 | Ops playbooks | `runbooks/` | — |
@@ -499,9 +495,8 @@ the workout flow (`WorkoutPreflightView`,
 ## 6. The core data model
 
 The nouns. These are the types that get created during recording, persisted to
-the archive, synced to iCloud when sync is on, and surfaced to the UI and the AI. Full field
-lists are in [`API_REFERENCE.md`](API_REFERENCE.md#data-models); this is the
-orientation.
+the archive, synced to iCloud when sync is on, and surfaced to the UI and the AI. The types
+themselves hold the full field lists; this is the orientation.
 
 | Type | File | What it is |
 |---|---|---|
@@ -531,8 +526,7 @@ CloudKit database without its Apple Health data (`CloudSessionPayload`). The hea
 
 ## 7. End-to-end flows
 
-The verbs. Each flow lists the sequence with file + symbol anchors and points
-to the deep-flow doc ([`FLOWCHART.md`](FLOWCHART.md)) for the exhaustive version.
+The verbs. Each flow lists the sequence with file + symbol anchors.
 
 ### 7.1 App launch & navigation
 
@@ -559,7 +553,7 @@ to the deep-flow doc ([`FLOWCHART.md`](FLOWCHART.md)) for the exhaustive version
 
 ### 7.2 Overnight recording → recovery score → dashboard
 
-The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md).
+The spine of the product.
 
 1. **Start** — `RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)`
    (`Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift`). Begins BLE streaming;
@@ -604,7 +598,7 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
 
 > **Pause/Resume (split sleep)** and **same-night separate sessions** merge
 > segments before window selection so the score reflects the whole night — see
-> [`FLOWCHART.md` §3, §8](FLOWCHART.md) and [`ARCHITECTURE.md` → Pause & Resume](ARCHITECTURE.md).
+> [`ARCHITECTURE.md` → Pause & Resume](ARCHITECTURE.md).
 
 ### 7.3 Workout recording → summary
 
@@ -636,8 +630,7 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
 
 ### 7.4 An AI turn (Flo)
 
-Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md) and
-[`FLOWCHART.md` §20](FLOWCHART.md).
+Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md).
 
 1. **Input** — chip/type/dictate → `AssistantViewModel.send(text:fromVoice:)`.
    On first send of a session, Apple Foundation model is prewarmed. A
@@ -739,8 +732,7 @@ doc. Use this to decide *where to read next*.
   `Analysis/` (HRVAnalysisPipeline, RecoveryScoreCalculator, WindowSelection,
   DFA/time/frequency, SleepScienceAnalyzer, BaselineTracker).
 - **Deep doc:** [`ARCHITECTURE.md`](ARCHITECTURE.md) (Recording, Analysis, Window
-  Selection, Recovery Score, Sleep, Baseline sections);
-  [`FLOWCHART.md`](FLOWCHART.md) for step-by-step data flow.
+  Selection, Recovery Score, Sleep, Baseline sections).
 - **Key contracts:** window selection operates on 30–70 % of *actual sleep*, not
   recording duration; scores freeze at morning measurement; all magic numbers in
   `Constants+RecoveryScore.swift`.
@@ -794,10 +786,9 @@ doc. Use this to decide *where to read next*.
 - **Code:** `Storage/` (Archive, CloudKitSyncManager, CloudAccountIdentity,
   EncryptionManager, DataCompression, RawRRBackup), `Services/PurgeGate`,
   `Export/` (incl. `ExportFile`), `Import/`, `Analysis/{CSV,GPX,TCX}Exporter`.
-- **Deep doc:** [`ARCHITECTURE.md` → Storage & Sync](ARCHITECTURE.md#storage--sync);
-  [`API_REFERENCE.md` → Storage](API_REFERENCE.md#storage).
+- **Deep doc:** [`ARCHITECTURE.md` → Storage & Sync](ARCHITECTURE.md#storage--sync).
 - **Key contracts:** per-screen archive subscriptions (load limits are per-screen,
-  §3); the [post-acceptance mutation contract](FLOWCHART.md#13-post-acceptance-mutation-contract)
+  §3); the [accepted-session contract](adr/009-accepted-sessions-are-frozen.md)
   governs when archived sessions may be rewritten (user overwrite vs. additive
   merge only); sync acts only for the recorded iCloud account and turns itself
   off rather than recreate a deleted zone (§7.5); no archive write lands while
@@ -1534,7 +1525,7 @@ Domain terms you'll meet in the code and docs.
 This guide is a **map**. Its value is that it stays true. Rules for keeping it so:
 
 1. **The code is the source of truth.** When this doc and the code disagree, the
-   code wins — fix the doc. When a deep-dive doc (ARCHITECTURE/FLO/API/FLOWCHART)
+   code wins — fix the doc. When a deep-dive doc (ARCHITECTURE/FLO)
    and the code disagree, fix that deep doc *and* any pointer here.
 2. **Don't duplicate depth.** Keep algorithm internals, full API signatures, and
    exhaustive step lists in their home docs (§4). Here, record *structure,

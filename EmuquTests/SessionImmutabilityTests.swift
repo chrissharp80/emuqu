@@ -1,7 +1,7 @@
 @testable import Emuqu
 import XCTest
 
-/// §13.3 Integrity Contract (docs/FLOWCHART.md): opening or re-scoring an
+/// ADR 009, an accepted session is frozen: opening or re-scoring an
 /// archived session must produce an IDENTICAL frozen score. This suite guards
 /// against one specific way it can drift.
 ///
@@ -15,7 +15,6 @@ import XCTest
 /// These tests assert (a) that derivation equals the acceptance rule for every
 /// quality, and (b) that it actually removes a real score difference.
 ///
-/// Referenced by the §13.3 contract in `docs/FLOWCHART.md`.
 @MainActor
 final class SessionImmutabilityTests: XCTestCase {
 

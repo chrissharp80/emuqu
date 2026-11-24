@@ -1009,6 +1009,28 @@ mutate "settings_roundtrip_drops_a_field" "EmuquTests/UserSettingsDecodeContract
     "Emuqu/Sources/Models/UserSettings+Codable.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Models/UserSettings+Codable.swift');s=p.read_text();o='        baselineRMSSD = Self.optional(Double.self, .baselineRMSSD, from: container)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
+# The composite: HRV carries 60 % of a full-signal day. A shifted weight moves
+# every score the user sees and must fail a test.
+mutate "composite_hrv_weight_shifted" "EmuquTests/RecoveryScoreCalculatorTests" \
+    "Emuqu/Sources/Utilities/Constants.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Constants.swift');s=p.read_text();o='        static let hrv: Double = 0.60';assert s.count(o)==1;p.write_text(s.replace(o,'        static let hrv: Double = 0.50'))"
+
+# An upload with no key must fail closed; sealing that returns the plaintext
+# would put health data in iCloud unencrypted.
+mutate "cloud_seal_fails_open" "EmuquTests/CloudPayloadCodecTests" \
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudPayloadCodec.swift');s=p.read_text();o='            throw CloudSyncError.encryptionUnavailable\n        }\n        return try seal(payload, with: key)';assert s.count(o)==1;p.write_text(s.replace(o,'            return payload\n        }\n        return try seal(payload, with: key)'))"
+
+# The output guard must stop a model naming atrial fibrillation.
+mutate "coach_guard_misses_atrial_fibrillation" "EmuquTests/CoachVoiceGuardTests" \
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/MedicalTermLexicon.swift');s=p.read_text();o='\"a-?fib\", \"atrial';assert s.count(o)==1;p.write_text(s.replace(o,'\"zzplanted\", \"zzplanted'))"
+
+# Delete All My Data sweeps every container of everything it does not keep.
+mutate "purge_sweep_keeps_everything" "EmuquTests/DataPurgeServiceTests" \
+    "Emuqu/Sources/Services/DataPurgeService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/DataPurgeService.swift');s=p.read_text();o='        for entry in entries where !kept.contains(entry.lastPathComponent) {';assert s.count(o)==1;p.write_text(s.replace(o,'        for entry in entries where kept.contains(entry.lastPathComponent) {'))"
+
 echo
 echo "  $PASS caught, $FAIL survived, $INVALID did not compile, $SKIP skipped"
 # A SKIP means the mutation was never applied or the suite could not be run —

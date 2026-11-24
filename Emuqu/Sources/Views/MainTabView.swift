@@ -40,7 +40,7 @@ struct MainTabView: View {
     @State var morePath: NavigationPath = .init()
     /// Dashboard's session slice (35 most recent — `dashboardSessionLoadLimit`;
     /// only 8 are visible at once, but the Recent strip needs deeper coverage).
-    /// TrendsV2View owns its own archive subscription — see docs/FLOWCHART.md §11a.
+    /// TrendsV2View owns its own archive subscription.
     @State var sessions: [HRVSession] = []
     /// True archive size, kept off the `body` path — updated by
     /// `reloadDashboardSessions` instead of read from `archive.entries` in body.

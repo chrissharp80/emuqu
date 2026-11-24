@@ -94,9 +94,7 @@ extension RecoveryScoreCharts {
 
     // Organized-recovery zones — the green tint that lets
     // the user SEE where parasympathetic recovery happened.
-    // Per FLOWCHART.md §green-zone-overlay and the
-    // architecture spec, these are non-negotiable for the
-    // overnight chart. Drawn first so the analysis-window
+    // Drawn first so the analysis-window
     // band sits on top and stays visually dominant.
     private var hrvZoneBands: some ChartContent {
         ForEach(Array(organizedZoneDateRanges.enumerated()), id: \.offset) { _, range in

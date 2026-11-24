@@ -424,9 +424,8 @@ struct RecoveryScoreDetailView: View {
         }
     }
 
-    /// Organized-recovery zones (green band overlay on HRV chart). Per the
-    /// architecture doc + FLOWCHART.md these are the load-bearing visual that
-    /// lets the user see WHERE recovery happened so the Pick Window choice is
+    /// Organized-recovery zones (green band overlay on HRV chart): they let
+    /// the user see WHERE recovery happened so the Pick Window choice is
     /// meaningful. Three tiers: persisted on result → memory cache → on-demand
     /// recompute from the rrSeries, by the one shared scan
     /// (`OvernightStatsComputer.computeOrganizedZonesOnDemand`), whose result

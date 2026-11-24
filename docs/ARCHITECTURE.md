@@ -1,6 +1,6 @@
 # Emuqu — Architecture & Algorithms
 
-Technical deep-dive into algorithms, design decisions, and implementation details. For API signatures, see `API_REFERENCE.md`. For data flow, see `FLOWCHART.md`. For user-facing features, see `USERS_MANUAL.md`.
+Technical deep-dive into algorithms, design decisions, and implementation details. For user-facing features, see `USERS_MANUAL.md`.
 
 > **Looking for the AI assistant ("Flo") architecture?** That moved into its own authoritative spec: [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). It describes the AI module's internal architecture and the app-specific extension points it depends on. This file (ARCHITECTURE.md) covers fitness-specific subsystems: HRV analysis, recovery score math, training load, sleep integration, etc.
 
@@ -1248,7 +1248,7 @@ store, user facts and unit preferences all live in that container.
 
 The Watch companion (`EmuquWatch Watch App/`) is embedded in the iOS build:
 the iOS app depends on and embeds the `Watch App` target directly. See `project.pbxproj` (the iOS app
-target's build phases) and `docs/FLOWCHART.md` for the workout wiring.
+target's build phases).
 
 **Design: phone-mirror + wrist controls.** The iPhone owns the Polar strap and
 the canonical workout record; the Watch mirrors live HR/stats relayed over
