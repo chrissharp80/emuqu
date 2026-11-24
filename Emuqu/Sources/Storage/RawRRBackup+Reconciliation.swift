@@ -60,10 +60,9 @@ extension RawRRBackup {
     /// recovery, a merge that reused a different session id — because no
     /// archive call ever passed through the backup's own id.
     ///
-    /// Those entries then sit flagged forever. A field log shows the same
-    /// fifteen at every launch across five days, and the Data settings page
-    /// renders that as a red "Unarchived recordings — 15" for a user whose data
-    /// is, in fact, safely archived. The count is meant to mean "beats that
+    /// Those entries then sit flagged forever, and the Data settings page
+    /// renders them as a red "Unarchived recordings" count for a user whose
+    /// data is, in fact, safely archived. The count is meant to mean "beats that
     /// exist only in a backup"; without this reconciliation it means "beats
     /// that did not take the usual path", which is not a thing anyone can act
     /// on.

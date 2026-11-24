@@ -60,7 +60,7 @@ struct TrendsV2View: View {
     /// `collector.recentSessions(limit: nil)` synchronously on every
     /// body re-evaluation decodes the entire archive on the main
     /// thread (~250ms freeze for 50+ sessions, multiple times per
-    /// nav transition) — the "More tab → Trends" stall.
+    /// nav transition).
     @State private var allSessions: [HRVSession] = []
     @State private var isLoadingSessions = false
     /// Set when a refresh is asked for while a load is running; the running
@@ -128,8 +128,8 @@ struct TrendsV2View: View {
         case stress = "Stress"
 
         /// The name on screen. `rawValue` is English and stays the chart's
-        /// data key; shown as-is, the picker and titles were English in every
-        /// language.
+        /// data key; shown as-is, the picker and titles would be English in
+        /// every language.
         var localizedName: String {
             let b = LanguageManager.appBundle
             return switch self {
@@ -215,12 +215,8 @@ struct TrendsV2View: View {
     /// Single calendar surface. The Sun–Sat month grid carries
     /// BOTH the day's objective training load (cell fill intensity) AND the
     /// subjective morning-feeling rating (small colored dot in the top-right
-    /// corner). User complaint: "Two calendars in Trends. Neither make sense.
-    /// One history calendar but it's tiny. The other is a 'how you felt' and
-    /// it's huge and you can't click into it." Resolved by consolidating both
-    /// signals into the one tappable calendar — load tells you what you DID,
-    /// dot tells you how you felt that morning, tap opens the day's session
-    /// detail.
+    /// corner): load tells you what you DID, the dot how you felt that
+    /// morning, and a tap opens the day's session detail.
     private var calendar: some View {
         HistoryCalendarView(allSessions: allSessions, onDelete: deleteSession)
     }

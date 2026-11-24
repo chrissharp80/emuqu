@@ -3,9 +3,9 @@ import Foundation
 // MARK: - Injury reports (input side)
 //
 // Someone telling Flo they are hurt is asking for help, and the help this app
-// can give is the local emergency number. Before this concept existed,
-// "I fell and hurt my ankle, get me to a hospital" passed the input guard and
-// the model answered with a walking route. The guard now answers first, with
+// can give is the local emergency number. Without this concept, "I fell and
+// hurt my ankle, get me to a hospital" would pass the input guard and the
+// model would answer with a walking route; the guard answers first, with
 // `MedicalQueryGuard.injuryReply`.
 //
 // The patterns describe an injury happening to the speaker: first-person

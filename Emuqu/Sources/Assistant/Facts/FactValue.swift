@@ -64,8 +64,7 @@ enum MissingReason: String, Codable, Sendable {
 ///
 /// The closure MUST be synchronous and metadata-only — no HealthKit
 /// queries, no file I/O, no network. It's called during schema build,
-/// which happens once per registry construction (per send today;
-/// per-launch + on-data-change in a future iteration).
+/// which happens once per registry construction (per send).
 struct Availability: Sendable {
     let hasData: Bool
     /// Inclusive range for date-parameterized facts. Nil for literal

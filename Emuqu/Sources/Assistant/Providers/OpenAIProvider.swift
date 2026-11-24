@@ -6,7 +6,7 @@ final class OpenAIProvider: OpenAICompatibleProvider {
     /// Checked against developers.openai.com/api/docs/models and
     /// /deprecations. `ProviderModelCatalogTests` pins this list.
     ///
-    /// gpt-6-luna replaces gpt-5.4-nano, which OpenAI has deprecated. Chat
+    /// gpt-6-luna is listed in place of gpt-5.4-nano, which OpenAI has deprecated. Chat
     /// Completions accepts function calling on gpt-6-luna only with
     /// `reasoning_effort` "none", so every model here is sent "none" (the
     /// default for gpt-5.4 and gpt-5.4-mini). gpt-6.1-sol is not listed: Chat

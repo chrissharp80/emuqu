@@ -3,7 +3,7 @@ import Observation
 
 /// Published morning-processing and device-refinement coordination state.
 ///
-/// Split out from `RRCollector` so the morning/results screens that track
+/// Separate from `RRCollector` so the morning/results screens that track
 /// analysis progress (and the dashboard's sleep-data refresh signal) don't
 /// re-render on unrelated BLE / archive / streaming updates.
 ///

@@ -45,9 +45,9 @@ enum SleepClassifierConstants {
     static let deepTemporalLateBonus: Double = 0.15
 
     /// Night fraction above which REM temporal bonus is maximal.
-    /// Pushed to 0.6 (from 0.5): REM periods lengthen in cycles 3-4, not cycle 2.
-    /// At 0.5 (4h into 8h sleep), the temporal bonus was firing too early and
-    /// dominating the composite, causing ~50% REM classification (should be ~20-25%).
+    /// 0.6 because REM periods lengthen in cycles 3-4, not cycle 2. At 0.5
+    /// (4h into 8h sleep) the temporal bonus fires too early and dominates the
+    /// composite, giving ~50% REM classification (should be ~20-25%).
     static let remTemporalLateStart: Double = 0.6
     /// Night fraction above which REM temporal bonus is partial
     static let remTemporalMidStart: Double = 0.35
@@ -322,7 +322,7 @@ enum HeatConstants {
 // MARK: - Feature Flags
 //
 // Kill switches for the few code paths that may
-// need to be flipped without a TestFlight cycle:
+// need to be flipped without shipping a new build:
 //   • The medical-query guard (defense in depth — unlikely to be flipped
 //     off, but useful to disable IF the guard ever blocks a legitimate
 //     query so we can swap rules)

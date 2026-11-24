@@ -1,7 +1,6 @@
 import Foundation
 
-// The morning flow lives in `MorningSessionPipeline` — 623 lines
-// off `RRCollector`.
+// The morning flow lives in `MorningSessionPipeline`.
 
 extension RRCollector {
     /// Gather → process → analyse → accept.

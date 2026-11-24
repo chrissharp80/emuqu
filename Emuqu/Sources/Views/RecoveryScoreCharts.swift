@@ -4,14 +4,10 @@ import SwiftUI
 /// The overnight HRV and heart-rate charts on the recovery-score detail screen,
 /// with their hover pills and the inline window picker.
 ///
-/// Split out of `RecoveryScoreDetailView` — 672 lines out of a
-/// 1,930-line view, the same shape as [MorningDetailCards] and
-/// [MorningReanalysisControls] on the morning screen.
-///
-/// Deliberately NOT a `View`. It returns the same view trees from the same
-/// positions, so SwiftUI identity, animation and `@State` behaviour are
-/// unchanged. The hover and window-preview state travels back through bindings
-/// rather than being duplicated here.
+/// Deliberately NOT a `View`: it returns view trees into the host view's
+/// body, so SwiftUI identity, animation and `@State` stay the host's. The
+/// hover and window-preview state travels back through bindings rather than
+/// being duplicated here.
 @MainActor
 struct RecoveryScoreCharts {
     let session: HRVSession

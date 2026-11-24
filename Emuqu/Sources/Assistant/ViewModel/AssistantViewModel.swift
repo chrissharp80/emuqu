@@ -149,8 +149,8 @@ final class AssistantViewModel {
     /// touching shared state. Without this guard, an OLD stream's
     /// `finishStream` (running after a user-cancel + immediate new send)
     /// would trample the NEW stream's `streamTask` / `isStreaming` and
-    /// break the UI's send button. Race observed in practice when voice
-    /// mode chains turns rapidly.
+    /// break the UI's send button. Voice mode chains turns rapidly
+    /// enough to hit this.
     var streamGeneration: Int = 0
 
     /// Cached because building the fact registry from
@@ -207,19 +207,17 @@ final class AssistantViewModel {
 
     /// AFM prewarm is DEFERRED to first send, deliberately absent here.
     ///
-    /// Prewarming in init, the moment the user opens the chat tab, produced
-    /// an 18-second gap in traces between first-tap-on-input and
-    /// `keyboard.willShow` — strong candidate is iOS 26's keyboard wanting the
-    /// same Apple Intelligence model that this prewarm is loading. Even at
-    /// .utility priority, holding a `LanguageModelSession` contends with the
-    /// keyboard's inline-prediction subsystem.
+    /// Prewarming in init, the moment the user opens the chat tab, contends
+    /// with iOS 26's keyboard, which most likely wants the same Apple
+    /// Intelligence model: even at .utility priority, holding a
+    /// `LanguageModelSession` competes with the keyboard's inline-prediction
+    /// subsystem, and the first tap on the input can wait as long as 18 s for
+    /// `keyboard.willShow`.
     ///
-    /// The original spec ("Performance: AFM prewarm") wanted first AI message
-    /// to be snappy. Moving the prewarm to right before the first send still
-    /// achieves that — the user types their question, hits Send, prewarm has
-    /// had ~5-30 s while they typed to load the KV-cache. The tradeoff is: if
-    /// the user types VERY fast (sub-second to first send), they pay the
-    /// prewarm cost on first message. That's strictly better than every user
+    /// Prewarming right before the first send still makes the first AI
+    /// message snappy: the prewarm has the ~5-30 s the user spends typing to
+    /// load the KV-cache. A user who sends within a second pays the prewarm
+    /// cost on that first message, which is strictly better than every user
     /// paying it on first focus, every session.
     init(
         registry: ProviderRegistry? = nil,
@@ -309,7 +307,7 @@ final class AssistantViewModel {
     }
 
     // Cancel any in-flight stream when this VM is torn
-    // down (TestFlight/process tear-down or hot-reload). `Task.cancel()` is
+    // down (process tear-down or hot-reload). `Task.cancel()` is
     // nonisolated and Sendable so it's safe to call from deinit. Without this,
     // an orphan stream task could keep referencing `self` after release.
     deinit {
@@ -443,9 +441,9 @@ final class AssistantViewModel {
     }
 
     /// If a stream is in flight, queue the send rather than drop it. The
-    /// user (or voice controller) gave us a real message; losing it because
-    /// the previous turn hadn't quite finished is the symptom we keep
-    /// hearing about. `finishStream()` drains the queue. Latest-wins:
+    /// user (or voice controller) gave us a real message, and it must not be
+    /// lost just because the previous turn hasn't quite finished.
+    /// `finishStream()` drains the queue. Latest-wins:
     /// multiple rapid sends collapse to the most recent — voice users
     /// don't want answers to questions they asked 30 seconds ago.
     private func queueBehindStream(_ trimmed: String, fromVoice: Bool) -> SendOutcome {

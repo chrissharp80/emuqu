@@ -4,7 +4,7 @@ import Foundation
 
 /// On-demand "where am I right now?" one-shot fix.
 ///
-/// **Why this exists:** the app's `RoadGeocodingService` is fed location
+/// **Why a one-shot fix:** the app's `RoadGeocodingService` is fed location
 /// updates by `WorkoutLocationManager`, which only runs while a workout is
 /// recording, and `AmbientLocationService` only caches fixes in the
 /// foreground. When neither has a fresh fix, the AI's routing tools and the

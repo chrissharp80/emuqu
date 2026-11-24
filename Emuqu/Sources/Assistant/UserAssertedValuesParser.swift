@@ -111,9 +111,8 @@ enum UserCorrectionDetector {
     ]
 
     /// Common misspellings / voice-transcription variants → canonical key.
-    /// Real transcript: a user typed "BSB" and "TSP" for TSB across one
-    /// conversation, so the correction was missed until they happened to
-    /// spell it right and the AI kept quoting its stale cache value. Value
+    /// Users type and dictate "BSB" or "TSP" for TSB; without these the
+    /// correction is missed and the AI keeps quoting its stale cache value. Value
     /// extraction requires a number adjacent to the token ("tsp is -8.8"),
     /// which makes a teaspoon/typo collision implausible in this context.
     private static let metricAliases: [String: String] = [
@@ -222,9 +221,8 @@ enum UserCorrectionDetector {
         "wrong, it's",
         "not what the dashboard shows",
         "those aren't the real numbers",
-        // Bare-contradiction phrases. Real user
-        // transcript: "yes. because you're wrong" / "no. you are
-        // wrong" / "no!!! stop saying that" — the user is
+        // Bare-contradiction phrases ("yes. because you're wrong" /
+        // "no. you are wrong" / "no!!! stop saying that"): the user is
         // unambiguously contradicting the AI's last metric quote
         // without providing a fresh value. We treat these as a
         // contradiction signal so the cache block is suppressed

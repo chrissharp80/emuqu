@@ -1,8 +1,8 @@
 import CoreLocation
 import Foundation
 
-// The bearing helper, split out of `RoadGeocodingService.swift`: a free
-// function the service uses that does not belong to it. The geocoder's
+// The bearing helper: a free function `RoadGeocodingService` uses that does
+// not belong to it. The geocoder's
 // deadlines go through `runWithTimeout` (`Deadline.swift`).
 
 // MARK: - Bearing helper

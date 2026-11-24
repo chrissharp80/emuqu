@@ -152,8 +152,8 @@ final class WorkoutTriggerEngine {
     }
 
     /// Append to history, capped at the last 200 events. An ultramarathon can
-    /// accumulate thousands of evaluations; the array was only cleared at
-    /// workout end, so a 12-hour overnight session held the entire log
+    /// accumulate thousands of evaluations and the array is otherwise cleared
+    /// only at workout end, so a 12-hour session would hold the entire log
     /// resident in memory.
     private func record(_ event: Event) {
         history.append(event)
@@ -180,14 +180,10 @@ final class WorkoutTriggerEngine {
     // Each default rule obeys the three contracts. Messages read like a
     // knowledgeable friend running alongside, not a fitness watch chirping
     // alerts. Cooldowns keep the coach quiet.
-    // Split into groups rather than one function. A declarative rule table
-    // is data, not branching logic, and scattering one catalogue across several
-    // functions could make the trigger set harder to read — but that argument
-    // holds for the *rows* and not for the *table*: 15 rules in one linear
-    // block is a catalogue nobody can navigate, and needs a SwiftLint
-    // suppression for both body length and cyclomatic complexity.
+    // Split into groups rather than one function: 15 rules in one linear
+    // block is a catalogue nobody can navigate.
     //
-    // The rows are untouched and their ORDER is byte-identical, which matters:
+    // The rule ORDER matters:
     // `evaluate` walks `rules` in order and appends every rule that fires, so
     // the order of the returned array is the order events reach the coach.
     // Grouping is by what a reader would look for, not by an invented taxonomy.

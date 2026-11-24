@@ -9,8 +9,8 @@ import SwiftUI
 /// does **not** do it for you — a `.ultraThinMaterial` background stays
 /// translucent with the setting on unless the app substitutes something else.
 ///
-/// Every material in this app now goes through here, so the substitution is one
-/// decision in one place rather than seven independent ones that drift.
+/// Every material in this app goes through here, so the substitution is one
+/// decision in one place.
 ///
 /// ## Usage
 ///

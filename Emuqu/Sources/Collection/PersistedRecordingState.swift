@@ -1,7 +1,7 @@
 import Foundation
 
-/// Atomic persisted recording state — replaces three separate UserDefaults keys
-/// with a single Codable struct to eliminate partial-write corruption.
+/// Atomic persisted recording state — a single Codable struct rather than
+/// separate UserDefaults keys, to eliminate partial-write corruption.
 ///
 /// If the app crashes between writing individual keys, the state can be inconsistent
 /// (e.g., sessionId present but startTime missing). A single atomic write/read

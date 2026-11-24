@@ -37,12 +37,12 @@ struct TrainingLoad {
     }
 
     /// Calendar days from the MOST RECENT hard workout to `referenceDate`:
-    /// 0 means the same day, 1 yesterday, whatever the hour. Counting 24-hour
-    /// periods made yesterday evening's session read as "today" at a 07:00
-    /// morning reading. Order-independent: dedup returns workouts
-    /// oldest-first, so taking the first hard one found the oldest and
-    /// reported "6 days" for a hard session done yesterday. "Hard" is judged
-    /// against `anchors`, the heart-rate anchors training load resolves.
+    /// 0 means the same day, 1 yesterday, whatever the hour: counting 24-hour
+    /// periods would make yesterday evening's session read as "today" at a
+    /// 07:00 morning reading. Order-independent: dedup returns workouts
+    /// oldest-first, so taking the first hard one found would pick the oldest.
+    /// "Hard" is judged against `anchors`, the heart-rate anchors training load
+    /// resolves.
     static func daysSinceHardWorkout(
         in workouts: [HealthKitManager.WorkoutSummary],
         anchors: TrainingLoadSeries.HeartRateAnchors,

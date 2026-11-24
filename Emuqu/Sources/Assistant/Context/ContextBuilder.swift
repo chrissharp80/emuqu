@@ -102,8 +102,8 @@ enum ContextBuilder {
     /// Mirrors the scoring path (RRCollector / WorkoutRecorder): a manual
     /// override wins, else the HealthKit estimate (carried on the
     /// already-resolved trainingContext, so no MainActor hop here) when the
-    /// user opted in. Without this the passive context showed VO2max only when
-    /// the user had typed a manual override.
+    /// user opted in. Without the HealthKit estimate the passive context would
+    /// show VO2max only to a user who typed a manual override.
     private static func effectiveVO2Max(settings: UserSettings, training: TrainingContext?) -> Double? {
         if let override = settings.vo2MaxOverride { return override }
         return settings.useHealthKitVO2Max ? training?.vo2Max : nil
@@ -384,7 +384,7 @@ extension ContextBuilder {
     /// `analysisResult.timeDomain.meanHR`, which only exists
     /// when an HRV analysis ran. Workout sessions typically
     /// skip that pipeline (no RR stream → no time-domain
-    /// result), so the AI never saw an avg HR. The caller falls back to
+    /// result), so it is usually absent for a workout. The caller falls back to
     /// `avgHR` here — the simple average of the HR sample series, which is
     /// present on every workout that captured HR.
     ///

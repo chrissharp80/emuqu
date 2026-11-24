@@ -1,12 +1,9 @@
 import Foundation
 import HealthKit
 
-// Sleep READS live in `SleepHealthQueries` — 456 lines out of
-// HealthKitManager, following the seam that took the vitals and training
-// queries out.
-//
-// These forwarders keep every existing call site working. Sleep export, trend
-// analysis and the observers stayed on `+SleepTrends.swift`.
+// Sleep READS live in `SleepHealthQueries`; these forwarders give
+// `HealthKitManager` callers the same entry points. Sleep export, trend
+// analysis and the observers are in `+SleepTrends.swift`.
 
 extension HealthKitManager {
     /// The sleep-query subsystem: a lightweight value built on each access.

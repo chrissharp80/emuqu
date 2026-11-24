@@ -1,9 +1,8 @@
 import Foundation
 
-// Sleep retro-apply and manual-window reanalysis, split out of
-// `ReanalysisService.swift`. Both re-score an existing session from
-// a user action rather than from new sensor data, which is what the bulk
-// re-analysis left behind does.
+// Sleep retro-apply and manual-window reanalysis. Both re-score an existing
+// session from a user action; the bulk re-analysis in
+// `ReanalysisService.swift` re-scores from new sensor data.
 
 extension ReanalysisService {
     // MARK: - Sleep Retro-Apply

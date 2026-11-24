@@ -1,5 +1,4 @@
-// Split out of AppFactResolver+Sleep.swift to keep that file under
-// the 1,000-line ceiling. The baseline.* namespace is self-contained.
+// The baseline.* namespace.
 
 import CoreLocation
 import CoreMotion
@@ -34,8 +33,8 @@ struct BaselineNamespace: FactNamespaceResolver {
     }
 
     /// The latest overnight session in `all`, only if it is last night's.
-    /// Returning whatever was newest labelled a recording from days ago as
-    /// "today".
+    /// Returning whatever is newest would label a recording from days ago
+    /// as "today".
     private static func lastNight(in all: [Sample], now: Date = Date()) -> Sample? {
         guard let latest = all.last, now.timeIntervalSince(latest.date) <= 36 * 3600 else { return nil }
         return latest

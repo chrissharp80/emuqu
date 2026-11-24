@@ -1,8 +1,8 @@
 import Foundation
 
-// The session, walks, training-load and heat namespaces, split out of
-// `AppFactResolver.swift` at a top-level type boundary. The period
-// parser, the factory, and the user/app namespaces stay behind.
+// The session, walks, training-load and heat namespaces. The period
+// parser, the factory, and the user/app namespaces are in
+// `AppFactResolver.swift`.
 
 // MARK: - session.* namespace
 

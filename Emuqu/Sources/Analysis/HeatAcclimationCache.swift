@@ -60,9 +60,9 @@ final class HeatAcclimationCache {
     /// immediately on launch instead of a spinner while a fresh compute runs.
     private static let readoutKey = "FlowRecovery.heat.lastReadout"
 
-    /// A representative location older builds stored to look up past
-    /// weather. Nothing writes them now; they are still removed on erase so
-    /// a location saved by an older build doesn't outlive "Delete All My Data".
+    /// Keys for a representative location used to look up past weather.
+    /// Nothing writes them; they are removed on erase so a location left on
+    /// disk doesn't outlive "Delete All My Data".
     private static let legacyCoordinateKeys = [
         "FlowRecovery.heat.representativeLat",
         "FlowRecovery.heat.representativeLon"

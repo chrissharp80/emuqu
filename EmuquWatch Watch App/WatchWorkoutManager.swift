@@ -22,7 +22,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// Watch app needs its own auth grant — iOS auth doesn't transfer.
     /// Without this, the first `HKWorkoutSession(...)` call throws and
     /// the keep-alive never starts, so the Watch app drops out mid-
-    /// workout (reported bug: "watch app drops out, requires soft restart").
+    /// workout and needs a soft restart.
     private var hasRequestedAuth = false
     /// A start is waiting on the authorization answer or on a recovery (see
     /// `finishPendingStart`); a second start (iOS sends it twice) must not

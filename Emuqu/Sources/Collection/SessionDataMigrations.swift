@@ -2,27 +2,11 @@ import Foundation
 
 /// One-shot repairs to already-archived sessions, run once per install.
 ///
-/// ## Why this is not on `RRCollector`
-///
-/// It was. `RRCollector` is the recording pipeline — it owns
-/// the strap connection, the streaming buffers, pause/resume, and the handoff
-/// of a finished session to the archive. These migrations do none of that.
-/// They open sessions that were archived months ago, recompute a field that a
-/// past release got wrong, and write them back.
-///
-/// They lived on the collector for the ordinary reason: the collector already
-/// had an `archive` reference, so putting them there needed no plumbing. The
-/// cost was that `RRCollector` measured 6,619 lines across 23 files and read as
-/// a type with no boundary. 504 of those lines were this, which shares
-/// nothing with recording
-/// but a dependency.
-///
-/// The seam is exact rather than convenient: these files call **no** other
-/// method of `RRCollector` — verified before the move, not assumed — and read
-/// only the five dependencies injected below: `archive`, `healthKit`,
-/// `settingsManager`, `baselineTracker` and `reanalysisService`. So this is a boundary
-/// that already existed and was not written down, which is the only kind worth
-/// cutting on in a recording path nobody wants to break.
+/// These migrations open sessions archived long ago, recompute a field an
+/// earlier release got wrong, and write them back. They share nothing with
+/// recording: they read only the five dependencies injected below —
+/// `archive`, `healthKit`, `settingsManager`, `baselineTracker` and
+/// `reanalysisService` — and call no method of `RRCollector`.
 ///
 /// ## Ordering
 ///
@@ -82,8 +66,7 @@ final class SessionDataMigrations {
     /// Run every deferred repair from background priority, staggered so they do
     /// not all contend for the archive lock at once.
     ///
-    /// Timings are carried over unchanged from `RRCollector+Lifecycle`, where
-    /// they were tuned against cold-launch traces.
+    /// Timings are tuned against cold-launch traces.
     func runAllIfNeeded() async {
         for step in migrationSchedule {
             await sleepQuietly(step.delay, context: "SessionDataMigrations")

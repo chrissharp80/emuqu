@@ -1,17 +1,11 @@
 import Foundation
 
-/// The recovery-score feedback log earlier versions kept.
+/// The recovery-score feedback log earlier versions kept: one
+/// `{date, score, sentiment, tier}` entry per day, saved on device in a small
+/// JSON file in the App Group container.
 ///
-/// Earlier builds asked the user each morning whether the recovery score
-/// matched how they felt, and saved one `{date, score, sentiment, tier}`
-/// entry per day to a small JSON file in the App Group container. It stayed
-/// on device, was never read into scoring, and was never used to retrain the
-/// weights (that would be a self-fulfilling prophecy: a user who rates
-/// high-score-bad-day would pull the score down even when the algorithm is
-/// correct).
-///
-/// No screen records feedback any more and nothing reads the file. This
-/// store exists only so Delete All My Data removes what those versions saved.
+/// No screen records feedback and nothing reads the file. This store exists
+/// only so Delete All My Data removes what those versions saved.
 @MainActor
 final class RecoveryScoreFeedbackStore {
     static let shared = RecoveryScoreFeedbackStore()

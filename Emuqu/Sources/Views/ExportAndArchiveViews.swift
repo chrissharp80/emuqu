@@ -1,9 +1,7 @@
 import SwiftUI
 
-// The data-export screen, split out of `SettingsSubviews.swift` together
-// with the archive-diagnostics screen (now `ArchiveDiagnosticsView.swift`).
-// Both are large, self-contained views; what stays behind is the
-// log/crash/error-catalog trio and the metric explanations.
+// The data-export screen. The archive-diagnostics screen is in
+// `ArchiveDiagnosticsView.swift`.
 
 // MARK: - Export Data View
 

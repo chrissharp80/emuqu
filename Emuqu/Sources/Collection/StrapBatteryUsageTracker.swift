@@ -9,9 +9,9 @@ import Foundation
 ///
 /// Holds the manager strongly and is built on demand by it (ADR 005): a value
 /// with no stored state of its own cannot outlive what it points at and
-/// cannot form a cycle. The counters stay
-/// on the manager, which is where they were and where the observable state
-/// belongs; only the rules for reading and updating them moved here.
+/// cannot form a cycle. The counters live
+/// on the manager, where the observable state belongs; this type holds
+/// the rules for reading and updating them.
 @MainActor
 struct StrapBatteryUsageTracker {
     let manager: PolarManager

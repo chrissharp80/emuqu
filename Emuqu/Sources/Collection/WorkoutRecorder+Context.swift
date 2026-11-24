@@ -5,14 +5,9 @@ import CoreLocation
 import Foundation
 import UIKit
 
-// Split out from WorkoutRecorder.swift. Holds AI
-// context builders (workout, route topology, weather, interval
+// AI context builders (workout, route topology, weather, interval
 // progress), route auto-detection, climb/turn computation, threshold
 // breach evaluation, breadcrumb archival, split paces, and grade.
-//
-// Its own type rather than an extension on `WorkoutRecorder`, same reasoning
-// as the `RRCollector` splits: ~500 lines reading ~44 recorder members. Those
-// reads are `recorder.` and countable rather than looking like this type's own state.
 
 extension WorkoutAIContextBuilder {
     /// The per-turn locals `buildContext` derives before assembling the snapshot.

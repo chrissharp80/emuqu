@@ -286,9 +286,9 @@ final class SessionArchive: @unchecked Sendable {
     ///
     /// The per-file protection-class walk is not here. It rewrites the
     /// attributes of every session file on every launch, and running it at
-    /// boot put that metadata write on the same files, at the same moment, as
-    /// the dashboard's first read — a field log shows that read taking 3.8 s
-    /// and finishing the instant this finished. It runs in the launch
+    /// boot would put that metadata write on the same files, at the same
+    /// moment, as the dashboard's first read, holding that read up for
+    /// seconds. It runs in the launch
     /// housekeeping phase instead, after the dashboard has its data
     /// (`AppLaunchTasks.scheduleMigrationJobs`).
     func boot() {
@@ -327,7 +327,7 @@ final class SessionArchive: @unchecked Sendable {
 
     /// Whether any tombstoned session was deleted after `cutoff`, by its
     /// recorded deletion time. A deleted session's file is no longer at
-    /// `<id>.json` (it moves to the Trash), so its file date said nothing.
+    /// `<id>.json` (it moves to the Trash), so its file date says nothing.
     private func hasTombstoneNewerThan(_ cutoff: Date, in deletedSnapshot: Set<UUID>) -> Bool {
         deletedSnapshot.contains { store.deletionTime(of: $0).map { $0 > cutoff } ?? false }
     }
@@ -451,10 +451,10 @@ final class SessionArchive: @unchecked Sendable {
 
     /// Internal archive variant with optional same-night merge skip.
     ///
-    /// Seen in a user log: a CloudKit full-sync pull triggered 37
-    /// `sameNightMerge` operations in 5 seconds at 05:30, each one
+    /// A CloudKit full-sync pull can trigger dozens of
+    /// `sameNightMerge` operations in seconds, each one
     /// re-archiving (full retrieve + merge + re-encode + re-encrypt +
-    /// write + hash + index save) on the main thread. The app froze
+    /// write + hash + index save) on the main thread, freezing the app
     /// for the duration. CloudKit-pulled sessions are already the
     /// authoritative cross-device-merged version of that session-id;
     /// folding them into a same-night local entry is double-merging
@@ -467,12 +467,11 @@ final class SessionArchive: @unchecked Sendable {
     /// surfaces (Dashboard, History, Recovery Report sheet) refresh
     /// automatically. A writer contract requiring each caller to fire
     /// `archiveSignal.notifyChanged()` after archiving is easy to miss:
-    /// dashboard call sites (sleep refresh, vitals refresh,
-    /// morning-feeling persist, etc.) silently archived
-    /// without propagating, so an open Recovery Report sheet kept
-    /// showing stale numbers until dismissed. Posting at the archive
-    /// layer eliminates the contract burden and makes propagation
-    /// automatic for any future writer.
+    /// a call site (sleep refresh, vitals refresh, morning-feeling
+    /// persist, etc.) that archives without propagating leaves an open
+    /// Recovery Report sheet showing stale numbers until dismissed.
+    /// Posting at the archive layer removes that contract and makes
+    /// propagation automatic for every writer.
     ///
     /// `ArchiveSignal` (an @MainActor `@Observable`) listens for
     /// this notification and bumps its `version`, which triggers the
@@ -480,7 +479,7 @@ final class SessionArchive: @unchecked Sendable {
     ///
     /// `requestingReupload: true` is for a change the user made to a session
     /// already in the archive (a feeling, a trim, a sleep edit). CloudKit sync
-    /// uploads each id once, so without it the edit never reached iCloud. A
+    /// uploads each id once, so without it the edit never reaches iCloud. A
     /// sleep edit's own values stay on the device (`CloudSessionPayload`).
     /// It also stamps `modifiedAt`, which is how another device that already
     /// holds the session knows this copy is newer and takes it on its next

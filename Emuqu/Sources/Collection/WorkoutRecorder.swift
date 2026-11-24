@@ -92,9 +92,7 @@ final class WorkoutRecorder {
     // tab), but the user often hasn't tapped the in-app Start button
     // for many seconds — they're picking sport / target / strap.
     // Eagerly building the location stack adds 1–3 s of main-thread
-    // work to the tab swap; a user-reported freeze when going
-    // (strap pair) → (voice chat) → (Fitness tab + Start) bottomed
-    // out here. So it is lazy: constructed on first access (start() for a
+    // work to the tab swap, so it is lazy: constructed on first access (start() for a
     // GPS sport, or any view that reads `locationManager`). By that
     // point the user has explicitly committed to a workout.
     var _injectedLocation: WorkoutLocationManager?
@@ -143,7 +141,7 @@ final class WorkoutRecorder {
 
     /// Two overloads rather than a defaulted parameter: repeating the default
     /// here would be a second `AppDependencies.current.app.settingsManager` reference for a value the
-    /// moved function already supplies.
+    /// called function already supplies.
     /// Both return the render task; its value says whether the PDF was
     /// attached.
     @discardableResult

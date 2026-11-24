@@ -10,8 +10,8 @@ struct OnboardingSensorPage: View {
     /// Read on appear and on every return from Settings, the same way the
     /// Record tab's panel does. Without it this page shows pairing buttons
     /// that cannot work: with Bluetooth denied, `startScanning()` and
-    /// `connect(deviceId:)` return silently, and a tester reported the
-    /// buttons "did nothing".
+    /// `connect(deviceId:)` return silently, so the buttons appear to do
+    /// nothing.
     @State private var btAuthorization = CBCentralManager.authorization
 
     /// Set when the user starts a scan or a connect from this page, so a

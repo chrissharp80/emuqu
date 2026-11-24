@@ -1,13 +1,11 @@
 import Foundation
 import HealthKit
 
-// Vitals queries live in `VitalsHealthQueries` — 486 lines out
-// of HealthKitManager, along the same seam as the training queries.
-//
-// These forwarders keep every existing call site working. The queries needed
-// six members of the manager: the store, the two query helpers, the own-writes
-// heart-rate predicate, and the two pieces of observer bookkeeping that keep
-// live vitals updates flowing.
+// Vitals queries live in `VitalsHealthQueries`, which needs six members of
+// the manager: the store, the two query helpers, the own-writes heart-rate
+// predicate, and the two pieces of observer bookkeeping that keep live
+// vitals updates flowing. These forwarders give `HealthKitManager` callers
+// the same entry points.
 
 extension HealthKitManager {
     /// The vitals-query subsystem. Lazy — a launch that never opens the

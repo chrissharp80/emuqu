@@ -2,10 +2,8 @@ import Foundation
 import PDFKit
 import UIKit
 
-// Overnight pages live in `OvernightReportRenderer`, cut out of
-// PDFReportGenerator.
-//
-// These forwarders keep every existing call site working.
+// Overnight pages live in `OvernightReportRenderer`; these forwarders give
+// `PDFReportGenerator` callers the same entry points.
 
 extension PDFReportGenerator {
     /// The overnight page renderer: a stateless value wrapping `self`, built

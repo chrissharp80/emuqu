@@ -610,9 +610,9 @@ final class DebugLogger {
 
     /// Everything held, on disk and in memory: the entries, the lines and
     /// entries waiting for the next flush, and the error catalog. Left
-    /// behind after "Delete All My Data", the next flush wrote the pending
-    /// lines into a new log file and Recent Problems kept listing pre-wipe
-    /// messages.
+    /// behind after "Delete All My Data", the next flush would write the
+    /// pending lines into a new log file and Recent Problems would keep
+    /// listing pre-wipe messages.
     ///
     /// The file is removed on `queue`, after any flush already running, and
     /// the caller waits for it. True when no log file is left; a failure is
@@ -749,22 +749,22 @@ final class DebugLogger {
     /// the LOCATION, not the protection. Documents is an iCloud-eligible,
     /// backed-up container, so the share sheet (sharingd) probes every
     /// file there for a CloudKit share mode and then fails to open it
-    /// across the sandbox — the exact console spam the user reported:
+    /// across the sandbox, logging:
     ///   Failed to request default share mode for fileURL:...Documents/...
     ///   Only support loading options for CKShare and SWY types.
     ///   NSCocoaErrorDomain Code=256 "The file couldn't be opened."
     /// sharingd retry-loops ~500 ms per attempt before the sheet finally
-    /// works — "all these errors before they finally are ready." The
+    /// works. The
     /// temp dir is not iCloud-backed, so none of that probing happens
-    /// and the file opens on the FIRST try. (This is also why the
-    /// RR/CSV/all-data exports, which already use tmp, never hit this —
-    /// the log export was the lone Documents outlier.)
+    /// and the file opens on the FIRST try. The RR/CSV/all-data exports
+    /// use tmp for the same reason.
     ///
     /// NOTE: the LaunchServices lines (`-10814`, "Failed to locate
     /// container app bundle record", "canmaplsdatabase domain 8") are
     /// iOS-internal share-sheet noise unrelated to our file and are not
     /// something app code can suppress; the openability failure above is
-    /// the part that actually blocked the share, and that's what this fixes.
+    /// the part that actually blocks the share, and the temp location
+    /// avoids it.
     ///
     /// The temporary folder is the export folder (`ExportFile`): the file
     /// gets complete protection like every export (the share sheet reads it

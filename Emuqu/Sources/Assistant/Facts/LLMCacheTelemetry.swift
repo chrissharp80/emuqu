@@ -86,8 +86,7 @@ final class LLMCacheTelemetry {
     }
 
     /// Cumulative cache hit ratio across all turns. Healthy target:
-    /// > 0.75 once warmup turns have settled (per the research note's
-    /// acceptance criteria). Lower means the cache prefix is changing
+    /// > 0.75 once warmup turns have settled. Lower means the cache prefix is changing
     /// per turn — usually a sign that dynamic content is leaking into
     /// the cacheable zone.
     ///
@@ -96,7 +95,7 @@ final class LLMCacheTelemetry {
     /// uncached-billed portion only (the streamers normalise every
     /// provider to that); the cached prefix lives in `cache_read` and
     /// just-cached bytes in `cache_create`. Dividing by
-    /// `inputTokens` only produces 11857%-style nonsense.
+    /// `inputTokens` only produces values far above 100%.
     var cumulativeHitRatio: Double {
         Self.hitRatio(input: totalInputTokens, cachedRead: totalCachedReadTokens, cacheCreate: totalCacheCreateTokens)
     }
@@ -109,8 +108,8 @@ final class LLMCacheTelemetry {
     /// Anthropic reports it that way; OpenAI, DeepSeek and Gemini count
     /// cached tokens inside their prompt total, and their streamers subtract
     /// them before emitting `.usage`. So the total prompt size = input +
-    /// cache_read + cache_create. Dividing by `input` alone produced
-    /// wildly-over-100% values (e.g. 11857%) on the cache-health card.
+    /// cache_read + cache_create. Dividing by `input` alone gives
+    /// wildly-over-100% values on the cache-health card.
     nonisolated static func hitRatio(input: Int, cachedRead: Int, cacheCreate: Int) -> Double {
         let totalProcessed = input + cachedRead + cacheCreate
         guard totalProcessed > 0 else { return 0 }

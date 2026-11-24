@@ -1,10 +1,9 @@
 import CoreLocation
 import Foundation
 
-// The derived half of `WorkoutLiveNamespace`, split out of
-// `AppFactResolver+WorkoutLive.swift` to keep that struct's body under
-// the 500-line limit. The raw per-tick sensor facts stay there; the derived
-// and cross-referenced ones live here.
+// The derived half of `WorkoutLiveNamespace`: the derived and
+// cross-referenced facts. The raw per-tick sensor facts are in
+// `AppFactResolver+WorkoutLive.swift`.
 //
 // Anything these entries call in the other file is internal rather than
 // `private`, because Swift's `private` does not reach across files.

@@ -448,7 +448,7 @@ enum DataPurgeService {
 
     /// Everything the enumerated steps above are allowed to leave behind.
     ///
-    /// ## Why this exists
+    /// ## Why a sweep
     ///
     /// A hand-maintained list of stores to delete drifts: it can only ever be
     /// as complete as the last person to remember to update it, and a store
@@ -771,7 +771,7 @@ enum DataPurgeService {
     /// SleepDataCache/Respiratory/WristTemperature live in
     /// UserDefaults.standard, RecoveryScoreFeedbackStore in an App-Group
     /// `Feedback/` JSON file. Same erasure-gap class as the breadcrumb and
-    /// widget steps: without these a "Delete All My Data" left health data on
+    /// widget steps: without these a "Delete All My Data" leaves health data on
     /// device. A feedback log that is there and cannot be removed is reported.
     private static func purgeHealthCaches(_ stores: Stores, errors: inout [String]) {
         stores.device.heatAcclimationCache().clear()

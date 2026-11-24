@@ -19,8 +19,6 @@ struct StrapPPISample: Equatable {
 /// The quality gate an optical interval must pass before it is trusted as a
 /// heartbeat.
 ///
-/// ## Why this exists
-///
 /// The live PPI stream (`PolarManager+Streaming.acceptedPpiInterval`) and a
 /// recording pulled off the Verity Sense's own memory
 /// (`PolarManager+VeritySense.convertOfflinePpiToRRPoints`) must apply the

@@ -8,13 +8,11 @@ import Foundation
 // reference to `HealthKitManager` from `Analysis/` is to one of these
 // types, not to `.shared`. So the analysis layer is not
 // CALLING HealthKit at all; nesting would put the name of the I/O
-// class in every pure function's signature, which is the dependency direction
-// the refactor spec forbids: "pure logic never imports the world."
+// class in every pure function's signature, the wrong dependency direction:
+// pure logic never imports the world.
 //
-// Housing them here inverts that without touching a single call site.
-// `HealthKitManager` keeps a typealias for each, exactly as it already did for
-// `SleepData` — that precedent is why this is a safe move rather than a
-// rename sweep. JSON is unaffected: `Codable` synthesises from property names,
+// `HealthKitManager` keeps a typealias for each, as it does for `SleepData`,
+// so call sites can still name them through it. JSON is unaffected: `Codable` synthesises from property names,
 // not from the enclosing type, and no code derives a persisted discriminator
 // from the type name.
 

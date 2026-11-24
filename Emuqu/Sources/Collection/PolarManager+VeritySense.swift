@@ -3,11 +3,10 @@ import Foundation
     import PolarBleSdk
 #endif
 
-// Verity Sense offline-PPI recording, split out of
-// `PolarManager+Recording.swift`. The H10 and the Verity Sense
+// Verity Sense offline-PPI recording. The H10 and the Verity Sense
 // have genuinely different offline models — the H10 records RR to internal
-// memory while streaming, the Verity cannot do both — so the two paths share a
-// file but no logic.
+// memory while streaming, the Verity cannot do both — so the two paths share
+// no logic.
 
 extension StrapRecordingCoordinator {
     // MARK: - Verity Sense Offline PPI Recording (Backup for overnight)

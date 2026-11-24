@@ -3,9 +3,9 @@ import Foundation
 /// Local validation counters for the v2 rollout.
 ///
 /// Tracks dashboard opens, chip drill-ins, trajectory visits, mode
-/// activations and methodology views, on-device only, never uploaded. The Diagnostics page surfaces them so a single user (or a
-/// TestFlight tester) can sanity-check the rollout without an analytics
-/// SDK and without sharing data.
+/// activations and methodology views, on-device only, never uploaded. The
+/// Diagnostics page surfaces them so a single user can sanity-check the
+/// rollout without an analytics SDK and without sharing data.
 ///
 /// All counters auto-persist in UserDefaults. Reset all from
 /// Settings → Advanced → Diagnostics → Usage counts → Reset usage counts.

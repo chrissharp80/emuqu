@@ -176,7 +176,7 @@ enum CloudKitSessionFreshness {
     /// the restore marker keeps it, since every upload writes `isDeleted = 0`:
     /// losing it would let a device that deleted the session earlier delete
     /// it again.
-    /// Server fields this build no longer writes (older builds wrote plaintext
+    /// Server fields this build does not write (older builds wrote plaintext
     /// health values) are cleared, so the record holds only what `local` holds.
     static func overwrite(
         _ server: CKRecord, with local: CKRecord, restoring: Bool = false, yieldingIn state: inout CloudKitSyncState

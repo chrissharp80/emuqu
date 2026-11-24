@@ -1,9 +1,8 @@
 import CoreLocation
 import Foundation
 
-// The address-book and email-composer half of the assistant namespace, split
-// out of `AppFactResolver+AssistantMemory.swift` when that struct's
-// body passed the 500-line ceiling. Only the file boundary moved.
+// The address-book and email-composer half of the assistant namespace; the
+// memory facts are in `AppFactResolver+AssistantMemory.swift`.
 
 extension AssistantMemoryNamespace {
 

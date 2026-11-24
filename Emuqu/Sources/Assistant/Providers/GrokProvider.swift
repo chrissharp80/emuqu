@@ -3,9 +3,9 @@ import Foundation
 /// Streams responses from xAI's Grok API.
 /// OpenAI-compatible endpoint at https://api.x.ai/v1/chat/completions.
 ///
-/// Checked against docs.x.ai/developers/models and the May 15 retirement
-/// guide. `ProviderModelCatalogTests` pins this list. xAI retired the
-/// grok-4-1-fast models and grok-4-0709 and redirects them to grok-4.3.
+/// Checked against docs.x.ai/developers/models and xAI's retirement
+/// guide. `ProviderModelCatalogTests` pins this list. xAI redirects the
+/// retired grok-4-1-fast models and grok-4-0709 to grok-4.3.
 /// Each model runs at its default reasoning effort (grok-4.3 low,
 /// grok-4.7 high). Prices are for prompts under 200k tokens.
 final class GrokProvider: OpenAICompatibleProvider {

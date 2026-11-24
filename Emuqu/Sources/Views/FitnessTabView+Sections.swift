@@ -3,10 +3,9 @@ import CoreLocation
 import MapKit
 import SwiftUI
 
-// Split out from FitnessTabView.swift. Holds the Get Me
-// Back card, strap status pill + connect affordance, and supporting
-// view builders. Members on FitnessTabView are internal rather than
-// private so this extension can call them.
+// The Get Me Back card, strap status pill + connect affordance, and
+// supporting view builders. Members on FitnessTabView are internal rather
+// than private so this extension can call them.
 
 extension FitnessTabView {
     // MARK: - Get Me Back card
@@ -409,7 +408,7 @@ extension FitnessTabView {
     /// reported no steps for the whole week while the pedometer counted some.
     /// HealthKit answers a denied read with an empty result, so all-zero days
     /// are what a denied step/distance/flights read looks like; without this
-    /// the card showed 0 steps instead of the pedometer fallback.
+    /// the card shows 0 steps instead of the pedometer fallback.
     @MainActor
     private func applyDailyActivity(healthKit: [HealthKitManager.DailyActivity]) {
         let healthKitIsEmpty = healthKit.allSatisfy { $0.stepCount == 0 }

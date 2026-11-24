@@ -72,9 +72,9 @@ enum HealthKitWorkoutExport {
     ///   had no workout for that hour.
     ///
     /// The three sample-series builders are pure functions of the captured
-    /// samples rather than inline blocks. `export` keeps the
-    /// I/O and the ordering; the arithmetic that was tangled up with it is
-    /// testable on its own, without a HealthKit store or a simulator.
+    /// samples rather than inline blocks: `export` keeps the I/O and the
+    /// ordering, and the arithmetic is testable on its own, without a HealthKit
+    /// store or a simulator.
     @MainActor
     static func export(
         session: HRVSession,

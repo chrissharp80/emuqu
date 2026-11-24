@@ -132,9 +132,9 @@ enum DeterministicIntent {
                 guard let entry = recent, let score = entry.recoveryScore else { return nil }
                 // `recoveryScore` is stored 0–10; the user-facing score and
                 // `ScoreVerdict` are both 0–100 (see DashboardSessionPolicy).
-                // Without the ×10 every voice answer read "8 — Very low".
-                // The verdict of the number spoken, as the dashboard does: 74.8
-                // was said "75 — Fair" while the ring showed 75 Good.
+                // Without the ×10 every voice answer would read "8 — Very low".
+                // The verdict is of the number spoken, as the dashboard does: judging
+                // 74.8 would say "75 — Fair" while the ring shows 75 Good.
                 let score100 = RecoveryScoreCalculator.displayScore(score * 10)
                 let verdict = ScoreVerdict(score: Double(score100)).localizedWord
                 return String(localized: "Your recovery is \(score100) — \(verdict).", bundle: LanguageManager.appBundle)

@@ -2,9 +2,8 @@ import Foundation
 // `@preconcurrency`: WCSession and its delegate closures predate Sendable.
 @preconcurrency import WatchConnectivity
 
-// The `WCSessionDelegate` conformance, split out of
-// `WatchConnectivityBridge.swift`. Every method here is a callback
-// from the framework; the bridge left behind is what the app calls into.
+// The `WCSessionDelegate` conformance. Every method here is a callback
+// from the framework; the bridge itself is what the app calls into.
 
 // MARK: - WCSessionDelegate
 
@@ -94,8 +93,8 @@ extension WatchConnectivityBridge: WCSessionDelegate {
 
     /// Pick up control intents the Watch queued via `updateApplicationContext`
     /// when the iPhone wasn't reachable at the time. Without this handler,
-    /// any Watch tap that arrived during a backgrounded iPhone state was
-    /// silently dropped — the user's "Watch did nothing" complaint.
+    /// any Watch tap that arrives while the iPhone is backgrounded is
+    /// silently dropped.
     /// Dedupes against the last-processed timestamp of the queued channels
     /// (`acceptsQueuedIntent`), so a context delivered again doesn't fire its
     /// action twice. The live `didReceiveMessage` path records no timestamp:

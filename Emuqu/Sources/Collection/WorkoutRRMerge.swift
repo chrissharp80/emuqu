@@ -2,8 +2,6 @@ import Foundation
 
 /// Merging a workout's RR intervals from the two places they can arrive.
 ///
-/// ## Why this exists
-///
 /// A workout can bounce between an iPhone-paired strap and a Watch-routed one —
 /// the user walks away from the phone, the Watch takes over the BLE link, they
 /// come back. Both paths buffer RR intervals, and finalize has to turn them into
@@ -12,9 +10,6 @@ import Foundation
 /// Merge it wrong and every HRV number for that workout is computed on a
 /// corrupted series: out-of-order intervals turn into enormous successive
 /// differences, which is exactly what RMSSD squares.
-///
-/// Its own type rather than part of `WorkoutRecorder+Stop.swift`, where it
-/// was reachable only by finishing a real workout and so untested.
 enum WorkoutRRMerge {
     /// The RR series for a finishing workout.
     ///

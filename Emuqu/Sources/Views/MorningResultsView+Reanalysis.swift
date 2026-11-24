@@ -1,9 +1,9 @@
 import SwiftUI
 
-// Window-selection method switching and the overnight strap re-merge, split out
-// of `MorningResultsView+Actions.swift`. Both re-run analysis on an
-// existing session; the summary generation and narrative translation that
-// stay there describe a session as it already stands.
+// Window-selection method switching and the overnight strap re-merge. Both
+// re-run analysis on an existing session; the summary generation and
+// narrative translation in `MorningResultsView+Actions.swift` describe a
+// session as it already stands.
 
 extension MorningReanalysisControls {
     // MARK: - Window Selection Method
@@ -626,9 +626,8 @@ extension MorningReanalysisControls {
     /// rejections are:
     ///   • the position lands in a high-artifact stretch (>10% bad beats inside
     ///     the 400-beat window)
-    ///   • the raw RR series isn't available on disk (a previous
-    ///     lightweight-session bug wiped it; since fixed, but old sessions stay
-    ///     broken).
+    ///   • the raw RR series isn't available on disk (some older sessions
+    ///     were archived without it).
     @MainActor
     private func finishManualPreview(_ newResult: HRVAnalysisResult?, timestampMs: Int64) {
         if let newResult {

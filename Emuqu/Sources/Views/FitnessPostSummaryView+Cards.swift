@@ -4,18 +4,15 @@ import MapKit
 import MessageUI
 import SwiftUI
 
-// Split out from FitnessPostSummaryView.swift to keep the primary
-// file under the 1500-line tech-debt budget. Holds
-// physiology, splits, route history, coach report, save route, export
+// Physiology, splits, route history, coach report, save route, export
 // and recap-share cards. The two cards that rewrite the archived workout
 // (re-smooth elevation, re-analyze α1) are in
 // FitnessPostSummaryView+Rewrites.swift.
 
 extension FitnessSummaryCards {
 
-    /// Pa:Hr decoupling + EF live here now — HRR moved into its own card.
-    /// Kept as a secondary "Physiology" group so existing layout stays
-    /// familiar but the signature numbers are promoted.
+    /// Pa:Hr decoupling + EF, a secondary "Physiology" group. HRR has its
+    /// own card.
     var physiologyCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "Physiology", bundle: LanguageManager.appBundle))

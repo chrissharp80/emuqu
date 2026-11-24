@@ -1,14 +1,9 @@
 import Combine
 import Foundation
 
-// `RRCollector`'s forwarders to its sub-objects, split out of
-// `RRCollector.swift` to keep that class body under the 500-line
-// limit. The collector's own state, dependencies and initialisation stay
-// behind; these pass-throughs — which exist so call sites outside SwiftUI can
-// reach the Polar manager, the recorder and the archive without holding them
-// directly — live here.
-//
-// Only the file boundary changed.
+// `RRCollector`'s forwarders to its sub-objects. They exist so call sites
+// outside SwiftUI can reach the Polar manager, the recorder and the archive
+// without holding them directly.
 
 extension RRCollector {
     // MARK: - Forwarders to sub-objects (NOT FOR SwiftUI VIEWS)
@@ -78,11 +73,9 @@ extension RRCollector {
         set { sessionState.baselineDeviation = newValue }
     }
 
-    // Streaming + pause/resume state moved to `StreamingLifecycle`. Views
-    // that only care about recording mode / elapsed time / pause state
-    // now observe that object directly; extension-site writers go through
-    // these back-compat forwarding properties so the orchestration code
-    // doesn't all have to change at once.
+    // Streaming + pause/resume state lives on `StreamingLifecycle`, which views
+    // observe directly; extension-site writers go through these forwarding
+    // properties.
     var isStreamingMode: Bool {
         get { streamingLifecycle.isStreamingMode }
         set { streamingLifecycle.isStreamingMode = newValue }

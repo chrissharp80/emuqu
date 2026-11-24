@@ -15,11 +15,10 @@ import Observation
 // change. The research-recommended pattern is: one model per
 // independently-evolving concern, observed at the field level.
 //
-// **Critical bug this design prevents.** The previous inline-Plan
-// implementation kept its picker state as `@State` on the planning
-// View struct. SwiftUI re-instantiates that struct any time the parent
-// re-renders (which happens every time the hero card refreshes via
-// `.task(id:)`), wiping picker state mid-flow. With state hoisted to
+// **Why the state is not on the planning view.** Picker state kept as
+// `@State` on the planning View struct is wiped mid-flow: SwiftUI
+// re-instantiates that struct any time the parent re-renders (which happens
+// every time the hero card refreshes via `.task(id:)`). With state hoisted to
 // an `@Observable` model owned by the tab root, the model survives
 // every child re-instantiation. Sport pick + route bind + threshold
 // list all stay put while the user is configuring.

@@ -1,9 +1,7 @@
 import Foundation
 
-// Device-internal recording lives in `DeviceRecordingSession` —
-// 451 lines off `RRCollector`.
-//
-// These forwarders keep every existing call site working.
+// Device-internal recording lives in `DeviceRecordingSession`; these
+// forwarders give `RRCollector` callers the same entry points.
 
 extension RRCollector {
     /// The device-internal capture subsystem: a small value built on each

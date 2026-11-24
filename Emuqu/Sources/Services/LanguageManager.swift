@@ -29,10 +29,9 @@ final class LanguageManager {
 
     /// The `.lproj` bundle for the selected language, reached without each call
     /// site textually depending on `.shared`. Identical value and behavior to
-    /// `LanguageManager.shared.bundle`; it forwards to `shared.bundle` once here
-    /// so the ~3.6k `String(localized:…, bundle:)` sites don't each register as
-    /// singleton coupling in the CI tech-debt budget (which exists to track
-    /// *real* singleton reach-through, not the localization bundle accessor).
+    /// `LanguageManager.shared.bundle`, so the ~3.6k
+    /// `String(localized:…, bundle:)` sites name the localization bundle, not
+    /// the singleton.
     nonisolated static var appBundle: Bundle { shared.bundle }
 
     /// The selected language's locale, reached the same way as `appBundle`.
@@ -87,8 +86,9 @@ final class LanguageManager {
     /// The locale for SwiftUI's `\.locale` environment.
     var currentLocale: Locale { locale }
 
-    /// Right-to-left for Arabic. Switching languages in the app changed the
-    /// words at once but kept the left-to-right layout until a relaunch.
+    /// Right-to-left for Arabic. Derived from the selected locale, so an
+    /// in-app language switch changes the layout direction along with the
+    /// words, without a relaunch.
     var layoutDirection: LayoutDirection {
         locale.language.characterDirection == .rightToLeft ? .rightToLeft : .leftToRight
     }

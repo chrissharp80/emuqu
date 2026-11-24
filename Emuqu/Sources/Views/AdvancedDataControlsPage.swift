@@ -97,9 +97,8 @@ struct AdvancedDataControlsPage: View {
 // MARK: - Performance & Battery
 
 /// Master switches for everything other than the core HRV + Sleep loop.
-/// User request from an iPhone-11 owner: cold start was unbearable
-/// because every singleton (AI, voice, Watch, BLE, StoreKit) was being
-/// initialized synchronously before first frame. These toggles let
+/// Each singleton (AI, voice, Watch, BLE, StoreKit) costs cold-start time
+/// before first frame, which older devices feel most. These toggles let
 /// older-device owners turn off whatever they don't use.
 ///
 /// The toggles are stored in UserSettings (file-backed, App Group

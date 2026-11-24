@@ -86,13 +86,11 @@ extension WindowSelector {
     /// The points and flags covering `startIdx ..< endIdx`, or nil when those
     /// indices can't address the series.
     ///
-    /// Defensive bounds check. A production overnight crashed with
-    /// "Fatal error: Range requires lowerBound <= upperBound" on
-    /// the `flags[startIdx ..< min(endIdx, flags.count)]` line.
-    /// Cause: a recovered/interrupted session can have a `flags`
-    /// array shorter than `points` (artifact detection ran on a
-    /// partial backup), so `min(endIdx, flags.count)` < `startIdx`
-    /// for any window that lives past the flags array's tail.
+    /// Defensive bounds check. A recovered/interrupted session can have a
+    /// `flags` array shorter than `points` (artifact detection ran on a
+    /// partial backup), so `min(endIdx, flags.count)` < `startIdx` for any
+    /// window past the flags array's tail, and slicing `flags` would trap
+    /// ("Range requires lowerBound <= upperBound").
     /// Reject the window cleanly instead of crashing the whole
     /// window-selection pass — the recovery score path tolerates
     /// missing windows.
@@ -164,8 +162,7 @@ extension WindowSelector {
         let dfaAlpha1 = cleanRRs.count >= 64 ? DFAAnalyzer.compute(window: clean.beats)?.alpha1 : nil
         // Optional-bind first/last instead of force-unwrap.
         // slice.points is guaranteed non-empty by the rrValues.count >= 50
-        // guard in evaluateWindow, so this never fails in practice — the bind
-        // is purely for refactor-spec compliance ("zero magic, no force-unwraps").
+        // guard in evaluateWindow, so this never fails in practice.
         guard let firstPoint = slice.points.first, let lastPoint = slice.points.last else { return nil }
         return ScoredRecoveryBlock(
             startIndex: slice.startIdx, endIndex: slice.endIdx,

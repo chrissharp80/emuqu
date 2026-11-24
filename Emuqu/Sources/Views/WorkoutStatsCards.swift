@@ -5,8 +5,7 @@ import SwiftUI
 /// power and cadence charts, the elevation profile, the heart-rate-recovery
 /// card and the derived display values that sit beside them.
 ///
-/// Split out of `FitnessPostSummaryView`, alongside [ThresholdCards] and
-/// [Alpha1ReportCards]. It needs the
+/// It needs the
 /// session, the settings object and the GPS track; `units` reads the
 /// process-wide store.
 ///
@@ -15,11 +14,10 @@ import SwiftUI
 /// that needs them beyond the share sheet, which reaches them through a
 /// forwarder.
 ///
-/// Deliberately NOT a `View`, for the same reason as [ThresholdCards]: it
-/// returns the same view trees the extension returned, so SwiftUI view
-/// identity, animation and `@State` behaviour are unchanged. `@MainActor`
-/// because it was main-actor isolated before the split, by virtue of extending
-/// a `View`.
+/// Deliberately NOT a `View`: it returns view trees into the host view's
+/// body, so SwiftUI view identity, animation and `@State` stay the host's.
+/// `@MainActor` because those trees are built inside the host's
+/// main-actor-isolated `body`.
 @MainActor
 struct WorkoutStatsCards {
     let session: HRVSession

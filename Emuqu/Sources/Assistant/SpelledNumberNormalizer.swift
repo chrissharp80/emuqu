@@ -6,7 +6,7 @@ import Foundation
 /// The verifier's main regexes look for digit characters
 /// (`\d+(?:\.\d+)?`). In voice mode the AI replies conversationally
 /// — "TSB negative thirty-one point seven" — and zero digits appear.
-/// Every wrong metric in voice mode was invisible to the verifier.
+/// Without this, every wrong metric in voice mode is invisible to the verifier.
 /// This normaliser converts the common patterns the AI emits into
 /// digit form BEFORE the regexes scan the text: 0–999 ("one hundred
 /// and sixty", "a hundred five"), the spoken "one-sixty" form of a heart

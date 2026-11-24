@@ -8,7 +8,7 @@ import SwiftUI
 // layout AND leaves the largest figures on screen rendered at their smallest
 // size for exactly the users who enlarged their text.
 //
-// SwiftUI has no `Font.system(size:relativeTo:)` overload, so the fix has to
+// SwiftUI has no `Font.system(size:relativeTo:)` overload, so the scaling has to
 // come from `@ScaledMetric`. `@ScaledMetric` is a `DynamicProperty`, and a
 // `DynamicProperty` only drives invalidation when it is stored on a `View` or
 // a `ViewModifier` — which is why this is a modifier rather than a
@@ -18,9 +18,9 @@ import SwiftUI
 // size category.
 //
 // Some detail screens declare their own
-// `@ScaledMetric` properties inline; that shape is equivalent and stays as-is.
-// This modifier exists so the remaining ~300 call sites across ~50 files can
-// adopt Dynamic Type without each one growing a block of storage properties.
+// `@ScaledMetric` properties inline; that shape is equivalent. This modifier
+// lets every other call site adopt Dynamic Type without growing a block of
+// storage properties.
 //
 // NOT for fixed-canvas rendering: `RecapCard` draws a 1080×1920 shareable PNG
 // where the point size IS the design, and deliberately keeps `.system(size:)`.
@@ -39,8 +39,8 @@ extension View {
     ///   - monospacedDigit: Fixed-width digits, as with the `.monospacedDigit()`
     ///     modifier on `Font`. A parameter rather than a chained call because
     ///     `scaledFont` returns a `View`, not a `Font`, so there is nothing left
-    ///     to chain it onto — and every place this replaces was a live metric
-    ///     that must not jitter as its digits change.
+    ///     to chain it onto — and its call sites are live metrics that must
+    ///     not jitter as their digits change.
     ///   - textStyle: The style whose scaling curve to follow. Defaults to the
     ///     built-in style whose own default size is nearest `size`, so a 12 pt
     ///     label scales like a caption and a 34 pt figure scales like a large

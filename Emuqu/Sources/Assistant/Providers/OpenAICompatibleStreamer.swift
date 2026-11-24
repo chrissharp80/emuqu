@@ -246,9 +246,6 @@ enum OpenAICompatibleStreamer {
     /// Builds the POST for a chat-completions call through
     /// `ProviderHTTP.streamRequest`, with the key as a bearer token.
     ///
-    /// Kept out of `stream`, alongside `buildMessages`, to hold it
-    /// under the body-length budget.
-    ///
     /// The sorted-key body matters here: DeepSeek's prompt cache hinges on
     /// byte-identical prefixes across turns.
     private static func buildRequest(

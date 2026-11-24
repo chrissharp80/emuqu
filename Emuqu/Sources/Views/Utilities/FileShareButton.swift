@@ -4,9 +4,9 @@ import UIKit
 
 /// A share button whose file is written only when it is tapped and deleted
 /// once the share sheet closes, whether the user shared it or cancelled
-/// (`presentFileShareSheet`). It stands where a `ShareLink` stood: a
-/// `ShareLink` reports no completion, so the health data in a file it handed
-/// over stayed in `tmp/Exports` until the next export or launch. The launch
+/// (`presentFileShareSheet`). Not a `ShareLink`: a `ShareLink` reports no
+/// completion, so the health data in a file it hands over would stay in
+/// `tmp/Exports` until the next export or launch. The launch
 /// sweep (`ExportFile.removeLeftovers`) still removes a file whose sheet the
 /// app was closed under.
 ///

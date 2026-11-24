@@ -129,9 +129,8 @@ struct BreadcrumbTrail: Codable, Equatable, Sendable {
 // Pattern mirrors `ConversationStore` — App Group container for
 // availability across extensions, atomic write to dodge half-written
 // files on crash, file-protection level set so the file is readable as
-// long as the device has been unlocked once since boot (matches the
-// "I want it to keep recording while my phone is in my pocket and
-// locked" use case).
+// long as the device has been unlocked once since boot, so recording
+// carries on while the phone is locked in a pocket.
 //
 // Multi-trail history. There is:
 //   - One **active** trail at `Breadcrumbs/active.json` (engaged via
@@ -187,8 +186,7 @@ final class BreadcrumbStore: @unchecked Sendable {
 
     /// One-shot migration from the v1 single-file layout
     /// (`trail.json`). If the legacy file is present and `active.json` isn't,
-    /// move it. Guarantees existing users don't lose their engaged trail when
-    /// this build lands.
+    /// move it, so an engaged trail in the v1 layout is not lost.
     private static func migrateLegacyTrailIfNeeded(in baseURL: URL, to activeURL: URL) {
         let fm = FileManager.default
         let legacyURL = baseURL.appendingPathComponent("trail.json")

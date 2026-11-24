@@ -210,9 +210,8 @@ final class LiveDFAAnalyzer {
 
     /// A beat count alone (64 beats) is not enough to fit: it says nothing
     /// about whether the beats SPAN the two-minute window. At HR 160 that
-    /// is ~24 s of data, and every comment in this file (and in
-    /// `WorkoutAlpha1Reanalyzer`, which runs "the exact same math
-    /// offline vs. live") says two minutes. Rogers/Gronwald's protocol uses
+    /// is ~24 s of data, and this file and `WorkoutAlpha1Reanalyzer` (the
+    /// same math offline) both mean two minutes. Rogers/Gronwald's protocol uses
     /// fixed 2-minute windows precisely because α1 needs that many points to
     /// be stable; fitting a quarter of one and labelling the result "Hard"
     /// mid-run is the failure mode the beat count alone cannot see.
@@ -298,9 +297,9 @@ final class LiveDFAAnalyzer {
     /// clock `bufferSpanSec` measures, so a full window always measures full.
     ///
     /// Cutting on the wall clock while measuring the span on the beat clock
-    /// is what froze α1: every beat lost to a Bluetooth dropout left the span
-    /// permanently that much short of the gate, and recompute never ran
-    /// again. When beats stop altogether the window is not trimmed; the
+    /// would freeze α1: every beat lost to a Bluetooth dropout would leave the
+    /// span permanently that much short of the gate, and recompute would never
+    /// run again. When beats stop altogether the window is not trimmed; the
     /// silence check in `refreshStatus` clears the value instead.
     private func trimToWindow() {
         guard let newest = rollingBuffer.last else { return }
@@ -313,16 +312,14 @@ final class LiveDFAAnalyzer {
     ///
     /// That "whichever" is the point. The caption reads "warming up — X % of
     /// 2-min window", so it has to track the BINDING constraint, not the
-    /// flattering one. Before the elapsed-time gate existed this hit 100 % as
-    /// soon as 64 beats had arrived — sometimes 25 s into a window the same
-    /// caption was calling two minutes long.
+    /// flattering one. On beats alone it would hit 100 % as soon as 64 beats
+    /// had arrived — sometimes 25 s into a window the same caption calls two
+    /// minutes long.
     private func publishFillProgress() {
         let byBeats = min(1, Double(rollingBuffer.count) / Double(minBeatsForFit))
         // Divided by the SAME span `hasEnoughDataForFit` requires, so 100 %
-        // means ready. Dividing by the nominal `windowSec` instead peaked at
-        // 99 % on a window the gate already considered full — the readout and
-        // the gate disagreeing about "full" is how a progress bar earns a
-        // reputation for lying.
+        // means ready. Dividing by the nominal `windowSec` would peak at 99 %
+        // on a window the gate already considers full.
         let byTime = min(1, bufferSpanSec / max(windowSec - Self.windowSpanSlackSec, 1))
         bufferFillFraction = min(byBeats, byTime)
     }
@@ -352,8 +349,8 @@ final class LiveDFAAnalyzer {
     /// Fit the cleaned window, or set the status explaining why not.
     ///
     /// Returning nil ALWAYS leaves `status` saying which of the two reasons it
-    /// was, because "no α1 this tick" with no explanation is the failure this
-    /// analyzer was already burned by once — see `markStalled`.
+    /// was, because a missing α1 with no explanation reads as a broken
+    /// analyzer — see `markStalled`.
     private func fitOrExplain(_ cleaned: CleanedSeries) -> DFAAnalyzer.DFAResult? {
         // Too much of the buffer was corrected; α1 here would be describing the
         // interpolator rather than the athlete. Report it so the UI can say
@@ -442,8 +439,7 @@ final class LiveDFAAnalyzer {
     ///
     /// The count has to come back alongside the values: step 3 preserves the
     /// series length by construction, so no caller can recover "how much of
-    /// this was invented" by inspecting the result. That is exactly what the
-    /// old `[Double]` return signature invited, and what both callers did.
+    /// this was invented" by inspecting the result.
     ///
     /// `nonisolated` because this is a pure value transform with no
     /// instance state — lets the re-analyzer run on a background task.

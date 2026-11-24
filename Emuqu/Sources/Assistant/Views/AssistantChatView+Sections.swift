@@ -65,9 +65,8 @@ extension AssistantChatView {
     /// the viewport with no scroll required, leaving users
     /// with no way to dismiss the keyboard except the Send
     /// button. simultaneousGesture composes with the scroll
-    /// recognizer rather than competing — the original
-    /// comment about "competed with scroll gestures" applied
-    /// to a regular .onTapGesture, which IS exclusive.
+    /// recognizer rather than competing, as an exclusive
+    /// `.onTapGesture` would.
     private var keyboardDismissTap: some Gesture {
         TapGesture().onEnded {
             UIApplication.shared.sendAction(
@@ -172,9 +171,8 @@ extension AssistantChatView {
 
     /// Floating "scroll to latest" button. Shows
     /// only when the user has scrolled UP from the bottom.
-    /// Real bug repro: with the streaming-token scroll fight,
-    /// some users got stuck above the latest content and
-    /// couldn't catch up. Tapping this guarantees a jump
+    /// If streaming-token scrolls fight the user's, they can be left
+    /// stuck above the latest content. Tapping this guarantees a jump
     /// to the bottom regardless of layout state.
     @ViewBuilder
     private func scrollToLatestButton(_ proxy: ScrollViewProxy) -> some View {
@@ -288,7 +286,7 @@ extension AssistantChatView {
     /// `preserveClipboardForPaste` (default true —
     /// ideas don't get auto-erased while the user
     /// is searching for them across apps). When
-    /// off, the original 60 s security expiration
+    /// off, the 60 s security expiration
     /// applies.
     private func copyToPasteboard(_ text: String) {
         if UIScreen.main.isCaptured {
@@ -492,9 +490,8 @@ extension AssistantChatView {
         registry.activeProvider.id == .apple
     }
 
-    /// Extracted to keep `body` under SwiftUI's type-check budget.
-    /// The closures + four parameters were tipping the type-checker
-    /// over its complexity limit when nested inside the parent body.
+    /// Kept out of `body`: nested inside it, the closures and four
+    /// parameters push the type-checker past its complexity limit.
     @ViewBuilder
     var chatInputBar: some View {
         if inputMode == .setup {

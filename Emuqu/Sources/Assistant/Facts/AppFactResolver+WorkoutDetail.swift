@@ -3,14 +3,13 @@ import CoreMotion
 import Foundation
 import os
 
-// The bulk of `WorkoutNamespace`'s fact catalog, split out of
-// `AppFactResolver+Workout.swift` when that struct's body passed the
-// 500-line limit. The namespace's own plumbing — the archive lookups and the
-// by-date / history entries — stays behind; the per-metric detail facts, the
-// live-workout facts and the timeline downsampler live here.
+// The bulk of `WorkoutNamespace`'s fact catalog: the per-metric detail
+// facts, the live-workout facts and the timeline downsampler. The
+// namespace's own plumbing — the archive lookups and the by-date / history
+// entries — is in `AppFactResolver+Workout.swift`.
 //
-// Only the file boundary changed. The plumbing those entries call widened from
-// `private` to internal because Swift's `private` does not reach across files.
+// The plumbing these entries call is internal rather than `private`
+// because Swift's `private` does not reach across files.
 
 extension WorkoutNamespace {
     /// Per-metric detail facts and the `workout.live.*` namespace.

@@ -130,11 +130,11 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// from `Task.detached` on every 1 Hz tick, and detached tasks are
     /// unordered relative to each other, so two overlapping calls interleave.
     ///
-    /// `retrieve` took no lock at all, so a recovery read concurrent with an
-    /// append could observe a half-written JSONL line — which is exactly the
-    /// moment this file exists to be readable.
+    /// An unlocked `retrieve` concurrent with an append could observe a
+    /// half-written JSONL line — which is exactly the moment this file exists
+    /// to be readable.
     ///
-    /// Both now run on this queue, which makes append atomic against append
+    /// Both run on this queue, which makes append atomic against append
     /// AND against read. Same shape as `RawRRBackup.appendQueue`.
     private let appendQueue = DispatchQueue(label: "com.emuqu.workouttrackbackup.append", qos: .utility)
     /// Running cursors: number of items already flushed for each stream
@@ -722,7 +722,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// nothing left to list: every cursor and header flag is cleared anyway,
     /// or the next workout of a session seen this launch would append past a
     /// count no file holds, and the folder is made again, or every later write
-    /// failed until relaunch. On `appendQueue`, like `discard`; a workout
+    /// fails until relaunch. On `appendQueue`, like `discard`; a workout
     /// whose files will not all go is logged.
     func purgeAll() {
         appendQueue.sync {

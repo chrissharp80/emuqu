@@ -485,10 +485,9 @@ extension VoiceAudioPipeline {
     /// COMPLETE assistant turn and return WITHOUT streaming, so
     /// `isStreaming` stays false and no `speakableTextCursor` is ever
     /// published for that turn. The streaming observer only speaks text up
-    /// to that cursor — so these turns were NEVER spoken, and because the
-    /// synthesizer was never handed an utterance, its `didFinish` (the only
-    /// thing that re-arms the mic) never fired. Voice wedged in `.speaking`
-    /// forever — the user's "afib question just spins calculating." Speak the
+    /// to that cursor, and the synthesizer's `didFinish` (the only thing that
+    /// re-arms the mic) fires only for an utterance it was handed, so such a
+    /// turn would go unspoken and leave voice in `.speaking`. Speak the
     /// finished turn directly; `didFinish` then re-arms listening.
     ///
     /// Recognised by what this send appended — exactly a user turn and a

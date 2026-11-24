@@ -97,11 +97,10 @@ extension VoiceConversationController {
     /// so the conversation doesn't sound like a robot reciting its
     /// own name every other line.
     ///
-    /// It also names the MODEL handling the session. The user's
-    /// complaint was "I have no idea if it's apple or sonnet
-    /// talking to me." With voice routing now session-sticky to
-    /// the user's primary cloud (or Apple when no cloud is
-    /// configured), naming the model once at session start
+    /// It also names the MODEL handling the session, so the user
+    /// knows whether Apple or a cloud model is talking. Voice routing
+    /// is session-sticky to the user's primary cloud (or Apple when no
+    /// cloud is configured), so naming the model once at session start
     /// settles that question without spoken UI instructions.
     /// Brief — one or two words appended to the existing preamble.
     private func announced(_ guarded: String) -> String {

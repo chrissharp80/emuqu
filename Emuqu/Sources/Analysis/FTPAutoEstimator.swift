@@ -48,8 +48,8 @@ enum FTPAutoEstimator {
     private static let cachedFTPKey = "FlowRecovery.ftpAutoEstimate.runningFTP"
     private static let cachedAsOfKey = "FlowRecovery.ftpAutoEstimate.computedAt"
     private static let cachedSourceSessionKey = "FlowRecovery.ftpAutoEstimate.sourceSessionId"
-    /// Written by earlier versions (it held the 20-minute mean power, not
-    /// normalized power, and nothing read it); removed on every scan.
+    /// A key nothing writes or reads (it holds the 20-minute mean power, not
+    /// normalized power); removed on every scan.
     private static let legacySourcePowerKey = "FlowRecovery.ftpAutoEstimate.sourceNP"
     /// Re-scan at most this often unless the archive changed (see `needsRecompute`).
     private static let rescanInterval: TimeInterval = 7 * 24 * 3600

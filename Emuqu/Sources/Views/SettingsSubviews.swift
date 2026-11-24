@@ -408,8 +408,8 @@ struct AddTagSheet: View {
         }
     }
 
-    /// VoiceOver names for `presetColors`, in the same order: the swatches
-    /// were unlabelled circles, chosen by colour alone.
+    /// VoiceOver names for `presetColors`, in the same order: without them the
+    /// swatches are unlabelled circles, chosen by colour alone.
     private static var presetColorNames: [String] {
         let b = LanguageManager.appBundle
         return [
@@ -451,7 +451,7 @@ struct AddTagSheet: View {
                     .padding(.vertical, 6)
                     // Drawn the way TagChip draws a selected tag on the Record tab:
                     // primary text on a tint, which stays readable on yellow,
-                    // mint or cyan where white text did not.
+                    // mint or cyan where white text does not.
                     .background(Capsule().fill(tagColor.opacity(0.35)))
                     .foregroundStyle(AppTheme.textPrimary)
                 Spacer()
@@ -626,8 +626,8 @@ struct MetricExplanationsView: View {
         }
     }
 
-    /// The DFA α1 row, extracted so `nonlinearMetrics` stays under the
-    /// 20-line declaration limit after this row's copy grew.
+    /// The DFA α1 row, a function of its own so `nonlinearMetrics` stays
+    /// under the 20-line declaration limit.
     ///
     /// This row deliberately omits the fixed resting interpretation the Help
     /// Center also omits: "separates real recovery from noise", "~0.5: Random

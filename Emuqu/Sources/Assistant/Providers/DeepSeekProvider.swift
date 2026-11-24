@@ -6,8 +6,8 @@ import Foundation
 /// Checked against api-docs.deepseek.com (quick_start/pricing, updates,
 /// guides/thinking_mode). `ProviderModelCatalogTests` pins this list.
 ///
-/// DeepSeek retired `deepseek-chat` and `deepseek-reasoner` on 24 July 2026;
-/// thinking is now a request field, on by default, rather than a model name.
+/// DeepSeek has retired `deepseek-chat` and `deepseek-reasoner`; thinking
+/// is a request field, on by default, rather than a model name.
 /// Both models run with thinking off: a thinking turn that calls tools must
 /// have its `reasoning_content` passed back in every later request, and
 /// Flo's tool rounds carry only the calls and their results.

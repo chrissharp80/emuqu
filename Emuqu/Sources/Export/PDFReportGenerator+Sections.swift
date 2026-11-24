@@ -148,11 +148,8 @@ extension PDFReportGenerator {
 
 // MARK: - File-scope helpers
 //
-// Kept out of the type. Each touches no instance state —
-// including the computed properties — and
-// calls nothing inside the type, so none is a method in anything but
-// placement. `private` at file scope is fileprivate, so every call site in
-// this file resolves the same way.
+// Each touches no instance state — including the computed properties —
+// and calls nothing on the type, so none needs to be a method.
 
 /// Deep / REM / Light, each with its share of the night.
 private func sleepStageBoxes(_ sleep: PDFReportGenerator.SleepData) -> [(String, String, UIColor)] {

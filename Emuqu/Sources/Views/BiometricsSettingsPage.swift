@@ -55,9 +55,8 @@ struct BiometricsSettingsPage: View {
     // TRIMP / HRR calculation. The clamp ONLY applies to the upper bound on
     // every keystroke, NOT the lower bound. Why: clamping the lower bound
     // mid-typing rewrites the user's input ("1" intended for "180" gets
-    // clamped to 80, then "18" stays at 80, then "180" finally lands but the
-    // field looks broken in the meantime — user complaint: "the
-    // fields aren't taking the right numbers from the keyboard").
+    // clamped to 80, then "18" stays at 80, then "180" finally lands, and the
+    // field looks broken in the meantime).
     //
     // The lower bound is applied once editing ends (`dropValuesBelowMinimum`,
     // when focus leaves the number fields or the page closes): a value below

@@ -2,13 +2,9 @@ import Foundation
 import PDFKit
 import UIKit
 
-// Deep-dive pages live in `DeepDiveReportRenderer` — well over a thousand
-// lines kept out of PDFReportGenerator, one of the largest types in the
-// codebase.
-//
-// This seam and not another because the deep-dive pages needed exactly two
-// members of the generator: the report config and the page-break helper. The
-// forwarders below keep every existing call site working.
+// Deep-dive pages live in `DeepDiveReportRenderer`, which needs exactly two
+// members of the generator: the report config and the page-break helper.
+// These forwarders give `PDFReportGenerator` callers the same entry points.
 
 extension PDFReportGenerator {
     /// The deep-dive page renderer: a stateless value wrapping `self`, built

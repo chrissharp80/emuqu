@@ -23,17 +23,15 @@ extension SessionArchive {
     }
 
     /// Protection class is `.completeUntilFirstUserAuthentication`,
-    /// not `.completeUnlessOpen`: a user's debug log
-    /// showed **3,325** "Operation
-    /// not permitted" errors across 30+ session JSON files when
-    /// the AI tried to walk the archive. `.completeUnlessOpen`
+    /// not `.completeUnlessOpen`. `.completeUnlessOpen`
     /// keeps a file accessible across a screen-lock event ONLY
     /// while the file handle stays open — once closed, the next
     /// open requires the device to be unlocked. iOS reads in
     /// `Data(contentsOf:)` open + close in one go, so any read
     /// that happens while the screen is locked (CloudKit sync,
     /// background AI context build, AssistantContextSource
-    /// re-walk) fails with errno=1.
+    /// re-walk) fails with errno=1 ("Operation not permitted"), on
+    /// every session file it touches.
     ///
     /// `.completeUntilFirstUserAuthentication` matches what
     /// RawRRBackup and DebugLog use (for the same errno-1
@@ -41,7 +39,7 @@ extension SessionArchive {
     /// files become readable post-first-unlock-after-reboot
     /// instead of strict-while-unlocked. For HRV and workout
     /// data this is fine — the data isn't more sensitive than
-    /// the rest of the app, and the strictness was breaking
+    /// the rest of the app, and the stricter class breaks
     /// every background read path the app actually depends on.
     ///
     /// LAUNCH PERF. The per-file protection-class walk (recursive
@@ -541,8 +539,8 @@ extension SessionArchiveEntry {
 /// by re-encoding them, each kept as the JSON object it was read as:
 ///
 ///   • one that does not decode here at all. It is not in the in-memory
-///     index, so without this the next save wrote the file without it and
-///     the newer build lost the session from its list;
+///     index, so without this the next save would write the file without it
+///     and the newer build would lose the session from its list;
 ///   • one that decodes but carries a `schemaVersion` above
 ///     `SessionArchiveEntry.currentSchemaVersion`. Re-encoding it would drop
 ///     every field this build does not know and stamp it with the older

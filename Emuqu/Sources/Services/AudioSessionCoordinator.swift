@@ -17,7 +17,7 @@ import os
 //   • `breathingGuide` — the breathing guide's spoken cues, playback; the
 //     one claimant that ducks other apps' audio.
 //
-// **The bug this prevents.** If each called `AVAudioSession.setCategory(...)`
+// **Why one owner.** If each called `AVAudioSession.setCategory(...)`
 // directly, a workout cue spoken during a voice chat would clobber voice's
 // `.playAndRecord` with `.playback` — voice's mic goes silent and the
 // recogniser produces "no speech detected".

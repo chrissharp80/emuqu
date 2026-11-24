@@ -1,12 +1,9 @@
 import Foundation
 
 // Recovery lives in `SessionRecoveryCoordinator` (its extensions in
-// `RRCollector+Recovery.swift` and `RRCollector+BackupRecovery.swift`), kept
-// out of what was the largest type in the codebase.
-//
-// These forwarders exist so the ~29 call sites across the app and the test
-// suite did not have to change in the same commit as the move. They are the
-// collector's recovery API; the behaviour lives one reference away.
+// `RRCollector+Recovery.swift` and `RRCollector+BackupRecovery.swift`).
+// These forwarders are the collector's recovery API; the behaviour lives
+// one reference away.
 
 extension RRCollector {
     /// The recovery subsystem, built afresh on every access. The coordinator

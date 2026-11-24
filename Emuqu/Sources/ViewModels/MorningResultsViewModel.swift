@@ -214,8 +214,8 @@ final class MorningResultsViewModel {
     /// always use it so all views show the same number.
     /// Read from `displaySession`, not the immutable
     /// `session` input. `reanalyzedSession` is set whenever the user
-    /// re-analyzes from this view OR (after the archive observer
-    /// wiring below) when an external surface like the dashboard
+    /// re-analyzes from this view OR (through the archive observer
+    /// below) when an external surface like the dashboard
     /// re-analyzes / refreshes sleep on the same recording. Reading
     /// `session.recoveryScore` here would lock the displayed number
     /// to whatever was archived at sheet-presentation time, ignoring
@@ -394,7 +394,7 @@ final class MorningResultsViewModel {
     /// and today's TRIMP, so the steps switch to post-workout recovery advice
     /// after a hard session. It changes the summary text only, not a score.
     ///
-    /// `canonicalBaseline*` (#2) threads the canonical score baseline
+    /// `canonicalBaseline*` threads the canonical score baseline
     /// (geometric ln(RMSSD) mean + meanHRBaseline) so the narrative agrees with
     /// the score instead of recomputing an arithmetic mean that reads high.
     private func summaryGenerator(readiness: LiveReadiness?) -> AnalysisSummaryGenerator {

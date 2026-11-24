@@ -3,8 +3,7 @@
 // usage shape:
 //   1. AVFAudio types (AVAudioPCMBuffer, AVAudioConverter) are
 //      pre-Swift-Concurrency Apple frameworks; their `Sendable`
-//      annotations are inferred conservatively. We pre-existed the
-//      checker.
+//      annotations are inferred conservatively.
 //   2. The `AVAudioConverterInputBlock` closure passed to
 //      `converter.convert(to:error:withInputFrom:)` is typed
 //      `@Sendable` by the framework but executes SYNCHRONOUSLY on
@@ -247,7 +246,7 @@ final class WhisperKitSTTBridge {
     /// Writes what `converter` still holds of the buffers already fed. A
     /// sample-rate converter keeps a short tail of each input back for its
     /// filter and gives it up only when told the input has ended; without
-    /// this the last few milliseconds of every utterance were never written.
+    /// this the last few milliseconds of every utterance would never be written.
     /// Called once per converter, after its last buffer: once told
     /// end-of-stream it converts nothing more.
     private static func drain(_ converter: AVAudioConverter, to file: AVAudioFile, format targetFormat: AVAudioFormat) throws {
@@ -299,7 +298,7 @@ final class WhisperKitSTTBridge {
 /// input block. Holds one source buffer and yields it once, then
 /// reports no data for now. Not end-of-stream: one converter serves every
 /// buffer of the utterance, and once told end-of-stream it converts nothing
-/// more, so Whisper got the first ~21 ms of each utterance. Marked `@unchecked
+/// more, which would leave Whisper only the first ~21 ms of each utterance. Marked `@unchecked
 /// Sendable` because the convert block is synchronous: even though
 /// the SDK types the block `@Sendable`, it's invoked on the calling
 /// thread inside `convert(...)` and never escapes, so the captured

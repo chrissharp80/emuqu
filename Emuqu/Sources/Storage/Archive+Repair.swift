@@ -143,8 +143,8 @@ extension SessionArchive {
     /// Targeted, self-healing repair for a SINGLE session whose stored
     /// `fileHash` no longer matches its file bytes (the `ArchiveError.hashMismatch`
     /// the sync path throws). A mismatch is usually a STALE fingerprint on
-    /// otherwise-good data — an older write path (`relinkSameNightSessions`)
-    /// rewrote the file without updating the hash; see the note in `_retrieve`.
+    /// otherwise-good data — a file rewritten without its hash being
+    /// updated; see the note in `_retrieve`.
     ///
     /// Decode-and-validate FIRST: only refresh the hash if the file still yields
     /// a real `HRVSession`, so genuinely-corrupt bytes are NEVER laundered into a

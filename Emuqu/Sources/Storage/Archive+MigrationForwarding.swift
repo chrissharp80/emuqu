@@ -1,9 +1,7 @@
 import Foundation
 
-// Migrations live in `ArchiveMigrations` — 673 lines off
-// `SessionArchive`.
-//
-// These forwarders keep every existing call site working.
+// Migrations live in `ArchiveMigrations`; these forwarders let callers reach
+// them through `SessionArchive`.
 
 extension SessionArchive {
     /// The migration subsystem, built on each access; it holds no state of its own.

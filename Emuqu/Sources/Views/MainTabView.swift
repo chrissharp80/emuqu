@@ -12,16 +12,12 @@ struct MainTabView: View {
     private var settingsManager: SettingsManager { dependencies.app.settingsManager }
     var assistantInbox: AssistantInbox { dependencies.assistant.assistantInbox }
     /// Observe scene phase so the dashboard reloads when
-    /// the app comes back from background. Real-user report: "the
-    /// recovery pill still is outdated when i wake up. was too high
-    /// yesterday and too low today. had to restart the app to see it."
-    /// Root cause: when overnight processing completes while the app
-    /// is backgrounded, the new score lands on disk and bumps
-    /// `archiveSignal.notifyChanged()` — but if the app was suspended
-    /// the in-memory `archiveSignal.version` observer never fires.
-    /// On foreground, no path forces a reload, so the dashboard keeps
-    /// showing yesterday's session until the user kills + relaunches.
-    /// Belt-and-braces fix: re-load on every active transition.
+    /// the app comes back from background. When overnight processing
+    /// completes while the app is suspended, the new score lands on disk and
+    /// bumps `archiveSignal.notifyChanged()`, but the in-memory
+    /// `archiveSignal.version` observer never fires. Without a reload on
+    /// every active transition the dashboard keeps showing yesterday's
+    /// session until the app is relaunched.
     @Environment(\.scenePhase) private var scenePhase
     @State var selectedTab: Tab = .dashboard
     /// A tab a screen outside the tab view (onboarding) wants opened. Taken
@@ -500,9 +496,9 @@ struct MainTabView: View {
             scrollToTopToken: scrollToTopToken,
             onStartRecording: { startRecording() },
             onViewReport: { selectedReportSession = $0 },
-            // No delete or tag-save closures: History, the only screen that
-            // used them, deletes and saves tags itself so it can say when
-            // either fails (`HistoryView.moveToTrash`, `saveTags`).
+            // No delete or tag-save closures: History deletes and saves tags
+            // itself so it can say when either fails
+            // (`HistoryView.moveToTrash`, `saveTags`).
             onReanalyzeSession: { await reanalyzeSession($0, method: $1) }
         )
     }

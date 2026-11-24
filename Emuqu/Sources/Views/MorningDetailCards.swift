@@ -4,19 +4,13 @@ import SwiftUI
 /// cards, the sleep and training cards, the split-night section, and the
 /// technical-details block.
 ///
-/// Split out of `MorningResultsView` — 667 lines out of a
-/// 2,558-line view.
+/// Wide initialiser: these cards genuinely read the whole morning result. A
+/// narrower interface would mean either passing the view itself — which
+/// reduces nothing — or a facade that hides the coupling without removing it.
 ///
-/// This one has a wide initialiser, unlike [ThresholdCards] or
-/// [TagsAndNotesCard] which needed one or two inputs each. That is honest
-/// rather than accidental: these cards genuinely read the whole morning
-/// result. Bundling them behind a narrower interface would have meant either
-/// passing the view itself — which reduces nothing — or inventing a facade that
-/// hides the coupling without removing it.
-///
-/// Deliberately NOT a `View`. It returns the same view trees the extension
-/// returned, from the same positions, so SwiftUI view identity, animation and
-/// `@State` behaviour are unchanged. The snapshot suite pins that.
+/// Deliberately NOT a `View`: it returns view trees into the host view's
+/// body, so SwiftUI view identity, animation and `@State` stay the host's.
+/// The snapshot suite pins that.
 @MainActor
 struct MorningDetailCards {
     let vm: MorningResultsViewModel

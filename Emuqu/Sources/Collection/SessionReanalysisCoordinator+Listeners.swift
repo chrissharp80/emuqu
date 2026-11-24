@@ -451,9 +451,8 @@ extension SessionReanalysisCoordinator {
 
 // MARK: - File-scope helpers
 //
-// Kept out of the coordinator: each names no member of the type and calls
-// nothing inside it, so none needs to be a member. `private` at file scope
-// is fileprivate, so every call site in this file resolves the same way.
+// Each names no member of the coordinator and calls nothing on it, so
+// none needs to be inside the type.
 
 @MainActor
 private func postSleepRescoreRequest(

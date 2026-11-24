@@ -13,10 +13,6 @@ import os
 // `runBoundedQuery` / `runBoundedThrowingQuery`, which enforce a timeout +
 // `manager.healthStore.stop(query)` + resume-once on EVERY query. No raw
 // `withCheckedContinuation { … execute }` should exist outside here.
-//
-// (Lives in this file, which is already a compiled target member, rather than a
-// standalone file — a new standalone .swift would need adding to the Xcode
-// target's explicit file list to be built.)
 extension HeartRateHealthQueries {
     // MARK: Per-query-type timeouts (ENGINEERING BOUNDS — not science)
     //
@@ -51,10 +47,9 @@ extension HeartRateHealthQueries {
     ///
     /// `resolve` is `@Sendable` and `T` is constrained to `Sendable`. Every
     /// caller passes `resolve` straight into an `HKQuery` result handler, which
-    /// HealthKit declares `@Sendable`; without those annotations each of the
-    /// ~50 call sites raised "capture of 'resolve' with non-Sendable type in a
-    /// '@Sendable' closure" under strict concurrency — the single largest block
-    /// of concurrency diagnostics in the app.
+    /// HealthKit declares `@Sendable`; without those annotations every call
+    /// site fails strict concurrency checking ("capture of 'resolve' with
+    /// non-Sendable type in a '@Sendable' closure").
     func runBoundedQuery<T: Sendable>(
         timeout: TimeInterval,
         makeQuery: (@escaping @Sendable (T?) -> Void) -> HKQuery

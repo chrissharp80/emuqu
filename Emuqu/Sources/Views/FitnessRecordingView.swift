@@ -22,10 +22,9 @@ struct FitnessRecordingView: View {
     // `recorder.workoutHR.currentHR` etc.) are computed forwarders onto
     // lifecycle / workoutHR / motion / dfa, which hold that state; only a
     // few things, such as the planned route, live on the recorder itself.
-    // Holding the sub-objects here keeps their observation explicit after
-    // the metrics once showed as zeros until a re-mount. User report:
-    // "Workout metrics do not display until the user navigates to a
-    // different screen (or AI chat) and then comes back."
+    // Holding the sub-objects here keeps their observation explicit;
+    // observed only through the forwarders, the metrics can show as zeros
+    // until the screen is re-mounted.
     private var lifecycle: WorkoutLifecycle
     private var workoutHR: WorkoutHR
     private var motion: WorkoutMotion
@@ -83,8 +82,8 @@ struct FitnessRecordingView: View {
     // This screen re-evaluates `body` on EVERY 1 Hz tick (HR,
     // timer, DFA, motion all publish ~1 Hz). Running the static
     // `String(localized:bundle:)` labels on every tick — against the large
-    // localized string table — is the start/scroll latency the user
-    // reported. These labels only change
+    // localized string table — costs start and scroll latency. These labels
+    // only change
     // on a language switch, so compute them ONCE per `LanguageManager.revision`
     // and read the cached struct in `body` instead of re-localizing per tick.
     struct Labels {

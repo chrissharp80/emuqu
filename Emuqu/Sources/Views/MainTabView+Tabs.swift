@@ -73,7 +73,7 @@ extension MainTabView {
 
     /// Don't decrypt the dashboard slice while another tab is showing. These
     /// reloads fire on foreground / archive-change / CloudKit-pull — all
-    /// tab-independent — so tapping Record/Fitness was triggering a
+    /// tab-independent — so without this, tapping Record/Fitness would start a
     /// ~35-session dashboard decrypt unrelated to that screen. Defer to when
     /// the Dashboard is actually shown (it paints from cache meanwhile).
     func dashboardReloadIsWanted() -> Bool {

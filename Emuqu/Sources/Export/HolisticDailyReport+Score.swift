@@ -4,9 +4,8 @@
 //
 //  The readiness composite behind page 2 — how the number is arrived at,
 //  and what it is that helped or hurt it — plus the two value types the
-//  pages draw (GlanceRow, ScoreContribution). Split out of
-//  HolisticDailyReport to keep that file under 1000 lines; the drawing code
-//  lives in HolisticDailyReport+Pages.swift.
+//  pages draw (GlanceRow, ScoreContribution). The drawing code lives in
+//  HolisticDailyReport+Pages.swift.
 //
 
 import CoreLocation

@@ -1,10 +1,9 @@
 import Foundation
 
-// The nested value types that make up an `AssistantContext`, split out of
-// `AssistantContext.swift`. Nested type declarations are legal in an
-// extension, so the shape is unchanged — `AssistantContext.Recovery` is still
-// `AssistantContext.Recovery`. What stays behind is the context's own stored
-// fields and the renderers that read them.
+// The nested value types that make up an `AssistantContext`. Nested type
+// declarations are legal in an extension, so `AssistantContext.Recovery` is
+// still `AssistantContext.Recovery`. The context's own stored fields and the
+// renderers that read them are in `AssistantContext.swift`.
 
 extension AssistantContext {
     // MARK: - Sub-structs
@@ -352,7 +351,7 @@ extension AssistantContext {
         let elapsedSeconds: Int
         let heartRate: Int?
         /// Session-observed peak HR. DO NOT use as the denominator for zone
-        /// math — that's what produced "Zone 5 at 100 bpm" when peak was only
+        /// math — that gives "Zone 5 at 100 bpm" when peak is only
         /// 105. Use `userMaxHR` instead.
         let peakHR: Int
         /// User's physiological max HR (Settings override, else 208 − 0.7 × age, else
@@ -379,7 +378,7 @@ extension AssistantContext {
         let gpsFixCount: Int
         let gpsAccuracyMeters: Double?
 
-        // --- New: pace, power, energy ---
+        // --- Pace, power, energy ---
         let currentPaceSecPerKm: Double?
         let currentSpeedMS: Double?
         let powerWatts: Int?
@@ -387,7 +386,7 @@ extension AssistantContext {
         /// Last up-to-3 split paces in sec / km (index 0 = most recent).
         let recentSplitPaces: [Double]
 
-        // --- New: map & terrain ---
+        // --- Map & terrain ---
         let currentLatitude: Double?
         let currentLongitude: Double?
         let currentAltitudeMeters: Double?
@@ -401,15 +400,14 @@ extension AssistantContext {
         /// Grade in %, computed from the last ~100 m of track.
         let currentGradePercent: Double?
 
-        // --- New: preferences + target ---
+        // --- Preferences + target ---
         /// User's unit preference string ("auto" / "metric" / "imperial").
-        /// Lets the AI render distances and paces in the user's language
-        /// instead of always emitting metric — the cause of the "voice
-        /// chat was all metric until I told it imperial" complaint.
+        /// Lets the AI render distances and paces in the user's units
+        /// instead of always emitting metric.
         let unitsPreference: String
         let targetZone: Int?
 
-        // --- New: recognised route ---
+        // --- Recognised route ---
         /// Name of the route the recorder bound for this workout. Either
         /// the user's library name ("Daily 1", "Long loop") when the
         /// recogniser matched a saved route, or the GPX file name when
@@ -452,7 +450,7 @@ extension AssistantContext {
         /// location.
         var currentNearestCrossStreet: String?
 
-        // --- New: route topography + weather (rich AI context) ---
+        // --- Route topography + weather (rich AI context) ---
         /// Full topology snapshot of the bound route (climbs queue,
         /// remaining ascent, peak altitude, etc.). Same data the
         /// trigger engine sees in WorkoutAIContext, mirrored here so the
@@ -467,8 +465,8 @@ extension AssistantContext {
         // self-comparison). These mirror the same fields on
         // `WorkoutAIContext` so the chat tool path (which reads from
         // this snapshot) sees the same data the voice path does.
-        // Defaulted nil for back-compat with sessions persisted before
-        // these existed. ---
+        // Defaulted nil so sessions persisted without these fields
+        // still decode. ---
 
         /// Current pace minus first-half average pace, sec/km.
         /// Negative = faster second half. Nil before half-time.
@@ -586,7 +584,7 @@ extension AssistantContext {
 
         // --- Threshold-coach state (closes the loop on the user's
         // pre-declared "don't let HR exceed 135 for 30s" thresholds —
-        // the AI can now answer "what thresholds did I set?" and "am I
+        // so the AI can answer "what thresholds did I set?" and "am I
         // breaching anything right now?") ---
 
         /// User's active thresholds for this workout. Empty when the user

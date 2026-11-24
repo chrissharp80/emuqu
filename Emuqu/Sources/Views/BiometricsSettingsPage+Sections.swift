@@ -7,11 +7,8 @@ import SwiftUI
 // footer separate so nothing here runs past twenty lines — rather than one
 // 350-line `body` nested six deep.
 //
-// They live in this file because the split pushed the struct itself past
-// SwiftLint's 500-line `type_body_length` — the same reason
-// `RecordView+Sections.swift` exists. Every member is a computed property on
-// `BiometricsSettingsPage` itself, so the form and its focus state are exactly
-// what they were inline.
+// Every member is a computed property on `BiometricsSettingsPage` itself, so
+// the form and its focus state behave exactly as they would written inline.
 
 extension BiometricsSettingsPage {
     // MARK: - Form

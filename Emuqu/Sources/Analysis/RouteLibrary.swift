@@ -164,7 +164,7 @@ enum RouteLibrary {
     /// Live points scored per comparison. The fit is a MEAN over the live
     /// track, so an even subsample estimates it without bias while capping the
     /// O(|live| × |saved|) cost: a full-resolution hour-long run against a
-    /// long route was millions of distance calls, once per prior on every
+    /// long route is millions of distance calls, once per prior on every
     /// finalize and backfill.
     static let maxScoredPoints = 300
 

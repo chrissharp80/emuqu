@@ -2,9 +2,9 @@ import Foundation
 
 /// Stateless service that encapsulates session recovery logic.
 ///
-/// Extracted from `RRCollector+Recovery.swift` so the recovery algorithms
-/// can be tested in isolation. `RRCollector` keeps thin wrapper methods
-/// that forward to this service and update its own observable state.
+/// Kept apart from `RRCollector` so the recovery algorithms can be tested in
+/// isolation; `RRCollector` forwards to it and updates its own observable
+/// state.
 @MainActor
 final class SessionRecoveryService {
     // MARK: - Types
@@ -94,7 +94,7 @@ final class SessionRecoveryService {
     /// Whether two beat series are the same recording: the same beat count,
     /// with first and last timestamps within a second of each other.
     ///
-    /// Split out of `patchAction`. Written inline as one
+    /// Written inline in `patchAction` as one
     /// three-term `&&` chain it costs ~2 s to type-check on a CI runner —
     /// `abs((a?.t_ms ?? 0) - (b?.t_ms ?? 0)) < 1000` gives the checker two
     /// optional-coalesces, a subtraction, an `abs` overload set and two untyped

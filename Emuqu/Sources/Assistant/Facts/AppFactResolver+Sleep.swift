@@ -393,8 +393,7 @@ struct HRVNamespace: FactNamespaceResolver {
 
     /// Nonlinear metrics — DFA α1 is the gold-standard nonlinear
     /// marker; SD1/SD2 visualize the same parasympathetic signal as
-    /// RMSSD on the Poincaré plot. User explicitly asked for
-    /// Triangular Index above + "search for others" → these were added.
+    /// RMSSD on the Poincaré plot.
     ///
     /// The whole-night HR summary rides along here: it's what the user
     /// actually means when they ask "what was my nadir last night?".
@@ -688,8 +687,8 @@ struct RecoveryNamespace: FactNamespaceResolver {
         }
         var record: [String: FactValue] = [
             "date": .date(session.startDate),
-            // On the dashboard's 0-100 scale. Stored as 0-10, it reached the
-            // model as 7.2 while the ring showed 72.
+            // On the dashboard's 0-100 scale. Stored as 0-10; sent raw, the model
+            // would read 7.2 while the ring shows 72.
             "score": .integer(RecoveryScoreCalculator.displayScore(score * 10)),
             "scale": .string("0-100 (higher = more recovered)")
         ]

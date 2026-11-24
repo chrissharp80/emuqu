@@ -11,7 +11,7 @@ import Foundation
 // `ce06xxxx-43e5-11e4-916c-0800200c9a66`:
 //   • Discovery     ce06_0000…  — advertised, used to surface the device
 //   • Information   ce06_0010…  — serial / firmware
-//   • Control       ce06_0020…  — start/stop/configure (we don't use today)
+//   • Control       ce06_0020…  — start/stop/configure (unused)
 //   • Rowing        ce06_0030…  — the live data stream
 //
 // Inside Rowing service we subscribe to:
@@ -92,7 +92,7 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
     /// set, during a workout, was not asked for (the sensor slept between
     /// intervals, or blipped out of range), so the connection is asked for
     /// again: CoreBluetooth keeps that request open until the sensor is back.
-    /// Before, a drop ended cadence, pace and power for the rest of the
+    /// Without it, a drop ends cadence, pace and power for the rest of the
     /// workout.
     @ObservationIgnored private var expectsLink = false
     /// True from a workout's start to its stop. Outside a workout a drop is
@@ -150,7 +150,7 @@ final class Concept2Manager: NSObject, BLEPeripheralConnecting {
 
     /// The erg a parked reconnect was scanning for did not appear, so the
     /// reconnect ends with the scan; left parked, a later unrelated scan or
-    /// Bluetooth power-on attached it outside any workout.
+    /// Bluetooth power-on would attach it outside any workout.
     private func endTimedOutScan() {
         pendingReconnectId = nil
         stopScanning()

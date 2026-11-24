@@ -118,10 +118,9 @@ struct ScoreRing: View {
     /// storage for `displayedScore`, `.onAppear` does NOT re-fire (the view
     /// didn't reappear), and the centre label keeps showing the OLD number
     /// because `centerLabel` reads `displayedScore` (the @State) not the `score`
-    /// param. User-reported symptom: "hero badge doesn't update unless I change
-    /// tabs or restart the app" — exactly the @State-pinning signature, and the
-    /// reason four upstream fixes (archive signal, reload path,
-    /// `vm.reanalyzedSession`, cache refresh) never moved the visible number.
+    /// param. Upstream refreshes (archive signal, reload path,
+    /// `vm.reanalyzedSession`, cache refresh) cannot move the visible number
+    /// while it is pinned in `@State`.
     ///
     /// That `.onChange` runs the digit-roll between the current
     /// `displayedScore` and whatever the new `state` carries. No full reveal

@@ -3,12 +3,6 @@ import HealthKit
 import UIKit
 
 // MARK: - Overnight Streaming Mode (bluetooth-central driven)
-//
-// Lives off `RRCollector` for the same reason as the
-// `SessionRecoveryCoordinator` split: ~850 lines reading 39 collector members.
-// The coupling is real — this IS the recording pipeline at night — but those
-// reads are now `collector.` and countable, instead of looking like the
-// type's own state.
 
 extension OvernightStreamingCoordinator {
     /// Result of gathering overnight data — the chosen RR points and metadata
@@ -35,7 +29,6 @@ extension OvernightStreamingCoordinator {
     }
 
     /// Create a failed session and update collector state.
-    /// Extracted to eliminate 4 copies of the same 10-line block.
     ///
     /// When the strap gate has just reported that the strap still holds this
     /// night (`reportDeviceFetchMiss`), that stays the error: it is what the
@@ -71,10 +64,9 @@ extension OvernightStreamingCoordinator {
     /// `bluetooth-central` mode (incoming Polar packets wake the app) —
     /// see the note below; no keep-alive sessions are held.
     ///
-    /// Neither overnight keep-alive is used (App Store 2.5.4, the
-    /// prior-rejection area). Background location was a
-    /// pure keep-alive with no location feature; silent background
-    /// audio all night is the textbook 2.5.4 abuse pattern reviewers
+    /// Neither overnight keep-alive is used (App Store 2.5.4): background
+    /// location would be a pure keep-alive with no location feature, and silent
+    /// background audio all night is the textbook 2.5.4 abuse pattern reviewers
     /// screen for (audio mode must serve AUDIBLE content). Overnight
     /// execution is carried by `bluetooth-central` instead, which is
     /// the sanctioned architecture for BLE heart-rate apps:
@@ -315,9 +307,6 @@ extension OvernightStreamingCoordinator {
     /// are merged into the parent night rather than standing alone, so "some
     /// data" is enough. A standalone night needs a real sample from at least
     /// one source.
-    ///
-    /// Kept out of `gatherOvernightData` for its body-length budget; this is
-    /// the only self-contained decision in it.
     static func hasSufficientOvernightData(
         streamingCount: Int,
         internalCount: Int,
@@ -331,13 +320,10 @@ extension OvernightStreamingCoordinator {
 
     /// Stop overnight streaming and produce the recovery score.
     ///
-    /// This is the blocking morning, per Chris. A
-    /// "streaming-first / instant score + background refinement" design was
-    /// rejected (the quick streaming score then shifting under a background
-    /// refinement was worse than one accurate score).
-    ///
-    /// It blocks on the strap download for one accurate score and polls
-    /// HealthKit sleep IN PARALLEL so the 1-2 min download time isn't wasted.
+    /// The morning blocks on the strap download for one accurate score: a
+    /// quick streaming score that later shifts under a background refinement
+    /// is worse than one accurate score. HealthKit sleep is polled IN PARALLEL
+    /// so the 1-2 min download time isn't wasted.
     /// An H10 the link dropped overnight is reconnected first, within a
     /// bounded window and not at all when it is still connected (see
     /// `fetchDeviceAndSleepConcurrently`). Insufficient-streaming nights take
@@ -428,18 +414,17 @@ extension OvernightStreamingCoordinator {
     }
 
     /// ALWAYS pull and merge the strap's internal recording on an H10 "both"
-    /// night — no density-based skip. This is Chris's core design: the strap
-    /// file is REDUNDANCY and the source of truth, so a dropped connection can
-    /// never lose a night. (A "skip the download when streaming
-    /// looked ≥95% complete" optimization traded that guarantee for a faster
-    /// morning; rejected per Chris — never weaken the redundancy.)
+    /// night — no density-based skip. The strap file is REDUNDANCY and the
+    /// source of truth, so a dropped connection can never lose a night;
+    /// skipping the download when streaming looks nearly complete would trade
+    /// that guarantee for a faster morning.
     /// `fetchNightFromStrap` decides whether this night downloads at all and
     /// reconnects a strap the link dropped overnight; its phases are
     /// hard-timeout-guarded, so an unresponsive strap still falls back to the
     /// streamed night.
     ///
     /// The sleep poll is a quick fast-path for sleep that ALREADY synced by wake
-    /// (short now — the HKObserverQuery auto-rescores when Apple Watch sleep
+    /// (short — the HKObserverQuery auto-rescores when Apple Watch sleep
     /// lands later), and runs concurrently with the download.
     private func fetchDeviceAndSleepConcurrently(
         baseSession: HRVSession,
@@ -674,9 +659,9 @@ extension OvernightStreamingCoordinator {
     /// Do NOT stop any keep-alive here. Morning
     /// processing (sleep poll, device fetch, window selection,
     /// analysis) must survive
-    /// iOS's ~30s background-task budget; overnights
-    /// were getting SIGKILL'd when a keep-alive stopped at this point
-    /// and the subsequent 30s+ of processing exhausted the budget.
+    /// iOS's ~30s background-task budget; stopping a keep-alive here would
+    /// let the 30s+ of processing that follows exhaust the budget and get the
+    /// night SIGKILL'd.
     ///
     /// No location stop either; overnight never
     /// starts a location session (App Store 2.5.4, see
@@ -720,16 +705,12 @@ extension OvernightStreamingCoordinator {
         }.value
     }
 
-    // There is deliberately no `scheduleBackgroundDeviceRefinement`. It
-    // embodied the exact
-    // pattern the H10 "both" redundancy forbids: a beat-count skip
-    // (`guard mergedPoints.count > streamingPoints.count`) plus a silent
-    // return-on-fetch-failure with NO reconnect, which would score a "both"
-    // night streaming-only and discard the strap file. The single finalize
-    // path is the blocking morning in `stopOvernightStreaming`
-    // (streaming-first + background refinement was tried and
-    // rejected by Chris — a shifting score was worse than one accurate score).
-    // Do not revive.
+    // There is deliberately no background device refinement after the morning
+    // score: a beat-count skip plus a silent return-on-fetch-failure with NO
+    // reconnect would score a "both" night streaming-only and discard the strap
+    // file, which the H10 "both" redundancy forbids. The single finalize path
+    // is the blocking morning in `stopOvernightStreaming` (a score that shifts
+    // under a background refinement is worse than one accurate score).
 
     /// Merges, analyzes, and finalizes overnight session data.
     ///
@@ -892,10 +873,8 @@ extension DeviceProvenance {
 
 // MARK: - File-scope helpers
 //
-// Kept out of RRCollector. Each names no member of the
-// type and calls nothing that stayed behind, so none needed to be inside
-// it. `private` at file scope is fileprivate, so every call site in this
-// file resolves exactly as before.
+// Each names no member of `RRCollector` and calls nothing on it, so none needs
+// to be inside the type.
 
 @MainActor
 /// Selects the best data source from streaming and device points. A device

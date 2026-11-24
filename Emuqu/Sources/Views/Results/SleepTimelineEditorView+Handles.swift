@@ -502,8 +502,8 @@ extension SleepTimelineEditorView {
     /// firing `onSave` unconditionally stamps the session
     /// `sleepUserAdjusted = true` with zero edits. That permanently locks
     /// the session's sleep boundaries against automatic refinement AND feeds a
-    /// later reanalyze a different search band — the root of a user reporting
-    /// "I did not manually adjust sleep" yet seeing the score diverge.
+    /// later reanalyze a different search band, so the score of a night the
+    /// user never adjusted diverges.
     ///
     /// Compare by CONTENT against the currently-loaded timeline
     /// (`originalSleepData`), not by `==`: `SleepTimelineState.initial(from:)`
@@ -515,7 +515,7 @@ extension SleepTimelineEditorView {
     /// from HealthKit" moves `originalSleepData`/`state` to the fresh data but
     /// leaves `sleepData` at the original. Comparing to `sleepData` would make
     /// a PURE refresh (no manual edit) look changed → fire onSave → re-lock
-    /// `sleepUserAdjusted`, re-opening the "I didn't adjust sleep" bug.
+    /// `sleepUserAdjusted` on a night the user never adjusted.
     /// Against `originalSleepData`: a manual edit differs → saves + locks; a
     /// pure refresh matches → hands the refreshed night to
     /// `onRefreshAccepted` (stored without the lock); refresh-then-edit →

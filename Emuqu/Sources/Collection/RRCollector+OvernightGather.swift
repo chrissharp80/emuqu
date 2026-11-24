@@ -112,10 +112,8 @@ extension MorningSessionPipeline {
 
 // MARK: - File-scope helpers
 //
-// Kept outside RRCollector: each names no member of the
-// type and calls nothing inside it, so none needs to be a member.
-// `private` at file scope is fileprivate, so every call site in this
-// file resolves the same way.
+// Each names no member of `RRCollector` and calls nothing on it, so none needs
+// to be inside the type.
 
 @MainActor
 /// Select best data source — prefers device when it has more beats,

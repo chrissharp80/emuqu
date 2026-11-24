@@ -3,7 +3,7 @@ import Observation
 
 /// Published core session state for the active recording and its analysis.
 ///
-/// Final slice extracted from `RRCollector` — covers the recording
+/// Covers the recording
 /// state-machine, the active session + its RR samples, error surface,
 /// analysis outcome (verification, recovery window, baseline deviation),
 /// and the paused-session recovery cache.
@@ -15,9 +15,8 @@ import Observation
 /// session and its analysis live here.
 ///
 /// Writers: RRCollector's extension files (lifecycle, streaming,
-/// overnight, acceptance, recovery, analysis). The collector exposes
-/// back-compat forwarding properties so extension code migrates
-/// incrementally.
+/// overnight, acceptance, recovery, analysis), mostly through the
+/// collector's forwarding properties.
 @MainActor
 @Observable
 final class SessionState {

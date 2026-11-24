@@ -307,10 +307,9 @@ final class WatchConnectivityBridge: NSObject {
     }
 
     /// Activate WCSession on a
-    /// post-first-frame `.task` instead of inline in `init`. An
-    /// iPhone-11 splash hang was caused by 6+ heavy `@State` inits
-    /// running synchronously before SwiftUI could paint, and `session
-    /// .activate()` is one of those — Apple's WatchConnectivity framework
+    /// post-first-frame `.task` instead of inline in `init`. Heavy work that
+    /// runs synchronously before SwiftUI can paint holds the splash, and
+    /// `session.activate()` is heavy — Apple's WatchConnectivity framework
     /// touches the paired-device IPC socket and emits CoreFoundation
     /// stderr noise. Deferring removes it from the launch critical path.
     ///
@@ -517,8 +516,8 @@ final class WatchConnectivityBridge: NSObject {
 
     /// Mirrors the phone's strap to the Watch: once now, again on every
     /// change of connection, device or battery, and whenever the Watch asks
-    /// or the session activates. Without it the Watch never heard about the
-    /// phone's strap and its pre-workout hint always said none was connected.
+    /// or the session activates. Without it the Watch never hears about the
+    /// phone's strap and its pre-workout hint always says none is connected.
     func mirrorStrapState(from polar: PolarManager) {
         onRequestStrapStateFromWatch = { [weak self, weak polar] in
             guard let polar else { return }
@@ -672,11 +671,11 @@ final class WatchConnectivityBridge: NSObject {
         updateLiveStateContextLocked(payload)
     }
 
-    /// Seen in a real user log: the OS-level WCSession emits
+    /// The OS-level WCSession emits
     /// "WCSession counterpart app not installed" + the companion
     /// `_block_invoke failed due to WCErrorCodeWatchAppNotInstalled` warning
     /// every time we try sendMessage / updateApplicationContext when the user
-    /// has a paired Watch but no FlowRecovery WatchApp installed. We can't
+    /// has a paired Watch but no Watch app installed. We can't
     /// suppress those os_log lines from inside our process — but we CAN avoid
     /// issuing the call at all by checking `isWatchAppInstalled` first. That
     /// is the property WatchConnectivity itself checks before raising the
@@ -848,8 +847,7 @@ final class WatchConnectivityBridge: NSObject {
     /// unreachable when iOS finalizes the workout (the user pocketed the
     /// phone, the IDS channel was mid-renegotiate, etc.) the stop message
     /// vanishes — the Watch keeps running its HKWorkoutSession AND the live
-    /// screen, and the user has to force-quit the watch app ("watch keeps
-    /// it going").
+    /// screen, and the user has to force-quit the watch app.
     ///
     /// Two safeguards:
     ///   • Include `isRecording: false` in the payload. The Watch's `apply()`

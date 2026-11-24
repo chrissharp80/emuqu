@@ -167,7 +167,7 @@ extension CloudPullCoordinator {
     /// HK-derived `sleepSnapshot` / `vitalsSnapshot` stripped on upload
     /// (Guideline 5.1.3), so they arrive blank. `autoRefreshTodaysSleepIfImproved`
     /// only re-fills TODAY on a live HK observer bump — it never runs on a pull
-    /// and is gated to today, so every synced PAST session stayed blank until
+    /// and is gated to today, so every synced PAST session stays blank until
     /// manually opened. Hand the ids to RRCollector (it owns `healthKit` + the
     /// bounded backfill helper) via a decoupled notification; the backfill
     /// drips a few per cycle at low priority and respects `sleepUserAdjusted`.
@@ -319,7 +319,7 @@ extension CloudPullCoordinator {
     /// Asset read + decompress + JSON decode run off
     /// the main actor (a
     /// 30k-point rrSeries decode per record, repeated for every
-    /// pulled record in one uninterrupted MainActor slice, froze
+    /// pulled record in one uninterrupted MainActor slice, would freeze
     /// launch/foreground). Only `assetURL` (URL, Sendable) crosses
     /// into the detached task; only the decoded `HRVSession`
     /// (Sendable value struct) crosses back.
@@ -327,8 +327,8 @@ extension CloudPullCoordinator {
     /// CloudKit-pulled sessions are the authoritative
     /// cross-device-merged version of their session id. Folding
     /// them into a local same-night entry is double-merging AND
-    /// catastrophically slow under load (user log showed 37
-    /// merges in 5 s on a single launch — each one a full
+    /// catastrophically slow under load (one pull can trigger dozens
+    /// of merges in seconds — each one a full
     /// retrieve + decrypt + decode + merge + encode + encrypt +
     /// write + SHA256 + index save, all on main thread under
     /// archiveLock). The merge is skipped here; the existing
@@ -336,14 +336,13 @@ extension CloudPullCoordinator {
     /// cleanup after the 24-hour safety window.
     ///
     /// NOTE: `archive.archive` (encode + encrypt + write under archiveLock)
-    /// still runs on the main actor — bounded per record; the archive-side fix
-    /// is the SessionFileCodec path.
+    /// runs on the main actor, bounded per record.
     ///
     /// Per-record failures are surfaced instead of only
     /// debug-logged. The record IS retried on the next pull (it stays
     /// un-marked, and the query returns everything), but a record that fails
     /// deterministically (corrupt asset, future-schema payload) would fail
-    /// forever while Settings showed "Up to date". Recording it here makes the
+    /// forever while Settings shows "Up to date". Recording it here makes the
     /// sync body report `.error` and skip the lastSyncDate stamp.
     ///
     /// A record sealed with a key this device does not hold yet — another

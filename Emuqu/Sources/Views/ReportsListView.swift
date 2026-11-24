@@ -23,11 +23,9 @@ import SwiftUI
 // "what did training do to my HRV today" view). They're different
 // stories told from different angles; both are legitimate.
 //
-// Not workout-only. A user reported "no HRV reports
-// anywhere," correctly: deferring
-// recovery-only PDFs to Dashboard's Export / Email buttons left
-// those entry points buried and undiscoverable for everyday
-// use. This view hosts every report the app can make.
+// Not workout-only. Leaving recovery-only PDFs to the Dashboard's
+// Export / Email buttons buries them for everyday use, so this
+// view hosts every report the app can make.
 //
 // Section headers ("Today" / "Last 7 days" / "Earlier") give the
 // chronological framing without losing per-session granularity.
@@ -195,9 +193,9 @@ struct ReportsListView: View {
     // MARK: - Data load
 
     /// Decodes up to 90 days of workout + overnight sessions (file read +
-    /// JSON decode + decrypt). Ran synchronously on the main
-    /// thread in onAppear — froze the UI when opening Reports for anyone
-    /// with real history. Off-main now; SessionArchive reads are lock-safe.
+    /// JSON decode + decrypt), off the main thread: on it, opening Reports
+    /// freezes the UI for anyone with real history. SessionArchive reads are
+    /// lock-safe.
     /// Runs on appear and on every archive change while the list is up; a
     /// newer load cancels the older one's decode too, which stops between
     /// sessions.
@@ -503,9 +501,9 @@ struct ReportsListView: View {
 
 struct ReportRow: Identifiable {
     /// `.recovery` gives HRV-only overnight sessions
-    /// their own row (appearing only bundled into a
-    /// `.holistic` row when a workout followed the night is
-    /// why a user reported "no HRV reports anywhere").
+    /// their own row; bundled only into a `.holistic` row,
+    /// a night with no workout after it would have no
+    /// report at all.
     enum Kind { case holistic, workoutOnly, recovery }
 
     let id: UUID

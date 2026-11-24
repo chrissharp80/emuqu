@@ -337,11 +337,8 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
     // The step build is async (OSM tile fetch). It must not
     // be a sync→async semaphore bridge invoked from
     // `runToolUseLoop` on @MainActor — that BLOCKS THE MAIN
-    // THREAD, and iOS App Watchdog kills the app at ~10 s of
-    // unresponsive main, so a 30 s budget here is dangerous
-    // (real-user termination report: workout killed at
-    // 110 min, no memory/thermal pressure, 3-min sampler
-    // gap = signature of main-thread block).
+    // THREAD, and iOS App Watchdog kills the app (and the
+    // workout in progress) at ~10 s of unresponsive main.
     //
     // Capped at 3 s. If OSM tile fetches
     // can't complete in time we fall back gracefully:

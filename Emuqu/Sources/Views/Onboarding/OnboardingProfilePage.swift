@@ -114,7 +114,7 @@ struct OnboardingProfilePage: View {
     }
 
     /// Wheel, not the compact calendar. The compact style opens on this month
-    /// and pages back one month at a time; a tester born in 1964 had to tap
+    /// and pages back one month at a time; someone born in 1964 would tap
     /// through more than seven hundred months to reach it.
     private var birthdayField: some View {
         VStack(alignment: .leading, spacing: 6) {

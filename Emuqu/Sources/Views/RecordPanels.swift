@@ -3,15 +3,13 @@ import SwiftUI
 /// The record-tab panels: device status, capture-mode selection, the recording
 /// controls, and the battery and fetch-failure banners.
 ///
-/// Split out of `RecordView` — 923 lines out of a 2,757-line view.
+/// The recording actions arrive as closures: they drive the session
+/// lifecycle and belong with the view that owns it. This type holds only the
+/// presentation of that state.
 ///
-/// The recording actions arrive as closures rather than being moved: they
-/// drive the session lifecycle and belong with the view that owns it. What
-/// moves here is the presentation of that state.
-///
-/// Deliberately NOT a `View`. It returns the same view trees from the same
-/// positions, so SwiftUI identity, animation and `@State` behaviour are
-/// unchanged; the snapshot suite pins that.
+/// Deliberately NOT a `View`: it returns view trees into the host view's
+/// body, so SwiftUI identity, animation and `@State` stay the host's; the
+/// snapshot suite pins that.
 @MainActor
 struct RecordPanels {
     let collector: RRCollector

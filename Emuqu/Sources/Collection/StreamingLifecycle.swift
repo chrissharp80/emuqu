@@ -3,7 +3,7 @@ import Observation
 
 /// Published streaming and pause/resume lifecycle state.
 ///
-/// Split out from `RRCollector` so views that care about recording mode /
+/// Separate from `RRCollector` so views that care about recording mode /
 /// elapsed time / paused-session state don't re-render on every archive,
 /// BLE telemetry, or morning-processing property the collector also
 /// publishes.

@@ -10,13 +10,13 @@ extension MorningSessionPipeline {
     /// acceptance state and without the pre-archive: the caller archives the
     /// night as paused itself, and a paused night is not reviewed.
     ///
-    /// This is now a thin wrapper around `MorningProcessingService`. It delegates
-    /// the heavy analysis work to the service, then applies the results to the
-    /// observable sub-objects, archives the session, and handles CloudKit sync.
+    /// The heavy analysis runs in `MorningProcessingService`; this applies the
+    /// results to the observable sub-objects, archives the session, and handles
+    /// CloudKit sync.
     ///
     /// `collector.createTrainingContextEnsuringFresh` falls back to a live
     /// HealthKit fetch when `collector.fetchTrainingLoadIfEnabled` didn't populate the
-    /// cache. This closes the Tier 2 → 3 re-freeze race: if the cache is
+    /// cache. This prevents a Tier 2 → 3 re-freeze race: if the cache is
     /// momentarily empty, the session would be frozen as Tier 2 (89-style score),
     /// and the user's first re-analyze later would produce Tier 3 (65-style) — same
     /// recording, different number. So we refuse to freeze without training
@@ -207,8 +207,6 @@ extension MorningSessionPipeline {
     }
 
     /// Supersede same-night overnight sessions.
-    ///
-    /// Thin wrapper that delegates to `MorningProcessingService`.
     func supersedeSameNightSession(newSession: inout HRVSession) {
         let settings = collector.settingsManager.settings
         collector.morningProcessingService.supersedeSameNightSession(

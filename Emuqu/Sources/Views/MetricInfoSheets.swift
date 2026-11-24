@@ -4,10 +4,10 @@ import SwiftUI
 /// Every metric in Engine Room has a tappable ⓘ that opens the Metric Guide
 /// article for that metric in a sheet.
 ///
-/// Self-contained glossary sheet keyed on the metric label. The
-/// existing app already has a `MetricGuideView` (Help Center → Metric
-/// Guide) but it's an everything-at-once index; this sheet is the
-/// per-metric drill-in, opened from the Engine Room grid taps.
+/// Self-contained glossary sheet keyed on the metric label.
+/// `MetricGuideView` (Help Center → Metric Guide) is an everything-at-once
+/// index; this sheet is the per-metric drill-in, opened from the Engine Room
+/// grid taps.
 struct MetricInfoSheet: View {
     let metricLabel: String
     @Environment(\.dismiss) private var dismiss

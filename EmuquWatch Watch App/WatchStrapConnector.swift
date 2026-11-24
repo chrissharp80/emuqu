@@ -6,11 +6,11 @@ import WatchConnectivity
 
 // Direct Bluetooth Heart Rate Service connection from the Apple Watch.
 //
-// Architecture so far put iOS in charge of the Polar strap (PolarBleSdk
-// only ships for iOS / macOS), and the Watch only mirrored iOS's
-// connection state via WCSession. That breaks the moment the iPhone is
-// out of range, in another room, or its app got terminated — the
-// Watch's "strap" pill went stale and live HR vanished.
+// iOS owns the Polar strap by default (PolarBleSdk only ships for iOS /
+// macOS), and the Watch mirrors iOS's connection state via WCSession.
+// That breaks the moment the iPhone is out of range, in another room, or
+// its app is terminated — the Watch's "strap" pill goes stale and live HR
+// vanishes.
 //
 // `WatchStrapConnector` gives the Watch its own first-class BLE central
 // using CoreBluetooth + the standard Bluetooth Heart Rate Service
@@ -151,8 +151,8 @@ final class WatchStrapConnector: NSObject, ObservableObject {
     /// yet (state still `.unknown`, or the system was still settling
     /// after init). Causes `centralManagerDidUpdateState` to start
     /// scanning automatically once state reaches `.poweredOn`. Without
-    /// this, the user's tap dropped on the floor and nothing visible
-    /// happened ("couldn't tell refresh did anything").
+    /// this, the user's tap would be dropped and nothing visible would
+    /// happen.
     private var pendingScanRequest = false
 
     override private init() {

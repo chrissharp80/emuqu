@@ -25,7 +25,7 @@ struct DeviceInfoPanelObserving: View {
 
 // MARK: - Overnight Streaming Status (isolated from RecordView body evaluation)
 
-/// Extracted so the per-second elapsed time and per-beat heartbeat count updates
+/// A separate view so the per-second elapsed time and per-beat heartbeat count updates
 /// only re-evaluate THIS view, not the parent overnightRecordingSection body.
 struct OvernightStreamingStatus: View {
     enum StrapBackup {
@@ -188,7 +188,7 @@ struct OvernightStreamingStatus: View {
 /// Shows recording-in-progress status when the device has an active offline recording.
 /// When the app started the recording it persisted the start time (also after a
 /// crash), which lets us show how long the recording has been running.
-/// Extracted as a separate View so the per-minute timer only re-evaluates THIS view.
+/// A separate View so the per-minute timer only re-evaluates THIS view.
 struct DeviceRecordingStatus: View {
     var deviceStatus: DeviceStatus
     let persistedStartTime: Date?
@@ -252,7 +252,7 @@ struct DeviceRecordingStatus: View {
     }
 
     /// `TimelineView` ticks every minute on its own; a timer stored on this
-    /// struct was rebuilt on every parent re-render and could never fire.
+    /// struct would be rebuilt on every parent re-render and never fire.
     private var elapsedReadout: some View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
             elapsedColumn(now: context.date)
@@ -558,7 +558,7 @@ struct DeviceInfoPanelView: View {
     /// put on the strap since the device last reported a NEW battery value,
     /// optionally as a fraction of the manufacturer-quoted runtime.
     ///
-    /// Why this exists: Polar's BLE Battery Service only pushes notifications
+    /// Polar's BLE Battery Service only pushes notifications
     /// when the value actually changes. The Polar SDK exposes only a cached
     /// "last observed" getter — there is no way to force a fresh BLE READ.
     /// So a Polar H10 that genuinely sat at 100 % for two weeks looks

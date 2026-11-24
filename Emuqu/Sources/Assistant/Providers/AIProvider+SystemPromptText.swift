@@ -4,9 +4,8 @@ import Foundation
 //
 // The verbatim text blocks: the persona + medical boundary (`base`), the
 // tool-use contract (`toolOverlay`), its no-tools counterpart
-// (`nonToolModeOverlay`), and the voice overlay. Split out of
-// `AIProvider+SystemPrompt.swift` so the composer's logic is readable
-// without scrolling past ~650 lines of prose, and so a prompt change is
+// (`nonToolModeOverlay`), and the voice overlay. They are kept apart from
+// the composer (`AIProvider+SystemPrompt.swift`) so a prompt change is
 // reviewable on its own — the exact bytes are the contract with the model.
 
 extension AssistantSystemPrompt {
@@ -352,9 +351,9 @@ extension AssistantSystemPrompt {
     /// and how to read the structured result envelope. Sits between the base
     /// persona and any optional voice overlay.
     ///
-    /// Design note: the envelope shape itself (every tool result carries a
-    /// `missingReason` field that is non-null iff the value is absent)
-    /// replaces the earlier "if status is missing, stop" prose rule. The
+    /// Design note: absence is carried by the envelope shape itself (every
+    /// tool result carries a `missingReason` field that is non-null iff the
+    /// value is absent), not by a prose rule. The
     /// model sees absence by example via the schema, which is much harder
     /// to override under pressure than a prompt sentence. See docs/
     /// VOICE_AND_TOOL_USE.md §Layer-2 and docs/FLO_ARCHITECTURE.md §6.

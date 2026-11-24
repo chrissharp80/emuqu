@@ -1,11 +1,8 @@
 import Foundation
 import HealthKit
 
-// Heart rate lives in `HeartRateHealthQueries`, like the other four
-// HealthKit domains that are off the manager.
-//
-// The bounded-query helpers below are forwarded because every other query class
-// uses them; they live with heart rate for historical reasons, not by design.
+// Heart rate lives in `HeartRateHealthQueries`. The bounded-query helpers
+// below are forwarded because every other query class uses them.
 
 extension HealthKitManager {
     func fetchHeartRateSamples(from start: Date, to end: Date) async throws -> [(date: Date, hr: Double)] {

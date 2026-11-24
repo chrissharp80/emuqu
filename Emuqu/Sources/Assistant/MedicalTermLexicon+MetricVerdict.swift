@@ -1,15 +1,11 @@
 import Foundation
 
-// One concept, in its own file.
+// One concept, in its own file: the only one about METRIC AUTHORITY rather
+// than medical vocabulary.
 //
-// `MedicalTermLexicon.swift` sits just under the 1000-line file limit, and a
-// concept carrying sixteen locales is ~60 lines. Splitting is what this repo
-// does at a budget edge, and this concept is the natural seam: it is the only
-// one about METRIC AUTHORITY rather than medical vocabulary.
-//
-// `MedicalTermLexicon.all` and `.scrubFromOutput` still list it, so
-// `check_perimeter_sync.sh` and `CoachVoiceGuardTests` see it exactly as
-// before — an extension does not hide a `static let` from either.
+// `MedicalTermLexicon.all` and `.scrubFromOutput` list it, so
+// `check_perimeter_sync.sh` and `CoachVoiceGuardTests` see it — an extension
+// does not hide a `static let` from either.
 
 extension MedicalTermLexicon {
     /// Verdicts a metric cannot support: ranking one reading as more "real"

@@ -261,9 +261,9 @@ enum WorkoutAnalysisSnapshotBuilder {
 
     // MARK: - Private helpers
 
-    /// Calorie, movement, climb-rate and economy derivations. Split out of
-    /// `build` unchanged — these six all read from the same duration and the
-    /// same pass totals, so they belong together and nothing else needs them.
+    /// Calorie, movement, climb-rate and economy derivations. These six all
+    /// read from the same duration and the same pass totals, so they belong
+    /// together and nothing else needs them.
     private struct EnergyEconomy {
         let caloriePerHour: Double?
         let totalCalories: Double?

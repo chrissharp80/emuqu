@@ -132,8 +132,8 @@ final class GeminiProvider: KeyedCloudProvider, Sendable {
             let description: String
             /// Gemini rejects a `parameters` object of `type:"object"` with an
             /// empty `properties` map — HTTP 400 "should be non-empty for OBJECT
-            /// type". OpenAI/Anthropic tolerate it, which is why only Gemini
-            /// broke. The ~15 no-argument `.fixed` fact tools carry exactly that
+            /// type". OpenAI/Anthropic tolerate it. The ~15 no-argument `.fixed` fact
+            /// tools carry exactly that
             /// empty schema, so we OMIT `parameters` entirely for them. A nil
             /// here means "no-arg tool"; a present value always has properties.
             let parameters: ToolSpec.InputSchema?

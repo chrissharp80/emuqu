@@ -37,9 +37,7 @@ import UIKit
 // delegate callbacks are `nonisolated` and hop back via `Task { @MainActor
 // in ... }`. The class-level annotation makes that contract explicit so
 // Swift 6 strict-concurrency can verify it instead of relying on a reader
-// to spot the @MainActor-on-every-method pattern. Full decomposition into
-// `AudioSessionManager` / `SpeechRecognitionPipeline` / `TTSDispatcher` /
-// `VoiceInterruptDetector` is deferred.
+// to spot the @MainActor-on-every-method pattern.
 @Observable
 @MainActor
 final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
@@ -114,9 +112,8 @@ final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
             // so the wrist UI clears its "Starting…" overlay the moment
             // iOS actually transitions to listening / speaking. The
             // Watch already knows iOS *received* the tap (replyHandler
-            // confirms) but until this push it had no way to see what
-            // happened next — barge-in barely got a flicker, "thinking"
-            // was invisible, etc. Throttling isn't needed; state
+            // confirms) but only this push shows what happens next
+            // (barge-in, "thinking"). Throttling isn't needed; state
             // transitions are infrequent (a few per minute at most).
             guard state != oldValue else { return }
             AppDependencies.current.services.watchConnectivityBridge.pushVoiceChatState(state.watchLabel)
@@ -234,7 +231,7 @@ final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
     @ObservationIgnored var recognitionTaskGeneration = 0
     @ObservationIgnored var llmTask: Task<Void, Never>?
     /// Buffers streaming LLM text and emits complete sentences ready for TTS.
-    /// Extracted from this controller so the sentence-chunking + markdown-
+    /// A separate type so the sentence-chunking + markdown-
     /// stripping logic can be tested in isolation.
     let textChunker = SpokenTextChunker()
     /// Shared chat view model — voice turns land in the same conversation as
@@ -407,8 +404,8 @@ final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
     /// Short enough to catch one-word interrupts ("stop", "no").
     let bargeInSustainedSec: Double = 0.3
     /// Min NEW recognized words (in the user's locale) during the speaking
-    /// window before barge-in can fire. The RMS gate alone was tripping on
-    /// wind, passing cars, and footsteps — sustained loud audio that wasn't
+    /// window before barge-in can fire. The RMS gate alone trips on
+    /// wind, passing cars, and footsteps — sustained loud audio that isn't
     /// speech. Requiring 2+ transcribed words means SFSpeechRecognizer had
     /// to successfully decode language, which noise can't fake. If the user
     /// really wants to interrupt, they just have to say two words ("stop

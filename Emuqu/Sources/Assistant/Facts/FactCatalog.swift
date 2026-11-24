@@ -10,9 +10,7 @@ import CryptoKit
 // entry. Adding a new fact means adding ONE line — an entry with its
 // key, description, and closure — and the catalog, the resolver, AND
 // the prompt-exposed list all update together. You cannot have a
-// resolver without also publishing it to the catalog, which is the
-// invariant the user asked for: "when new facts are created, they get
-// added to this."
+// resolver without also publishing it to the catalog.
 //
 // ─────────────────────────────────────────────────────────────────
 // SCALING MODEL (why an in-memory catalog is the right primitive here,
@@ -68,11 +66,11 @@ struct ActionParam: Sendable {
 /// thread (the iOS App Watchdog kill signature).
 /// Entries therefore declare which world they live in:
 ///   • `.sync` — the ~226 in-memory / archive / settings reads. Their
-///     closures are untouched and still run inline on the main actor.
+///     closures run inline on the main actor.
 ///   • `.awaitable` — the handful that genuinely wait on the outside
 ///     world (Tavily, HealthKit, Overpass/OSM, CLGeocoder, cold GPS).
-///     `@MainActor` so they keep the exact isolation the sync contract
-///     documented; their awaits SUSPEND the main actor instead of
+///     `@MainActor`, the same isolation as the sync entries; their
+///     awaits SUSPEND the main actor instead of
 ///     blocking it.
 enum FactResolveBody: Sendable {
     case sync(@Sendable () -> FactValue)
@@ -222,8 +220,8 @@ enum FactEntry: Sendable {
 // Most entries don't need to override availability — they're always
 // reachable as long as the resolver can compute something (even if
 // that something is `.missing(.notRecorded)`). Providing argument-
-// trimmed static factories means existing declarations keep working
-// without everyone having to pass `availability: { .alwaysAvailable }`
+// trimmed static factories means declarations don't have to pass
+// `availability: { .alwaysAvailable }`
 // explicitly. Entries that CAN meaningfully be gated (date-
 // parameterized ones that need a validRange) pass a real closure.
 extension FactEntry {
@@ -266,9 +264,8 @@ extension FactEntry {
     /// await the outside world (HealthKit, network, geocoding). The
     /// closure is `@MainActor` and SUSPENDS instead of blocking; pair
     /// every external wait inside it with
-    /// `FactResolveTimeout.withTimeout(seconds:)` using the same budget
-    /// (and the same timeout fallback value) the retired semaphore
-    /// bridge used.
+    /// `FactResolveTimeout.withTimeout(seconds:)` and a timeout
+    /// fallback value.
     static func fixedAsync(
         key: String,
         description: String,
@@ -343,8 +340,7 @@ extension FactEntry {
 
     /// Async action. Same contract as `fixedAsync`: the
     /// `@MainActor` closure suspends on its external waits (wrapped in
-    /// `FactResolveTimeout.withTimeout(seconds:)` with the budget the
-    /// retired semaphore bridge used) instead of parking the main
+    /// `FactResolveTimeout.withTimeout(seconds:)`) instead of parking the main
     /// thread behind a `DispatchSemaphore`.
     static func actionAsync(
         key: String,

@@ -118,16 +118,13 @@ enum CSVExporter {
     /// Per-row metrics, joining each GPS fix to the nearest per-second
     /// WorkoutSample (captured at 1 Hz by WorkoutRecorder).
     ///
-    /// Without this, previous CSVs were GPS-only — no HR, no pace, no cadence —
-    /// and every serious external tool (Strava bulk analysis, Excel pivot
-    /// tables, TrainingPeaks imports) was left with half the story. With
-    /// `samples` nil (an older session) it falls back to plain GPS.
+    /// External tools (Strava bulk analysis, Excel pivot tables, TrainingPeaks
+    /// imports) need HR, pace and cadence beside the GPS. With `samples` nil
+    /// (an older session) it falls back to plain GPS.
     ///
-    /// Only fixes within the session window are kept. The polyline decoder used
-    /// to stretch fixes past `session.endDate` due to a hardcoded 5-s interval
-    /// (see GPXExporter.decode); with that fixed this should already be clean,
-    /// but belt-and-braces filtering keeps post-stop phantom rows out of the CSV
-    /// no matter how the track was reconstructed.
+    /// Only fixes within the session window are kept, so post-stop phantom
+    /// rows stay out of the CSV no matter how the track was reconstructed
+    /// (see GPXExporter.decode).
     private static func trackpointBlock(
         session: HRVSession,
         track: [CLLocation],

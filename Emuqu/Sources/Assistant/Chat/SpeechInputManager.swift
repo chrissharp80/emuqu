@@ -150,7 +150,7 @@ final class SpeechInputManager {
     /// change / other subsystem reconfiguring audio between dictations).
     /// Reading `outputFormat` off a stale engine returns a format that
     /// no longer matches the bus, and `installTap` then fails with a
-    /// format mismatch — the other half of "mic works half the time".
+    /// format mismatch.
     /// Stop + reset forces the engine to re-derive node state from the
     /// current session before we query the format. (Mirrors the same
     /// guard in VoiceConversationController.startAudioEngineAndRecognizer.)
@@ -204,7 +204,7 @@ final class SpeechInputManager {
     /// The microphone stops at once; the transcript is returned once the
     /// recognizer has delivered its final result for the audio already
     /// captured (or `finalResultTimeout` passes). Returning straight away
-    /// handed back the last partial result and dropped the last words, which
+    /// would hand back the last partial result and drop the last words, which
     /// arrive after the audio ends. `isRecording` stays true until then, so
     /// the input bar keeps following `transcript`. A second call while the
     /// first waits returns the transcript so far.

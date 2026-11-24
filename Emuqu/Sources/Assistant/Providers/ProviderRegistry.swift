@@ -91,14 +91,11 @@ final class ProviderRegistry {
     private(set) var activeProviderAvailable: Bool = false
 
     /// `refreshAvailabilityCache()` must run on EVERY branch, not
-    /// only the third (nothing-available). If the first two
-    /// branches `return` early, the availability cache stays
-    /// at its default `false`. Result: existing users with saved
-    /// keys had `activeProviderAvailable = false`, which fed
-    /// `composerState.canSend = false`, which kept the send button
-    /// permanently disabled until they manually changed providers
-    /// or updated a key. Restructured to a single end-of-init call
-    /// that runs on every path.
+    /// only the third (nothing-available), so it is a single end-of-init
+    /// call. A branch that returned early would leave the availability
+    /// cache at its default `false`, so a user with saved keys would get
+    /// `composerState.canSend = false` and a send button disabled until
+    /// they changed providers or updated a key.
     private init() {
         let apple = AppleFoundationProvider()
         let anthropic = AnthropicProvider()

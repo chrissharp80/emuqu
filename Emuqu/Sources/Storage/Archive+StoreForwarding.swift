@@ -1,7 +1,7 @@
 import Foundation
 
-// The persistence mechanics live in `ArchiveStore`, keeping ~900 lines
-// off `SessionArchive`, which keeps the API callers hold.
+// The persistence mechanics live in `ArchiveStore`; `SessionArchive` keeps the
+// API callers hold and forwards to it.
 
 extension SessionArchive {
     func _archive(_ session: HRVSession, skipSameNightMerge: Bool = false) throws -> SessionArchiveEntry {

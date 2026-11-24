@@ -12,8 +12,8 @@ extension SessionRecoveryCoordinator {
     // MARK: - Backup Recovery (delegates to SessionRecoveryService)
 
     /// Without the live recordings: a night still streaming has a backup and no
-    /// archive entry yet, so it looked lost, and deleting it there tombstoned
-    /// the night the morning archive was about to save. A night being ended
+    /// archive entry yet, so it would look lost, and deleting it there would
+    /// tombstone the night the morning archive is about to save. A night being ended
     /// (stopped, paused or discarded) stays live until it is saved or has
     /// failed, although it no longer collects. A recording that died with the
     /// app is not live, and still shows.
@@ -703,9 +703,8 @@ extension SessionRecoveryCoordinator {
 
 // MARK: - File-scope helpers
 //
-// Kept out of RRCollector: each names no member of the type and calls
-// nothing inside it, so none needs to be a member. `private` at file scope
-// is fileprivate, so every call site in this file resolves the same way.
+// Each names no member of `RRCollector` and calls nothing on it, so none needs
+// to be inside the type.
 
 /// Backups indexed since `cutoff` that no session holds. A workout the user
 /// deleted or rejected keeps its backup, and a backup already folded into a

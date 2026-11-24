@@ -328,11 +328,8 @@ extension ReportSectionRenderer {
 
 // MARK: - File-scope helpers
 //
-// Kept out of the type. Each touches no instance state —
-// including the computed properties — and
-// calls nothing that stayed behind, so none was a method in anything but
-// placement. `private` at file scope is fileprivate, so every call site in
-// this file resolves exactly as before.
+// Each touches no instance state — including the computed properties —
+// and calls nothing on the type, so none needs to be a method.
 
 private func drawPoincareFrame(_ plotRect: CGRect) {
     // Background

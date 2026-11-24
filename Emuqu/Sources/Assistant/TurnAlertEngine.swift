@@ -15,10 +15,6 @@ import Foundation
 //     `ActiveRouteSession` is engaged AND the user opts in via
 //     `UserSettings.enableTurnByTurnAlerts`.
 //
-// User framing: "i want it to load a route and be
-// proactive, if i want, about turns." The "if i want" is the
-// per-user toggle.
-//
 // **Pure evaluator.** Like the other tier engines, this file holds
 // no state — caller (WorkoutVoiceCoach) tracks `TurnAlertState`
 // across ticks. Engine takes a snapshot + state, returns a payload

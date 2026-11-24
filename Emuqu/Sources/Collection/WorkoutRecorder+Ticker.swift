@@ -5,27 +5,22 @@ import CoreLocation
 import Foundation
 import UIKit
 
-// Split out of WorkoutRecorder.swift into its own FILE to satisfy the
-// 1500-line file budget, and off the TYPE (which is what the aggregate
-// type-size gate counts): the largest single file on the recorder.
+// The workout ticker's per-tick work.
 
 extension WorkoutTicker {
     // MARK: - Internal
 
-    /// Tick-batching analysis. "3+ observable updates per tick" looks
-    /// like a P2 but is not. Verified by tracing:
-    /// a tick fires `recorder.lifecycle.elapsedSeconds`, and inside
-    /// `incrementalBackupTick` `recorder.workoutHR.beatCount` plus motion
-    /// fields when fresh samples land. SwiftUI's runloop-level
+    /// No tick batching. A tick fires `recorder.lifecycle.elapsedSeconds`,
+    /// and inside `incrementalBackupTick` `recorder.workoutHR.beatCount` plus
+    /// motion fields when fresh samples land, but SwiftUI's runloop-level
     /// coalescing means N observable assignments in one
     /// `Task { @MainActor }` block produce ONE body re-eval, not N.
     /// So the user-visible cost on
     /// iPhone 12+ is one body eval per tick, dominated by the
     /// body's own work, not by the number of properties written. Hand-rolled
     /// batching — writing to `@ObservationIgnored` storage and publishing once
-    /// at the end of the tick — would buy nothing measurable and risks subtle
-    /// race conditions on a 1Hz path that's currently correct;
-    /// not worth it without a measurable regression to fix.
+    /// at the end of the tick — would buy nothing measurable and risk subtle
+    /// race conditions on a 1 Hz path.
     ///
     /// Without the explicit run-loop mode the elapsed clock can freeze
     /// for tens of seconds, because `Timer.scheduledTimer(withTimeInterval:repeats:)`
@@ -65,7 +60,7 @@ extension WorkoutTicker {
     /// (`PauseTimeline.activeSeconds`), not a count of ticks: a repeating
     /// `Timer` does not replay the fires it missed while the app was
     /// suspended (a locked phone with no sensor keeping it awake) or the main
-    /// actor was busy, and counting ticks lost that time from the workout. It
+    /// actor was busy, and counting ticks would lose that time from the workout. It
     /// moves at least one second a tick, so every tick's sample has an offset
     /// of its own; after a gap it jumps to the real time, and the seconds in
     /// the gap have no sample, as none was taken.
@@ -386,7 +381,7 @@ extension WorkoutTicker {
     ///
     /// Only while the phone's own strap stream is silent. A strap holds a link
     /// to the phone and one to the Watch at once, so both streams carry the
-    /// same beats; taking the Watch's as well counted every beat twice. The
+    /// same beats; taking the Watch's as well would count every beat twice. The
     /// queue is still drained, so beats from a stretch the phone covered are
     /// not replayed when it next drops.
     ///
@@ -396,7 +391,7 @@ extension WorkoutTicker {
     /// (the ticks stopped while the app was suspended) are kept at that
     /// batch's time and go into the series, but not into the live α1 or the
     /// live heart rate, which they no longer describe. Left in the queue
-    /// they were placed back from the next batch's arrival instead,
+    /// they would be placed back from the next batch's arrival instead,
     /// minutes later than they happened.
     private func consumeWatchRoutedStrapFallback() {
         guard let watchStrapAt = recorder.watchBridge.latestWatchStrapAt else { return }
@@ -575,7 +570,7 @@ extension WorkoutTicker {
     }
 
     /// The map's track, set only when a fix was added or replaced: setting
-    /// the observed array each second redrew the whole polyline of a long
+    /// the observed array each second would redraw the whole polyline of a long
     /// workout even while standing still.
     private func mirrorLiveTrackIfChanged() {
         let track = recorder.startedLocation?.track ?? []
@@ -613,8 +608,7 @@ extension WorkoutTicker {
     ///
     /// Sampled 1 Hz. Persisted to WorkoutMetadata.samples on finalize so
     /// post-summary can render real charts (HR over time, pace, cadence)
-    /// AND exports can attach per-row metrics instead of just GPS. Without
-    /// this the CSV was lat/lon only and charts couldn't exist.
+    /// AND exports can attach per-row metrics instead of just GPS.
     ///
     /// Skipped while paused — otherwise the chart would have a flat-line
     /// valley during a rest stop that looks like the user crashed to 0
@@ -763,13 +757,10 @@ extension WorkoutTicker {
     /// Resolve the geocode ONCE instead of reading
     /// `AppDependencies.current.location.roadGeocodingService.current` seven times.
     ///
-    /// NOT a race fix, despite appearances: both this type and
-    /// `RoadGeocodingService` are `@MainActor` and this function is
-    /// synchronous, so there is no suspension point between the reads and
-    /// all seven observe the same value. The win is smaller and duller —
-    /// one property read instead of seven, and the snapshot's dependency
-    /// on the geocoder is stated once at the top rather than buried seven
-    /// times in an argument list.
+    /// Both this type and `RoadGeocodingService` are `@MainActor` and this
+    /// function is synchronous, so all seven reads would observe the same
+    /// value anyway; reading once states the snapshot's dependency on the
+    /// geocoder at the top rather than seven times in an argument list.
     ///
     /// The live trends, historical baselines and readiness
     /// fields carry the same data fed to the voice path, mirrored here so

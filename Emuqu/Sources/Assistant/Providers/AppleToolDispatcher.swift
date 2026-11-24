@@ -1,7 +1,7 @@
 import Foundation
 
 /// Bridge between Apple's
-/// `LanguageModelSession(tools:)` mechanism and our existing
+/// `LanguageModelSession(tools:)` mechanism and our
 /// `CompactToolRouter`-driven tool dispatch.
 ///
 /// Apple's `Tool` protocol invokes the handler synchronously inside
@@ -21,7 +21,7 @@ import Foundation
 /// location names and directions come from Apple's geocoder and MapKit, as
 /// on every provider. Web search would send the query to Tavily, which only
 /// the cloud providers' consent sheet discloses (Apple has none), so it is
-/// refused here. Calls go through the existing CompactToolRouter, which
+/// refused here. Calls go through CompactToolRouter, which
 /// honors the same `MedicalQueryGuard` perimeter the rest of the app uses.
 ///
 /// **Budget.** The same per-turn tool-call limit as the cloud tool loop
@@ -30,7 +30,7 @@ import Foundation
 /// `setToolOutputAllowance` call, which starts an attempt at it. Every result
 /// also passes through the attempt's `ToolOutputAllowance`, which cuts it to
 /// what Apple's 4K window has left: tool results arrive mid-generation, after
-/// the transcript was sized, and uncapped ones overflowed the window. The calls
+/// the transcript was sized, and uncapped ones would overflow it. The calls
 /// themselves are charged to the same allowance, and what the attempt spent is
 /// read back (`toolTokensSpent`) so a reused session's ledger counts it.
 ///

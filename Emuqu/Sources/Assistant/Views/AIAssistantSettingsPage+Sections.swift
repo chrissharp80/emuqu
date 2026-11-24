@@ -4,13 +4,10 @@ import SwiftUI
 //
 // Each section is a property named for its own header, with
 // its fields, input rows and footer split out so nothing runs past twenty
-// lines or nests past two (as one `body` they were 349 lines nested six deep).
+// lines or nests past two.
 //
-// They live here because the split pushed the struct past SwiftLint's 500-line
-// `type_body_length`, the same reason `RecordView+Sections.swift` and
-// `BiometricsSettingsPage+Sections.swift` exist. Every member is a computed
-// property or method on `AIAssistantSettingsPage` itself, so the list and its
-// focus state are exactly what they were inline.
+// Every member is a computed property or method on `AIAssistantSettingsPage`
+// itself, so the list and its focus state are the page's own.
 
 extension AIAssistantSettingsPage {
     // MARK: - Settings list
@@ -134,8 +131,7 @@ extension AIAssistantSettingsPage {
         Text(String(localized: "Apple Intelligence runs entirely on this iPhone. No data leaves the device. Requires iOS 26 with Apple Intelligence enabled.", bundle: LanguageManager.appBundle))
     }
 
-    /// Three-mode routing picker per the
-    /// adaptive-routing spec (not a binary toggle).
+    /// Three-mode routing picker (not a binary toggle).
     /// Quick / Auto / Deep / Manual maps to RoutingMode.
     var routingSection: some View {
         Section {
@@ -385,8 +381,8 @@ extension AIAssistantSettingsPage {
         .font(.footnote)
     }
 
-    /// Email defaults moved to Settings →
-    /// Profile (used app-wide now: morning report PDF, workout
+    /// Email defaults live in Settings →
+    /// Profile (used app-wide: morning report PDF, workout
     /// PDF, AND the AI's email-compose action). Two categories
     /// — recovery and training — let the user route different
     /// email types to different recipients. Pointer below.

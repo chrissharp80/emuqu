@@ -5,7 +5,7 @@ import WatchKit
 //
 //   1. StartScreen — before/between workouts. Pick sport + target zone
 //      via full-screen navigation pickers (tap row → list), not the
-//      tiny inline wheels that were unreadable on a 41 mm face. Start,
+//      tiny inline wheels, unreadable on a 41 mm face. Start,
 //      or open the voice chat on the iPhone.
 //   2. LiveMetricsScreen — dense glanceable HR/pace/distance/α1 grid.
 //      Shows a prominent PAUSED banner when the session is paused.
@@ -27,13 +27,12 @@ struct WatchLiveView: View {
     /// asked for.
     @State private var page: TabPage = .start
 
-    /// Stable, never-conditional page identities. Conditional inclusion
-    /// of `PauseStopScreen` (the previous shape, gated on `isRecording`)
-    /// caused the watchOS `AttributeGraph cycle detected` warnings —
-    /// the TabView was rebuilding its child set inside the same update
-    /// pass that flipped `isRecording`. Keeping all three pages always
-    /// present and gating the *content* internally is the standard
-    /// SwiftUI fix.
+    /// Stable, never-conditional page identities. Including
+    /// `PauseStopScreen` conditionally (gated on `isRecording`) causes
+    /// watchOS `AttributeGraph cycle detected` warnings: the TabView
+    /// rebuilds its child set inside the same update pass that flips
+    /// `isRecording`. Keeping all three pages always present and gating
+    /// the *content* internally is the standard SwiftUI fix.
     private enum TabPage: Hashable { case start, live, pauseStop }
 
     /// The `onChange` sits outside the branch: a workout ending swaps the
@@ -137,10 +136,8 @@ private struct StartScreen: View {
         }
     }
 
-    /// The rows, in order. Split from `body` so each one is readable on its
-    /// own — the combined version ran to 150 lines, well past the spec limit,
-    /// and the comments explaining WHY each row behaves as it does were what
-    /// made it unreadable rather than the SwiftUI.
+    /// The rows, in order. Split from `body` so each one, and the comment
+    /// explaining WHY it behaves as it does, is readable on its own.
     @ViewBuilder
     private var content: some View {
         reachabilityBanner
@@ -173,7 +170,7 @@ private struct StartScreen: View {
     }
 
     /// Full-row navigation selectors rather than an inline wheel picker: each
-    /// option becomes a row tall enough to hit with a fingertip. The wheel was
+    /// option becomes a row tall enough to hit with a fingertip. A wheel is
     /// unreadable on a watch face.
     private var sportRow: some View {
         NavigationLink { SportPickerView(selection: $selectedSport) } label: {
@@ -287,8 +284,8 @@ private struct StartScreen: View {
 
     /// Voice-chat button label/icon/tint reflect the iPhone's
     /// `VoiceConversationController.state` once it's pushed back via
-    /// WCSession. Before the first push (state stays at "idle") the
-    /// button looks the same as before.
+    /// WCSession. Until the first push the state stays "idle" and the
+    /// button shows its resting label.
     private var voiceChatLabel: String {
         if sessionManager.voiceChatRequestInFlight { return String(localized: "Starting…") }
         return WatchSessionManager.voiceChatStateWord(sessionManager.voiceChatStateLabel)

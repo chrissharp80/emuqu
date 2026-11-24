@@ -1,8 +1,8 @@
 import SwiftUI
 
-// Stage breakdown, score breakdown and insights, split out of
-// `SleepDetailV2View.swift`. The hero, quick stats, sleep window and
-// hypnogram stay behind — the top half of the screen.
+// Stage breakdown, score breakdown and insights. `SleepDetailV2View.swift`
+// holds the hero, quick stats, sleep window and hypnogram — the top half of
+// the screen.
 
 extension SleepDetailV2View {
     // MARK: - Stage breakdown

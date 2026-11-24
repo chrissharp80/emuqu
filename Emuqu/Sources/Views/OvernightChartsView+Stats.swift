@@ -4,8 +4,7 @@ import Foundation
 //
 // The pure analysis half of `OvernightChartsView`: RR → HR, rolling RMSSD,
 // peak-HRV search, sleep duration, and the assembly of the rendered
-// `OvernightStats`. Split out of the view file so the type stays under the
-// body-length budget; nothing here touches SwiftUI state.
+// `OvernightStats`. Nothing here touches SwiftUI state.
 
 /// Pure overnight-statistics computation, split from the view so it can run
 /// on a detached task without capturing the view (which is not `Sendable`).
@@ -223,8 +222,8 @@ struct OvernightStatsComputer: Sendable {
     }
 
     /// Prefer pre-computed zones from the analysis result; fall back to
-    /// an on-demand scan (cached + disk-backfilled) so sessions recorded
-    /// before this feature existed still get the green overlay.
+    /// an on-demand scan (cached + disk-backfilled) so sessions stored
+    /// without zones still get the green overlay.
     private func organizedZones(
         series: RRSeries,
         flags: [ArtifactFlags],

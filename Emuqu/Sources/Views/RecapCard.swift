@@ -19,8 +19,8 @@ import SwiftUI
 /// image target.
 struct RecapCard: View {
     // The hard-coded `.font(.system(size: N))` literals in
-    // this file are DELIBERATE and are exempt from the Dynamic
-    // Type migration that put the on-screen detail views on `@ScaledMetric`.
+    // this file are DELIBERATE: unlike the on-screen detail views, nothing
+    // here uses `@ScaledMetric`.
     //
     // `RecapCard` is not on-screen UI: it renders offscreen to a fixed
     // 1080×1920 PNG for the share sheet. A shared image must look identical

@@ -345,7 +345,7 @@ enum EntitlementAnchor {
     /// One update at a time (`updateLock`): the background resolve and a
     /// main-actor update (a trial start, the history check, the legacy
     /// TestFlight migration) each read, merge and write every tier, and
-    /// interleaved, the later write put back what the other had replaced.
+    /// interleaved, the later write would put back what the other replaced.
     /// A main-actor update therefore waits while the resolve holds the lock.
     @discardableResult
     private static func update(wallClock: Date, _ change: (Record) -> Record) -> (resolved: Record, updated: Record) {
@@ -519,11 +519,9 @@ enum EntitlementAnchor {
 
     // MARK: - Coding
     //
-    // Spelled out with do/catch rather than an optional-try on purpose. The
-    // tech-debt budget in `.ci/try_optional_budget.txt` is a ratchet, and
+    // Spelled out with do/catch rather than an optional-try on purpose:
     // swallowing the error here would hide a decode failure that means
-    // "this user's entitlement just disappeared" — precisely the class of
-    // silent failure the refactor spec forbids.
+    // "this user's entitlement just disappeared".
 
     private static func encode(_ record: Record) -> Data? {
         do {

@@ -6,7 +6,7 @@ import Foundation
 
 // MARK: - TurnRouter (pure routing core)
 
-/// Pure decision core extracted from
+/// Pure decision core behind
 /// `AssistantTurnRouter.resolveProviderForThisTurn()`.
 ///
 /// `route(inputs:)` is a pure function over a value snapshot of
@@ -133,16 +133,12 @@ enum TurnRouter {
 
     // MARK: Early returns (pre-tier)
 
-    /// User direction: "i have no designs on making this
-    /// tied to a provider. you've tied it to apple for me. i want that
-    /// undone." When the user has explicitly picked a non-Apple cloud
-    /// in the model picker, that's their pick — period. The smart
-    /// router's classifier was sending short / lookup-flavored
+    /// When the user has explicitly picked a non-Apple cloud
+    /// in the model picker, that's their pick — period. Otherwise the smart
+    /// router's classifier sends short / lookup-flavored
     /// questions to Apple Intelligence (Tier 1) regardless of the
-    /// user's selection, which is what produced the "no matter what i
-    /// ask the answers are super short and only data or really light"
-    /// complaint: Apple Intelligence's signature terse output, even
-    /// though the user expected Grok-level reasoning.
+    /// user's selection, and they get Apple Intelligence's terse output
+    /// where they expected the reasoning of the model they chose.
     ///
     /// This early-return makes the smart router opt-in (it only
     /// engages when the user is on Apple — i.e., they don't have a
@@ -224,9 +220,8 @@ enum TurnRouter {
 
     /// Total-function fallback: the user's own pick.
     ///
-    /// Reached with `tier: nil` when no tier stage is attached — the Manual
-    /// arm of the original tier switch ("unreachable, exhausted above";
-    /// Manual is decided in `preTierDecision`). Reached with a tier when the
+    /// Reached with `tier: nil` when no tier stage is attached (Manual mode,
+    /// which `preTierDecision` already decides). Reached with a tier when the
     /// stage carries no mapping for it, which is unreachable by construction
     /// (the shell snapshots a mapping for the proposed tier and for `.auto`,
     /// the only downgrade target).

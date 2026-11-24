@@ -1,12 +1,8 @@
 import CoreLocation
 import Foundation
 
-// AI context building lives in `WorkoutAIContextBuilder` — 526
-// lines out of what was the largest type in the codebase.
-//
-// These forwarders keep the call sites across the app and the test suite
-// working. They are the
-// recorder's context API; the behaviour lives one reference away.
+// AI context building lives in `WorkoutAIContextBuilder`. These forwarders
+// are the recorder's context API; the behaviour lives one reference away.
 
 extension WorkoutRecorder {
     /// The assistant-context subsystem. Lazy: a workout recorded with the

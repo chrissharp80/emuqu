@@ -162,7 +162,7 @@ final class UserFactsStore {
         let key = Self.normalizedKey(trimmed)
         // Dedup on the NORMALIZED key so punctuation-/case-only twins
         // ("…right now" vs "…right now.") collapse to one fact instead of both
-        // riding in every prompt — that was ~20% of the memory-block bloat.
+        // riding in every prompt.
         guard !key.isEmpty, !facts.contains(where: { Self.normalizedKey($0.text) == key }) else { return }
         facts.append(Fact(text: trimmed, origin: origin))
         if facts.count > Self.maxFacts {
@@ -317,7 +317,7 @@ final class UserFactsStore {
     // MARK: - Persistence
 
     /// The file cannot be read while the phone is locked, and the store then
-    /// starts empty. A fact added in that state was written over every fact
+    /// starts empty, so a fact added in that state would be written over every fact
     /// already saved. Until the disk has been read, a write first folds what
     /// is on disk back in, and holds off entirely while it still cannot be
     /// read. A file that reads but does not open or decode (truncated, written

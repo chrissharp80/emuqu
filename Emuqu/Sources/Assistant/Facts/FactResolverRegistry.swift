@@ -2,8 +2,8 @@ import CryptoKit
 import Foundation
 import os
 
-// `FactResolverRegistry` and its supporting timeout/result types, split out of
-// `FactCatalog.swift`. The catalog defines what a fact *is*; the
+// `FactResolverRegistry` and its supporting timeout/result types. The
+// catalog (`FactCatalog.swift`) defines what a fact *is*; the
 // registry is the thing that aggregates namespaces and resolves one.
 
 // MARK: - Aggregating registry
@@ -246,9 +246,8 @@ final class FactResolverRegistry: Sendable {
     /// Default per-resolver budget. Resolvers that routinely exceed
     /// this should either be broken into smaller facts, moved into a
     /// background refresh path that populates cached metadata, or
-    /// explicitly opted into a higher budget (not wired today — the
-    /// override path from the spec's FactEntry-v2 `timeoutSeconds`
-    /// field is a post-MVP addition).
+    /// given a per-entry higher budget, which the registry does not
+    /// support.
     ///
     /// The timeout is wall-clock-only — we time the call and warn on
     /// overshoot but don't cancel it, and a read that finishes late keeps
@@ -313,10 +312,8 @@ final class FactResolverRegistry: Sendable {
     /// apps at ~10s of unresponsive main thread. Resolvers
     /// here run on @MainActor (via runToolUseLoop). A 4s
     /// single-action overrun is an early-warning signal —
-    /// log loudly so future regressions surface even when
-    /// they don't trip the budget warning. A real-user
-    /// termination report attributed a workout-mid kill to
-    /// exactly this pattern.
+    /// log loudly so a slow action surfaces even when
+    /// it doesn't trip the budget warning.
     ///
     /// `.awaitable` actions SUSPEND the actor
     /// rather than blocking the thread, so for them `elapsed`
@@ -602,8 +599,8 @@ final class FactResolverRegistry: Sendable {
 // MARK: - Suspending timeout race
 
 /// Structured replacement for `DispatchSemaphore` bridges that would
-/// park the main thread inside fact resolvers (a watchdog-kill
-/// signature seen mid-workout in the field).
+/// park the main thread inside fact resolvers (the App Watchdog kills
+/// an app whose main thread stops responding, mid-workout included).
 /// Semantics mirror the `Task.detached { … } + semaphore.wait
 /// (timeout:)` pattern EXACTLY, with suspension instead of blocking:
 ///
@@ -611,8 +608,8 @@ final class FactResolverRegistry: Sendable {
 ///   • First finisher wins: the caller resumes with the operation's
 ///     value, or with `nil` at the deadline — never traps, never
 ///     resumes twice (lock-guarded single-shot).
-///   • On timeout the operation is NOT cancelled. That is deliberate
-///     behaviour preservation, not an oversight: `routes.library
+///   • On timeout the operation is NOT cancelled, deliberately:
+///     `routes.library
 ///     .engage` and `location.roads_ahead` document that a timed-out
 ///     OSM/Overpass fetch keeps running in the background to warm the
 ///     tile cache for the next call — cancelling the loser would break

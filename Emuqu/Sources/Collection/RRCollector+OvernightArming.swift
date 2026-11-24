@@ -1,7 +1,7 @@
 import Foundation
 
 // Arming the H10's own recording for a night, and winding the arming down
-// when the night ends. Split out of `RRCollector+OvernightStreaming.swift`.
+// when the night ends.
 
 extension OvernightStreamingCoordinator {
     /// Arm the H10's internal recording for the night.

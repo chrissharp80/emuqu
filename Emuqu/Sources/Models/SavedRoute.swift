@@ -194,8 +194,8 @@ final class SavedRouteStore {
         return true
     }
 
-    /// On first run after the App Group move, copy the legacy Application
-    /// Support file across if no App Group copy exists yet.
+    /// Copy the legacy Application Support file into the App Group when no
+    /// App Group copy exists yet.
     private static func migrateLegacyStoreIfNeeded(to appGroupURL: URL) {
         let fm = FileManager.default
         guard !fm.fileExists(atPath: appGroupURL.path),

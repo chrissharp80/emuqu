@@ -2,9 +2,7 @@ import Foundation
 
 // MARK: - Device-internal RR backup (H10)
 //
-// Split out of `WorkoutRecorder.swift`: that file sits hard against
-// the 2,000-line SwiftLint error tier, and this section is the cleanest seam in
-// it — a self-contained subsystem with its own lifecycle that nothing else in
+// A self-contained subsystem with its own lifecycle that nothing else in
 // the recorder reaches into.
 
 extension WorkoutRecorder {
@@ -162,13 +160,13 @@ extension WorkoutRecorder {
     ///
     /// A strap whose link dropped before the stop is reconnected first
     /// (bounded), the same as the overnight morning: without it the strap
-    /// was neither stopped nor downloaded and kept recording off-body. The
-    /// recording counts from the moment it was armed, which can be well into
-    /// the workout (arming waits for the link, and may first clear an old
-    /// recording); its own start places it on the workout's clock before the
-    /// window bound and the merge, as crash recovery places it. Unshifted,
-    /// every strap beat sat that many seconds early and the merge's 50 ms
-    /// duplicate check kept both copies of the same beat.
+    /// would be neither stopped nor downloaded and would keep recording
+    /// off-body. The recording counts from the moment it was armed, which can
+    /// be well into the workout (arming waits for the link, and may first
+    /// clear an old recording); its own start places it on the workout's clock
+    /// before the window bound and the merge, as crash recovery places it.
+    /// Unshifted, every strap beat would sit that many seconds early and the
+    /// merge's 50 ms duplicate check would keep both copies of the same beat.
     func mergeWorkoutRRWithDeviceFetch(
         session: HRVSession?,
         streamingPoints: [RRPoint],
@@ -214,11 +212,11 @@ extension WorkoutRecorder {
     /// already captured ≥95% of expected beats). This shell measures
     /// the window, sums the buffer, and logs the decision.
     ///
-    /// CRITICAL: skipping the DOWNLOAD must NOT skip the
-    /// STOP. Field logs showed every high-density workout end with this
-    /// skip and leave the H10 internal recording running off-body for
-    /// hours (the user removed the strap; it kept recording, then blocked
-    /// the next session as "strap used by another session"). Stopping is
+    /// CRITICAL: skipping the DOWNLOAD must NOT skip the STOP. Otherwise
+    /// every high-density workout ends with the H10 internal recording
+    /// running off-body for hours (the user removed the strap; it keeps
+    /// recording, then blocks the next session as "strap used by another
+    /// session"). Stopping is
     /// a fast BLE op, decoupled from the download we're rightly skipping.
     private func shouldFetchDeviceRecording(
         streamingPoints: [RRPoint],
@@ -252,9 +250,7 @@ extension WorkoutRecorder {
     /// Calling `stopStreaming()` here is safe — the HRR task is already
     /// holding any samples it captured before this point, so the data
     /// in the archive is whatever was recoverable in the time window
-    /// the user gave us. (User-facing complaint: "the strap
-    /// is currently used by another session — that session was already
-    /// ended and discarded.")
+    /// the user gave us.
     func acknowledgeFinished() {
         if phase == .finished {
             lifecycle.finishedSession = nil
@@ -269,10 +265,8 @@ extension WorkoutRecorder {
 
 // MARK: - File-scope helpers
 //
-// Kept out of WorkoutRecorder. Each names no member of the
-// type and calls nothing that stayed behind, so none needed to be inside
-// it. `private` at file scope is fileprivate, so every call site in this
-// file resolves exactly as before.
+// Each names no member of `WorkoutRecorder` and calls nothing on it, so none needs
+// to be inside the type.
 
 @MainActor
 private func selectMergedWorkoutRR(

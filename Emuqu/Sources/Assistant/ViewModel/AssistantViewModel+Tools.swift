@@ -20,8 +20,8 @@ extension AssistantToolRunner {
     /// data it should have fetched.
     ///
     /// Each round = one full HTTP round trip to the provider (~800–2000 ms).
-    /// Real coaching turns rarely use more than 4–6 tools (the longest in the
-    /// wild was 6); a higher ceiling just gives misbehaving models room to
+    /// Real coaching turns rarely use more than 4–6 tools; a higher
+    /// ceiling just gives misbehaving models room to
     /// wander. Eight covers every real coaching path from the list above and
     /// keeps pathological turns bounded at 8 × ~1 s.
     static let maxToolCallsPerTurn = 8
@@ -443,7 +443,7 @@ extension AssistantToolRunner {
     /// Use the verifier's pre-built corrected text instead of
     /// splicing ranges here. The verifier matches against its own
     /// normalized text (spelled-out → digits), so splicing those ranges
-    /// into the original produced mid-word corruption. Its
+    /// into the original would corrupt words mid-way. Its
     /// `correctedText` is the original text with only the claimed spans
     /// replaced, so we just swap the whole string.
     ///
@@ -636,8 +636,8 @@ extension AssistantToolRunner {
     }
 
     /// Build the ordered fallback list for the generic
-    /// provider-failure path. The user's spec: "if I don't have an
-    /// API key or credit then it should move to the next one."
+    /// provider-failure path: a missing API key or credit moves the turn
+    /// to the next provider.
     /// Order:
     ///   1. Other configured non-Apple providers (the user paid for
     ///      these too — try them before falling to free)

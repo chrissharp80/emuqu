@@ -89,11 +89,9 @@ extension WorkoutSessionLifecycle {
         AppDependencies.current.collection.workoutStartLatencyTracker.recordStartAbandoned()
     }
 
-    /// Per-block timing inside the synchronous body of `start()`.
-    /// Multi-second gaps in user debug logs (14.65 s and 9.55 s) had to be
-    /// inferred from the spacing of per-step debugLog calls. With these
-    /// stamps a repro shows exactly which block ate the budget; without them
-    /// we'd be back to inference.
+    /// Per-block timing inside the synchronous body of `start()`, so a
+    /// multi-second start shows exactly which block ate the time instead of
+    /// leaving it to be inferred from the spacing of per-step debugLog calls.
     struct StartStamps {
         private let t0 = Date()
         private var marks: [(name: String, at: Date)] = []
@@ -208,7 +206,7 @@ extension WorkoutSessionLifecycle {
     /// disconnect, app backgrounded briefly, strap fell off), we downgrade
     /// rather than throw. The user expected to start a workout — failing the
     /// start with "Not connected" after they JUST saw "ready to start with
-    /// strap connected" is the confusion they reported. Downgrading lets the
+    /// strap connected" is confusing. Downgrading lets the
     /// workout proceed and the post-summary notes the missing HR source.
     func resolveEffectiveSource(requested source: HRSource) throws -> HRSource {
         guard source == .strap else { return source }
@@ -423,15 +421,13 @@ extension WorkoutSessionLifecycle {
 
     /// start() — early HR subscription + announce stamp (sync-breakdown `observeHR` span).
     ///
-    /// User report: "exercise almost never starts the first time —
-    /// appears to start but no voice 'started' and no HR; force-quitting fixes
-    /// it." Cause: when the announce Task and HR subscription are queued from
-    /// much later in start(), AFTER 300+ lines of synchronous cold-start work
-    /// (BLE reconnects, CLLocation setup, AVAudioSession activation, disk
-    /// write), a cold first start keeps the main thread busy long enough that
-    /// the announce Task can't run and the user perceives nothing happening,
-    /// then force-quits. Both are wired up immediately after the phase flip so
-    /// they survive whatever slowdown follows.
+    /// When the announce Task and HR subscription are queued from late in
+    /// start(), AFTER 300+ lines of synchronous cold-start work (BLE
+    /// reconnects, CLLocation setup, AVAudioSession activation, disk write), a
+    /// cold first start keeps the main thread busy long enough that the
+    /// announce Task can't run: no "started" voice and no HR, and the user
+    /// perceives nothing happening. Both are wired up immediately after the
+    /// phase flip so they survive whatever slowdown follows.
     ///
     /// `effectiveSource` (post-downgrade) is used, not the caller-supplied
     /// `source`. If the strap dropped between the ready screen and `start()`,
@@ -548,8 +544,8 @@ extension WorkoutSessionLifecycle {
     private static let motionAccessProbe = CMPedometer()
 
     /// Ask for Motion & Fitness access when the workout starts, so iOS shows
-    /// its prompt on the recording screen rather than later (it was first
-    /// appearing over the Workout Summary). An empty pedometer query is what
+    /// its prompt on the recording screen rather than later (otherwise it
+    /// first appears over the Workout Summary). An empty pedometer query is what
     /// raises the prompt: CoreMotion has no explicit request call. Only for
     /// sports that use motion data — the pedometer sports and GPS sports,
     /// whose elevation comes from the barometer — and only while the answer
@@ -611,8 +607,8 @@ extension WorkoutSessionLifecycle {
     ///
     /// Same deferral pattern as location/pedometer. Foot-pod and
     /// Concept2 reconnects are synchronous CoreBluetooth calls that can stall
-    /// the main thread on cold-start, contributing to the "first start has no
-    /// voice and no HR" report. The reconnect doesn't need to finish before
+    /// the main thread on cold-start, which can leave the first start with no
+    /// voice and no HR. The reconnect doesn't need to finish before
     /// `start()` returns — the manager publishes state when the device comes
     /// online.
     ///
@@ -645,11 +641,7 @@ extension WorkoutSessionLifecycle {
     /// Runs off-main. `UserDefaults.standard.set` is
     /// documented as fast but in practice IPCs into `cfprefsd` and CAN
     /// stall the calling thread for seconds under daemon contention.
-    /// A user debug log showed a 9.55 s gap between the
-    /// synchronous footpod-defer log and the next synchronous log
-    /// (SystemDiagnostics) with this `save()` as the only meaningful
-    /// call in the window — circumstantial but the symptom matches a
-    /// cfprefsd-contention stall. Persistence completes within ~50 ms
+    /// Persistence completes within ~50 ms
     /// of phase=.recording on the background queue, which is fine for
     /// crash recovery (we only need the record on disk before iOS
     /// SIGKILLs, not synchronously in the start path).
@@ -698,7 +690,7 @@ extension WorkoutSessionLifecycle {
     /// lets start() return so SwiftUI can mount FitnessRecordingView — the
     /// user-perceived "the app finally responded" event — before any of this
     /// runs. Each step is timed so the debug log shows which one (if any)
-    /// regresses; it bails early on phase if the user already stopped the
+    /// is slow; it bails early on phase if the user already stopped the
     /// workout before the Task got to run.
     func launchStartTailTask(sport: Sport, startDate: Date, intervalPlan: IntervalPlan?) {
         Task { @MainActor [weak recorder] in
@@ -806,20 +798,18 @@ extension WorkoutSessionLifecycle {
 
 // MARK: - File-scope helpers
 //
-// Each names no member of WorkoutRecorder and calls nothing inside it, so
-// none needs to be a member. `private` at file scope is fileprivate, so
-// every call site in this file resolves.
+// Each names no member of `WorkoutRecorder` and calls nothing on it, so
+// none needs to be inside the type.
 
 @MainActor
 /// Reset reverse-geocoding state so the new workout starts with a clean
 /// failure counter and no stale road context cached from a workout that
 /// ended hours ago in a different town.
 ///
-/// Deferred for the same reason as the Zwift broadcaster. Logs put this at
-/// ~0 ms, but the "up to 1 minute" worst-case start reports include paths
-/// that don't reproduce locally. The reset writes to the
-/// @MainActor-isolated state of the service; if MainActor is contended,
-/// even a quick property setter can wait. Deferring removes the dependency.
+/// Deferred for the same reason as the Zwift broadcaster. The reset writes
+/// to the @MainActor-isolated state of the service; if MainActor is
+/// contended, even a quick property setter can wait. Deferring removes the
+/// dependency.
 private func deferGeocodingReset() {
     Task { @MainActor in
         let t0 = Date()
@@ -832,9 +822,8 @@ private func deferGeocodingReset() {
 }
 
 @MainActor
-/// Sport-gated. User report: 'the type of exercise should tell
-/// it what meters/externals/wearables to be aware of and looking for'.
-/// Waking a shoe pod over BLE for every sport is useless on bike/row, and
+/// Sport-gated: the type of exercise decides which meters and wearables to
+/// look for. Waking a shoe pod over BLE for every sport is useless on bike/row, and
 /// for the user it surfaces as 'why is the strap busy reconnecting some
 /// sensor I'm not using?'.
 ///

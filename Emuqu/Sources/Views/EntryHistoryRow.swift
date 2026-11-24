@@ -218,7 +218,7 @@ struct EntryHistoryRow: View {
     /// Workout row trailing metrics — duration + distance pulled from
     /// the lightweight index where available. NO RMSSD (workouts have
     /// noisy mid-effort RR), NO recovery score (workouts don't have
-    /// one — that's an overnight construct). Bug list #2 fix.
+    /// one — that's an overnight construct).
     @ViewBuilder
     private func workoutRowMetrics(entry: SessionArchiveEntry) -> some View {
         let duration: TimeInterval = {

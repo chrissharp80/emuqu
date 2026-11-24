@@ -533,8 +533,8 @@ struct PaywallView: View {
     }
 
     /// Leaves the paywall once the purchase lands. During the trial access
-    /// was already on, so nothing else changed to close it, and the screen
-    /// stayed up offering the unlock just bought.
+    /// is already on, so nothing else changes to close it, and without this
+    /// the screen stays up offering the unlock just bought.
     private func purchaseAndLeave() async {
         await storeKit.purchase()
         if storeKit.hasPurchasedProduct { dismiss() }

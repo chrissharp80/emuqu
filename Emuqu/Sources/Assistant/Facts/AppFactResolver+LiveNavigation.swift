@@ -1,10 +1,9 @@
 import CoreLocation
 import Foundation
 
-// The navigation half of `WorkoutLiveCoachingNamespace`, split out of
-// `AppFactResolver+LiveCoaching.swift` to keep that struct's body under
-// the 500-line limit. The workout's reverse-geocoded location and the
-// location.current / location.situation actions stay there; the journey,
+// The navigation half of `WorkoutLiveCoachingNamespace`. The workout's
+// reverse-geocoded location and the location.current / location.situation
+// actions are in `AppFactResolver+LiveCoaching.swift`; the journey,
 // roads-ahead, directions, thresholds, interval and HRR facts live here.
 //
 // Anything these entries call in the other file is internal rather than
@@ -80,10 +79,9 @@ extension WorkoutLiveCoachingNamespace {
     }
 
     // Enforce the safety contract IN CODE, not just via
-    // prompt: the AI has quoted tentative results despite
-    // the prompt rule ('low-confidence roads ahead
-    // fabrication and produced at least one unsolicited
-    // turn'). When confidence
+    // prompt: a model can quote tentative results despite
+    // the prompt rule, and a fabricated road can prompt a
+    // turn the user never needed. When confidence
     // is below the safety threshold OR the engine
     // couldn't construct a phrase, return .missing so
     // the model literally can't quote a road name —
@@ -111,9 +109,8 @@ extension WorkoutLiveCoachingNamespace {
 
     // The engine is async (tile fetch).
     // Capped at 3 s. iOS App Watchdog
-    // kills the app at ~10 s of unresponsive main;
-    // a real-user termination report attributed a
-    // workout kill to this kind of cumulative blocking.
+    // kills the app at ~10 s of unresponsive main,
+    // and blocking like this adds up across calls.
     // When we time out, we return nil and the caller
     // (the AI) degrades gracefully ("road data not
     // available right now"). The Overpass fetch

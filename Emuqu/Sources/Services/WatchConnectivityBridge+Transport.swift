@@ -2,8 +2,7 @@ import Foundation
 import WatchConnectivity
 
 // The bridge's user-info queueing rule and the small value types its
-// transport and control replies use, split out of
-// `WatchConnectivityBridge.swift`.
+// transport and control replies use.
 
 // MARK: - Superseded user-info transfers
 

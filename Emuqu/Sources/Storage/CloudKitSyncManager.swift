@@ -28,9 +28,7 @@ final class CloudKitSyncManager {
     /// app is restarted — without this, a permanent server-side
     /// configuration error spins forever, hammering battery and stalling
     /// the main actor (each retry runs retrieve+decrypt+encode+compress
-    /// per session). A beta log showed 100+
-    /// "Cannot create new type X in production schema" errors over 5
-    /// days against the same backlog of 107 pending sessions.
+    /// per session).
     var schemaUnavailable = false
     /// Uploaded sessions the previous pull's listing did not contain. Only a
     /// session missing from two listings in a row is queued again: the query
@@ -44,10 +42,10 @@ final class CloudKitSyncManager {
     private(set) var lastPermanentErrorMessage: String?
     /// Set by `pullRemoteChanges()` when the pull failed for a reason its
     /// internal catch would otherwise swallow with a debug log. Without it the
-    /// full-sync body treated a swallowed pull failure as success: it
-    /// stamped `lastSyncDate` and showed "Up to date" while cross-device
-    /// restore never worked (the beta-user symptom: uploads fine, nothing
-    /// ever comes down). Checked in `performFullSyncBody` so a failed pull
+    /// full-sync body would treat a swallowed pull failure as success: it
+    /// would stamp `lastSyncDate` and show "Up to date" while cross-device
+    /// restore never works (uploads fine, nothing ever comes down). Checked
+    /// in `performFullSyncBody` so a failed pull
     /// surfaces as `.error` and does NOT advance `lastSyncDate`.
     var lastPullErrorMessage: String?
     /// Set by `pushPendingSessions()` (cleared at its start) when a session
@@ -106,10 +104,9 @@ final class CloudKitSyncManager {
     /// Timestamp of the last observed sync PROGRESS (a pushed record, a pulled
     /// page, a processed remote record). The body watchdog (`withProgressWatchdog`)
     /// fails the sync only when this goes stale by `syncStuckThresholdSec` — i.e.
-    /// genuinely wedged — instead of a fixed wall-clock deadline that guillotined
-    /// slow-but-progressing syncs. Field log: successful syncs ran
-    /// 95–118s against a 120s cap, and 3 of 9 tipped over and "failed" while
-    /// still pushing/pulling records. A sync can take as long as it needs as
+    /// genuinely wedged — rather than at a fixed wall-clock deadline, which would
+    /// fail healthy syncs that run close to two minutes while still
+    /// pushing/pulling records. A sync can take as long as it needs as
     /// long as it keeps moving.
     var lastSyncProgressAt: Date = .distantPast
     func noteSyncProgress() { lastSyncProgressAt = Date() }
@@ -220,7 +217,7 @@ final class CloudKitSyncManager {
     /// of iCloud mid-run), kept for the manager's lifetime — the process-long
     /// singleton, so it is never removed. Without an
     /// account-change listener, signing out of
-    /// iCloud during a session failed silently — sync just stopped working
+    /// iCloud during a session fails silently — sync just stops working
     /// with no state change the UI could surface.
     @ObservationIgnored private let observers = NotificationTokens()
 
@@ -357,16 +354,14 @@ final class CloudKitSyncManager {
     /// Serialized: waits for any in-flight sync operation to avoid state mutation races.
     ///
     /// Upload eligibility:
-    ///   • `.complete` sessions always sync (the original gate).
+    ///   • `.complete` sessions always sync.
     ///   • Workout sessions also sync regardless of state when they
     ///     carry a `WorkoutMetadata` payload — this picks up partials
     ///     reconstructed by `WorkoutRecoveryService` (state may be
     ///     `.complete` with a `partialDataReason`) AND legacy `.failed`
     ///     workouts that still have meaningful captured data. Without
     ///     this, a strap-died-mid-workout session would archive
-    ///     locally but never appear on the user's other devices —
-    ///     "I do not see it in iCloud" was the symptom that motivated
-    ///     this behaviour.
+    ///     locally but never appear on the user's other devices.
     ///
     /// The gate applies only to this direct upload, made right after an
     /// archive write. The batch push (`pendingPushBatch`) uploads every
@@ -568,7 +563,7 @@ final class CloudKitSyncManager {
     /// The unmark waits in `syncSerializer`, as `markSessionsForReupload`
     /// does: a push or upload of the same session already in flight, with a
     /// record built before the change, finishes first, and its `markUploaded`
-    /// can no longer land after the unmark and turn the upload below away.
+    /// cannot land after the unmark and turn the upload below away.
     func forceReuploadSession(_ session: HRVSession) async {
         await CloudKitSessionFreshness.stampEdit(of: session.id, in: archive)
         await syncSerializer.run { [self] in
@@ -740,9 +735,7 @@ final class CloudKitSyncManager {
     /// freeze the state machine forever.
     ///
     /// A FIXED wall-clock deadline would fail a slow-but-progressing sync
-    /// at 120s even while records were still moving (field log: successful
-    /// syncs ran 95–118s, 3 of 9 tipped over and "failed"). So it is a
-    /// NO-PROGRESS watchdog:
+    /// even while records are still moving. So it is a NO-PROGRESS watchdog:
     /// it fails ONLY if the sync stops advancing for syncStuckThresholdSec, so
     /// a slow sync runs to completion and only a genuine wedge is caught. The
     /// push/pull loops call `noteSyncProgress()` as they advance. When the

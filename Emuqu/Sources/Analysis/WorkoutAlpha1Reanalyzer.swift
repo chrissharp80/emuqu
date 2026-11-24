@@ -3,18 +3,16 @@ import Foundation
 // MARK: - Workout α1 Re-analyzer
 //
 // Post-hoc regeneration of per-sample α1 values on an archived workout
-// session. Exists to repair sessions recorded before the artifact-
-// filtering fix in `LiveDFAAnalyzer.cleanRRForDFA()` shipped: those
-// sessions carry α1 values that are artefact-contaminated (Brownian-
-// range 1.5-2.0 throughout exercise, instead of dropping toward
-// LT1/LT2 as HR climbed).
+// session, with the artifact filtering of `LiveDFAAnalyzer.cleanRRForDFA()`.
+// Unfiltered α1 values are artefact-contaminated (Brownian-range 1.5-2.0
+// throughout exercise, instead of dropping toward LT1/LT2 as HR climbs).
 //
 // Method:
 //   1. Iterate a 2-minute rolling window over the session's RRSeries
 //      (same window as the live analyzer — `LiveDFAAnalyzer.windowSec`).
 //   2. At each 20-second recompute cadence (matching live), apply the
 //      same Kubios-style ectopic-beat filter and linear-interpolation
-//      correction the live path now uses.
+//      correction the live path uses.
 //   3. Feed the cleaned window into `DFAAnalyzer.compute()` to obtain
 //      α1 + R². Emit (offsetSec, alpha1) pairs.
 //   4. Replace `WorkoutSample.alpha1` on the session's samples with the

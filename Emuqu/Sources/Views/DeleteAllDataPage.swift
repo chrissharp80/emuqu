@@ -232,7 +232,7 @@ struct DeleteAllDataPage: View {
 
     private func performPurge() {
         isPurging = true
-        // Async: the purge now awaits the remote CloudKit zone deletion
+        // Async: the purge awaits the remote CloudKit zone deletion
         // (serialized behind any in-flight sync) before the local wipe.
         Task {
             await runPurge()

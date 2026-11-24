@@ -20,7 +20,7 @@ import NaturalLanguage
 ///
 /// Tier mapping is dynamic: tiers map to whatever providers the user
 /// has actually configured. If only Apple Intelligence is available,
-/// every tier maps to Apple. The spec's "work with what's there."
+/// every tier maps to Apple.
 @MainActor
 final class SmartProviderRouter {
     static let shared = SmartProviderRouter()

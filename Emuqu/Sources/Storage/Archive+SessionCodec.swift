@@ -13,10 +13,9 @@ extension SessionArchive {
     // The encode → encrypt-if-available →
     // SHA256-hex write path is shared by four call sites (`_archive`,
     // `archiveBatch`, `relinkSameNightSessions`, plus the hash step of
-    // `repairArchive`'s read side). As hand-rolled copies, one (relink)
-    // diverged once in the field — hashing plaintext while writing
-    // ciphertext — and broke every subsequent read. Centralizing the path
-    // makes that class of drift structurally impossible.
+    // `repairArchive`'s read side). Hand-rolled copies drift: one that hashes
+    // plaintext while writing ciphertext breaks every subsequent read of the
+    // file. One shared path makes that class of drift structurally impossible.
     enum SessionFileCodec {
         /// Hex-encoded SHA256 of bytes exactly as they sit on disk. THE
         /// integrity contract: `_retrieve` hashes bytes-as-stored, so every

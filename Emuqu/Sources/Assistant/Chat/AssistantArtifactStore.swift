@@ -11,7 +11,7 @@ import UIKit
 ///   • Notes — anything else worth keeping (preferences, philosophy
 ///     conversations, methodology choices)
 ///
-/// **Why this exists:** the chat transcript gets pruned when the
+/// **Why:** the chat transcript gets pruned when the
 /// conversation grows past the model's token budget. The auto-summary
 /// (`AssistantViewModel.priorSummary`) preserves the *gist* of dropped
 /// turns, but specific structured items — bug list bullets, decision

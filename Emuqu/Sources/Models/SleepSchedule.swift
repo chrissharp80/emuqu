@@ -1,10 +1,8 @@
 import Foundation
 
-// Kept out of `UserSettings.swift` to hold that file under the
-// 1,500-line debt budget; this is the obvious seam: `SleepSchedule` is a
-// self-contained value type with no dependency on the rest of user settings,
-// and it owns a cluster of subtle date arithmetic that is easier to reason
-// about — and to test — on its own.
+// `SleepSchedule` is a self-contained value type with no dependency on the
+// rest of user settings, and it owns a cluster of subtle date arithmetic that
+// is easier to reason about — and to test — on its own.
 //
 // Covered by `AcquisitionPureLogicTests`.
 
@@ -44,7 +42,7 @@ struct SleepSchedule {
     ///
     /// The bump must NOT be made conditional on the result still preceding
     /// `date`, on the theory that an anchor cannot follow the session it
-    /// anchors. That is wrong here, and the regression tests pin it. For an
+    /// anchors. That is wrong here, and the tests pin it. For an
     /// AM bedtime (say 02:00) the night containing a
     /// 23:00 reading STARTS at 00:00 the following day, because the window
     /// opens at bedtime−2h. So the anchor legitimately falls after a

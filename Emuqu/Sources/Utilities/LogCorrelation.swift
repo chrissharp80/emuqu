@@ -14,15 +14,14 @@ import os
 /// innermost open scope's tag, so the outer flow's lines are tagged as the
 /// inner one's. Read overlapping stretches with that in mind.
 ///
-/// The refactor spec asks for exactly this: *"Logs must carry correlation
+/// The engineering spec requires this: *"Logs must carry correlation
 /// (request/job/session IDs) so a single flow can be traced end-to-end."*
 ///
 /// ## Why an ambient value rather than a parameter
 ///
 /// The alternative is threading an ID through every signature between the flow
-/// entry point and the log call. That is ~1,400 call sites and a wide public-API
-/// change, which the refactor spec forbids in a cleanup ("Do not rename exported
-/// symbols, change signatures… as part of cleanup"). An ambient value costs one
+/// entry point and the log call. That is ~1,400 call sites and a wide
+/// public-API change. An ambient value costs one
 /// `begin`/`end` pair per flow and changes no signature at all.
 ///
 /// ## Why not `@TaskLocal`

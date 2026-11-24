@@ -629,11 +629,9 @@ enum MetricsVerifier {
 
     // MARK: - Pending corrections (cross-turn feedback)
     //
-    // From a real user log: the hallucination guard caught two HR
-    // fabrications on consecutive turns ("claimed:72 actual:91",
-    // "claimed:71 actual:88"). The guard substituted the correct
-    // number into the spoken output but the MODEL kept doing it
-    // because nothing told it not to. This buffer carries
+    // The hallucination guard substitutes the correct number into the
+    // spoken output, but nothing in that tells the MODEL it fabricated, so
+    // it repeats the fabrication on the next turn. This buffer carries
     // corrections forward so the next turn's system prompt can
     // include "you fabricated HR=72 last turn — actual was 91; call
     // get_workout_live for HR, don't guess."

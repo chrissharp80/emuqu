@@ -9,8 +9,7 @@ struct HistoryView: View {
 
     /// Not called: History deletes and saves tags itself
     /// (`SessionDeletion`, `saveTags`) so it can tell the user when either
-    /// fails, which a `Void` closure cannot report. Kept until its call
-    /// sites stop passing them.
+    /// fails, which a `Void` closure cannot report.
     let onDelete: (HRVSession) -> Void
     let onUpdateTags: (HRVSession, [ReadingTag], String?) -> Void
     var onReanalyze: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)?
@@ -140,8 +139,8 @@ struct HistoryView: View {
     }
 
     /// An explicit field rather than `.searchable`: this screen is pushed from
-    /// the Dashboard's stack, and the system placement never rendered a field
-    /// there, so users had no way to search. A plain field in the header is
+    /// the Dashboard's stack, and the system placement renders no field
+    /// there, which would leave no way to search. A plain field in the header is
     /// visible on every iOS version and reachable by the UI suite.
     private var searchBar: some View {
         HStack(spacing: 8) {

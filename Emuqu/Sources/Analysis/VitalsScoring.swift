@@ -2,11 +2,8 @@ import Foundation
 
 /// The vitals contribution to the recovery score: resting-HR, respiratory
 /// rate and wrist-temperature sub-scores, the refreshed-vitals factor, and
-/// the legacy SpO2 override path.
-///
-/// Split out of `RecoveryScoreCalculator`. The composite
-/// `calculate` entry points and the display helpers stayed behind — they are
-/// the calculator's own API and only happened to share this file.
+/// the legacy SpO2 override path. The composite `calculate` entry points and
+/// the display helpers are `RecoveryScoreCalculator`'s own API.
 enum VitalsScoring {
     // MARK: - Vitals Sub-Score (Tier 3 contributor)
 

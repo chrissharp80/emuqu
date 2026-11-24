@@ -1,9 +1,7 @@
 import Foundation
 
-// Finalize lives in `WorkoutFinalizer`, keeping ~600 lines off
-// `WorkoutRecorder`, the largest type in the codebase.
-//
-// These forwarders keep every existing call site working.
+// Finalize lives in `WorkoutFinalizer`; these forwarders give
+// `WorkoutRecorder` callers the same entry points.
 
 extension WorkoutRecorder {
     /// The finalize subsystem. Lazy — built when a workout ends.

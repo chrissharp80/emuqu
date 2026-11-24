@@ -326,8 +326,7 @@ struct WorkoutPreflightView: View {
         if recorder.phase == .recording { plan.clearPerWorkoutPicks() }
     }
 
-    /// No connect-poll. User direction:
-    /// "Fitness apps just start the workout. why can't this one?" Apple Fitness
+    /// No connect-poll. Apple Fitness
     /// / Strava / Garmin Connect all start the timer the instant the user taps;
     /// the sensor connects in the background and HR appears when it appears.
     /// A flow that blocks the start button for up to 4.6 seconds
@@ -626,10 +625,8 @@ private struct RoutePicker: View {
     private var routeActionButtons: some View {
         HStack(spacing: 8) {
             findTrailButton
-                // The trail search. A UI test was looking
-                // for a button labelled "Discover", copy this control has not
-                // carried in some time; it reported the feature as "not
-                // exposed in this build" and skipped every run.
+                // The trail search. UI tests find it by this identifier, not
+                // by its label, which is copy and changes.
                 .accessibilityIdentifier("fitness.findTrail")
             gpxImportButton
         }

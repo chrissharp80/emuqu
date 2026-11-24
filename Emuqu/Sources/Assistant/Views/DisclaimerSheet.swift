@@ -111,7 +111,7 @@ struct DisclaimerSheet: View {
     }
 
     /// The way out for someone who doesn't want Flo: the sheet can't be
-    /// swiped away, so without this the only exit was accepting.
+    /// swiped away, so without this the only exit would be accepting.
     private var notNowButton: some View {
         Button {
             isPresented = false
@@ -150,8 +150,7 @@ struct DisclaimerSheet: View {
                 // Decorative. The adjacent `title` states the point in words,
                 // so exposing the glyph makes VoiceOver announce the raw SF
                 // Symbol name ("iphone") before the sentence that explains
-                // it — which the accessibility audit flagged as a
-                // not-human-readable label.
+                // it, which is not a human-readable label.
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)

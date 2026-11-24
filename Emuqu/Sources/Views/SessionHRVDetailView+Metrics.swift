@@ -1,9 +1,7 @@
 import Charts
 import SwiftUI
 
-// The metrics grid and trend-comparison sections, split out of
-// `SessionHRVDetailView.swift` when that struct's body passed the
-// 500-line ceiling. Only the declaration site moved.
+// The metrics grid and trend-comparison sections of `SessionHRVDetailView`.
 
 extension SessionHRVDetailView {
     // MARK: - All Metrics Grid
@@ -361,7 +359,7 @@ extension SessionHRVDetailView {
     }
 
     /// Overnight-only — averaging in workouts/quick readings
-    /// produced impossible "vs average" figures (see TrendComparisonCard).
+    /// would produce impossible "vs average" figures (see TrendComparisonCard).
     /// Only nights before this one count: a night opened from History is
     /// compared with what came before it, never with later nights.
     ///

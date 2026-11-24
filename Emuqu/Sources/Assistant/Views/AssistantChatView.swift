@@ -129,7 +129,7 @@ struct AssistantChatView: View {
         // cold present and sits on top of the input field. Dismissal
         // is already covered by `.scrollDismissesKeyboard(.interactively)`
         // on the transcript, tapping the send button, or a return-key
-        // newline — the Done button was pure friction.
+        // newline — a Done button would be pure friction.
         ToolbarItem(placement: .topBarTrailing) { chatOptionsMenu }
         ToolbarItem(placement: .topBarLeading) { voiceToggleButton }
     }
@@ -297,8 +297,8 @@ struct AssistantChatView: View {
     }
 
     /// No email-compose sheet here — only the one at app root.
-    /// A local `.sheet(item:)` produced "Email compose sheet dismissed
-    /// itself before user could tap Send": it
+    /// A local `.sheet(item:)` would dismiss the compose sheet before the
+    /// user could tap Send: it
     /// and the matching one at app root (EmuquApp.body)
     /// both bind to the same `observable pendingDraft`. When
     /// a draft is staged, both sheets try to present; iOS
@@ -362,7 +362,7 @@ struct AssistantChatView: View {
     /// Start the ambient location stream
     /// lazily when the user opens Coach, not on every
     /// app foreground: that pays the
-    /// geocoder pipeline cost (8-26s in real-user logs)
+    /// geocoder pipeline cost (8-26 s)
     /// on launches where the user never makes a location query.
     /// Keep `stop()` in EmuquApp's background
     /// transition so leaving the app actually tears down.

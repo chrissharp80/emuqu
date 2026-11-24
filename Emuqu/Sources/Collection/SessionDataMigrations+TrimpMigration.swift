@@ -12,11 +12,11 @@ extension SessionDataMigrations {
 
     /// One-time repair for archived sessions whose `trainingSnapshot`,
     /// `analysisResult.trainingContext`, and `frozenReadiness` were computed
-    /// with the broken TRIMP fallback (workout-peak HR as denominator).
+    /// with a TRIMP fallback that used workout-peak HR as the denominator.
     ///
     /// Delegates to `repairTrainingSnapshots`, which recomputes each session's
-    /// training context from current HealthKit workout history using the fixed
-    /// math. Runs exactly once per install.
+    /// training context from current HealthKit workout history using the
+    /// current math. Runs exactly once per install.
     ///
     /// The flag check comes FIRST, before the archive is read at all, so a
     /// launch after the migration has run does no disk work. The archive is
