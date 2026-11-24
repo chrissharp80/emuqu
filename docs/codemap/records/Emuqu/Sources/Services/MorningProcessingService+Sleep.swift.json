@@ -98,10 +98,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "0937b2fc06093e13",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.buildSleepPollResult(from:effectiveStartDate:)": "6151334404064e55",
-    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)": "ff61987017e5305d",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)": "838a0c7323380daf",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -114,7 +114,7 @@
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.fetchSleepAttempt(series:effectiveStartDate:recordingEnd:attempt:)",
     "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.pollResult(fromFetched:effectiveStartDate:)",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.logPollExhausted(_:)",
-    "closure:statusCallback — set in RRCollector+MorningProcessing.swift:43 to write collector.morningStatus",
+    "closure:statusCallback — set in RRCollector+MorningProcessing.swift to write collector.morningStatus",
     "closure:MorningProcessingService.sleep (SleepProvider, default Task.sleep from init)"
    ],
    "reads": [
@@ -157,7 +157,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.pollResult(fromFetched:effectiveStartDate:)": "27de835752e3dbc4",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.fetchSleepAttempt(series:effectiveStartDate:recordingEnd:attempt:)": "cda6475872605b79",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.fetchSleepAttempt(series:effectiveStartDate:recordingEnd:attempt:)": "7b7829cee2f40687",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.logPollExhausted(_:)": "9d548f65d40fbedf",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
@@ -168,8 +168,8 @@
    "does": "One HealthKit sleep fetch (RR-validated) plus prior-day nap credit; returns the data only when night minutes > 0; on error returns abortRetries=true only for HKError errorDatabaseInaccessible (device locked).",
    "entry": null,
    "calls": [
-    "dyn:HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:) → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
-    "dyn:HealthKitServiceProtocol.fetchDaytimeNapMinutes → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:37|Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:) (default, used by MockHealthKitService)",
+    "dyn:HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:) → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "dyn:HealthKitServiceProtocol.fetchDaytimeNapMinutes → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift|Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:) (default, used by MockHealthKitService)",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -216,7 +216,7 @@
    "calls": [
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)",
     "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)",
-    "dyn:HealthKitServiceProtocol.estimateSleepFromHealthKitHR(windowStart:windowEnd:) → Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:160 → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:45|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
+    "dyn:HealthKitServiceProtocol.estimateSleepFromHealthKitHR(windowStart:windowEnd:) → Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)"
    ],
    "reads": [
@@ -277,7 +277,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "ca69b2fe8fd7e541"
    }
   },
   {

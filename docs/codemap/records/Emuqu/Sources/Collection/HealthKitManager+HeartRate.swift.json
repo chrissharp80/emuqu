@@ -21,7 +21,7 @@
   {
    "key": "func HeartRateHealthQueries.runBoundedQuery(timeout:makeQuery:)",
    "hash": "543c01e2e1772e9a",
-   "does": "Executes an HKQuery and suspends until its handler calls resolve or `timeout` elapses; on timeout stops the query and returns nil. Resume-once guarded (resumingOnce). Reached through HealthKitManager+HeartRateForwarding.swift:55 by about 29 call sites (Sleep, Training, Store, HRRCaptureService, HealthWorkoutImporter); the doc's '~50 call sites' counts resolve captures, not callers.",
+   "does": "Executes an HKQuery and suspends until its handler calls resolve or `timeout` elapses; on timeout stops the query and returns nil. Resume-once guarded (resumingOnce). Reached through HealthKitManager+HeartRateForwarding.swift by about 29 call sites (Sleep, Training, Store, HRRCaptureService, HealthWorkoutImporter); the doc's '~50 call sites' counts resolve captures, not callers.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Extensions.swift::func resumingOnce(_: CheckedContinuation<T?, Never>)",
@@ -70,7 +70,7 @@
   {
    "key": "func HeartRateHealthQueries.fetchDaytimeRestingHR(for:)",
    "hash": "f94f2041a3612399",
-   "does": "Median HR (bpm) of non-app HR samples in the schedule-derived daytime window before sleep; nil with <10 samples (including on 4 s timeout). Called via HealthKitManager from HRVAnalysisPipeline+Metrics.swift:66 and MorningProcessingService+Merging.swift:310.",
+   "does": "Median HR (bpm) of non-app HR samples in the schedule-derived daytime window before sleep; nil with <10 samples (including on 4 s timeout). Called via HealthKitManager from HRVAnalysisPipeline+Metrics.swift and MorningProcessingService+Merging.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
@@ -151,7 +151,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.quantityResult(_:_:)": "4d4d7a1b76fd5fbb",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)": "9ebea38ef0bb8c97"
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)": "b24689fbabe86035"
    }
   },
   {
@@ -256,7 +256,7 @@
   {
    "key": "func HeartRateHealthQueries.calculateHRStats(from:to:)",
    "hash": "ae214b1663730928",
-   "does": "HR mean/min/max and nadir time over [start,end]; nil with <10 samples (including timeouts). Called by MorningResultsView+Reanalysis.swift:663 via HealthKitManager.",
+   "does": "HR mean/min/max and nadir time over [start,end]; nil with <10 samples (including timeouts). Called by MorningResultsView+Reanalysis.swift via HealthKitManager.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.fetchHeartRateSamples(from:to:)",
@@ -541,7 +541,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
-    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)": "4eff3985738c831e",
+    "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.belongsToSession(_:sessionId:metric:)": "1e32e16eeb61a5ff",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.replace(_:of:over:key:matches:)": "5a8a64172cd482bf",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610"
    }

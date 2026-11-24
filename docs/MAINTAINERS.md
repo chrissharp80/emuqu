@@ -959,8 +959,9 @@ Two things to know before you touch this:
   grant from a cached build-type flag: it can survive a TestFlight → App
   Store upgrade, and would then grant permanent free access with no proof
   behind it.
-- **The anchor is written by the one-time history check, and by one
-  deliberate migration.** A sandbox receipt anchors nothing.
+- **The anchor's grant is written by the one-time history check, and by one
+  deliberate migration.** (The anchor also keeps the App Store trial start,
+  which runs the trial clock and grants nothing more.) A sandbox receipt anchors nothing.
   `migrateLegacyTestFlightFlag` promotes the legacy
   `storekit.lastKnownTestFlight` UserDefaults flag into a permanent grant.
   That flag was itself only ever written from a genuine sandbox-receipt
@@ -1354,14 +1355,17 @@ shared state it touches and who else touches it. Pull requests get the same list
 fails when:
 
 - a unit or file has no record, or the record is empty;
-- the code changed after its record was last stamped.
+- the code changed after its record was last stamped;
+- a unit's callee now describes different behaviour from when the unit was
+  last checked, or the unit now calls something it was not checked against
+  ("re-check" lines), until it is re-read and stamped or acknowledged;
+- a record names a unit that no longer exists;
+- a record cites a line number (`file:line`) instead of naming the unit,
+  target or file.
 
-It also counts the records to re-check, and `codemap.py status` lists them:
-a unit whose callee now describes different behaviour from when the unit was
-last checked, or that now calls something it was not checked against, or
-whose record names a unit that no longer exists ("re-check" lines). A change
-to what one function does sends every certain caller back to be re-read, and
-onward while behaviour keeps changing.
+`codemap.py status` lists every problem. A change to what one function does
+sends every certain caller back to be re-read, and onward while behaviour
+keeps changing.
 
 For a change: run `make codemap-impact` first and read what it lists; make the
 change (carry a moved file or renamed unit over with `codemap.py move`); rewrite

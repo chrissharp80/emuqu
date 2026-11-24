@@ -23,12 +23,12 @@
   "private: manager (CLLocationManager), altimeter (CMAltimeter), liveAltitudeReference, lastJitterLogAt, lastDroppedFixLogAt, lastRawBarometricAltitude, pausedAltitudeShift, trackSeededByRejectedFix",
   "constants: accuracyThresholdMeters 65, minimumMovementMeters 3.5, accuracyNoiseMultiplier 1.5, liveSustainedClimbThresholdMeters 3.0"
  ],
- "toplevel": "Header comment describes While-Using authorization plus the location background mode (startTracking turns on allowsBackgroundLocationUpdates and the indicator) and that updates end when tracking stops. Created lazily by WorkoutRecorder.location (WorkoutRecorder.swift:156).",
+ "toplevel": "Header comment describes While-Using authorization plus the location background mode (startTracking turns on allowsBackgroundLocationUpdates and the indicator) and that updates end when tracking stops. Created lazily by WorkoutRecorder.location (WorkoutRecorder.swift).",
  "units": [
   {
    "key": "var WorkoutLocationManager.isPaused",
    "hash": "8c69841d1762fa42",
-   "does": "didSet of isPaused: when it flips from true to false (resume) inserts track.count into trackPauses.gaps so the next step (spanning the pause) contributes no time. Set by WorkoutSessionLifecycle.pause/resume (WorkoutRecorder+Start.swift:735,747), resetState and startIfAuthorizedWhileWaiting.",
+   "does": "didSet of isPaused: when it flips from true to false (resume) inserts track.count into trackPauses.gaps so the next step (spanning the pause) contributes no time. Set by WorkoutSessionLifecycle.pause/resume (WorkoutRecorder+Start.swift), resetState and startIfAuthorizedWhileWaiting.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -146,7 +146,7 @@
   {
    "key": "func WorkoutLocationManager.stopTracking()",
    "hash": "abbbdd56ee45df6b",
-   "does": "Clears startsWhenAuthorized, stops location updates and altimeter updates, sets isTracking false; keeps track/distance for the caller to persist. Called by WorkoutRecorder stop (WorkoutRecorder+Stop.swift:129).",
+   "does": "Clears startsWhenAuthorized, stops location updates and altimeter updates, sets isTracking false; keeps track/distance for the caller to persist. Called by WorkoutRecorder stop (WorkoutRecorder+Stop.swift).",
    "entry": null,
    "calls": [
     "ext:CLLocationManager.stopUpdatingLocation",
@@ -188,7 +188,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.ingestBarometricAltitude(raw:)": "3e6d0ed245573991",
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.ingestBarometricAltitude(raw:)": "a0a1ae0c184b2705",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -196,7 +196,7 @@
    "key": "func WorkoutLocationManager.ingestBarometricAltitude(raw:)",
    "hash": "fccc9dd76d5ecc2c",
    "does": "CMAltimeter handler body: computes step from the previous raw reading; while paused accumulates the step into pausedAltitudeShift and returns; otherwise appends (Date(), raw-pausedAltitudeShift) to barometricSamples and advances the live accumulator. Timestamps use Date() at delivery, not the altimeter sample timestamp.",
-   "entry": "CMAltimeter relative-altitude callback on main queue (via closure at line 254)",
+   "entry": "CMAltimeter relative-altitude callback on main queue (via closure)",
    "calls": [
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.advanceLiveAltitudeRun(current:)"
    ],
@@ -220,7 +220,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.advanceLiveAltitudeRun(current:)": "27e253c4e2020f8a",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "fa364f611eaba71a"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "9be93eb4d2ce7a80"
    }
   },
   {
@@ -256,7 +256,7 @@
   {
    "key": "func WorkoutLocationManager.reset()",
    "hash": "ed9c5855e82ee305",
-   "does": "Public wipe of all accumulated state via resetState. Called by resetRecorderStateAfterStop (WorkoutRecorder+Stop.swift:233).",
+   "does": "Public wipe of all accumulated state via resetState. Called by resetRecorderStateAfterStop (WorkoutRecorder+Stop.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.resetState()"
@@ -290,7 +290,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "fa364f611eaba71a"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "9be93eb4d2ce7a80"
    }
   },
   {
@@ -441,7 +441,7 @@
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.accumulateGPSElevationFallback(from:to:)": "a7ee0d900ec38f97",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.logJitterReject(current:delta:minStep:noiseFloor:)": "410f9145d524af8a",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.noiseFloor(previous:current:multiplier:)": "d9b8a476d147a3f3",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "fa364f611eaba71a"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "9be93eb4d2ce7a80"
    }
   },
   {
@@ -536,7 +536,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.ingest(location:)": "a2fb247987634939",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)": "ce0c435dad46ab7e",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)": "42469f4c131e124f",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
   },
@@ -589,7 +589,7 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.isAuthorized(_:)": "6b3c430ffd1a20b3",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startTracking()": "1fe4b206696f9e9a",
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "fa364f611eaba71a"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::var WorkoutLocationManager.isPaused": "9be93eb4d2ce7a80"
    }
   },
   {

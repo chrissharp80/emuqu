@@ -47,7 +47,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.lastActivity(of:)": "0edfe216fbf1e26d",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()": "8e604da1f85b4113",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()": "9d46d09543d8ab1f",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "e1282e17fd6e3ecb",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
@@ -77,7 +77,7 @@
    "key": "func BreadcrumbRecorder.engage(label:)",
    "hash": "575078f1e9d69d99",
    "does": "If permission is undetermined, remembers the label and prompts; if authorized, creates and saves a fresh empty trail, resets the throttle, starts streaming, and marks engaged; otherwise does nothing.",
-   "entry": "Called from FitnessTabView+Sections.swift:54/62 button taps and from applyAuthorization after a grant.",
+   "entry": "Called from FitnessTabView+Sections.swift/62 button taps and from applyAuthorization after a grant.",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)",
@@ -136,7 +136,7 @@
    "key": "func BreadcrumbRecorder.resume()",
    "hash": "94292739ac607295",
    "does": "Restarts streaming for a restored trail when not engaged and authorized, continuing the throttle from the trail's last fix.",
-   "entry": "Called from init and GetMeBackView.swift:320 on appear.",
+   "entry": "Called from init and GetMeBackView.swift on appear.",
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()"
    ],
@@ -237,7 +237,7 @@
    "key": "func BreadcrumbRecorder.forgetAfterPurge()",
    "hash": "d370af04b0193129",
    "does": "Delete All My Data: stops recording and clears trail, throttle anchor, latest location and latest heading (files removed by the purge).",
-   "entry": "Called from DataPurgeService.swift:592.",
+   "entry": "Called from DataPurgeService.swift.",
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()"
    ],
@@ -422,7 +422,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "e1cb44bb7ee7483c",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.engage(label:)": "126f1d33f58e0219"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.engage(label:)": "e3e98e17b4fe548c"
    }
   },
   {
@@ -456,7 +456,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)": "ce0c435dad46ab7e",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)": "42469f4c131e124f",
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.commit(_:)": "468e939d7a1104a5",
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.shouldCommit(_:)": "5d2ea44eabbaeb7b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",

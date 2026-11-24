@@ -321,7 +321,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()": "be73d91403ece112",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()": "88216ae44333d382",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997"
    }
   },
@@ -389,7 +389,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "e43638f1b8611004",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "df69f0bb00299e67",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997"
    }
   },
@@ -674,8 +674,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::func archiveHoldsSession(runningAt:slackMinutes:in:)": "f3886ebefe40d547",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.predatesRecord(_:)": "e1d0d50e21caf4e1",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)": "09de3d8f5f282dc4",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.predatesRecord(_:)": "93e4a05a5fb5dde1",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)": "444790b0c1a77233",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recordingIsSaved(alreadyDownloaded:predatesDownloadRecord:heldOnDisk:)": "eccad6c84469d4b6",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.holdsBackup(capturedWithin:of:)": "ebefeabf9420b181"
    }
@@ -684,7 +684,7 @@
    "key": "var RRCollector.offersStrapRecovery",
    "hash": "fb485520fbd8cf18",
    "does": "Recover card visibility: hasUnrecoveredData or an orphaned recording running on the strap.",
-   "entry": "RecordView+Sections.swift:108 SwiftUI body read",
+   "entry": "RecordView+Sections.swift SwiftUI body read",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
@@ -813,14 +813,14 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "4ba35bfe1dd469ec"
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "ddfe5dc721abaff2"
    }
   },
   {
    "key": "func RRCollector.boot()",
    "hash": "2f14799f5226a40e",
    "does": "Once per collector (lock-guarded flag): if the baseline tracker is empty and the archive has entries, starts an off-main baseline rebuild.",
-   "entry": "AppLaunchTasks.swift:144 timedBoot(\"collector\") after first frame",
+   "entry": "AppLaunchTasks.swift timedBoot(\"collector\") after first frame",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)"
    ],
@@ -854,7 +854,7 @@
    "key": "func boot()",
    "hash": "ae7b833372754082",
    "does": "Once per collector (didBootBaseline.setIfClear, so of racing calls one goes ahead): if the baseline tracker is empty and the archive has entries, starts an off-main baseline rebuild.",
-   "entry": "AppLaunchTasks.swift:144 timedBoot(\"collector\") after first frame",
+   "entry": "AppLaunchTasks.swift timedBoot(\"collector\") after first frame",
    "calls": [
     "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()",
     "Emuqu/Sources/Collection/RRCollector.swift::func rebuildBaselineOffMain(replacing:)"
@@ -1051,7 +1051,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "4ba35bfe1dd469ec"
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "ddfe5dc721abaff2"
    }
   },
   {
@@ -1082,7 +1082,7 @@
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
     "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)": "1eba2516dc6628c1",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "3eeee9a44901da7e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
@@ -1188,14 +1188,14 @@
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init SleepBoundaryResolver(healthKit:)": "dce1fc4bba74d4bc",
     "Emuqu/Sources/Analysis/Verification.swift::init Verification(config:)": "68e775fef7fd01d0",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "161dc2ff7b10dee3",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "b9c613af80e4eebd",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeAcceptanceService(archive:healthKit:baselineTracker:rawBackup:cloudSync:)": "3daffdb13d2971f5",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeMorningProcessingService(_:)": "f9fcf93711e0e965",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makePipeline(artifactDetector:windowSelector:healthKit:)": "e23d6a6f75e30973",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "c8362823734fe57e",
     "Emuqu/Sources/Collection/SessionScoringContext.swift::init SessionScoringContext(settingsManager:healthKit:baselineTracker:)": "f08f073a6710f3db",
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "3eeee9a44901da7e",
     "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "ca6cce4dca006744",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
@@ -1295,7 +1295,7 @@
    "key": "func RRCollector.refreshLiveHRVSnapshotMirror()",
    "hash": "2f14799f5226a40e",
    "does": "Clears the live-HRV snapshot mirror when idle; otherwise writes phase machine/human labels, isCollecting, beat count, session start and last error description into the lock-protected mirror read by the LiveHRVBroker provider.",
-   "entry": "withObservationTracking onChange of sessionState (RRCollector+Bindings.swift:129 onSessionStateChanged)",
+   "entry": "withObservationTracking onChange of sessionState (RRCollector+Bindings.swift onSessionStateChanged)",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func phaseMachineLabel(_:)",
     "Emuqu/Sources/Collection/RRCollector.swift::func phaseHumanLabel(_:)"
@@ -1330,7 +1330,7 @@
    "key": "func refreshLiveHRVSnapshotMirror()",
    "hash": "1833cb4b8cae927d",
    "does": "Clears the live-HRV snapshot mirror when idle; otherwise writes phase machine/human labels, isCollecting, beat count, session start and last error description into the lock-protected mirror read by the LiveHRVBroker provider.",
-   "entry": "withObservationTracking onChange of sessionState (RRCollector+Bindings.swift:129 onSessionStateChanged)",
+   "entry": "withObservationTracking onChange of sessionState (RRCollector+Bindings.swift onSessionStateChanged)",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func phaseMachineLabel(_:)",
     "Emuqu/Sources/Collection/RRCollector.swift::func phaseHumanLabel(_:)"

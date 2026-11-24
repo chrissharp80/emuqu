@@ -4,9 +4,9 @@
  "role": "Validation 1: runs the ported RR-only HRVSleepStageClassifier on slpdb (annotated beats, NN or all-beat RR) or CAP healthy controls (detected beats from cap_extract_rr.py), over the whole scored recording or the PSG sleep period, and scores 5-min and 30-s agreement plus stage-minute Bland-Altman; writes results/sleep_<db>_<mode>_<bounds>.json.",
  "types": [],
  "state": [
-  "STAGE_MAP_SLPDB, APP_TO_4 (lines 37-38)",
-  "MIN_SCORABLE_IN_WINDOW=5, EPOCH_MS=30000 (lines 39-40)",
-  "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/slpdb/*, file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/derived/n<i>.json (read)",
+  "STAGE_MAP_SLPDB, APP_TO_4",
+  "MIN_SCORABLE_IN_WINDOW=5, EPOCH_MS=30000",
+  "file:<DATA_ROOT>/slpdb/*, file:<DATA_ROOT>/capslpdb/derived/n<i>.json (read)",
   "file:Tools/validation/results/sleep_<db>_<mode>_<bounds>.json (written)"
  ],
  "toplevel": "Adds script dir to sys.path; runs main() as a script.",
@@ -24,8 +24,8 @@
     "ext:wfdb.rdann"
    ],
    "reads": [
-    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/slpdb/RECORDS",
-    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/slpdb/<rec>.hea|.ecg|.st"
+    "file:<DATA_ROOT>/slpdb/RECORDS",
+    "file:<DATA_ROOT>/slpdb/<rec>.hea|.ecg|.st"
    ],
    "writes": [],
    "branches": [
@@ -75,7 +75,7 @@
     "Tools/validation/port_artifact_detection.py::def detect_artifacts"
    ],
    "reads": [
-    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/derived/n<i>.json"
+    "file:<DATA_ROOT>/capslpdb/derived/n<i>.json"
    ],
    "writes": [],
    "branches": [
@@ -242,9 +242,9 @@
     }
    ],
    "deps": {
-    "Tools/validation/validate_sleep.py::def cap_records": "a19d1c0244e95f0a",
+    "Tools/validation/validate_sleep.py::def cap_records": "98eb740fd898b14c",
     "Tools/validation/validate_sleep.py::def evaluate_record": "d805684e1f8528ae",
-    "Tools/validation/validate_sleep.py::def slpdb_records": "1f379e924b0863e1",
+    "Tools/validation/validate_sleep.py::def slpdb_records": "131b00fe5ef6e7c8",
     "Tools/validation/validation_common.py::def bland_altman": "72d4145d71b80fa5",
     "Tools/validation/validation_common.py::def summary_from_cm": "3958a06323c25238"
    }

@@ -15,7 +15,7 @@
   "static monthYearStyle Date.FormatStyle (.month(.wide).year())",
   "accessibility identifiers 'history.search', 'history.entryRow'"
  ],
- "toplevel": "`@State private var viewModel = HistoryViewModel()` (line 19) uses the default init, which binds AppDependencies.current.storage.sessionArchive and settingsManager rather than the @Environment(\\.dependencies) the view reads elsewhere; SwiftUI re-evaluates that initializer expression every time the HistoryView struct is re-created by DashboardV2View (historyDestination), building and discarding a HistoryViewModel. The stored onDelete/onUpdateTags closures are no longer called. #Preview builds HistoryView with no-op closures. Only production caller: DashboardV2View.swift historyDestination (MainTabView no longer passes delete/tag closures, so it gets DashboardV2View's no-op defaults).",
+ "toplevel": "`@State private var viewModel = HistoryViewModel()` uses the default init, which binds AppDependencies.current.storage.sessionArchive and settingsManager rather than the @Environment(\\.dependencies) the view reads elsewhere; SwiftUI re-evaluates that initializer expression every time the HistoryView struct is re-created by DashboardV2View (historyDestination), building and discarding a HistoryViewModel. The stored onDelete/onUpdateTags closures are no longer called. #Preview builds HistoryView with no-op closures. Only production caller: DashboardV2View.swift historyDestination (MainTabView no longer passes delete/tag closures, so it gets DashboardV2View's no-op defaults).",
  "units": [
   {
    "key": "var HistoryView.visibleEntries",
@@ -547,7 +547,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.askAssistantAbout(entry:)": "84fc4ea9abfcd784"
@@ -606,7 +606,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.loadMore()": "945883e36f2d31c6",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.loadMore()": "e067bd399b2c388e",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.loadMoreProgress": "2f01eb1e62abc0bc"
    }
   },
@@ -654,7 +654,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "090a425376b10bfe",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "c0967d617321a35d",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.cancelInFlightWork()": "d41668a7bc8f91ed",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailSheet(for:)": "d6a61ae080d291f8",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.withDeleteAlert(_:)": "5d9077e373d91a25",
@@ -1005,7 +1005,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "3280cd33e9388361",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },

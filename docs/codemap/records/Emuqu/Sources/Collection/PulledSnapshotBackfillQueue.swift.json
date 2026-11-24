@@ -9,9 +9,9 @@
   "ud:cloudkit.pendingSnapshotBackfill (standard; [String] of UUIDs, oldest first)",
   "ud:cloudkit.pendingSnapshotBackfillAttempts (standard; [String:Int] miss counts)",
   "mem:PulledSnapshotBackfillQueue.maxAttempts = 5 (static let)",
-  "mem:PulledSnapshotBackfillQueue.isDraining (@MainActor static var Bool, re-entrancy guard set by RRCollector+Reanalysis.swift:518)"
+  "mem:PulledSnapshotBackfillQueue.isDraining (@MainActor static var Bool, re-entrancy guard set by RRCollector+Reanalysis.swift)"
  ],
- "toplevel": "Static lets key/attemptsKey/maxAttempts; @MainActor static var isDraining=false. All functions are nonisolated statics doing read-modify-write on UserDefaults; callers (RRCollector+Reanalysis.swift:516-522) are @MainActor.",
+ "toplevel": "Static lets key/attemptsKey/maxAttempts; @MainActor static var isDraining=false. All functions are nonisolated statics doing read-modify-write on UserDefaults; callers (RRCollector+Reanalysis.swift) are @MainActor.",
  "units": [
   {
    "key": "func PulledSnapshotBackfillQueue.adding(_:)",

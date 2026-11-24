@@ -32,7 +32,7 @@
   "mem:PolarManager.fetchCancelled",
   "mem:PolarManager.activeTransfer",
   "mem:PolarManager.transfersInFlight",
-  "mem:PolarManager.savedRecordingCheck (closure set by RRCollector+Lifecycle.swift:64)",
+  "mem:PolarManager.savedRecordingCheck (closure set by RRCollector+Lifecycle.swift)",
   "mem:PolarManager.downloadLedger (StrapDownloadLedger)",
   "mem:PolarManager.disFirmwareRevisionUUID (static CBUUID 2A26)",
   "mem:PolarManager.disSoftwareRevisionUUID (static CBUUID 2A28)",
@@ -68,7 +68,7 @@
   "mem:PolarManager.sdkQueue (static DispatchQueue 'com.emuqu.polarsdk', .userInitiated)",
   "mem:PolarManager.lifecycleObservers (NotificationTokens)"
  ],
- "toplevel": "Stored-property initializers: readiness = StrapReadiness.initial, feedStatus = .waitingForStrap, downloadLedger = StrapDownloadLedger() (its own persistence lives in StrapRecording.swift), _lastSignificantLogTime starts at construction time, sdkQueue is a serial userInitiated queue. typealiases DiscoveredDevice/KnownDevice/FetchProgress point at Strap* types. `api`, `standardHeartRate`, `strapAPI`, `searchTask` exist only under canImport(PolarBleSdk); radioForTesting only under DEBUG. The header comment (:10-24) documents the forced Polar SDK 8.x upgrade.",
+ "toplevel": "Stored-property initializers: readiness = StrapReadiness.initial, feedStatus = .waitingForStrap, downloadLedger = StrapDownloadLedger() (its own persistence lives in StrapRecording.swift), _lastSignificantLogTime starts at construction time, sdkQueue is a serial userInitiated queue. typealiases DiscoveredDevice/KnownDevice/FetchProgress point at Strap* types. `api`, `standardHeartRate`, `strapAPI`, `searchTask` exist only under canImport(PolarBleSdk); radioForTesting only under DEBUG. The header comment documents the forced Polar SDK 8.x upgrade.",
  "units": [
   {
    "key": "func PolarDeviceType.from(deviceName:)",
@@ -165,7 +165,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "ff00b93ca6977335"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "ef5c6677177cc2bf"
    }
   },
   {
@@ -180,7 +180,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "ff00b93ca6977335"
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.isReady(_:)": "ef5c6677177cc2bf"
    }
   },
   {
@@ -347,7 +347,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.discardStoredExercises()": "d5c62ea9cc05062a",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.discardStoredExercises()": "c8491826e48db4ff",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "ba196d3ce7f16574"
    }
   },
@@ -357,7 +357,7 @@
    "does": "Whether a strap recording starting at `start` is already held: uses the RRCollector-installed savedRecordingCheck closure when set, otherwise the download ledger alone.",
    "entry": null,
    "calls": [
-    "closure:savedRecordingCheck — set by RRCollector+Lifecycle.swift:64 to RRCollector.isStrapRecordingSaved (ledger OR pre-ledger recording with an archived session within 30 min)",
+    "closure:savedRecordingCheck — set by RRCollector+Lifecycle.swift to RRCollector.isStrapRecordingSaved (ledger OR pre-ledger recording with an archived session within 30 min)",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)"
    ],
    "reads": [
@@ -373,7 +373,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)": "09de3d8f5f282dc4"
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)": "444790b0c1a77233"
    }
   },
   {
@@ -409,23 +409,26 @@
   {
    "key": "func PolarManager.loadBatteryUsageStateIfNeeded(for:)",
    "hash": "79fc06e73f724ca0",
-   "does": "Forwarder: restore persisted per-device battery usage counters.",
+   "does": "Forwarder: restores the persisted per-device battery usage counters (battery.loadState) and recomputes the battery-reading staleness flag from them.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.loadState(for:)"
    ],
    "reads": [
-    "ud:polar.batteryUsage.value/changedAt/hours.<deviceId> (standard)"
+    "ud:polar.batteryUsage.value/changedAt/hours.<deviceId> (standard)",
+    "mem:PolarManager.batteryLevel",
+    "mem:PolarManager.connectedDeviceType"
    ],
    "writes": [
     "mem:PolarManager.batteryLastReportedValue",
     "mem:PolarManager.batteryLastChangedAt",
-    "mem:PolarManager.hoursRecordedSinceBatteryChanged"
+    "mem:PolarManager.hoursRecordedSinceBatteryChanged",
+    "mem:PolarManager.isBatteryReadingStale"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "a52ba003af22d560",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.loadState(for:)": "322a6428671c6c08"
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.loadState(for:)": "6bedacafb86ea7a0"
    }
   },
   {
@@ -449,7 +452,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "a52ba003af22d560",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recordRecordingHours(_:)": "b046416554838434"
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recordRecordingHours(_:)": "3f9cfb9f45406210"
    }
   },
   {
@@ -471,7 +474,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "a52ba003af22d560",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "3c2c607e76ead82c"
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "f95817d41b4552ca"
    }
   },
   {
@@ -499,7 +502,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "a52ba003af22d560",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)": "6031ca4c1242972f"
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)": "db589e47cb875e4b"
    }
   },
   {
@@ -771,8 +774,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.adding(_:to:)": "2dedeb100c1e38bf",
-    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)": "8f459cda2345af49"
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.adding(_:to:)": "81b809337d408160",
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)": "1b2615135b3f4cab"
    }
   },
   {
@@ -790,7 +793,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)": "8f459cda2345af49"
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.save(_:)": "1b2615135b3f4cab"
    }
   },
   {
@@ -812,7 +815,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.load()": "2d356b8f64fa10b1"
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.load()": "faa78dbc18cb1c58"
    }
   },
   {
@@ -838,7 +841,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.loadLastConnectedTime()": "70a31857c4381239"
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.loadLastConnectedTime()": "3a4f1cb47f8c244f"
    }
   },
   {
@@ -863,7 +866,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.saveLastConnectedTime(_:)": "8579938e97fbcf9f"
+    "Emuqu/Sources/Collection/StrapPairingStore.swift::func StrapPairingStore.saveLastConnectedTime(_:)": "6fd24c8beb83d72c"
    }
   },
   {
@@ -1016,7 +1019,7 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
     "Emuqu/Sources/Collection/PolarSDKFactory.swift::func PolarSDKFactory.makeApi(queue:)": "f012c9eb1daee729",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startEventDelivery()": "9dede634700626fb",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startEventDelivery()": "b1dbb21c7ffb5bda",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -1056,7 +1059,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "9c8a592b648033af",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)": "ed221b9749a0841d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }

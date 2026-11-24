@@ -11,7 +11,7 @@
   {
    "key": "func FrequencyDomainTests.tearDown()",
    "hash": "385b162111d8324d",
-   "does": "tearDown: calls FrequencyDomainAnalyzer.teardownDFTCache(), which is an intentional no-op (FrequencyDomainAnalysis.swift:99-101: setups are never destroyed), then super.tearDown(). Nothing is reset between tests.",
+   "does": "tearDown: calls FrequencyDomainAnalyzer.teardownDFTCache(), which is an intentional no-op (FrequencyDomainAnalysis.swift: setups are never destroyed), then super.tearDown(). Nothing is reset between tests.",
    "entry": "XCTest runner: tearDown after each test method",
    "calls": [
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()"
@@ -20,7 +20,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "4afe7ba6757c906e"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "e0612aad315e096b"
    }
   },
   {
@@ -239,7 +239,7 @@
   {
    "key": "func FrequencyDomainTests.testDFTCaching()",
    "hash": "d480265a367838c7",
-   "does": "Computes PSD for sizes 256,512,1024,512,256 and asserts totalPower > 0 for each, then calls teardownDFTCache, which is a no-op (FrequencyDomainAnalysis.swift:100).",
+   "does": "Computes PSD for sizes 256,512,1024,512,256 and asserts totalPower > 0 for each, then calls teardownDFTCache, which is a no-op (FrequencyDomainAnalysis.swift).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)",
@@ -261,7 +261,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "4afe7ba6757c906e"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "e0612aad315e096b"
    }
   },
   {

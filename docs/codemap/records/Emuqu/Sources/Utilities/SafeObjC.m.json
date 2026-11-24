@@ -1,12 +1,12 @@
 {
  "file": "Emuqu/Sources/Utilities/SafeObjC.m",
  "hash": "0a2c0f9dc28819a8",
- "role": "Implementation of the SafeObjC shims: each nil-checks its receiver, calls the AVFoundation method inside @try, and on NSException returns NO with an NSError in domain \"FlowRecovery.SafeAudioEngine\" carrying NSExceptionName/NSExceptionReason. Compiled into the iOS app target (project.pbxproj:4149).",
+ "role": "Implementation of the SafeObjC shims: each nil-checks its receiver, calls the AVFoundation method inside @try, and on NSException returns NO with an NSError in domain \"FlowRecovery.SafeAudioEngine\" carrying NSExceptionName/NSExceptionReason. Compiled into the iOS app target (project.pbxproj).",
  "types": [],
  "state": [
   "mem:FRSafeAudioEngineErrorDomain = @\"FlowRecovery.SafeAudioEngine\" (global NSString, not declared in the header; no Swift code matches on it)"
  ],
- "toplevel": "Defines FRSafeAudioEngineErrorDomain (line 7) and, right after it, the static _FRSafeErrorFromException helper every @catch uses. Error codes: -1/-2 start, -10/-11 installTap, -20/-21 prepare, -30/-31 removeTap, -40/-41 voice processing, -50/-51 stop, -60/-61 reset, -70/-71 speak, -72/-73 stopSpeaking.",
+ "toplevel": "Defines FRSafeAudioEngineErrorDomain and, right after it, the static _FRSafeErrorFromException helper every @catch uses. Error codes: -1/-2 start, -10/-11 installTap, -20/-21 prepare, -30/-31 removeTap, -40/-41 voice processing, -50/-51 stop, -60/-61 reset, -70/-71 speak, -72/-73 stopSpeaking.",
  "units": [
   {
    "key": "c _FRSafeErrorFromException",
@@ -156,7 +156,7 @@
   {
    "key": "c FRSafeSetVoiceProcessing",
    "hash": "683ff6b1006f5bcf",
-   "does": "Calls setVoiceProcessingEnabled:error: inside @try and returns its BOOL; on NO copies the inner NSError (which may be nil) to outError; NSException → NO code -41; nil node → NO code -40. Caller: VoiceConversationController+Pipeline configuredInputFormat (line 580).",
+   "does": "Calls setVoiceProcessingEnabled:error: inside @try and returns its BOOL; on NO copies the inner NSError (which may be nil) to outError; NSException → NO code -41; nil node → NO code -40. Caller: VoiceConversationController+Pipeline configuredInputFormat.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/SafeObjC.m::c _FRSafeErrorFromException",

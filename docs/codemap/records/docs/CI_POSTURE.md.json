@@ -23,12 +23,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "850dff7c2c40af40",
+    ".github/workflows/ci.yml::job lint-and-budgets": "16ff37e02f061463",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "495c14a3c33d4d31",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
-    ".github/workflows/gates.yml::step script-gates/Code map is current": "816d6727b1d4d826"
+    ".github/workflows/gates.yml::step script-gates/Code map is current": "2f4be6cce93f3d96"
    }
   },
   {
@@ -49,12 +49,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
+    "Makefile::target budget-monotonicity": "3f2b4858f1a3dead",
     "Makefile::target ci": "cf2e840175bcfc4b",
     "Makefile::target release-build": "8569be24c7eb1de6",
-    "Makefile::target test-coverage": "2f52b6f381055f27",
+    "Makefile::target test-coverage": "c1919f9fcb7887a7",
     "Makefile::target thread-sanitizer": "adfca9b867c6ab56",
-    "Makefile::target verify-gates": "62403efc5c06c498",
+    "Makefile::target verify-gates": "a1ef2dd0c44fbc10",
     "scripts/evidence_report.sh::fn budget": "a927bad97b8838e4"
    }
   },
@@ -81,8 +81,8 @@
   },
   {
    "key": "§ CI posture > What actually enforces quality here > The gates",
-   "hash": "717b63fb2d1583e9",
-   "does": "Claims the listed gate groups (Style & debt including the tech-debt budgets with the Watch target against its combined ceiling and whole-number ceilings; a Supply chain row whose last gate is every xcodebuild run pinned to Package.resolved; a Change tracking row for the code map) are all scripts in scripts/ run by make ci, make ci-local and Actions, with only the budget ratchet's baseline differing; every gate except check_coverage.sh (NEEDS_BUILD) has a plant in verify_gates_fail.sh, check_thread_sanitizer.sh's plants running it against a stand-in xcodebuild (race_in_suite, parallel_testing_hides_races, race_does_not_fail_run) and the gate itself first requiring the ThreadSanitizerCanaryTests race to be reported and fail its run; the meta-check enumerates scripts/check_*.sh and enforce_*.sh failing on any without a plant or exemption; check_budget_monotonicity.sh skips without a baseline, make budget-monotonicity passes the merge base with origin/main (or HEAD, saying so) overridable by BUDGET_BASE_REF, ci.yml compares with the parent commit and gates.yml with the PR base or push-before tip.",
+   "hash": "73201edaf3d91ff2",
+   "does": "Claims the listed gate groups (Style & debt including the tech-debt budgets with the Watch target against its combined ceiling and whole-number ceilings; a Supply chain row whose last gate is every xcodebuild run pinned to Package.resolved; a Change tracking row for the code map, where a record whose callee changed fails the check until it is re-read) are all scripts in scripts/ run by make ci, make ci-local and Actions, with only the budget ratchet's baseline differing; every gate except check_coverage.sh (NEEDS_BUILD) has a plant in verify_gates_fail.sh, check_thread_sanitizer.sh's plants running it against a stand-in xcodebuild (race_in_suite, parallel_testing_hides_races, race_does_not_fail_run) and the gate itself first requiring the ThreadSanitizerCanaryTests race to be reported and fail its run; the meta-check enumerates scripts/check_*.sh and enforce_*.sh failing on any without a plant or exemption; check_budget_monotonicity.sh skips without a baseline, make budget-monotonicity passes the merge base with origin/main (or HEAD, saying so) overridable by BUDGET_BASE_REF, ci.yml compares with the parent commit and gates.yml with the PR base or push-before tip.",
    "entry": null,
    "calls": [
     "scripts/verify_gates_fail.sh::fn backup",
@@ -107,13 +107,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "1134d06d24e24bd1",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "ec96a86dca7e7d98",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "b220bed7db5626a6",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "881cc6b476cb58aa",
     ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "99a2c1935f08f8cb",
     ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
     "EmuquTests/ThreadSanitizerCanaryTests.swift::func ThreadSanitizerCanaryTests.testUnsynchronizedWritesRaceWhenTheCanaryIsRequested()": "8204202826b96076",
-    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
+    "Makefile::target budget-monotonicity": "3f2b4858f1a3dead",
     "Makefile::target codemap-guard": "31a759d3fd34483c",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "fc658970d2a0e744",
     "scripts/check_thread_sanitizer.sh::fn run_sanitized": "82b631abdc683244",
@@ -141,7 +141,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "1134d06d24e24bd1",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "ec96a86dca7e7d98",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "b220bed7db5626a6",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "881cc6b476cb58aa",
     ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "53ebc5503c521d01"
@@ -150,7 +150,7 @@
   {
    "key": "§ CI posture > What actually enforces quality here > Two things must not read the tree at the same time",
    "hash": "28b71b0921dc6f3e",
-   "does": "Claims verify_gates_fail.sh and verify_tests_fail.sh mutate tracked source and restore in an EXIT trap, both take .git/emuqu-tree-mutation.lock, simulate_ci.sh refuses to start while it is held, and a stale lock is taken over with a warning; check_no_leaked_mutations.sh is the backstop for a killed run. Code: both harnesses source scripts/lib/preflight.sh and call gate_acquire_tree_lock (verify_gates_fail.sh:37, verify_tests_fail.sh:74) with release in the EXIT trap; GATE_TREE_LOCK defaults to <git dir>/emuqu-tree-mutation.lock (falling back to TMPDIR when no git dir); simulate_ci.sh:47 calls gate_require_unmutated_tree; preflight.sh:159 warns on a stale lock.",
+   "does": "Claims verify_gates_fail.sh and verify_tests_fail.sh mutate tracked source and restore in an EXIT trap, both take .git/emuqu-tree-mutation.lock, simulate_ci.sh refuses to start while it is held, and a stale lock is taken over with a warning; check_no_leaked_mutations.sh is the backstop for a killed run. Code: both harnesses source scripts/lib/preflight.sh and call gate_acquire_tree_lock (verify_gates_fail.sh, verify_tests_fail.sh) with release in the EXIT trap; GATE_TREE_LOCK defaults to <git dir>/emuqu-tree-mutation.lock (falling back to TMPDIR when no git dir); simulate_ci.sh calls gate_require_unmutated_tree; preflight.sh warns on a stale lock.",
    "entry": null,
    "calls": [
     "scripts/lib/preflight.sh::fn gate_acquire_tree_lock",
@@ -229,14 +229,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "850dff7c2c40af40",
+    ".github/workflows/ci.yml::job lint-and-budgets": "16ff37e02f061463",
     ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e"
    }
   },
   {
    "key": "§ CI posture > What actually enforces quality here > The compiler is one of the gates",
    "hash": "7bfab7b87c7a1677",
-   "does": "Claims run_tests_with_coverage.sh passes -warn-long-expression-type-checking and -warn-long-function-bodies, the spec-conformance scan covers the whole app target (including Emuqu/EmuquApp.swift, where verify_gates_fail.sh plants a violation), there are zero swiftlint:disable directives in Emuqu/Sources, and check_budget_monotonicity.sh fails unjustified raises. Code: run_tests_with_coverage.sh:221 TYPE_CHECK_FLAGS with =4000/=6000; grep finds 0 swiftlint:disable in Emuqu/Sources.",
+   "does": "Claims run_tests_with_coverage.sh passes -warn-long-expression-type-checking and -warn-long-function-bodies, the spec-conformance scan covers the whole app target (including Emuqu/EmuquApp.swift, where verify_gates_fail.sh plants a violation), there are zero swiftlint:disable directives in Emuqu/Sources, and check_budget_monotonicity.sh fails unjustified raises. Code: run_tests_with_coverage.sh TYPE_CHECK_FLAGS with =4000/=6000; grep finds 0 swiftlint:disable in Emuqu/Sources.",
    "entry": null,
    "calls": [
     "scripts/run_tests_with_coverage.sh::fn run_tests",
@@ -299,7 +299,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "850dff7c2c40af40",
+    ".github/workflows/ci.yml::job lint-and-budgets": "16ff37e02f061463",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "495c14a3c33d4d31",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
@@ -325,7 +325,7 @@
     ".github/workflows/ci.yml::step tests/Write the result to the run summary": "6e28e0a89505b30b",
     ".github/workflows/ci.yml::step thread-sanitizer/Write the result to the run summary": "4c12a1bdce7dc65e",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
-    "Makefile::target sbom-check": "46aecc781adb961a",
+    "Makefile::target sbom-check": "9a099cd017dba69b",
     "scripts/evidence_report.sh::fn budget": "a927bad97b8838e4"
    }
   }

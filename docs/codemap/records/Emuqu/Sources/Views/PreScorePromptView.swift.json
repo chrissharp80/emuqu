@@ -95,19 +95,18 @@
    "key": "var PreScorePromptView.body",
    "hash": "25bded6b633bb88c",
    "does": "Dark full-screen body with the scrolling prompt content, swipe-dismiss disabled; .task records a 'shown' telemetry count.",
-   "entry": "SwiftUI view-body evaluation (fullScreenCover in RecordView.swift:168); .task on appear",
+   "entry": "SwiftUI view-body evaluation (fullScreenCover(item: $pendingMorningPresentation) in RecordView.swift, content built by RecordView.preScoreCover); .task on appear",
    "calls": [
     "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.promptContent",
     "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordShown()"
    ],
    "reads": [],
    "writes": [
-    "ud:preScorePrompt.telemetry.shownCount",
-    "ud:preScorePrompt.telemetry.firstSeen"
+    "ud:preScorePrompt.telemetry.shownCount"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordShown()": "44ca422b13986e87",
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::func PreScorePromptTelemetry.recordShown()": "4536a965ba813b99",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
     "Emuqu/Sources/Views/PreScorePromptView.swift::var PreScorePromptView.promptContent": "ad06e17778ce94d8"
    }

@@ -6,6 +6,8 @@ GET is retried until it returns 200 with a non-XML-error body.
 
 Usage: python3 -I fetch_physionet.py <db> <version> <outdir> [file ...]
 With no files, fetches RECORDS and then <rec>.hea/.atr/... per --ext list.
+The validate_* scripts read <db> from build/physionet/<db> in this checkout, or
+$EMUQU_PHYSIONET_DIR/<db>, so pass that folder as <outdir>.
 """
 import os
 import sys

@@ -383,7 +383,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "ca69b2fe8fd7e541"
    }
   },
   {
@@ -412,7 +412,7 @@
    "deps": {
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
     "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)": "3cc353c4ae900de1",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "ca69b2fe8fd7e541"
    }
   },
   {
@@ -612,7 +612,7 @@
   {
    "key": "init TrainingContext(from:relativeTo:)",
    "hash": "d78b9a0b2710ef74",
-   "does": "Failable init from a HealthKit TrainingLoad: nil without metrics; yesterday TRIMP looked up at startOfDay(referenceDate)-1 day (0 if missing); ATL/CTL/TSB sanitized to finite; vo2Max and daysSinceHardWorkout copied; up to 5 most recent workouts snapshotted (nil if none). Callers: SessionAcceptanceService.swift:144, ReanalysisService.swift:410, ReanalysisService+Sleep.swift:536, SessionDataMigrations+TrainingRecalibration.swift:121, WorkoutRecorder+Lifecycle.swift:506, RRCollector.swift:395.",
+   "does": "Failable init from a HealthKit TrainingLoad: nil without metrics; yesterday TRIMP looked up at startOfDay(referenceDate)-1 day (0 if missing); ATL/CTL/TSB sanitized to finite; vo2Max and daysSinceHardWorkout copied; up to 5 most recent workouts snapshotted (nil if none). Callers: SessionAcceptanceService.swift, ReanalysisService.swift, ReanalysisService+Sleep.swift, SessionDataMigrations+TrainingRecalibration.swift, WorkoutRecorder+Lifecycle.swift, RRCollector.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.snapshots(of:)",
@@ -640,7 +640,7 @@
    "deps": {
     "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "a9d6ffe38efc1df5",
     "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.sanitized(_:)": "088c47da6c178c32",
-    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.snapshots(of:)": "1b03dabbc050da0f",
+    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.snapshots(of:)": "29142669ea44ce14",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
@@ -677,7 +677,7 @@
   {
    "key": "func TrainingContext.snapshots(of:)",
    "hash": "37d518aea32afe7b",
-   "does": "Maps the first 5 load.recentWorkouts to WorkoutSnapshot(date, typeDescription, durationMinutes, trimp=userScaledLoad). The list is newest-first because TrainingLoad.init sorts it (Emuqu/Sources/Collection/TrainingLoad.swift:31), so these are the 5 most recent (asserted by EmuquTests/RRModelsTests.swift:338).",
+   "does": "Maps the first 5 load.recentWorkouts to WorkoutSnapshot(date, typeDescription, durationMinutes, trimp=userScaledLoad). The list is newest-first because TrainingLoad.init sorts it (Emuqu/Sources/Collection/TrainingLoad.swift), so these are the 5 most recent (asserted by EmuquTests/RRModelsTests.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.typeDescription",
@@ -687,8 +687,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.typeDescription": "01f126cccb021e92",
-    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748"
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.typeDescription": "88d0d5fb8e2a9fa6",
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "acfa3bddf79da897"
    }
   },
   {

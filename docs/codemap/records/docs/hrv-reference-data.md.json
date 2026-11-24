@@ -24,7 +24,7 @@
   {
    "key": "§ HRV reference data > What is validated, and what is not",
    "hash": "86ec2efcb3278ce9",
-   "does": "Claims HRVReferenceValidationTests covers metric computation: 6,000 RR intervals from 20 subjects compared against an independent Task Force (1996) implementation; sensor accuracy is out of scope. Verified: the test asserts 20 records and 6,000 intervals (HRVReferenceValidationTests.swift:98-99); fetch_hrv_reference.py uses 20 records x 300-beat windows.",
+   "does": "Claims HRVReferenceValidationTests covers metric computation: 6,000 RR intervals from 20 subjects compared against an independent Task Force (1996) implementation; sensor accuracy is out of scope. Verified: the test asserts 20 records and 6,000 intervals (HRVReferenceValidationTests.swift); fetch_hrv_reference.py uses 20 records x 300-beat windows.",
    "entry": null,
    "calls": [
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible()",
@@ -47,7 +47,7 @@
   {
    "key": "§ HRV reference data > Source",
    "hash": "ea2d248cc6a0333a",
-   "does": "Source: MIT nsr2db v1.0.0 beat annotations under ODC-By, attribution carried in the generated file header. Verified: HRVReferenceFixtures.swift:9-11 carries the attribution.",
+   "does": "Source: MIT nsr2db v1.0.0 beat annotations under ODC-By, attribution carried in the generated file header. Verified: HRVReferenceFixtures.swift carries the attribution.",
    "entry": null,
    "calls": [
     "scripts/fetch_hrv_reference.py::def fetch",
@@ -64,7 +64,7 @@
   {
    "key": "§ HRV reference data > Regenerating",
    "hash": "30ff7eed1bd3c894",
-   "does": "Claims `python3 scripts/fetch_hrv_reference.py` rewrites fixtures and `--check` verifies against a fresh fetch, needs network, never run in CI; each record carries the SHA-256 of its annotation file. Verified: argparse --check flag (fetch_hrv_reference.py:220-221), records carry sourceSHA256 (fixtures JSON), test asserts 64-char hashes.",
+   "does": "Claims `python3 scripts/fetch_hrv_reference.py` rewrites fixtures and `--check` verifies against a fresh fetch, needs network, never run in CI; each record carries the SHA-256 of its annotation file. Verified: argparse --check flag (fetch_hrv_reference.py), records carry sourceSHA256 (fixtures JSON), test asserts 64-char hashes.",
    "entry": null,
    "calls": [
     "scripts/fetch_hrv_reference.py::def main",

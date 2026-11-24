@@ -19,7 +19,7 @@
    "key": "init ArchiveSignal(center:)",
    "hash": "7b8940c9a5309289",
    "does": "Stores the notification center and registers a queue:nil observer for `.flowRecoveryArchiveChanged` (any object) whose block hops to the main actor and calls scheduleCoalescedBump().",
-   "entry": "Constructed only by RRCollector.init when no signal is injected (RRCollector.swift:701, `archiveSignal ?? ArchiveSignal()`) and by snapshot tests (e.g. EmuquTests/TabScreenSnapshotTests.swift:43); there is no separate dependency-container construction. The observer block is invoked by NotificationCenter on the posting thread (SessionArchive.archive, notifyChanged, other posters).",
+   "entry": "Constructed only by RRCollector.init when no signal is injected (RRCollector.swift, `archiveSignal ?? ArchiveSignal()`) and by snapshot tests (e.g. EmuquTests/TabScreenSnapshotTests.swift); there is no separate dependency-container construction. The observer block is invoked by NotificationCenter on the posting thread (SessionArchive.archive, notifyChanged, other posters).",
    "calls": [
     "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.scheduleCoalescedBump()",

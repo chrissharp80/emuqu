@@ -4,8 +4,8 @@
  "role": "Validation 3: selects clean 120-s all-N windows from nsr2db that cleanRRForDFA leaves untouched, injects ectopic (-30 %/+30 % compensatory) or missed-beat (merged) artifacts at 1/3/6/10 % with 3 seeds, and compares DFA alpha1 uncorrected vs after cleanRRForDFA (and in windows passing the 6 % gate); also measures false corrections on artifact-free windows; writes results/dfa_injection_nsr2db.json.",
  "types": [],
  "state": [
-  "WIN_MS=120000, PER_RECORD=20, RATES=[0.01,0.03,0.06,0.10], SEEDS=3 (lines 39-42)",
-  "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/nsr2db/RECORDS, <rec>.hea/.ecg (read)",
+  "WIN_MS=120000, PER_RECORD=20, RATES=[0.01,0.03,0.06,0.10], SEEDS=3",
+  "file:<DATA_ROOT>/nsr2db/RECORDS, <rec>.hea/.ecg (read)",
   "file:Tools/validation/results/dfa_injection_nsr2db.json (written)"
  ],
  "toplevel": "Adds script dir to sys.path; runs main() as a script.",
@@ -100,8 +100,8 @@
     "ext:random.Random(zlib.crc32 seed)"
    ],
    "reads": [
-    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/nsr2db/RECORDS",
-    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/nsr2db/<rec>.hea|.ecg"
+    "file:<DATA_ROOT>/nsr2db/RECORDS",
+    "file:<DATA_ROOT>/nsr2db/<rec>.hea|.ecg"
    ],
    "writes": [
     "file:Tools/validation/results/dfa_injection_nsr2db.json"
@@ -184,7 +184,7 @@
   }
  ],
  "deps": {
-  "Tools/validation/validate_dfa_injection.py::def main": "78cc173f1408e58d",
+  "Tools/validation/validate_dfa_injection.py::def main": "b3f164dcaf7bd785",
   "Tools/validation/validation_common.py::def bland_altman": "72d4145d71b80fa5"
  }
 }

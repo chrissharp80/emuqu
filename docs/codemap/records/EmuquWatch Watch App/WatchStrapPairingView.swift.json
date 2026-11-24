@@ -6,7 +6,7 @@
   "WatchStrapPairingView: struct (View) — strap pairing screen; reads WatchStrapConnector from @EnvironmentObject"
  ],
  "state": [
-  "@EnvironmentObject connector: WatchStrapConnector (injected by WatchApp .environmentObject(strapConnector), EmuquWatch Watch App/WatchApp.swift:29)"
+  "@EnvironmentObject connector: WatchStrapConnector (injected by WatchApp .environmentObject(strapConnector), EmuquWatch Watch App/WatchApp.swift)"
  ],
  "toplevel": "",
  "units": [
@@ -14,7 +14,7 @@
    "key": "var WatchStrapPairingView.body",
    "hash": "2d1bd7783510e250",
    "does": "Scrollable screen: stateHeader, Divider, content; title \"Strap\"; starts a scan/reconnect on appear and stops discovery on disappear.",
-   "entry": "SwiftUI body; pushed by NavigationLink in WatchLiveView (EmuquWatch Watch App/WatchLiveView.swift:252). .onAppear → connector.startScanning(); .onDisappear → connector.stopScanning().",
+   "entry": "SwiftUI body; pushed by NavigationLink in WatchLiveView (EmuquWatch Watch App/WatchLiveView.swift). .onAppear → connector.startScanning(); .onDisappear → connector.stopScanning().",
    "calls": [
     "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.stateHeader",
     "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.content",
@@ -27,9 +27,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.startScanning()": "d864a2733fc9463a",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stopScanning()": "d0106163df13122f",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.content": "56b5e8fca56d88e4",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.startScanning()": "d92403cbde32a71a",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stopScanning()": "e4483b62bd5e0eb6",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.content": "9398a5125275d77e",
     "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.stateHeader": "5b761825b6a35b8c"
    }
   },
@@ -161,7 +161,7 @@
    ],
    "reads": [
     "mem:WatchStrapConnector.connectionState",
-    "ud:WatchStrapConnector.savedPeripheralIdentifier"
+    "mem:WatchStrapConnector.savedStrapIdentifier (via hasSavedStrap)"
    ],
    "writes": [],
    "branches": [
@@ -178,8 +178,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "89d099d8821999c6",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.connectedActions": "31fb34290e22fa4d",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "8f0a6ad6bccd96ca",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.connectedActions": "0e37219b3dc070ee",
     "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.discoveredList": "077dfa8314a78a06"
    }
   },
@@ -259,11 +259,17 @@
    ],
    "reads": [],
    "writes": [
-    "ud:WatchStrapConnector.savedPeripheralIdentifier"
+    "ud:WatchStrapConnector.savedPeripheralIdentifier",
+    "mem:WatchStrapConnector.savedStrapIdentifier",
+    "mem:WatchStrapConnector.connectedPeripheral",
+    "mem:WatchStrapConnector.liveHeartRate",
+    "mem:WatchStrapConnector.lastRRMillis",
+    "mem:WatchStrapConnector.batteryPercent",
+    "mem:WatchStrapConnector.connectionState"
    ],
    "branches": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.disconnectAndForget()": "d42282495d5b43b7"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.disconnectAndForget()": "c1b85fe0bb6788d2"
    }
   },
   {

@@ -202,7 +202,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.clearQuarantine(_:)": "4cc0d1c8e4de93bf",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveQuarantineQueue()": "8fb3c43b7613f0bc"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveQuarantineQueue()": "822f6fb6a8c4fb37"
    }
   },
   {
@@ -335,7 +335,7 @@
    "key": "func CloudKitSyncManager.boot()",
    "hash": "2f14799f5226a40e",
    "does": "One-shot post-first-frame boot: guarded by the didBootSyncState lock, loads the five sync-state files into memory (unblocking saves) and reads lastSyncDate from UserDefaults (re-writing it via didSet).",
-   "entry": "Called from AppLaunchTasks (timedBoot(\"syncManager\") { syncManager.boot() }, AppLaunchTasks.swift:145)",
+   "entry": "Called from AppLaunchTasks (timedBoot(\"syncManager\") { syncManager.boot() }, AppLaunchTasks.swift)",
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate"
@@ -364,14 +364,15 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "2d613940641c274b",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()": "8d0896f3d4d53e73"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()": "8d0896f3d4d53e73",
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()": "7eb7fa9354ab076a"
    }
   },
   {
    "key": "func boot()",
    "hash": "65782d730b12e2a7",
-   "does": "Same function as the @MainActor-attributed unit at line 336 (parser fallback record starting at the func line): idempotent load of persisted sync state and lastSyncDate; didBootSyncState.setIfClear lets one call through.",
-   "entry": "Called from AppLaunchTasks.swift:145",
+   "does": "Same function as the @MainActor-attributed unit (parser fallback record starting at the func line): idempotent load of persisted sync state and lastSyncDate; didBootSyncState.setIfClear lets one call through.",
+   "entry": "Called from AppLaunchTasks.swift",
    "calls": [
     "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.loadAll()",
@@ -1063,14 +1064,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.markSessionsForReupload(_:)": "036021c696dc99ea"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.markSessionsForReupload(_:)": "ac74655428f71d4e"
    }
   },
   {
    "key": "func CloudKitSyncManager.markSessionsForReupload(_:)",
    "hash": "cab84dc1830f4275",
    "does": "Serially marks each id removed (pending, not uploaded) and writes sync_state.json; the next push uploads them.",
-   "entry": "Spawned from the .flowRecoveryArchiveSessionsNeedReupload observer (posted by Archive.swift:506 and Archive+Migrations.swift:536)",
+   "entry": "Spawned from the .flowRecoveryArchiveSessionsNeedReupload observer (posted by Archive.swift and Archive+Migrations.swift)",
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)",
@@ -1415,7 +1416,7 @@
    "key": "func CloudKitSyncManager.performFullSyncIfNeeded(minInterval:)",
    "hash": "b1f0a0d4e501b956",
    "does": "Interval-gated full sync: with sync off runs the HealthKit scrub of old iCloud records; skips when already syncing or when the last successful sync is younger than minInterval; else performFullSync.",
-   "entry": "Called from EmuquApp.swift:529 (10-min interval on activation), AppLaunchTasks.swift:561 (30 min) and OnboardingView.swift:111 (0)",
+   "entry": "Called from EmuquApp.swift (10-min interval on activation), AppLaunchTasks.swift (30 min) and OnboardingView.swift (0)",
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.scrubHealthReadingsWhileSyncOff()",

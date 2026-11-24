@@ -4,9 +4,9 @@
  "role": "Validation 2: scores the ported ArtifactDetector, cleanRRForDFA mask and RMSSD exclusion pipeline against MIT-BIH Arrhythmia DB beat labels (interval and beat rules, per-symbol sensitivity) and compares 5-min RMSSD (app pipeline and uncorrected) with a normal-to-normal reference; writes results/artifacts_mitdb.json.",
  "types": [],
  "state": [
-  "PACED = {102,104,107,217} excluded (line 44)",
-  "SEG_MS = 300000 (line 45)",
-  "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/mitdb/RECORDS, <rec>.hea/.atr (read)",
+  "PACED = {102,104,107,217} excluded",
+  "SEG_MS = 300000",
+  "file:<DATA_ROOT>/mitdb/RECORDS, <rec>.hea/.atr (read)",
   "file:Tools/validation/results/artifacts_mitdb.json (written)"
  ],
  "toplevel": "Adds script dir to sys.path; runs main() as a script.",
@@ -99,8 +99,8 @@
     "ext:wfdb.rdann"
    ],
    "reads": [
-    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/mitdb/RECORDS",
-    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/mitdb/<rec>.hea|.atr"
+    "file:<DATA_ROOT>/mitdb/RECORDS",
+    "file:<DATA_ROOT>/mitdb/<rec>.hea|.atr"
    ],
    "writes": [
     "file:Tools/validation/results/artifacts_mitdb.json"
@@ -256,7 +256,7 @@
   }
  ],
  "deps": {
-  "Tools/validation/validate_artifacts.py::def main": "bb9c262cfbb5a32d",
+  "Tools/validation/validate_artifacts.py::def main": "8aed52cac697095f",
   "Tools/validation/validation_common.py::def bland_altman": "72d4145d71b80fa5"
  }
 }

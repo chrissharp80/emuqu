@@ -10,15 +10,15 @@
   "@State currentPage (Int, 0) — selected page tag",
   "@State healthPageAnswered (Bool, false) — set when the Health page itself advanced (Skip or Continue), so that move is not read as a swipe-past",
   "pageCount = 7 (private let)",
-  "onTakeReading closure (set by EmuquApp.swift:348 to `requestedTab = .record`)"
+  "onTakeReading closure (set by EmuquApp.swift to `requestedTab = .record`)"
  ],
- "toplevel": "pageCount literal 7 must match the seven tags 0-6 in `pages` (OnboardingView.swift:30, 52-65). #Preview builds OnboardingView with AppDependencies.current settingsManager and a fresh RRCollector (lines 239-243).",
+ "toplevel": "pageCount literal 7 must match the seven tags 0-6 in `pages` (OnboardingView.swift). #Preview builds OnboardingView with AppDependencies.current settingsManager and a fresh RRCollector.",
  "units": [
   {
    "key": "init OnboardingView(onTakeReading:)",
    "hash": "56fc793e6de35cae",
    "does": "Stores the onTakeReading closure (default no-op).",
-   "entry": "Called by EmuquApp.swift:348 `OnboardingView(onTakeReading: { requestedTab = .record })`, by #Preview and by EmuquTests/PageSnapshotTests.swift:47.",
+   "entry": "Called by EmuquApp.swift `OnboardingView(onTakeReading: { requestedTab = .record })`, by #Preview and by EmuquTests/PageSnapshotTests.swift.",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -40,7 +40,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.noteHealthPageSwipedPast(from:to:)": "073d103d0d0d74a2",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.noteHealthPageSwipedPast(from:to:)": "48bd92859cd34b5a",
     "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.pages": "0352974c516fcc9b",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
@@ -59,8 +59,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceFromHealthPage()": "1cc4d071e223cc97",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()": "f1d3693a6be85522",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceFromHealthPage()": "747a25780548c86b",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()": "b392a6d2aa11c6f0",
     "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePage": "9093fdbf9b0ce435"
    }
   },
@@ -68,7 +68,7 @@
    "key": "func OnboardingView.noteHealthPageSwipedPast(from:to:)",
    "hash": "ed8e271613fc9c86",
    "does": "When the page changes from the Apple Health page (4) to a later page by a swipe — the page's own Skip/Continue did not answer it (healthPageAnswered false) — and HealthKitManager.authorizationRequested is false in this process, asks HealthKit in a Task whether the permission sheet was already answered in any launch (authorizationWasEverRequested); only when it was not, sets UserDefaults healthAccessSkippedInOnboarding = true (treats a swipe-past as \"Skip for now\").",
-   "entry": ".onChange(of: currentPage) in body (line 44).",
+   "entry": ".onChange(of: currentPage) in body.",
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.authorizationWasEverRequested()"
    ],
@@ -101,7 +101,7 @@
    "key": "func OnboardingView.advanceFromHealthPage()",
    "hash": "e8d7f31356f1ff54",
    "does": "Advance handler for the Health page (Skip, or Continue after Connect): marks healthPageAnswered, then advanceToNext, so the page-change observer does not record this advance as a swipe-past skip.",
-   "entry": "closure passed to OnboardingHealthPage(advance:) at line 60; invoked by that page's Continue / Skip for now buttons.",
+   "entry": "closure passed to OnboardingHealthPage(advance:); invoked by that page's Continue / Skip for now buttons.",
    "calls": [
     "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()"
    ],
@@ -111,14 +111,14 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()": "f1d3693a6be85522"
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()": "b392a6d2aa11c6f0"
    }
   },
   {
    "key": "func OnboardingView.advanceToNext()",
    "hash": "0df491cb4bcdb2c0",
    "does": "Animates currentPage to currentPage+1, clamped to pageCount-1 (6).",
-   "entry": "Passed as the advance closure to the Welcome/ValueProp/Profile/Sensor/Backup pages (lines 52-62).",
+   "entry": "Passed as the advance closure to the Welcome/ValueProp/Profile/Sensor/Backup pages.",
    "calls": [],
    "reads": [
     "mem:OnboardingView.currentPage"
@@ -132,7 +132,7 @@
   {
    "key": "func OnboardingView.completeOnboarding()",
    "hash": "ebd30705c2579702",
-   "does": "Marks onboarding finished: sets settings.hasCompletedOnboarding, hasAcknowledgedScoreArchitectureChange and hasRunScoreHistoryRecompute to true (three separate SettingsManager.settings writes, each saved and posting flowRecoverySettingsChanged from the didSet unless the settings load was blocked by data protection), then, if iCloud sync is enabled, launches a Task running CloudKitSyncManager.performFullSyncIfNeeded(minInterval: 0). The hasCompletedOnboarding change fires EmuquApp.handleOnboardingCompletion (EmuquApp.swift:397-398, 421-428), which shows the paywall when StoreKitManager.paywallEnabled and the user has no active access, otherwise dismisses the onboarding modal.",
+   "does": "Marks onboarding finished: sets settings.hasCompletedOnboarding, hasAcknowledgedScoreArchitectureChange and hasRunScoreHistoryRecompute to true (three separate SettingsManager.settings writes, each saved and posting flowRecoverySettingsChanged from the didSet unless the settings load was blocked by data protection), then, if iCloud sync is enabled, launches a Task running CloudKitSyncManager.performFullSyncIfNeeded(minInterval: 0). The hasCompletedOnboarding change fires EmuquApp.handleOnboardingCompletion (EmuquApp.swift), which shows the paywall when StoreKitManager.paywallEnabled and the user has no active access, otherwise dismisses the onboarding modal.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
@@ -155,8 +155,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncIfNeeded(minInterval:)": "be47df571ac7a0cf"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncIfNeeded(minInterval:)": "fa322b72985c1417"
    }
   },
   {
@@ -172,7 +172,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingFillingScroll.body": "e517392d5a022f0a",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingFillingScroll.body": "eb86c6878f9b65fc",
     "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.donePageStack": "ecb87a1164125e3f"
    }
   },
@@ -259,7 +259,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()": "af31065bb696ceb0",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()": "8e5245b2bd60ab6b",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
@@ -270,7 +270,7 @@
    "does": "Primary button \"Take a reading\": calls onTakeReading (EmuquApp switches requestedTab to .record) then completeOnboarding.",
    "entry": "SwiftUI Button action (user tap).",
    "calls": [
-    "closure:onTakeReading — set by EmuquApp.swift:348 to `requestedTab = .record`",
+    "closure:onTakeReading — set by EmuquApp.swift to `requestedTab = .record`",
     "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)"
@@ -280,7 +280,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()": "af31065bb696ceb0",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()": "8e5245b2bd60ab6b",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
@@ -290,7 +290,7 @@
    "key": "var OnboardingFillingScroll.body",
    "hash": "c281a4002863ca50",
    "does": "GeometryReader reads available height; ScrollView whose content is framed to maxWidth .infinity and minHeight = proxy height, with bounce only when content overflows.",
-   "entry": "SwiftUI body; OnboardingFillingScroll is used by OnboardingView.donePage, OnboardingWelcomePage.body, OnboardingValuePropPage.cardView, OnboardingBackupPage.swift:19, TrialReminderView.swift:13 and PreScorePromptView.swift:107.",
+   "entry": "SwiftUI body; OnboardingFillingScroll is used by OnboardingView.donePage, OnboardingWelcomePage.body, OnboardingValuePropPage.cardView, OnboardingBackupPage.swift, TrialReminderView.swift and PreScorePromptView.swift.",
    "calls": [],
    "reads": [],
    "writes": [],

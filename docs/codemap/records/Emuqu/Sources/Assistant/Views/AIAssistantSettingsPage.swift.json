@@ -9,12 +9,12 @@
   "APIKeyEditorView.SaveStatus: enum — idle/saved/removed/failed footer state"
  ],
  "state": [
-  "@State AIAssistantSettingsPage.refreshToken (UUID bumped to force redraw after flag/key changes, line 10)",
-  "@State AIAssistantSettingsPage.newFactText / showClearFactsConfirm / factChangeFailed / tavilyKeyDraft / tavilyKeyShown / tavilyKeySaveFailed (lines 11-17; used by +Sections)",
-  "@State APIKeyEditorView.keyText / hasExistingKey / saveStatus / showWithdrawConfirm (lines 108-111)",
+  "@State AIAssistantSettingsPage.refreshToken (UUID bumped to force redraw after flag/key changes)",
+  "@State AIAssistantSettingsPage.newFactText / showClearFactsConfirm / factChangeFailed / tavilyKeyDraft / tavilyKeyShown / tavilyKeySaveFailed (used by +Sections)",
+  "@State APIKeyEditorView.keyText / hasExistingKey / saveStatus / showWithdrawConfirm",
   "kc:com.chrissharp.flowrecovery.assistant.apikey/<ProviderID> (accessed via APIKeyStore, not declared here)"
  ],
- "toplevel": "No global code. Both types read services from @Environment(\\.dependencies). AIAssistantSettingsPage.body delegates its content to `settingsList` declared in AIAssistantSettingsPage+Sections.swift:21.",
+ "toplevel": "No global code. Both types read services from @Environment(\\.dependencies). AIAssistantSettingsPage.body delegates its content to `settingsList` declared in AIAssistantSettingsPage+Sections.swift.",
  "units": [
   {
    "key": "var AIAssistantSettingsPage.registry",
@@ -91,7 +91,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.settingsList": "672ffe5c89ff11a8",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.settingsList": "9ce5ae876d8aa4d3",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.forgetEverything()": "5d36ed8f931633e8",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -122,7 +122,7 @@
    "key": "var AIAssistantSettingsPage.providerFlagToggles",
    "hash": "68d8581dc92313ca",
    "does": "Returns the five provider kill-switch rows (OpenAI, Anthropic, Gemini, Grok, DeepSeek order), each mapped to its FeatureFlags.Key, titled with ProviderID.displayName (Claude, ChatGPT, Gemini, Grok, DeepSeek — the names the rest of the page uses) and sharing one subtitle string.",
-   "entry": "read by providerFlagToggleRows (AIAssistantSettingsPage+Sections.swift:628) during body evaluation",
+   "entry": "read by providerFlagToggleRows (AIAssistantSettingsPage+Sections.swift) during body evaluation",
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -139,7 +139,7 @@
    "key": "func AIAssistantSettingsPage.bindingFor(flag:)",
    "hash": "0e2ac2814b9b7e5a",
    "does": "Builds a Binding<Bool> over FeatureFlags for one provider key: get reads featureFlags.value(for:) (touching refreshToken so the row re-evaluates); set writes featureFlags.set, calls ProviderRegistry.keysChanged() so a switched-off active provider falls back, and bumps refreshToken.",
-   "entry": "Toggle binding in providerFlagToggleRows (AIAssistantSettingsPage+Sections.swift:629); setter fires on user toggle",
+   "entry": "Toggle binding in providerFlagToggleRows (AIAssistantSettingsPage+Sections.swift); setter fires on user toggle",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.featureFlags",
@@ -171,7 +171,7 @@
    "key": "var AIAssistantSettingsPage.tavilyKeyPlaceholder",
    "hash": "08bd39f95b9aebaf",
    "does": "Returns the masked preview of the saved Tavily web-search key (e.g. •••••abcd) or the format hint 'tvly-…' when none is stored.",
-   "entry": "read by the Tavily SecureField placeholder (AIAssistantSettingsPage+Sections.swift:279)",
+   "entry": "read by the Tavily SecureField placeholder (AIAssistantSettingsPage+Sections.swift)",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore",
@@ -189,7 +189,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.maskedServicePreview(for:)": "53f9150f4fabb1f9",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.maskedServicePreview(for:)": "51caeaf0e0a6de9d",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9644ad4752275337"
    }
@@ -198,7 +198,7 @@
    "key": "var AIAssistantSettingsPage.applePathStatus",
    "hash": "0f03d9315753653c",
    "does": "Returns 'Available' when the Apple Foundation provider reports isAvailable, else 'Unavailable on this device or iOS version'.",
-   "entry": "read by +Sections.swift:126 during body evaluation",
+   "entry": "read by +Sections.swift during body evaluation",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.registry",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable"
@@ -224,7 +224,7 @@
    "key": "func AIAssistantSettingsPage.keysChanged()",
    "hash": "65b225b3c34b33ae",
    "does": "Calls ProviderRegistry.keysChanged() (re-evaluate active provider / availability cache) and bumps refreshToken so key-status rows redraw.",
-   "entry": "passed as APIKeyEditorView.onChange from providerKeyRow (AIAssistantSettingsPage+Sections.swift:60); invoked after save/remove/withdraw",
+   "entry": "passed as APIKeyEditorView.onChange from providerKeyRow (AIAssistantSettingsPage+Sections.swift); invoked after save/remove/withdraw",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.registry",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()"
@@ -418,7 +418,7 @@
    "calls": [
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)",
-    "closure:onChange — AIAssistantSettingsPage.keysChanged passed at +Sections.swift:60",
+    "closure:onChange — AIAssistantSettingsPage.keysChanged passed at +Sections.swift",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()"
    ],
    "reads": [],
@@ -430,7 +430,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "eebe95b9e68a93b7",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()": "ffe9be2cbb015c8c",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()": "d812d97ba8355793",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent": "ec382e004871727b"
    }
   },
@@ -488,7 +488,7 @@
     {
      "at": "+6",
      "cond": "id == .apple",
-     "effect": "'' — unreachable from the app since the editor is only built for requiresKey providers (+Sections.swift:49)"
+     "effect": "'' — unreachable from the app since the editor is only built for requiresKey providers (+Sections.swift)"
     }
    ],
    "deps": {}
@@ -505,7 +505,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.keyPlaceholder(for:)": "1a2c0e34fb8e0916"
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.keyPlaceholder(for:)": "24df06e053f3e9f1"
    }
   },
   {
@@ -517,7 +517,7 @@
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)",
-    "closure:onChange — AIAssistantSettingsPage.keysChanged (+Sections.swift:60)",
+    "closure:onChange — AIAssistantSettingsPage.keysChanged (+Sections.swift)",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()"
    ],
    "reads": [
@@ -545,8 +545,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "5d589653df6e990b",
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()": "ffe9be2cbb015c8c",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "08324bd52931b06a",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()": "d812d97ba8355793",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys": "ca3e928bd8d6440a",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -569,7 +569,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.removeKeyAndConsent()": "47b6ff9f3c19ee82",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func APIKeyEditorView.removeKeyAndConsent()": "c195e52a0c6fbb57",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
@@ -624,7 +624,7 @@
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeKey(for:)": "cfe8d502ea6ddc16",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::var APIKeyStore.hasWebSearchRoute": "b8bf1559ba5ab94e",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.revoke(_:)": "eebe95b9e68a93b7",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()": "ffe9be2cbb015c8c",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.keysChanged()": "d812d97ba8355793",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.consent": "ec382e004871727b",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys": "ca3e928bd8d6440a",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
@@ -668,7 +668,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.maskedPreview(for:)": "7fdb63e236fda0f7",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.maskedPreview(for:)": "1c27aef1b8854400",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var APIKeyEditorView.keys": "ca3e928bd8d6440a",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -697,7 +697,7 @@
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "d978f16e726671bf",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.privacyPolicyURL": "781cd909a158e8c1",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "986602b3b3fdcd71",
-    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)": "16d9fa69f5b3c744",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)": "731ab64c2c6da77c",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }

@@ -14,7 +14,7 @@
    "key": "var RecoverableDataCard.body",
    "hash": "f2ba4120496b625a",
    "does": "Lays out the recoverable-data card: header, explanatory text that recovering keeps the data and a new recording clears it, Recover button and the 'Delete from <deviceName>' button (which confirms before deleting) on a primary-tinted rounded card.",
-   "entry": "SwiftUI view body; RecoverableDataCard is built by RecordView.recoverableDataSection (RecordView+Sections.swift:109) and ComponentSnapshotTests.swift:43",
+   "entry": "SwiftUI view body; RecoverableDataCard is built by RecordView.recoverableDataSection (RecordView+Sections.swift) and ComponentSnapshotTests.swift",
    "calls": [
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.recoveryPromptHeader",
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RecoverableDataCard.recoverDataButton",
@@ -57,7 +57,7 @@
    "does": "Prominent 'Recover Data' button that invokes the onRecover closure (RecordView.recoverStoredData → RecordPanels.recoverStoredData → collector.recoverFromDevice).",
    "entry": "Button tap by user",
    "calls": [
-    "closure:onRecover set by RecordView+Sections.swift:111 to RecordView.recoverStoredData (Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.recoverStoredData())",
+    "closure:onRecover set by RecordView+Sections.swift to RecordView.recoverStoredData (Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.recoverStoredData())",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -75,7 +75,7 @@
    "does": "Bordered red destructive 'Delete from <deviceName>' button. A tap only opens a confirmation dialog ('Delete the recording on <deviceName>?': the app never saved it, so this deletes the only copy, a running recording is stopped first, cannot be undone); its destructive Delete invokes onDiscard (RecordView.discardAndStartFresh → PolarManager.discardStoredExercises), deleting the strap's stored recordings. Cancel leaves everything as it was.",
    "entry": "Button tap by user; Delete in the confirmation dialog",
    "calls": [
-    "closure:onDiscard set by RecordView+Sections.swift:112 to RecordView.discardAndStartFresh (Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.discardAndStartFresh())",
+    "closure:onDiscard set by RecordView+Sections.swift to RecordView.discardAndStartFresh (Emuqu/Sources/Views/RecordView+PanelForwarding.swift::func RecordView.discardAndStartFresh())",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
@@ -99,7 +99,7 @@
    "key": "var FetchProgressCard.body",
    "hash": "b8290ae5f6755268",
    "does": "Stacks status row, progress bar, percentage row and Cancel button on a background colour chosen by stage (progressBackgroundColor).",
-   "entry": "SwiftUI view body; FetchProgressCard built by RecordPanels.fetchProgressSection (RecordView+Panels.swift:51) when deviceStatus.fetchProgress != nil, and by ComponentSnapshotTests.swift:54/71",
+   "entry": "SwiftUI view body; FetchProgressCard built by RecordPanels.fetchProgressSection (RecordView+Panels.swift) when deviceStatus.fetchProgress != nil, and by ComponentSnapshotTests.swift/71",
    "calls": [
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.statusRow",
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var FetchProgressCard.progressBar",
@@ -298,7 +298,7 @@
    "does": "Bordered Cancel button calling onCancel (RecordPanels sets it to collector.polarManager.cancelFetch()) for every stage except complete.",
    "entry": "SwiftUI subview; button tap by user",
    "calls": [
-    "closure:onCancel set by RecordView+Panels.swift:54 to PolarManager.cancelFetch (Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch())",
+    "closure:onCancel set by RecordView+Panels.swift to PolarManager.cancelFetch (Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.cancelFetch())",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -439,7 +439,7 @@
    "key": "var RetryFetchCard.body",
    "hash": "2fba8e395e7516fd",
    "does": "Stacks failure header, reason text, data-stays-on-strap note, Retry, Cancel (only while retrying) and Dismiss buttons on an orange-tinted card.",
-   "entry": "SwiftUI view body; RetryFetchCard built by RecordView.retryFetchSection (RecordView+Sections.swift:140) when fetchFailed is true",
+   "entry": "SwiftUI view body; RetryFetchCard built by RecordView.retryFetchSection (RecordView+Sections.swift) when fetchFailed is true",
    "calls": [
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.fetchFailedHeader",
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.failureReasonText",
@@ -524,7 +524,7 @@
    "entry": "Button tap by user",
    "calls": [
     "Emuqu/Sources/Views/Record/DeviceRecoveryView.swift::var RetryFetchCard.retryFetchLabel",
-    "closure:onRetry set by RecordView+Sections.swift:147 to RecordView.retryFetch (Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.retryFetch())"
+    "closure:onRetry set by RecordView+Sections.swift to RecordView.retryFetch (Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.retryFetch())"
    ],
    "reads": [],
    "writes": [],
@@ -567,7 +567,7 @@
    "does": "Red Cancel button calling onCancelRetry (RecordView.cancelFetchRetry → polarManager.cancelFetch, isRetrying=false), shown only while retrying.",
    "entry": "Button tap by user",
    "calls": [
-    "closure:onCancelRetry set by RecordView+Sections.swift:148 to RecordView.cancelFetchRetry (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.cancelFetchRetry())",
+    "closure:onCancelRetry set by RecordView+Sections.swift to RecordView.cancelFetchRetry (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.cancelFetchRetry())",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -590,7 +590,7 @@
    "does": "Bordered Dismiss button calling onDismiss (RecordView.dismissFailedFetch: fetchFailed=false, collector.resetSession(), selectedSessionType=nil).",
    "entry": "Button tap by user",
    "calls": [
-    "closure:onDismiss set by RecordView+Sections.swift:149 to RecordView.dismissFailedFetch (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.dismissFailedFetch())",
+    "closure:onDismiss set by RecordView+Sections.swift to RecordView.dismissFailedFetch (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.dismissFailedFetch())",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],

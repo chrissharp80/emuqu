@@ -4,7 +4,7 @@
  "role": "C declaration of emuqu_install_crash_signal_handlers, with doc explaining why the fatal-signal handler is in async-signal-safe C.",
  "types": [],
  "state": [],
- "toplevel": "Include guard CrashSignalHandler_h; includes stdbool.h; declares bool emuqu_install_crash_signal_handlers(const char*) (line 26). Doc (lines 6-25) says handler only calls open/write/close, backtrace and raise; the implementation also calls signal() and _exit() (CrashSignalHandler.c:111,160), both async-signal-safe.",
+ "toplevel": "Include guard CrashSignalHandler_h; includes stdbool.h; declares bool emuqu_install_crash_signal_handlers(const char*). Doc says handler only calls open/write/close, backtrace and raise; the implementation also calls signal() and _exit() (CrashSignalHandler.c), both async-signal-safe.",
  "units": [],
  "deps": {}
 }

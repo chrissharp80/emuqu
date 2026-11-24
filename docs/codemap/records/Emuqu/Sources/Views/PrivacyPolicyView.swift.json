@@ -11,16 +11,16 @@
   "AcknowledgementsView.DataSource: private struct (Identifiable) — credited data source and URL"
  ],
  "state": [
-  "mem:AcknowledgementsView.packages (private let, 11 hard-coded packages, line 481)",
-  "mailto:chrissharp80@gmail.com (privacy contact, line 337)"
+  "mem:AcknowledgementsView.packages (private let, 11 hard-coded packages)",
+  "mailto:chrissharp80@gmail.com (privacy contact)"
  ],
- "toplevel": "Pkg.id is the package name (computed), stable across re-inits. `packages` (lines 481-548) mirrors Package.resolved 1:1 — all 11 identities and versions match the resolved file at main (polar-ble-sdk 8.3.0, WhisperKit 0.18.0, swift-transformers 1.1.9, swift-jinja 2.3.5, swift-protobuf 1.33.3, swift-crypto 4.5.0, swift-asn1 1.7.0, swift-collections 1.4.1, swift-argument-parser 1.7.1, yyjson 0.12.0, Zip 2.1.2); scripts/check_sbom_drift.sh parses this file to enforce that. Two #Preview blocks (454-458, 703-707) are preview-only. Policy claims spot-checked against code: provider list matches ProviderID (AIProvider.swift:5-11) and vendorName; Overpass hosts match OverpassClient.swift:60-61; OpenTopoData 100 points/11 m matches FitnessPostSummaryView+Cards.swift:614; Settings paths 'iCloud & Data', 'Flo', 'Advanced Data Controls', 'Withdraw consent' exist (SettingsView.swift:216,271; AdvancedDataControlsPage.swift:21; AIAssistantSettingsPage.swift:185); the 13+ age matches HealthDisclaimerView.swift:99.",
+ "toplevel": "Pkg.id is the package name (computed), stable across re-inits. `packages` mirrors Package.resolved 1:1 — all 11 identities and versions match the resolved file at main (polar-ble-sdk 8.3.0, WhisperKit 0.18.0, swift-transformers 1.1.9, swift-jinja 2.3.5, swift-protobuf 1.33.3, swift-crypto 4.5.0, swift-asn1 1.7.0, swift-collections 1.4.1, swift-argument-parser 1.7.1, yyjson 0.12.0, Zip 2.1.2); scripts/check_sbom_drift.sh parses this file to enforce that. Two #Preview blocks (454-458, 703-707) are preview-only. Policy claims spot-checked against code: provider list matches ProviderID (AIProvider.swift) and vendorName; Overpass hosts match OverpassClient.swift; OpenTopoData 100 points/11 m matches FitnessPostSummaryView+Cards.swift; Settings paths 'iCloud & Data', 'Flo', 'Advanced Data Controls', 'Withdraw consent' exist (SettingsView.swift; AdvancedDataControlsPage.swift; AIAssistantSettingsPage.swift); the 13+ age matches HealthDisclaimerView.swift.",
  "units": [
   {
    "key": "var PrivacyPolicyView.body",
    "hash": "be14952e502ebe33",
    "does": "List of the policy sections (intro, no-collection, collection, storage, sharing, control, children, permissions, contact) with zen form background and 'Privacy Policy' title.",
-   "entry": "SwiftUI body; pushed from SettingsView.swift:465, SettingsSearchIndex.swift:371, and the paywall sheet (PaywallView.swift:443)",
+   "entry": "SwiftUI body; pushed from SettingsView.swift, SettingsSearchIndex.swift, and the paywall sheet (PaywallView.swift)",
    "calls": [
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.introSection",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.noCollectionSection",
@@ -299,7 +299,7 @@
    "key": "var PrivacyPolicyView.ServicePolicy.id",
    "hash": "d0d429dfa00c228d",
    "does": "Returns the service name as its Identifiable id.",
-   "entry": "Identifiable conformance used by ForEach(Self.servicePolicies) at line 279",
+   "entry": "Identifiable conformance used by ForEach(Self.servicePolicies)",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -479,7 +479,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body": "29788e8ebfaf0c70",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body": "1c6319b3cae061db",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
@@ -617,7 +617,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.contactLink": "6fc7829655569c3a",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.contactLink": "22c9556138137ac2",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
@@ -638,7 +638,7 @@
    "key": "var AcknowledgementsView.body",
    "hash": "1c8fa0657ec29e19",
    "does": "Form with license intro, package list, license texts, data sources and Apple-frameworks sections; title 'Open Source Licenses'.",
-   "entry": "SwiftUI body; pushed from SettingsView.swift:473 and SettingsSearchIndex.swift:389",
+   "entry": "SwiftUI body; pushed from SettingsView.swift and SettingsSearchIndex.swift",
    "calls": [
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.licenseIntroSection",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.acknowledgementsSection",
@@ -709,7 +709,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::func AcknowledgementsView.packageLink(_:)": "a7c8d390cb0f583f",
-    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.body": "349772c1389f8cad",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var AcknowledgementsView.body": "bd86afe3b4f7d6df",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
@@ -764,14 +764,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/OpenSourceLicenseTexts.swift::var LicenseTextView.body": "58c4a8b2ff6595c0"
+    "Emuqu/Sources/Views/OpenSourceLicenseTexts.swift::var LicenseTextView.body": "1e840197a122d114"
    }
   },
   {
    "key": "var AcknowledgementsView.DataSource.id",
    "hash": "8cc5e322331ecaed",
    "does": "Returns the source URL string as its Identifiable id.",
-   "entry": "Identifiable conformance used by ForEach(dataSources) at line 663",
+   "entry": "Identifiable conformance used by ForEach(dataSources)",
    "calls": [],
    "reads": [],
    "writes": [],

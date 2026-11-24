@@ -13,7 +13,7 @@
    "key": "func ImportDataView.handleFileSelection(_:)",
    "hash": "d48321cd95ea552f",
    "does": "Resets every import result, the new-session lists, the user-set recording date, any pending measured sleep and the status line; on a picked URL sets isImporting and loads it in a Task; on a picker error logs and shows it.",
-   "entry": "fileImporter completion (ImportDataView.swift:47)",
+   "entry": "fileImporter completion (ImportDataView.swift)",
    "calls": [
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.loadFile(at:)",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)"
@@ -215,7 +215,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "848e586933a18c74",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "ae63039c329b60c2",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)": "200604cc5c2d081f"
    }
   },
@@ -350,8 +350,8 @@
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "29594f6662ce07e7",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "0537b6229c6d467c",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "00ae9d7dcd8b0093",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "69a10b530dba329d"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "a2a0450c3e64531b",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "d01d388b13fd04b5"
    }
   },
   {
@@ -370,7 +370,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "1d40c0a9ed870882",
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "01350655a5b18c85",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
@@ -515,7 +515,7 @@
    "key": "func ImportDataView.saveImportedSession()",
    "hash": "4441a8ba0965980d",
    "does": "Applies any measured sleep the results screen handed over (applyMeasuredSleep) to the imported session, saves it through RRCollector.saveImportedSession, then closes the results and the import screen; on throw shows saveFailureMessage and closes the results.",
-   "entry": "Done button (ImportDataView.swift:141)",
+   "entry": "Done button (ImportDataView.swift)",
    "calls": [
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.applyMeasuredSleep(_:to:)",
     "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSession(_:)",
@@ -674,7 +674,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "848e586933a18c74",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "ae63039c329b60c2",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.log(_:)": "e60336625ec1b7b9",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.updateStatus(_:)": "f5ddb3d4dce34a4e"

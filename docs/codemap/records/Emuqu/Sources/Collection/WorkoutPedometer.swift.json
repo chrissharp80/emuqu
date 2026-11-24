@@ -14,12 +14,12 @@
   "private: pedometer (CMPedometer), sessionStart",
   "PedometerSample.maximumPlausibleMeters = 1_000_000"
  ],
- "toplevel": "isAvailable initialiser evaluates CMPedometer.isDistanceAvailable() && isStepCountingAvailable() at construction (line 21). Instance is WorkoutRecorder.pedometer.",
+ "toplevel": "isAvailable initialiser evaluates CMPedometer.isDistanceAvailable() && isStepCountingAvailable() at construction. Instance is WorkoutRecorder.pedometer.",
  "units": [
   {
    "key": "func WorkoutPedometer.start()",
    "hash": "6eb989f4d1ff37a8",
-   "does": "If CMPedometer is available: stamps sessionStart=now, zeroes distance/steps/cadence and subscribes to updates from that time. Called deferred from WorkoutSessionLifecycle.deferPedometerStart (WorkoutRecorder+Start.swift:551).",
+   "does": "If CMPedometer is available: stamps sessionStart=now, zeroes distance/steps/cadence and subscribes to updates from that time. Called deferred from WorkoutSessionLifecycle.deferPedometerStart (WorkoutRecorder+Start.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.subscribeToUpdates(from:)"
@@ -39,12 +39,12 @@
     {
      "at": "+6",
      "cond": "sessionStart nil",
-     "effect": "?? Date() fallback; unreachable since sessionStart was just assigned on line 30"
+     "effect": "?? Date() fallback; unreachable since sessionStart was just assigned"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.subscribeToUpdates(from:)": "522e228a17caff61",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "f667e9c830dac994"
    }
   },
   {
@@ -67,15 +67,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.apply(_:)": "95ebd02ffc9fc915",
-    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.start()": "f12d2f3464e3565f",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.apply(_:)": "e28be06578285aea",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.start()": "939f3c8ab3f0868b",
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(_:)": "a78ff07800f36f91"
    }
   },
   {
    "key": "func WorkoutPedometer.apply(_:)",
    "hash": "645c3504e1ad337a",
-   "does": "Applies a sample: sets distanceMeters only when publishable (finite, >=0), always sets stepCount, sets cadence only when publishable.",
+   "does": "Applies a sample: sets distanceMeters only when publishable (finite, >= 0 and <= 1,000,000 m), always sets stepCount, sets cadence only when publishable.",
    "entry": "MainActor Task scheduled from the CMPedometer update handler",
    "calls": [
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters",
@@ -101,14 +101,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableCadenceStepsPerMin": "517972374908277a",
-    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters": "901274fe6a13e980",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters": "c8b4251fda6e7661",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "f667e9c830dac994"
    }
   },
   {
    "key": "func WorkoutPedometer.stop()",
    "hash": "1ae00e025a547f8b",
-   "does": "Stops CMPedometer updates. Called at workout stop (WorkoutRecorder+Stop.swift:130).",
+   "does": "Stops CMPedometer updates. Called at workout stop (WorkoutRecorder+Stop.swift).",
    "entry": null,
    "calls": [
     "ext:CMPedometer.stopUpdates"
@@ -121,7 +121,7 @@
   {
    "key": "func WorkoutPedometer.reset()",
    "hash": "f8d296ac22f06193",
-   "does": "Zeroes distance and steps and clears cadence. Called by resetRecorderStateAfterStop (WorkoutRecorder+Stop.swift:234).",
+   "does": "Zeroes distance and steps and clears cadence. Called by resetRecorderStateAfterStop (WorkoutRecorder+Stop.swift).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -132,7 +132,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "f667e9c830dac994"
    }
   },
   {

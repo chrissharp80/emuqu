@@ -47,7 +47,7 @@
   {
    "key": "§ App Review — reviewer notes and release flow-walk > What the reviewer must be told > Reviewer notes template",
    "hash": "d681fa08b0d9fc97",
-   "does": "Claims reviewer path: Dashboard shows 'No strap yet? Explore with sample data' under 'Building your baseline'; loading adds three weeks of synthetic nights (DemoSessionSeeder.defaultNightCount = 21, DemoSessionSeeder.swift:66) scored by the real pipeline, tagged Demo, with a banner and 'Remove sample data'; same control at More → Settings → Troubleshooting → Sample data → 'Load sample data'; paywall after onboarding with $0 trial + unlock, reachable at Settings → Purchase, Restore Purchases; Flo setup strings ('Set up Flo', 'Add an API key', 'Save key', 'Send and remember for', 'Choose model', 'Report response', 'Withdraw consent', \"Don't send\") all exist in Swift sources; keys in Keychain; iCloud sync off by default and excludes Health data; background modes audio/bluetooth-central/bluetooth-peripheral/location (Info.plist:22-28), audio described as voice chat plus workout cues spoken from the background with no keep-alive (session active only while a cue is audible, BackgroundAudioManager beginCue/endCue) and sensor workouts kept running by bluetooth-central wakeups, matching BackgroundAudioManager.swift:3-21; assistant declines rhythm/diagnostic questions and answers self-harm with crisis resources on device.",
+   "does": "Claims reviewer path: Dashboard shows 'No strap yet? Explore with sample data' under 'Building your baseline'; loading adds three weeks of synthetic nights (DemoSessionSeeder.defaultNightCount = 21, DemoSessionSeeder.swift) scored by the real pipeline, tagged Demo, with a banner and 'Remove sample data'; same control at More → Settings → Troubleshooting → Sample data → 'Load sample data'; paywall after onboarding with $0 trial + unlock, reachable at Settings → Purchase, Restore Purchases; Flo setup strings ('Set up Flo', 'Add an API key', 'Save key', 'Send and remember for', 'Choose model', 'Report response', 'Withdraw consent', \"Don't send\") all exist in Swift sources; keys in Keychain; iCloud sync off by default and excludes Health data; background modes audio/bluetooth-central/bluetooth-peripheral/location (Info.plist), audio described as voice chat plus workout cues spoken from the background with no keep-alive (session active only while a cue is audible, BackgroundAudioManager beginCue/endCue) and sensor workouts kept running by bluetooth-central wakeups, matching BackgroundAudioManager.swift; assistant declines rhythm/diagnostic questions and answers self-harm with crisis resources on device.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.seed(_:into:pipeline:finalize:progress:)",
@@ -96,7 +96,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "e6acb9353a76f87b"
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "97e201d0d436e2fd"
    }
   },
   {
@@ -145,7 +145,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "a5ec0a0a99759886"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "afd0b2e19cca6419"
    }
   },
   {
@@ -187,7 +187,7 @@
   {
    "key": "§ App Review — reviewer notes and release flow-walk > Release flow-walk > Data deletion",
    "hash": "e807625888c0bad5",
-   "does": "Checklist: More → Settings → Advanced Data Controls → Delete All My Data with typed confirmation (DeleteAllDataPage requires 'DELETE MY DATA', DeleteAllDataPage.swift:28); sessions, backups, conversations, keys, settings removed; remote copy removed online; airplane mode completes locally and tells the user to re-run. Manual.",
+   "does": "Checklist: More → Settings → Advanced Data Controls → Delete All My Data with typed confirmation (DeleteAllDataPage requires 'DELETE MY DATA', DeleteAllDataPage.swift); sessions, backups, conversations, keys, settings removed; remote copy removed online; airplane mode completes locally and tells the user to re-run. Manual.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
@@ -202,7 +202,7 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)": "fa72f4cde3ab3f59",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)": "6fe62cc8633e3cad",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:stores:)": "1a6a1d05159e03be"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:stores:)": "57481c04974aabb0"
    }
   },
   {
@@ -228,8 +228,8 @@
     "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.auditTab(identifier:title:file:line:)": "fbc293a509f20c48",
     "EmuquUITests/AccessibilityUITests.swift::func AccessibilityAuditUITests.testDashboardTabPassesAccessibilityAudit()": "264a8802767c2957",
     "EmuquUITests/AccessibilityUITests.swift::var AccessibilityAuditUITests.auditTypes": "d35752b53af878e2",
-    "Makefile::target localization-bundle-guard": "8c4bb22083c7e7be",
-    "Makefile::target localization-guard": "e2c1ec610e831e83"
+    "Makefile::target localization-bundle-guard": "72b0bebd70642f80",
+    "Makefile::target localization-guard": "74bbb0edd35536cb"
    }
   },
   {

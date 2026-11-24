@@ -9,7 +9,7 @@
   "mem:SessionRecoveryService.minBeatsForOvernight = 4000",
   "mem:SessionRecoveryService.minDurationSecForOvernight = 3600"
  ],
- "toplevel": "Two private static thresholds for overnight classification (SessionRecoveryService+Backup.swift:105-106).",
+ "toplevel": "Two private static thresholds for overnight classification (SessionRecoveryService+Backup.swift).",
  "units": [
   {
    "key": "func SessionRecoveryService.describeSeconds(_:)",
@@ -154,7 +154,7 @@
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
-    "closure:analyze / analyzeWithCapacity → collector.analyze, set by SessionRecoveryCoordinator.recoverToPausedState (RRCollector+BackupRecovery.swift:552)"
+    "closure:analyze / analyzeWithCapacity → collector.analyze, set by SessionRecoveryCoordinator.recoverToPausedState (RRCollector+BackupRecovery.swift)"
    ],
    "reads": [
     "file:raw RR backup (RawRRBackup)",
@@ -198,9 +198,9 @@
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.stampFrozenScore(on:computeRecoveryScore:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.archiveRecovered(_:sessionId:)",
-    "closure:analyze / analyzeWithCapacity → collector.analyze (RRCollector+MorningForwarding.swift:60/67), set by SessionRecoveryCoordinator.recoverHRVFromBackup (RRCollector+BackupRecovery.swift:94)",
-    "closure:supersedeSameNight → collector.supersedeSameNightSession (RRCollector+MorningForwarding.swift:46)",
-    "closure:computeRecoveryScore → SessionRecoveryCoordinator.enrichedRecoveryScore (RRCollector+BackupRecovery.swift:117); default returns nil"
+    "closure:analyze / analyzeWithCapacity → collector.analyze (RRCollector+MorningForwarding.swift/67), set by SessionRecoveryCoordinator.recoverHRVFromBackup (RRCollector+BackupRecovery.swift)",
+    "closure:supersedeSameNight → collector.supersedeSameNightSession (RRCollector+MorningForwarding.swift)",
+    "closure:computeRecoveryScore → SessionRecoveryCoordinator.enrichedRecoveryScore (RRCollector+BackupRecovery.swift); default returns nil"
    ],
    "reads": [
     "file:raw RR backup (RawRRBackup)",

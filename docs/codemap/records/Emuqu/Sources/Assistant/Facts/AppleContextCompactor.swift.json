@@ -20,7 +20,7 @@
   "mem:ToolOutputAllowance.unsized (remaining 1024, perCallCap 600)",
   "mem:ToolOutputAllowance.spentNote (rateLimited missing envelope JSON)"
  ],
- "toplevel": "Imports FoundationModels under #if canImport. ToolOutputAllowance.spentNote static initializer renders FactValue.missing(.rateLimited, 'no room left...') via toToolResultJSON (FactValue.swift:294). Callers: AppleFoundationProvider.swift (plan/lease/ledger), AppleToolDispatcher.swift:53,104 (allowance.admit), AppleFoundationToolAdapter.swift:114, tests AppleContextBudgetTests.",
+ "toplevel": "Imports FoundationModels under #if canImport. ToolOutputAllowance.spentNote static initializer renders FactValue.missing(.rateLimited, 'no room left...') via toToolResultJSON (FactValue.swift). Callers: AppleFoundationProvider.swift (plan/lease/ledger), AppleToolDispatcher.swift (allowance.admit), AppleFoundationToolAdapter.swift, tests AppleContextBudgetTests.",
  "units": [
   {
    "key": "func AppleContextCompactor.estimateTokens(_:)",
@@ -120,7 +120,7 @@
   {
    "key": "func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)",
    "hash": "7d38724a2f8422ee",
-   "does": "Returns compact(messages, systemPromptTokens:).compacted (used by AppleFoundationProvider.swift:375 when the attempt keeps history).",
+   "does": "Returns compact(messages, systemPromptTokens:).compacted (used by AppleFoundationProvider.swift when the attempt keeps history).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)"
@@ -321,7 +321,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "60e838044614935f",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "afb6eef4a7a21af9",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.spend(_:)": "2cc653423fbdc4b2",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)": "a1fd0137e71dcb2f"
@@ -330,7 +330,7 @@
   {
    "key": "func AppleContextCompactor.ToolOutputAllowance.charge(_:)",
    "hash": "1e7052c035c988bf",
-   "does": "Spends estimateTokens(text) + entryOverhead (used for the tool call itself and refusal notes, AppleToolDispatcher.swift:91,94).",
+   "does": "Spends estimateTokens(text) + entryOverhead (used for the tool call itself and refusal notes, AppleToolDispatcher.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)",
@@ -369,7 +369,7 @@
   {
    "key": "func AppleContextCompactor.SessionLedger.charge(promptTokens:toolTokens:replyTokens:)",
    "hash": "996b76879a29850c",
-   "does": "Adds prompt + tool + reply tokens + 16 overhead to usedTokens after a finished turn (AppleFoundationProvider.swift:159).",
+   "does": "Adds prompt + tool + reply tokens + 16 overhead to usedTokens after a finished turn (AppleFoundationProvider.swift).",
    "entry": null,
    "calls": [],
    "reads": [],

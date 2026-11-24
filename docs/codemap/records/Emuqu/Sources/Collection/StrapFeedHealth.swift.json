@@ -22,7 +22,7 @@
    "key": "func StrapFeedHealth.decide(_:)",
    "hash": "b3e84f964f3e6716",
    "does": "From a snapshot decides the feed Status and Action: not linked → waitingForStrap; a sample within 15 s → live; a link with no sample yet still inside its setup grace → settingUp; else stalled with stalledAction.",
-   "entry": "Called from StrapLinkCoordinator.evaluateFeedHealth (StrapLinkCoordinator.swift:497); tests StrapFeedHealthTests.",
+   "entry": "Called from StrapLinkCoordinator.evaluateFeedHealth (StrapLinkCoordinator.swift); tests StrapFeedHealthTests.",
    "calls": [
     "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.stallStart(_:linkedAt:)",
     "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.stalledAction(_:stalledSince:)"
@@ -104,7 +104,7 @@
    "key": "func StrapFeedHealth.resubscribeDelay(afterFailures:)",
    "hash": "ff047a4548b01d1e",
    "does": "Backoff for re-opening the subscription: [1,2,3,5] s indexed by failures clamped to 0...3.",
-   "entry": "Called from StrapHeartRateFeed.run (StrapHeartRateFeed.swift:103) and StrapLinkCoordinator.pauseBeforeRetrying (StrapLinkCoordinator.swift:416).",
+   "entry": "Called from StrapHeartRateFeed.run (StrapHeartRateFeed.swift) and StrapLinkCoordinator.pauseBeforeRetrying (StrapLinkCoordinator.swift).",
    "calls": [],
    "reads": [],
    "writes": [],

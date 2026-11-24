@@ -191,7 +191,7 @@
    "deps": {
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.fillableGapSummary(gaps:streamingPoints:)": "20f2a7fead60a17b",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "2f36c3f661613041",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "c1e198aaa2e0604d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "be1de945012c0e5b",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)": "ea52360d20076118",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -199,7 +199,7 @@
   {
    "key": "func DataSourceSelector.mergeAddingOnlyUncoveredBeats(internal:streaming:)",
    "hash": "0e33c1c9efbbf489",
-   "does": "Merges streaming into internal keeping only the streaming beats internal does not cover (uncoveredBeats with internal's gaps): outside the internal span or inside an internal gap; with empty internal, everything. Requires both on one clock. Used by SessionMerger (SessionMerger.swift:179,182).",
+   "does": "Merges streaming into internal keeping only the streaming beats internal does not cover (uncoveredBeats with internal's gaps): outside the internal span or inside an internal gap; with empty internal, everything. Requires both on one clock. Used by SessionMerger (SessionMerger.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)",
@@ -211,7 +211,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.findGaps(in:)": "2f36c3f661613041",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "c1e198aaa2e0604d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.mergePoints(internal:streaming:)": "be1de945012c0e5b",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.uncoveredBeats(_:internal:gaps:)": "ea52360d20076118"
    }
   },
@@ -331,7 +331,7 @@
   {
    "key": "func DataSourceSelector.mergePoints(internal:streaming:)",
    "hash": "ea44d50537be06c9",
-   "does": "Two-pointer merge of internal and streaming beats ordered by internal t_ms vs streaming wallClockMs, rebasing streaming t_ms to wallClockMs and skipping cross-source beats within 50 ms. Used by createComposite and directly by SessionMerger (SessionMerger.swift:185,187).",
+   "does": "Two-pointer merge of internal and streaming beats ordered by internal t_ms vs streaming wallClockMs, rebasing streaming t_ms to wallClockMs and skipping cross-source beats within 50 ms. Used by createComposite and directly by SessionMerger (SessionMerger.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.rebased(_:)",

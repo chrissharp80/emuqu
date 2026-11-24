@@ -10,7 +10,7 @@
   "FootPodManager.DiscoveredFootPod: struct — scan result with RSSI"
  ],
  "state": [
-  "static FootPodManager.shared (via CollectionServices.footPodManager, AppDependencies.swift:556)",
+  "static FootPodManager.shared (via CollectionServices.footPodManager, AppDependencies.swift)",
   "mem:FootPodManager.connectionState",
   "mem:FootPodManager.instantaneousSpeedMS",
   "mem:FootPodManager.cadenceStepsPerMin",
@@ -78,10 +78,10 @@
    "does": "Shared connect: stops scanning; if Bluetooth is not powered on parks the id; else retrieves the peripheral by UUID and attaches, or parks the id and scans for it.",
    "entry": null,
    "calls": [
-    "dyn:BLEPeripheralConnecting.stopScanning → Emuqu/Sources/Collection/FootPodManager.swift:247|Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()",
-    "dyn:BLEPeripheralConnecting.central → Emuqu/Sources/Collection/FootPodManager.swift:151|Emuqu/Sources/Collection/Concept2Manager.swift::var Concept2Manager.central",
-    "dyn:BLEPeripheralConnecting.attach → Emuqu/Sources/Collection/FootPodManager.swift:284|Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)",
-    "dyn:BLEPeripheralConnecting.startScanning → Emuqu/Sources/Collection/FootPodManager.swift:216|Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()",
+    "dyn:BLEPeripheralConnecting.stopScanning → Emuqu/Sources/Collection/FootPodManager.swift|Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()",
+    "dyn:BLEPeripheralConnecting.central → Emuqu/Sources/Collection/FootPodManager.swift|Emuqu/Sources/Collection/Concept2Manager.swift::var Concept2Manager.central",
+    "dyn:BLEPeripheralConnecting.attach → Emuqu/Sources/Collection/FootPodManager.swift|Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)",
+    "dyn:BLEPeripheralConnecting.startScanning → Emuqu/Sources/Collection/FootPodManager.swift|Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.startScanning()",
     "ext:CBCentralManager.retrievePeripherals"
    ],
    "reads": [],
@@ -283,7 +283,7 @@
   {
    "key": "func FootPodManager.reconnectLast()",
    "hash": "8ff070c5b0af907b",
-   "does": "Connects to the most recent remembered pod via connect(deviceId:). Called at workout start (WorkoutRecorder+Start.swift:802) and from SensorManagementSheet.",
+   "does": "Connects to the most recent remembered pod via connect(deviceId:). Called at workout start (WorkoutRecorder+Start.swift) and from SensorManagementSheet.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/FootPodManager.swift::func BLEPeripheralConnecting.connect(deviceId:)"
@@ -356,7 +356,7 @@
   {
    "key": "func FootPodManager.removeKnownDevice(id:)",
    "hash": "c1d16fe217492dc2",
-   "does": "Removes the pod from knownDevices and persists. Called from WearablesSettingsPage.swift:432.",
+   "does": "Removes the pod from knownDevices and persists. Called from WearablesSettingsPage.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.saveKnownDevices()"

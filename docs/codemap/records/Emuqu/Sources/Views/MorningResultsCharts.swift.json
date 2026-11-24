@@ -72,7 +72,7 @@
    "key": "var PoincarePlotView.body",
    "hash": "994351b612108e70",
    "does": "Renders a Canvas inside a GeometryReader that draws the Poincaré plot, collapsed into one accessibility element labelled with SD1 and SD2 (ms, app locale; marked '(estimate)' when they are).",
-   "entry": "SwiftUI body; PoincarePlotView is built by SessionHRVDetailView (SessionHRVDetailView.swift:223) and HRVChartSnapshotTests",
+   "entry": "SwiftUI body; PoincarePlotView is built by SessionHRVDetailView (SessionHRVDetailView.swift) and HRVChartSnapshotTests",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawPoincarePlot(_:size:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -179,7 +179,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.ScoreFactor.identity(for:)": "fd9a005962746c26",
     "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.point(_:_:)": "956674cb2d7e8575",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "9962dad7e2db8b58",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
@@ -209,7 +209,7 @@
    "key": "var TachogramView.body",
    "hash": "3aa8d01d573b7d4a",
    "does": "ScrubbableWindowChart with unit 'ms', AppTheme.primary tint, rrAtLocation(_:size:) as the value lookup and chartCanvas(size:) as the chart; one accessibility element labelled with the chart's summary.",
-   "entry": "SwiftUI body; built by SessionHRVDetailView (SessionHRVDetailView.swift:184) and HRVChartSnapshotTests",
+   "entry": "SwiftUI body; built by SessionHRVDetailView (SessionHRVDetailView.swift) and HRVChartSnapshotTests",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsCharts.swift::var ScrubbableWindowChart.body",
     "Emuqu/Sources/Views/MorningResultsCharts.swift::func TachogramView.rrAtLocation(_:size:)",
@@ -332,7 +332,7 @@
    "key": "var FrequencyBandsView.body",
    "hash": "ae3a4dcee4072af1",
    "does": "Renders stacked band bar and legend in a GeometryReader as a single accessibility element with a spoken summary.",
-   "entry": "SwiftUI body; built by SessionHRVDetailView (SessionHRVDetailView.swift:277) and ScreenSnapshotTests",
+   "entry": "SwiftUI body; built by SessionHRVDetailView (SessionHRVDetailView.swift) and ScreenSnapshotTests",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsCharts.swift::func FrequencyBandsView.stackedBar(width:)",
     "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.legend",
@@ -344,7 +344,7 @@
    "deps": {
     "Emuqu/Sources/Views/MorningResultsCharts.swift::func FrequencyBandsView.stackedBar(width:)": "b64f7b4e1cafe13c",
     "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.accessibilitySummary": "36c6f9400b7812c4",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.legend": "9580412d6d58ce5a"
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::var FrequencyBandsView.legend": "b6f5a394eb53682f"
    }
   },
   {
@@ -429,7 +429,7 @@
     {
      "at": "+3",
      "cond": "frequencyDomain.vlf ?? 0",
-     "effect": "fallback 0 never used since guarded by line 304"
+     "effect": "fallback 0 never used: the VLF item is shown only when vlf is non-nil"
     }
    ],
    "deps": {
@@ -456,7 +456,7 @@
    "key": "var HeartRateChartView.body",
    "hash": "1983f50e7105967b",
    "does": "ScrubbableWindowChart with unit 'bpm', AppTheme.terracotta tint, hrAtLocation(_:size:) as the value lookup and chartCanvas(size:) as the chart; one accessibility element labelled with the chart's summary.",
-   "entry": "SwiftUI body; built by SessionHRVDetailView (SessionHRVDetailView.swift:159) and HRVChartSnapshotTests",
+   "entry": "SwiftUI body; built by SessionHRVDetailView (SessionHRVDetailView.swift) and HRVChartSnapshotTests",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsCharts.swift::var ScrubbableWindowChart.body",
     "Emuqu/Sources/Views/MorningResultsCharts.swift::func HeartRateChartView.hrAtLocation(_:size:)",

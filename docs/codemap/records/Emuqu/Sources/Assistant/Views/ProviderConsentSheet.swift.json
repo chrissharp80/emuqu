@@ -1,14 +1,14 @@
 {
  "file": "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift",
  "hash": "3154770e7c650572",
- "role": "Per-provider data-sharing consent sheet shown before the first send to a hosted AI provider (AssistantChatView.consentSheet, AssistantChatView.swift:293-299); lists what the vendor sees, how data leaves, vendor data-use terms, PRC residency for DeepSeek, and the vendor privacy policy link. Its static dataUseNotes is also used by AIAssistantSettingsPage.swift:286 and tests.",
+ "role": "Per-provider data-sharing consent sheet shown before the first send to a hosted AI provider (AssistantChatView.consentSheet, AssistantChatView.swift); lists what the vendor sees, how data leaves, vendor data-use terms, PRC residency for DeepSeek, and the vendor privacy policy link. Its static dataUseNotes is also used by AIAssistantSettingsPage.swift and tests.",
  "types": [
   "ProviderConsentSheet: struct — SwiftUI consent View with onAccept/onDecline closures"
  ],
  "state": [
   "mem:ProviderConsentSheet.locationServicesBullet (static computed String)"
  ],
- "toplevel": "Comment header (lines 1-14) states the sheet is shown on first send per provider and never for Apple Intelligence.",
+ "toplevel": "Comment header states the sheet is shown on first send per provider and never for Apple Intelligence.",
  "units": [
   {
    "key": "var ProviderConsentSheet.residencyNote",
@@ -112,7 +112,7 @@
     "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.dataResidencyNote": "ba9a6949286f4e2e",
     "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.dataUseSection": "def36ead923cbe46",
     "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.howItLeavesSection": "44963dcde3a95d41",
-    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.privacyPolicyLink": "15dddc70a6c35d19",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.privacyPolicyLink": "1af6e1f46de9009e",
     "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.whatTheyWillSeeSection": "5684fe0f57e8e26d",
     "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.whatWeDontShareSection": "d74b9acb7e34e7d1"
    }
@@ -188,7 +188,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "986602b3b3fdcd71",
     "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)": "f2b7ac03f11a4a4e",
-    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.locationServicesBullet": "724c16844fdee09d",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.locationServicesBullet": "548c623d4f09ffb9",
     "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.serverSearchBullets": "c1d4e9fd03649056",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -196,8 +196,8 @@
   {
    "key": "var ProviderConsentSheet.locationServicesBullet",
    "hash": "7d9708740702eee3",
-   "does": "Static string naming the location services that receive approximate coordinates: Overpass at overpass.private.coffee and overpass-api.de (matching OverpassClient.endpoints, OverpassClient.swift:59-62), MET Norway, OpenTopoData and Apple's geocoder.",
-   "entry": "Also read by EmuquTests/ProviderConsentTrackerTests.swift:160.",
+   "does": "Static string naming the location services that receive approximate coordinates: Overpass at overpass.private.coffee and overpass-api.de (matching OverpassClient.endpoints, OverpassClient.swift), MET Norway, OpenTopoData and Apple's geocoder.",
+   "entry": "Also read by EmuquTests/ProviderConsentTrackerTests.swift.",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -247,7 +247,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "986602b3b3fdcd71",
     "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.bulletList(_:)": "f2b7ac03f11a4a4e",
-    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)": "16d9fa69f5b3c744",
+    "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::func ProviderConsentSheet.dataUseNotes(for:)": "731ab64c2c6da77c",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
@@ -255,7 +255,7 @@
    "key": "func ProviderConsentSheet.dataUseNotes(for:)",
    "hash": "b8774bbb32d2714d",
    "does": "Maps a ProviderID to its vendor data-use notes.",
-   "entry": "Also called by AIAssistantSettingsPage.swift:286 and EmuquTests/ProviderConsentTrackerTests.swift:144-154.",
+   "entry": "Also called by AIAssistantSettingsPage.swift and EmuquTests/ProviderConsentTrackerTests.swift.",
    "calls": [
     "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.anthropicDataUse",
     "Emuqu/Sources/Assistant/Views/ProviderConsentSheet.swift::var ProviderConsentSheet.openAIDataUse",
@@ -427,7 +427,7 @@
     {
      "at": "+2",
      "cond": "provider.privacyPolicyURL non-nil",
-     "effect": "renders Link; all ProviderID cases return a literal URL (AIProvider.swift:53-62), so the nil path only occurs if URL(string:) fails, which it does not for these literals"
+     "effect": "renders Link; all ProviderID cases return a literal URL (AIProvider.swift), so the nil path only occurs if URL(string:) fails, which it does not for these literals"
     }
    ],
    "deps": {

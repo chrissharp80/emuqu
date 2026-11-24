@@ -29,7 +29,7 @@
   {
    "key": "func TurnRouter.route(inputs:)",
    "hash": "f6085ecfaa01ae37",
-   "does": "Returns preTierDecision if it yields an early decision, else tierDecision. Called by AssistantTurnRouter.resolveProviderForThisTurn (AssistantViewModel+Routing.swift:42).",
+   "does": "Returns preTierDecision if it yields an early decision, else tierDecision. Called by AssistantTurnRouter.resolveProviderForThisTurn (AssistantViewModel+Routing.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.preTierDecision(inputs:)",
@@ -221,7 +221,7 @@
   {
    "key": "func TurnRouter.failureFallback(mode:selectedProviderID:)",
    "hash": "c071e785738aaff1",
-   "does": "Static: maps (mode, selected provider) to the allowed failure fallback: non-Apple selection → .none; Apple + Manual → .none; Apple + Quick → .onDeviceOnly; Apple + Auto/Deep → .anyAccepted. Used by AssistantViewModel+Routing.swift:665.",
+   "does": "Static: maps (mode, selected provider) to the allowed failure fallback: non-Apple selection → .none; Apple + Manual → .none; Apple + Quick → .onDeviceOnly; Apple + Auto/Deep → .anyAccepted. Used by AssistantViewModel+Routing.swift.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -281,7 +281,7 @@
    "key": "var PickedModelFailure.errorDescription",
    "hash": "39cdaed75323999b",
    "does": "Localized message naming the failed provider and the reason (the underlying AIProviderError's localizedDescription, which for a LocalizedError is its errorDescription), stating Flo did not hand the question to another model.",
-   "entry": "LocalizedError witness read when the error is surfaced (AssistantViewModel+Routing.swift:672)",
+   "entry": "LocalizedError witness read when the error is surfaced (AssistantViewModel+Routing.swift)",
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.errorDescription",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName",

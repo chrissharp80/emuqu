@@ -21,7 +21,7 @@
    "key": "init MorningNotificationScheduler()",
    "hash": "c9e770a0386d9c61",
    "does": "Private init registering a main-queue observer of LanguageManager.languageDidChangeNotification that reschedules the daily push.",
-   "entry": "Singleton creation on first MorningNotificationScheduler.shared access (AppDependencies.swift:709).",
+   "entry": "Singleton creation on first MorningNotificationScheduler.shared access (AppDependencies.swift).",
    "calls": [
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()"
    ],
@@ -31,14 +31,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "4e8514ceace2cec7"
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "c8189ca8fa9e41ed"
    }
   },
   {
    "key": "func MorningNotificationScheduler.requestAuthorizationIfNeeded()",
    "hash": "1d4909134b420093",
    "does": "Reads notification authorization; if notDetermined requests alert/sound/badge and returns the new status, else returns the current status.",
-   "entry": "NotificationsSettingsPage toggle action (NotificationsSettingsPage.swift:60).",
+   "entry": "NotificationsSettingsPage toggle action (NotificationsSettingsPage.swift).",
    "calls": [
     "ext:UNUserNotificationCenter.notificationSettings",
     "ext:UNUserNotificationCenter.requestAuthorization",
@@ -71,7 +71,7 @@
    "key": "func MorningNotificationScheduler.rescheduleIfNeeded()",
    "hash": "aa6a2c2a5754b5f5",
    "does": "When daily report is enabled and notifications are authorized/provisional/ephemeral, reads the settings again after the authorization await (a report turned off, or a cancelAll with it, meanwhile cancels instead) and replaces the pending repeating request at dailyReportFixedTime with number-free content; otherwise cancels both requests.",
-   "entry": "App launch (EmuquApp.swift:540; AppLaunchTasks.swift:123 and :412), the language-change observer (MorningNotificationScheduler.swift:57), and NotificationsSettingsPage toggle/time/format changes (NotificationsSettingsPage.swift:63, :69).",
+   "entry": "App launch (EmuquApp.swift; AppLaunchTasks.swift), the language-change observer (MorningNotificationScheduler.swift), and NotificationsSettingsPage toggle/time/format changes (NotificationsSettingsPage.swift).",
    "calls": [
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.morningContent()",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()",
@@ -115,7 +115,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.dailyReportFixedTime": "16ff5ca40b7a10a5",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "3d86e748ee6bd177",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "aa35a160bcd23371",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.morningContent()": "7913d4281d969cac",
     "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "e6e5f2924672eaab",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
@@ -135,14 +135,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()": "f6ac5cce2d02f763"
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()": "c8e3c84466bb601b"
    }
   },
   {
    "key": "func MorningNotificationScheduler.cancelAll()",
    "hash": "9646fbd1caaf5a19",
    "does": "Removes pending daily and wake requests.",
-   "entry": "Also called by DataPurgeService (DataPurgeService.swift:580).",
+   "entry": "Also called by DataPurgeService (DataPurgeService.swift).",
    "calls": [
     "ext:UNUserNotificationCenter.removePendingNotificationRequests"
    ],
@@ -157,7 +157,7 @@
    "key": "func MorningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd:)",
    "hash": "3f4d9d09605470e2",
    "does": "For Smart delivery with notifications enabled and authorized (settings read again after the authorization await), if the sleep end is a morning wake and the day's push can be claimed, builds a payload from the archive (with whether iOS hides previews on the locked screen) and delivers it immediately, recording whether it carries this morning's reading. A replacement claim (the first push went out before the night was scored) is sent only when the payload now carries the reading; otherwise the day is left open and nothing is sent.",
-   "entry": "HealthKit sleep observer update handler (HealthKitManager+SleepTrends.swift:482).",
+   "entry": "HealthKit sleep observer update handler (HealthKitManager+SleepTrends.swift).",
    "calls": [
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.sendsWakePush(_:)",
     "ext:UNUserNotificationCenter.notificationSettings",
@@ -236,7 +236,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "dcf8268413b66d44",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "54265da0046fd3e1"
    }
   },
   {
@@ -466,7 +466,7 @@
    "key": "func MorningNotificationScheduler.buildPayload()",
    "hash": "0ce7d96477a584b7",
    "does": "Returns the constant (\"Emuqu\", localized \"Open Emuqu for this morning's recovery score.\").",
-   "entry": "Also used by NotificationsSettingsPage.swift:290 and MorningNotificationPayloadTests.",
+   "entry": "Also used by NotificationsSettingsPage.swift and MorningNotificationPayloadTests.",
    "calls": [],
    "reads": [],
    "writes": [],

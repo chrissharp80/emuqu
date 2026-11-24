@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Collection/HeartRateMeasurement.swift",
  "hash": "414984c1ede6708b",
- "role": "Decoder for the Bluetooth SIG Heart Rate Measurement characteristic (0x2A37) used by StandardHeartRateLink (StandardHeartRateLink.swift:228), reproducing the Polar SDK's flag handling and 1/1024 s → ms rounding.",
+ "role": "Decoder for the Bluetooth SIG Heart Rate Measurement characteristic (0x2A37) used by StandardHeartRateLink (StandardHeartRateLink.swift), reproducing the Polar SDK's flag handling and 1/1024 s → ms rounding.",
  "types": [
   "HeartRateMeasurement: enum (namespace) — 0x2A37 parser"
  ],
@@ -44,7 +44,7 @@
     {
      "at": "+8",
      "cond": "bit 3 energy-expended present",
-     "effect": "requires 2 more bytes (else returns nil at line 34) and advances offset by 2; else offset unchanged"
+     "effect": "requires 2 more bytes (else returns nil) and advances offset by 2; else offset unchanged"
     },
     {
      "at": "+9",

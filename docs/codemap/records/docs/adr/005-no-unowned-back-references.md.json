@@ -20,7 +20,7 @@
   {
    "key": "§ 005 — Helpers hold their owner strongly; `unowned` is banned > Context",
    "hash": "8601b2df5c35c79e",
-   "does": "Context: helper types beside their owners (collector coordinators, HealthKit query groups, workout ticker/finalizer, PDF renderers, archive store and migrations, cloud pull/deletion, assistant router/tool runner) with an unowned let back-pointer trap when a Task or resumed continuation outlives the owner; a launch-time migration started in the collector's initialiser is enough to hit it, and fixing only the reported sites leaves the rest. Matches scripts/check_no_unowned.sh:5-17; no unowned let/var remains in Emuqu/Sources or the watch app (only comments mention it).",
+   "does": "Context: helper types beside their owners (collector coordinators, HealthKit query groups, workout ticker/finalizer, PDF renderers, archive store and migrations, cloud pull/deletion, assistant router/tool runner) with an unowned let back-pointer trap when a Task or resumed continuation outlives the owner; a launch-time migration started in the collector's initialiser is enough to hit it, and fixing only the reported sites leaves the rest. Matches scripts/check_no_unowned.sh; no unowned let/var remains in Emuqu/Sources or the watch app (only comments mention it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control"
@@ -35,7 +35,7 @@
   {
    "key": "§ 005 — Helpers hold their owner strongly; `unowned` is banned > Decision",
    "hash": "5bea41c7c736e0b6",
-   "does": "Claims helpers are structs built on demand by owners (collector.control, manager.writes, recorder.ticker), stored callbacks capture the owner weakly (a weak capture no-ops once the owner is gone), fire-and-forget tasks capture strongly, and check_no_unowned.sh fails on any unowned with verify_gates_fail.sh proving it. Verified: RRCollector.control (RRCollector.swift:148), HealthKitManager.writes (HealthKitManager.swift:42), WorkoutRecorder.ticker (WorkoutRecorder+TickerForwarding.swift:11) are computed builders; check_no_unowned.sh:34 greps every unowned / unowned(safe|unsafe) spelling (stored and capture list) in Emuqu/Sources and EmuquWatch Watch App; verify_gates_fail.sh:481-485 plants one.",
+   "does": "Claims helpers are structs built on demand by owners (collector.control, manager.writes, recorder.ticker), stored callbacks capture the owner weakly (a weak capture no-ops once the owner is gone), fire-and-forget tasks capture strongly, and check_no_unowned.sh fails on any unowned with verify_gates_fail.sh proving it. Verified: RRCollector.control (RRCollector.swift), HealthKitManager.writes (HealthKitManager.swift), WorkoutRecorder.ticker (WorkoutRecorder+TickerForwarding.swift) are computed builders; check_no_unowned.sh greps every unowned / unowned(safe|unsafe) spelling (stored and capture list) in Emuqu/Sources and EmuquWatch Watch App; verify_gates_fail.sh plants one.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
@@ -58,7 +58,7 @@
   {
    "key": "§ 005 — Helpers hold their owner strongly; `unowned` is banned > Consequences",
    "hash": "1dde2d68ac83512e",
-   "does": "Claims the bug class is removed, helpers are stateless values in which the compiler rejects [weak self] so every capture is decided explicitly, and weak remains for optional back-references, citing WorkoutVoiceCoach, BeatConsistencyPriorsCache, TrainingMetricsCache. Verified: WorkoutVoiceCoach.swift:35/41 weak watchBridge/conversation, BeatConsistencyPriorsCache.swift:170 weak boundArchive, TrainingMetricsCache.swift:284 weak healthKit.",
+   "does": "Claims the bug class is removed, helpers are stateless values in which the compiler rejects [weak self] so every capture is decided explicitly, and weak remains for optional back-references, citing WorkoutVoiceCoach, BeatConsistencyPriorsCache, TrainingMetricsCache. Verified: WorkoutVoiceCoach.swift/41 weak watchBridge/conversation, BeatConsistencyPriorsCache.swift weak boundArchive, TrainingMetricsCache.swift weak healthKit.",
    "entry": null,
    "calls": [
     "Makefile::target no-unowned-guard",
@@ -76,8 +76,8 @@
     ".github/workflows/gates.yml::step script-gates/Source hygiene guards": "4544ad53952ea566",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.bindToArchiveSignal(_:archive:)": "914b723a1b6b6f32",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.configure(healthKit:)": "e7fae975856bedca",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:alertHaptic:)": "ed9e0513661eccd4",
-    "Makefile::target no-unowned-guard": "25ed7c1d3b02dd7c"
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:alertHaptic:)": "f137e4289e1dba6d",
+    "Makefile::target no-unowned-guard": "f97dd82aeb363c84"
    }
   }
  ],

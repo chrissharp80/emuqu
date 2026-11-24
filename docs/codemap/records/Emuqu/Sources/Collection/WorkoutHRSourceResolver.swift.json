@@ -12,7 +12,7 @@
   {
    "key": "func WorkoutHRSourceResolver.resolve(requested:strapIsRecordingOnDevice:strapIsConnected:hasKnownDevices:isWatchPaired:)",
    "hash": "27b1d18f0ab60d2b",
-   "does": "Given the requested source and live strap/watch facts, returns: .use(requested) for non-strap requests; .strapBusy if the strap is recording on-device; .use(.strap) if connected; .reconnectThenUseStrap if any device is known; .use(.watch) if a Watch is paired; else .use(.none). Called by WorkoutSessionLifecycle.currentSourceResolution (WorkoutRecorder+Start.swift:211).",
+   "does": "Given the requested source and live strap/watch facts, returns: .use(requested) for non-strap requests; .strapBusy if the strap is recording on-device; .use(.strap) if connected; .reconnectThenUseStrap if any device is known; .use(.watch) if a Watch is paired; else .use(.none). Called by WorkoutSessionLifecycle.currentSourceResolution (WorkoutRecorder+Start.swift).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -49,7 +49,7 @@
   {
    "key": "func WorkoutHRSourceResolver.log(_:)",
    "hash": "07cc3ad97fbe44b3",
-   "does": "Logs the resolution via debugLog: warning for strapBusy, info for reconnect/watch downgrade, warning for downgrade to none, nothing for .use(.strap). Called at WorkoutRecorder+Start.swift:196.",
+   "does": "Logs the resolution via debugLog: warning for strapBusy, info for reconnect/watch downgrade, warning for downgrade to none, nothing for .use(.strap). Called at WorkoutRecorder+Start.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"

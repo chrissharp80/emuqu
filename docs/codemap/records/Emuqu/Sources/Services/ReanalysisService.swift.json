@@ -6,8 +6,8 @@
   "ReanalysisService: class — re-analysis / re-score service built once by the composition root (AppDependencies.makeReanalysisService) with injected archive, HealthKit, pipeline, selector, detector, baseline tracker and provider/callback closures over the shared scoring context, archive signal and iCloud sync"
  ],
  "state": [
-  "let archive/healthKit/analysisPipeline/windowSelector/artifactDetector/baselineTracker (injected, ReanalysisService.swift:76-81)",
-  "closures settingsProvider, scoringConfigProvider, ansConfigProvider, trainingContextProvider, analyzeWithWindow, analyzeFullSession, onArchiveChanged, onSessionUploaded, onZonesStale (ReanalysisService.swift:84-114); analysisPipeline/ansConfigProvider are only used in ReanalysisService+Sleep.swift:214-218",
+  "let archive/healthKit/analysisPipeline/windowSelector/artifactDetector/baselineTracker (injected, ReanalysisService.swift)",
+  "closures settingsProvider, scoringConfigProvider, ansConfigProvider, trainingContextProvider, analyzeWithWindow, analyzeFullSession, onArchiveChanged, onSessionUploaded, onZonesStale (ReanalysisService.swift); analysisPipeline/ansConfigProvider are only used in ReanalysisService+Sleep.swift",
   "mem:ReanalysisService.pendingSleepEdit — the last sleep-boundary edit started, which the next one waits for (set only by updateSessionSleepBoundaries)"
  ],
  "toplevel": "The class is @MainActor; every dependency is injected, the chart zones cache through the onZonesStale callback. A rescore is written through RescoreWrite (RescoreWrite.swift). Sleep retro-apply and manual window paths live in ReanalysisService+Sleep.swift extension. An extension at the end holds rescoreContext and the nonisolated re-score and classification (rescoredBreakdown(…context:), reclassifyHRVQuality(…baselineStats:)) that the instance methods and SleepBoundaryWrite share.",
@@ -141,8 +141,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.selectWindow(method:series:flags:sleepStartMs:wakeTimeMs:selector:baselineStats:)": "3b39e60904d53f84"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "58bfe64fc444721d",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.selectWindow(method:series:flags:sleepStartMs:wakeTimeMs:selector:baselineStats:)": "1911c2be5a0d198a"
    }
   },
   {
@@ -179,7 +179,7 @@
     {
      "at": "+14",
      "cond": "method != .consolidatedRecovery",
-     "effect": "false (consolidated): go to line 246; true: return method-selected window + capacity's peakCapacity"
+     "effect": "false (consolidated): the capacity-aware selection's result, or a full-session result (no window) when it found none; true: return method-selected window + capacity's peakCapacity"
     },
     {
      "at": "+15",
@@ -188,9 +188,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "6ea9fe23df8bc412",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindowWithCapacity(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "76bb1c7f5f1b2540",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "f982489dcaac4121",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectWindowByMethod(_:in:flags:sleepStartMs:wakeTimeMs:)": "879f43de5f898d0e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectWindowByMethod(_:in:flags:sleepStartMs:wakeTimeMs:)": "1fa3493c03e6d3fc",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -219,7 +219,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hydrated(_:)": "6b37419b50eda923",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hydrated(_:)": "adc4c28e00cbc932",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyze(_:series:method:)": "8f746b326fb8ca08",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -323,7 +323,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "ca69b2fe8fd7e541"
    }
   },
   {
@@ -423,7 +423,7 @@
    "entry": null,
    "calls": [
     "closure:settingsProvider — collector.settingsManager.settings",
-    "dyn:HealthKitServiceProtocol.calculateTrainingLoad(relativeTo:) → Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:168|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.calculateTrainingLoad(relativeTo:)",
+    "dyn:HealthKitServiceProtocol.calculateTrainingLoad(relativeTo:) → Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.calculateTrainingLoad(relativeTo:)",
     "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)"
    ],
    "reads": [
@@ -443,7 +443,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "fd7deac52d920bd3",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "2f4ef4ae06e9533c",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
@@ -563,7 +563,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.analysisResult(for:heavy:)": "df18a168457f0a9a",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.applyScoreFallbacks(to:analysisResult:originalSession:)": "9033371c4e4f7cc0",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.applyScoreFallbacks(to:analysisResult:originalSession:)": "e630c1a7c9d53c9a",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.deterministicRecoveryScore(for:result:)": "a5af44571a1a4dd9",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "9c1c51ce35bf3a6b"
@@ -588,7 +588,7 @@
     {
      "at": "+9",
      "cond": "recoveryScore nil and ansMetrics.readinessScore present",
-     "effect": "true: recoveryScore = ANS readiness (breakdown left as is). Reachable only when line 476 restored a nil original score: applyRecoveryScore always sets a non-nil score at line 461 (see 460 note); false: no change"
+     "effect": "true: recoveryScore = ANS readiness (breakdown left as is). Reachable only when restored a nil original score: applyRecoveryScore always sets a non-nil score (see 460 note); false: no change"
     }
    ],
    "deps": {
@@ -657,7 +657,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoreOnlyRun(sessionId:)": "8bf0837e8fbdff71",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoreOnlyRun(sessionId:)": "58a90e3608d68976",
     "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -934,7 +934,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)": "0cb9b353e72101be",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)": "172606fca8ff4092",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:)": "11844915444667c2"
    }
   },

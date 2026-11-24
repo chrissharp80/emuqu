@@ -17,7 +17,7 @@
    "key": "var StrapRecording.endedAt",
    "hash": "d276dc13c5b0a98c",
    "does": "startedAt plus the end offset of the last beat (endOffsetMs: its wallClockMs, else t_ms, plus its interval), so an optical recording's rejected intervals count as elapsed time; nil without a start.",
-   "entry": "Read by tests (StrapTransferTests.swift:154).",
+   "entry": "Read by tests (StrapTransferTests.swift).",
    "calls": [
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.endOffsetMs(of:)"
    ],
@@ -26,7 +26,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.endOffsetMs(of:)": "daf49ca73e68fc04",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463"
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "21b007298e4d2136"
    }
   },
   {
@@ -51,14 +51,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463"
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "21b007298e4d2136"
    }
   },
   {
    "key": "func StrapRecording.points(onClockOf:fallbackStart:)",
    "hash": "f1498846395fca2e",
    "does": "Returns the points re-based onto a session starting at sessionStart: shifted later by (recording start − session start) when the recording started after the session; unchanged when it started before or no start is known.",
-   "entry": "Called from RRCollector+BackupRecovery.swift:167,393, RRCollector+DeviceRecording.swift:124, RRCollector+OvernightStreaming.swift:493, WorkoutRecorder+DeviceBackup.swift:188.",
+   "entry": "Called from RRCollector+BackupRecovery.swift, RRCollector+DeviceRecording.swift, RRCollector+OvernightStreaming.swift, WorkoutRecorder+DeviceBackup.swift.",
    "calls": [
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
     "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)"
@@ -79,14 +79,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::func RRPoint.shifted(by:)": "41049d0fd69c07c3",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "ca69b2fe8fd7e541"
    }
   },
   {
    "key": "init StrapDownloadLedger(defaults:)",
    "hash": "4463e1cbaf394828",
    "does": "Stores the defaults and, on first use per store, writes strapDownloadLedgerSince = now.",
-   "entry": "Built by PolarManager's stored-property initialiser (PolarManager.swift:162); tests inject isolated defaults.",
+   "entry": "Built by PolarManager's stored-property initialiser (PolarManager.swift); tests inject isolated defaults.",
    "calls": [],
    "reads": [
     "ud:strapDownloadLedgerSince"
@@ -126,7 +126,7 @@
    "key": "func StrapDownloadLedger.markDownloaded(recordingStartedAt:)",
    "hash": "538198d5bbb58c4a",
    "does": "Appends the whole-second start key to the stored list if absent, keeping only the last 60.",
-   "entry": "Called from StrapRecordingCoordinator+Transfer.swift:149,241; tests.",
+   "entry": "Called from StrapRecordingCoordinator+Transfer.swift; tests.",
    "calls": [
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.key(for:)"
    ],
@@ -156,7 +156,7 @@
    "key": "func StrapDownloadLedger.wasDownloaded(recordingStartedAt:)",
    "hash": "000c5e0ceec40253",
    "does": "True when the whole-second start key is in the stored list.",
-   "entry": "Called from PolarManager.isRecordingSaved (PolarManager.swift:159) and RRCollector.isStrapRecordingSaved (RRCollector.swift:364).",
+   "entry": "Called from PolarManager.isRecordingSaved (PolarManager.swift) and RRCollector.isStrapRecordingSaved (RRCollector.swift).",
    "calls": [
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.key(for:)"
    ],
@@ -179,7 +179,7 @@
    "key": "func StrapDownloadLedger.predatesRecord(_:)",
    "hash": "89c74f8d675e3b6f",
    "does": "True when start is before the ledger's since date.",
-   "entry": "Called from RRCollector.isStrapRecordingSaved (RRCollector.swift:365).",
+   "entry": "Called from RRCollector.isStrapRecordingSaved (RRCollector.swift).",
    "calls": [
     "Emuqu/Sources/Collection/StrapRecording.swift::var StrapDownloadLedger.since"
    ],

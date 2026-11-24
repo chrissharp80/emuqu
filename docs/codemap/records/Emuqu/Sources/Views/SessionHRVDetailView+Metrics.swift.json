@@ -7,7 +7,7 @@
   "SessionHRVDetailView.TrendStats: struct (private) — averages of prior reliable overnight sessions (hasData, avgRMSSD, avgHR, avgStress?, avgReadiness?)"
  ],
  "state": [],
- "toplevel": "Comment at top notes the content was split out of SessionHRVDetailView.swift for the 500-line ceiling; private struct TrendStats at line 343-349 is a plain value type.",
+ "toplevel": "Comment at top notes the content was split out of SessionHRVDetailView.swift for the 500-line ceiling; private struct TrendStats is a plain value type.",
  "units": [
   {
    "key": "var SessionHRVDetailView.metricsGridSection",
@@ -51,7 +51,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)": "894c8c3926864252",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.timeDomainGrid": "d93e85ae4b5a0c6b"
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.timeDomainGrid": "35c00d3e0b740c55"
    }
   },
   {
@@ -193,7 +193,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)": "894c8c3926864252",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.nonlinearGrid": "3ab33cc9ecaa1663"
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.nonlinearGrid": "7aa69be6bf0db4b9"
    }
   },
   {
@@ -354,7 +354,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricSectionHeader(title:icon:)": "894c8c3926864252",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityGrid": "592c01e068ff0bc6",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityGrid": "3c59ef65f485eba4",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.dataQualityNote": "bad0104d9929c53e"
    }
   },
@@ -438,7 +438,7 @@
   {
    "key": "var SessionHRVDetailView.trendSection",
    "hash": "aed323601b588463",
-   "does": "Trend Analysis card: header plus body, wrapped in zenCard. Rendered only for overnight sessions with non-empty recentSessions (SessionHRVDetailView.swift:50).",
+   "does": "Trend Analysis card: header plus body, wrapped in zenCard. Rendered only for overnight sessions with non-empty recentSessions (SessionHRVDetailView.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendHeader",
@@ -449,7 +449,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendBody": "fa3f6c0129e330ee",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendBody": "d0d28ced0f1563b4",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendHeader": "c134c480af1aedfd",
     "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "e4d2d4a7dacc0d53"
    }
@@ -491,7 +491,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.computeTrendStats()": "cd89dfeb94ddecf7",
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.computeTrendStats()": "fa52b5d1f710d11f",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.trendRows(_:)": "818af54fe10bc117",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendEmptyState": "533c0f0170b7d7ab",
     "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "745128b24479ceaf"
@@ -803,7 +803,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "1f169ca3f7045de3"
    }
   },
   {
@@ -902,7 +902,7 @@
    "does": "Wraps HRVMetricCell(label:value:).",
    "entry": null,
    "calls": [
-    "dyn:View.body → Emuqu/Sources/Views/MorningResultsCards.swift:10"
+    "dyn:View.body → Emuqu/Sources/Views/MorningResultsCards.swift"
    ],
    "reads": [],
    "writes": [],

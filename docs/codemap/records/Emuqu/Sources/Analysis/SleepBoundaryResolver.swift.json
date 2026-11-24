@@ -12,7 +12,7 @@
   "mem:SleepBoundaryResolver.boundaryDisagreementThresholdMs = SleepConstants.boundaryDisagreementMinutes(15)*60000",
   "mem:OnsetDetection.minimumBeats=300, windowSize=120, stepSize=30, minimumWindows=16 (5 before + 10 after + the candidate), hrDropThreshold=8.0, sleepCeilingMidpointFraction=0.5"
  ],
- "toplevel": "Static constants only. Instance held by RRCollector (RRCollector.swift:179,714).",
+ "toplevel": "Static constants only. Instance held by RRCollector (RRCollector.swift).",
  "units": [
   {
    "key": "init RRWindowSweep(_:)",
@@ -152,7 +152,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledEnd(healthKit:hrEstimate:)": "6a90ccf38448340d",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledStart(healthKit:hrEstimate:hasDetailedStages:)": "1c982e8a65cfcdb1"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledStart(healthKit:hrEstimate:hasDetailedStages:)": "ecf887a0a53b2087"
    }
   },
   {
@@ -348,7 +348,7 @@
    "calls": [
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:)",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)",
-    "dyn:HealthKitServiceProtocol.fetchSleepData → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "dyn:HealthKitServiceProtocol.fetchSleepData → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -373,7 +373,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:)": "d41c69f4c0430a11",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:)": "019088244f938f10",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "3584905ec72431dd"
    }
@@ -408,7 +408,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d5f25d3b38744676",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "574a0263e53dfb77",
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "573ac4aba216c312",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:)": "3584905ec72431dd"
    }

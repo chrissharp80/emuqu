@@ -7,8 +7,8 @@
  ],
  "state": [
   "let namespace = 'breadcrumb'",
-  "static let breadcrumbRecentDescription (line 95)",
-  "static let breadcrumbArchiveSummaryDescription (line 162)"
+  "static let breadcrumbRecentDescription",
+  "static let breadcrumbArchiveSummaryDescription"
  ],
  "toplevel": "Struct conformance; registered by AppFactResolverFactory.registerAppNamespaces. Not behind the workout-only location gate of the location.* actions: the cloud consent sheet (ProviderConsentSheet) discloses exactly what these facts release — the Get Me Back trail while it runs (active / current_fix / recent_track) and the start points of recent trails and GPS workouts (recent); the file header says so.",
  "units": [
@@ -69,7 +69,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::var BreadcrumbNamespace.breadcrumbActiveEntry": "2a9902e516e26df8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::var BreadcrumbNamespace.breadcrumbActiveEntry": "27260f1d307098b0",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::var BreadcrumbNamespace.breadcrumbArchiveSummaryEntry": "7f159555de30a6a1",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::var BreadcrumbNamespace.breadcrumbCountEntry": "f2b2aecbb07b71e5",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::var BreadcrumbNamespace.breadcrumbCurrentFixEntry": "36ccd600e38b0c6b",
@@ -98,13 +98,13 @@
     {
      "at": "+10",
      "cond": "BreadcrumbStore.load returns a trail",
-     "effect": "returns tripleFromTrail record; else missing notRecorded (a present-but-undecodable active.json also lands here, since load uses try?)"
+     "effect": "returns tripleFromTrail record; else missing notRecorded (an active.json that is present but unreadable, cannot be opened with the app key, or fails to decode also returns nil from load and lands here)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.tripleFromTrail(_:)": "853766eb84fe5f4f",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "b54fe126660d8722",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "e1282e17fd6e3ecb",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
    }
@@ -160,7 +160,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.loadArchive()": "47263c6d18f9ac81",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.loadArchive()": "d10c9c0ab8ac59a4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
    }
@@ -223,7 +223,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.recurrenceBuckets(_:)": "e8f418dc0d3919e4",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Breadcrumbs.swift::func BreadcrumbNamespace.trailDurations(_:)": "d60f175198a97e00",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.localISO8601(_:)": "61a92ec18d225c50",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.loadArchive()": "47263c6d18f9ac81",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.loadArchive()": "d10c9c0ab8ac59a4",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "f5564c3178c03d2d",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
@@ -266,7 +266,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)": "9d0cda794b206c53",
+    "Emuqu/Sources/Services/RecurrenceClassifier.swift::func RecurrenceClassifier.bucketKey(for:)": "f27e6c1b6a78cf96",
     "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
    }
   },

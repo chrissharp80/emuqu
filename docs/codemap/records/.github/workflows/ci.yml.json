@@ -13,7 +13,7 @@
   {
    "key": "job lint-and-budgets",
    "hash": "833cff3093196b90",
-   "does": "macOS-26 job \"Lint + tech-debt budgets\" (timeout 25 min): full-history checkout, Xcode 26.6, the pinned SwiftLint (downloaded and checksum-verified), then SwiftLint, every budget and every static script gate in sequence (steps 71–437). Runs for every scope including gates.",
+   "does": "macOS-26 job \"Lint + tech-debt budgets\" (timeout 25 min): full-history checkout, Xcode 26.6, the pinned SwiftLint (downloaded and checksum-verified), then SwiftLint, every budget and every static script gate in sequence, from the SwiftLint step through the fixed-point font budget step, including the step that audits every gate's wiring in ci.yml and gates.yml. Runs for every scope including gates.",
    "entry": "GitHub Actions job; runs on pull_request, push to main, workflow_dispatch and workflow_call (testflight.yml quality-gate). No `if:`, so every scope.",
    "calls": [
     ".github/workflows/ci.yml::step lint-and-budgets/Checkout",
@@ -84,7 +84,7 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "a1053db502266300",
     ".github/workflows/ci.yml::step lint-and-budgets/Documented file counts match the tree": "42e852ed3bb188e8",
     ".github/workflows/ci.yml::step lint-and-budgets/Empty-range loop guard": "578ecd21844f6985",
-    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "1134d06d24e24bd1",
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "ec96a86dca7e7d98",
     ".github/workflows/ci.yml::step lint-and-budgets/Every xcodebuild run uses the committed package versions": "79dc1fc12f0e22c6",
     ".github/workflows/ci.yml::step lint-and-budgets/Explicit dependencies stay explicit; only tests install a co": "9c13a0d1d8575620",
     ".github/workflows/ci.yml::step lint-and-budgets/FDA copy perimeter": "f8ab28e6efdbb397",
@@ -126,16 +126,16 @@
     ".github/workflows/ci.yml::step lint-and-budgets/UI-test fresh-install reset": "f46df481d99a9fe6",
     ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "a26d5aca611355ca",
     ".github/workflows/ci.yml::step lint-and-budgets/User-facing decimals name a locale": "a4275812a75e3c60",
-    "Makefile::target codemap-setup": "7e164b557a14aa9a",
-    "Makefile::target copy-perimeter": "fbee448e717c17f3",
-    "Makefile::target doc-links": "4731861b7121254e",
-    "Tools/copy_linter/lint.py::": "5373b51ca6189fff",
+    "Makefile::target codemap-setup": "e0d8eb66d9fddd88",
+    "Makefile::target copy-perimeter": "d86c63c1a970a885",
+    "Makefile::target doc-links": "ce4a52f284444e24",
+    "Tools/copy_linter/lint.py::": "3008809ac701db4e",
     "scripts/check_aggregate_type_size.sh::": "1dfe32804b21d692",
     "scripts/check_budget_monotonicity.sh::": "e7994e90b3de4f7e",
-    "scripts/check_codemap.sh::": "d855ae4972e708aa",
+    "scripts/check_codemap.sh::": "c145ada475819b7f",
     "scripts/check_comment_citations.sh::": "644357a00d40e72d",
     "scripts/check_coremotion_handler_isolation.sh::": "068f15f98323bd05",
-    "scripts/check_date_ms_conversion.sh::": "8446d50cb14a307d",
+    "scripts/check_date_ms_conversion.sh::": "f4339cabeeb29ebb",
     "scripts/check_dated_comment_budget.sh::": "6d72e7afdb608b8c",
     "scripts/check_doc_file_counts.sh::": "ea5d071473f0cfbc",
     "scripts/check_doc_links.sh::": "e124dbf75252d374",
@@ -150,7 +150,7 @@
     "scripts/check_localization_bundle.sh::": "53f82d0998cff660",
     "scripts/check_localization_coverage.sh::": "f29337aa25d2b83b",
     "scripts/check_localization_format_args.sh::": "6f32eef275c3de4b",
-    "scripts/check_localization_orphans.sh::": "f4f6d7ed9c2dd88c",
+    "scripts/check_localization_orphans.sh::": "cd297f9a8ad1493e",
     "scripts/check_localization_resolution.sh::": "0994aa3d0f8a2b88",
     "scripts/check_log_redaction.sh::": "0f575f7e66fedb8a",
     "scripts/check_logger_self_reference.sh::": "a38e378f33900911",
@@ -165,18 +165,18 @@
     "scripts/check_perimeter_sync.sh::": "6e88cbf7aa146c46",
     "scripts/check_privacy_manifest_vocabulary.sh::": "1ba7a98c05ea0759",
     "scripts/check_refactor_spec_conformance.sh::": "962eb73645f5e686",
-    "scripts/check_sbom_drift.sh::": "efdd5410eaab6533",
+    "scripts/check_sbom_drift.sh::": "4355d00389342424",
     "scripts/check_science_register.sh::": "1f484723766cdba1",
     "scripts/check_scoring_governance.sh::": "69514a6860981107",
     "scripts/check_snapshot_references.sh::": "dcd09bdaa160b649",
     "scripts/check_test_skip_budget.sh::": "84e6ee5623c36953",
-    "scripts/check_uitest_fresh_install.sh::": "09e01c2621c92788",
+    "scripts/check_uitest_fresh_install.sh::": "907ca31efd33f0a7",
     "scripts/check_unchecked_sendable.sh::": "7e443b38157653c1",
     "scripts/check_xcodebuild_pinned.sh::": "57296ffc726d702b",
     "scripts/enforce_swiftlint_budget.sh::": "6a1a2c23716f4722",
     "scripts/enforce_tech_debt_budgets.sh::": "df07ab6602e70041",
     "scripts/generate_sbom.py::": "5b067133926b429f",
-    "scripts/verify_gates_fail.sh::": "2d6e0e64fc5551c8"
+    "scripts/verify_gates_fail.sh::": "96dfcff26bc0e033"
    }
   },
   {
@@ -278,7 +278,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/enforce_tech_debt_budgets.sh::": "ced88e4bf81e4dc8"
+    "scripts/enforce_tech_debt_budgets.sh::": "df07ab6602e70041"
    }
   },
   {
@@ -361,8 +361,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target copy-perimeter": "fbee448e717c17f3",
-    "Tools/copy_linter/lint.py::": "5373b51ca6189fff"
+    "Makefile::target copy-perimeter": "d86c63c1a970a885",
+    "Tools/copy_linter/lint.py::": "3008809ac701db4e"
    }
   },
   {
@@ -377,8 +377,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target codemap-setup": "7e164b557a14aa9a",
-    "scripts/check_codemap.sh::": "d855ae4972e708aa"
+    "Makefile::target codemap-setup": "e0d8eb66d9fddd88",
+    "scripts/check_codemap.sh::": "c145ada475819b7f"
    }
   },
   {
@@ -393,7 +393,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/verify_gates_fail.sh::": "e5e641ee1d68784d"
+    "scripts/verify_gates_fail.sh::": "96dfcff26bc0e033"
    }
   },
   {
@@ -423,7 +423,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/generate_sbom.py::": "e3c8a0bdb0e501f7"
+    "scripts/generate_sbom.py::": "5b067133926b429f"
    }
   },
   {
@@ -438,7 +438,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_no_developer_endpoint.sh::": "df590bbb70bc5631"
+    "scripts/check_no_developer_endpoint.sh::": "4fcc68eee896f798"
    }
   },
   {
@@ -468,7 +468,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target doc-links": "4731861b7121254e",
+    "Makefile::target doc-links": "ce4a52f284444e24",
     "scripts/check_doc_links.sh::": "e124dbf75252d374"
    }
   },
@@ -484,7 +484,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_perimeter_sync.sh::": "8fe9ffd70534bf49"
+    "scripts/check_perimeter_sync.sh::": "6e88cbf7aa146c46"
    }
   },
   {
@@ -514,7 +514,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_scoring_governance.sh::": "1c354b851d30e71e"
+    "scripts/check_scoring_governance.sh::": "69514a6860981107"
    }
   },
   {
@@ -529,7 +529,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_aggregate_type_size.sh::": "7396aea18f3ef6aa"
+    "scripts/check_aggregate_type_size.sh::": "1dfe32804b21d692"
    }
   },
   {
@@ -544,7 +544,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_comment_citations.sh::": "1b6badad361be5a9"
+    "scripts/check_comment_citations.sh::": "644357a00d40e72d"
    }
   },
   {
@@ -559,7 +559,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_refactor_spec_conformance.sh::": "9cfdce0d76783dc4"
+    "scripts/check_refactor_spec_conformance.sh::": "962eb73645f5e686"
    }
   },
   {
@@ -574,7 +574,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_locale_formatting.sh::": "aca373d604e0631f"
+    "scripts/check_locale_formatting.sh::": "3082989560a80d53"
    }
   },
   {
@@ -589,7 +589,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_no_health_data_in_cloudkit.sh::": "6b36bea9b02d287e"
+    "scripts/check_no_health_data_in_cloudkit.sh::": "2ec812292a04d0eb"
    }
   },
   {
@@ -649,7 +649,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_no_unowned.sh::": "613c23141181c8ba"
+    "scripts/check_no_unowned.sh::": "a9acd83ee2004086"
    }
   },
   {
@@ -709,7 +709,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_no_shared_outside_root.sh::": "4422bbd4342c8091"
+    "scripts/check_no_shared_outside_root.sh::": "7e4556f4d6f223f0"
    }
   },
   {
@@ -724,7 +724,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_explicit_dependencies.sh::": "824eaf109c10dc49"
+    "scripts/check_explicit_dependencies.sh::": "018776e5dd438a60"
    }
   },
   {
@@ -739,7 +739,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_empty_range_loops.sh::": "699901b1c19ac251"
+    "scripts/check_empty_range_loops.sh::": "b355c6f84b50aeef"
    }
   },
   {
@@ -754,7 +754,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_coremotion_handler_isolation.sh::": "2c1d5dd8cf5073f2"
+    "scripts/check_coremotion_handler_isolation.sh::": "068f15f98323bd05"
    }
   },
   {
@@ -800,13 +800,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_no_eager_permission_prompts.sh::": "496088f8cb679f6c"
+    "scripts/check_no_eager_permission_prompts.sh::": "93fc5ff46b1049fa"
    }
   },
   {
    "key": "step lint-and-budgets/Every gate is wired into CI",
    "hash": "5a62575c9ea3b904",
-   "does": "Runs scripts/check_gates_wired.sh (audits this ci.yml file for every check_*/enforce_* script name).",
+   "does": "Runs scripts/check_gates_wired.sh: every check_*/enforce_* script must be run by a `run:` command (directly or through a make target's recipe) in this ci.yml and, unless listed in NOT_ON_PUSH, in gates.yml; check_coverage.sh is exempt.",
    "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
    "calls": [
     "ext:script scripts/check_gates_wired.sh"
@@ -815,7 +815,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_gates_wired.sh::": "b223d96bf75376e4"
+    "scripts/check_gates_wired.sh::": "16a4971f63a61cc9"
    }
   },
   {
@@ -830,7 +830,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_date_ms_conversion.sh::": "1434eda5b99ef460"
+    "scripts/check_date_ms_conversion.sh::": "f4339cabeeb29ebb"
    }
   },
   {
@@ -875,7 +875,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_sbom_drift.sh::": "efdd5410eaab6533"
+    "scripts/check_sbom_drift.sh::": "4355d00389342424"
    }
   },
   {
@@ -890,7 +890,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_log_redaction.sh::": "adc6b124cccb3a8d"
+    "scripts/check_log_redaction.sh::": "0f575f7e66fedb8a"
    }
   },
   {
@@ -905,7 +905,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_localization_coverage.sh::": "9e1991807b12665d"
+    "scripts/check_localization_coverage.sh::": "f29337aa25d2b83b"
    }
   },
   {
@@ -920,7 +920,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_localization_bundle.sh::": "dc38eb0e596bc785"
+    "scripts/check_localization_bundle.sh::": "53f82d0998cff660"
    }
   },
   {
@@ -935,7 +935,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_localization_resolution.sh::": "b3acce7afc250a11"
+    "scripts/check_localization_resolution.sh::": "0994aa3d0f8a2b88"
    }
   },
   {
@@ -950,7 +950,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_localization_orphans.sh::": "6c11906399db0e5b"
+    "scripts/check_localization_orphans.sh::": "cd297f9a8ad1493e"
    }
   },
   {
@@ -965,7 +965,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_localization_format_args.sh::": "f35f257cb5811bb3"
+    "scripts/check_localization_format_args.sh::": "6f32eef275c3de4b"
    }
   },
   {
@@ -980,7 +980,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_uitest_fresh_install.sh::": "09e01c2621c92788"
+    "scripts/check_uitest_fresh_install.sh::": "907ca31efd33f0a7"
    }
   },
   {
@@ -1010,7 +1010,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_no_orphan_swift.sh::": "d55b2639d709991a"
+    "scripts/check_no_orphan_swift.sh::": "7bd1f096b72cfdf9"
    }
   },
   {
@@ -1025,7 +1025,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_fixed_font_budget.sh::": "30d5e2746e069f6c"
+    "scripts/check_fixed_font_budget.sh::": "8b5e55ad1dda074c"
    }
   },
   {

@@ -29,7 +29,7 @@
   "static lengthStepperMaxKm = 100 (max-length stepper top = no max), ascentSliderMaxMeters = 2000 (max-ascent slider edge = no max)",
   "mem:DiscoverTrailsView.searchTask (@State, the running search; cancelled by a new search and on disappear)"
  ],
- "toplevel": "Header (8-24) describes a two-phase UX whose results list shows 'name + length + ascent + difficulty + distance' and says picking saves to SavedRouteStore. @preconcurrency import CoreLocation. Presented only by WorkoutPreflightView.withRouteImporters as a sheet (WorkoutPreflightView.swift:569-572, onTrailPicked sets plan.selectedRoute) and hosted by RemainingScreenSnapshotTests.swift:66; FitnessTabView does not present it.",
+ "toplevel": "Header (8-24) describes a two-phase UX whose results list shows 'name + length + ascent + difficulty + distance' and says picking saves to SavedRouteStore. @preconcurrency import CoreLocation. Presented only by WorkoutPreflightView.withRouteImporters as a sheet (WorkoutPreflightView.swift, onTrailPicked sets plan.selectedRoute) and hosted by RemainingScreenSnapshotTests.swift; FitnessTabView does not present it.",
  "units": [
   {
    "key": "var DiscoverTrailsView.savedRouteStore",
@@ -646,7 +646,7 @@
    "entry": "SavedRouteRow tap.",
    "calls": [
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()",
-    "closure:onTrailPicked set by WorkoutPreflightView.withRouteImporters (WorkoutPreflightView.swift:570-572) -> plan.selectedRoute = route"
+    "closure:onTrailPicked set by WorkoutPreflightView.withRouteImporters (WorkoutPreflightView.swift) -> plan.selectedRoute = route"
    ],
    "reads": [],
    "writes": [],
@@ -1141,7 +1141,7 @@
    "calls": [
     "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)",
     "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.saveToLibrary(_:track:route:)",
-    "closure:onTrailPicked set by WorkoutPreflightView.withRouteImporters (WorkoutPreflightView.swift:570-572) -> plan.selectedRoute = route"
+    "closure:onTrailPicked set by WorkoutPreflightView.withRouteImporters (WorkoutPreflightView.swift) -> plan.selectedRoute = route"
    ],
    "reads": [],
    "writes": [
@@ -1184,7 +1184,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "6f6ce547af89acf6",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "e29f39e4c0cb178c",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "661da9c38d8c720b",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "37cad3fe03844533",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)": "f91e54d315319ac0",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
     "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.Activity.workoutSport": "742a0f4fcb6e4060",
@@ -1484,7 +1484,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func TrailRow.distanceLabel(from:)": "da43e169402989c8"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func TrailRow.distanceLabel(from:)": "29e69eb2faf3f8ec"
    }
   },
   {
@@ -1528,7 +1528,7 @@
   {
    "key": "func TrailRow.distanceLabel(from:)",
    "hash": "e5b7c006abd4c549",
-   "does": "Distance from user to trail centroid formatted '<x> away'.",
+   "does": "Distance from the user to the trail's nearest trackpoint (its centroid when it has none), formatted '<x> away' in the user's units.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
@@ -1547,7 +1547,7 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.DiscoveredTrail.distanceFrom(_:)": "87128253e4dae84a"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.DiscoveredTrail.distanceFrom(_:)": "a910d192e2cbff84"
    }
   },
   {

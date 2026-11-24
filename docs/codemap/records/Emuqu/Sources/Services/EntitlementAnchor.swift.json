@@ -288,7 +288,7 @@
   {
    "key": "func EntitlementAnchor.adoptTrialStart(_:wallClock:)",
    "hash": "25bd9c1ce3e70b68",
-   "does": "Adopts a device trial start through update(wallClock:) with adopting (earlier device start kept, high-water mark raised to the candidate). Its only caller is SettingsManager.adoptTrialStart, which reaches it only for a start earlier than the anchor's; today that is the App Store start already recorded by recordStoreTrialStart. A start that exists only in synced settings is not fed in by any code.",
+   "does": "Adopts a device trial start through update(wallClock:) with adopting (earlier device start kept, high-water mark raised to the candidate). Its only caller is SettingsManager.adoptTrialStart, which reaches it only when the anchor holds no start or a later one: the trial start SettingsManager.restoreFromJSON brings back from the iCloud settings copy. (The App Store's start is recorded by recordStoreTrialStart first, so passing it afterwards only mirrors it.)",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)",

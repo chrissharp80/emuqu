@@ -288,7 +288,7 @@
   {
    "key": "var AssistantSubsystem.voiceAnnouncement",
    "hash": "6c55c1c3bacf3fbe",
-   "does": "Localized spoken self-announcement for a subsystem (from LanguageManager.appBundle). Only .workoutVoiceCoach (WorkoutVoiceCoach.swift:306) and .voiceConversation (VoiceConversationController+Speech.swift:92) are read in the app.",
+   "does": "Localized spoken self-announcement for a subsystem (from LanguageManager.appBundle). Only .workoutVoiceCoach (WorkoutVoiceCoach.swift) and .voiceConversation (VoiceConversationController+Speech.swift) are read in the app.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -423,7 +423,7 @@
   {
    "key": "var AIProviderError.isFallbackable",
    "hash": "5d57ad20315c3d55",
-   "does": "Fallback policy: true for missingKey/authFailed/rateLimited/network/modelUnavailable/outOfCredit and also invalidResponse/unsupportedOS/unknown; false for guardrailViolation, blockedReply and cancelled (a safety refusal, Apple's or a cloud vendor's, is never routed around). Read by AssistantViewModel+Routing.swift:632 to walk the fallback chain.",
+   "does": "Fallback policy: true for missingKey/authFailed/rateLimited/network/modelUnavailable/outOfCredit and also invalidResponse/unsupportedOS/unknown; false for guardrailViolation, blockedReply and cancelled (a safety refusal, Apple's or a cloud vendor's, is never routed around). Read by AssistantViewModel+Routing.swift to walk the fallback chain.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -913,13 +913,13 @@
    "does": "Protocol requirement: stream a response for messages/model/context/system prompt/tools/tool rounds as AsyncThrowingStream<AIStreamEvent>.",
    "entry": null,
    "calls": [
-    "dyn:AIProvider.send → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:91|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
+    "dyn:AIProvider.send → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "07d9efd1b8137da2",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "1371821c8a3f41cd",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "1ccac547ae32c782",
     "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "e147cb3b2ab70077",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "771c53ab5510cc28",
@@ -991,7 +991,7 @@
    "does": "Back-compat 4-argument send: forwards to the full send with empty tools and toolRounds. Used by the summarizer, auto-fact extractor and voice interjection.",
    "entry": null,
    "calls": [
-    "dyn:AIProvider.send → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:91|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
+    "dyn:AIProvider.send → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
    ],
    "reads": [],
    "writes": [],

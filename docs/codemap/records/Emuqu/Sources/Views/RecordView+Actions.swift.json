@@ -11,7 +11,7 @@
   "mem:RecoveredWorkoutReviewCard.endMinutes (@State)",
   "mem:RecoveredWorkoutReviewCard.confirmingDiscard (@State, false until Discard asks for confirmation)"
  ],
- "toplevel": "#Preview block (lines 244-250) builds RecordView(selectedTab: .constant(.record)) with a fresh RRCollector() and the shared SettingsManager in the environment; preview only.",
+ "toplevel": "#Preview block builds RecordView(selectedTab: .constant(.record)) with a fresh RRCollector() and the shared SettingsManager in the environment; preview only.",
  "units": [
   {
    "key": "var RecordView.isBatteryCritical",
@@ -59,7 +59,7 @@
    "key": "func RecordView.toggleTag(_:)",
    "hash": "eae00195c889eb68",
    "does": "Toggles membership of a tag in selectedTags.",
-   "entry": "Tag chip tap via RecordView+Sections.swift:82 onToggle",
+   "entry": "Tag chip tap via RecordView+Sections.swift onToggle",
    "calls": [
     "Emuqu/Sources/Views/RecordViewHelpers.swift::func Set.toggle(_:)"
    ],
@@ -76,7 +76,7 @@
    "key": "func RecordView.startOvernightRecording()",
    "hash": "af3c1a72ff6bfcf7",
    "does": "Clears fetchFailed and starts the extended capture in a Task via startCaptureSurfacingFailure.",
-   "entry": "Start button in RecordPanels (RecordView+Panels.swift:383) via the panels closure",
+   "entry": "Start button in RecordPanels (RecordView+Panels.swift) via the panels closure",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startCaptureSurfacingFailure()"
    ],
@@ -155,9 +155,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.startSession(sessionType:)": "6f02e775e89ff1fe",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.startSession(sessionType:)": "bd8db526263f8530",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::func RRCollector.startSession(sessionType:)": "6ec5fc31c808d5dc",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "55027bd0a099d6d0",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "8734a28e0edc13b1",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "e9c4df85c5c05b87"
    }
   },
@@ -165,7 +165,7 @@
    "key": "func RecordView.pauseRecording()",
    "hash": "620bf7a5558ddbf9",
    "does": "Task that awaits collector.pauseOvernightStreaming(); the returned paused session is discarded.",
-   "entry": "Pause button in RecordPanels (RecordView+Panels.swift:301)",
+   "entry": "Pause button in RecordPanels (RecordView+Panels.swift)",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.pauseOvernightStreaming()",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()"
@@ -182,7 +182,7 @@
    "key": "func RecordView.resumeRecording()",
    "hash": "12e2a71227bf615f",
    "does": "Resumes the paused overnight session (streamingLifecycle.pausedSession) by linked id; on throw logs and sets sessionState.lastError.",
-   "entry": "Resume button in RecordPanels (RecordView+Panels.swift:283)",
+   "entry": "Resume button in RecordPanels (RecordView+Panels.swift)",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.resumeOvernightStreaming(linkedSessionId:)",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)",
@@ -209,7 +209,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "fd3252e0154e3022",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "f00c32e21c009175",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.resumeOvernightStreaming(linkedSessionId:)": "c78b4f50b7b43dc8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -217,8 +217,8 @@
   {
    "key": "func RecordView.finalizeFromPause()",
    "hash": "15c109f9347d81cf",
-   "does": "Calls collector.finalizeFromPause() to end a paused overnight session and run morning processing.",
-   "entry": "Finalize button in RecordPanels (RecordView+Panels.swift:273)",
+   "does": "Calls collector.finalizeFromPause(): the paused overnight is marked complete in the archive and becomes the night awaiting acceptance (idle when it has no analysis); when the archive write fails it stays paused with Resume/Done still offered.",
+   "entry": "Finalize button in RecordPanels (RecordView+Panels.swift)",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.finalizeFromPause()",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()"
@@ -227,7 +227,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "c9d07bc20111ce8a",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "df69f0bb00299e67",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.finalizeFromPause()": "e843d8fda81c902e"
    }
   },
@@ -267,7 +267,7 @@
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()": "22835f2820029c3a",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()": "102151158fd99ab0"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()": "3b1b161d73241ba4"
    }
   },
   {
@@ -293,7 +293,7 @@
    "key": "func RecordView.startLinkedRecording(linkedTo:)",
    "hash": "cdeeda82fe3e3864",
    "does": "Starts a new overnight streaming segment linked to an earlier session (continue recording); on throw logs and sets lastError.",
-   "entry": "Continue Recording button in RecordPanels.continueRecoveryCard (RecordView+Panels.swift:567)",
+   "entry": "Continue Recording button in RecordPanels.continueRecoveryCard (RecordView+Panels.swift)",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.resumeOvernightStreaming(linkedSessionId:)",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)",
@@ -312,7 +312,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "fd3252e0154e3022",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "f00c32e21c009175",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.resumeOvernightStreaming(linkedSessionId:)": "c78b4f50b7b43dc8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -321,7 +321,7 @@
    "key": "func RecordView.stopAndFetch()",
    "hash": "ff190cac7c9e251b",
    "does": "Task: stops an overnight streaming session (morning processing drives UI) or, when not overnight streaming, stops and downloads the strap's internal recording.",
-   "entry": "Stop buttons in RecordPanels (RecordView+Panels.swift:313, 369)",
+   "entry": "Stop buttons in RecordPanels (RecordView+Panels.swift)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopInternalRecording()",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopOvernightAndApplyOutcome()"
@@ -430,7 +430,7 @@
    "key": "func RecordView.retryFetch()",
    "hash": "e6357524ab8d0360",
    "does": "Starts performRetryFetch in a Task.",
-   "entry": "RetryFetchCard Retry button (RecordView+Sections.swift:147)",
+   "entry": "RetryFetchCard Retry button (RecordView+Sections.swift)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.performRetryFetch()"
    ],
@@ -499,7 +499,7 @@
    "key": "func RecordView.startStreaming(seconds:)",
    "hash": "a9faa55fa238b3cb",
    "does": "Clears fetchFailed and starts a quick streaming session of the given seconds; a thrown error is logged and written to sessionState.lastError.",
-   "entry": "Quick reading duration buttons in RecordPanels (RecordView+Panels.swift:718/728/738: 300/180/120 s)",
+   "entry": "Quick reading duration buttons in RecordPanels (RecordView+Panels.swift/728/738: 300/180/120 s)",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.startStreamingSession(durationSeconds:)",
@@ -528,7 +528,7 @@
    "key": "func RecordView.stopStreaming()",
    "hash": "6030a36782663645",
    "does": "Task: awaits collector.stopStreamingSession(); for a complete (archived) reading, writes the picked tags/notes through persistTagsAndNotes (morning tag added 04:00-09:59, currentSession updated in memory as well as the archive). A failed or nil reading gets none.",
-   "entry": "Stop-now button in StreamingProgressPanel and RRCollector.onStreamingComplete when the countdown expires (StreamingLiveView.swift:36)",
+   "entry": "Stop-now button in StreamingProgressPanel and RRCollector.onStreamingComplete when the countdown expires (StreamingLiveView.swift)",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.stopStreamingSession()",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()",
@@ -559,7 +559,7 @@
    "key": "func RecordView.acceptSession()",
    "hash": "a0d51702f2352505",
    "does": "Save for a reading awaiting acceptance (Save button, morning sheet Done, Continue to Dashboard): Task persists tags/notes onto the current session, accepts it in the collector, then clears tags, notes and selectedSessionType. When acceptance fails the selection is kept (the reading still awaits acceptance and the pipeline has set lastError), so Save again writes the same tags and notes; when there was no complete session to accept the selection is cleared as after a save.",
-   "entry": "Save button in RecordView.acceptanceButtons (RecordView+Sections.swift:34)",
+   "entry": "Save button in RecordView.acceptanceButtons (RecordView+Sections.swift)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.acceptSession()",
@@ -603,7 +603,7 @@
    "key": "func RecordView.rejectSession()",
    "hash": "1088094ac234ced7",
    "does": "Task: rejects the pending session in the collector, then clears tags, notes and the selected session type.",
-   "entry": "Discard button in RecordView.acceptanceButtons (RecordView+Sections.swift:27); RecordView.discardMorningReading (RecordView+Results.swift:189)",
+   "entry": "Discard button in RecordView.acceptanceButtons (RecordView+Sections.swift); RecordView.discardMorningReading (RecordView+Results.swift)",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()",
     "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()"
@@ -616,7 +616,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "eb28cd1f16567216",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "edba05fc1977bd36",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()": "5c2ddbec0504c7dd"
    }
   },
@@ -755,7 +755,7 @@
     "ud:fitness.unitsPreference (App Group suite, legacy standard fallback)"
    ],
    "writes": [
-    "ud:fitness.unitsPreference (App Group suite; UnitsPreferenceStore.current getter copies a legacy UserDefaults.standard value into the suite on first read, UnitsPreference.swift:136-138)"
+    "ud:fitness.unitsPreference (App Group suite; UnitsPreferenceStore.current getter copies a legacy UserDefaults.standard value into the suite on first read, UnitsPreference.swift)"
    ],
    "branches": [
     {
@@ -773,7 +773,7 @@
    "key": "var RecoveredWorkoutReviewCard.body",
    "hash": "d6c42ecd8c6d2e0b",
    "does": "Header, summary, trim hint, 1-minute-step slider bound to endMinutes over 1…maxMinutes, Save/Discard row, then the last failure message when there is one.",
-   "entry": "SwiftUI; RecoveredWorkoutReviewCard built by RecordView.recoveredWorkoutReviewSection (RecordView+Sections.swift:189) when morningCoordination.recoveredWorkoutReview != nil",
+   "entry": "SwiftUI; RecoveredWorkoutReviewCard built by RecordView.recoveredWorkoutReviewSection (RecordView+Sections.swift) when morningCoordination.recoveredWorkoutReview != nil",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.header",
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.summaryLine",
@@ -828,7 +828,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.distanceText": "629cf787efaa7ac5",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.distanceText": "b85c1ccee815ef7e",
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.keptMinutes": "eeb7f97321f7a632",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
@@ -873,7 +873,7 @@
    "entry": "Button tap by user",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecoveredWorkoutReviewCard.chosenEndSec",
-    "closure:onSave set by RecordView+Sections.swift:191 to RecordView.keepRecoveredWorkout (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.keepRecoveredWorkout(_:endSec:))",
+    "closure:onSave set by RecordView+Sections.swift to RecordView.keepRecoveredWorkout (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.keepRecoveredWorkout(_:endSec:))",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -891,7 +891,7 @@
    "does": "Discard button that only opens a confirmation ('Discard this recovered workout?': removed from history, its backup kept and recoverable from Settings → iCloud & Data → Recover Lost Sessions); its destructive Discard calls onDiscard (RecordView.discardRecoveredWorkout).",
    "entry": "Button tap by user; Discard in the confirmation",
    "calls": [
-    "closure:onDiscard set by RecordView+Sections.swift:192 to RecordView.discardRecoveredWorkout (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardRecoveredWorkout(_:))",
+    "closure:onDiscard set by RecordView+Sections.swift to RecordView.discardRecoveredWorkout (Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardRecoveredWorkout(_:))",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [

@@ -40,11 +40,11 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.beatsLost(between:and:)": "fddee7ac66aa6c04",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_: [Double])": "cfc5bcaa2df35d02",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "b34e517a8d85767b",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "84b722eacd1bb8d0",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "d6aecc67b791a62e",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "557250b35e2ea826",
-    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "462fed45d516c684",
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "d766295b33886f20",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.consumeWatchRoutedStrapFallback()": "59e149cc266792e8",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "c559c56d407c8548"
@@ -124,12 +124,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "b34e517a8d85767b",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "84b722eacd1bb8d0",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "d6aecc67b791a62e",
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)": "d7b5612921729235",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "3446776e2575bc4f",
-    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "462fed45d516c684",
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "d766295b33886f20",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.medianSmoothedHR(recent:)": "7a50fee9c958ae71",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.runTick()": "69b2bd65dab5ba01"
    }
@@ -148,7 +148,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.1 Live DFA α1",
    "hash": "b81bfa62b4b06995",
-   "does": "Lists live parameters W=120 s, C=20 s, 64 beats, 2 s slack (118 s), stalled after 40 s, reject above 0.06. Code: LiveDFAAnalyzer init defaults windowSec 120 / cadenceSec 20 (LiveDFAAnalyzer.swift:264), minBeatsForFit 64, windowSpanSlackSec 2.0, maxCorrectedFraction 0.06, stalled at cadenceSec*2 (:542).",
+   "does": "Lists live parameters W=120 s, C=20 s, 64 beats, 2 s slack (118 s), stalled after 40 s, reject above 0.06. Code: LiveDFAAnalyzer init defaults windowSec 120 / cadenceSec 20 (LiveDFAAnalyzer.swift), minBeatsForFit 64, windowSpanSlackSec 2.0, maxCorrectedFraction 0.06, stalled at cadenceSec*2.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)",
@@ -160,14 +160,14 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)": "1d627eb70c2a16d6",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)": "6a87eed9dd81b003",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)": "283c127ccfc7d90c",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit": "397d5d3ebb82f8f2"
    }
   },
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.1 Live DFA α1 > 3.1.1 Beat clock (dropout compensation)",
    "hash": "11f26ff6af564c00",
-   "does": "Specifies the beat clock start = max(nextStart, wall - originWall + originBeat) and the offline closed form t_ms + running max of wall lead; a unit test checks equality. Code: LiveDFAAnalyzer.BeatClock.stamp (LiveDFAAnalyzer.swift:600-610), WorkoutAnalyzer.gapCorrectedOffsetsMs (WorkoutAnalyzer.swift:792-802).",
+   "does": "Specifies the beat clock start = max(nextStart, wall - originWall + originBeat) and the offline closed form t_ms + running max of wall lead; a unit test checks equality. Code: LiveDFAAnalyzer.BeatClock.stamp (LiveDFAAnalyzer.swift), WorkoutAnalyzer.gapCorrectedOffsetsMs (WorkoutAnalyzer.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)",
@@ -184,7 +184,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.1 Live DFA α1 > 3.1.2 Ingest, trim, gate and progress",
    "hash": "a28ea03a736d0919",
-   "does": "Specifies ingest: ignore before session start, append re-stamped beats and set lastBeatAt if any, trim t_ms < newest - W, fill = min(count/64, span/118), recompute every >=C s else refresh; tick(now) once per second when no beats arrive; gate count>=64 and span>=118. Code: ingest/trimToWindow/publishFillProgress/tick/hasEnoughDataForFit (LiveDFAAnalyzer.swift:228-345); WorkoutRecorder+Ticker.ingestStrapBeatsAndDeriveHR calls dfa.tick() when no new beats (WorkoutRecorder+Ticker.swift:295-300).",
+   "does": "Specifies ingest: ignore before session start, append re-stamped beats and set lastBeatAt if any, trim t_ms < newest - W, fill = min(count/64, span/118), recompute every >=C s else refresh; tick(now) once per second when no beats arrive; gate count>=64 and span>=118. Code: ingest/trimToWindow/publishFillProgress/tick/hasEnoughDataForFit (LiveDFAAnalyzer.swift); WorkoutRecorder+Ticker.ingestStrapBeatsAndDeriveHR calls dfa.tick() when no new beats (WorkoutRecorder+Ticker.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)",
@@ -199,9 +199,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "b34e517a8d85767b",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "84b722eacd1bb8d0",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.publishFillProgress()": "aef805d5536d10f8",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)": "59393901fad22b47",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.tick(now:)": "ff1fd79c1d716232",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.trimToWindow()": "2757c9537436562d",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.bufferSpanSec": "dd06e54105d9a3b5",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.hasEnoughDataForFit": "397d5d3ebb82f8f2",
@@ -240,7 +240,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.1 Live DFA α1 > 3.1.4 Recompute and status machine",
    "hash": "331b245fc6a70f3e",
-   "does": "Specifies recompute outcomes (too many artifacts > 0.06, fit failed, else publish) and refresh order (stalled >40 s, gate failure -> warmup, value -> ok, after stalled -> warmup, else unchanged) with the invariant alpha1 non-nil iff ok. Code: recompute/fitOrExplain/markFitFailed/markTooNoisy/markWarmingUp/clearPublishedValue/refreshStatus/markStalled (LiveDFAAnalyzer.swift:348-575).",
+   "does": "Specifies recompute outcomes (too many artifacts > 0.06, fit failed, else publish) and refresh order (stalled >40 s, gate failure -> warmup, value -> ok, after stalled -> warmup, else unchanged) with the invariant alpha1 non-nil iff ok. Code: recompute/fitOrExplain/markFitFailed/markTooNoisy/markWarmingUp/clearPublishedValue/refreshStatus/markStalled (LiveDFAAnalyzer.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.recompute(now:)",
@@ -269,7 +269,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.1 Live DFA α1 > 3.1.5 DFA core and bands",
    "hash": "ab8f92c58f2d770a",
-   "does": "Specifies the DFA core: n>=64, integrate, log-spaced box sizes ratio 2^(1/8) from lo to min(hi, n/4), detrended fluctuation per size, log-log slope and R^2 (alpha1 4-16 needing 3 sizes; alpha2 16-64 with n>=256); bands Easy >=0.75, Threshold 0.50-0.75, Very Hard <0.50 via one shared function. Code: DFAAnalyzer.compute/integratedSeries/alpha2Exponent/logSpacedBoxSizes/computeFluctuation/detrendedSumOfSquares/leastSquaresLine/logLogRegression (DFAAnalysis.swift:29-175), LiveDFAAnalyzer.Band.display.",
+   "does": "Specifies the DFA core: n>=64, integrate, log-spaced box sizes ratio 2^(1/8) from lo to min(hi, n/4), detrended fluctuation per size, log-log slope and R^2 (alpha1 4-16 needing 3 sizes; alpha2 16-64 with n>=256); bands Easy >=0.75, Threshold 0.50-0.75, Very Hard <0.50 via one shared function. Code: DFAAnalyzer.compute/integratedSeries/alpha2Exponent/logSpacedBoxSizes/computeFluctuation/detrendedSumOfSquares/leastSquaresLine/logLogRegression (DFAAnalysis.swift), LiveDFAAnalyzer.Band.display.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
@@ -300,7 +300,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.1 Live DFA α1 > 3.1.6 Offline re-analysis",
    "hash": "8d1f13a073e99ae8",
-   "does": "Specifies offline re-analysis: >=64 points on the gap-corrected timeline, duration > 120 s, sweep t = 120,140,... with O(n) two-pointer windows, clean and reject >0.06, emit (t, alpha1, R^2); per-second samples take the latest reading <20 s old else nil. Code: WorkoutAlpha1Reanalyzer.reanalyze/wallClockTimeline/fit/applyReadings (WorkoutAlpha1Reanalyzer.swift:66-140), RRWindowSweep.range (SleepBoundaryResolver.swift:29).",
+   "does": "Specifies offline re-analysis: >=64 points on the gap-corrected timeline, duration > 120 s, sweep t = 120,140,... with O(n) two-pointer windows, clean and reject >0.06, emit (t, alpha1, R^2); per-second samples take the latest reading <20 s old else nil. Code: WorkoutAlpha1Reanalyzer.reanalyze/wallClockTimeline/fit/applyReadings (WorkoutAlpha1Reanalyzer.swift), RRWindowSweep.range (SleepBoundaryResolver.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)",
@@ -367,7 +367,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.2 Post-hoc interpretation of α1 > 3.2.2 Band totals and the first sustained AT1 crossing",
    "hash": "71fe6ea978dfb334",
-   "does": "Specifies band totals with dt = min(max(1, gap), 5) s (1 s first), shadows skipped, and the first sustained AT1 crossing: after 120 s, >=0.75 arms and resets, <0.75 while armed accumulates from a pending (offset, HR) until 180 s. Code: alpha1Stats/alpha1BandTotals/sampleSeconds/Alpha1Bands.add/AT1CrossDetector.step (Alpha1ReportCards+Report.swift:343-457).",
+   "does": "Specifies band totals with dt = min(max(1, gap), 5) s (1 s first), shadows skipped, and the first sustained AT1 crossing: after 120 s, >=0.75 arms and resets, <0.75 while armed accumulates from a pending (offset, HR) until 180 s. Code: alpha1Stats/alpha1BandTotals/sampleSeconds/Alpha1Bands.add/AT1CrossDetector.step (Alpha1ReportCards+Report.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)",
@@ -424,7 +424,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.3 Training load > 3.3.1 Load ladder",
    "hash": "a94fea4621531d82",
-   "does": "Specifies the ladder: power (stored IF with >60 s moving time, else stored power TSS, else read-time (NP/FTP)^2*h*100), route estimate when it replaces a dropout HR load, hrTSS, MET load, Banister TRIMP, route estimate last. Code: TrainingLoadPrecedence.stored/readTimePowerTSS (TrainingLoadPrecedence.swift:83-109), WorkoutMetadata.storedPowerTSS/routeEstimateReplacesHRLoad/computedMETLoad.",
+   "does": "Specifies the ladder: power (stored IF with >60 s moving time, else stored power TSS, else read-time (NP/FTP)^2*h*100), route estimate when it replaces a dropout HR load, hrTSS, MET load, Banister TRIMP, route estimate last. Code: TrainingLoadPrecedence.stored/readTimePowerTSS (TrainingLoadPrecedence.swift), WorkoutMetadata.storedPowerTSS/routeEstimateReplacesHRLoad/computedMETLoad.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)",
@@ -490,7 +490,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.3 Training load > 3.3.3 hrTSS, Banister TRIMP and MET load",
    "hash": "f72545f2962a02aa",
-   "does": "Specifies hrTSS = TRIMP/TRIMP_ref*100 (ref = 60 min at LTHR, else 0.88 HRmax), Banister TRIMP per beat with HRR clamp and A,k = 0.64,1.92 male / 0.86,1.67 female, >=30 beats, Edwards fallback when HRmax or rest HR unknown; MET load = MET-h/12*100 reported above 0.5, per-sample path >=30 samples with METs on >=1/4, durations clamped 1-30 s, bucket fallback needing >50 m, 0.5-60 km/h and >=60 s. Code: WorkoutAnalyzer.computeTRIMP/banisterTRIMP/edwardsTRIMPFallback (WorkoutAnalyzer.swift:198-260), WorkoutMetadata.perSampleMETLoad/sampleSeconds/bucketMETLoad/averageKmh/loadFromMETHours (WorkoutMetadata.swift:545-630).",
+   "does": "Specifies hrTSS = TRIMP/TRIMP_ref*100 (ref = 60 min at LTHR, else 0.88 HRmax), Banister TRIMP per beat with HRR clamp and A,k = 0.64,1.92 male / 0.86,1.67 female, >=30 beats, Edwards fallback when HRmax or rest HR unknown; MET load = MET-h/12*100 reported above 0.5, per-sample path >=30 samples with METs on >=1/4, durations clamped 1-30 s, bucket fallback needing >50 m, 0.5-60 km/h and >=60 s. Code: WorkoutAnalyzer.computeTRIMP/banisterTRIMP/edwardsTRIMPFallback (WorkoutAnalyzer.swift), WorkoutMetadata.perSampleMETLoad/sampleSeconds/bucketMETLoad/averageKmh/loadFromMETHours (WorkoutMetadata.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)",
@@ -548,7 +548,7 @@
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.recompute(healthKit:reference:forMorningReading:settings:)": "961628550d9a3083",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)": "2165868632351d87",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.cappedLoad(_:)": "d24d2d7ac836e89c",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "08ca06d4f7a41cbf",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)": "7e4e02f23316fba1",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutsExtendedIfAnswered(days:relativeTo:)": "8889a2d090180ce2",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)": "a24fc447d45ac02d",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.queryWorkouts(days:relativeTo:)": "36db104e2eb16da6",
@@ -569,7 +569,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.4 Route-matched load substitution > 3.4.1 Route matching",
    "hash": "863e61eb7f4a76ba",
-   "does": "Specifies route matching for run/trailRun/walk/hike/bike saved routes: >=2 points and >=500 m traveled; both directions; start within 150 m; prefix L+200 m thinned to 5 m; live track subsampled to 300; mean nearest distance <=30 m; best fit wins. Code: RouteLibrary.findMatch/candidates/scoreDirection/evenSample/thinned/trackPrefix/meanNearestDistance/nearestDistance (RouteLibrary.swift:27-210).",
+   "does": "Specifies route matching for run/trailRun/walk/hike/bike saved routes: >=2 points and >=500 m traveled; both directions; start within 150 m; prefix L+200 m thinned to 5 m; live track subsampled to 300; mean nearest distance <=30 m; best fit wins. Code: RouteLibrary.findMatch/candidates/scoreDirection/evenSample/thinned/trackPrefix/meanNearestDistance/nearestDistance (RouteLibrary.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)",
@@ -656,7 +656,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.4 Route-matched load substitution > 3.4.4 When the estimate replaces the recorded load",
    "hash": "3f81000c77f0c105",
-   "does": "Specifies routeEstimateReplacesHRLoad: estimate >0, confidence >0.4, recorded TRIMP (0 if absent) < 0.5 x estimate; then tier 2, else tier 6 only. Code: WorkoutMetadata.routeEstimateReplacesHRLoad with routeEstimateNoPriorConfidence 0.4 and routeDropoutRecordedShare 0.5 (WorkoutMetadata.swift:671-691), TrainingLoadPrecedence.stored.",
+   "does": "Specifies routeEstimateReplacesHRLoad: estimate >0, confidence >0.4, recorded TRIMP (0 if absent) < 0.5 x estimate; then tier 2, else tier 6 only. Code: WorkoutMetadata.routeEstimateReplacesHRLoad with routeEstimateNoPriorConfidence 0.4 and routeDropoutRecordedShare 0.5 (WorkoutMetadata.swift), TrainingLoadPrecedence.stored.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad",
@@ -704,7 +704,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)": "89c6035f516c2de9",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)": "898ed509ce6dab58",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "b0963f4cef77ab75",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyFreshnessBonus(_:morningATL:atl:)": "a83e9d3e21701cdb",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyRecoveryModulation(_:recoveryScore:ctl:)": "33200c3e1cd9ed5d",
@@ -712,7 +712,7 @@
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "55b0e28838dc4f17",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "9b7372d63af0f799",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "79a326701b55ae38",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayReadinessLabel(for:load:)": "2508f75273b7c5e9",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayReadinessLabel(for:load:)": "1fd39edca13a3201",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "c73d8f4cc0baddaa",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "65e7cfbcfed7a66f",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "ce864bb2c19d8f10"
@@ -721,7 +721,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.5 Training readiness > 3.5.2 Frozen morning value and live interpolation",
    "hash": "e31aaadf57d5af77",
-   "does": "Specifies frozen morning readiness (todayTrimp 0, anchor = ATL, ACWR = ATL/CTL, stored /10) and live interpolation f = clamp(h/24,0,1) of ATL and CTL from the frozen snapshot, anchor ATL_m except at f=1; no training metrics -> readiness equals recovery; narrative when readiness differs by >=3 points from the morning-anchor readiness (frozen ATL/CTL, no training). Code: ReanalysisService.computeFrozenReadiness, LiveReadiness.compute/readiness/morningReadiness/morningOnly/gateLoad/interpolatedLoad/headline/recentWorkoutLoads/workoutLoads, ReadinessScoring.rawAcuteFatigue (LiveReadiness.swift:85-170,266-296).",
+   "does": "Specifies frozen morning readiness (todayTrimp 0, anchor = ATL, ACWR = ATL/CTL, stored /10) and live interpolation f = clamp(h/24,0,1) of ATL and CTL from the frozen snapshot, anchor ATL_m except at f=1; no training metrics -> readiness equals recovery; narrative when readiness differs by >=3 points from the morning-anchor readiness (frozen ATL/CTL, no training). Code: ReanalysisService.computeFrozenReadiness, LiveReadiness.compute/readiness/morningReadiness/morningOnly/gateLoad/interpolatedLoad/headline/recentWorkoutLoads/workoutLoads, ReadinessScoring.rawAcuteFatigue (LiveReadiness.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
@@ -745,9 +745,9 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "312a650844565803",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "4b0a5707f61c717d",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)": "934486c05d509c28",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "302fee87cf8a05fe",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "4d7fbc2f366fb7fc",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)": "89c6035f516c2de9",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "71401bbb00d967e4",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "690f53f0c86395b4",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)": "898ed509ce6dab58",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::var LiveReadiness.headline": "2fc12aeebe127d42",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "65e7cfbcfed7a66f",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1"
@@ -806,7 +806,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.6 Fusing the two strap paths > 3.6.2 Merge at finalize",
    "hash": "ba199bd87e51c7c1",
-   "does": "Specifies finalize merge: start from the phone buffer only if source is strap; no Watch beats -> phone buffer; any point lacking wallClockMs -> concatenate and sort by t_ms; else interleave by wallClockMs phone-first on ties keeping each side's order; rebuild t_ms as the running RR sum. Code: WorkoutRRMerge.merged/interleaved/retimed (WorkoutRRMerge.swift:44-80).",
+   "does": "Specifies finalize merge: start from the phone buffer only if source is strap; no Watch beats -> phone buffer; any point lacking wallClockMs -> concatenate and sort by t_ms; else interleave by wallClockMs phone-first on ties keeping each side's order; rebuild t_ms as the running RR sum. Code: WorkoutRRMerge.merged/interleaved/retimed (WorkoutRRMerge.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)",
@@ -818,14 +818,14 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.interleaved(_:_:)": "77c4655fa521138b",
-    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "462fed45d516c684",
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "d766295b33886f20",
     "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.retimed(_:)": "1aa451405f642a20"
    }
   },
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 3. Methods > 3.7 Per-split α1 and decoupling (standard)",
    "hash": "16cc22461004dc8c",
-   "does": "Specifies per-split alpha1 (mean sample alpha1 in the split's time window found by walking the track) and Pa:Hr decoupling (halves of moving time, EF per half on the gap-corrected timeline, (EF1-EF2)/EF1*100, withheld under 5 min or 500 m). Code: WorkoutAnalyzer.computeDecoupling (WorkoutAnalyzer.swift:563-590) and split computation in WorkoutAnalyzer.",
+   "does": "Specifies per-split alpha1 (mean sample alpha1 in the split's time window found by walking the track) and Pa:Hr decoupling (halves of moving time, EF per half on the gap-corrected timeline, (EF1-EF2)/EF1*100, withheld under 5 min or 500 m). Code: WorkoutAnalyzer.computeDecoupling (WorkoutAnalyzer.swift) and split computation in WorkoutAnalyzer.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDecoupling(track:rrPoints:startDate:pauses:)"
@@ -840,7 +840,7 @@
   {
    "key": "§ Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load > 4. Comparison with Existing Approaches",
    "hash": "7e4e41b42c1b7d97",
-   "does": "no behavioural claim: section heading; states Emuqu uses non-overlapping forward boxes of 4-16 beats at ratio 2^(1/8) (matches DFAAnalysis.swift:89).",
+   "does": "no behavioural claim: section heading; states Emuqu uses non-overlapping forward boxes of 4-16 beats at ratio 2^(1/8) (matches DFAAnalysis.swift).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -907,13 +907,13 @@
    "deps": {
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_: [Double])": "cfc5bcaa2df35d02",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "b34e517a8d85767b",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "84b722eacd1bb8d0",
     "Tools/validation/port_dfa.py::def compute": "84f3dcc4dba47522",
     "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
     "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "6dea7162cf3071c0",
-    "Tools/validation/test_ports.py::def case.deco.run": "e2a2fd6335a64581",
+    "Tools/validation/test_ports.py::def case.deco.run": "3e590aff29f8547a",
     "Tools/validation/validate_dfa_injection.py::def inject": "6575e01f3ac3eadf",
-    "Tools/validation/validate_dfa_injection.py::def main": "78cc173f1408e58d"
+    "Tools/validation/validate_dfa_injection.py::def main": "b3f164dcaf7bd785"
    }
   },
   {
@@ -1030,7 +1030,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)": "6a87eed9dd81b003",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::init LiveDFAAnalyzer(windowSec:cadenceSec:)": "283c127ccfc7d90c",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "ef22a598a8881280",
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.scaledEstimate(priorAvgRatio:recordedRatio:priorCount:targetDistance:)": "1dbf20fc1918ef27"
@@ -1067,14 +1067,14 @@
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)": "676680ac154602e1",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_: [Double])": "cfc5bcaa2df35d02",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_: [RRPoint])": "89264b646221538e",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "b34e517a8d85767b",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "84b722eacd1bb8d0",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "43565f161f7e12f3",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "ef22a598a8881280",
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "d6aecc67b791a62e",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "3446776e2575bc4f",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "557250b35e2ea826",
-    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "462fed45d516c684",
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "d766295b33886f20",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.consumeWatchRoutedStrapFallback()": "59e149cc266792e8",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.AT1CrossDetector.step(alpha1:sample:dt:)": "d80dda2e34c22a1d",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
@@ -1164,7 +1164,7 @@
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)": "4be8b34262c0d6e2",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)": "1d627eb70c2a16d6",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "43565f161f7e12f3",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "302fee87cf8a05fe",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "71401bbb00d967e4",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "c73d8f4cc0baddaa",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.candidates(for:liveTrack:liveTraveled:)": "1877ca7da03fcb95",
@@ -1183,12 +1183,12 @@
     "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.run(archive:savedRouteStore:lookbackDays:)": "9566c557b737dd87",
     "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.runIfNeeded(archive:savedRouteStore:lookbackDays:)": "411f84f915e19e05",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.summary(from:archive:)": "d70c98d10d49aebf",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "5f9e195a4d0ab23f",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "6215243917f101b8",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)": "a24fc447d45ac02d",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "654be340768a34db",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "557250b35e2ea826",
     "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.interleaved(_:_:)": "77c4655fa521138b",
-    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "462fed45d516c684",
+    "Emuqu/Sources/Collection/WorkoutRRMerge.swift::func WorkoutRRMerge.merged(source:streaming:watchRouted:)": "d766295b33886f20",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.attachAnalysisSnapshot(to:sport:rrPoints:startDate:stopDate:userMaxHR:)": "4f1a027d32118dc4",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.classifySessionAndAttachData(session:metadata:series:rrPoints:stopDate:)": "2071338b903337d0",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportInputs(for:settings:)": "ccdf21cc04ec760f",
@@ -1198,7 +1198,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.runIncrementalBackup(buffer:)": "435f02480db3d094",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(from:)": "7659f518f7db322a",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.selectWindow(method:series:flags:sleepStartMs:wakeTimeMs:selector:baselineStats:)": "3b39e60904d53f84",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.selectWindow(method:series:flags:sleepStartMs:wakeTimeMs:selector:baselineStats:)": "1911c2be5a0d198a",
     "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:onZonesStale:)": "87a185c72b0374ca",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildRecoveredSession(sessionId:startDate:endDate:rrPoints:metadata:)": "b3a4bbb4221b6ab2",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)": "86143be1b3e7f1cf",

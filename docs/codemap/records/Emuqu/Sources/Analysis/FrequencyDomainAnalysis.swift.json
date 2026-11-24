@@ -16,7 +16,7 @@
   "mem:FrequencyDomainAnalyzer.vlfWelchSegmentLength = 1024",
   "mem:FrequencyDomainAnalyzer.welchOverlap = 0.5"
  ],
- "toplevel": "Static lets: band ranges from HRVConstants.FrequencyBands (Constants.swift), the 10-min VLF gate defined here. The DFT cache is a global lock-guarded dictionary shared with RespirationAnalyzer (RespirationAnalysis.swift:55); setups are created on demand and leaked for the app lifetime.",
+ "toplevel": "Static lets: band ranges from HRVConstants.FrequencyBands (Constants.swift), the 10-min VLF gate defined here. The DFT cache is a global lock-guarded dictionary shared with RespirationAnalyzer (RespirationAnalysis.swift); setups are created on demand and leaked for the app lifetime.",
  "units": [
   {
    "key": "func FrequencyDomainAnalyzer.getDFTSetup(size:)",
@@ -51,7 +51,7 @@
    "key": "func FrequencyDomainAnalyzer.teardownDFTCache()",
    "hash": "b053e3e630d309d6",
    "does": "Intentional no-op memory-warning hook; destroys nothing.",
-   "entry": "Called from the UIApplication.didReceiveMemoryWarningNotification observer in EmuquApp.observeMemoryWarnings (EmuquApp.swift:234)",
+   "entry": "Called from the UIApplication.didReceiveMemoryWarningNotification observer in EmuquApp.observeMemoryWarnings (EmuquApp.swift)",
    "calls": [],
    "reads": [],
    "writes": [],

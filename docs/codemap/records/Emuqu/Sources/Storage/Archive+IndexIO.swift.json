@@ -420,7 +420,7 @@
    ],
    "reads": [
     "file:<deletedIndexFile>",
-    "ud:archive.deletionTimes (standard; via ArchiveStore.idsWithRecordedDeletionTime, Archive+Internal.swift:736,745)"
+    "ud:archive.deletionTimes (standard; via ArchiveStore.idsWithRecordedDeletionTime, Archive+Internal.swift)"
    ],
    "writes": [
     "mem:SessionArchive.deletedSessionIds",
@@ -840,7 +840,8 @@
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "a8931f1f0477a31d",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::init SessionArchiveEntry.SleepMirror(session:)": "b575c7030b2f391d",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   },
   {
@@ -908,7 +909,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "1dd3dd91a24f0a38",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   },
@@ -985,7 +986,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)": "63cfbee8fbd51a33",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)": "739c44c62f140f00",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

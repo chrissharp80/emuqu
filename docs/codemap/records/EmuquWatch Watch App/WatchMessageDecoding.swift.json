@@ -1,7 +1,7 @@
 {
  "file": "EmuquWatch Watch App/WatchMessageDecoding.swift",
  "hash": "d584eb00c7b620e6",
- "role": "Pure, nonisolated decoding of iPhone→Watch WCSession payloads into typed StateUpdate/Command values, plus the transition rules (recording start/stop, completion banner, request clearing), refusal wording, sport/band/pace labels, phone-silence rules, coach-alert freshness, message send-time ordering, queued-End displacement, heart-rate zone buckets and strap 2A37 packet decoding. Compiled into both the Watch target and EmuquTests (project.pbxproj:4517).",
+ "role": "Pure, nonisolated decoding of iPhone→Watch WCSession payloads into typed StateUpdate/Command values, plus the transition rules (recording start/stop, completion banner, request clearing), refusal wording, sport/band/pace labels, phone-silence rules, coach-alert freshness, message send-time ordering, queued-End displacement, heart-rate zone buckets and strap 2A37 packet decoding. Compiled into both the Watch target and EmuquTests (project.pbxproj).",
  "types": [
   "WatchMessageDecoding: enum (namespace, nonisolated)",
   "WatchMessageDecoding.StateUpdate: struct — optional fields, nil = absent; isLiveSnapshot marks a liveState tick",
@@ -79,7 +79,7 @@
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentBand(_:)": "b7c396f1f0f126d7",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.paceDisplay(_:)": "d57bb0fcf874a06e",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "b7a534d7f64da24b"
+    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.sportLabel(fromRaw:)": "6a9f1d07a12720f2"
    }
   },
   {
@@ -345,7 +345,7 @@
   {
    "key": "func WatchMessageDecoding.sportLabel(fromRaw:)",
    "hash": "342314af7ca9038b",
-   "does": "Maps an iPhone Sport raw value to the same localized name as iOS Sport.localizedName (WorkoutMetadata.swift:54-63); unknown raw values become title-cased with underscores replaced by spaces.",
+   "does": "Maps an iPhone Sport raw value to the same localized name as iOS Sport.localizedName (WorkoutMetadata.swift); unknown raw values become title-cased with underscores replaced by spaces.",
    "entry": null,
    "calls": [],
    "reads": [],

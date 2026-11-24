@@ -10,7 +10,7 @@
   "mem:FitnessPostSummaryView.refreshedSession (@State, archive copy that overrides initialSession) MAIN:17",
   "@State showDeleteConfirm, cachedTrack, gpxExport, csvExport, tcxExport (ExportFile.Pending, built in memory), exportsReady, exportGeneration, exportError, trackDecoded, reloadGeneration, loadedFileHash, summaryPrepared, pdfURL, pdfGenerating, recapImage, recapImageURL, recapGenerating, recapSharePresented, showSaveRouteSheet, newRouteName, savedRouteIDForThisSession, pdfSharePresented, pdfMailPresented, pdfMailError, reportShare (FitnessSummaryCards.ReportShareState; summaryOnScreen true from onAppear to onDisappear), reanalyzing, reanalyzeError, elevResmoothing, elevResmoothPreview, elevResmoothError, routeHistory, routeHistoryGeneration, cachedSplits, feelingEditing, feelingSaveFailed",
   "mem:FitnessPostSummaryView.feelingSkipped (@State; Skip on an unrated workout hides both feeling prompts for this visit)",
-  "Environment: dependencies, SettingsManager, RRCollector, ArchiveSignal (lines 10, 38, 42, 43)",
+  "Environment: dependencies, SettingsManager, RRCollector, ArchiveSignal",
   "@State builtAnalysis (snapshot the backfill built for a session saved without one) and analysisGeneration (newest backfill wins)"
  ],
  "toplevel": "Stored let initialSession / onDone and var onDelete set by init (the onDelete comment says the Fitness tab wires it and History does not); @State defaults (empty track, nil exports and URLs, false flags, generations 0). The export comment says the GPX/CSV/TCX rows have their bytes ready so a tap only writes the file and opens a share sheet that deletes it (FileShareButton), while the PDF report and recap card present ShareSheet in a .sheet after a render. Environment objects SettingsManager, RRCollector and ArchiveSignal must be injected by the presenter or the view traps at runtime.",
@@ -326,8 +326,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Alpha1Forwarding.swift::func FitnessPostSummaryView.alpha1RouteColoredCard(track:)": "eecfb5009d2d9145",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Alpha1Forwarding.swift::var FitnessPostSummaryView.alpha1ReportCard": "1267808266fbd6a8",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Alpha1Forwarding.swift::func FitnessPostSummaryView.alpha1RouteColoredCard(track:)": "3a0a312372082179",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Alpha1Forwarding.swift::var FitnessPostSummaryView.alpha1ReportCard": "8909d2633b012b03",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.feelingSection": "06b388c57103cc3a",
     "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.hrrCard": "b062baf8286d6687",
     "Emuqu/Sources/Views/FitnessPostSummaryView+ThresholdForwarding.swift::var FitnessPostSummaryView.alpha1CrossingsCard": "2f2f8077a88ae371",

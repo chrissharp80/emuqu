@@ -8,9 +8,9 @@
   "View: extension — disableWritingToolsIfAvailable"
  ],
  "state": [
-  "var scrollToBottomSignal: UUID (line 17), var title (default 'Assistant', line 20)",
-  "@State floSettingsPresented, showClearConfirm, disclaimerPresented, reportMailUnavailable, citationSession (lines 26-33)",
-  "@State isPinnedToBottom, chatViewportHeight, lastStreamingScrollAt (lines 46-53)",
+  "var scrollToBottomSignal: UUID, var title (default 'Assistant')",
+  "@State floSettingsPresented, showClearConfirm, disclaimerPresented, reportMailUnavailable, citationSession",
+  "@State isPinnedToBottom, chatViewportHeight, lastStreamingScrollAt",
   "@State perMessageEmailItem (ShareableText?), perMessageShareItem, exportShareURL"
  ],
  "toplevel": "No global code. ShareableText gets a fresh UUID id per instance. View extension applies writingToolsBehavior(.disabled) on iOS 18+.",
@@ -76,7 +76,7 @@
    "key": "var AssistantChatView.body",
    "hash": "17cc0c37a7e449c3",
    "does": "Signposts 'AssistantChatView.body' and renders NavigationStack { chatStack with chrome and sheets }, running onChatAppear on appear.",
-   "entry": "SwiftUI view body evaluation (embedded by CoachHomeV2View.swift:61); .onAppear",
+   "entry": "SwiftUI view body evaluation (embedded by CoachHomeV2View.swift); .onAppear",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost",
@@ -96,7 +96,7 @@
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.chatStack": "52f1ae52a4bddcca",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "307d74d767ff8c77",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "bd45a05be7ff4704"
    }
   },
   {
@@ -145,7 +145,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "dff1863da10b59ec",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "2cb1a3b0a707c650",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.handleAssistantURL(_:)": "db4b7fdd41c7483d",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.chatToolbar": "b07f035153ad0539",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
@@ -216,7 +216,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::func AssistantChatView.openReport(_:)": "eabc00d4c6e36464",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "4b39999a63ca2c1d",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.reportURL(quoting:)": "041452b1d4549fed",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func ChatBubble.reportURL(quoting:)": "70a7d2072b178c3e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
@@ -300,7 +300,7 @@
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceColor": "ad13140b6a7dcac2",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceIcon": "e0f3172b010d6711",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voiceIsActive": "5916f84bcd44e967",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.toggle()": "2f6796df66c0742e",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.toggle()": "cf747a863ca54567",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
@@ -472,7 +472,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()": "6424a08217b63c5d",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()": "e6b2aaee51f730b8",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49"
    }
   },
@@ -493,8 +493,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.acknowledgeConsentAndContinue()": "cf1a63f45ff1346f",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()": "6424a08217b63c5d",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.acknowledgeConsentAndContinue()": "667ffa44fb3ad4a9",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancelPendingConsent()": "e6b2aaee51f730b8",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49"
    }
   },
@@ -516,7 +516,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.body": "db13b540bb0c1339",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.body": "c55c647a93e4b769",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "dac42d076ea6279c",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "46367860bc72e5b4",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
@@ -590,7 +590,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()": "fe48bb6684a1010a",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()": "c794571e41a68e05",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
    }
@@ -613,7 +613,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()": "81b3769a876d3fed",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()": "81f34dab249168e0",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantContextSource": "fbe2a3962e7eb323"
    }
@@ -633,7 +633,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.invalidateContext()": "545031f7e6a37cbc",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.invalidateContext()": "29ba9befe55e59a7",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -703,7 +703,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.exportConversation()": "68dae41a2e7e1518",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.exportConversation()": "a6505a52ebcad8a9",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -792,7 +792,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "4b39999a63ca2c1d",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.forceFinalizeTurn()": "2b512dced766ed59",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.forceFinalizeTurn()": "8933498a820a4f55",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
@@ -869,7 +869,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "4b39999a63ca2c1d",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "89dce1ce746e3a16",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.stop()": "889040a923cf1906",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }

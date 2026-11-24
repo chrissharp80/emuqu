@@ -3,7 +3,7 @@
  "hash": "9ff4e6d9b3694981",
  "role": "@Observable @MainActor live DFA alpha1 analyzer for workouts: keeps a 2-minute rolling RR window on a gap-corrected beat clock, artifact-corrects it, fits DFA alpha1 every 20 s, and publishes alpha1/band/status for the live tiles, voice coach and Watch payload. Also hosts the shared static cleaner used by the offline re-analyzer.",
  "types": [
-  "LiveDFAAnalyzer: class — @Observable @MainActor rolling alpha1 analyzer owned by WorkoutRecorder (WorkoutRecorder.swift:71)",
+  "LiveDFAAnalyzer: class — @Observable @MainActor rolling alpha1 analyzer owned by WorkoutRecorder (WorkoutRecorder.swift)",
   "LiveDFAAnalyzer.Band: enum — unknown/belowAeT/nearAeT/aboveVT2 display band",
   "LiveDFAAnalyzer.Status: enum — warmup/ok/stalled/fitFailed/tooManyArtifacts",
   "LiveDFAAnalyzer.CleanedSeries: struct — corrected RR values + count of corrected beats",
@@ -21,7 +21,7 @@
   "mem:LiveDFAAnalyzer.windowSpanSlackSec=2.0 (private static)",
   "instance: windowSec (default 120), cadenceSec (default 20), minBeatsForFit=64, rollingBuffer, beatClock, lastComputeDate, sessionStart, lastBeatAt"
  ],
- "toplevel": "Stored-property initializers: status starts .warmup(0), band .unknown, buffers empty. Long header comment documents the science and band cuts (0.75 / 0.50 from HRVConstants.DFA, Constants.swift:197-198).",
+ "toplevel": "Stored-property initializers: status starts .warmup(0), band .unknown, buffers empty. Long header comment documents the science and band cuts (0.75 / 0.50 from HRVConstants.DFA, Constants.swift).",
  "units": [
   {
    "key": "func LiveDFAAnalyzer.Band.display(alpha1:)",
@@ -224,7 +224,7 @@
   {
    "key": "init LiveDFAAnalyzer(windowSec:cadenceSec:)",
    "hash": "aa316bf3e125eb9c",
-   "does": "Stores windowSec (default 120 s) and cadenceSec (default 20 s). Instantiated once per WorkoutRecorder (WorkoutRecorder.swift:71).",
+   "does": "Stores windowSec (default 120 s) and cadenceSec (default 20 s). Instantiated once per WorkoutRecorder (WorkoutRecorder.swift).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -255,7 +255,7 @@
   {
    "key": "func LiveDFAAnalyzer.ingest(points:now:)",
    "hash": "e1a618aa9119c7f6",
-   "does": "Appends new RR points (re-stamped by BeatClock), records lastBeatAt when non-empty, trims to window, publishes fill progress, then either refreshes status (if within cadence of last compute) or recomputes alpha1. Called from WorkoutRecorder+Ticker.swift:302 and :351.",
+   "does": "Appends new RR points (re-stamped by BeatClock), records lastBeatAt when non-empty, trims to window, publishes fill progress, then either refreshes status (if within cadence of last compute) or recomputes alpha1. Called from WorkoutRecorder+Ticker.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.BeatClock.stamp(_:)",
@@ -338,7 +338,7 @@
   {
    "key": "func LiveDFAAnalyzer.tick(now:)",
    "hash": "bd711d401bca9ada",
-   "does": "Refreshes status without new beats so stall time updates. Called by WorkoutRecorder+Ticker.swift:299 on the recorder tick loop.",
+   "does": "Refreshes status without new beats so stall time updates. Called by WorkoutRecorder+Ticker.swift on the recorder tick loop.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.refreshStatus(now:)"

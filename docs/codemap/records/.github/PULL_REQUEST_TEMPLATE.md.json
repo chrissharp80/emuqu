@@ -4,7 +4,7 @@
  "role": "GitHub pull-request template for the maintainer's own branches; a checklist of verification, gate, and privacy-surface items.",
  "types": [],
  "state": [],
- "toplevel": "Lines 1-2: HTML comment stating outside PRs are not accepted (consistent with CONTRIBUTING.md:3-6).",
+ "toplevel": "Lines 1-2: HTML comment stating outside PRs are not accepted (consistent with CONTRIBUTING.md).",
  "units": [
   {
    "key": "§ What changed",
@@ -46,7 +46,7 @@
   {
    "key": "§ Gates",
    "hash": "358908b91c155762",
-   "does": "Checklist: no new `swiftlint:disable` (repo has 0 in Emuqu/Sources, verified by grep); lowered budgets lowered in `.ci/`; raised budgets justified; new Swift files registered at four pbxproj points (same rule as CONTRIBUTING.md:72-76, enforced in part by `make orphan-swift-guard`, Makefile:168).",
+   "does": "Checklist: no new `swiftlint:disable` (repo has 0 in Emuqu/Sources, verified by grep); lowered budgets lowered in `.ci/`; raised budgets justified; new Swift files registered at four pbxproj points (same rule as CONTRIBUTING.md, enforced in part by `make orphan-swift-guard`, Makefile).",
    "entry": null,
    "calls": [
     "Makefile::target budget-monotonicity",
@@ -57,15 +57,15 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
-    "Makefile::target debt-budget": "107274ad82f7d924",
-    "Makefile::target orphan-swift-guard": "274019c065545658"
+    "Makefile::target budget-monotonicity": "3f2b4858f1a3dead",
+    "Makefile::target debt-budget": "1fdd61e80c5baaa9",
+    "Makefile::target orphan-swift-guard": "05ba360593aa0038"
    }
   },
   {
    "key": "§ Surface changes",
    "hash": "4e1209c56f8e845b",
-   "does": "Checklist: new strings localized and bundle-qualified with `make localization-guard` passing (Makefile:105); changes to off-device data update consent sheet, PrivacyInfo.xcprivacy, privacy policy and App Store Connect together; new health claims pass `make copy-perimeter` (Makefile:171).",
+   "does": "Checklist: new strings localized and bundle-qualified with `make localization-guard` passing (Makefile); changes to off-device data update consent sheet, PrivacyInfo.xcprivacy, privacy policy and App Store Connect together; new health claims pass `make copy-perimeter` (Makefile).",
    "entry": null,
    "calls": [
     "Makefile::target localization-guard",
@@ -78,9 +78,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
-    "Makefile::target copy-perimeter": "fbee448e717c17f3",
-    "Makefile::target localization-bundle-guard": "8c4bb22083c7e7be",
-    "Makefile::target localization-guard": "e2c1ec610e831e83"
+    "Makefile::target copy-perimeter": "d86c63c1a970a885",
+    "Makefile::target localization-bundle-guard": "72b0bebd70642f80",
+    "Makefile::target localization-guard": "74bbb0edd35536cb"
    }
   },
   {

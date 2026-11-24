@@ -1,6 +1,6 @@
 {
  "file": "scripts/codemap/graph.py",
- "hash": "5f3f59cc727daedf",
+ "hash": "cbcc6317e6f407c3",
  "role": "The code map's call graph: parses every Swift file with tree-sitter for calls, property reads, bare references, conformances and closure assignments; resolves each to unit keys as certain or possible edges; adds recorded calls, protocol-requirement dispatch and Makefile/workflow/script wiring. Imported by codemap.py (check, stamp, impact, callers) and report.py.",
  "types": [],
  "state": [
@@ -8,7 +8,7 @@
   "NOT_A_REFERENCE: syntax-node parent types under which a simple_identifier is a declaration, label, type or member name rather than a reference",
   "FUNC_KINDS / PROP_KINDS: inventory unit kinds that can be called / read as properties"
  ],
- "toplevel": "Module docstring defining certain and possible edges, `from __future__ import annotations`, imports (collections, re, Path, NS_CODE from inventory) and the three constants above. tree_sitter is imported inside build().",
+ "toplevel": "Module docstring defining certain and possible edges, `from __future__ import annotations`, imports (collections, re, Path, NS_CODE from inventory) the three constants above, TEST_TARGETS (EmuquTests/, EmuquUITests/) and is_test_file. tree_sitter is imported inside build().",
  "units": [
   {
    "key": "def _swift_refs",
@@ -208,6 +208,17 @@
    }
   },
   {
+   "key": "def is_test_file",
+   "hash": "1d97cf81cd33771c",
+   "does": "Whether a node (`path::key`) is in a test target: its path starts with EmuquTests/ or EmuquUITests/.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
    "key": "def _labels_match",
    "hash": "fcf87bc882511fa1",
    "does": "Whether a call's argument labels plus trailing closures can bind to a declared parameter list: labels must appear in order, defaulted parameters may be skipped, and the parameters left after the last label must number at least the required (non-defaulted) ones and at least the trailing closures. No parameter list known (None) matches anything.",
@@ -241,8 +252,8 @@
   },
   {
    "key": "def build",
-   "hash": "16672124a5a11ec5",
-   "does": "Builds the whole graph. Nodes: every inventory unit (`path::key`) and every file (`path::`). Edges, each certain or possible (certain is never downgraded): (1) every `path::key` call named in a record (not ext:/dyn:/closure:) -> certain. (2) Swift: _swift_refs over every .swift file, conformances merged. A call on an implicit receiver whose name is a repo type is an initializer call: inits of that type whose labels match (certain if one). Calls/reads on self/super/implicit resolve within the unit's own type family (type, superclasses, protocols, transitively); an implicit one with no match falls back to same-file units, then to global functions. A receiver that is a repo type resolves within that type's family; a framework or unknown receiver resolves against every unit of that name and label set, and a single match on a COMMON name is only possible. An implicit property name with no match is ignored (a local). One candidate -> certain, several -> possible; a call with no candidate whose name is an assigned stored closure -> possible edges to the assigning units. (3) Each protocol requirement -> certain edge to each same-named, label-compatible function in a type conforming to that protocol. (4) Non-Swift code: a Makefile target -> its prerequisites; target recipes, workflow jobs and steps -> each `make`/`$(MAKE)` target and each scripts/ or Tools/ .sh/.py path (file node); a job -> its steps; Python and shell functions -> local functions (and, for Python, top-level defs imported from sibling modules via `from m import a` or `import m` + `m.a`) named in their body; file-level code outside units -> local functions and scripts it names. Returns {'edges': {src: {dst: kind}}, 'units': {node: inventory entry with file}}.",
+   "hash": "4b54f7595f883907",
+   "does": "Builds the whole graph. Nodes: every inventory unit (`path::key`) and every file (`path::`). Edges, each certain or possible (certain is never downgraded): (1) every `path::key` call named in a record (not ext:/dyn:/closure:) -> certain. (2) Swift: _swift_refs over every .swift file, conformances merged. A call on an implicit receiver whose name is a repo type is an initializer call: inits of that type whose labels match (certain if one). Calls/reads on self/super/implicit resolve within the unit's own type family (type, superclasses, protocols, transitively); an implicit one with no match falls back to same-file units, then to global functions. A receiver that is a repo type resolves within that type's family; a framework or unknown receiver resolves against every unit of that name and label set, and a single match on a COMMON name is only possible. Certainty is decided on every candidate the name matches; two filters then drop candidates the reference cannot mean and never promote what is left, so they only remove edges: a property-style read on a framework or unknown receiver drops functions that need an argument (takes_arguments), and a reference from outside the test targets drops units inside them (is_test_file). An implicit property name with no match is ignored (a local). One candidate -> certain, several -> possible; a call with no candidate whose name is an assigned stored closure -> possible edges to the assigning units. (3) Each protocol requirement -> certain edge to each same-named, label-compatible function in a type conforming to that protocol. (4) Non-Swift code: a Makefile target -> its prerequisites; target recipes, workflow jobs and steps -> each `make`/`$(MAKE)` target and each scripts/ or Tools/ .sh/.py path (file node); a job -> its steps; Python and shell functions -> local functions (and, for Python, top-level defs imported from sibling modules via `from m import a` or `import m` + `m.a`) named in their body; file-level code outside units -> local functions and scripts it names. Returns {'edges': {src: {dst: kind}}, 'units': {node: inventory entry with file}}.",
    "entry": null,
    "calls": [
     "scripts/codemap/graph.py::def _swift_refs",
@@ -251,7 +262,9 @@
     "scripts/codemap/graph.py::def build.short",
     "scripts/codemap/graph.py::def build.family",
     "scripts/codemap/graph.py::def build.candidates",
-    "ext:tree_sitter Parser"
+    "ext:tree_sitter Parser",
+    "scripts/codemap/graph.py::def is_test_file",
+    "scripts/codemap/graph.py::def build.takes_arguments"
    ],
    "reads": [
     "file:every in-scope source file"
@@ -356,7 +369,9 @@
     "scripts/codemap/graph.py::def build.add": "94fbef9ad5b780e2",
     "scripts/codemap/graph.py::def build.candidates": "bafa44e2646e2eee",
     "scripts/codemap/graph.py::def build.family": "0d684b8fc2affccf",
-    "scripts/codemap/graph.py::def build.short": "3a547d8dc75df5f9"
+    "scripts/codemap/graph.py::def build.short": "3a547d8dc75df5f9",
+    "scripts/codemap/graph.py::def build.takes_arguments": "1d1f73be9bb586a9",
+    "scripts/codemap/graph.py::def is_test_file": "60bcf81fec301734"
    }
   },
   {
@@ -412,6 +427,17 @@
    "deps": {
     "scripts/codemap/graph.py::def build.short": "3a547d8dc75df5f9"
    }
+  },
+  {
+   "key": "def build.takes_arguments",
+   "hash": "60486f208179c7f5",
+   "does": "Whether a unit is a function or initializer (FUNC_KINDS) with a parameter that has no default value.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "def build.candidates",

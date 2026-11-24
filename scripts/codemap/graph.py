@@ -159,6 +159,14 @@ def _swift_refs(raw: bytes, parser, units: list[dict]):
     return refs, params, conforms, closure_assigns
 
 
+TEST_TARGETS = ("EmuquTests/", "EmuquUITests/")
+
+
+def is_test_file(node: str) -> bool:
+    """Whether a node (`path::key`) is in a test target."""
+    return node.startswith(TEST_TARGETS)
+
+
 def _labels_match(decl: list[tuple[str, bool]] | None, labels: list[str], trailing: int) -> bool:
     """Whether a call's argument labels (plus trailing closures) can bind to a parameter list,
     allowing parameters with default values to be skipped."""
@@ -243,6 +251,10 @@ def build(inv: dict, records: dict, root: Path) -> dict:
         if u["kind"] != "file" and (k.split("::")[0].endswith(".swift") or u["kind"] in ("ns-cfunc", "ns-objcmethod")):
             by_name[u["name"]].append(k)
 
+    def takes_arguments(k):
+        """A function or initializer with a parameter that has no default value."""
+        return units[k]["kind"] in FUNC_KINDS and any(not has_default for _, has_default in all_params.get(k) or [])
+
     def candidates(name, kind, labels, trailing, types=None, global_only=False):
         out = []
         for k in by_name.get(name, ()):
@@ -274,6 +286,7 @@ def build(inv: dict, records: dict, root: Path) -> dict:
                 for k in cs:
                     add(src, k, "certain" if len(cs) == 1 else "possible")
                 continue
+            unresolved = False  # the receiver's type is unknown, or a framework type
             if rkind in ("self", "super", "implicit"):
                 cs = candidates(name, kind, labels or [], trailing, types=own)
                 if not cs and rkind == "implicit":
@@ -284,14 +297,25 @@ def build(inv: dict, records: dict, root: Path) -> dict:
             elif rkind == "type" and rtype in repo_types:
                 cs = candidates(name, kind, labels or [], trailing, types=family(rtype))
             else:
+                unresolved = True
                 cs = candidates(name, kind, labels or [], trailing)
-                if len(cs) == 1 and name in COMMON:
-                    add(src, cs[0], "possible")
-                    continue
+            # Certainty is judged on every unit the name could mean. The filters below drop
+            # candidates the reference cannot mean; they never promote what is left, so they only
+            # remove edges.
+            sole = len(cs) == 1 and not (unresolved and name in COMMON)
+            if kind == "prop" and unresolved:
+                # `x.name` on a receiver of unknown or framework type reads a value: not a
+                # function that needs arguments (a function passed as a value is reached through a
+                # repo-typed or implicit receiver).
+                cs = [k for k in cs if not takes_arguments(k)]
+            if not is_test_file(src):
+                # App code is not linked with the test bundle: a match in a test target is a
+                # name collision, never a call.
+                cs = [k for k in cs if not is_test_file(k)]
             if kind == "prop" and rkind == "implicit" and not cs:
                 continue
             for k in cs:
-                add(src, k, "certain" if len(cs) == 1 else "possible")
+                add(src, k, "certain" if sole else "possible")
             if kind == "call" and not cs and name in closure_assigns:
                 for k in closure_assigns[name]:
                     add(src, k, "possible")

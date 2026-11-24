@@ -28,13 +28,13 @@
    "key": "requirement HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:)",
    "hash": "ce77c56ad0c26d3d",
    "does": "Protocol requirement fetchDaytimeNapMinutes(nightAnchoredAt:): returns qualifying nap minutes for the waking day before the night.",
-   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService. Dispatched via protocol by MorningProcessingService+Sleep.swift:160 and +Merging.swift:455; HealthKitManager+SleepQueryForwarding.swift:37 is the real witness, mock uses the default 0.",
+   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService. Dispatched via protocol by MorningProcessingService+Sleep.swift and +Merging.swift; HealthKitManager+SleepQueryForwarding.swift is the real witness, mock uses the default 0.",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchDaytimeNapMinutes(nightAnchoredAt:)": "d41e517d23078f53",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchDaytimeNapMinutes(nightAnchoredAt:)": "9763aaeb8b2680dd",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:)": "c1f14cd2cbc5e1fd"
    }
   },
@@ -42,57 +42,57 @@
    "key": "requirement HealthKitServiceProtocol.fetchDaytimeRestingHR(for:)",
    "hash": "8f39024b412cb50d",
    "does": "Protocol requirement fetchDaytimeRestingHR(for:): returns daytime resting HR.",
-   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService (:83). Dispatched via protocol by HRVAnalysisPipeline+Metrics.swift:66.",
+   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService. Dispatched via protocol by HRVAnalysisPipeline+Metrics.swift.",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchDaytimeRestingHR(for:)": "40af8d59bdfbbd10",
-    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchDaytimeRestingHR(for:)": "1cbef52f56cbe98c"
+    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchDaytimeRestingHR(for:)": "46ac88f8c5daca40"
    }
   },
   {
    "key": "requirement HealthKitServiceProtocol.calculateTrainingLoad(relativeTo:)",
    "hash": "d0a1962380bcf464",
    "does": "Protocol requirement calculateTrainingLoad(relativeTo:): returns TrainingLoad anchored at referenceDate.",
-   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService (:88). Dispatched via protocol by SessionAcceptanceService.swift:143, ReanalysisService.swift:409, ReanalysisService+Sleep.swift:534; HealthKitManager witness is the bridge at HealthKitServiceProtocol.swift:168.",
+   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService. Dispatched via protocol by SessionAcceptanceService.swift, ReanalysisService.swift, ReanalysisService+Sleep.swift; HealthKitManager witness is the bridge at HealthKitServiceProtocol.swift.",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingLoad(days:forMorningReading:relativeTo:)": "d36227967fc7d5f1",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingLoad(days:forMorningReading:relativeTo:)": "454029951431a011",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)": "74c9f44e22a51927",
-    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.calculateTrainingLoad(relativeTo:)": "9cbaf59806295497"
+    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.calculateTrainingLoad(relativeTo:)": "d2c7cf741da20ac0"
    }
   },
   {
    "key": "requirement HealthKitServiceProtocol.fetchRecoveryVitals(relativeTo:)",
    "hash": "3a7d9387d501282b",
    "does": "Protocol requirement fetchRecoveryVitals(relativeTo:): respiratory rate, SpO2, temperature for a date.",
-   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService (:103). Dispatched via protocol by MorningProcessingService.swift:399, +Merging.swift:441, SessionAcceptanceService.swift:179,474.",
+   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService. Dispatched via protocol by MorningProcessingService.swift, +Merging.swift, SessionAcceptanceService.swift.",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)": "af7cbc8f5a445eda",
-    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchRecoveryVitals(relativeTo:)": "45c1ef7d1b9928e1"
+    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchRecoveryVitals(relativeTo:)": "e671d19987043477"
    }
   },
   {
    "key": "requirement HealthKitServiceProtocol.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
    "hash": "450c373333b423db",
    "does": "Protocol requirement estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:): estimates sleep from background HR samples.",
-   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService (:111). Dispatched via the 2-arg convenience (HealthKitServiceProtocol.swift:160) by MorningProcessingService+Sleep.swift:202.",
+   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService (EmuquTests/Mocks/MockHealthKitService.swift, returns nil). Dispatched via the 2-arg convenience (HealthKitServiceProtocol.swift, minimumSamples 12, minimumSleepMinutes 120) by MorningProcessingService+Sleep.swift.",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "dd8baa8be271270b",
-    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "19de269ade6cfaa2"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "e3be72064ae6ecd1",
+    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "acdce6cdbc780aa5"
    }
   },
   {
@@ -114,14 +114,14 @@
    "key": "requirement HealthKitServiceProtocol.exportSessionMetrics(from:)",
    "hash": "4e93d8769cff701f",
    "does": "Protocol requirement exportSessionMetrics(from:): writes SDNN/HR/resting HR/sleep to Apple Health.",
-   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService (:129). Dispatched via protocol by SessionAcceptanceService.swift:369.",
+   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService. Dispatched via protocol by SessionAcceptanceService.swift.",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.exportSessionMetrics(from:)": "8f44d23c65453b9f",
-    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.exportSessionMetrics(from:)": "7b72ed1519ea992d"
+    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.exportSessionMetrics(from:)": "92eb53eb3a50941c",
+    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.exportSessionMetrics(from:)": "8ee1c93cdbe0474f"
    }
   },
   {
@@ -139,9 +139,9 @@
    "key": "func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:)",
    "hash": "a39c99fab4650721",
    "does": "Convenience: fetchSleepData with rrPoints, autoSleepExtension and rrStart nil.",
-   "entry": "Called by SleepBoundaryResolver.swift:293 through the protocol.",
+   "entry": "Called by SleepBoundaryResolver.swift through the protocol.",
    "calls": [
-    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25 | MockHealthKitService"
+    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift | MockHealthKitService"
    ],
    "reads": [],
    "writes": [],
@@ -154,9 +154,9 @@
    "key": "func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:)",
    "hash": "87953830419eb658",
    "does": "Convenience: fetchSleepData with given rrPoints, autoSleepExtension nil and rrStart nil.",
-   "entry": "Called through the protocol by SessionAcceptanceService.swift:161,466, MorningProcessingService+Sleep.swift:156, +Merging.swift:449, ReanalysisService+Sleep.swift:58.",
+   "entry": "Called through the protocol by SessionAcceptanceService.swift, MorningProcessingService+Sleep.swift, +Merging.swift, ReanalysisService+Sleep.swift.",
    "calls": [
-    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25 | MockHealthKitService"
+    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift | MockHealthKitService"
    ],
    "reads": [],
    "writes": [],
@@ -171,7 +171,7 @@
    "does": "Convenience for a search range wider than the recording: fetchSleepData(for: searchStart, recordingEnd, rrPoints, autoSleepExtension nil, rrStart) so RR offsets count from the beats' own start.",
    "entry": "Called through the protocol by SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:rrStart:).",
    "calls": [
-    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25 | MockHealthKitService"
+    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift | MockHealthKitService"
    ],
    "reads": [],
    "writes": [],
@@ -186,7 +186,7 @@
    "does": "Convenience: fetchSleepData with the given rrPoints and autoSleepExtension and rrStart nil.",
    "entry": "The four-argument form for callers holding the protocol type; no app code calls it with an AutoSleep extension at present.",
    "calls": [
-    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25 | MockHealthKitService"
+    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift | MockHealthKitService"
    ],
    "reads": [],
    "writes": [],
@@ -198,16 +198,16 @@
   {
    "key": "func HealthKitServiceProtocol.calculateTrainingLoad()",
    "hash": "c103a94eb3171aff",
-   "does": "Convenience: calculateTrainingLoad(relativeTo: Date()). RRCollector+Streaming.swift:218 calls calculateTrainingLoad() on concrete HealthKitManager, which resolves either to this or to HealthKitManager's all-defaults overload; both yield 7 days, forMorningReading true, now.",
+   "does": "Convenience: calculateTrainingLoad(relativeTo: Date()). RRCollector+Streaming.swift calls calculateTrainingLoad() on concrete HealthKitManager, which resolves either to this or to HealthKitManager's all-defaults overload; both yield 7 days, forMorningReading true, now.",
    "entry": null,
    "calls": [
-    "dyn:HealthKitServiceProtocol.calculateTrainingLoad(relativeTo:) -> Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:168 | MockHealthKitService"
+    "dyn:HealthKitServiceProtocol.calculateTrainingLoad(relativeTo:) -> Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift | MockHealthKitService"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.calculateTrainingLoad(relativeTo:)": "e0cd0d81cefb55e1"
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.calculateTrainingLoad(relativeTo:)": "b780b7bf119d3815"
    }
   },
   {
@@ -229,15 +229,15 @@
    "key": "func HealthKitServiceProtocol.estimateSleepFromHealthKitHR(windowStart:windowEnd:)",
    "hash": "6d104d9c9049ba24",
    "does": "Convenience: estimateSleepFromHealthKitHR with minimumSamples 12 and minimumSleepMinutes 120.",
-   "entry": "Called through the protocol by MorningProcessingService+Sleep.swift:202.",
+   "entry": "Called through the protocol by MorningProcessingService+Sleep.swift.",
    "calls": [
-    "dyn:HealthKitServiceProtocol.estimateSleepFromHealthKitHR(4-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:45 | MockHealthKitService"
+    "dyn:HealthKitServiceProtocol.estimateSleepFromHealthKitHR(4-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift | MockHealthKitService"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "d8670d41c0ccbb98"
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "1aabd925063a8965"
    }
   },
   {
@@ -254,7 +254,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingLoad(days:forMorningReading:relativeTo:)": "d36227967fc7d5f1"
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingLoad(days:forMorningReading:relativeTo:)": "454029951431a011"
    }
   }
  ],

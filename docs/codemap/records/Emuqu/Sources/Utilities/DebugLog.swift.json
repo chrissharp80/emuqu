@@ -31,7 +31,7 @@
    "key": "var DebugLogger.persistentLoggingEnabled",
    "hash": "6120220d05107503",
    "does": "Observable flag for disk persistence; didSet writes it to UserDefaults and mirrors it into the lock-backed persistentBox read by the flush queue.",
-   "entry": "Settings 'Persistent Logging' Toggle binding (SettingsPages+DiagnosticActions.swift:120)",
+   "entry": "Settings 'Persistent Logging' Toggle binding (SettingsPages+DiagnosticActions.swift)",
    "calls": [],
    "reads": [],
    "writes": [
@@ -96,7 +96,7 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.relaxFileProtection(at:)": "b6211b69825d339b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.resolveLogFileURL()": "0a6a546680f62278",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.startFlushTimer()": "bfcbcd45f45480ec",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.persistentLoggingEnabled": "b70a6c282060488b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.persistentLoggingEnabled": "20a267c14796a3e8"
    }
   },
   {
@@ -247,7 +247,7 @@
    ],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.recordPendingEntries()": "89837bc6933a5690",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.recordPendingEntries()": "6560db9fe31a75ad",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
@@ -278,7 +278,7 @@
     {
      "at": "+7",
      "cond": "any entry significant",
-     "effect": "posts significantLogPosted (observed by PolarManager.swift:508)"
+     "effect": "posts significantLogPosted (observed by PolarManager.swift)"
     },
     {
      "at": "+11",
@@ -293,7 +293,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.appendToRingBuffer(_:)": "17eac77095791928",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.appendToRingBuffer(_:)": "887bfa09b849503c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.isSignificant(message:level:)": "2e196c6a1aadb2d5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.shouldCatalog(message:level:)": "ff6a2d7e12fb0021"
    }
@@ -720,7 +720,8 @@
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.parseLogLine(_:notBefore:)": "da9fd459fbc7c13d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.prependLoaded(_:)": "877377554fc80f25"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.prependLoaded(_:)": "877377554fc80f25",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b"
    }
   },
   {
@@ -744,7 +745,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "51bc8d5576f278e9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "51bc8d5576f278e9",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b"
    }
   },
   {
@@ -852,7 +854,7 @@
    "key": "func DebugLogger.clearErrorCatalog()",
    "hash": "a30b7f9700975a0b",
    "does": "Empties errorCatalog.",
-   "entry": "Settings buttons SettingsSubviews.swift:230, SettingsPages+DiagnosticActions.swift:97",
+   "entry": "Settings buttons SettingsSubviews.swift, SettingsPages+DiagnosticActions.swift",
    "calls": [],
    "reads": [],
    "writes": [
@@ -865,7 +867,7 @@
    "key": "func DebugLogger.exportLogs()",
    "hash": "c5262fa8f9f4879a",
    "does": "With Persistent Logging off returns exportMemoryLogs(source: in-memory buffer, Persistent Logging is off). Otherwise synchronously flushes pending lines and reads debug_log.txt through readLogFile ('' when there is no file yet); when the file is there but cannot be read, NSLogs the reason and returns exportMemoryLogs(source: unreadableFileSource(error)), so a failed read never exports as an empty log. Else scrubs every line again (scrubbedLines) and returns exportHeader(newline count, source 'log file (trimmed by size, up to 2 MB)') + that text.",
-   "entry": "Copy Log to Clipboard (SettingsPages+DiagnosticActions.swift:82, detached task)",
+   "entry": "Copy Log to Clipboard (SettingsPages+DiagnosticActions.swift, detached task)",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportMemoryLogs(source:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDiskSync()",
@@ -1015,7 +1017,7 @@
    "key": "func DebugLogger.exportErrorCatalog()",
    "hash": "db6fcd01ffe097ca",
    "does": "Returns a header titled 'Emuqu Error Catalog (Since App Launch)' plus every errorCatalog entry formatted and scrubbed with scrubPHI.",
-   "entry": "SettingsSubviews.swift:337 export button",
+   "entry": "SettingsSubviews.swift export button",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
@@ -1066,14 +1068,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "eb4b99d98f200147"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "2089b237df1ae956"
    }
   },
   {
    "key": "func DebugLogger.exportToFileAsync()",
    "hash": "d445acc8b3365b99",
    "does": "Runs exportToFile on a detached userInitiated task via the dependency container's logger and returns its URL.",
-   "entry": "Export log share action, SettingsPages+DiagnosticActions.swift:413",
+   "entry": "Export log share action, SettingsPages+DiagnosticActions.swift",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFile()",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",

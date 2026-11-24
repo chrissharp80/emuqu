@@ -18,7 +18,7 @@
    "key": "func VoiceConversationController.toggle()",
    "hash": "896b2e6703012a4a",
    "does": "Toggle from the talk button: idle → start(); listening → finalize the turn; speaking → interrupt; starting → ignored. During a coach line (.triggerSpeaking) the line is never cut: with voice off behind it (preemptedState nil or .idle) the tap is kept as preemptedState .starting, so finishTriggerSpeech starts voice once the line ends; with a conversation behind it, listening resumes after the line anyway and the tap changes nothing.",
-   "entry": "Voice buttons: AssistantChatView.swift:204, FitnessRecordingView+Tiles.swift:696, and EmuquApp.swift:750 (Watch voice tap)",
+   "entry": "Voice buttons: AssistantChatView.swift, FitnessRecordingView+Tiles.swift, and EmuquApp.swift (Watch voice tap)",
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.finalizeUserTurn()",
@@ -61,7 +61,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.interrupt()": "b67b414979c5fe7c",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()": "fc03495e6c90a41b",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()": "556d928e254d9dfc",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.finalizeUserTurn()": "aed836df01168809",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "a1741591eec1636f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -71,7 +71,7 @@
    "key": "func VoiceConversationController.start()",
    "hash": "fe0b24fb1900d850",
    "does": "Starts a voice session: only from .idle, flips to .starting, clears permissionError, awaits mic+speech permissions, returns to idle (playing any trigger queued while starting) on denial, bails if state changed meanwhile, then clears transcript/response, refreshes language/voice, pins the STT provider, resets the announce flag and opens the mic. Coach triggers arriving while .starting are queued (handleTrigger), so they can no longer take over the state mid-start.",
-   "entry": "toggle() and GetMeBackView.swift:232",
+   "entry": "toggle() and GetMeBackView.swift",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.ensurePermissions()",
@@ -183,7 +183,7 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.returnToIdleAfterFailedStart()": "f7cc5c4c498d6884",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.configureAudioSessionForConversation()": "fa5cc3842364c309",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.installInterruptionObserver()": "a96d6a5bb7af24a1",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "37f8c4633bbb78c6",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "c963016adc44705e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
@@ -240,7 +240,7 @@
    "key": "func VoiceConversationController.stop()",
    "hash": "2449fdb05f1cfbe7",
    "does": "Full teardown: sets isStoppingFully for the duration, cancels the interjection llmTask, cancels the chat stream only when voice owns it (cancelVoiceOwnedReply; a typed reply keeps streaming), drops queued coach triggers, drops observers, resets cursor, stops TTS, removes the interruption observer, tears down audio, releases STT, returns to .idle and clears transcript/response/chunker/preemptedState.",
-   "entry": "AssistantChatView.swift:485, FitnessRecordingView+Tiles.swift:681; internally from beginUserTurn failure/idle (Pipeline:402,408), audio interruption ended (Audio:87), empty-transcript give-up (Audio:332) and consent-required (Audio:521)",
+   "entry": "AssistantChatView.swift, FitnessRecordingView+Tiles.swift; internally from beginUserTurn failure/idle (Pipeline:402,408), audio interruption ended (Audio:87), empty-transcript give-up (Audio:332) and consent-required (Audio:521)",
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelLLM()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.cancelVoiceOwnedReply()",
@@ -298,8 +298,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "d67babaf48d886b4",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.stopAnyOngoingSpeech()": "32bb467b1668df74",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "e044ccc841ba3bf6",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.stopAnyOngoingSpeech()": "6e9c1618e5288f34",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.assistantViewModel": "48fea4c84a50db08"
    }
   },
@@ -351,7 +351,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "ee286b1dae0bcd67",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "d67babaf48d886b4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "e044ccc841ba3bf6",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.stopSynthesizer()": "32830b7828da130f",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()": "af995d7bdd84f012",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "4283ff5361b1771c",
@@ -510,12 +510,12 @@
     "Emuqu/Sources/Assistant/CoachCueSpeech.swift::var CoachCueSpeech.fallback",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func InterjectionGate.maySend(to:disclaimerAccepted:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)",
-    "dyn:AIProvider.send → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:91|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "dyn:AIProvider.send → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.buildSystemPrompt()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.consumeInterjection(_:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.finishInterjectionAfterError()",
     "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.armFallbackDeadline(onStall:)",
-    "closure:contextSnapshotProvider set by WorkoutRecorder+Start.swift:332"
+    "closure:contextSnapshotProvider set by WorkoutRecorder+Start.swift"
    ],
    "reads": [
     "mem:ProviderRegistry.activeProvider/activeModel",
@@ -723,7 +723,7 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()": "ef43d03ea5f8c750",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "b5e50994c6b3eb1a",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "a1741591eec1636f",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "f6972423b2fb8a62",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "be96f17aa771b1bb",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
@@ -765,7 +765,7 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()": "ef43d03ea5f8c750",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "b5e50994c6b3eb1a",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelLLM()": "396221901a078e80",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "f6972423b2fb8a62"
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "be96f17aa771b1bb"
    }
   },
   {
@@ -878,7 +878,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.preemptForTrigger()": "4e0c2308375ad73a",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "b5e50994c6b3eb1a",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "f6972423b2fb8a62"
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "be96f17aa771b1bb"
    }
   },
   {
@@ -1047,7 +1047,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.aiIsAllowed(disclaimerAccepted:)": "7e73dffeed2f3e9b",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.aiIsAllowed(disclaimerAccepted:)": "b0355a50fe476480",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"

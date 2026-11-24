@@ -18,7 +18,7 @@
   "mem:DaySummarySheet.pendingDelete/deleteFailed (@State)",
   "env:dependencies (settings snapshot read for the FTP anchors in sessionsFingerprint)"
  ],
- "toplevel": "onDelete (async, returns whether the reading left the archive) defaults to `{ _ in false }`, so a caller that omits it gets a sheet whose every delete shows the failure alert. visibleMonth initialised to startOfMonth(Date()) (line 32). memoizedMonthStats initial MonthStats(0,0). DaySheetIdentity.id is the date so the sheet identity ignores session content. Only callers: TrendsV2View.swift:218 (onDelete: deleteSession) and EmuquTests/ScreenSnapshotTests.swift:35,46.",
+ "toplevel": "onDelete (async, returns whether the reading left the archive) defaults to `{ _ in false }`, so a caller that omits it gets a sheet whose every delete shows the failure alert. visibleMonth initialised to startOfMonth(Date()). memoizedMonthStats initial MonthStats(0,0). DaySheetIdentity.id is the date so the sheet identity ignores session content. Only callers: TrendsV2View.swift (onDelete: deleteSession) and EmuquTests/ScreenSnapshotTests.swift.",
  "units": [
   {
    "key": "var HistoryCalendarView.weekdaySymbols",
@@ -41,7 +41,7 @@
    "key": "var HistoryCalendarView.body",
    "hash": "31846d8422ddd9f9",
    "does": "View body: wraps calendarCard in the horizontal month-swipe gesture.",
-   "entry": "SwiftUI body of HistoryCalendarView, rendered from TrendsV2View.swift:218",
+   "entry": "SwiftUI body of HistoryCalendarView, rendered from TrendsV2View.swift",
    "calls": [
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.withMonthSwipe(_:)",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.calendarCard"
@@ -272,7 +272,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.stepMonth(by:)": "67bf65312ec3889f",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.body": "56084e0ddc477fc2",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.body": "4f404ecb7dc6a534",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.canStepForward": "5eeb17df430d2179",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
@@ -327,7 +327,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.stepMonth(by:)": "67bf65312ec3889f",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.body": "56084e0ddc477fc2",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.body": "4f404ecb7dc6a534",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.canStepBack": "ff20a2cd3baf5f62",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
@@ -916,7 +916,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "d26eee9c8f04fad4"
    }
   },
   {
@@ -1326,7 +1326,7 @@
    "does": "In a main-actor Task, awaits the parent's onDelete; on false shows the failure alert; on true removes the session from the local list and dismisses the sheet when it becomes empty.",
    "entry": null,
    "calls": [
-    "closure:onDelete = TrendsV2View.deleteSession (archive.delete + notifyArchiveChanged + CloudKit uploadDeletion), set at TrendsV2View.swift:218",
+    "closure:onDelete = TrendsV2View.deleteSession (archive.delete + notifyArchiveChanged + CloudKit uploadDeletion), set at TrendsV2View.swift",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.deleteSession(_:)"
    ],
    "reads": [
@@ -1374,7 +1374,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "d26eee9c8f04fad4"
    }
   },
   {
@@ -1495,7 +1495,7 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.overnightDetailRow(session:result:)": "678f7748b7426f77",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.sessionRowHeader(_:)": "d2941caada682295",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.workoutDetailRow(meta:)": "184e7c63e3a9733a",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.workoutDetailRow(meta:)": "185017e6c1f75ae3",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
@@ -1630,7 +1630,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "d26eee9c8f04fad4",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.sourceLabel(for:)": "b475a0991b76f465",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
@@ -1686,7 +1686,7 @@
     "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup, fallback standard) via UnitsPreferenceStore.current"
    ],
    "writes": [
-    "ud:fitness.unitsPreference (App Group; one-time copy from standard suite on first read, UnitsPreference.swift:138)"
+    "ud:fitness.unitsPreference (App Group; one-time copy from standard suite on first read, UnitsPreference.swift)"
    ],
    "branches": [
     {

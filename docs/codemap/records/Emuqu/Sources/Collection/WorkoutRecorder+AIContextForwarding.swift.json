@@ -22,7 +22,7 @@
   {
    "key": "func WorkoutRecorder.buildContext(sport:)",
    "hash": "a6485eef0788db36",
-   "does": "Forwards to WorkoutAIContextBuilder.buildContext(sport:). Callers: start closures (WorkoutRecorder+Start.swift:334,338) and WorkoutTicker.tickVoiceCoach (WorkoutRecorder+Ticker.swift:842).",
+   "does": "Forwards to WorkoutAIContextBuilder.buildContext(sport:). Callers: start closures (WorkoutRecorder+Start.swift) and WorkoutTicker.tickVoiceCoach (WorkoutRecorder+Ticker.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext",
@@ -33,13 +33,13 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "a0e51cc84d1b105c",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.buildContext(sport:)": "2f7988dcf59bf374"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.buildContext(sport:)": "ad818eda45655979"
    }
   },
   {
    "key": "func WorkoutRecorder.attemptAutoRouteDetection(sport:)",
    "hash": "5c70900c15cf52e1",
-   "does": "Forwards to WorkoutAIContextBuilder.attemptAutoRouteDetection. Caller: WorkoutTicker.attemptRouteDetectionIfEligible (WorkoutRecorder+Ticker.swift:793).",
+   "does": "Forwards to WorkoutAIContextBuilder.attemptAutoRouteDetection. Caller: WorkoutTicker.attemptRouteDetectionIfEligible (WorkoutRecorder+Ticker.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext",
@@ -50,13 +50,13 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "a0e51cc84d1b105c",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.attemptAutoRouteDetection(sport:)": "a32b9c80668294cc"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.attemptAutoRouteDetection(sport:)": "0b22da80ba73e7ac"
    }
   },
   {
    "key": "func WorkoutRecorder.updateThresholdBreaches(sport:)",
    "hash": "c821c517322a9bce",
-   "does": "Forwards to WorkoutAIContextBuilder.updateThresholdBreaches. Caller: WorkoutTicker.runSportScopedTickWork (WorkoutRecorder+Ticker.swift:200), every tick including paused ticks.",
+   "does": "Forwards to WorkoutAIContextBuilder.updateThresholdBreaches. Caller: WorkoutTicker.runSportScopedTickWork (WorkoutRecorder+Ticker.swift), every tick including paused ticks.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext",
@@ -73,7 +73,7 @@
   {
    "key": "func WorkoutRecorder.computeCurrentGradePercent()",
    "hash": "4238c730c6917b3c",
-   "does": "Forwards to WorkoutAIContextBuilder.computeCurrentGradePercent. Callers: WorkoutTicker (WorkoutRecorder+Ticker.swift:704,729).",
+   "does": "Forwards to WorkoutAIContextBuilder.computeCurrentGradePercent. Callers: WorkoutTicker (WorkoutRecorder+Ticker.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext",
@@ -84,13 +84,13 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "a0e51cc84d1b105c",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeCurrentGradePercent()": "a1e57b6f155af66b"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.computeCurrentGradePercent()": "62505ddb7b7dc54e"
    }
   },
   {
    "key": "func WorkoutRecorder.recentSplitPacesSecPerKm()",
    "hash": "d17dc8c932fcaa6b",
-   "does": "Forwards to WorkoutAIContextBuilder.recentSplitPacesSecPerKm. Caller: WorkoutTicker.buildBrokerSnapshot (WorkoutRecorder+Ticker.swift:702).",
+   "does": "Forwards to WorkoutAIContextBuilder.recentSplitPacesSecPerKm. Caller: WorkoutTicker.buildBrokerSnapshot (WorkoutRecorder+Ticker.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext",
@@ -107,7 +107,7 @@
   {
    "key": "func WorkoutRecorder.liveRouteTopologySnapshot(currentLocation:)",
    "hash": "29677efdaf39c9be",
-   "does": "Forwards to WorkoutAIContextBuilder.liveRouteTopologySnapshot. Caller: WorkoutTicker.buildBrokerSnapshot (WorkoutRecorder+Ticker.swift:707).",
+   "does": "Forwards to WorkoutAIContextBuilder.liveRouteTopologySnapshot. Caller: WorkoutTicker.buildBrokerSnapshot (WorkoutRecorder+Ticker.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext",
@@ -124,7 +124,7 @@
   {
    "key": "func WorkoutRecorder.liveWeatherSnapshot()",
    "hash": "f2f6b4c1f0be3023",
-   "does": "Forwards to WorkoutAIContextBuilder.liveWeatherSnapshot. Caller: WorkoutRecorder+Ticker.swift:707.",
+   "does": "Forwards to WorkoutAIContextBuilder.liveWeatherSnapshot. Caller: WorkoutRecorder+Ticker.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext",
@@ -141,7 +141,7 @@
   {
    "key": "func WorkoutRecorder.liveIntervalProgressSnapshot()",
    "hash": "ec5d3751ff6b0cb2",
-   "does": "Forwards to WorkoutAIContextBuilder.liveIntervalProgressSnapshot. Caller: WorkoutRecorder+Ticker.swift:715.",
+   "does": "Forwards to WorkoutAIContextBuilder.liveIntervalProgressSnapshot. Caller: WorkoutRecorder+Ticker.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext",
@@ -170,13 +170,13 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::var WorkoutRecorder.aiContext": "a0e51cc84d1b105c",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:sessionId:)": "994ce3b33e8f759e",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "6ef658b176509f08"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "0929670145a15111"
    }
   },
   {
    "key": "func WorkoutRecorder.sportFTP(for:settings:)",
    "hash": "ad58ed7872548568",
-   "does": "Static forwarder to WorkoutAIContextBuilder.sportFTP(for:settings:). Callers: WorkoutFinalizer (WorkoutRecorder+Lifecycle.swift:287) and WorkoutRecorderSettingsTests.",
+   "does": "Static forwarder to WorkoutAIContextBuilder.sportFTP(for:settings:). Callers: WorkoutFinalizer (WorkoutRecorder+Lifecycle.swift) and WorkoutRecorderSettingsTests.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.sportFTP(for:settings:)"

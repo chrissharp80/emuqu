@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift",
  "hash": "5bcd36b73ac28dfd",
- "role": "First-run AI assistant disclosure sheet with accept ('I understand — continue') and 'Not now' buttons; presented by AssistantChatView.disclaimerSheet (AssistantChatView.swift:273-279) and GetMeBackView.aiDisclaimerSheet (GetMeBackView.swift:236-245), both of which set hasAcceptedDisclaimer in onAccept.",
+ "role": "First-run AI assistant disclosure sheet with accept ('I understand — continue') and 'Not now' buttons; presented by AssistantChatView.disclaimerSheet (AssistantChatView.swift) and GetMeBackView.aiDisclaimerSheet (GetMeBackView.swift), both of which set hasAcceptedDisclaimer in onAccept.",
  "types": [
   "DisclaimerSheet: struct — SwiftUI View with isPresented binding and onAccept closure"
  ],
@@ -58,7 +58,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.disclaimerPoints": "27a6909f33a9d767",
     "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.header": "b9e01fb8bfeed83b",
-    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.iUnderstandContinueButton": "b474c6f1d93272c5",
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.iUnderstandContinueButton": "846faa7f334d46c0",
     "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.notNowButton": "b369e0c6bd8adaa7"
    }
   },
@@ -76,7 +76,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.privacyPoints": "9fb040c93828df0c",
-    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.responsibilityPoints": "f0655d254ade4981"
+    "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.responsibilityPoints": "3e0c794139a8fb36"
    }
   },
   {
@@ -98,7 +98,7 @@
   {
    "key": "var DisclaimerSheet.responsibilityPoints",
    "hash": "43d695f0bfc431e9",
-   "does": "Two points: coaching, not medical advice; API keys stored in the iOS Keychain, encrypted, never synced to iCloud (matches APIKeyStore's kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly, APIKeyStore.swift:65).",
+   "does": "Two points: coaching, not medical advice; API keys stored in the iOS Keychain, encrypted, never synced to iCloud (matches APIKeyStore's kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly, APIKeyStore.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::func DisclaimerSheet.point(symbol:title:body:)"
@@ -132,11 +132,11 @@
    "entry": "Button tap by user.",
    "calls": [
     "Emuqu/Sources/Assistant/Views/DisclaimerSheet.swift::var DisclaimerSheet.acceptButtonBackground",
-    "closure:onAccept — set by AssistantChatView.disclaimerSheet (AssistantChatView.swift:276: viewModel.hasAcceptedDisclaimer = true) or GetMeBackView.aiDisclaimerSheet (GetMeBackView.swift:239-242: assistantViewModel.hasAcceptedDisclaimer = true then startVoiceChat() → VoiceConversationController.start())"
+    "closure:onAccept — set by AssistantChatView.disclaimerSheet (AssistantChatView.swift: viewModel.hasAcceptedDisclaimer = true) or GetMeBackView.aiDisclaimerSheet (GetMeBackView.swift: assistantViewModel.hasAcceptedDisclaimer = true then startVoiceChat() → VoiceConversationController.start())"
    ],
    "reads": [],
    "writes": [
-    "ud:assistant.disclaimerAccepted (AssistantViewModel.disclaimerKey, via onAccept closure → AssistantViewModel.hasAcceptedDisclaimer didSet, AssistantViewModel.swift:96)",
+    "ud:assistant.disclaimerAccepted (AssistantViewModel.disclaimerKey, via onAccept closure → AssistantViewModel.hasAcceptedDisclaimer didSet, AssistantViewModel.swift)",
     "mem:AssistantViewModel.hasAcceptedDisclaimer (via onAccept closure)",
     "mem:DisclaimerSheet.isPresented"
    ],

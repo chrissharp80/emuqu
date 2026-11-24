@@ -16,7 +16,7 @@
    "key": "var FitnessSummaryCards.physiologyCard",
    "hash": "b3a891719e5cfa1e",
    "does": "Card with a 'Physiology' header, the decoupling row, the efficiency-factor row and an empty-state note.",
-   "entry": "SwiftUI view, rendered via FitnessPostSummaryView.physiologyCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:36, Emuqu/Sources/Views/FitnessPostSummaryView.swift:281)",
+   "entry": "SwiftUI view, rendered via FitnessPostSummaryView.physiologyCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift, Emuqu/Sources/Views/FitnessPostSummaryView.swift)",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.decouplingRow",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.efficiencyFactorRow",
@@ -109,7 +109,7 @@
    "key": "var FitnessSummaryCards.environmentCard",
    "hash": "68f7a897ca49c800",
    "does": "When the workout has a weather snapshot, computes heat exposure and session heat stimulus and renders environmentBody with the temperature unit from the injected settingsManager; otherwise nothing.",
-   "entry": "SwiftUI view via FitnessPostSummaryView.environmentCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:37, Emuqu/Sources/Views/FitnessPostSummaryView.swift:282)",
+   "entry": "SwiftUI view via FitnessPostSummaryView.environmentCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift, Emuqu/Sources/Views/FitnessPostSummaryView.swift)",
    "calls": [
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposure(from:weather:)",
     "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)",
@@ -127,8 +127,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)": "3abf14190c6dc3f7",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposure(from:weather:)": "985981cbb1550889",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.sessionStimulus(_:)": "cec67f9830451f4a",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposure(from:weather:)": "0406ec04ebdf2d1d",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.environmentBody(_:unit:stimulus:)": "5faedfeb938e1050",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337"
    }
@@ -206,7 +206,7 @@
    "key": "func FitnessSummaryCards.splitsCard(_:)",
    "hash": "67bc9c9bab46460b",
    "does": "'Splits' card listing splitRow for each resolved split with 'mi' or 'km' unit label.",
-   "entry": "SwiftUI view via FitnessPostSummaryView.splitsCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:45, Emuqu/Sources/Views/FitnessPostSummaryView.swift:292)",
+   "entry": "SwiftUI view via FitnessPostSummaryView.splitsCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift, Emuqu/Sources/Views/FitnessPostSummaryView.swift)",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.splitRow(_:unitLabel:)"
    ],
@@ -230,7 +230,7 @@
    "key": "var FitnessSummaryCards.routeHistoryBaselineCard",
    "hash": "95029426f1e07c6e",
    "does": "Renders the route-history body when the workout has a non-empty recognized route name and the async-loaded routeHistory summary is non-nil; otherwise nothing (including while loading).",
-   "entry": "SwiftUI view via FitnessPostSummaryView.routeHistoryBaselineCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:38, Emuqu/Sources/Views/FitnessPostSummaryView.swift:300)",
+   "entry": "SwiftUI view via FitnessPostSummaryView.routeHistoryBaselineCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift, Emuqu/Sources/Views/FitnessPostSummaryView.swift)",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.routeHistoryBody(_:summary:)"
    ],
@@ -345,7 +345,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "0bbfc03c60fb225a",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "917ec504a26a996e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
@@ -385,7 +385,8 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.paceDeltaCaption(secPerKmDelta:unitsResolved:)": "9d99ba6d63a0e1f2",
     "Emuqu/Sources/Views/RouteBaseline.swift::init RouteBaseline(priorRuns:)": "8b4a60b6a07820b3",
-    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.totalDuration": "e50ea313d2b15210"
+    "Emuqu/Sources/Views/Results/SleepTimelineChart.swift::var SleepTimelineChart.totalDuration": "e50ea313d2b15210",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
    }
   },
   {
@@ -465,7 +466,8 @@
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.bpmText(_:)": "17d3f6988cd3c588",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.hrDeltaCaption(_:)": "9ca2c1e5a743ed33",
-    "Emuqu/Sources/Views/RouteBaseline.swift::init RouteBaseline(priorRuns:)": "8b4a60b6a07820b3"
+    "Emuqu/Sources/Views/RouteBaseline.swift::init RouteBaseline(priorRuns:)": "8b4a60b6a07820b3",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
    }
   },
   {
@@ -504,7 +506,7 @@
    "key": "var FitnessSummaryCards.coachReportCard",
    "hash": "ecc4a0b51c0e4dee",
    "does": "Coach Report card: header, description and the CoachReportButton bound to reportShare.coachReport.",
-   "entry": "SwiftUI view via FitnessPostSummaryView.coachReportCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:39, Emuqu/Sources/Views/FitnessPostSummaryView.swift:306)",
+   "entry": "SwiftUI view via FitnessPostSummaryView.coachReportCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift, Emuqu/Sources/Views/FitnessPostSummaryView.swift)",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var CoachReportButton.body"
    ],
@@ -523,7 +525,7 @@
    "key": "var FitnessSummaryCards.saveRouteCard",
    "hash": "943b60ff0c2325d1",
    "does": "Shows the save-route body only when the workout has a GPS polyline.",
-   "entry": "SwiftUI view via FitnessPostSummaryView.saveRouteCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:40, Emuqu/Sources/Views/FitnessPostSummaryView.swift:309)",
+   "entry": "SwiftUI view via FitnessPostSummaryView.saveRouteCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift, Emuqu/Sources/Views/FitnessPostSummaryView.swift)",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.saveRouteBody"
    ],
@@ -676,7 +678,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.from(session:name:)": "31c3e70b754237c6",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "661da9c38d8c720b",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "37cad3fe03844533",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)": "f91e54d315319ac0",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.defaultSavedRouteName()": "c1bc32b0afa3d5a8"
    }
@@ -685,7 +687,7 @@
    "key": "var FitnessSummaryCards.exportCard",
    "hash": "55296666f108179a",
    "does": "Export card: header with progress spinner, recap-card share, PDF share, GPX/CSV/TCX share rows and an error note.",
-   "entry": "SwiftUI view via FitnessPostSummaryView.exportCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:41, Emuqu/Sources/Views/FitnessPostSummaryView.swift:311)",
+   "entry": "SwiftUI view via FitnessPostSummaryView.exportCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift, Emuqu/Sources/Views/FitnessPostSummaryView.swift)",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.exportHeader",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.recapCardShareButton",
@@ -705,7 +707,7 @@
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.gpxShareRow": "3c27df05e6f043fb",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.recapCardShareButton": "aa52a479e2aedd0c",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.tcxShareRow": "75798d9c96d08f01",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.pdfShareButton": "d21bb2df653b5889",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.pdfShareButton": "2276f7b38e85a39c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835"
    }
   },

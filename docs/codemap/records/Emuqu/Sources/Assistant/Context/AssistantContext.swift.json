@@ -13,7 +13,7 @@
   {
    "key": "func AssistantContext.renderLiveStateForCloud(now:)",
    "hash": "c1856f43bdc0f10e",
-   "does": "Builds the cloud <live_state> text: a today line (if any data), a yesterday line (recovery /100, RMSSD, mean HR) labelled by real wake day, and a '📍 LOCATION:' line only when a live workout is present and ambient location has bits; joined by newlines. `now` defaults to generatedAt. Called by AssistantViewModel+Tools.swift:200 for tool-capable providers.",
+   "does": "Builds the cloud <live_state> text: a today line (if any data), a yesterday line (recovery /100, RMSSD, mean HR) labelled by real wake day, and a '📍 LOCATION:' line only when a live workout is present and ambient location has bits; joined by newlines. `now` defaults to generatedAt. Called by AssistantViewModel+Tools.swift for tool-capable providers.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLiveStateLine(now:)",
@@ -57,11 +57,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.ambientLocationBits(_:)": "c765e15bb23aadf2",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "bdfa54d8a2381dc9",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLiveStateLine(now:)": "f01fe165fab46080",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLiveStateLine(now:)": "76b783d1470340ac",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
   },
@@ -726,7 +726,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26"
    }
   },
@@ -767,7 +767,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.hrvLine(_:)": "b3167a38fb85e3c2"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.hrvLine(_:)": "68fba5749e5cca83"
    }
   },
   {
@@ -860,7 +860,9 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "f61c85490ac7ce5f",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "3ee647f5405ce8e0"
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "3ee647f5405ce8e0",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isFragmented": "1c1c569da1820b2e",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::var AnalysisSleepInput.isShortSleep": "a2bfda030a5530d7"
    }
   },
   {
@@ -989,7 +991,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.hrvLine(_:)": "b3167a38fb85e3c2",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.hrvLine(_:)": "68fba5749e5cca83",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.overnightHRLine(_:)": "05edcf70fec5f9df",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.trainingLoadLine(_:)": "d7225ad9ac74a553",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "f61c85490ac7ce5f",
@@ -1153,7 +1155,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "e8b2759108587f9e"
    }
@@ -1274,9 +1276,9 @@
    "deps": {
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisExplanation": "c689fc8d106d17b9",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.analysisTitle": "8c0620f2c1dbb1a3",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "6c4b6babab02d102",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "d0624c4d221f0535",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.probableCauses": "30b2563ae878de80",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "6450fdb41f000d0b"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "600ca0c029aea57f"
    }
   },
   {
@@ -1532,7 +1534,7 @@
   {
    "key": "func AssistantContext.compactRender(includeAmbientLocation:)",
    "hash": "c97f8ae866441d5b",
-   "does": "Renders the full compact context text: header, live workout, live HRV, ambient location (gated by includeAmbientLocation, default true), profile+algorithm, today, yesterday, earlier sessions, baselines, 7-day trend, summary, recent workouts; newline-joined. Called by AssistantViewModel+Routing.swift:511 (Apple only, default gate) and AssistantViewModel+Tools.swift:644 (no-tools fallback, gate = apple || liveWorkout != nil).",
+   "does": "Renders the full compact context text: header, live workout, live HRV, ambient location (gated by includeAmbientLocation, default true), profile+algorithm, today, yesterday, earlier sessions, baselines, 7-day trend, summary, recent workouts; newline-joined. Called by AssistantViewModel+Routing.swift (Apple only, default gate) and AssistantViewModel+Tools.swift (no-tools fallback, gate = apple || liveWorkout != nil).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveWorkoutLines(formatter:)",

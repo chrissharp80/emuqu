@@ -1,7 +1,7 @@
 {
  "file": "Tools/copy_linter/lint.py",
  "hash": "ba2e1bc273d5d77b",
- "role": "FDA copy-perimeter linter: scans Swift string literals and .xcstrings catalogue keys and stringUnit values under prohibited_terms.json scan_paths for regulated-claim regexes, plus multilingual neverInStaticCopy patterns from MedicalTermLexicon.swift over catalogues; exit 0 clean, 1 violations, 2 config/IO error. Run by Makefile:172 (copy-perimeter, in `make ci`), .github/workflows/ci.yml:154, .github/workflows/gates.yml:54 (via make) and scripts/verify_gates_fail.sh mutation checks.",
+ "role": "FDA copy-perimeter linter: scans Swift string literals and .xcstrings catalogue keys and stringUnit values under prohibited_terms.json scan_paths for regulated-claim regexes, plus multilingual neverInStaticCopy patterns from MedicalTermLexicon.swift over catalogues; exit 0 clean, 1 violations, 2 config/IO error. Run by Makefile (copy-perimeter, in `make ci`), .github/workflows/ci.yml, .github/workflows/gates.yml (via make) and scripts/verify_gates_fail.sh mutation checks.",
  "types": [
   "Violation: dataclass — path/line/snippet/pattern/reason of one hit",
   "MissingScanPath: Exception — configured scan path or lexicon section missing"
@@ -373,7 +373,7 @@
   {
    "key": "def scan_xcstrings",
    "hash": "df3db7cf4b09ac31",
-   "does": "Parses an .xcstrings catalogue and reports a Violation (line 0) for each pattern matching a source key or a localization stringUnit value; a key in allowlist_strings also clears all its translations. Unparseable file → SystemExit(2).",
+   "does": "Parses an .xcstrings catalogue and reports a Violation for each pattern matching a source key or a localization stringUnit value; a key in allowlist_strings also clears all its translations. Unparseable file → SystemExit(2).",
    "entry": null,
    "calls": [
     "ext:json.loads"
@@ -547,14 +547,14 @@
     }
    ],
    "deps": {
-    "Tools/copy_linter/lint.py::def scan_xcstrings": "510e769a5e51b415"
+    "Tools/copy_linter/lint.py::def scan_xcstrings": "9e67cf85cf0bc96d"
    }
   },
   {
    "key": "def main",
    "hash": "951707df6d48ce8e",
    "does": "CLI entry: parses --root (default repo root from __file__) and --config, loads config, compiles user_facing_prohibited patterns (no implicit flags), builds translated patterns, compiles negation_guards, collects targets, skips allowlisted paths, runs scan_swift_file on .swift files and scan_xcstrings twice (English patterns, then translated patterns) on .xcstrings; prints \"clean\" and returns 0, or lists violations on stderr and returns 1; config/regex/path errors return 2. The JSON key coach_response_prohibited is never read here (used by scripts/check_perimeter_sync.sh).",
-   "entry": "Invoked as a script via `python3 Tools/copy_linter/lint.py` from Makefile:172 (target copy-perimeter, part of `make ci` Makefile:272), .github/workflows/ci.yml:154, .github/workflows/gates.yml:54 (`make copy-perimeter ...`) and scripts/verify_gates_fail.sh mutation checks (lines 100, 233 and the copy_perimeter check).",
+   "entry": "Invoked as a script via `python3 Tools/copy_linter/lint.py` from Makefile (target copy-perimeter, part of `make ci` Makefile), .github/workflows/ci.yml, .github/workflows/gates.yml (`make copy-perimeter ...`) and scripts/verify_gates_fail.sh mutation checks (and the copy_perimeter check).",
    "calls": [
     "Tools/copy_linter/lint.py::def load_config",
     "Tools/copy_linter/lint.py::def translated_claim_patterns",
@@ -629,13 +629,13 @@
     "Tools/copy_linter/lint.py::def is_allowlisted": "81fd1440736456f1",
     "Tools/copy_linter/lint.py::def load_config": "ad5ddfe266e6c94d",
     "Tools/copy_linter/lint.py::def scan_swift_file": "813f3e2ea367e72e",
-    "Tools/copy_linter/lint.py::def scan_xcstrings": "510e769a5e51b415",
+    "Tools/copy_linter/lint.py::def scan_xcstrings": "9e67cf85cf0bc96d",
     "Tools/copy_linter/lint.py::def translated_claim_patterns": "2fc1fcdec5ea0a60"
    }
   }
  ],
  "deps": {
   "Tools/copy_linter/lint.py::def iter_swift_strings": "31b5889d18a55095",
-  "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b"
+  "Tools/copy_linter/lint.py::def main": "dd12888862011cc6"
  }
 }

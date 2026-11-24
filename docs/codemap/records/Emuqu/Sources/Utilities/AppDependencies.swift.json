@@ -12,10 +12,10 @@
   "EnvironmentValues: extension — `dependencies` accessor"
  ],
  "state": [
-  "mem:AppDependencies.storage (private static OSAllocatedUnfairLock<AppDependencies>, line 71)",
-  "mem:AppDependencies.overrides (let, per container, line 30)",
-  "mem:AppDependencies.Overrides.values (OSAllocatedUnfairLock<Values>, line 151)",
-  "mem:OverpassServices.client / roadGraph / trailDiscovery (static lets, lines 695-697)"
+  "mem:AppDependencies.storage (private static OSAllocatedUnfairLock<AppDependencies>)",
+  "mem:AppDependencies.overrides (let, per container)",
+  "mem:AppDependencies.Overrides.values (OSAllocatedUnfairLock<Values>)",
+  "mem:OverpassServices.client / roadGraph / trailDiscovery (static lets)"
  ],
  "toplevel": "Stored-property initializers: `let overrides = Overrides()` (30); static storage lock seeded with AppDependencies() (71); Overrides.values lock seeded with an all-nil Values (151); OverpassServices builds OverpassClient() and the two Overpass services lazily on first static access (695-697).",
  "units": [
@@ -110,8 +110,8 @@
   {
    "key": "init AppDependencies()",
    "hash": "03b89b2f9e0c7a5d",
-   "does": "Empty initializer; the container's only stored state is a new Overrides box created by the property initializer (line 26).",
-   "entry": "Called by the static storage initializer (line 50), reset() (line 48) and EmuquTests/OverpassClientTests.swift:78.",
+   "does": "Empty initializer; the container's only stored state is a new Overrides box created by the property initializer.",
+   "entry": "Called by the static storage initializer, reset() and EmuquTests/OverpassClientTests.swift.",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -2167,7 +2167,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "fa9202dd1d9f813f",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::init TrailDiscoveryService(overpass:)": "8eba7b2d2a599937"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::init TrailDiscoveryService(overpass:)": "28f721d98e09b182"
    }
   },
   {
@@ -2876,7 +2876,7 @@
    "key": "var EnvironmentValues.dependencies",
    "hash": "16a0ecca667c0d17",
    "does": "SwiftUI EnvironmentValues accessor for the container: get returns self[DependenciesKey] (defaulting to DependenciesKey.defaultValue, i.e. AppDependencies.current at the time of the read), set stores an override for a subtree.",
-   "entry": "Read by @Environment(\\.dependencies) in views (e.g. Emuqu/Sources/Views/SettingsView.swift:12); the setter is only used if a view applies .environment(\\.dependencies, ...), which no code in the repo does.",
+   "entry": "Read by @Environment(\\.dependencies) in views (e.g. Emuqu/Sources/Views/SettingsView.swift); the setter is only used if a view applies .environment(\\.dependencies, ...), which no code in the repo does.",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current"

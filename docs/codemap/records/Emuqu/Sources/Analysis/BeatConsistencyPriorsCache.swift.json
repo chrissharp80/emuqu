@@ -61,7 +61,7 @@
    "key": "init BeatConsistencyPriorsCache()",
    "hash": "94832d146c07ae29",
    "does": "Private init: removes the earlier builds' feature files, then loads features and featureless ids from disk.",
-   "entry": "First access of BeatConsistencyPriorsCache.shared (AppDependencies.swift:470)",
+   "entry": "First access of BeatConsistencyPriorsCache.shared (AppDependencies.swift)",
    "calls": [
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.removeLegacyFiles()",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFromDisk()",
@@ -148,14 +148,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.applyArchiveChange(_:)": "303c04332a663295"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.applyArchiveChange(_:)": "43e14ba950914f8c"
    }
   },
   {
    "key": "func BeatConsistencyPriorsCache.applyArchiveChange(_:)",
    "hash": "50f0b8f521a340db",
    "does": "nil object → reconcile cache against the archive's live ids; a UUID → invalidate that one session.",
-   "entry": "NotificationCenter .flowRecoveryArchiveChanged observer (posted by Archive.swift:470/498, Archive+Internal.swift:913/916, DataPurgeService.swift:219, ArchiveSignal.swift:118)",
+   "entry": "NotificationCenter .flowRecoveryArchiveChanged observer (posted by Archive.swift/498, Archive+Internal.swift/916, DataPurgeService.swift, ArchiveSignal.swift)",
    "calls": [
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.reconcileAgainstBoundArchive()",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.invalidate(_:)"

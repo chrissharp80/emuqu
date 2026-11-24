@@ -16,7 +16,7 @@
   "mem:AppTheme.secondary/accent(=terracotta)/warning/alert (static let)",
   "mem:AppTheme.cornerRadius 16/smallCornerRadius 10/padding 16/cardShadowRadius 12 (static let)"
  ],
- "toplevel": "Static let colour constants listed in state; line 681 note says Color hex extension lives in HRVSession.swift. All theme-aware computed colours read AppDependencies.current.app.settingsManager.settings (colorTheme, appearanceTheme) at call time; SwiftUI re-renders only when an observing view re-evaluates.",
+ "toplevel": "Static let colour constants listed in state; note says Color hex extension lives in HRVSession.swift. All theme-aware computed colours read AppDependencies.current.app.settingsManager.settings (colorTheme, appearanceTheme) at call time; SwiftUI re-renders only when an observing view re-evaluates.",
  "units": [
   {
    "key": "var AppTheme.currentColorTheme",
@@ -34,7 +34,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
@@ -711,7 +711,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
@@ -971,7 +971,7 @@
   {
    "key": "var AppTheme.heroGradient",
    "hash": "24757ed1d852356d",
-   "does": "Linear gradient primary@0.85 → primaryDark@0.95, top-leading to bottom-trailing; used by View.heroCard() (HelpCenterView.swift:75).",
+   "does": "Linear gradient primary@0.85 → primaryDark@0.95, top-leading to bottom-trailing; used by View.heroCard() (HelpCenterView.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
@@ -1392,7 +1392,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.heroGradient": "c5ad97e6e33facdd",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.heroGradient": "cf89d83f7aee0507",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
@@ -1585,7 +1585,7 @@
     {
      "at": "+1",
      "cond": "color ?? AppTheme.primary",
-     "effect": "explicit colour when passed; AppTheme.primary when nil — reached by HistoryView.swift:430 `.zen()`"
+     "effect": "explicit colour when passed; AppTheme.primary when nil — reached by HistoryView.swift `.zen()`"
     }
    ],
    "deps": {

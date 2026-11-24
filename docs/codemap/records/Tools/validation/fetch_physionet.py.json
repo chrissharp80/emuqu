@@ -1,13 +1,13 @@
 {
  "file": "Tools/validation/fetch_physionet.py",
- "hash": "3308d1735996750f",
+ "hash": "d1bf2193ca23df75",
  "role": "CLI that downloads named PhysioNet files from the open-data S3 mirror with retries and short-read / S3-XML-error detection.",
  "types": [],
  "state": [
-  "BASE = 'https://physionet-open.s3.amazonaws.com' (line 16)",
+  "BASE = 'https://physionet-open.s3.amazonaws.com'",
   "file:<outdir>/<name> and <name>.part temp file"
  ],
- "toplevel": "Calls main() when run as a script (line 59).",
+ "toplevel": "Module docstring: usage `python3 -I fetch_physionet.py <db> <version> <outdir> [file ...]`, and that the validate_* scripts read <db> from build/physionet/<db> in the checkout or $EMUQU_PHYSIONET_DIR/<db>, so that folder is the <outdir> to pass. Calls main() when run as a script.",
  "units": [
   {
    "key": "def fetch",
@@ -31,7 +31,7 @@
     {
      "at": "+2",
      "cond": "destination exists with size > 0",
-     "effect": "returns the existing file without any validation. The script itself never leaves a truncated dest (it writes <name>.part and os.replace()s only after the Content-Length / S3-XML checks, lines 27-42), but a non-empty file placed there by anything else, or one downloaded when the server sent no Content-Length, is trusted as-is"
+     "effect": "returns the existing file without any validation. The script itself never leaves a truncated dest (it writes <name>.part and os.replace()s only after the Content-Length / S3-XML checks), but a non-empty file placed there by anything else, or one downloaded when the server sent no Content-Length, is trusted as-is"
     },
     {
      "at": "+7",
@@ -84,7 +84,7 @@
     }
    ],
    "deps": {
-    "Tools/validation/fetch_physionet.py::def fetch": "2276429a61b009c7"
+    "Tools/validation/fetch_physionet.py::def fetch": "e3a9145c598905e5"
    }
   }
  ],

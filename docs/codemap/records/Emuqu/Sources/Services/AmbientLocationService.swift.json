@@ -31,7 +31,7 @@
    "key": "func AmbientLocationService.start()",
    "hash": "7b5c4cf603bb9010",
    "does": "Marks a start as requested, prompts for When-In-Use if not determined, and begins updates when already authorized.",
-   "entry": "Called from GetMeBackView.swift:318 on appear.",
+   "entry": "Called from GetMeBackView.swift on appear.",
    "calls": [
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.authorizedOrPrompting()",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()"
@@ -54,7 +54,7 @@
    "key": "func AmbientLocationService.startIfAuthorized()",
    "hash": "4881bc664b618571",
    "does": "Begins updates only when already authorized (never prompts), marking a start as requested.",
-   "entry": "Called from EmuquApp.swift:504 on foreground and AssistantChatView.swift:374.",
+   "entry": "Called from EmuquApp.swift on foreground and AssistantChatView.swift.",
    "calls": [
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()",
     "ext:CLLocationManager.authorizationStatus"
@@ -154,7 +154,7 @@
    "key": "func AmbientLocationService.stop()",
    "hash": "e9020452425bd69f",
    "does": "Clears running/requested flags and stops updates on main if they were running.",
-   "entry": "Called from EmuquApp.swift:444 on background, and from the authorization delegate on any non-authorized status.",
+   "entry": "Called from EmuquApp.swift on background, and from the authorization delegate on any non-authorized status.",
    "calls": [
     "ext:CLLocationManager.stopUpdatingLocation"
    ],
@@ -180,7 +180,7 @@
    "key": "func AmbientLocationService.record(_:)",
    "hash": "ccf957bbc8090caf",
    "does": "Caches a fix forwarded from WorkoutLocationManager or BreadcrumbRecorder (no geocode).",
-   "entry": "Called from WorkoutLocationManager.swift:456 and BreadcrumbRecorder.swift:284.",
+   "entry": "Called from WorkoutLocationManager.swift and BreadcrumbRecorder.swift.",
    "calls": [
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.store(_:)"
    ],
@@ -223,7 +223,7 @@
    "key": "func AmbientLocationService.forgetAfterPurge()",
    "hash": "5ae1f45e279bcf4d",
    "does": "Delete All My Data: clears cached fix and road context.",
-   "entry": "Called from DataPurgeService.swift:593.",
+   "entry": "Called from DataPurgeService.swift.",
    "calls": [],
    "reads": [],
    "writes": [
@@ -250,7 +250,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "1a287da0ce5ea4b6",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "a4c3b987ae29dd27",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "a0b74e1dad19f7ab"
@@ -260,7 +260,7 @@
    "key": "func AmbientLocationService.cachedResolvedAddress(maxAgeSec:)",
    "hash": "9e9a70ab92709e89",
    "does": "Returns the mirrored road context if it is no older than maxAgeSec (default 30 s); nil otherwise.",
-   "entry": "Called from AppFactResolver+LiveCoaching/LiveNavigation and ContextBuilder.swift:125 on assistant queries.",
+   "entry": "Called from AppFactResolver+LiveCoaching/LiveNavigation and ContextBuilder.swift on assistant queries.",
    "calls": [],
    "reads": [
     "mem:AmbientLocationService._latestRoadContext"
@@ -284,7 +284,7 @@
    "key": "func AmbientLocationService.recordResolvedAddress(_:)",
    "hash": "ae9d69559a995de3",
    "does": "Stores the latest resolved road context under the lock.",
-   "entry": "Called by RoadGeocodingService.swift:573 and RoadGeocodingService+Lookup.swift:254 on each publish.",
+   "entry": "Called by RoadGeocodingService.swift and RoadGeocodingService+Lookup.swift on each publish.",
    "calls": [],
    "reads": [],
    "writes": [
@@ -297,7 +297,7 @@
    "key": "func AmbientLocationService.cachedLocation(maxAgeSec:)",
    "hash": "36bc292063d7b5a0",
    "does": "Returns the cached fix if no older than maxAgeSec (default 60 s); nil otherwise.",
-   "entry": "Called from many AppFactResolver location tools and ContextBuilder.swift:124.",
+   "entry": "Called from many AppFactResolver location tools and ContextBuilder.swift.",
    "calls": [],
    "reads": [
     "mem:AmbientLocationService._latestLocation"
@@ -352,7 +352,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()": "85f5ab5e229e164a",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()": "f05d1ea73499775a"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()": "860892b4b1ee81b0"
    }
   },
   {

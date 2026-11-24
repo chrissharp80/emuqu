@@ -86,7 +86,7 @@
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c",
-    "Makefile::target shared-root-guard": "a9263da85d483554"
+    "Makefile::target shared-root-guard": "00259c1647182620"
    }
   },
   {
@@ -146,7 +146,7 @@
   {
    "key": "§ Code Refactor Specification > Non-Negotiable Principles > 7) Zero Tolerance for Magic",
    "hash": "601d4b0e2a1f5f3d",
-   "does": "Rule: no implicit dependencies, global mutable state, hidden side effects or stringly-typed APIs. .shared reads are confined to the composition root by check_no_shared_outside_root.sh; global singletons still exist behind AppDependencies.",
+   "does": "Rule: no implicit dependencies, global mutable state, hidden side effects or stringly-typed APIs. .shared reads are confined to the two composition roots (AppDependencies.swift, WatchDependencies.swift) by check_no_shared_outside_root.sh; global singletons still exist behind AppDependencies.",
    "entry": null,
    "calls": [
     "Makefile::target shared-root-guard",
@@ -159,8 +159,8 @@
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c",
-    "Makefile::target debt-budget": "107274ad82f7d924",
-    "Makefile::target shared-root-guard": "a9263da85d483554",
+    "Makefile::target debt-budget": "1fdd61e80c5baaa9",
+    "Makefile::target shared-root-guard": "00259c1647182620",
     "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "0b214d0ad20888fb"
    }
   },
@@ -250,9 +250,9 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Empty-range loop guard": "578ecd21844f6985",
     ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "13438c24dcea9cc9",
     ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "939a88eb13b12ec8",
-    "Makefile::target debt-budget": "107274ad82f7d924",
-    "Makefile::target empty-range-guard": "d2cc5a46df38f2e0",
-    "Makefile::target spec-conformance": "76fac68887ff9527"
+    "Makefile::target debt-budget": "1fdd61e80c5baaa9",
+    "Makefile::target empty-range-guard": "fd7b8f426f2f3aa0",
+    "Makefile::target spec-conformance": "220ba9761974f8a6"
    }
   },
   {
@@ -280,7 +280,7 @@
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/No orphaned Swift files": "4986a8f812605eb7",
-    "Makefile::target orphan-swift-guard": "274019c065545658"
+    "Makefile::target orphan-swift-guard": "05ba360593aa0038"
    }
   },
   {
@@ -297,7 +297,7 @@
   {
    "key": "§ Code Refactor Specification > Code Structure Standards > Explicit Dependency Wiring (No Hidden Instantiation)",
    "hash": "af2b139bec68b7fd",
-   "does": "Rule: dependencies created only in the wiring layer and passed in. Implemented by AppDependencies + RRCollector.makeDefault (per MAINTAINERS §9.4); production code still defaults init parameters to AppDependencies.current (e.g. TrainingLoadPrecedence.stored ftp default reads AppDependencies.current at TrainingLoadPrecedence.swift:85).",
+   "does": "Rule: dependencies created only in the wiring layer and passed in. Implemented by AppDependencies + RRCollector.makeDefault (per MAINTAINERS §9.4); production code still defaults init parameters to AppDependencies.current (e.g. TrainingLoadPrecedence.stored ftp default reads AppDependencies.current at TrainingLoadPrecedence.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()",
@@ -388,9 +388,9 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c",
     ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "939a88eb13b12ec8",
     ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "a26d5aca611355ca",
-    "Makefile::target debt-budget": "107274ad82f7d924",
-    "Makefile::target sendable-guard": "c009f552884c46bc",
-    "Makefile::target shared-root-guard": "a9263da85d483554"
+    "Makefile::target debt-budget": "1fdd61e80c5baaa9",
+    "Makefile::target sendable-guard": "d517cc923d91394a",
+    "Makefile::target shared-root-guard": "00259c1647182620"
    }
   },
   {
@@ -417,9 +417,9 @@
     ".github/workflows/ci.yml::step lint-and-budgets/SBOM drift (Package.resolved vs in-app acknowledgements)": "01e85aecb6178d45",
     ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current": "242b5be18b5a6ab6",
     ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "939a88eb13b12ec8",
-    "Makefile::target aggregate-type-size": "185103618755699f",
-    "Makefile::target orphan-swift-guard": "274019c065545658",
-    "Makefile::target sbom-guard": "b6d05ef975bc25ca"
+    "Makefile::target aggregate-type-size": "4ef2bda22516ff43",
+    "Makefile::target orphan-swift-guard": "05ba360593aa0038",
+    "Makefile::target sbom-guard": "ed64432649895d76"
    }
   },
   {
@@ -462,7 +462,7 @@
   {
    "key": "§ Code Refactor Specification > Eliminate Bloat, Duplication, and Dead Weight > Dependency Audit",
    "hash": "c5849bc8e003b835",
-   "does": "Rule: every dependency must earn its place. SBOM drift is checked (generate_sbom.py --check, ci.yml:171); no gate measures necessity.",
+   "does": "Rule: every dependency must earn its place. SBOM drift is checked (generate_sbom.py --check, ci.yml); no gate measures necessity.",
    "entry": null,
    "calls": [
     ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current",
@@ -481,8 +481,8 @@
     ".github/workflows/ci.yml::step lint-and-budgets/SBOM is current": "242b5be18b5a6ab6",
     ".github/workflows/security.yml::job dependency-review": "f544cc3ea5ca4098",
     ".github/workflows/security.yml::step dependency-review/Review dependencies": "0879a4916a66beb0",
-    "Makefile::target sbom-check": "46aecc781adb961a",
-    "Makefile::target sbom-guard": "b6d05ef975bc25ca",
+    "Makefile::target sbom-check": "9a099cd017dba69b",
+    "Makefile::target sbom-guard": "ed64432649895d76",
     "scripts/generate_sbom.py::def main": "b4f89810431d3b58"
    }
   },
@@ -530,7 +530,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target test-coverage": "2f52b6f381055f27"
+    "Makefile::target test-coverage": "c1919f9fcb7887a7"
    }
   },
   {
@@ -547,7 +547,7 @@
   {
    "key": "§ Code Refactor Specification > Logging and Observability",
    "hash": "4bcddff161301d08",
-   "does": "Rule: structured logging at every side-effect boundary with correlation IDs, consistent levels, no sensitive data. Redaction is gated by scripts/check_log_redaction.sh (ci.yml:324); correlation IDs are not checked.",
+   "does": "Rule: structured logging at every side-effect boundary with correlation IDs, consistent levels, no sensitive data. Redaction is gated by scripts/check_log_redaction.sh (ci.yml); correlation IDs are not checked.",
    "entry": null,
    "calls": [
     "scripts/check_log_redaction.sh::fn report"
@@ -577,7 +577,7 @@
   {
    "key": "§ Code Refactor Specification > Data Model Versioning",
    "hash": "3db20d2d6d3f8339",
-   "does": "Rule: persisted structures versioned/migratable. SessionArchiveEntry.currentSchemaVersion = 1 (SessionMetadata.swift:711) and Archive deferred migrations exist.",
+   "does": "Rule: persisted structures versioned/migratable. SessionArchiveEntry.currentSchemaVersion = 1 (SessionMetadata.swift) and Archive deferred migrations exist.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()"
@@ -723,7 +723,7 @@
     ".github/workflows/ci.yml::step release-build/Release configuration compiles": "5b8151e7ab011b41",
     ".github/workflows/ci.yml::step tests/Run tests with coverage": "cb5ae02e2af749f1",
     "Makefile::target ci-local": "e2b0391dda4db254",
-    "Makefile::target lint-budget": "83ede4e7a455a929"
+    "Makefile::target lint-budget": "c18d61f2c3990311"
    }
   },
   {
@@ -746,8 +746,8 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "a26d5aca611355ca",
     ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on": "ce44a5cbbe2657c3",
     ".github/workflows/ci.yml::step thread-sanitizer/Unit suite under Thread Sanitizer": "7eee23ecc349ef14",
-    "Makefile::target sendable-guard": "c009f552884c46bc",
-    "Makefile::target strict-concurrency-enabled": "c813f57709ab4832",
+    "Makefile::target sendable-guard": "d517cc923d91394a",
+    "Makefile::target strict-concurrency-enabled": "bf93ba754ab8532f",
     "Makefile::target thread-sanitizer": "adfca9b867c6ab56"
    }
   },
@@ -767,7 +767,7 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c",
     ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "939a88eb13b12ec8",
-    "Makefile::target shared-root-guard": "a9263da85d483554"
+    "Makefile::target shared-root-guard": "00259c1647182620"
    }
   },
   {
@@ -869,7 +869,7 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "13438c24dcea9cc9",
     ".github/workflows/ci.yml::step tests/Run tests with coverage": "cb5ae02e2af749f1",
-    "Makefile::target spec-conformance": "76fac68887ff9527"
+    "Makefile::target spec-conformance": "220ba9761974f8a6"
    }
   }
  ],

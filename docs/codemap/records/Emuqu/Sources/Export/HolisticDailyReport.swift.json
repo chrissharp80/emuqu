@@ -20,7 +20,7 @@
   "file:<tmp>/holistic-workout-<8 hex>.pdf",
   "file:<tmp>/holistic-cover-<8 hex>.pdf"
  ],
- "toplevel": "Config stored-property initializers create UIFonts/UIColors at construction. Constructed by ReportsListView.renderHolistic (ReportsListView.swift:392), MainTabView+Reports.renderDailyReport (MainTabView+Reports.swift:113) and WorkoutRecorder+Metrics.holisticReport (WorkoutRecorder+Metrics.swift:444), plus EmuquTests/WorkoutReportSmokeTests.swift:214 and TrainingAdviceGateTests.",
+ "toplevel": "Config stored-property initializers create UIFonts/UIColors at construction. Constructed by ReportsListView.renderHolistic (ReportsListView.swift), MainTabView+Reports.renderDailyReport (MainTabView+Reports.swift) and WorkoutRecorder+Metrics.holisticReport (WorkoutRecorder+Metrics.swift), plus EmuquTests/WorkoutReportSmokeTests.swift and TrainingAdviceGateTests.",
  "units": [
   {
    "key": "init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:sleepSchedule:temperatureUnit:liveLoadSnapshot:config:)",
@@ -122,7 +122,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "b7ab0e7d1e958195",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "f56389b765313440",
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)": "8c54fb5979cbb404",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
@@ -258,7 +258,7 @@
    "key": "func HolisticDailyReport.loadAsOfDisplay()",
    "hash": "a0bd08afbd4ef47a",
    "does": "Returns liveLoadSnapshot?.disclosure (\"Live · updated <time>\"), nil when there is no live snapshot (past day or cold cache).",
-   "entry": "Also called by EmuquTests/WorkoutReportSmokeTests.swift:336.",
+   "entry": "Also called by EmuquTests/WorkoutReportSmokeTests.swift.",
    "calls": [
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.disclosure"
    ],

@@ -17,7 +17,7 @@
   {
    "key": "func SleepDataCache.read(coveringRecordingStart:)",
    "hash": "4b0a50733397ebed",
-   "does": "Computes the morning dayKey for recordingStart, loads the store and returns the SleepData whose dayKey is within 25h of that target and closest to it; nil otherwise. Callers (HealthKitManager+Sleep.swift:447, MorningProcessingService+Sleep.swift:102, RRCollector+OvernightStreaming.swift:404) must check plausiblyBelongsToRecording.",
+   "does": "Computes the morning dayKey for recordingStart, loads the store and returns the SleepData whose dayKey is within 25h of that target and closest to it; nil otherwise. Callers (HealthKitManager+Sleep.swift, MorningProcessingService+Sleep.swift, RRCollector+OvernightStreaming.swift) must check plausiblyBelongsToRecording.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.morningKey(for:calendar:)",
@@ -43,7 +43,7 @@
   {
    "key": "func SleepDataCache.write(_:)",
    "hash": "ba116d898ea880cb",
-   "does": "Writes SleepData into the store keyed by startOfDay(data.date), replacing any same-day entry, sorts newest first, truncates to 14 entries, and saves. Called from HealthKitManager+Sleep.swift:133 and HealthKitManager+SleepTrends.swift:519.",
+   "does": "Writes SleepData into the store keyed by startOfDay(data.date), replacing any same-day entry, sorts newest first, truncates to 14 entries, and saves. Called from HealthKitManager+Sleep.swift and HealthKitManager+SleepTrends.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.loadStore()",
@@ -77,7 +77,7 @@
   {
    "key": "func SleepDataCache.clear()",
    "hash": "3e75b740bc939bd4",
-   "does": "Removes SleepDataCache.v2 and the retired SleepDataCache.v1 from UserDefaults. Called by DataPurgeService.swift:700.",
+   "does": "Removes SleepDataCache.v2 and the retired SleepDataCache.v1 from UserDefaults. Called by DataPurgeService.swift.",
    "entry": null,
    "calls": [],
    "reads": [],

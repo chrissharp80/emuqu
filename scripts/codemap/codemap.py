@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The code map: one record per source file and per unit, kept in step with the code.
 
-    codemap.py check            fail if any record is missing, stale, orphaned or incomplete
+    codemap.py check            fail if any record is missing, stale, orphaned or incomplete, names a
+                                callee that no longer exists, or has an unread re-check line
     codemap.py status           the same list, exit 0
     codemap.py status --by-callee [BASE]
                                 the re-check lines grouped by the callee that caused them, with what
@@ -17,6 +18,7 @@
                                 after re-reading each caller of CALLEE and finding it unaffected by
                                 CALLEE's changed record, clear those re-check lines (all of CALLEE's
                                 callers when none is named)
+    codemap.py ack --from FILE  the same for many: one CALLER<TAB>CALLEE re-check line per line
     codemap.py move OLD NEW [OLDKEY=NEWKEY...]
                                 before sync, carry the record of a moved file or renamed units to
                                 their new names and rewrite every reference to them
@@ -105,6 +107,22 @@ def all_records() -> dict[str, dict]:
     return out
 
 
+# A `file:line` citation. Line numbers move with every edit above them, so a record that cites one
+# goes wrong while its own code is unchanged and nothing flags it. Records name units, targets and
+# files. ("line N" in prose and a bare `:N` are not matched: they are as often a line of data or
+# output, a clock time or a slice as a line of code.)
+LINE_CITATION = re.compile(r"\b(?:(?:[\w+\-./]*[\w+\-])?\.(?:swift|yml|yaml|sh|py|md|json|plist|txt|h|m|c|html|storekit"
+                           r"|xcstrings|entitlements|xcprivacy|pbxproj|xcscheme|xcconfig|strings|toml|cfg)|Makefile):\d+")
+RECORD_TEXT_FIELDS = ("role", "types", "state", "toplevel", "does", "contract", "entry", "calls", "reads", "writes",
+                      "branches")
+
+
+def line_citations(holder: dict) -> list[str]:
+    """The `file:line` citations in a record's or a unit record's text fields."""
+    text = json.dumps([holder.get(k) for k in RECORD_TEXT_FIELDS], ensure_ascii=False)
+    return [m.group(0) for m in LINE_CITATION.finditer(text)]
+
+
 def problems(inv: dict, recs: dict) -> list[tuple[str, str, str]]:
     """(path, key or '', what is wrong)."""
     out = []
@@ -118,6 +136,8 @@ def problems(inv: dict, recs: dict) -> list[tuple[str, str, str]]:
             out.append((f, "", "file record is stale: code outside every unit changed"))
         if not (rec.get("role") or "").strip():
             out.append((f, "", "file record has no role"))
+        for c in line_citations(rec):
+            out.append((f, "", f"cites a line number ({c}); name the unit or target instead"))
         have = {u["key"]: u for u in rec.get("units", [])}
         for u in d["units"]:
             r = have.get(u["key"])
@@ -128,6 +148,8 @@ def problems(inv: dict, recs: dict) -> list[tuple[str, str, str]]:
                 out.append((f, u["key"], "record says nothing about what the unit does"))
             if r.get("hash") != u["hash"]:
                 out.append((f, u["key"], "stale: the code changed after the record was written"))
+            for c in line_citations(r):
+                out.append((f, u["key"], f"cites a line number ({c}); name the unit or target instead"))
             for c in r.get("calls") or []:
                 if "::" in c and not c.startswith(("ext:", "dyn:", "closure:")) and c not in known:
                     out.append((f, u["key"], f"calls a unit that no longer exists: {c}"))
@@ -269,22 +291,14 @@ def cmd_check(strict: bool, by_callee: bool = False, base: str = "origin/main") 
     recs = all_records()
     inv = inventory(ROOT)
     probs = problems(inv, recs)
-    # TODO(codemap-recheck): re-check lines and record calls naming deleted units are reported
-    # but do not fail the check yet. Once the outstanding re-check lines have been re-read
-    # (docs/codemap/README.md, "Changing code"), move these two kinds back into `probs`.
-    stale_call = "calls a unit that no longer exists"
-    advisory = [p for p in probs if p[2].startswith(stale_call)]
-    probs = [p for p in probs if not p[2].startswith(stale_call)]
     g = graphmod.build(inv, recs, ROOT)
-    advisory += dependency_problems(inv, recs, g)
+    rechecks = dependency_problems(inv, recs, g)
+    if by_callee and rechecks:
+        print(f"codemap: {len(rechecks)} record(s) to re-check, by the callee that changed:")
+        _print_by_callee(recheck_items(inv, recs, g), recs, base)
+        print()
+    probs += rechecks
     probs += budget_problems(open_findings(recs))
-    if advisory:
-        print(f"codemap: {len(advisory)} record(s) to re-check.")
-        if by_callee:
-            _print_by_callee(recheck_items(inv, recs, g), recs, base)
-            _print_grouped([p for p in advisory if p[2].startswith(stale_call)])
-        elif not strict:
-            _print_grouped(advisory)
     if not probs:
         print("codemap: clean. Every unit and file in scope has a current record.")
         if OVERLAY.is_dir():
@@ -293,11 +307,15 @@ def cmd_check(strict: bool, by_callee: bool = False, base: str = "origin/main") 
                   f"(high and medium can only go down).")
         return 0
     print(f"codemap: {len(probs)} problem(s).\n")
-    _print_grouped(probs)
+    # With --by-callee the re-check lines were printed above, grouped by callee.
+    _print_grouped([p for p in probs if not (by_callee and p in rechecks)])
     print("\n  Update the record text in docs/codemap/records/<path>.json to match the code,")
-    print("  then mark it current:  python3 scripts/codemap/codemap.py stamp <path> [key ...]")
-    print("  're-check' lines: re-read that unit against the changed callee, fix the unit or its")
-    print("  record if its behaviour changed too, then stamp it. Stamp callees before callers.")
+    print("  then mark it current:  python3 scripts/codemap/codemap.py stamp <path>::<key> ...")
+    print("  're-check' lines: re-read that unit against the changed callee (status --by-callee")
+    print("  shows each change with its callers). Unaffected: codemap.py ack <callee> [<caller> ...].")
+    print("  Changed too: rewrite its record and stamp it.")
+    print("  'calls a unit that no longer exists': point the record's calls at the unit it calls now")
+    print("  (codemap.py move carries records across a rename).")
     print("  New or deleted units:  python3 scripts/codemap/codemap.py sync <path>")
     print("  See docs/codemap/README.md.")
     return 1 if strict else 0
@@ -481,6 +499,40 @@ def cmd_stamp(groups: dict[str, list[str]]) -> int:
                 have[k]["deps"] = current_deps(g, desc, f"{path}::{k}")
                 print(f"{path}: stamped {k}")
         save(rec)
+    return 0
+
+
+def cmd_ack_from(path: str) -> int:
+    """`ack` for many callees in one pass: each non-blank line of `path` is `CALLER<TAB>CALLEE`,
+    one re-check line re-read and found unaffected. Every pair must be an open re-check line, or
+    nothing is written."""
+    from inventory import inventory
+    import graph as graphmod
+    pairs = []
+    for n, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        if "\t" not in line:
+            print(f"ack: {path}:{n}: not CALLER<TAB>CALLEE", file=sys.stderr)
+            return 2
+        caller, callee = (x.strip() for x in line.split("\t", 1))
+        pairs.append((caller, callee))
+    recs = all_records()
+    inv = inventory(ROOT)
+    open_pairs = {(f"{f}::{k}", c) for f, k, c, _ in recheck_items(inv, recs, graphmod.build(inv, recs, ROOT))}
+    missing = [p for p in pairs if p not in open_pairs]
+    if missing:
+        for caller, callee in missing[:20]:
+            print(f"ack: no open re-check line for {callee} on {caller}", file=sys.stderr)
+        return 2
+    desc = descriptions(recs)
+    touched = set()
+    for caller, callee in pairs:
+        record_of(recs, caller).setdefault("deps", {})[callee] = desc[callee]
+        touched.add(caller.split("::", 1)[0])
+    for f in touched:
+        save(recs[f])
+    print(f"acknowledged {len(pairs)} re-check line(s) in {len(touched)} record(s)")
     return 0
 
 
@@ -726,6 +778,8 @@ def main(argv: list[str]) -> int:
             print("stamp: give either PATH [KEY...] or PATH::KEY nodes, not both", file=sys.stderr)
             return 2
         return cmd_stamp(groups)
+    if cmd == "ack" and len(rest) == 2 and rest[0] == "--from":
+        return cmd_ack_from(rest[1])
     if cmd == "ack" and rest:
         return cmd_ack(rest[0], rest[1:])
     if cmd == "move" and len(rest) >= 2:

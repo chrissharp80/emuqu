@@ -19,7 +19,7 @@
    "key": "var MetricInfoSheet.body",
    "hash": "e633f6982b3c10aa",
    "does": "Sheet root: NavigationStack/ScrollView with metricInfoStack and a Done toolbar button.",
-   "entry": "SwiftUI body; presented by HRVDetailV2View.metricInfoSheet (HRVDetailV2View.swift:242) when a metric ⓘ is tapped (HRVDetailV2View+Charts.swift:631); also hosted by the snapshot test EmuquTests/ChartScreenSnapshotTests.swift:161",
+   "entry": "SwiftUI body; presented by HRVDetailV2View.metricInfoSheet (HRVDetailV2View.swift) when a metric ⓘ is tapped (HRVDetailV2View+Charts.swift); also hosted by the snapshot test EmuquTests/ChartScreenSnapshotTests.swift",
    "calls": [
     "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.metricInfoStack",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricInfoSheet.doneToolbarItem"
@@ -139,7 +139,7 @@
    "does": "Resolves glossary copy for a label: own factory table first, then Morning Results popover info (fullName/description/interpretation mapped to short/body/typicalRange), else the generic unknown entry.",
    "entry": null,
    "calls": [
-    "dyn:entryFactories[label]() → Emuqu/Sources/Views/MetricInfoSheets.swift:140|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.sdnnEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.pnn50Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.meanRREntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.meanHREntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.dfaAlpha1Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.sd1Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.sd2Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.lfPowerEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.hfPowerEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.lfhfRatioEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.totalPowerEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.stressIndexEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.readinessEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.artifactsEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.nocturnalDipEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.windowClassificationEntry()",
+    "dyn:entryFactories[label]() → Emuqu/Sources/Views/MetricInfoSheets.swift|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.sdnnEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.pnn50Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.meanRREntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.meanHREntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.dfaAlpha1Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.sd1Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.sd2Entry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.lfPowerEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.hfPowerEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.lfhfRatioEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.totalPowerEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.stressIndexEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.readinessEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.artifactsEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.nocturnalDipEntry()|Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.windowClassificationEntry()",
     "Emuqu/Sources/Views/MorningResultsPopovers.swift::func MetricExplanationPopover.info(forKey:)",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricInfoSheet.unknownEntry()"
    ],
@@ -166,7 +166,7 @@
    "key": "func MetricInfoSheet.rmssdEntry()",
    "hash": "2b676ebc4829452d",
    "does": "Builds the localized Entry for RMSSD copy; typical 20–80 ms adults, 60–120 athletes.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -181,7 +181,7 @@
    "key": "func MetricInfoSheet.sdnnEntry()",
    "hash": "882f26f57ae48c06",
    "does": "Builds the localized Entry for SDNN; its typical range is the Morning Results popover's own SDNN range string (roughly 50–100 ms in many adults, varies with age and fitness), so both screens quote one range.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -196,7 +196,7 @@
    "key": "func MetricInfoSheet.pnn50Entry()",
    "hash": "76d420084211d819",
    "does": "Builds the localized Entry for pNN50 copy; typical 5–40%.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -211,7 +211,7 @@
    "key": "func MetricInfoSheet.meanRREntry()",
    "hash": "b28490348f0f591c",
    "does": "Builds the localized Entry for Mean RR copy; 750–1,000 ms awake, 900–1,300 ms asleep.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -226,7 +226,7 @@
    "key": "func MetricInfoSheet.meanHREntry()",
    "hash": "864e038c8f227736",
    "does": "Builds the localized Entry for Mean HR copy; 60–80 bpm awake, 45–65 asleep.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -241,7 +241,7 @@
    "key": "func MetricInfoSheet.dfaAlpha1Entry()",
    "hash": "298351f0975092f9",
    "does": "Builds the localized Entry for DFA α1 copy; resting reference 0.75–1.0, <0.5 hard exercise.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -256,7 +256,7 @@
    "key": "func MetricInfoSheet.sd1Entry()",
    "hash": "e7d4009e01d60f5d",
    "does": "Builds the localized Entry for SD1 copy (= RMSSD/√2).",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -271,7 +271,7 @@
    "key": "func MetricInfoSheet.sd2Entry()",
    "hash": "79a8bd2ffe2ade79",
    "does": "Builds the localized Entry for SD2 copy; resting 50–150 ms.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -286,7 +286,7 @@
    "key": "func MetricInfoSheet.lfPowerEntry()",
    "hash": "ef1cb11303ef095c",
    "does": "Builds the localized Entry for LF power copy (0.04–0.15 Hz, not a sympathetic index); 200–2,000 ms².",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -301,7 +301,7 @@
    "key": "func MetricInfoSheet.hfPowerEntry()",
    "hash": "80513bcabf32624c",
    "does": "Builds the localized Entry for HF power (0.15–0.4 Hz, the band most closely tied to parasympathetic activity): RSA at 9–24 breaths a minute, falls under stress, and slower breathing such as the mandala's moves the power into LF so HF drops; 100–1,500 ms².",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -316,7 +316,7 @@
    "key": "func MetricInfoSheet.lfhfRatioEntry()",
    "hash": "8d61eef8790e7aff",
    "does": "Builds the localized Entry for LF/HF copy (Billman 2013 caveat); range 0.5–2.0.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -331,7 +331,7 @@
    "key": "func MetricInfoSheet.totalPowerEntry()",
    "hash": "85e7a6bfb4e5cc17",
    "does": "Builds the localized Entry for Total power copy (VLF+LF+HF, peak-window, track drops >30%).",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -346,7 +346,7 @@
    "key": "func MetricInfoSheet.stressIndexEntry()",
    "hash": "8c971d47c43753f3",
    "does": "Builds the localized Entry for Baevsky stress index copy; usual resting range 50–100, 100–150 somewhat above, 150–300 well above (the Help Center's bands).",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -361,7 +361,7 @@
    "key": "func MetricInfoSheet.readinessEntry()",
    "hash": "4c0b5abe5f33c2ff",
    "does": "Builds the localized Entry for ANS Readiness (1–10): a nearness-to-norm score starting at 5 (RMSSD near usual, α1 in its resting band, PNS/SNS balance, lifted by recent hard training), so a night well above usual HRV can score low; bands 7–10/4.5–7/2–4.5/<2.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -376,7 +376,7 @@
    "key": "func MetricInfoSheet.artifactsEntry()",
    "hash": "96bee56a71a465da",
    "does": "Builds the localized Entry for Artifact % copy; <5% great, <10% fine, >15% reconsider.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -391,7 +391,7 @@
    "key": "func MetricInfoSheet.nocturnalDipEntry()",
    "hash": "57794224b58b8c38",
    "does": "Builds the localized Entry for Nocturnal HR dip copy (daytime resting HR vs night median), no typical range.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -406,7 +406,7 @@
    "key": "func MetricInfoSheet.windowClassificationEntry()",
    "hash": "357bee887710ac5d",
    "does": "Builds the localized Entry for Window classification label copy (Organized Recovery / Flexible / High Variability / Peak Capacity / Insufficient Data), no typical range.",
-   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
+   "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift)",
    "calls": [
     "ext:String(localized:bundle:)"
    ],
@@ -436,7 +436,7 @@
    "key": "var MetricCompareToHistorySheet.body",
    "hash": "5f2230386e359017",
    "does": "Sheet root: NavigationStack/ScrollView with historyStack, 'Compare to history' title, Done button, and .task(id: metricLabel) that loads points.",
-   "entry": "SwiftUI body; presented by HRVDetailV2View.metricCompareSheet (HRVDetailV2View.swift:256) on long-press/VoiceOver action of an Engine Room metric",
+   "entry": "SwiftUI body; presented by HRVDetailV2View.metricCompareSheet (HRVDetailV2View.swift) on long-press/VoiceOver action of an Engine Room metric",
    "calls": [
     "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyStack",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::var MetricCompareToHistorySheet.historyDoneToolbarItem",
@@ -641,7 +641,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)": "9f6ab792ec65cd9d"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.computePoints(metricLabel:archive:)": "9f6ab792ec65cd9d",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b"
    }
   },
   {
@@ -788,9 +789,9 @@
    "deps": {
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.ansValue(for:result:)": "e7f2b4fddeeda815",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.frequencyValue(for:result:)": "2675de74ce64f2de",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.nonlinearValue(for:result:)": "9a6cdb8f5767d49e",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.qualityValue(for:result:)": "5323e4d6f5117276",
-    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.timeDomainValue(for:result:)": "696b21cfb7065212"
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.nonlinearValue(for:result:)": "dd3be4dcf108289c",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.qualityValue(for:result:)": "634238e1cd99ce0e",
+    "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.timeDomainValue(for:result:)": "307623a26194494e"
    }
   },
   {

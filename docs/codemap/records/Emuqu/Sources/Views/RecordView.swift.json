@@ -17,7 +17,7 @@
   "@State extendedCaptureMode: ExtendedCaptureMode = .both",
   "@Binding selectedTab: MainTabView.Tab; var scrollToTopToken: UUID"
  ],
- "toplevel": "Stored-property initializers: selectedSessionType defaults to .overnight, extendedCaptureMode defaults to .both (overwritten onAppear by restoreCaptureMode), breathingAudio is a fresh BreathingAudioManager per view identity. Comment RecordView.swift:6-10 says recording-state reads go through the observed sub-objects (a read through an RRCollector forwarder is tracked too but hides the dependency). Environment reads: \\.dependencies (the reanalysis service and saved-session reanalysis the morning and quick result sheets call), RRCollector and the observed sub-objects.",
+ "toplevel": "Stored-property initializers: selectedSessionType defaults to .overnight, extendedCaptureMode defaults to .both (overwritten onAppear by restoreCaptureMode), breathingAudio is a fresh BreathingAudioManager per view identity. Comment RecordView.swift says recording-state reads go through the observed sub-objects (a read through an RRCollector forwarder is tracked too but hides the dependency). Environment reads: \\.dependencies (the reanalysis service and saved-session reanalysis the morning and quick result sheets call), RRCollector and the observed sub-objects.",
  "units": [
   {
    "key": "init RecordView.ResultsPresentation(session:result:linkedSegments:)",
@@ -29,14 +29,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.ExtendedCaptureMode.id": "838793454f8a6034"
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.ExtendedCaptureMode.id": "e9d1999b0b554ec2"
    }
   },
   {
    "key": "var RecordView.ExtendedCaptureMode.id",
    "hash": "a8312734410457a2",
    "does": "Identifiable id for ExtendedCaptureMode: returns rawValue ('streaming'/'internalCapture'/'both').",
-   "entry": "Identifiable conformance used by ForEach in captureModePicker (RecordView+Panels.swift:132).",
+   "entry": "Identifiable conformance used by ForEach in captureModePicker (RecordView+Panels.swift).",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -97,7 +97,7 @@
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.coerceCaptureModeForDevice()": "2936138062040b0c",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.presentErrorIfActionable(_:)": "f0ac77e1b4c8558e",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.restoreCaptureMode()": "c0e3d3ee16806e6b",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.restoreCaptureMode()": "230fbc084aa25a04",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.routeOvernightAcceptance(_:)": "c752bd806cbc23f9",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordSurface": "6f9a76530c495d05"
    }
@@ -196,7 +196,7 @@
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.connectionSection": "8d32930536b7ea2d",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.liveDataSection": "88328c81fb89efcf",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningProcessingSection": "a1c38c74ef9ef627",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningResultsPreviewSection": "f22e8672ffe339a5",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningResultsPreviewSection": "3de0369c7451af7e",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.preSessionTagSection": "698a3b5942e6e659",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickResultsSection": "c03a3d023235fc0e",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoverableDataSection": "6d1d05e5e1a7ff9a",
@@ -358,7 +358,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanize(_:)": "cf98c7ff58f9e5ea",
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanize(_:)": "395533a1bba4a4c5",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -422,15 +422,16 @@
    "reads": [
     "mem:StreamingLifecycle.isPaused",
     "mem:StreamingLifecycle.isOvernightStreaming",
-    "ud:RRCollector.persistedRecordingState",
+    "ud:UserDefaultsKeys.persistedRecordingState",
+    "ud:pausedSessionUsesDeviceBackup",
     "file:user_settings.json (defaultCaptureMode)"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "streamingLifecycle.isPaused && persisted useDeviceInternalBackup != nil",
-     "effect": "true: go to 228; false: check 229"
+     "cond": "streamingLifecycle.isPaused && getPersistedCaptureMode() != nil (the recording marker's useDeviceInternalBackup, else the paused night's capture choice)",
+     "effect": "true: restore from it (+3); false: check !isOvernightStreaming (+4)"
     },
     {
      "at": "+3",
@@ -450,7 +451,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedCaptureMode()": "a83fde355621fc97",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedCaptureMode()": "117f2221b0f27963",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.coerceCaptureModeForDevice()": "2936138062040b0c"
    }
   },

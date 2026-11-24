@@ -10,7 +10,7 @@
   "MorningProcessingService.OvernightRequest: struct — every input of one morning pass"
  ],
  "state": [
-  "mem:MorningProcessingService.skipSleepWait (var Bool; reset false at processOvernightData start, set true by the BackgroundTaskAssertion expiry handler (MorningProcessingService.swift:195) and by the user's skip-wait button (RecordView+Sections.swift:234); read by pollHealthKitSleep)",
+  "mem:MorningProcessingService.skipSleepWait (var Bool; reset false at processOvernightData start, set true by the BackgroundTaskAssertion expiry handler (MorningProcessingService.swift) and by the user's skip-wait button (RecordView+Sections.swift); read by pollHealthKitSleep)",
   "mem:MorningProcessingService.archive/healthKit/analysisPipeline/windowSelector/artifactDetector/verification/baselineTracker/rawBackup (injected dependencies)",
   "mem:MorningProcessingService.now (NowProvider) / sleep (SleepProvider) injected clock and sleeper"
  ],
@@ -270,7 +270,7 @@
    "does": "Fetches HealthKit recovery vitals relative to session end (or now()) and stores them as vitalsSnapshot with RHR replaced by the analysis-window mean HR when an analysis exists.",
    "entry": null,
    "calls": [
-    "dyn:HealthKitServiceProtocol.fetchRecoveryVitals(relativeTo:) → Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift:21|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchRecoveryVitals(relativeTo:)",
+    "dyn:HealthKitServiceProtocol.fetchRecoveryVitals(relativeTo:) → Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchRecoveryVitals(relativeTo:)",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)"
    ],
    "reads": [

@@ -9,7 +9,7 @@
   "FitnessStrapSection.RouteThumbnailFit: struct — aspect-preserving lat/lon→point fit for the route thumbnail"
  ],
  "state": [
-  "static FitnessStrapSection.hardSessionLoad = 150 (FitnessTabView+Strap.swift:459) — load badge turns wongCaution at/above it"
+  "static FitnessStrapSection.hardSessionLoad = 150 (FitnessTabView+Strap.swift) — load badge turns wongCaution at/above it"
  ],
  "toplevel": "File-scope private helpers trajectoryLine/heroHeadline/heroDurationAndPace are listed as units. HeroFacts is a plain struct with no behaviour; its sport is optional (nil when the session has none). hardSessionLoad static constant 150.",
  "units": [
@@ -231,7 +231,7 @@
    "does": "Caption block: 'Last workout' plus either 'Couldn't load this workout.' (load failed) or the relative date of the entry's endDate (fallback date).",
    "entry": null,
    "calls": [
-    "closure:relativeDate — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:54) → Emuqu/Sources/Views/FitnessTabView.swift:544"
+    "closure:relativeDate — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift) → Emuqu/Sources/Views/FitnessTabView.swift"
    ],
    "reads": [],
    "writes": [],
@@ -297,7 +297,7 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.peakHR": "39901d4615f16d05",
     "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.polyline(for:)": "85adfaeef60b74e7",
-    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.HeroCardChrome.body(content:)": "46cd8dd803bd5776",
+    "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.HeroCardChrome.body(content:)": "e9b6c1330dc3f5fa",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroBadgesRow(peakHR:elevation:alpha1Avg:trimp:loadSource:hrTSS:)": "58eb6093d464e626",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroPolylinePreview(route:)": "92aba8ba7f1142f2",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroTopRow(sport:latest:)": "58faeeb7f25d490f",
@@ -308,7 +308,7 @@
    "key": "func FitnessStrapSection.HeroCardChrome.body(content:)",
    "hash": "17644a18ad85706a",
    "does": "ViewModifier body: applies a top-leading→bottom-trailing card gradient, an 18pt rounded accent stroke overlay and a continuous rounded clip.",
-   "entry": "SwiftUI ViewModifier.body, applied via .modifier(HeroCardChrome()) at FitnessTabView+Strap.swift:223",
+   "entry": "SwiftUI ViewModifier.body, applied via .modifier(HeroCardChrome()) at FitnessTabView+Strap.swift",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -440,7 +440,7 @@
    "does": "Sport name — or 'Workout' when the session has no sport — uppercased, plus relative time of the latest entry's endDate (falls back to start date).",
    "entry": null,
    "calls": [
-    "closure:relativeDate — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:54) → Emuqu/Sources/Views/FitnessTabView.swift:544"
+    "closure:relativeDate — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift) → Emuqu/Sources/Views/FitnessTabView.swift"
    ],
    "reads": [],
    "writes": [],
@@ -669,7 +669,7 @@
    "does": "Hashable reload key '<newest workout uuid or \"empty\">-<ArchiveSignal.version>'.",
    "entry": null,
    "calls": [
-    "closure:recentWorkoutEntries — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:52) → Emuqu/Sources/Views/FitnessTabView.swift:529"
+    "closure:recentWorkoutEntries — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift) → Emuqu/Sources/Views/FitnessTabView.swift"
    ],
    "reads": [
     "mem:SessionArchive.entries",
@@ -691,7 +691,7 @@
    "does": "Loads the newest workout session lightweight (no rrSeries) and decodes its GPS polyline (decodedRoute) on one detached task, then writes latestWorkoutSession, latestWorkoutRoute and latestWorkoutLoadFailed through the bindings unless the task was cancelled. With no workout, clears all three.",
    "entry": null,
    "calls": [
-    "closure:recentWorkoutEntries — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:52) → Emuqu/Sources/Views/FitnessTabView.swift:529",
+    "closure:recentWorkoutEntries — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift) → Emuqu/Sources/Views/FitnessTabView.swift",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.decodedRoute(_:)"
    ],
@@ -750,7 +750,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.summaryTile(title:value:note:)",
-    "closure:withinDays — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:53) → Emuqu/Sources/Views/FitnessTabView.swift:535",
+    "closure:withinDays — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift) → Emuqu/Sources/Views/FitnessTabView.swift",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.weeklyLoadTile",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.meanHRRTile"
    ],
@@ -969,7 +969,7 @@
    "does": "Destructive 'Delete Workout' context-menu button calling the bound requestDeleteWorkout closure with the entry's session id; the tab then asks for confirmation before deleting.",
    "entry": "SwiftUI context-menu button action",
    "calls": [
-    "closure:requestDeleteWorkout — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:59) → sets FitnessTabView.pendingRecentDeleteId"
+    "closure:requestDeleteWorkout — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift) → sets FitnessTabView.pendingRecentDeleteId"
    ],
    "reads": [],
    "writes": [],
@@ -1010,7 +1010,7 @@
    "does": "Title = entry notes when non-empty else 'Workout'; subtitle = formatted date.",
    "entry": null,
    "calls": [
-    "closure:formattedDate — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift:55) → Emuqu/Sources/Views/FitnessTabView.swift:550"
+    "closure:formattedDate — set by FitnessTabView.strapSection (Emuqu/Sources/Views/FitnessStrapSection.swift) → Emuqu/Sources/Views/FitnessTabView.swift"
    ],
    "reads": [],
    "writes": [],
