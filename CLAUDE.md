@@ -1,59 +1,23 @@
 # Working in this repository
 
-## The code map is part of every change
+**Build and test what you change before you push.** CI on a pull request is the second check, not the
+first. `make test` runs the suites; `make ci-local` runs every script gate the workflows run in about two
+minutes. Warnings are errors, and a change has to build with the Xcode CI pins (`.github/workflows/ci.yml`)
+as well as any newer one.
 
-`docs/codemap/records/` holds a record for every function, initializer, computed property, script
-function, Makefile target, workflow step and doc section: what it does, what triggers it, what it
-calls, what state it reads and writes, and what each branch does. A call graph is built from those
-records and from the code. CI (`scripts/check_codemap.sh`, in `gates.yml`, `ci.yml` and `make ci`)
-and the pre-commit hook fail while any record is missing or older than its code, names a callee
-that no longer exists, or was last checked against an older description of one of its callees (a
-"re-check" line) that has not been re-read.
+**Scores are versioned.** The constants that decide a score are hashed
+(`scripts/check_scoring_governance.sh`). A change to one needs a new `ScoringVersion.current`, a new hash
+in `.ci/scoring_constants_hash.txt` and an entry in the science register. Nights already scored keep the
+version they were scored with; never rescore history.
 
-Findings (`flags`) and the open-findings budgets are not in the public records. They live in a
-local, untracked overlay, `do_not_ship/codemap/` (`flags/<path>.json`, `codemap_open_high.txt`,
-`codemap_open_med.txt`). `codemap.py` merges it when present and writes flags only there; the
-open-findings ratchet runs only where the overlay exists (the pre-commit hook and a local `make ci`).
+**Health data stays on the device unless it is sealed.** CloudKit uploads go through
+`CloudPayloadCodec.sealForUpload`, and logs never carry what the user said, typed or where they were
+(`scripts/check_log_redaction.sh`).
 
-Before you change code:
+**Every user-facing string is in every language.** Add it to the string catalogue for all locales and run
+`make localization-guard`.
 
-1. Run `.venv-codemap/bin/python scripts/codemap/codemap.py impact <path::key>` for each unit you
-   will change (or `make codemap-impact` for the whole branch). Read the unit's record, its
-   callers and what each relies on, the same code elsewhere (which may need the same change), the
-   shared state it touches, and, with the overlay, the open findings. Every path it lists has to
-   keep working; run the test suites it lists.
+**Dependencies are passed in.** Services are built in the composition root (`AppDependencies`) and handed
+to what uses them; new code takes them as parameters rather than reading `AppDependencies.current`.
 
-When you change code:
-
-2. Run `make codemap-guard` to list the records your change affects.
-3. For a moved file or a renamed unit, run `codemap.py move <old> <new> [OLDKEY=NEWKEY ...]`
-   first; it carries the record and rewrites every reference to it. Then run
-   `.venv-codemap/bin/python scripts/codemap/codemap.py sync <path>` for files whose units were
-   added or removed (a new test's record starts prefilled from its code; read it like any other).
-4. Re-read the changed code and rewrite each listed record so it describes the code as it now is:
-   `does`, `contract` where it has one, `entry`, `calls`, `reads`, `writes` and every branch. With
-   the overlay, remove flags the change fixed and add any problem you find. Public records describe
-   behaviour only; keep defect notes out of them. Name units, targets and files, never line
-   numbers: the check rejects a `file:line` citation. Describe only the unit's own code: its own
-   reads and writes, not its callees' (impact shows the whole reach), and for a unit that only
-   runs or forwards to another, say so and list it in `delegates`.
-5. For each "re-check" line your change adds (`codemap.py status --by-callee` shows each callee's
-   change with its callers; tests are never sent back, they are checked by running them), re-read
-   that caller against the callee's new behaviour. If the caller
-   is unaffected, acknowledge it: `codemap.py ack <callee> [<caller> ...]`. If it no longer does
-   what its record says, fix the caller or rewrite its record and stamp it.
-6. Only then stamp, once every callee's record is written, in one pass:
-   `.venv-codemap/bin/python scripts/codemap/codemap.py stamp <path>::<key> <path>:: ...`
-   (or `stamp <path> [<key> ...]` for one file).
-7. `make codemap-guard` must be clean before you commit.
-
-High- and medium-severity findings can only go down. When you fix one, delete its flag and lower
-`do_not_ship/codemap/codemap_open_high.txt` or `codemap_open_med.txt` by the same amount. Do not
-record a new high or medium problem as open; fix it.
-
-Never stamp a record you have not rewritten against the current code, and never stamp or `ack` a
-re-check you have not re-read. A stamp or ack without a re-read defeats the check and leaves a wrong
-record that reads as verified. Do not reword a record whose behaviour did not change: it sends every
-caller back for a re-check, unless the record has a `contract`, which alone is what callers are
-checked against. Give a record a contract (what callers rely on: results, errors, effects) when you
-rewrite it. The full procedure is in `docs/codemap/README.md`.
+Architecture decisions and the reasons for them are in `docs/adr/`.
