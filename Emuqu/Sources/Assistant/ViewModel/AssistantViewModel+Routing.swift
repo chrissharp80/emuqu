@@ -51,14 +51,14 @@ extension AssistantTurnRouter {
         for provider in owner.registry.allProviders {
             providerStates[provider.id] = TurnRouter.ProviderState(
                 isAvailable: provider.isAvailable && ProviderRegistry.isEnabled(provider.id),
-                isConsented: !AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id),
+                isConsented: !owner.services.providerConsentTracker.requiresConsent(provider.id),
                 supportsTools: Self.providerSupportsTools(provider),
                 defaultOrFirstModel: provider.availableModels.first(where: { $0.isDefault })
                     ?? provider.availableModels.first
             )
         }
         return TurnRouter.Inputs(
-            routingMode: AppDependencies.current.app.settingsManager.settings.routingMode,
+            routingMode: owner.services.settingsManager.settings.routingMode,
             selectedProviderID: owner.registry.activeProvider.id,
             selectedProviderIsAvailable: ProviderRegistry.canSend(to: owner.registry.activeProvider),
             selectedModel: owner.registry.activeModel,
@@ -86,7 +86,7 @@ extension AssistantTurnRouter {
         let mappings = mappingSnapshots(for: proposedTier)
         let tier3CapReached = proposedTier == .deep
             && mappings[.deep].map { $0.providerID != .apple } == true
-            && !AppDependencies.current.providers.smartProviderRouter.recordTier3UsageAndCheck()
+            && !owner.services.smartProviderRouter.recordTier3UsageAndCheck()
         let latestUserMessage = owner.turns.reversed().first(where: { $0.role == .user })?.text
         return TurnRouter.TierStage(
             proposedTier: proposedTier,
@@ -113,7 +113,7 @@ extension AssistantTurnRouter {
                 return owner.sessionState.currentTier
             }
             owner.sessionState.turnCount += 1
-            let routed = AppDependencies.current.providers.smartProviderRouter.route(message: message, in: owner.sessionState)
+            let routed = owner.services.smartProviderRouter.route(message: message, in: owner.sessionState)
             owner.sessionState.currentTier = routed
             return routed
         case .manual:
@@ -343,7 +343,7 @@ extension AssistantTurnRouter {
     /// effects. `completed` is whether the reply completed normally
     /// (`runStreamWithErrorPolicy`).
     private func finishCurrentTurn(provider: AIProvider, turnID: UUID, completed: Bool) {
-        if provider.id == .apple { AppDependencies.current.providers.appleToolDispatcher.setRegistry(nil) }
+        if provider.id == .apple { owner.services.appleToolDispatcher.setRegistry(nil) }
         applyPostStreamEffects(turnID: turnID, completed: completed)
     }
 
@@ -404,7 +404,7 @@ extension AssistantTurnRouter {
         let routed = resolveProviderForThisTurn()
         let voiceMode = owner.nextSendIsVoice
         owner.nextSendIsVoice = false
-        let saved = AppDependencies.current.providers.providerRegistry.activeProvider
+        let saved = owner.services.providerRegistry.activeProvider
         if routed.provider.id != saved.id {
             let tierLabel = routed.tier.map { String($0.rawValue) } ?? "n/a"
             debugLog(
@@ -442,7 +442,7 @@ extension AssistantTurnRouter {
     /// would replace is still in place, and the request is held as a
     /// regeneration of the question before it.
     func consentGateAllowsDispatch(provider: AIProvider, voiceMode: Bool, regenerating replyID: UUID? = nil) -> Bool {
-        guard AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id) else { return true }
+        guard owner.services.providerConsentTracker.requiresConsent(provider.id) else { return true }
         if replyID != nil, let question = owner.turns.last(where: { $0.role == .user }) {
             owner.pendingConsentRequest = AssistantViewModel.PendingConsentRequest(
                 provider: provider.id, text: question.text, fromVoice: false, regenerate: true
@@ -530,7 +530,7 @@ extension AssistantTurnRouter {
     /// hold the first network call for that one tool; the detached build
     /// continues in the background and the next send hits warm cache.
     func refreshPreFlightMetrics() async {
-        await AppDependencies.current.analysis.trainingMetricsCache.refresh()
+        await owner.services.trainingMetricsCache.refresh()
     }
 
     /// Context + tools assembly stage of
@@ -651,7 +651,7 @@ extension AssistantTurnRouter {
     /// `CompactToolRouter` at the AssistantViewModel layer.
     private func publishAppleDispatcher(provider: AIProvider, factRegistry: FactResolverRegistry) {
         guard provider.id == .apple else { return }
-        AppDependencies.current.providers.appleToolDispatcher.setRegistry(factRegistry)
+        owner.services.appleToolDispatcher.setRegistry(factRegistry)
     }
 
     /// Prompt-composition stage of `dispatch()`, also used by every fallback
@@ -773,7 +773,7 @@ extension AssistantTurnRouter {
         let chain = TurnRouter.allowedFallbacks(
             owner.tools.orderedFallbackProviders(after: attempt.provider),
             under: TurnRouter.failureFallback(
-                mode: AppDependencies.current.app.settingsManager.settings.routingMode,
+                mode: owner.services.settingsManager.settings.routingMode,
                 selectedProviderID: owner.registry.activeProvider.id
             )
         )

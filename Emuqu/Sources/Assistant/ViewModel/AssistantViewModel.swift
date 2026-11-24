@@ -35,7 +35,6 @@ final class ComposerState {
 @Observable
 @MainActor
 final class AssistantViewModel {
-    static let shared = AssistantViewModel()
 
     // MARK: - Published state
 
@@ -117,6 +116,8 @@ final class AssistantViewModel {
 
     // MARK: - Dependencies
 
+    /// Every service the view model, its router and its tool runner read.
+    let services: ChatServices
     let registry: ProviderRegistry
 
     /// Exposed for the
@@ -166,9 +167,9 @@ final class AssistantViewModel {
             return (registry, tools)
         }
         let registry = AppFactResolverFactory.build(
-            archive: AppDependencies.current.storage.sessionArchive,
-            settings: { AppDependencies.current.app.settingsManager.settingsSnapshot },
-            services: FactServices(.current)
+            archive: services.sessionArchive,
+            settings: { [services] in services.settingsManager.settingsSnapshot },
+            services: services.facts
         )
         // CompactToolRouter exposes 21 read tools + up to 18 action
         // tools instead of one tool per fact-catalog entry (~212).
@@ -215,17 +216,22 @@ final class AssistantViewModel {
     /// load the KV-cache. A user who sends within a second pays the prewarm
     /// cost on that first message, which is strictly better than every user
     /// paying it on first focus, every session.
+    ///
+    /// The stores default to the ones in `services`; a test hands in its own.
     init(
+        services: ChatServices,
         registry: ProviderRegistry? = nil,
-        store: ConversationStore = AppDependencies.current.assistant.conversationStore,
-        contextSource: AssistantContextSource = AppDependencies.current.assistant.assistantContextSource,
-        factsStore: UserFactsStore = AppDependencies.current.assistant.userFactsStore
+        store: ConversationStore? = nil,
+        contextSource: AssistantContextSource? = nil,
+        factsStore: UserFactsStore? = nil
     ) {
-        let resolvedRegistry = registry ?? AppDependencies.current.providers.providerRegistry
+        self.services = services
+        let resolvedRegistry = registry ?? services.providerRegistry
         self.registry = resolvedRegistry
+        let store = store ?? services.conversationStore
         self.store = store
-        self.contextSource = contextSource
-        self.factsStore = factsStore
+        self.contextSource = contextSource ?? services.assistantContextSource
+        self.factsStore = factsStore ?? services.userFactsStore
         turns = store.load()
         hasAcceptedDisclaimer = UserDefaults.standard.bool(forKey: Self.disclaimerKey)
         priorSummary = store.loadSummary(migratingFrom: UserDefaults.standard, key: Self.summaryKey)
@@ -321,8 +327,8 @@ final class AssistantViewModel {
     /// the notice first; the workout screen's voice bar and the coach's
     /// automatic check-ins reach the model without a screen of their own, so
     /// the check sits on the way out.
-    static func aiIsAllowed(disclaimerAccepted: Bool) -> Bool {
-        disclaimerAccepted && AppDependencies.current.app.settingsManager.settings.enableAIAssistant
+    static func aiIsAllowed(disclaimerAccepted: Bool, settings: UserSettings) -> Bool {
+        disclaimerAccepted && settings.enableAIAssistant
     }
 
     /// Outcome of a `send(text:)` call. Lets callers (the voice controller
@@ -379,7 +385,7 @@ final class AssistantViewModel {
     /// that shortcut runs before the consent check.
     @discardableResult
     func send(text: String, fromVoice: Bool = false) -> SendOutcome {
-        AppDependencies.current.app.keyboardPerfSignpost.event("AssistantViewModel.send.entry")
+        services.keyboardPerfSignpost.event("AssistantViewModel.send.entry")
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return .rejectedEmpty }
         if refusedWhileFloIsOff() { return .rejectedNoProvider }
@@ -390,7 +396,7 @@ final class AssistantViewModel {
         }
         if fromVoice, !isStreaming, servedDeterministically(trimmed) { return .dispatched }
         let activeProvider = registry.activeProvider.id
-        if AppDependencies.current.providers.providerConsentTracker.requiresConsent(activeProvider) {
+        if services.providerConsentTracker.requiresConsent(activeProvider) {
             pendingConsentRequest = PendingConsentRequest(provider: activeProvider, text: trimmed, fromVoice: fromVoice, regenerate: false)
             return .requiresConsent(activeProvider)
         }
@@ -428,7 +434,7 @@ final class AssistantViewModel {
     /// case justifies a person in crisis getting a model's answer instead of
     /// a crisis line.
     private func medicalGuardRefused(_ trimmed: String) -> Bool {
-        let guardEnabled = AppDependencies.current.app.featureFlags.value(for: .medicalGuardEnabled)
+        let guardEnabled = services.featureFlags.value(for: .medicalGuardEnabled)
         guard guardEnabled || MedicalQueryGuard.classify(trimmed) == .selfHarm,
               case .refuse(let reply) = MedicalQueryGuard.evaluate(trimmed) else { return false }
         appendExchange(user: trimmed, assistant: reply, localOnly: true)
@@ -467,8 +473,8 @@ final class AssistantViewModel {
     private func servedDeterministically(_ trimmed: String) -> Bool {
         let context = DeterministicIntent.MatchContext(
             now: Date(),
-            archive: AppDependencies.current.storage.sessionArchive,
-            userSettings: AppDependencies.current.app.settingsManager.settings
+            archive: services.sessionArchive,
+            userSettings: services.settingsManager.settings
         )
         guard let answer = DeterministicIntent.tryMatch(trimmed, in: context) else { return false }
         appendExchange(user: trimmed, assistant: answer)
@@ -499,18 +505,18 @@ final class AssistantViewModel {
         turns.append(ChatTurn(role: .user, text: trimmed))
         store.save(turns)
         nextSendIsVoice = fromVoice
-        let mode = AppDependencies.current.app.settingsManager.settings.routingMode
+        let mode = services.settingsManager.settings.routingMode
         if registry.activeProvider.id == .apple, mode != .deep {
             AppleFoundationProvider.prewarm()
         }
-        AppDependencies.current.app.keyboardPerfSignpost.event("AssistantViewModel.send.beforeDispatch")
+        services.keyboardPerfSignpost.event("AssistantViewModel.send.beforeDispatch")
         router.dispatch()
     }
 
     /// True, with the reason shown, when Flo is switched off or its notice
     /// hasn't been accepted (see `aiIsAllowed`).
     private func refusedWhileFloIsOff() -> Bool {
-        guard !Self.aiIsAllowed(disclaimerAccepted: hasAcceptedDisclaimer) else { return false }
+        guard !Self.aiIsAllowed(disclaimerAccepted: hasAcceptedDisclaimer, settings: services.settingsManager.settings) else { return false }
         errorMessage = String(localized: "Flo is off, or its notice hasn't been accepted yet. Open the Flo tab to turn it on.", bundle: LanguageManager.appBundle)
         return true
     }
@@ -526,7 +532,7 @@ final class AssistantViewModel {
     @discardableResult
     func acknowledgeConsentAndContinue() -> SendOutcome {
         guard let pending = pendingConsentRequest else { return .rejectedEmpty }
-        AppDependencies.current.providers.providerConsentTracker.acknowledge(pending.provider)
+        services.providerConsentTracker.acknowledge(pending.provider)
         pendingConsentRequest = nil
         guard !pending.regenerate else {
             regenerateLast()
@@ -603,8 +609,8 @@ final class AssistantViewModel {
         // Drop the Apple dispatcher's strong ref
         // immediately on cancel so a stop-button tap during an Apple
         // turn doesn't leave the registry retained until the next send.
-        AppDependencies.current.providers.appleToolDispatcher.setRegistry(nil)
-        AppDependencies.current.assistant.voiceConversationController.stopAnyOngoingSpeech()
+        services.appleToolDispatcher.setRegistry(nil)
+        services.voiceConversationController.stopAnyOngoingSpeech()
     }
 
     /// Chat-bar dismiss for the error banner. Lets
@@ -631,7 +637,7 @@ final class AssistantViewModel {
             return
         }
         resetConversationState()
-        AppDependencies.current.providers.llmRequestAudit.clear()
+        services.llmRequestAudit.clear()
         // The summary file went with the history (`ConversationStore.clear`);
         // this is the plain copy an older build left, if it was never moved.
         // UserDefaults writes block on synchronous disk sync — push off main.
@@ -767,7 +773,7 @@ final class AssistantViewModel {
     /// provider, so the selected one is the only one that can need it.
     private func holdRegenerationForConsent(userText: String) -> Bool {
         let active = registry.activeProvider.id
-        guard AppDependencies.current.providers.providerConsentTracker.requiresConsent(active) else { return false }
+        guard services.providerConsentTracker.requiresConsent(active) else { return false }
         pendingConsentRequest = PendingConsentRequest(provider: active, text: userText, fromVoice: false, regenerate: true)
         return true
     }
@@ -782,7 +788,7 @@ final class AssistantViewModel {
     /// cached fact registry, then builds a context in the background so the
     /// summaries are regenerated before the user's next question.
     func invalidateContext() {
-        AppDependencies.current.assistant.analysisSummaryCache.clear()
+        services.analysisSummaryCache.clear()
         // Also drop the cached fact registry so the next
         // send rebuilds it fresh. The "Refresh data context" menu entry
         // is the user's gesture for "I want the AI to see the new data";

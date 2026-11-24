@@ -328,7 +328,10 @@ struct ChatInputBar: View {
     /// through `.onChange`, so the bar re-renders on the notice flipping and
     /// nothing else of the view model.
     private var floNoticeAccepted: Bool {
-        AssistantViewModel.aiIsAllowed(disclaimerAccepted: dependencies.assistant.assistantViewModel.hasAcceptedDisclaimer)
+        AssistantViewModel.aiIsAllowed(
+            disclaimerAccepted: dependencies.assistant.assistantViewModel.hasAcceptedDisclaimer,
+            settings: dependencies.app.settingsManager.settings
+        )
     }
 
     /// Put a message the view-model handed back (consent declined) into the

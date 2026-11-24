@@ -280,7 +280,7 @@ extension AssistantToolRunner {
     private func recordAuditFailure(_ error: Error, auditID: UUID) {
         guard !(error is CancellationError), !Task.isCancelled else { return }
         let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-        AppDependencies.current.providers.llmRequestAudit.setError(description, for: auditID)
+        owner.services.llmRequestAudit.setError(description, for: auditID)
     }
 
     /// Prompt audit. Capture the inputs we're
@@ -313,7 +313,7 @@ extension AssistantToolRunner {
         tools: [ToolSpec],
         toolRounds: [[ToolExchange]]
     ) -> UUID {
-        AppDependencies.current.providers.llmRequestAudit.record(
+        owner.services.llmRequestAudit.record(
             provider: provider.id.rawValue,
             model: model.apiID,
             systemPrompt: systemPrompt,
@@ -340,7 +340,7 @@ extension AssistantToolRunner {
         switch event {
         case let .textDelta(chunk):
             buffer.append(chunk: chunk, thisRoundIsEmpty: thisRound.isEmpty)
-            AppDependencies.current.providers.llmRequestAudit.append(textDelta: chunk, to: auditID)
+            owner.services.llmRequestAudit.append(textDelta: chunk, to: auditID)
         case let .toolUse(id, name, inputJSON):
             guard !budgetExhausted, !Task.isCancelled else { return }
             thisRound.append(PendingToolCall(id: id, name: name, inputJSON: inputJSON))
@@ -384,11 +384,11 @@ extension AssistantToolRunner {
         let totalProcessed = input + cached + cacheCreate
         let hitRatio = totalProcessed > 0 ? Double(cached) / Double(totalProcessed) : 0
         debugLog("[Assistant] usage \(provider.id.rawValue): input=\(input) output=\(output) cached=\(cached) cacheCreate=\(cacheCreate) hit_ratio=\(String(format: "%.2f", hitRatio))")
-        AppDependencies.current.providers.llmCacheTelemetry.record(
+        owner.services.llmCacheTelemetry.record(
             provider: provider.id.rawValue, input: input, output: output,
             cachedRead: cached, cacheCreate: cacheCreate
         )
-        AppDependencies.current.providers.llmRequestAudit.setUsage(
+        owner.services.llmRequestAudit.setUsage(
             .init(
                 inputTokens: input, outputTokens: output,
                 cachedReadTokens: cached, cacheCreateTokens: cacheCreate
@@ -458,7 +458,7 @@ extension AssistantToolRunner {
     private func verifyAppStateNumbers(turnID: UUID) {
         guard let assistantIndex = owner.liveTurnIndex(for: turnID) else { return }
         let original = owner.turns[assistantIndex].text
-        let live = MetricsVerifier.verify(original, againstLive: AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot())
+        let live = MetricsVerifier.verify(original, againstLive: owner.services.liveWorkoutBroker.currentSnapshot())
         let text = MetricsVerifier.correctedText(from: original, applying: live) ?? original
         let result = MetricsVerifier.verifyAppStateClaims(text)
         let discrepancies = live + result.discrepancies
@@ -657,7 +657,7 @@ extension AssistantToolRunner {
         for provider in owner.registry.allProviders
             where provider.id != primary.id && provider.id != .apple && provider.isAvailable
                 && ProviderRegistry.isEnabled(provider.id)
-                && !AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id) {
+                && !owner.services.providerConsentTracker.requiresConsent(provider.id) {
             if let model = Self.defaultModel(of: provider) { result.append((provider, model)) }
         }
         if owner.registry.apple.isAvailable, primary.id != .apple,

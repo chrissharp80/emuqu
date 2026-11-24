@@ -71,7 +71,8 @@ root's accessor when it is called, so nothing is built earlier than when the
 code reaches it, the same timing as the accessors themselves. The assistant's
 fact namespaces and the live workout recorder follow the same shape:
 `AppFactResolverFactory.build` hands each namespace a `FactServices`, and
-`RecorderBox` hands the recorder a `WorkoutServices`, each a list of the
+`RecorderBox` hands the recorder a `WorkoutServices`, and the chat view model
+is built with a `ChatServices`, each a list of the
 services that code may reach, resolved on use. The same script fails on an
 `AppDependencies.current` read in any of those files, and in the models,
 storage and analysis layers.
@@ -90,8 +91,8 @@ for its session manager and strap connector. `WatchApp` reads it at launch and
 hands the objects to the view tree.
 
 `scripts/check_no_shared_outside_root.sh` (`make shared-root-guard`, run by
-`make ci`, `gates.yml` and `ci.yml`) fails when any Swift file in either app reads `.shared` outside the two root
-files. `scripts/check_explicit_dependencies.sh` (`make explicit-deps-guard`,
+`make ci`, `gates.yml` and `ci.yml`) fails when any Swift file in either app reads `.shared` outside the root files
+(`AppDependencies.swift`, `AppDependencies+Instances.swift`, `WatchDependencies.swift`). `scripts/check_explicit_dependencies.sh` (`make explicit-deps-guard`,
 run by the same three) enforces the two rules above. Declaring `static let shared` is allowed anywhere, and system
 singletons (`URLSession.shared`, `UIApplication.shared` and the others the
 script lists) are not the app's to inject.

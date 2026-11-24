@@ -244,11 +244,11 @@ extension AssistantViewModel {
     /// logged when it stops it: Flo is on, `provider` can take a turn and is
     /// not switched off, and it has data-sharing consent.
     private func mayExtractFacts(with provider: AIProvider) -> Bool {
-        guard Self.aiIsAllowed(disclaimerAccepted: hasAcceptedDisclaimer), ProviderRegistry.canSend(to: provider) else {
+        guard Self.aiIsAllowed(disclaimerAccepted: hasAcceptedDisclaimer, settings: services.settingsManager.settings), ProviderRegistry.canSend(to: provider) else {
             debugLog("[Assistant] fact extraction skipped — Flo is off or \(provider.id.rawValue) can't take a turn")
             return false
         }
-        guard !AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id) else {
+        guard !services.providerConsentTracker.requiresConsent(provider.id) else {
             debugLog("[Assistant] fact extraction skipped — \(provider.id.rawValue) has no data-sharing consent")
             return false
         }

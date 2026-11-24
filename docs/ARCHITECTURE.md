@@ -1116,14 +1116,15 @@ Each accessor returns the substitute on the container's `overrides`, if one is s
 the production object, built on first use. `current` has no setter: a test puts a container with
 substitutes in force with `AppDependencies.install(_:)` and ends the returned scope afterwards,
 which restores the container before it. The models, storage, analysis, launch work
-(`AppLaunchTasks.swift`), data purge, saved-session reanalysis, assistant fact namespaces and live
-workout recorder read no container: each is handed exactly the services it uses (`launchServices`,
-`purgeStores`, `makeSessionReanalysis`, `FactServices`, `WorkoutServices`), and
+(`AppLaunchTasks.swift`), data purge, saved-session reanalysis, assistant fact namespaces, chat view model and
+live workout recorder read no container: each is handed exactly the services it uses (`launchServices`,
+`purgeStores`, `makeSessionReanalysis`, `FactServices`, `WorkoutServices`, `ChatServices`), and
 `scripts/check_explicit_dependencies.sh` keeps `AppDependencies.current` out of those files and
 `install` out of app code. Views read it through
 `@Environment(\.dependencies)`, classes through an `init` parameter defaulting to `.current`, and
 static helpers and `EmuquApp` through `AppDependencies.current`. `.shared` is read only in this
-file and in the Watch target's root, `WatchDependencies`, which
+file, in `AppDependencies+Instances.swift` beside it (the services whose construction names
+other services) and in the Watch target's root, `WatchDependencies`, which
 `scripts/check_no_shared_outside_root.sh` enforces. The reasoning, and why the app is one target,
 is [ADR 007](adr/007-single-target-composition-root.md).
 
