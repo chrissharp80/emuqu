@@ -153,10 +153,6 @@ extension PDFReportGenerator {
 // calls nothing inside the type, so none is a method in anything but
 // placement. `private` at file scope is fileprivate, so every call site in
 // this file resolves the same way.
-//
-// This is what `check_aggregate_type_size.sh` measures: a type is the sum of
-// its parts across every file, so code that does not need the type inflates
-// that number without making the type do more.
 
 /// Deep / REM / Light, each with its share of the night.
 private func sleepStageBoxes(_ sleep: PDFReportGenerator.SleepData) -> [(String, String, UIColor)] {

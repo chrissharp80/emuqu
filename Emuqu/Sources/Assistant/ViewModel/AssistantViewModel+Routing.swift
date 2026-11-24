@@ -3,10 +3,6 @@ import os
 
 // Provider routing and stream dispatch: choosing which model answers a turn,
 // then driving the stream and its stages.
-//
-// Lives on `AssistantTurnRouter` rather than `AssistantViewModel`: the
-// aggregate type-size gate counts a type across all its files, so keeping
-// these ~750 lines on the view-model would leave it just as large.
 
 extension AssistantTurnRouter {
     // MARK: - Smart-route provider selection

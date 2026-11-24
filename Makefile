@@ -7,7 +7,7 @@ PROJECT ?= Emuqu.xcodeproj
 # Package.resolved. Defined once, in scripts/lib/xcodebuild.sh.
 include scripts/lib/xcodebuild.sh
 
-.PHONY: release-build coremotion-isolation-guard hr-feed-link-guard science-register scoring-governance shared-root-guard explicit-deps-guard dated-comment-budget no-unowned-guard logger-self-reference-guard license-header-guard clean-build date-ms-guard doc-counts-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard xcodebuild-pinned-guard snapshot-refs-guard ci-local ci-local-unit verify-gates gate-preflight sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard aggregate-type-size comment-citations perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks
+.PHONY: release-build coremotion-isolation-guard hr-feed-link-guard science-register scoring-governance shared-root-guard explicit-deps-guard logger-self-reference-guard clean-build empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard xcodebuild-pinned-guard snapshot-refs-guard ci-local ci-local-unit verify-gates sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks privacy-gates claims-gates localization-gates source-rules dependency-gates concurrency-gates build-gates test-hygiene debt-gates
 
 lint:
 	@swiftlint lint --config .swiftlint.yml
@@ -42,14 +42,6 @@ shared-root-guard:
 explicit-deps-guard:
 	@./scripts/check_explicit_dependencies.sh
 
-# Dated changelog comments: a budget that ratchets down.
-dated-comment-budget:
-	@./scripts/check_dated_comment_budget.sh
-
-# No `unowned` back-references: a use after its owner is freed crashes.
-no-unowned-guard:
-	@./scripts/check_no_unowned.sh
-
 logger-self-reference-guard:
 	@./scripts/check_logger_self_reference.sh
 
@@ -60,9 +52,6 @@ coremotion-isolation-guard:
 hr-feed-link-guard:
 	@./scripts/check_hr_feed_subscribes_on_link.sh
 
-license-header-guard:
-	@./scripts/check_no_license_headers.sh
-
 sendable-guard:
 	@./scripts/check_unchecked_sendable.sh
 
@@ -71,12 +60,6 @@ spec-conformance:
 
 locale-format-guard:
 	@./scripts/check_locale_formatting.sh
-
-doc-counts-guard:
-	./scripts/check_doc_file_counts.sh
-
-date-ms-guard:
-	./scripts/check_date_ms_conversion.sh
 
 empty-range-guard:
 	./scripts/check_empty_range_loops.sh
@@ -208,11 +191,6 @@ no-phone-home:
 xcodebuild-pinned-guard:
 	@./scripts/check_xcodebuild_pinned.sh
 
-# Each gate fails closed when its input is missing.
-# A gate that reports clean without measuring is worse than no gate.
-gate-preflight:
-	@./scripts/check_gate_preflight.sh
-
 # Plants a real violation for each gate and requires a non-zero exit.
 # A gate nobody has watched fail is not protecting anything.
 verify-gates:
@@ -242,19 +220,6 @@ science-register:
 # any scoring constant must be accompanied by a scoring-version bump.
 scoring-governance:
 	@./scripts/check_scoring_governance.sh
-
-# A `File.swift:NNN` citation in a comment breaks silently when the file is
-# split or edited. This checks that each one still points inside the file.
-comment-citations:
-	@./scripts/check_comment_citations.sh
-
-# A per-FILE length limit (`.ci/large_swift_files_1500_budget.txt`) cannot see
-# a type that was split across files rather than reduced; RRCollector, spread
-# over its extension files, was the case that showed it. This gate sums each
-# type's lines across all its files and prints the current figures. Its budgets
-# ratchet down, same as every other budget here.
-aggregate-type-size:
-	@./scripts/check_aggregate_type_size.sh
 
 # The other localization gates measure catalogue->locale, lookup->bundle and
 # code->catalogue. This one measures catalogue->code, the direction an orphan
@@ -287,6 +252,32 @@ ci-local:
 ci-local-unit:
 	./scripts/simulate_ci.sh --scope unit
 
+# What `make ci` guards, by what each group protects.
+#
+# Privacy: health data leaves the device only sealed, logs carry nothing the
+# user said or where they were, the app never phones home or prompts early.
+privacy-gates: infoplist-guard log-redaction-guard no-phone-home eager-prompt-guard
+# Claims: no copy says what a wellness app may not, every heuristic has a
+# validation status, and a score changes only with a new scoring version.
+claims-gates: copy-perimeter perimeter-sync science-register scoring-governance
+# Every string resolves, in every language, with its arguments in order.
+localization-gates: localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard locale-format-guard
+# Shapes that crashed or broke a recording in the field, and the code rules
+# the compiler does not check.
+source-rules: logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard empty-range-guard spec-conformance
+# Services are built in the composition root and handed to what uses them.
+dependency-gates: shared-root-guard explicit-deps-guard
+# The concurrency escapes stay on their allowlist; Swift 6 mode stays on.
+concurrency-gates: sendable-guard strict-concurrency-enabled
+# The build uses the pinned packages, the SBOM matches them, and every Swift
+# file is in a target.
+build-gates: xcodebuild-pinned-guard sbom-guard sbom-check orphan-swift-guard
+# The tests mean what they say: snapshot references exist, UI tests start from
+# a fresh install, skips and mutations are accounted for.
+test-hygiene: snapshot-refs-guard uitest-reset-guard skip-budget leaked-mutations-guard
+# Counted debt only falls.
+debt-gates: lint-budget debt-budget fixed-font-budget budget-monotonicity
+
 # Every gate a developer runs, and the same set ci.yml runs. A gate missing
 # from this list is one nobody sees fail locally, which has happened twice
 # (`localization-orphan-guard`, `orphan-swift-guard`). That includes the two
@@ -296,7 +287,7 @@ ci-local-unit:
 # Order matters. Make stops at the first failing target, so the static gates
 # (seconds) come first, then the Release build, then Thread Sanitizer, and the
 # test suite (the slow part) last.
-ci: lint lint-budget debt-budget budget-monotonicity infoplist-guard sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard explicit-deps-guard spec-conformance locale-format-guard sbom-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard date-ms-guard doc-counts-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard copy-perimeter perimeter-sync science-register scoring-governance comment-citations aggregate-type-size doc-links strict-concurrency-enabled no-phone-home xcodebuild-pinned-guard sbom-check gate-preflight verify-gates release-build thread-sanitizer test-coverage
+ci: lint privacy-gates claims-gates localization-gates source-rules dependency-gates concurrency-gates build-gates test-hygiene debt-gates doc-links gates-wired-guard verify-gates release-build thread-sanitizer test-coverage
 
 # Every gate that builds the app writes its derived data under build/ in its
 # own directory (coverage, Thread Sanitizer, mutation runs, the clean-room

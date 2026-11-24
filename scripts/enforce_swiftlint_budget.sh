@@ -17,7 +17,14 @@ if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
 fi
 
 mkdir -p "$(dirname "$REPORT_PATH")"
-swiftlint lint --config "$CONFIG_FILE" --reporter json > "$REPORT_PATH"
+stderr_path="${REPORT_PATH%.json}.stderr"
+swiftlint lint --config "$CONFIG_FILE" --reporter json > "$REPORT_PATH" 2> "$stderr_path"
+# SwiftLint answers a malformed rule by warning and running the default, so a
+# custom rule with a typo in its configuration would check nothing.
+if grep -i 'invalid configuration' "$stderr_path" >&2; then
+    echo "SwiftLint configuration is invalid; the rules above are not running." >&2
+    exit 65
+fi
 
 summary="$(python3 - "$REPORT_PATH" "$budget" <<'PY'
 import collections

@@ -5,10 +5,7 @@ import CoreLocation
 import Foundation
 import UIKit
 
-// Split out of WorkoutRecorder.swift and off the TYPE (which is what the
-// aggregate type-size gate measures): 600 lines reading 25 recorder members,
-// the same coordinator split used for the overnight-streaming, AI-context,
-// tool-runner and archive-migration extractions.
+// Finalizing a workout: assembling the finished session and archiving it.
 
 extension WorkoutFinalizer {
     /// Assemble the finished `HRVSession` from the captured RR series, the

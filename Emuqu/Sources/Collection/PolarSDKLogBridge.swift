@@ -3,10 +3,8 @@ import Foundation
 /// The Polar SDK's own log stream, filtered, and the narration of a
 /// disconnect.
 ///
-/// Its own type because `PolarManager` is over the aggregate type-size
-/// threshold and neither of these touches the manager: one is a string filter
-/// with two sinks, the other is a few log lines explaining what a disconnect
-/// means.
+/// Neither touches the manager: one is a string filter with two sinks, the
+/// other a few log lines explaining what a disconnect means.
 enum PolarSDKLogBridge {
     /// The SDK is extremely chatty. These five patterns are the high-frequency
     /// noise — raw PMD hex fires on every heartbeat packet, and scan discovery

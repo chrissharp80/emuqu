@@ -3,11 +3,8 @@ import Foundation
 import os.log
 import SwiftUI
 
-// Split out of AssistantViewModel.swift to keep the primary FILE under the
-// 1500-line budget, and off the TYPE (which is what the aggregate type-size
-// gate measures) for the same reason as the RRCollector and WorkoutRecorder
-// coordinator splits: ~800 lines reading 26 view-model members. The reads are
-// `owner.` and countable instead of looking like this type's own state.
+// The tool-use loop of a turn: dispatching the model's tool calls and feeding
+// their results back.
 
 extension AssistantToolRunner {
     // MARK: - Tool-use dispatch loop

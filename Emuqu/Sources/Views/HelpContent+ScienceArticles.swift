@@ -2,14 +2,9 @@ import SwiftUI
 
 // The sleep, training-load, vitals and HRV-science help categories.
 //
-// Split out of `HelpContent+Science.swift` when that file passed the
-// 1000-line limit — and its own enum rather than an `extension HelpContent`,
-// because `check_aggregate_type_size.sh` measures a type as the sum of its
-// parts across every file, which is the right measure: splitting a 2000-line
-// type into four 500-line extensions does not make it smaller. These four
-// categories are a self-contained body of reference copy; nothing else in
-// HelpContent reads them, and the only references are the four names in the
-// `categories` list.
+// Its own enum rather than an extension of HelpContent: these four categories
+// are a self-contained body of reference copy that nothing else in HelpContent
+// reads, and the only references are the four names in the `categories` list.
 
 // The metric band descriptions in this file state a
 // range, not a verdict — never "potentially pathological", "clear

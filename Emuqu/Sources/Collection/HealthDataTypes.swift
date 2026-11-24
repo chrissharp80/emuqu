@@ -3,14 +3,9 @@ import HealthKit
 
 // The data types HealthKit reads and writes flow through.
 //
-// They were nested inside `HealthKitManager` — 435 lines of `struct` and `enum`
-// declarations on a 2,925-line type that the aggregate type-size gate counts in
-// full. They are data, not behaviour: nothing here touches the store, the
-// authorization state or a query.
-//
-// Top-level types, with typealiases left behind so the existing
-// `HealthKitManager.WorkoutSummary`-style references keep working
-// unchanged.
+// They are data, not behaviour: nothing here touches the store, the
+// authorization state or a query, so they are top-level types.
+// `HealthKitManager.WorkoutSummary`-style typealiases still name them.
 
 struct HealthWorkoutSummary: Codable {
     let date: Date

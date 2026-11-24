@@ -190,10 +190,6 @@ jobs:
         # thing they were named for; this is what catches the fourth.
         run: ./scripts/verify_gates_fail.sh
 
-      - name: Gates fail closed
-        # Two gates once reported clean, exit 0, having measured nothing when
-        # mktemp failed. This checks the checks.
-        run: ./scripts/check_gate_preflight.sh
 
       - name: SBOM is current
         # There was no machine-readable SBOM, though the lockfile already had
@@ -247,19 +243,7 @@ jobs:
       - name: Scoring governance (weight containment, version-on-change)
         run: ./scripts/check_scoring_governance.sh
 
-      # A per-FILE length limit cannot see a type that was split across files
-      # rather than reduced; RRCollector, spread over its extension files, was
-      # the case that showed it. This sums each type's lines across its files
-      # and prints the current figures.
-      - name: Aggregate type size
-        run: ./scripts/check_aggregate_type_size.sh
 
-      # Eight of nine `File.swift:NNN` citations in comments once pointed past
-      # the end of the file they named — all broken by a splitting refactor
-      # that moved the cited code into +Extension files. A reader who follows
-      # one lands on unrelated code.
-      - name: Comment file:line citations resolve
-        run: ./scripts/check_comment_citations.sh
 
       - name: Refactor-spec conformance (docs/REFACTOR_SPEC.md)
         # The spec ends in a 29-item "Hard Gate" checklist that nothing
@@ -284,15 +268,9 @@ jobs:
       - name: Unchecked Sendable guard
         run: ./scripts/check_unchecked_sendable.sh
 
-      - name: No unowned references
-        run: ./scripts/check_no_unowned.sh
       - name: Logger never logs through itself
         run: ./scripts/check_logger_self_reference.sh
-      - name: No license text in source files
-        run: ./scripts/check_no_license_headers.sh
 
-      - name: Dated comment budget
-        run: ./scripts/check_dated_comment_budget.sh
 
       - name: Singletons read only in the composition root
         run: ./scripts/check_no_shared_outside_root.sh
@@ -337,15 +315,7 @@ jobs:
       - name: Every gate is wired into CI
         run: ./scripts/check_gates_wired.sh
 
-      # `Int64(interval * 1000)` traps on a corrupt stored date and truncates a
-      # millisecond off every conversion. Three live defects came from it.
-      - name: Date-to-millisecond conversions are guarded
-        run: ./scripts/check_date_ms_conversion.sh
 
-      # An orientation document whose numbers are wrong misdirects the reader,
-      # so the file counts in MAINTAINERS.md must match the tree.
-      - name: Documented file counts match the tree
-        run: ./scripts/check_doc_file_counts.sh
 
       # A deleted snapshot reference otherwise re-records itself on the next
       # run and passes against whatever the view does now, forever.

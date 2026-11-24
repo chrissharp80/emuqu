@@ -396,10 +396,7 @@ enum ScoringBounds {
 /// `RecoveryMethodologyView.validationSection`.
 ///
 /// `validationSection` is what makes that claim true — the page must keep
-/// saying the weights are unvalidated. Cited by SYMBOL, not line number, per
-/// `scripts/check_comment_citations.sh` — this repo splits files to meet
-/// budgets and a line-numbered citation is on a timer from the day it is
-/// written. A symbol survives a split.
+/// saying the weights are unvalidated.
 enum ScoringWeights {
     /// Tier 3 weights: HRV + Sleep + Vitals all available (full-signal day).
     /// Replaces the pre-ACWR-removal Tier3 (HRV/Sleep/Training 0.50/0.20/0.30).

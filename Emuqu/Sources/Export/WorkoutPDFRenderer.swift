@@ -8,17 +8,6 @@ import UIKit
 /// Everything that puts ink on the page for a workout PDF: the page layouts,
 /// the charts, the physiology panels, and the formatting helpers they share.
 ///
-/// ## Why this is not on `WorkoutPDFReport`
-///
-/// As three extensions on `WorkoutPDFReport` this was ~1,600 lines of a
-/// ~1,900-line type; what remains there is the
-/// class itself — the session, the track, the config, and the public entry
-/// point that produces a document.
-///
-/// Putting the drawing in its own FILE satisfies the 1500-line
-/// file budget, but the aggregate type-size gate counts a type across all its
-/// files, so a separate type is what keeps the lines off `WorkoutPDFReport`.
-///
 /// All three live together on purpose: the page layouts, the charts and the
 /// physiology panels call each other's formatting helpers constantly
 /// (`drawText`, `formatDuration`, `downsample`). Splitting them one at a time

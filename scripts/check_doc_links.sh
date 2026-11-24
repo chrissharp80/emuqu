@@ -37,6 +37,7 @@ cd "$(dirname "$0")/.."
 
 python3 - "$@" <<'PY'
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -70,6 +71,31 @@ def visible(path):
     return rel in VISIBLE or any(v.startswith(rel + "/") for v in VISIBLE)
 
 
+# A document that says it describes the code "at source revision <sha>" (the
+# white papers) is checked against that revision, not the current tree: a path
+# it cites has to exist there.
+PINNED = re.compile(r"at source revision ([0-9a-f]{7,40})\b")
+_pins = {}
+
+
+def pinned_revision(path):
+    key = str(path)
+    if key not in _pins:
+        head = "\n".join(pathlib.Path(path).read_text(errors="ignore").split("\n")[:40])
+        match = PINNED.search(head)
+        _pins[key] = match.group(1) if match else None
+    return _pins[key]
+
+
+def existed_at(revision, target):
+    target = str(target).split("#", 1)[0].lstrip("./")
+    if not revision or not target:
+        return False
+    return subprocess.run(
+        ["git", "cat-file", "-e", f"{revision}:{target}"], capture_output=True
+    ).returncode == 0
+
+
 def markdown_files():
     for path in sorted(pathlib.Path(".").rglob("*.md")):
         if any(skip in str(path) for skip in SKIP_DIRS):
@@ -95,6 +121,10 @@ for path in markdown_files():
             if not target:
                 continue
             if not visible(path.parent / target):
+                pinned = pinned_revision(path)
+                rel = os.path.normpath(os.path.join(str(path.parent), target))
+                if existed_at(pinned, rel):
+                    continue
                 broken.append((str(path), lineno, target))
 
 
@@ -109,8 +139,6 @@ for path in markdown_files():
 # backtick to close right after the extension, so `Models/HRVSession.swift:236`
 # matches nothing and its wrong directory goes unnoticed for as long as the line
 # number is attached — the suffix hides the claim, it does not make it.
-# (Whether the LINE exists is `check_comment_citations.sh`'s job; this gate only
-# asks whether the path does.)
 CODE_PATH = re.compile(
     r"`([A-Za-z0-9_./+-]+\.(?:swift|md|sh|yml|yaml|plist|xcprivacy|entitlements))(?::\d{1,5})?(?:[-–]\d{1,5})?`"
 )
@@ -153,6 +181,8 @@ for path in markdown_files():
             # that DOES name a directory is making a claim about where the file
             # lives, and that claim has to hold.
             if "/" not in target and target in tracked_basenames:
+                continue
+            if existed_at(pinned_revision(path), target):
                 continue
             missing_paths.append((str(path), lineno, target))
 

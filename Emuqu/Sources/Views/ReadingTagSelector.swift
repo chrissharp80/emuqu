@@ -3,9 +3,8 @@ import SwiftUI
 /// The horizontal strip of reading-type chips above a recording, plus the
 /// "More" button that opens the full tag picker.
 ///
-/// Its own type because it needs exactly two things from the record screen —
-/// which tags are selected and what to do when one is tapped — and `RecordView`
-/// is over the aggregate type-size threshold.
+/// It needs exactly two things from the record screen: which tags are selected
+/// and what to do when one is tapped.
 struct ReadingTagSelector: View {
     let selectedTags: Set<ReadingTag>
     let onToggle: (ReadingTag) -> Void
