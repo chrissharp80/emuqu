@@ -25,9 +25,9 @@ extension SessionRecoveryCoordinator {
     /// not lost.
     func liveRecordingIds() -> Set<UUID> {
         var ids = Set<UUID>()
-        if collector.isCollecting || collector.streamingLifecycle.isEndingOvernight,
-           let id = collector.currentSession?.id { ids.insert(id) }
-        if let id = collector.pausedSession?.id { ids.insert(id) }
+        if collector.sessionState.isCollecting || collector.streamingLifecycle.isEndingOvernight,
+           let id = collector.sessionState.currentSession?.id { ids.insert(id) }
+        if let id = collector.streamingLifecycle.pausedSession?.id { ids.insert(id) }
         if let recorder = AppDependencies.current.app.recorderBox.recorder,
            recorder.phase == .recording || recorder.phase == .finalizing,
            let id = recorder.currentSession?.id {
@@ -67,7 +67,7 @@ extension SessionRecoveryCoordinator {
     private func restoreKeptSession(_ sessionId: UUID) -> HRVSession? {
         let archive = collector.archive
         guard var session = archive.trashedSession(sessionId) else { return nil }
-        collector.supersedeSameNightSession(newSession: &session)
+        collector.morning.supersedeSameNightSession(newSession: &session)
         do {
             try archive.archive(session, skipSameNightMerge: true)
         } catch {
@@ -134,13 +134,13 @@ extension SessionRecoveryCoordinator {
             sessionId,
             recordedType: recordedType,
             analyze: { [self] session, window, flags, capacity in
-                await collector.analyze(session, window: window, flags: flags, peakCapacity: capacity)
+                await collector.morning.analyze(session, window: window, flags: flags, peakCapacity: capacity)
             },
             analyzeWithCapacity: { [self] session, capacity in
-                await collector.analyze(session, peakCapacity: capacity)
+                await collector.morning.analyze(session, peakCapacity: capacity)
             },
             supersedeSameNight: { [self] session in
-                collector.supersedeSameNightSession(newSession: &session)
+                collector.morning.supersedeSameNightSession(newSession: &session)
             },
             computeRecoveryScore: { [self] session, analysisResult in
                 await enrichedRecoveryScore(session: session, analysisResult: analysisResult)
@@ -159,7 +159,7 @@ extension SessionRecoveryCoordinator {
            let fresh = await collector.createTrainingContextEnsuringFresh(relativeTo: session.endDate ?? session.startDate) {
             enriched?.trainingContext = fresh
         }
-        return await collector.computeRecoveryScore(for: session, from: enriched)
+        return await collector.morning.computeRecoveryScore(for: session, from: enriched)
     }
 
     /// Rebuild a crashed/interrupted WORKOUT from its on-disk backups,
@@ -673,10 +673,10 @@ extension SessionRecoveryCoordinator {
             sessionId,
             sessionType: sessionType,
             analyze: { [self] session, window, flags, capacity in
-                await collector.analyze(session, window: window, flags: flags, peakCapacity: capacity)
+                await collector.morning.analyze(session, window: window, flags: flags, peakCapacity: capacity)
             },
             analyzeWithCapacity: { [self] session, capacity in
-                await collector.analyze(session, peakCapacity: capacity)
+                await collector.morning.analyze(session, peakCapacity: capacity)
             }
         ) else {
             return false
@@ -691,12 +691,12 @@ extension SessionRecoveryCoordinator {
 
     @MainActor
     private func enterPausedState(_ session: HRVSession) {
-        collector.currentSession = session
-        collector.pausedSession = session
-        collector.pausedBeatCount = session.rrSeries?.points.count ?? 0
-        collector.isPaused = true
-        collector.recordingPhase = .paused(sessionId: session.id)
-        collector.needsAcceptance = false
+        collector.sessionState.currentSession = session
+        collector.streamingLifecycle.pausedSession = session
+        collector.streamingLifecycle.pausedBeatCount = session.rrSeries?.points.count ?? 0
+        collector.streamingLifecycle.isPaused = true
+        collector.sessionState.recordingPhase = .paused(sessionId: session.id)
+        collector.sessionState.needsAcceptance = false
         collector.archiveSignal.notifyChanged()
     }
 }

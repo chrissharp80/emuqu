@@ -298,7 +298,7 @@ extension FitnessPostSummaryView {
 
     private var retrimControl: some View {
         RecoveredWorkoutTrimControl(session: session) { endSec in
-            await collector.retrimRecoveredWorkout(sessionId: session.id, endSec: endSec)
+            await collector.recovery.retrimRecoveredWorkout(sessionId: session.id, endSec: endSec)
         }
         .id(session.endDate)
     }

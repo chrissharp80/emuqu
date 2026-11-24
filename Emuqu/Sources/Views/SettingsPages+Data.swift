@@ -649,7 +649,7 @@ struct DataSettingsPage: View {
     /// task would only hop straight back to it.
     func refreshDeletedCount() {
         Task {
-            deletedSessionCount = collector.checkForDeletedSessions().count
+            deletedSessionCount = collector.recovery.checkForDeletedSessions().count
         }
     }
 
@@ -658,7 +658,7 @@ struct DataSettingsPage: View {
         Task {
             let message: String
             do {
-                let session = try await collector.recoverFromDevice()
+                let session = try await collector.recovery.recoverFromDevice()
                 message = String(localized: "RR points recovered: \(session?.rrSeries?.points.count ?? 0)", bundle: LanguageManager.appBundle)
             } catch {
                 message = String(localized: "Recovery failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)

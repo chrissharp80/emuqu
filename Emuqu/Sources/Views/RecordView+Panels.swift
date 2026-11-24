@@ -655,7 +655,7 @@ extension RecordPanels {
     private func performDeviceRecovery() async {
         await RecordingKeepAwake.during {
             do {
-                _ = try await collector.recoverFromDevice()
+                _ = try await collector.recovery.recoverFromDevice()
             } catch {
                 surfaceRecoveryError(error)
             }

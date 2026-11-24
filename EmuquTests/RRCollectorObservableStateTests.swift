@@ -49,7 +49,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
     override func tearDown() async throws {
         cancellables.removeAll()
-        if let session = collector.currentSession {
+        if let session = collector.sessionState.currentSession {
             _ = try? collector.archive.delete(session.id)
         }
         hostRecordingState?.restore()
@@ -292,17 +292,17 @@ final class RRCollectorObservableStateTests: XCTestCase {
         collector.streamingLifecycle.isPaused = true
         collector.streamingLifecycle.pausedBeatCount = 1024
 
-        XCTAssertTrue(collector.isStreamingMode)
-        XCTAssertEqual(collector.streamingTargetSeconds, 300)
-        XCTAssertEqual(collector.streamingElapsedSeconds, 42)
-        XCTAssertTrue(collector.isOvernightStreaming)
-        XCTAssertTrue(collector.isPaused)
-        XCTAssertEqual(collector.pausedBeatCount, 1024)
+        XCTAssertTrue(collector.streamingLifecycle.isStreamingMode)
+        XCTAssertEqual(collector.streamingLifecycle.streamingTargetSeconds, 300)
+        XCTAssertEqual(collector.streamingLifecycle.streamingElapsedSeconds, 42)
+        XCTAssertTrue(collector.streamingLifecycle.isOvernightStreaming)
+        XCTAssertTrue(collector.streamingLifecycle.isPaused)
+        XCTAssertEqual(collector.streamingLifecycle.pausedBeatCount, 1024)
     }
 
     func testStreamingLifecycleWritesFromCollectorSetter() {
-        collector.isStreamingMode = true
-        collector.streamingTargetSeconds = 240
+        collector.streamingLifecycle.isStreamingMode = true
+        collector.streamingLifecycle.streamingTargetSeconds = 240
         XCTAssertTrue(collector.streamingLifecycle.isStreamingMode)
         XCTAssertEqual(collector.streamingLifecycle.streamingTargetSeconds, 240)
     }
@@ -315,7 +315,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
             healthKit: HealthKitManager(),
             streamingLifecycle: custom
         )
-        XCTAssertEqual(injected.streamingTargetSeconds, 999)
+        XCTAssertEqual(injected.streamingLifecycle.streamingTargetSeconds, 999)
         XCTAssertTrue(injected.streamingLifecycle === custom)
     }
 
@@ -331,8 +331,8 @@ final class RRCollectorObservableStateTests: XCTestCase {
         collector.morningCoordination.morningStatus = .saving(beats: 500)
         collector.morningCoordination.sleepDataVersion = 7
 
-        XCTAssertEqual(collector.morningStatus, .saving(beats: 500))
-        XCTAssertEqual(collector.sleepDataVersion, 7)
+        XCTAssertEqual(collector.morningCoordination.morningStatus, .saving(beats: 500))
+        XCTAssertEqual(collector.morningCoordination.sleepDataVersion, 7)
     }
 
     func testMorningCoordinationInjectable() {
@@ -343,7 +343,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
             healthKit: HealthKitManager(),
             morningCoordination: custom
         )
-        XCTAssertEqual(injected.sleepDataVersion, 42)
+        XCTAssertEqual(injected.morningCoordination.sleepDataVersion, 42)
         XCTAssertTrue(injected.morningCoordination === custom)
     }
 
@@ -369,15 +369,15 @@ final class RRCollectorObservableStateTests: XCTestCase {
         collector.sessionState.needsAcceptance = true
         collector.sessionState.recordingPhase = .overnightStreaming
 
-        XCTAssertEqual(collector.currentSession?.id, session.id)
-        XCTAssertTrue(collector.needsAcceptance)
-        XCTAssertEqual(collector.recordingPhase, .overnightStreaming)
+        XCTAssertEqual(collector.sessionState.currentSession?.id, session.id)
+        XCTAssertTrue(collector.sessionState.needsAcceptance)
+        XCTAssertEqual(collector.sessionState.recordingPhase, .overnightStreaming)
     }
 
     func testSessionStateWritesFromCollectorSetter() {
         let session = HRVSession(sessionType: .quick)
-        collector.currentSession = session
-        collector.needsAcceptance = true
+        collector.sessionState.currentSession = session
+        collector.sessionState.needsAcceptance = true
         XCTAssertEqual(collector.sessionState.currentSession?.id, session.id)
         XCTAssertTrue(collector.sessionState.needsAcceptance)
     }
@@ -390,7 +390,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
             healthKit: HealthKitManager(),
             sessionState: custom
         )
-        XCTAssertEqual(injected.recordingPhase, .analyzing)
+        XCTAssertEqual(injected.sessionState.recordingPhase, .analyzing)
         XCTAssertTrue(injected.sessionState === custom)
     }
 
@@ -398,22 +398,22 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
     func testResetSessionClearsSessionAndAcceptanceState() {
         let session = HRVSession(sessionType: .overnight)
-        collector.currentSession = session
-        collector.collectedPoints = [RRPoint(t_ms: 0, rr_ms: 800)]
-        collector.needsAcceptance = true
-        collector.isPaused = true
+        collector.sessionState.currentSession = session
+        collector.sessionState.collectedPoints = [RRPoint(t_ms: 0, rr_ms: 800)]
+        collector.sessionState.needsAcceptance = true
+        collector.streamingLifecycle.isPaused = true
 
         collector.resetSession()
 
-        XCTAssertNil(collector.currentSession)
-        XCTAssertTrue(collector.collectedPoints.isEmpty)
-        XCTAssertFalse(collector.needsAcceptance)
-        XCTAssertFalse(collector.isPaused)
-        XCTAssertNil(collector.pausedSession)
-        XCTAssertNil(collector.verificationResult)
-        XCTAssertNil(collector.recoveryWindow)
-        XCTAssertNil(collector.baselineDeviation)
-        XCTAssertEqual(collector.recordingPhase, .idle)
+        XCTAssertNil(collector.sessionState.currentSession)
+        XCTAssertTrue(collector.sessionState.collectedPoints.isEmpty)
+        XCTAssertFalse(collector.sessionState.needsAcceptance)
+        XCTAssertFalse(collector.streamingLifecycle.isPaused)
+        XCTAssertNil(collector.streamingLifecycle.pausedSession)
+        XCTAssertNil(collector.sessionState.verificationResult)
+        XCTAssertNil(collector.sessionState.recoveryWindow)
+        XCTAssertNil(collector.sessionState.baselineDeviation)
+        XCTAssertEqual(collector.sessionState.recordingPhase, .idle)
     }
 
     // MARK: - MorningProcessingStatus Equatable
@@ -522,10 +522,10 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
     func testInitialPublishedStateIsQuiescent() {
         XCTAssertEqual(collector.archiveVersion, 0)
-        XCTAssertEqual(collector.sleepDataVersion, 0)
-        XCTAssertEqual(collector.streamingElapsedSeconds, 0)
-        XCTAssertEqual(collector.pausedBeatCount, 0)
-        XCTAssertNil(collector.morningStatus)
+        XCTAssertEqual(collector.morningCoordination.sleepDataVersion, 0)
+        XCTAssertEqual(collector.streamingLifecycle.streamingElapsedSeconds, 0)
+        XCTAssertEqual(collector.streamingLifecycle.pausedBeatCount, 0)
+        XCTAssertNil(collector.morningCoordination.morningStatus)
         XCTAssertFalse(collector.isDeviceConnected)
         XCTAssertFalse(collector.isStreaming)
         XCTAssertFalse(collector.hasStoredExercise)
@@ -536,10 +536,10 @@ final class RRCollectorObservableStateTests: XCTestCase {
         XCTAssertEqual(collector.recordingState, .idle)
         XCTAssertNil(collector.recentPausedSession)
         XCTAssertNil(collector.fetchProgress)
-        XCTAssertNil(collector.lastError)
-        XCTAssertNil(collector.verificationResult)
-        XCTAssertNil(collector.recoveryWindow)
-        XCTAssertNil(collector.baselineDeviation)
+        XCTAssertNil(collector.sessionState.lastError)
+        XCTAssertNil(collector.sessionState.verificationResult)
+        XCTAssertNil(collector.sessionState.recoveryWindow)
+        XCTAssertNil(collector.sessionState.baselineDeviation)
     }
 
     func testDeviceFetchPolicyDefaultsToAutomatic() {

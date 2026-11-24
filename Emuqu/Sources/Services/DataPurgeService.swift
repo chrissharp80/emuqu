@@ -241,11 +241,11 @@ enum DataPurgeService {
     }
 
     private static func collectorIsRecording(_ collector: RRCollector) -> Bool {
-        if collector.isCollecting || collector.isOvernightStreaming || collector.isPaused
-            || collector.isRecordingOnDevice || collector.needsAcceptance {
+        if collector.sessionState.isCollecting || collector.streamingLifecycle.isOvernightStreaming || collector.streamingLifecycle.isPaused
+            || collector.isRecordingOnDevice || collector.sessionState.needsAcceptance {
             return true
         }
-        return switch collector.recordingPhase {
+        return switch collector.sessionState.recordingPhase {
         case .streaming, .overnightStreaming, .deviceRecording, .paused, .analyzing, .awaitingAcceptance: true
         case .idle: false
         }

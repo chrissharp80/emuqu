@@ -47,7 +47,7 @@ final class StrapArmingTests: XCTestCase {
         collectors.append(collector)
         collector.armingRetryInterval = 0.05
         collector.useDeviceBackupForOvernight = true
-        collector.isOvernightStreaming = true
+        collector.streamingLifecycle.isOvernightStreaming = true
         collector.overnightStreaming.launchDeviceRecordingLoop()
         return collector
     }
@@ -70,11 +70,11 @@ final class StrapArmingTests: XCTestCase {
         radio.refuse("startRecording", times: 1, with: BlePsFtpException.responseError(errorCode: 209))
         let collector = armingNight(radio, battery: 10)
 
-        try await waitUntil { self.starts(radio) == 1 && collector.lastError != nil }
-        guard case .strapBatteryTooLow(percent: 10)? = collector.lastError as? PolarManager.PolarError else {
-            return XCTFail("expected the low-battery notice, got \(String(describing: collector.lastError))")
+        try await waitUntil { self.starts(radio) == 1 && collector.sessionState.lastError != nil }
+        guard case .strapBatteryTooLow(percent: 10)? = collector.sessionState.lastError as? PolarManager.PolarError else {
+            return XCTFail("expected the low-battery notice, got \(String(describing: collector.sessionState.lastError))")
         }
-        XCTAssertTrue(collector.lastError?.localizedDescription.contains("10") == true, "the notice names the level")
+        XCTAssertTrue(collector.sessionState.lastError?.localizedDescription.contains("10") == true, "the notice names the level")
 
         collector.polarManager.linkRuntime.signal.fire()
         await sleepQuietly(400_000_000, context: "several retry intervals")
@@ -83,7 +83,7 @@ final class StrapArmingTests: XCTestCase {
         collector.polarManager.batteryLevel = 100
         try await waitUntil { collector.overnightDeviceBackupActive }
         XCTAssertEqual(starts(radio), 2)
-        XCTAssertNil(collector.lastError, "the notice stayed after the strap armed")
+        XCTAssertNil(collector.sessionState.lastError, "the notice stayed after the strap armed")
     }
 
     func testTheSDKsBatteryRefusalIsRecognised() {

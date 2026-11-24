@@ -33,7 +33,7 @@ extension MorningSessionPipeline {
     ) async -> HRVSession {
         debugLog("[RRCollector] Processing \(dataSource) data for analysis...")
         // Fetch training load before delegating (updates cachedTrainingLoad on self)
-        await collector.fetchTrainingLoadIfEnabled()
+        await collector.deviceRecording.fetchTrainingLoadIfEnabled()
         showAnalyzingSession(baseSession: baseSession, points: points, skip: isBackgroundRefinement)
         let freshContext = await collector.createTrainingContextEnsuringFresh()
         let result = await collector.morningProcessingService.processOvernightData(
@@ -43,7 +43,7 @@ extension MorningSessionPipeline {
                 isBackgroundRefinement: isBackgroundRefinement, settings: settingsSnapshot(for: baseSession),
                 trainingContext: freshContext, cachedTrainingLoad: collector.cachedTrainingLoad,
                 prefetchedSleepData: prefetchedSleepData,
-                statusCallback: { [weak collector] status in collector?.morningStatus = status }
+                statusCallback: { [weak collector] status in collector?.morningCoordination.morningStatus = status }
             )
         )
         var finalSession = result.session
@@ -85,7 +85,7 @@ extension MorningSessionPipeline {
     /// service works. Skipped for background refinement.
     private func showAnalyzingSession(baseSession: HRVSession, points: [RRPoint], skip: Bool) {
         guard !skip else { return }
-        collector.currentSession = HRVSession(
+        collector.sessionState.currentSession = HRVSession(
             id: baseSession.id,
             startDate: baseSession.startDate,
             endDate: Date(),
@@ -128,16 +128,16 @@ extension MorningSessionPipeline {
         _ result: MorningProcessingService.ProcessingResult, finalSession: HRVSession, awaitsReview: Bool
     ) {
         let awaitsAcceptance = awaitsReview && finalSession.state == .complete
-        collector.currentSession = finalSession
-        collector.verificationResult = result.verificationResult
-        collector.recoveryWindow = result.recoveryWindow
-        collector.needsAcceptance = awaitsAcceptance
+        collector.sessionState.currentSession = finalSession
+        collector.sessionState.verificationResult = result.verificationResult
+        collector.sessionState.recoveryWindow = result.recoveryWindow
+        collector.sessionState.needsAcceptance = awaitsAcceptance
         if awaitsAcceptance {
-            collector.recordingPhase = .awaitingAcceptance
+            collector.sessionState.recordingPhase = .awaitingAcceptance
         } else if awaitsReview {
-            collector.recordingPhase = .idle
+            collector.sessionState.recordingPhase = .idle
         }
-        collector.baselineDeviation = result.baselineDeviation
+        collector.sessionState.baselineDeviation = result.baselineDeviation
         collector.sessionStartTime = nil
     }
 
@@ -165,7 +165,7 @@ extension MorningSessionPipeline {
             }
         } catch {
             debugLog("[RRCollector] Failed to pre-archive session for review: \(error)", level: .error)
-            collector.lastError = error
+            collector.sessionState.lastError = error
         }
     }
 
@@ -194,7 +194,7 @@ extension MorningSessionPipeline {
     func discardReviewArchivedSession() {
         let reviewId = collector.sessionState.reviewArchivedSessionId
         collector.sessionState.reviewArchivedSessionId = nil
-        guard let reviewId, reviewId == collector.currentSession?.id else { return }
+        guard let reviewId, reviewId == collector.sessionState.currentSession?.id else { return }
         do {
             guard try collector.archive.delete(reviewId) else { return }
         } catch {

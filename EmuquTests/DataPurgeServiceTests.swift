@@ -688,19 +688,19 @@ final class DataPurgeServiceTests: XCTestCase {
     /// after the purge would archive it. Only an idle collector lets it run.
     func testEveryCollectorRecordingStateCounts() {
         let reading = SnapshotFixtures.collector()
-        reading.isCollecting = true
+        reading.sessionState.isCollecting = true
         XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: reading, workout: nil), "quick reading")
 
         let night = SnapshotFixtures.collector()
-        night.isOvernightStreaming = true
+        night.streamingLifecycle.isOvernightStreaming = true
         XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: night, workout: nil), "overnight stream")
 
         let paused = SnapshotFixtures.collector()
-        paused.isPaused = true
+        paused.streamingLifecycle.isPaused = true
         XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: paused, workout: nil), "paused night")
 
         let analysing = SnapshotFixtures.collector()
-        analysing.recordingPhase = .analyzing
+        analysing.sessionState.recordingPhase = .analyzing
         XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: analysing, workout: nil), "night being analysed")
 
         let strap = SnapshotFixtures.collector()
@@ -708,11 +708,11 @@ final class DataPurgeServiceTests: XCTestCase {
         XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: strap, workout: nil), "strap recording")
 
         let awaiting = SnapshotFixtures.collector()
-        awaiting.recordingPhase = .awaitingAcceptance
+        awaiting.sessionState.recordingPhase = .awaitingAcceptance
         XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: awaiting, workout: nil), "night awaiting acceptance")
 
         let review = SnapshotFixtures.collector()
-        review.needsAcceptance = true
+        review.sessionState.needsAcceptance = true
         XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: review, workout: nil), "reading awaiting acceptance")
 
         XCTAssertFalse(DataPurgeService.isRecordingInProgress(collector: SnapshotFixtures.collector(), workout: nil), "idle collector")

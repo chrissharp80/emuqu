@@ -51,8 +51,8 @@ final class SessionDiscardTests: XCTestCase {
     }
 
     private func review(_ night: HRVSession, savedForReview: UUID?, on collector: RRCollector) {
-        collector.currentSession = night
-        collector.needsAcceptance = true
+        collector.sessionState.currentSession = night
+        collector.sessionState.needsAcceptance = true
         collector.sessionState.reviewArchivedSessionId = savedForReview
     }
 
@@ -68,8 +68,8 @@ final class SessionDiscardTests: XCTestCase {
         XCTAssertTrue(archive.wasIntentionallyDeleted(night.id), "No tombstone: a sync could re-add the night")
         XCTAssertTrue(isArchived(earlier.id))
         XCTAssertNil(collector.sessionState.reviewArchivedSessionId)
-        XCTAssertNil(collector.currentSession)
-        XCTAssertFalse(collector.needsAcceptance)
+        XCTAssertNil(collector.sessionState.currentSession)
+        XCTAssertFalse(collector.sessionState.needsAcceptance)
     }
 
     /// A night already in the archive before this review began (reprocessed,
@@ -103,9 +103,9 @@ final class SessionDiscardTests: XCTestCase {
         let night = try archivedNight(daysAgo: 1)
         review(night, savedForReview: night.id, on: collector)
 
-        collector.clearAcceptanceState()
+        collector.morning.clearAcceptanceState()
         XCTAssertNil(collector.sessionState.reviewArchivedSessionId)
-        collector.currentSession = night
+        collector.sessionState.currentSession = night
         await collector.rejectSession()
 
         XCTAssertTrue(isArchived(night.id))
@@ -127,8 +127,8 @@ final class SessionDiscardTests: XCTestCase {
             rrSeries: RRSeries(points: points, sessionId: secondId, startDate: secondStart),
             analysisResult: nil, artifactFlags: nil
         )
-        collector.currentSession = second
-        collector.needsAcceptance = true
+        collector.sessionState.currentSession = second
+        collector.sessionState.needsAcceptance = true
 
         collector.morning.archiveForReview(second)
 

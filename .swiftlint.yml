@@ -84,16 +84,6 @@ custom_rules:
     message: "Only one result builder attribute can be attached to a declaration."
     severity: error
 
-  # These RRCollector properties are plain computed pass-throughs, so reading
-  # one from a SwiftUI view establishes no observation and the view renders
-  # stale. Views observe the sub-object that owns the value.
-  collector_forwarder_in_view:
-    name: "RRCollector forwarder read from a view"
-    regex: '\bcollector\s*\.\s*(baselineDeviation|collectedPoints|currentSession|isCollecting|isOvernightStreaming|isPaused|isStreamingMode|lastError|morningStatus|needsAcceptance|pausedBeatCount|pausedSession|recordingPhase|recoveryWindow|sleepDataVersion|streamingElapsedSeconds|streamingTargetSeconds|verificationResult)\b'
-    included: '.*/Sources/(Views|Assistant/Views)/.*|.*/Sources/Export/ReportSectionPicker\.swift'
-    message: "Reading an RRCollector forwarder from a view establishes no observation and renders stale. Observe the sub-object (SessionState / StreamingLifecycle / MorningCoordination / DeviceStatus / ArchiveSignal) instead."
-    severity: error
-
   # ADR 005: a helper that needs its owner holds it strongly and is built on
   # demand; an optional back-reference is weak.
   no_unowned:

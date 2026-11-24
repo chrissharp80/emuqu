@@ -460,7 +460,7 @@ struct EmuquApp: App {
     }
 
     private var isRecordingInProgress: Bool {
-        collector.isCollecting || isWorkoutInProgress
+        collector.sessionState.isCollecting || isWorkoutInProgress
     }
 
     /// A workout is recording or still being saved on the phone.
@@ -503,12 +503,12 @@ struct EmuquApp: App {
     /// the screen, so it holds a background-task assertion until it finishes;
     /// running out of budget suspends the app instead of getting it killed.
     private func autoArchivePendingSession() {
-        guard collector.needsAcceptance else { return }
+        guard collector.sessionState.needsAcceptance else { return }
         let backgroundTask = BackgroundTaskAssertion(name: "EmuquApp.autoArchivePendingSession")
         Task {
             defer { backgroundTask.end() }
             do {
-                try await collector.acceptSession()
+                try await collector.morning.acceptSession()
                 debugLog("[App] Auto-archived pending session on background")
             } catch {
                 debugLog("[App] Failed to auto-archive on background: \(error)")

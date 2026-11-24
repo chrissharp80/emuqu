@@ -43,7 +43,7 @@ struct SessionImport {
         collector.baselineTracker.update(with: saved, sleepSchedule: sleepSchedule)
         // Against the nights before this one, not a baseline it just joined.
         let deviation = collector.baselineTracker.deviation(for: saved, sleepSchedule: sleepSchedule)
-        if let deviation { collector.baselineDeviation = deviation }
+        if let deviation { collector.sessionState.baselineDeviation = deviation }
         collector.archiveSignal.notifyChanged()
     }
 

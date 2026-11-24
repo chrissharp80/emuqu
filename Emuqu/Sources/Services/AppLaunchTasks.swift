@@ -424,7 +424,7 @@ extension EmuquApp {
             NSLog("[App][bg] archive migrations — start")
             archiveRef.upgradeExistingFileProtection()
             archiveRef.runDeferredMigrations()
-            await collectorJob.permanentlyDelete(archiveRef.expiredDeletionIds())
+            await collectorJob.recovery.permanentlyDelete(archiveRef.expiredDeletionIds())
             NSLog("[App][bg] archive migrations — done")
         }
         let reanalysisJob = reanalysis

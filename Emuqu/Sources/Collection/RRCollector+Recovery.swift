@@ -36,7 +36,7 @@ extension SessionRecoveryCoordinator {
     /// workout's backup. Recovery flows leave that recording alone. A night
     /// being ended is still live: its ending stops and downloads the strap.
     var strapRecordingBelongsToLiveSession: Bool {
-        if collector.isCollecting || collector.isOvernightStreaming || collector.streamingLifecycle.isEndingOvernight {
+        if collector.sessionState.isCollecting || collector.streamingLifecycle.isOvernightStreaming || collector.streamingLifecycle.isEndingOvernight {
             return true
         }
         return strapRecordingBelongsToLiveWorkout
@@ -67,7 +67,7 @@ extension SessionRecoveryCoordinator {
     func recoverFromDevice() async throws -> HRVSession? {
         debugLog("[Recovery] ========== START recoverFromDevice ==========")
         // An earlier operation's error must not stand in for this one's.
-        collector.lastError = nil
+        collector.sessionState.lastError = nil
         try checkRecoverable()
         collector.polarManager.beginTransfer()
         let recording = try await downloadForRecovery()
@@ -75,7 +75,7 @@ extension SessionRecoveryCoordinator {
         let session = await collector.deviceRecording.assembleDownloadedSession(recording, placement: placement)
         debugLog("[Recovery] ========== END recoverFromDevice: \(session.id.uuidString.prefix(8)) \(session.state) ==========")
         guard session.state == .complete else {
-            throw collector.lastError ?? RRCollector.CollectorError.insufficientData
+            throw collector.sessionState.lastError ?? RRCollector.CollectorError.insufficientData
         }
         return session
     }
@@ -93,7 +93,7 @@ extension SessionRecoveryCoordinator {
 
     private func recoveryRefused(_ error: RRCollector.CollectorError) -> Error {
         debugLog("[Recovery] Not recovering: \(error)")
-        collector.lastError = error
+        collector.sessionState.lastError = error
         return error
     }
 
@@ -104,7 +104,7 @@ extension SessionRecoveryCoordinator {
             return recording
         } catch {
             debugLog("[Recovery] Strap download failed: \(error)")
-            collector.lastError = error
+            collector.sessionState.lastError = error
             throw error
         }
     }

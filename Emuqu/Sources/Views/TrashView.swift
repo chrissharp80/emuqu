@@ -177,14 +177,14 @@ struct TrashView: View {
     // MARK: - Actions
 
     private func loadDeletedSessions() {
-        deletedSessions = collector.checkForDeletedSessions()
+        deletedSessions = collector.recovery.checkForDeletedSessions()
     }
 
     private func restoreSession(_ id: UUID) {
         isRestoring = true
         restoringId = id
         Task {
-            let restored = await collector.restoreFromTrash(id) != nil
+            let restored = await collector.recovery.restoreFromTrash(id) != nil
             await MainActor.run { finishRestore(succeeded: restored) }
         }
     }
@@ -234,7 +234,7 @@ struct TrashView: View {
     private func deletePermanently(_ ids: [UUID], successMessage: String?) {
         isDeleting = true
         Task { @MainActor in
-            let outcome = await collector.permanentlyDelete(ids)
+            let outcome = await collector.recovery.permanentlyDelete(ids)
             isDeleting = false
             loadDeletedSessions()
             report(outcome, successMessage: successMessage)

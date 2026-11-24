@@ -102,7 +102,7 @@ extension EmuquApp {
             return
         }
         defer { InterruptedWorkoutAutoRecovery.end(info.sessionId) }
-        let success = await collector.recoverToPausedState(info.sessionId, sessionType: info.sessionType)
+        let success = await collector.recovery.recoverToPausedState(info.sessionId, sessionType: info.sessionType)
         await MainActor.run { showRecoveryOutcome(success: success) }
     }
 
@@ -211,7 +211,7 @@ extension EmuquApp {
     /// interrupted night too short to be one is saved as a quick reading
     /// (`SessionRecoveryService.recoveredSessionType`).
     private func recoverInterruptedRecording(_ info: InterruptedSessionInfo) async -> String {
-        let recovered = await collector.recoverFromBackup(info.sessionId, recordedType: info.sessionType)
+        let recovered = await collector.recovery.recoverFromBackup(info.sessionId, recordedType: info.sessionType)
         collector.clearPersistedRecordingStatePublic()
         guard let recovered else {
             return String(localized: "Could not recover the session. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)

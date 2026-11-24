@@ -263,7 +263,7 @@ extension MorningReanalysisControls {
         strapMergeMessage = nil
         let sessionId = vm.displaySession.id
         Task {
-            let result = await collector.augmentOvernightFromStrap(
+            let result = await collector.recovery.augmentOvernightFromStrap(
                 sessionId: sessionId, rescoringWith: sessionReanalysis
             )
             if case .merged = result { await showMergedSession(sessionId) }
