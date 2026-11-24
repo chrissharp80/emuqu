@@ -131,7 +131,7 @@ final class CollectorMigrationParityTests: XCTestCase {
 
     override func tearDown() async throws {
         for id in seededIds {
-            try? collector.archive.delete(id)
+            _ = try? collector.archive.delete(id)
         }
         seededIds = []
         try? FileManager.default.removeItem(at: tempDir)

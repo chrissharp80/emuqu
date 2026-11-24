@@ -54,6 +54,19 @@ final class SessionState {
     /// in the archive before this review began.
     var reviewArchivedSessionId: UUID?
 
+    /// The night already in the archive that this review's recording was
+    /// folded into when it was saved, a second recording of the same night.
+    /// The fold cannot be undone, so "Discard" leaves that night as it is and
+    /// says so; nil when the recording was saved under its own id.
+    var reviewFoldedIntoSessionId: UUID?
+
+    /// Forget which archived night this review saved or was folded into, so
+    /// Discard no longer points at it.
+    func forgetReviewedNight() {
+        reviewArchivedSessionId = nil
+        reviewFoldedIntoSessionId = nil
+    }
+
     /// The user's own entries on a session, as one value to compare.
     struct ReviewEntries: Equatable {
         let sessionId: UUID

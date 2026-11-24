@@ -22,9 +22,7 @@ enum IntervalSpokenCue {
         switch target {
         case .zone(let zone): return String(localized: "Zone \(zone)", bundle: bundle)
         case let .hrRange(lo, hi): return String(localized: "heart rate \(lo) to \(hi)", bundle: bundle)
-        case .paceSecPerKm(let pace):
-            let clock = String(format: "%d:%02d", pace / 60, pace % 60)
-            return String(localized: "\(clock) per kilometer", bundle: bundle)
+        case .paceSecPerKm(let pace): return spokenPace(secondsPerKm: pace, units: UnitsPreferenceStore.current.resolved)
         case .effort(let cue): return effort(cue)
         }
     }
@@ -54,6 +52,21 @@ enum IntervalSpokenCue {
         }
         guard let meters = step.distanceMeters else { return nil }
         return spokenDistance(meters: meters, units: UnitsPreferenceStore.current.resolved)
+    }
+
+    /// A pace target in the user's units, as the workout screen shows it:
+    /// per mile for imperial, otherwise per kilometre.
+    static func spokenPace(secondsPerKm: Int, units: UnitsPreference) -> String {
+        let bundle = LanguageManager.appBundle
+        guard units == .imperial else {
+            return String(localized: "\(clock(secondsPerKm)) per kilometer", bundle: bundle)
+        }
+        let perMile = Int((Double(secondsPerKm) * UnitConstants.metersPerMile / 1000).rounded())
+        return String(localized: "\(clock(perMile)) per mile", bundle: bundle)
+    }
+
+    private static func clock(_ seconds: Int) -> String {
+        String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 
     /// A step's distance in the user's units: miles (to two decimals) for

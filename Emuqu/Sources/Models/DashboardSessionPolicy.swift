@@ -73,7 +73,7 @@ enum DashboardSessionPolicy {
         let overnight = entries.filter {
             $0.sessionType == .overnight && $0.isReliableForHRVAggregates && $0.recoveryScore != nil
         }
-        let byNight = Dictionary(grouping: overnight) { calendar.startOfDay(for: entryDay(of: $0)) }
+        let byNight = Dictionary(grouping: overnight) { calendar.startOfDay(for: SessionDay.date(of: $0)) }
         return byNight.keys.max().flatMap { night in
             byNight[night]?.max(by: { entryDuration($0) < entryDuration($1) })
         }
@@ -117,17 +117,11 @@ enum DashboardSessionPolicy {
     private static func entryForDay(_ date: Date, in entries: [SessionArchiveEntry], calendar: Calendar) -> SessionArchiveEntry? {
         let candidates = entries.filter {
             $0.sessionType != .workout && ($0.meanRMSSD != nil || $0.recoveryScore != nil)
-                && $0.isReliableForHRVAggregates && calendar.isDate(entryDay(of: $0), inSameDayAs: date)
+                && $0.isReliableForHRVAggregates && calendar.isDate(SessionDay.date(of: $0), inSameDayAs: date)
         }
         let overnights = candidates.filter { $0.sessionType == .overnight }
         if let best = overnights.max(by: { entryDuration($0) < entryDuration($1) }) { return best }
         return candidates.max(by: { entryDuration($0) < entryDuration($1) })
-    }
-
-    /// `dayOf` on the index: an overnight belongs to the day it ended sleep.
-    private static func entryDay(of entry: SessionArchiveEntry) -> Date {
-        if entry.sessionType == .overnight, let sleepEnd = entry.sleepEnd { return sleepEnd }
-        return entry.endDate ?? entry.date
     }
 
     /// Most recent **overnight** session with an analysis result. The
@@ -145,7 +139,7 @@ enum DashboardSessionPolicy {
     /// the real night could win just by being re-archived more recently.
     ///
     /// Rule: among overnight sessions that share a recovery
-    /// night (keyed on the wake day, as the Recent strip's `dayOf` does;
+    /// night (keyed on the wake day, `SessionDay`;
     /// keying on the start day would put a night that began after midnight
     /// in the same group as the following night), pick
     /// the longest-duration one. Across DIFFERENT nights, the most recent
@@ -164,7 +158,7 @@ enum DashboardSessionPolicy {
         }
         guard !candidates.isEmpty else { return nil }
         let byNight: [Date: [HRVSession]] = Dictionary(grouping: candidates) {
-            calendar.startOfDay(for: dayOf($0))
+            calendar.startOfDay(for: SessionDay.date(of: $0))
         }
         guard let mostRecentNight = byNight.keys.max() else { return nil }
         let nightSessions = byNight[mostRecentNight] ?? []
@@ -233,10 +227,10 @@ enum DashboardSessionPolicy {
         return sessions.filter { $0.sessionType != .overnight || kept.contains($0.id) }
     }
 
-    /// The calendar day a session counts on (`dayOf`: an overnight's wake
+    /// The calendar day a session counts on (`SessionDay`: an overnight's wake
     /// time), at its start.
     static func nightDay(of session: HRVSession, calendar: Calendar) -> Date {
-        calendar.startOfDay(for: dayOf(session))
+        calendar.startOfDay(for: SessionDay.date(of: session))
     }
 
     /// Light the dot for any real reading — one that has a live
@@ -258,28 +252,7 @@ enum DashboardSessionPolicy {
         session.sessionType != .workout
             && (session.analysisResult != nil || session.recoveryScore != nil)
             && session.isReliableForHRVAggregates
-            && calendar.isDate(dayOf(session), inSameDayAs: date)
-    }
-
-    /// Match History's `displayDate` rule for overnights: prefer the
-    /// actual sleep-end (wake time) over endDate, because the recording
-    /// may have run hours past wake when the user forgot to stop the
-    /// strap. Without this, an overnight whose recording ran long lands
-    /// on the wrong calendar day in the strip — visible to the user as
-    /// a missing dot on the day they swear they had a reading.
-    private static func dayOf(_ session: HRVSession) -> Date {
-        if session.sessionType == .overnight {
-            if let snapshot = session.sleepSnapshot, let sleepEnd = snapshot.sleepEnd {
-                return sleepEnd
-            }
-            // A zero offset is no sleep end, as the index mirror reads it
-            // (`SessionArchive.deriveSleepIndexFields`), so the seed and
-            // this pick put a night on the same day.
-            if let endMs = session.sleepEndMs, endMs > 0 {
-                return session.startDate.addingTimeInterval(TimeInterval(endMs) / 1000.0)
-            }
-        }
-        return session.endDate ?? session.startDate
+            && calendar.isDate(SessionDay.date(of: session), inSameDayAs: date)
     }
 
     /// Quality-aware pick when multiple sessions land on

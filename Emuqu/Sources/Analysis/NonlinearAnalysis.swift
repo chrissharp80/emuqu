@@ -197,26 +197,21 @@ enum NonlinearAnalyzer {
         return sqrt(sumSq / Double(rr.count - 1))
     }
 
-    /// Both entropies are O(n^2), so they cap at 1000 points. Evenly-spaced
-    /// sampling preserves temporal structure better than random, and 1000
-    /// points still gives reliable estimates for m=2, r=0.2*SD (Richman &
-    /// Moorman 2000). Tolerance is always computed from the FULL dataset, which
-    /// keeps the statistical basis correct regardless of the subsampling.
-    /// Two picks continue one run only when no gap (`followsGap`) lies
-    /// between the beats they were taken from.
+    /// Both entropies are O(n^2), so they run on at most 1000 beats: the
+    /// central 1000 consecutive ones. SampEn and ApEn measure beat-to-beat
+    /// regularity, and every k-th beat of a longer window would measure the
+    /// regularity of a k-beat scale instead, so the value would change with
+    /// the window's length. 1000 beats gives reliable estimates for m=2,
+    /// r=0.2*SD (Richman & Moorman 2000). Tolerance is computed from the
+    /// whole window. A gap before the block's first beat does not split it.
     private static func entropySubsample(_ rr: [Double], followsGap: [Bool]) -> BeatRuns {
         let maxEntropyPoints = 1_000
         guard rr.count > maxEntropyPoints else { return BeatRuns(values: rr, followsGap: followsGap) }
-        let stride = Double(rr.count) / Double(maxEntropyPoints)
-        let picks = (0 ..< maxEntropyPoints).map { Int(Double($0) * stride) }
-        // gapsThrough[i]: how many gaps lie at or before beat i.
-        var gapsThrough = [Int]()
-        gapsThrough.reserveCapacity(rr.count)
-        for gap in followsGap {
-            gapsThrough.append((gapsThrough.last ?? 0) + (gap ? 1 : 0))
-        }
-        let pickedGaps = picks.indices.map { $0 > 0 && gapsThrough[picks[$0]] > gapsThrough[picks[$0 - 1]] }
-        return BeatRuns(values: picks.map { rr[$0] }, followsGap: pickedGaps)
+        let start = (rr.count - maxEntropyPoints) / 2
+        let block = start ..< start + maxEntropyPoints
+        var gaps = Array(followsGap[block])
+        gaps[0] = false
+        return BeatRuns(values: Array(rr[block]), followsGap: gaps)
     }
 
     // MARK: - Sample Entropy

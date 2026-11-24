@@ -273,12 +273,12 @@ struct TrendsV2View: View {
     }
 
     /// Soft-delete a session from the calendar's day sheet (moves it to Trash)
-    /// through `SessionTrash.move`, the delete path History uses. Removing it
+    /// through `SessionDeletion`, the delete path History uses. Removing it
     /// from `allSessions` immediately keeps the calendar in sync before the
     /// archive signal re-loads. Returns whether the reading left the archive.
     private func deleteSession(_ session: HRVSession) async -> Bool {
         do {
-            try await SessionTrash.move(session.id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
+            try await dependencies.storage.sessionDeletion.moveToTrash(session.id)
             allSessions.removeAll { $0.id == session.id }
             rebuildDerived()
             return true

@@ -81,7 +81,7 @@ final class ArchiveMigrationParityTests: XCTestCase {
 
     override func tearDown() {
         for id in testSessionIds {
-            try? archive.delete(id)
+            _ = try? archive.delete(id)
         }
         testSessionIds = []
         try? FileManager.default.removeItem(at: archiveDirectory)

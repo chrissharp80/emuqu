@@ -516,15 +516,9 @@ struct HistoryCalendarView: View {
         return cells
     }
 
-    /// The calendar day a reading belongs to: the day History lists it under
-    /// (`SessionArchiveEntry.displayDate`). An overnight sits on the morning
-    /// it ended, its sleep end, else its recording end, so a night begun at
-    /// 23:00 shares a cell with the feeling rated on waking; any other
-    /// reading sits on the day it started.
+    /// The calendar day a reading belongs to (`SessionDay`).
     private static func calendarDay(of session: HRVSession, cal: Calendar) -> Date {
-        guard session.sessionType == .overnight else { return cal.startOfDay(for: session.startDate) }
-        let wake = SessionArchive.deriveSleepIndexFields(from: session).sleepEnd ?? session.endDate ?? session.startDate
-        return cal.startOfDay(for: wake)
+        cal.startOfDay(for: SessionDay.date(of: session))
     }
 
     private static func isIn(month comps: DateComponents, date: Date, cal: Calendar) -> Bool {

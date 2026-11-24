@@ -10,8 +10,24 @@ extension SessionArchive {
 
     func _retrieve(_ id: UUID) throws -> HRVSession? { try store._retrieve(id) }
     func archiveBatch(_ sessions: [HRVSession]) throws -> Int { try store.archiveBatch(sessions) }
-    func delete(_ id: UUID) throws { try store.delete(id) }
-    func deleteWithoutTrash(_ id: UUID) throws { try store.deleteWithoutTrash(id) }
+    /// Move a session to the Trash. Like `archive(_:)` and `update`, a change
+    /// is announced (`.flowRecoveryArchiveChanged`), so every observer of the
+    /// archive refreshes without the caller having to. Returns false, having
+    /// done nothing, for an id the archive does not hold.
+    @discardableResult
+    func delete(_ id: UUID) throws -> Bool {
+        let removed = try store.delete(id)
+        if removed { NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: id) }
+        return removed
+    }
+
+    /// A deletion made on another device; announced like `delete`.
+    @discardableResult
+    func deleteWithoutTrash(_ id: UUID) throws -> Bool {
+        let removed = try store.deleteWithoutTrash(id)
+        if removed { NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: id) }
+        return removed
+    }
     /// Takes `archiveLock` around the lookup, which reads `index` and fills
     /// `sessionIdLookup`. Code already holding the lock calls
     /// `store.entryById` directly: `NSLock` is not re-entrant.

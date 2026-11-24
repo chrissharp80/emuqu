@@ -322,7 +322,7 @@ STEP 10: Build final session
 
 STEP 11: Compute recovery score
   recoveryScore = computeRecoveryScore(session, analysisResult)
-  → Uses RecoveryScoreCalculator (scoring version v3.3.nov2026)
+  → Uses RecoveryScoreCalculator (scoring version v3.4.nov2026)
   → Tier 1: HRV-only (ln(RMSSD) z-score, SWC band model)
   → Tier 2: HRV + Sleep (sleep present, vitals absent)
   → Tier 3: HRV + Sleep + Vitals (full-signal day, 60/25/15)
@@ -343,7 +343,7 @@ OUTPUT: finalSession with all analysis
 
 ---
 
-## 6. Recovery Score Calculation (scoring version v3.3.nov2026)
+## 6. Recovery Score Calculation (scoring version v3.4.nov2026)
 
 ### RecoveryScoreCalculator (RecoveryScoreCalculator.swift)
 
@@ -801,7 +801,7 @@ any. Nothing else reduces the set.
 | `RRCollector+MorningProcessing.swift` | **processOvernightData** — main analysis pipeline, supersedeSameNightSession |
 | `RRCollector+DeviceRecording.swift` | fetchTrainingLoadIfEnabled, device-only recording |
 | `MorningProcessingService.swift` | Delegated implementation of processOvernightData pipeline |
-| `RecoveryScoreCalculator.swift` | Recovery score: HRV + Sleep + Vitals tiers (v3.3.nov2026; training load on parallel surface) |
+| `RecoveryScoreCalculator.swift` | Recovery score: HRV + Sleep + Vitals tiers (v3.4.nov2026; training load on parallel surface) |
 | `HRVSleepStageClassifier.swift` | Full sleep stage classification from RR data |
 | `SleepMergingPipeline.swift` | Sleep stage merging and HRV-enhanced Watch stage augmentation |
 | `SleepBoundaryResolver.swift` | Consolidated sleep boundary resolution (HealthKit → HR-based → recording bounds) |

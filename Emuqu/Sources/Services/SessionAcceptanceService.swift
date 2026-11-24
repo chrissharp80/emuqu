@@ -242,7 +242,12 @@ final class SessionAcceptanceService {
     /// updates baseline, marks raw backup, exports to HealthKit if enabled, and syncs
     /// to CloudKit.
     ///
-    /// - Returns: The accepted (and possibly score-updated) session.
+    /// When the archive folds the recording into a night it already holds (a
+    /// second recording of the same night), the baseline, the Apple Health
+    /// export and the upload take that merged night, which keeps the score of
+    /// the analysis it kept; the recording's own live backup is still cleared.
+    ///
+    /// - Returns: The accepted session, or the night it was folded into.
     /// - Throws: If archiving fails.
     func processAcceptance(
         session: HRVSession,
@@ -256,16 +261,31 @@ final class SessionAcceptanceService {
             await freezeScore(on: &session, result: result, inputs: inputs)
         }
         debugLog("[SessionAcceptanceService] Accepting and archiving session ID: \(session.id.uuidString)")
-        try archive.archive(session)
-        rawBackup.markAsArchived(session.id)
+        let recordingId = session.id
+        session = try archiveReturningNight(session)
         baselineTracker.update(with: session, sleepSchedule: sleepSchedule)
         // Clear persisted recording state - session is now safely archived.
         // NOTE: We intentionally do NOT clear the H10 memory here — data stays
         // on the H10 as a backup until a new recording starts.
         clearPersistedRecordingState()
         exportToHealthIfEnabled(session, enabled: enableHealthKitExport)
-        syncToCloud(session)
+        syncToCloud(session, liveBackupOf: recordingId)
         return session
+    }
+
+    /// Archive the accepted recording and return the night that now holds it:
+    /// the recording itself, or the night already archived that it was folded
+    /// into (a second recording of the same night).
+    private func archiveReturningNight(_ session: HRVSession) throws -> HRVSession {
+        let entry = try archive.archive(session)
+        rawBackup.markAsArchived(session.id)
+        guard entry.sessionId != session.id else { return session }
+        do {
+            return try archive.retrieve(entry.sessionId) ?? session
+        } catch {
+            debugLog("[SessionAcceptanceService] Could not read the night \(entry.sessionId.uuidString.prefix(8)) the recording was folded into: \(error)", level: .warning)
+            return session
+        }
     }
 
     /// Recompute the composite recovery score at acceptance time and snapshot
@@ -420,13 +440,14 @@ final class SessionAcceptanceService {
 
     /// Sync to iCloud (fire-and-forget) and clean up the live backup. Same
     /// intentional-untracked rationale as the HealthKit export above.
-    private func syncToCloud(_ session: HRVSession) {
-        let sessionId = session.id
+    /// Upload the archived night, then clear the iCloud live backup of the
+    /// recording, which is keyed by the recording's own id.
+    private func syncToCloud(_ session: HRVSession, liveBackupOf recordingId: UUID) {
         let cloudSync = onCloudSync
         let cloudDelete = onCloudDelete
         Task {
             await cloudSync(session)
-            await cloudDelete(sessionId)
+            await cloudDelete(recordingId)
         }
     }
 

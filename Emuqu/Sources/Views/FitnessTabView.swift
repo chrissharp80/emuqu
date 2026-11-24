@@ -627,13 +627,13 @@ struct FitnessTabView: View {
     // MARK: - Session kick-off
 
     /// Moves the workout to the Trash the way History does
-    /// (`SessionTrash.move`) and closes its summary sheet. False when the
+    /// (`SessionDeletion`) and closes its summary sheet. False when the
     /// archive could not move it; the caller raises the alert where the user
     /// is (the sheet's `workoutDeleteFailed`, or the tab's
     /// `recentWorkoutDeleteFailed`).
     func deleteWorkout(_ id: UUID) async -> Bool {
         do {
-            try await SessionTrash.move(id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
+            try await dependencies.storage.sessionDeletion.moveToTrash(id)
         } catch {
             debugLog("[Fitness] Failed to delete workout \(id): \(error)", level: .error)
             return false

@@ -70,7 +70,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
     override func tearDown() async throws {
         // Clean up any sessions created
         if let session = collector.currentSession {
-            try? collector.archive.delete(session.id)
+            _ = try? collector.archive.delete(session.id)
         }
         // Clear persisted state. `PersistedRecordingState.clear()`, not the
         // three legacy keys by hand — those are only half the story, and the

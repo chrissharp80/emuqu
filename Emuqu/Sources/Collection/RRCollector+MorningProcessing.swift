@@ -143,7 +143,9 @@ extension MorningSessionPipeline {
 
     /// Save the night before the user reviews it, so a crash on the review
     /// card never loses it. A night that was not in the archive before is
-    /// remembered so "Discard" can take it back out. The morning, the
+    /// remembered so "Discard" can take it back out; one the archive folded
+    /// into a night it already held is remembered as folded, since Discard
+    /// cannot take it back out of that night. The morning, the
     /// device-recording Stop, Retry and Recover all save through here.
     /// A failed save is reported to the user, and the night is then not in
     /// the archive: the morning keeps its recording marker for it
@@ -153,10 +155,11 @@ extension MorningSessionPipeline {
         let isNewEntry = !collector.archive.entries.contains { $0.sessionId == finalSession.id }
         do {
             debugLog("[RRCollector] Pre-archiving session for review: \(finalSession.id.uuidString)")
-            try collector.archive.archive(finalSession)
+            let entry = try collector.archive.archive(finalSession)
             retireRawBackupIfSafe(finalSession)
-            collector.archiveSignal.notifyChanged()
-            if isNewEntry {
+            if entry.sessionId != finalSession.id {
+                collector.sessionState.reviewFoldedIntoSessionId = entry.sessionId
+            } else if isNewEntry {
                 collector.sessionState.reviewArchivedSessionId = finalSession.id
                 collector.sessionState.reviewArchivedEntries = SessionState.ReviewEntries(of: finalSession)
             }
@@ -193,12 +196,11 @@ extension MorningSessionPipeline {
         collector.sessionState.reviewArchivedSessionId = nil
         guard let reviewId, reviewId == collector.currentSession?.id else { return }
         do {
-            try collector.archive.delete(reviewId)
+            guard try collector.archive.delete(reviewId) else { return }
         } catch {
             debugLog("[RRCollector] Discard: could not move session \(reviewId.uuidString.prefix(8)) to Trash: \(error)", level: .error)
             return
         }
-        collector.archiveSignal.notifyChanged()
         collector.rebuildBaselineFromArchive()
         let cloudSync = collector.cloudSyncManager
         Task { await cloudSync.uploadDeletion(reviewId) }

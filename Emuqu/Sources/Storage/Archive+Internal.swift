@@ -703,12 +703,14 @@ extension ArchiveStore {
     ///
     /// When the file cannot be moved to the Trash, the session goes back into
     /// the index and the error is thrown: the file is still in place, and the
-    /// caller tells the user the delete did not happen.
-    func delete(_ id: UUID) throws {
+    /// caller tells the user the delete did not happen. Returns false, having
+    /// done nothing, for an id the archive does not hold.
+    @discardableResult
+    func delete(_ id: UUID) throws -> Bool {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         guard let entry = entryById(id) else {
-            return
+            return false
         }
         let scoreStr = entry.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil"
         debugLog("[Archive] delete: \(id.uuidString.prefix(8)) date=\(entry.date) type=\(entry.sessionType.rawValue) score=\(scoreStr)", level: .warning)
@@ -721,6 +723,7 @@ extension ArchiveStore {
             attempt("Archive.delete.restoreIndex") { try archive.saveIndex() }
             throw error
         }
+        return true
     }
 
     /// A deletion made on another device: out of the index with a tombstone,
@@ -733,16 +736,18 @@ extension ArchiveStore {
     /// archive folder with nothing listing it, the health data stayed on the
     /// device while the deletion counted as done, and the orphan scan would
     /// adopt it back once its tombstone was forgotten. The caller retries.
-    func deleteWithoutTrash(_ id: UUID) throws {
+    /// Returns false, having done nothing, for an id the archive does not hold.
+    @discardableResult
+    func deleteWithoutTrash(_ id: UUID) throws -> Bool {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
-        guard let entry = entryById(id) else { return }
+        guard let entry = entryById(id) else { return false }
         debugLog("[Archive] delete (deleted on another device): \(id.uuidString.prefix(8)) date=\(entry.date) type=\(entry.sessionType.rawValue)", level: .warning)
         try dropFromIndex(entry)
         let fileURL = archive.resolveFileURL(for: entry)
         guard archive.fileManager.fileExists(atPath: fileURL.path),
               attempt("Archive.deleteWithoutTrash.removeFile", { try archive.fileManager.removeItem(at: fileURL) }) == nil
-        else { return }
+        else { return true }
         do {
             try moveToTrash(fileURL, id: id)
         } catch {
@@ -751,6 +756,7 @@ extension ArchiveStore {
             attempt("Archive.deleteWithoutTrash.restoreIndex") { try archive.saveIndex() }
             throw error
         }
+        return true
     }
 
     /// Remove from the active archive.index (in-memory) then persist both indexes,

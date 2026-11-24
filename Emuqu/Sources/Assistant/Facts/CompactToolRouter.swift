@@ -327,7 +327,7 @@ struct CompactToolRouter {
     private static func readTools5b() -> [ToolSpec] {
         [
             // 14. get_score_meta
-            spec("get_score_meta", "Recovery-score algorithm metadata. `field`: 'algorithm_version' (current scoring version, e.g. 'v3.3.nov2026') or 'history_recomputed' (whether the user has run the v1→v2 history recompute).", [
+            spec("get_score_meta", "Recovery-score algorithm metadata. `field`: 'algorithm_version' (current scoring version, e.g. '\(ScoringVersion.current)') or 'history_recomputed' (whether the user has run the v1→v2 history recompute).", [
                 ("field", "'algorithm_version' or 'history_recomputed'")
             ], required: ["field"]),
             // 15. get_breadcrumbs
