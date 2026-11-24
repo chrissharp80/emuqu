@@ -10,4 +10,6 @@ import SwiftUI
 @MainActor
 struct Alpha1ReportCards {
     let session: HRVSession
+    /// Where computed α1 stats are kept between renders.
+    let statsCache: Alpha1StatsCache
 }

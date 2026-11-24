@@ -76,9 +76,10 @@ extension TroubleshootingPage {
     }
 
     private func copyLogToClipboard() {
+        let logger = dependencies.app.debugLogger
         Task {
             let text = await Task.detached(priority: .userInitiated) {
-                AppDependencies.current.app.debugLogger.exportLogs()
+                logger.exportLogs()
             }.value
             await MainActor.run {
                 // The export scrubs health values (`DebugLogger.scrubPHI`),

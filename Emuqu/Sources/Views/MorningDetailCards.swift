@@ -14,6 +14,7 @@ import SwiftUI
 @MainActor
 struct MorningDetailCards {
     let vm: MorningResultsViewModel
+    let settingsManager: SettingsManager
     let session: HRVSession
     let result: HRVAnalysisResult
     let recentSessions: [HRVSession]

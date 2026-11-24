@@ -177,7 +177,7 @@ extension MorningReanalysisControls {
             compositeScore: vm.compositeRecoveryScore,
             breakdown: MainActor.run { vm.recoveryBreakdown() },
             baselineStats: vm.baselineStats,
-            liveLoadSnapshot: TrainingLoadRegistry.liveRefreshed(from: AppDependencies.current.analysis.trainingMetricsCache),
+            liveLoadSnapshot: TrainingLoadRegistry.liveRefreshed(from: trainingMetricsCache),
             recentSessions: recentSessions
         )
     }

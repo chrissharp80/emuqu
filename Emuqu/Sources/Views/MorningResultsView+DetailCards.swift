@@ -210,6 +210,7 @@ extension MorningDetailCards {
         TagsAndNotesCard(
             notes: $notes,
             selectedTags: vm.selectedTags,
+            customTags: settingsManager.settings.customTags,
             onToggleTag: { onToggleTag($0) }
         ).body
     }
@@ -456,7 +457,7 @@ extension MorningDetailCards {
     /// `ScoreVerdict` rounds, so truncating here read 74.6 as "Fair" on this
     /// card and "Good" on the screen it opens.
     func sleepScoreForLabel(_ sleep: SleepData) -> Double {
-        let settings = AppDependencies.current.app.settingsManager.settings
+        let settings = settingsManager.settings
         let score = RecoveryScoreCalculator.calculateSleepScore(
             sleepData: sleep,
             typicalSleepHours: settings.typicalSleepHours,
