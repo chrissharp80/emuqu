@@ -19,8 +19,8 @@ extension FitnessPostSummaryView {
         FitnessSummaryCards(
             session: session, track: track, units: units,
             collector: collector, savedRouteStore: savedRouteStore, roadGeocoder: dependencies.location.roadGeocodingService,
-            settingsManager: settingsManager,
-            refreshedSession: $refreshedSession,
+            archive: dependencies.storage.sessionArchive, alpha1StatsCache: dependencies.app.alpha1StatsCache,
+            settingsManager: settingsManager, refreshedSession: $refreshedSession,
             gpxExport: $gpxExport, csvExport: $csvExport, tcxExport: $tcxExport,
             exportsReady: $exportsReady, exportError: $exportError,
             recapImage: $recapImage, recapImageURL: $recapImageURL,
@@ -47,7 +47,9 @@ extension FitnessPostSummaryView {
     typealias Alpha1Stats = Alpha1ReportCards.Alpha1Stats
 
     /// The α1 report builders for the session currently rendered.
-    var alpha1Report: Alpha1ReportCards { Alpha1ReportCards(session: session) }
+    var alpha1Report: Alpha1ReportCards {
+        Alpha1ReportCards(session: session, statsCache: dependencies.app.alpha1StatsCache)
+    }
 
     // MARK: - Derived display values
 

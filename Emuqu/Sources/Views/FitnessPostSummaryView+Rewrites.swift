@@ -154,8 +154,7 @@ extension FitnessSummaryCards {
     func saveResmoothedElevation(gain: Double, loss: Double) async {
         elevResmoothing = true
         defer { elevResmoothing = false }
-        let id = session.id
-        let archive = AppDependencies.current.storage.sessionArchive
+        let (id, archive) = (session.id, self.archive)
         let settings = UserSettingsBridge.snapshot()
         let outcome = await Task.detached(priority: .userInitiated) {
             Self.writeResmoothedElevation(id, gain: gain, loss: loss, archive: archive, settings: settings)
@@ -318,7 +317,7 @@ extension FitnessSummaryCards {
         refreshedSession = updated
         // The α1 stats cache key covers the values too, so the new samples
         // miss it anyway; clearing it here also frees the old entry at once.
-        AppDependencies.current.app.alpha1StatsCache.cachedKey = nil
+        alpha1StatsCache.cachedKey = nil
         collector.notifyArchiveChanged()
         debugLog("[Alpha1Reanalyze] rewrote \(readingCount) α1 readings for session \(session.id)")
     }
@@ -330,7 +329,7 @@ extension FitnessSummaryCards {
     private func storeReanalyzedSamples(_ refreshedSamples: [WorkoutSample]) async -> Result<HRVSession?, Error> {
         let id = session.id
         let enrichedSplits = alpha1EnrichedSplits(samples: refreshedSamples)
-        let archive = AppDependencies.current.storage.sessionArchive
+        let archive = self.archive
         let settings = UserSettingsBridge.snapshot()
         return await Task.detached(priority: .userInitiated) {
             Self.writeReanalyzedSamples(id, refreshedSamples, splits: enrichedSplits, archive: archive, settings: settings)

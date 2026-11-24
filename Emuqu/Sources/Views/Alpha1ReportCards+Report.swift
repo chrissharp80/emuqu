@@ -363,7 +363,7 @@ private var thresholdRules: some ChartContent {
     /// other views compose alongside.
     private func alpha1Stats(samples: [WorkoutSample]) -> Alpha1Stats {
         let cacheKey = alpha1CacheKey(sessionId: session.id, samples: samples)
-        if let cached = AppDependencies.current.app.alpha1StatsCache.lookup(key: cacheKey) {
+        if let cached = statsCache.lookup(key: cacheKey) {
             return cached
         }
         let shadows = Self.ectopicShadows(in: samples)
@@ -380,7 +380,7 @@ private var thresholdRules: some ChartContent {
             secondsAboveAT2: bands.aboveAT2,
             firstAT1Crossing: bands.firstCrossing
         )
-        AppDependencies.current.app.alpha1StatsCache.store(key: cacheKey, value: result)
+        statsCache.store(key: cacheKey, value: result)
         return result
     }
 

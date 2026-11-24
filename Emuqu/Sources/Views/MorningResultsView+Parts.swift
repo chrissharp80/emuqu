@@ -20,6 +20,7 @@ extension MorningResultsView {
     var cards: MorningDetailCards {
         MorningDetailCards(
             vm: vm,
+            settingsManager: dependencies.app.settingsManager,
             session: session,
             result: result,
             recentSessions: recentSessions,
@@ -40,12 +41,9 @@ extension MorningResultsView {
     /// Reanalysis, manual-window, strap-merge and report-export controls.
     var reanalysis: MorningReanalysisControls {
         MorningReanalysisControls(
-            vm: vm,
-            session: session,
-            result: result,
-            recentSessions: recentSessions,
-            collector: collector,
+            vm: vm, session: session, result: result, recentSessions: recentSessions, collector: collector,
             sessionReanalysis: dependencies.collection.sessionReanalysis,
+            trainingMetricsCache: dependencies.analysis.trainingMetricsCache, settingsManager: dependencies.app.settingsManager,
             onReanalyze: onReanalyze,
             onReanalyzeAt: onReanalyzeAt,
             onApplyManualResult: onApplyManualResult,

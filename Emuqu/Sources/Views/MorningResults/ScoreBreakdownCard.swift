@@ -3,6 +3,7 @@ import SwiftUI
 /// Visual breakdown of the composite recovery score showing each factor's
 /// contribution (HRV, sleep, training, vitals) with bar charts and penalties.
 struct ScoreBreakdownCard: View {
+    @Environment(\.dependencies) private var dependencies
     let breakdown: RecoveryScoreCalculator.ScoreBreakdown
 
     var body: some View {
@@ -28,7 +29,7 @@ struct ScoreBreakdownCard: View {
     }
 
     private var temperatureUnit: TemperatureUnit {
-        AppDependencies.current.app.settingsManager.settings.temperatureUnit
+        dependencies.app.settingsManager.settings.temperatureUnit
     }
 
     private var factorRows: some View {

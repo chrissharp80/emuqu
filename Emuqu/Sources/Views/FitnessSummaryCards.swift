@@ -23,6 +23,8 @@ struct FitnessSummaryCards {
     let collector: RRCollector
     let savedRouteStore: SavedRouteStore
     let roadGeocoder: RoadGeocodingService
+    let archive: SessionArchive
+    let alpha1StatsCache: Alpha1StatsCache
 
     let settingsManager: SettingsManager
 

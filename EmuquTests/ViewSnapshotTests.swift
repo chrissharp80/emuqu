@@ -127,7 +127,7 @@ final class ViewSnapshotTests: XCTestCase {
     // the same absence of anything checking it.
 
     func testAlpha1ReportCardRenders() {
-        let cards = Alpha1ReportCards(session: makeSession())
+        let cards = Alpha1ReportCards(session: makeSession(), statsCache: AppDependencies.current.app.alpha1StatsCache)
         assertSnapshot(of: cards.alpha1ReportCard, named: "alpha1-report")
     }
 

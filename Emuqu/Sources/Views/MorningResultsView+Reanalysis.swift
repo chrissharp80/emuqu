@@ -113,7 +113,7 @@ extension MorningReanalysisControls {
         if updatedSession == nil {
             vm.selectedMethod = previous
         } else if becomesDefault {
-            AppDependencies.current.app.settingsManager.settings.defaultWindowSelectionMethod = method
+            settingsManager.settings.defaultWindowSelectionMethod = method
         }
         applyReanalyzedSession(updatedSession)
     }

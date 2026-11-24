@@ -178,6 +178,7 @@ struct OvernightRecordingClock: Equatable {
 /// Overnight visualization showing full-night HR and HRV with nadir marked
 /// Welltory-style overnight graphs
 struct OvernightChartsView<InterChartContent: View>: View {
+    @Environment(\.dependencies) var dependencies
     let session: HRVSession
     let result: HRVAnalysisResult
     var healthKitSleep: SleepData?
@@ -330,7 +331,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
             return MillisecondOffset.between(e, and: s, fallback: 0)
         }()
         let recordingCoversLessThanHalfOfSleep = sleepDurationMs > 0 && recordingDurationMs < sleepDurationMs / 2
-        let typicalSleepMs: Int64 = Int64(AppDependencies.current.app.settingsManager.settings.typicalSleepHours * 3600 * 1000)
+        let typicalSleepMs: Int64 = Int64(dependencies.app.settingsManager.settings.typicalSleepHours * 3600 * 1000)
         let recordingCoversLessThanHalfOfTarget = recordingDurationMs < typicalSleepMs / 2
 
         debugLog("[ChartGate] recDuration=\(recordingDurationMs / 60000)min sleepDuration=\(sleepDurationMs / 60000)min typicalSleep=\(typicalSleepMs / 60000)min hkSleep=\(healthKitSleep != nil ? "yes" : "nil") segments=\(stats.sleepSegmentRanges.count) coversLessThanHalfOfSleep=\(recordingCoversLessThanHalfOfSleep) coversLessThanHalfOfTarget=\(recordingCoversLessThanHalfOfTarget)")

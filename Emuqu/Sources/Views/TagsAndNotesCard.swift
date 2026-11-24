@@ -12,6 +12,8 @@ import SwiftUI
 struct TagsAndNotesCard {
     @Binding var notes: String
     let selectedTags: Set<ReadingTag>
+    /// The user's own tags, listed after the system tags.
+    let customTags: [ReadingTag]
     let onToggleTag: (ReadingTag) -> Void
 
     var body: some View {
@@ -53,7 +55,7 @@ struct TagsAndNotesCard {
     /// session that is neither (a custom tag since deleted), so every tag can
     /// be applied here and every selection shows as selected and can be removed.
     private var stripTags: [ReadingTag] {
-        let listed = ReadingTag.systemTags + AppDependencies.current.app.settingsManager.settings.customTags
+        let listed = ReadingTag.systemTags + customTags
         let listedIds = Set(listed.map(\.id))
         let extra = selectedTags.filter { !listedIds.contains($0.id) }.sorted { $0.name < $1.name }
         return listed + extra
