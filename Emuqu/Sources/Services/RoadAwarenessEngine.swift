@@ -663,7 +663,7 @@ enum RoadAwarenessEngine {
         if imperial {
             measurement = meters < 300
                 ? Measurement(value: (meters * UnitConstants.feetPerMeter).rounded(), unit: .feet)
-                : Measurement(value: meters / 1_609.344, unit: .miles)
+                : Measurement(value: meters / UnitConstants.metersPerMile, unit: .miles)
         } else {
             measurement = meters < 1_000
                 ? Measurement(value: meters.rounded(), unit: .meters)

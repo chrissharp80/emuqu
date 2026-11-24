@@ -129,7 +129,8 @@ final class SavedRouteStore {
 
     /// Retries a load that file protection blocked (a background launch
     /// before first unlock) once the device is unlocked.
-    @ObservationIgnored private var protectedDataObserver: NSObjectProtocol?
+    @ObservationIgnored private let unlockObservers = NotificationTokens()
+    @ObservationIgnored private var observingUnlock = false
 
     /// Delete All My Data: drops the in-memory copy so nothing reads it
     /// afterwards, and discards any pending write (removing the file again if
@@ -154,13 +155,11 @@ final class SavedRouteStore {
         if loadFailed { installProtectedDataObserver() }
     }
 
+    /// Retries the failed load once the file may be readable.
     private func installProtectedDataObserver() {
-        guard protectedDataObserver == nil else { return }
-        protectedDataObserver = NotificationCenter.default.addObserver(
-            forName: UIApplication.protectedDataDidBecomeAvailableNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
+        guard !observingUnlock else { return }
+        observingUnlock = true
+        unlockObservers.observeProtectedDataMayBeAvailable { [weak self] in
             Task { @MainActor in self?.retryLoadAfterUnlock() }
         }
     }
@@ -190,8 +189,8 @@ final class SavedRouteStore {
         guard !loadFailed else { return false }
         let known = Set(routes.map(\.id))
         routes.append(contentsOf: addedWhileLocked.filter { !known.contains($0.id) })
-        if let protectedDataObserver { NotificationCenter.default.removeObserver(protectedDataObserver) }
-        protectedDataObserver = nil
+        unlockObservers.removeAll()
+        observingUnlock = false
         return true
     }
 

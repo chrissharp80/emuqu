@@ -131,7 +131,7 @@ extension RecordView {
            !sessionState.needsAcceptance, morningCoordination.morningStatus == nil {
             let needsConnection = [SessionType.overnight, .nap, .quick].contains(selectedSessionType)
             if needsConnection, !deviceStatus.isStreaming {
-                ConnectionPanel(polarManager: collector.polarManager, collector: collector, selectedSessionType: selectedSessionType)
+                ConnectionPanel(polarManager: collector.polarManager, selectedSessionType: selectedSessionType)
             }
         }
     }

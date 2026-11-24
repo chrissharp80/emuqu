@@ -21,7 +21,7 @@ extension FitnessPostSummaryView {
     /// the workout) can't win, and its row-by-row length never picks the unit.
     var bestSplitDisplay: (pace: String, caption: String)? {
         guard let resolved = cachedSplits, resolved.splits.count >= 2 else { return nil }
-        let bucket = resolved.isMile ? 1_609.344 : 1_000.0
+        let bucket = resolved.isMile ? UnitConstants.metersPerMile : 1_000.0
         let fastest = resolved.splits
             .filter { $0.distanceMeters >= 0.9 * bucket && ($0.averagePaceSecPerKm ?? 0) > 0 }
             .min { ($0.averagePaceSecPerKm ?? 0) < ($1.averagePaceSecPerKm ?? 0) }

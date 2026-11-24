@@ -773,7 +773,7 @@ extension WorkoutStatsCards {
 
 /// Metres to the elevation chart's x unit: miles or kilometres.
 private func distanceScale(imperial: Bool) -> Double {
-    imperial ? 1.0 / 1609.344 : 1.0 / 1_000.0
+    imperial ? 1.0 / UnitConstants.metersPerMile : 1.0 / 1_000.0
 }
 
 @ChartContentBuilder

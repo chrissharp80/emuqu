@@ -482,7 +482,7 @@ enum SavedRouteStepBuilder {
     private static func displayMeasurement(_ meters: Double) -> Measurement<UnitLength> {
         if UnitsPreferenceStore.current.resolved == .imperial {
             guard meters >= 161 else { return Measurement(value: (meters * UnitConstants.feetPerMeter).rounded(), unit: .feet) }
-            return Measurement(value: meters / 1_609.344, unit: .miles)
+            return Measurement(value: meters / UnitConstants.metersPerMile, unit: .miles)
         }
         guard meters >= 1_000 else { return Measurement(value: meters.rounded(), unit: .meters) }
         return Measurement(value: meters / 1_000, unit: .kilometers)

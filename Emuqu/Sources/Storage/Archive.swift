@@ -115,7 +115,7 @@ final class SessionArchive: @unchecked Sendable {
     /// Troubleshooting card surfaces a banner only when this is true,
     /// so a one-off transient EPERM doesn't alarm the user.
     /// Reads both counters under `archiveLock` — the increments in
-    /// `retrieveLightweightOrLog` run locked, so an unlocked two-field read
+    /// the read primitives run locked, so an unlocked two-field read
     /// here could see a torn pair.
     var hasReadHealthIssue: Bool {
         archiveLock.lock()
@@ -127,7 +127,7 @@ final class SessionArchive: @unchecked Sendable {
     /// diagnostics page renders "X of Y reads failed" in a single
     /// sentence — reading the two stored properties individually could
     /// see a torn pair across the locked increments in
-    /// `retrieveLightweightOrLog` (same race `hasReadHealthIssue`
+    /// `retrieve` and `retrieveLightweight` (same race `hasReadHealthIssue`
     /// seals).
     var readHealthCounters: (attempts: Int, permissionDenied: Int) {
         archiveLock.lock()
@@ -577,7 +577,14 @@ final class SessionArchive: @unchecked Sendable {
     func retrieve(_ id: UUID) throws -> HRVSession? {
         archiveLock.lock()
         defer { archiveLock.unlock() }
-        return try _retrieve(id)
+        do {
+            let session = try _retrieve(id)
+            countRead(failure: nil)
+            return session
+        } catch {
+            countRead(failure: error)
+            throw error
+        }
     }
 
     /// Retrieve a session, logging and returning nil on failure instead of throwing.
@@ -594,25 +601,20 @@ final class SessionArchive: @unchecked Sendable {
     /// Lightweight retrieve, logging and returning nil on failure instead of throwing.
     func retrieveLightweightOrLog(_ id: UUID, caller: String = #function) -> HRVSession? {
         do {
-            let result = try retrieveLightweight(id)
-            archiveLock.lock()
-            totalReadAttempts += 1
-            archiveLock.unlock()
-            return result
+            return try retrieveLightweight(id)
         } catch {
-            recordReadFailure(error)
             debugLog("[SessionArchive] \(caller): failed to retrieve lightweight \(id.uuidString.prefix(8)): \(error)")
             return nil
         }
     }
 
-    /// Count permission-denied failures so
-    /// the Troubleshooting card can surface a recovery prompt
-    /// when the EPERM-storm pattern recurs.
-    private func recordReadFailure(_ error: Error) {
-        archiveLock.lock()
-        defer { archiveLock.unlock() }
+    /// Count one read of a session file, and a permission-denied failure,
+    /// so the Troubleshooting card can surface a recovery prompt when the
+    /// EPERM-storm pattern recurs. Every full and lightweight read is
+    /// counted. Caller holds `archiveLock`.
+    private func countRead(failure error: Error?) {
         totalReadAttempts += 1
+        guard let error else { return }
         if let nsError = error as NSError?,
            nsError.domain == NSCocoaErrorDomain,
            nsError.code == 257 { // NSFileReadNoPermissionError
@@ -650,10 +652,17 @@ final class SessionArchive: @unchecked Sendable {
             guard let entry = store.entryById(id) else { return nil }
             fileURL = resolveFileURL(for: entry)
         }
-        guard fileManager.fileExists(atPath: fileURL.path) else {
-            throw ArchiveError.fileNotFound
+        do {
+            guard fileManager.fileExists(atPath: fileURL.path) else {
+                throw ArchiveError.fileNotFound
+            }
+            let plaintext = try ArchiveStore.plaintextBytes(try Data(contentsOf: fileURL), id: id)
+            let session = try Self.lightweightSessionDecoder.decode(HRVSession.self, from: plaintext)
+            archiveLock.withLock { countRead(failure: nil) }
+            return session
+        } catch {
+            archiveLock.withLock { countRead(failure: error) }
+            throw error
         }
-        let plaintext = try ArchiveStore.plaintextBytes(try Data(contentsOf: fileURL), id: id)
-        return try Self.lightweightSessionDecoder.decode(HRVSession.self, from: plaintext)
     }
 }

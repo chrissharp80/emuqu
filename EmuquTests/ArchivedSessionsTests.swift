@@ -59,4 +59,16 @@ final class ArchivedSessionsTests: XCTestCase {
 
         XCTAssertEqual(inRange.entries.map(\.sessionId), [recent.id])
     }
+
+    /// The Troubleshooting ratio counts every read of a session file, full
+    /// and lightweight, not only one read path.
+    func testEveryReadCountsTowardsReadHealth() throws {
+        let night = try archived(.overnight, daysAgo: 1)
+
+        _ = try archive.retrieve(night.id)
+        _ = try archive.retrieveLightweight(night.id)
+
+        XCTAssertEqual(archive.readHealthCounters.attempts, 2)
+        XCTAssertEqual(archive.readHealthCounters.permissionDenied, 0)
+    }
 }

@@ -340,10 +340,7 @@ final class SettingsManager {
     }
 
     /// The notifications a held load is retried on: unlock and activation.
-    nonisolated static let heldRetryNotifications = [
-        UIApplication.protectedDataDidBecomeAvailableNotification,
-        UIApplication.didBecomeActiveNotification
-    ]
+    nonisolated static let heldRetryNotifications = NotificationTokens.protectedDataMayBeAvailable
 
     /// One held-retry observer: runs `retryLoadAfterUnlock` on `name`.
     private func heldRetryObserver(for name: Notification.Name) -> NSObjectProtocol {

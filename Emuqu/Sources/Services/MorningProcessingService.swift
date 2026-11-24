@@ -162,19 +162,38 @@ final class MorningProcessingService {
         let sleepResult = await timedSleepPoll(
             series: series, effectiveStartDate: effectiveStartDate, totalBeats: totalBeats, isBackgroundRefinement: isBackgroundRefinement, sleepSchedule: settings.sleepSchedule, prefetchedSleepData: prefetchedSleepData, statusCallback: statusCallback
         )
-        // Step 7: Select recovery window and run analysis.
-        let window = await Self.selectWindow(
-            in: series, flags: flags, sleepResult: sleepResult,
-            baselineStats: windowBaseline(for: analyzingSession, settings: settings)
-        )
-        let analysisResult = await Self.withOrganizedZones(window.zones, on: timedAnalysis(
-            analyzingSession: analyzingSession, series: series, flags: flags,
-            windowResult: window.result, trainingContext: trainingContext, ansConfig: settings.ansConfig
-        ))
+        // Step 7: Select recovery window and run analysis. A night the
+        // verifier finds too short or too sparse to measure has no analysis,
+        // so it ends failed rather than scored from a few beats.
+        let analysed = Self.isTooLittleToAnalyse(verifyResult)
+            ? (windowResult: nil, analysisResult: nil)
+            : await analyse(series, of: analyzingSession, flags: flags, sleepResult: sleepResult, settings: settings, trainingContext: trainingContext)
         return AnalysisPhaseResult(
             flags: flags, verifyResult: verifyResult, sleepResult: sleepResult,
-            windowResult: window.result, analysisResult: analysisResult
+            windowResult: analysed.windowResult, analysisResult: analysed.analysisResult
         )
+    }
+
+    /// Select the recovery window and run the analysis on it.
+    private func analyse(
+        _ series: RRSeries, of session: HRVSession, flags: [ArtifactFlags], sleepResult: SleepPollResult,
+        settings: SettingsSnapshot, trainingContext: TrainingContext?
+    ) async -> (windowResult: WindowSelector.WindowSelectionResult?, analysisResult: HRVAnalysisResult?) {
+        let window = await Self.selectWindow(
+            in: series, flags: flags, sleepResult: sleepResult,
+            baselineStats: windowBaseline(for: session, settings: settings)
+        )
+        let analysisResult = await Self.withOrganizedZones(window.zones, on: timedAnalysis(
+            analyzingSession: session, series: series, flags: flags,
+            windowResult: window.result, trainingContext: trainingContext, ansConfig: settings.ansConfig
+        ))
+        return (window.result, analysisResult)
+    }
+
+    /// Whether the recording holds less than the verifier's minimum to
+    /// measure HRV from (`Verification.Config`: duration and beat count).
+    static func isTooLittleToAnalyse(_ verification: Verification.Result) -> Bool {
+        verification.rejectionReasons.contains { $0 == .tooFewPoints || $0 == .tooShort }
     }
 
     /// The baseline windows are ranked against: the scorer's, which leaves

@@ -9,9 +9,6 @@ import SwiftUI
 /// every state change.
 struct ConnectionPanel: View {
     var polarManager: PolarManager
-    /// Plain reference used only as a method/dependency carrier; the panel
-    /// reads no RRCollector state.
-    let collector: RRCollector
     let selectedSessionType: SessionType?
 
     var body: some View {

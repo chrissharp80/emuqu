@@ -6,7 +6,11 @@ import Foundation
 enum HRVThresholds {
     // MARK: - RR Interval Validity
 
-    /// Minimum valid RR interval in milliseconds (300ms = 200 bpm max)
+    /// Minimum valid RR interval in milliseconds (300ms = 200 bpm max). A
+    /// shorter interval is a technical artifact, not a real beat: the
+    /// literature floor (Kubios artifact handling; Lipponen & Tarvainen,
+    /// J Med Eng Technol 2019;43:173-181). The one definition of the valid
+    /// range; `HRVConstants.RRInterval` and `RRValidity` refer to it.
     static let minimumRRIntervalMs = 300
 
     /// Maximum valid RR interval in milliseconds (2000ms = 30 bpm min)

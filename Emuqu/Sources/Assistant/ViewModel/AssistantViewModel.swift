@@ -247,14 +247,8 @@ final class AssistantViewModel {
     /// all started empty; the stores hold their writes until they can merge,
     /// and this puts the full history and the summary back the moment the
     /// phone is unlocked.
-    /// Becoming active is watched too: a suspended app can miss the unlock
-    /// notification itself.
     private func wireProtectedDataRecovery() {
-        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
-            NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
-                self?.scheduleRecoveryAfterUnlock()
-            }
-        }
+        unlockObservers.observeProtectedDataMayBeAvailable { [weak self] in self?.scheduleRecoveryAfterUnlock() }
     }
 
     /// Notification callbacks arrive off the main actor; the recovery runs on it.
@@ -320,7 +314,11 @@ final class AssistantViewModel {
     // an orphan stream task could keep referencing `self` after release.
     deinit {
         streamTask?.cancel()
+        unlockObservers.removeAll()
     }
+
+    /// The protected-data observers `wireProtectedDataRecovery` installs.
+    @ObservationIgnored private let unlockObservers = NotificationTokens()
 
     // MARK: - Public API
 
