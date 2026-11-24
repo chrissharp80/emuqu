@@ -68,9 +68,8 @@ extension AnthropicProvider {
     /// interjection) gets no declarations at all, the server search
     /// included: those sends are not meant to search, and a billed search
     /// would also run into their short collect timeouts.
-    static func toolDeclarations(for tools: [ToolSpec]) -> [RequestBody.ToolDecl]? {
+    static func toolDeclarations(for tools: [ToolSpec], webSearchOn: Bool) -> [RequestBody.ToolDecl]? {
         guard !tools.isEmpty else { return nil }
-        let webSearchOn = AppDependencies.current.app.settingsManager.settingsSnapshot.enableWebSearch
         let customTools = webSearchOn ? tools.filter { $0.name != serverWebSearchToolName } : tools
         var combined: [RequestBody.ToolDecl] = customTools.map { tool in
             .custom(name: tool.name, description: tool.description, schema: tool.inputSchema, cache: nil)

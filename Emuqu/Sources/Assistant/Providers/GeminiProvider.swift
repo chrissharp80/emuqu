@@ -53,6 +53,11 @@ final class GeminiProvider: KeyedCloudProvider, Sendable {
     ]
 
     let id: ProviderID = .gemini
+    let services: AIProviderServices
+
+    init(services: AIProviderServices) {
+        self.services = services
+    }
 
     func send(
         messages: [ChatTurn],
@@ -249,7 +254,7 @@ final class GeminiProvider: KeyedCloudProvider, Sendable {
         toolRounds: [[ToolExchange]],
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws {
-        guard let apiKey = AppDependencies.current.providers.apiKeyStore.key(for: .gemini) else { throw AIProviderError.missingKey(.gemini) }
+        guard let apiKey = services.apiKeyStore.key(for: .gemini) else { throw AIProviderError.missingKey(.gemini) }
         let split = ProviderHTTP.splitOnCacheMarker(systemPrompt)
         let body = RequestBody(
             systemInstruction: .init(parts: [.init(text: split.stable)]),

@@ -99,12 +99,13 @@ final class ProviderRegistry {
 
     init(services: ProviderRegistryServices) {
         self.services = services
-        let apple = AppleFoundationProvider()
-        let anthropic = AnthropicProvider()
-        let openai = OpenAIProvider()
-        let gemini = GeminiProvider()
-        let grok = GrokProvider()
-        let deepseek = DeepSeekProvider()
+        let providerServices = services.providers
+        let apple = AppleFoundationProvider(services: providerServices)
+        let anthropic = AnthropicProvider(services: providerServices)
+        let openai = OpenAIProvider(services: providerServices)
+        let gemini = GeminiProvider(services: providerServices)
+        let grok = GrokProvider(services: providerServices)
+        let deepseek = DeepSeekProvider(services: providerServices)
         self.apple = apple
         self.anthropic = anthropic
         self.openai = openai
@@ -271,4 +272,6 @@ struct ProviderRegistryServices: Sendable {
     var apiKeyStore: APIKeyStore { container.providers.apiKeyStore }
     var featureFlags: FeatureFlags { container.app.featureFlags }
     var keyboardPerfSignpost: KeyboardPerfSignpost { container.app.keyboardPerfSignpost }
+    /// What the registry builds each provider with.
+    var providers: AIProviderServices { AIProviderServices(container) }
 }

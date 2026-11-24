@@ -33,6 +33,11 @@ final class GrokProvider: OpenAICompatibleProvider {
     ]
 
     let id: ProviderID = .grok
+    let services: AIProviderServices
+
+    init(services: AIProviderServices) {
+        self.services = services
+    }
     static let endpoint = OpenAICompatibleStreamer.Endpoint.grok
 
     /// Each model's default reasoning effort.

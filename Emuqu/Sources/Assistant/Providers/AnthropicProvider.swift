@@ -54,6 +54,11 @@ final class AnthropicProvider: KeyedCloudProvider, Sendable {
     // MARK: - AIProvider conformance
 
     let id: ProviderID = .anthropic
+    let services: AIProviderServices
+
+    init(services: AIProviderServices) {
+        self.services = services
+    }
 
     func send(
         messages: [ChatTurn],
@@ -334,7 +339,7 @@ final class AnthropicProvider: KeyedCloudProvider, Sendable {
         toolRounds: [[ToolExchange]],
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws {
-        guard let apiKey = AppDependencies.current.providers.apiKeyStore.key(for: .anthropic) else {
+        guard let apiKey = services.apiKeyStore.key(for: .anthropic) else {
             throw AIProviderError.missingKey(.anthropic)
         }
         guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
@@ -345,7 +350,9 @@ final class AnthropicProvider: KeyedCloudProvider, Sendable {
         Self.spliceLiveState(contextRendered, into: &mapped, systemBlocks: &systemBlocks)
         let body = RequestBody(
             model: model.apiID, max_tokens: 2048, system: systemBlocks,
-            messages: mapped, stream: true, tools: Self.toolDeclarations(for: tools)
+            messages: mapped, stream: true, tools: Self.toolDeclarations(
+                for: tools, webSearchOn: services.settingsManager.settingsSnapshot.enableWebSearch
+            )
         )
         try await Self.continuingPausedTurns(body, continuation: continuation) { request in
             try await Self.perform(request, url: url, apiKey: apiKey, continuation: continuation)

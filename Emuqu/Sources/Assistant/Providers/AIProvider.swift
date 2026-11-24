@@ -781,6 +781,8 @@ protocol AIProvider {
 protocol KeyedCloudProvider: AIProvider {
     /// The models this provider offers, in picker order.
     static var models: [ModelOption] { get }
+    /// The key store and settings this provider reads.
+    var services: AIProviderServices { get }
 }
 
 extension KeyedCloudProvider {
@@ -793,7 +795,7 @@ extension KeyedCloudProvider {
     }
 
     var isAvailable: Bool {
-        AppDependencies.current.providers.apiKeyStore.hasKey(for: id)
+        services.apiKeyStore.hasKey(for: id)
     }
 }
 
@@ -851,4 +853,19 @@ struct AnyJSON: Encodable {
         default: try c.encodeNil()
         }
     }
+}
+
+/// The services an AI provider reads, and nothing else. The registry builds
+/// every provider with one; each accessor resolves on use, as the
+/// container's do.
+struct AIProviderServices: Sendable {
+    private let container: AppDependencies
+
+    init(_ container: AppDependencies) { self.container = container }
+
+    var apiKeyStore: APIKeyStore { container.providers.apiKeyStore }
+    @MainActor
+    var appleToolDispatcher: AppleToolDispatcher { container.providers.appleToolDispatcher }
+    var keyboardPerfSignpost: KeyboardPerfSignpost { container.app.keyboardPerfSignpost }
+    var settingsManager: SettingsManager { container.app.settingsManager }
 }

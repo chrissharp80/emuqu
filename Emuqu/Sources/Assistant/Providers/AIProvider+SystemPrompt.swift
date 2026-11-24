@@ -53,7 +53,7 @@ enum AssistantSystemPrompt {
     /// build cache-aware system blocks.
     ///
     /// Marked `@MainActor`. Reads MainActor-isolated
-    /// state (AppDependencies.current.app.settingsManager, dashboard snapshot, active
+    /// state (the settings, dashboard snapshot, active
     /// workout marker) via direct sync access. Guarding those reads
     /// with `MainActor.assumeIsolated` instead would trap the process
     /// if any caller invoked compose from a detached / background
@@ -63,6 +63,7 @@ enum AssistantSystemPrompt {
     /// rather than crashing in production.
     @MainActor
     static func compose(
+        services: PromptServices,
         userFacts: String,
         priorSummary: String?,
         contextRendered: String,
@@ -72,6 +73,7 @@ enum AssistantSystemPrompt {
         toolMode: Bool = false
     ) -> String {
         composeSplit(
+            services: services,
             userFacts: userFacts,
             priorSummary: priorSummary,
             contextRendered: contextRendered,
@@ -88,6 +90,7 @@ enum AssistantSystemPrompt {
     /// it: any change inside the prefix misses the cache from that point on.
     @MainActor
     static func composeSplit(
+        services: PromptServices,
         userFacts: String,
         priorSummary: String?,
         contextRendered: String,
@@ -97,13 +100,14 @@ enum AssistantSystemPrompt {
         toolMode: Bool = false
     ) -> Composed {
         let stable = stableSections(
+            settings: services.settingsManager.settings,
             userFacts: userFacts,
             includeAppReference: includeAppReference,
             compactAppReference: compactAppReference,
             voiceMode: voiceMode,
             toolMode: toolMode
         )
-        let variable = variableSections(priorSummary: priorSummary, contextRendered: contextRendered)
+        let variable = variableSections(services: services, priorSummary: priorSummary, contextRendered: contextRendered)
         return Composed(
             stable: stable.joined(separator: "\n\n"),
             variable: variable.joined(separator: "\n\n")
@@ -113,6 +117,7 @@ enum AssistantSystemPrompt {
     /// Everything that is byte-stable across turns, in prompt order.
     @MainActor
     private static func stableSections(
+        settings: UserSettings,
         userFacts: String,
         includeAppReference: Bool,
         compactAppReference: Bool,
@@ -120,7 +125,7 @@ enum AssistantSystemPrompt {
         toolMode: Bool
     ) -> [String] {
         var sections: [String] = [base]
-        sections += localeAndFeatureSections(settings: AppDependencies.current.app.settingsManager.settings)
+        sections += localeAndFeatureSections(settings: settings)
         sections += toolModeSections(toolMode: toolMode)
         // Voice overlay goes AFTER base so its "1–3 sentences, no headers,
         // no lists" rules override the persona's implicit leaning toward
@@ -162,10 +167,9 @@ enum AssistantSystemPrompt {
     /// composed. Whether the turn carries tools or voice is read back from the
     /// composed prompt, which holds the shared overlay only in that case.
     @MainActor
-    static func appleInstructions(fromComposed prompt: String) -> String {
+    static func appleInstructions(fromComposed prompt: String, settings: UserSettings) -> String {
         let halves = prompt.components(separatedBy: Composed.cacheSplitMarker)
         guard halves.count > 1, let stable = halves.first else { return prompt }
-        let settings = AppDependencies.current.app.settingsManager.settings
         var sections = [appleBase]
         if settings.forceAIEnglish { sections.append(englishOnlySection) }
         sections.append(appleUnitsLine(settings: settings))
@@ -270,10 +274,12 @@ enum AssistantSystemPrompt {
     /// subsequent turn because it never sees that it got it wrong (the user
     /// heard the corrected number, the model thinks its claim was accepted).
     @MainActor
-    private static func variableSections(priorSummary: String?, contextRendered: String) -> [String] {
+    private static func variableSections(
+        services: PromptServices, priorSummary: String?, contextRendered: String
+    ) -> [String] {
         var sections: [String] = [nowSnapshot()]
-        sections += trainingLoadSections()
-        if let liveMarker = activeWorkoutMarker() { sections.append(liveMarker) }
+        sections += trainingLoadSections(services)
+        if let liveMarker = activeWorkoutMarker(services.liveWorkoutBroker) { sections.append(liveMarker) }
         if let corrections = MetricsVerifier.pendingCorrectionsBlock() {
             sections.append(corrections)
         }
@@ -317,7 +323,7 @@ enum AssistantSystemPrompt {
     ///      told me" / "from <tool>" tag, so the user has a
     ///      handle to see where any disagreement is coming from.
     @MainActor
-    private static func trainingLoadSections() -> [String] {
+    private static func trainingLoadSections(_ services: PromptServices) -> [String] {
         let signals = UserCorrectionDetector.detect(userMessages: Self.pendingRecentUserMessages)
         var sections: [String] = []
         if let userBlock = UserCorrectionDetector.renderAssertedBlock(signals) {
@@ -327,9 +333,9 @@ enum AssistantSystemPrompt {
         // While training load is paused (switched off, or a training break)
         // the load numbers are left out, as the screens leave them out; only
         // today's recovery score is kept.
-        if TrainingLoadVisibility.isPaused(AppDependencies.current.app.settingsManager.settings) {
-            if let recovery = todayRecoveryLine() { sections.append("# Today\n" + recovery) }
-        } else if !suppressCache, let snap = dashboardLoadSnapshot() {
+        if TrainingLoadVisibility.isPaused(services.settingsManager.settings) {
+            if let recovery = todayRecoveryLine(services.sessionArchive) { sections.append("# Today\n" + recovery) }
+        } else if !suppressCache, let snap = dashboardLoadSnapshot(services) {
             sections.append(snap)
         }
         return sections
@@ -496,8 +502,8 @@ enum AssistantSystemPrompt {
     /// anything in this block, the attribution makes it obvious
     /// which source they're correcting.
     @MainActor
-    private static func activeWorkoutMarker() -> String? {
-        guard let live = AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot() else { return nil }
+    private static func activeWorkoutMarker(_ broker: LiveWorkoutBroker) -> String? {
+        guard let live = broker.currentSnapshot() else { return nil }
         let elapsedMinutes = max(1, live.elapsedSeconds / 60)
         let startedAt = formatted(live.sessionStartAt, "h:mm a")
         return """
@@ -571,8 +577,8 @@ enum AssistantSystemPrompt {
     /// and gates on the same cache-invalidation contract (archive
     /// notifications, in TrainingMetricsCache.init).
     @MainActor
-    private static func dashboardLoadSnapshot() -> String? {
-        guard let load = TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache) else { return nil }
+    private static func dashboardLoadSnapshot(_ services: PromptServices) -> String? {
+        guard let load = TrainingLoadRegistry.live(from: services.trainingMetricsCache) else { return nil }
         logDashboardSnapshot(load)
         let acwr = load.acwr.map { String(format: "%.2f", $0) } ?? "n/a (ctl=0)"
         var lines: [String] = [
@@ -588,7 +594,7 @@ enum AssistantSystemPrompt {
             "- tsb: \(String(format: "%.1f", load.tsb))  (form: ctl − atl; negative = fatigued, positive = fresh)",
             "- acwr: \(acwr)  (atl ÷ ctl)"
         ]
-        if let recovery = todayRecoveryLine() { lines.append(recovery) }
+        if let recovery = todayRecoveryLine(services.sessionArchive) { lines.append(recovery) }
         lines.append("")
         lines.append(dashboardCacheFooter)
         return lines.joined(separator: "\n")
@@ -614,8 +620,7 @@ enum AssistantSystemPrompt {
     /// (a night is dated the evening it began) and could pick an unreliable
     /// partial. On the dashboard's 0-100 scale.
     @MainActor
-    private static func todayRecoveryLine() -> String? {
-        let archive = AppDependencies.current.storage.sessionArchive
+    private static func todayRecoveryLine(_ archive: SessionArchive) -> String? {
         guard let score = DeterministicIntent.todaysOvernightEntry(now: Date(), archive: archive)?.recoveryScore else { return nil }
         return "- recovery_score_today: \(RecoveryScoreCalculator.displayScore(score * 10)) / 100"
     }
@@ -649,4 +654,18 @@ enum AssistantSystemPrompt {
     historical or trend questions, call `training.load.by_date(…)` or \
     `training.load.recent(…)`.
     """
+}
+
+/// The services the system prompt is composed from, and nothing else. Each
+/// accessor resolves on use, as the container's do.
+struct PromptServices: Sendable {
+    private let container: AppDependencies
+
+    init(_ container: AppDependencies) { self.container = container }
+
+    var liveWorkoutBroker: LiveWorkoutBroker { container.assistant.liveWorkoutBroker }
+    var sessionArchive: SessionArchive { container.storage.sessionArchive }
+    var settingsManager: SettingsManager { container.app.settingsManager }
+    @MainActor
+    var trainingMetricsCache: TrainingMetricsCache { container.analysis.trainingMetricsCache }
 }

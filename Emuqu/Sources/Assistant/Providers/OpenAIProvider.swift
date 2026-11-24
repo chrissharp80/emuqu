@@ -47,6 +47,11 @@ final class OpenAIProvider: OpenAICompatibleProvider {
     ]
 
     let id: ProviderID = .openai
+    let services: AIProviderServices
+
+    init(services: AIProviderServices) {
+        self.services = services
+    }
     static let endpoint = OpenAICompatibleStreamer.Endpoint.openAI
 
     /// Reasoning off: gpt-6-luna takes tools on Chat Completions only at
