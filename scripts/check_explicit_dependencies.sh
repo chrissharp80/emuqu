@@ -12,7 +12,8 @@
 # namespaces get a `FactServices` from `AppFactResolverFactory.build`, and the
 # workout recorder and its parts a `WorkoutServices` from `RecorderBox`, and
 # the chat view model, its router and tool runner a `ChatServices`, and the
-# assistant's context source and builder a `ContextServices`), and
+# assistant's context source and builder a `ContextServices`, and the voice
+# conversation and its audio pipeline a `VoiceServices`), and
 # their tests construct them with substitutes. One new
 # `AppDependencies.current` read in them hides an edge again and puts the
 # tests back on the live services.
@@ -57,6 +58,9 @@ EXPLICIT_PATTERNS=(
     "Emuqu/Sources/Assistant/Context/ContextBuilder*.swift"
     "Emuqu/Sources/Assistant/Context/ContextServices.swift"
     "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift"
+    "Emuqu/Sources/Assistant/VoiceConversationController*.swift"
+    "Emuqu/Sources/Assistant/VoiceAudioPipeline*.swift"
+    "Emuqu/Sources/Assistant/VoiceServices.swift"
 )
 APP_DIRS=("Emuqu" "EmuquWatch Watch App")
 

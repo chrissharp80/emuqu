@@ -899,9 +899,9 @@ by layer (`app`, `analysis`, `assistant`, `collection`, `location`,
 service is built until asked for and no initialiser can recurse into the
 container. Views read `@Environment(\.dependencies)`; static helpers read
 `AppDependencies.current`; the launch work, `DataPurgeService`, reanalysis,
-the assistant's fact namespaces, the chat view model, the context builder and the workout recorder are handed exactly
+the assistant's fact namespaces, the chat view model, the context builder, the voice conversation and the workout recorder are handed exactly
 the services they use (`launchServices`, `purgeStores`,
-`makeSessionReanalysis`, `FactServices`, `WorkoutServices`, `ChatServices`, `ContextServices`) and read no
+`makeSessionReanalysis`, `FactServices`, `WorkoutServices`, `ChatServices`, `ContextServices`, `VoiceServices`) and read no
 container. `current` has no setter: a test makes a fresh container, sets the
 substitute on its `overrides`, puts it in force with
 `AppDependencies.install(_:)`, and ends the returned scope in teardown

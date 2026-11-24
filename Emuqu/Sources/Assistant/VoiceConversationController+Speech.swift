@@ -152,7 +152,7 @@ extension VoiceConversationController {
             return (assistantViewModel.activeProviderID, assistantViewModel.activeModelDisplayName)
         }
         let name = turns[index].modelID.map {
-            AppDependencies.current.providers.providerRegistry.displayName(forApiID: $0, providerID: providerID)
+            services.providerRegistry.displayName(forApiID: $0, providerID: providerID)
         } ?? providerID.displayName
         return (providerID, name)
     }
@@ -504,9 +504,7 @@ enum ConversationVoicePicker {
     /// would speak with a Japanese voice even when the AI's text was being
     /// forced to English by the system prompt override.
     @MainActor
-    static func preferredLanguage() -> String {
-        let forceEnglish = AppDependencies.current.app.settingsManager.settings.forceAIEnglish
-        return forceEnglish ? "en-US" : LanguageManager.appLocale.language.maximalIdentifier
+    static func preferredLanguage(forceEnglish: Bool) -> String { forceEnglish ? "en-US" : LanguageManager.appLocale.language.maximalIdentifier
     }
 
     /// The voice for `preferredLanguage`: the best installed one, or the

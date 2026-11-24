@@ -22,7 +22,7 @@ extension VoiceAudioPipeline {
         // and the cue's claim is treated as satisfied by the same session.
         // Calling `setCategory` directly here AND for the cue would give a
         // last-writer-wins clobber.
-        AppDependencies.current.services.audioSessionCoordinator.claim(.voice, mode: .voiceRecord)
+        controller.services.audioSessionCoordinator.claim(.voice, mode: .voiceRecord)
         let session = AVAudioSession.sharedInstance()
         try session.setActive(true, options: .notifyOthersOnDeactivation)
         debugLog("[VoiceConv] audio session ready: category=\(session.category.rawValue), mode=\(session.mode.rawValue), sampleRate=\(session.sampleRate)")
@@ -116,7 +116,7 @@ extension VoiceAudioPipeline {
         // Only the user's turn: fed in every state, the bridge also took in
         // the assistant's own speech and transcribed it with the next turn.
         if controller.useWhisperKitForCurrentSession, controller.state == .listening {
-            AppDependencies.current.providers.whisperKitSTTBridge.appendAudio(bufferCopy)
+            controller.services.whisperKitSTTBridge.appendAudio(bufferCopy)
         }
         auditBufferActivity(bufferCopy)
     }
