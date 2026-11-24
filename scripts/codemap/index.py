@@ -50,7 +50,7 @@ create table refkeys(key text, file text);
 create index refkeys_key on refkeys(key);
 create index refkeys_file on refkeys(file);
 create table ids(id integer primary key, name text unique);
-create table edges(src integer, dst integer, certain integer, reason text, grp integer);
+create table edges(src integer, dst integer, rank integer, reason text, grp integer);
 create index edges_dst on edges(dst);
 create index edges_src on edges(src);
 create index edges_grp on edges(grp);
@@ -150,7 +150,7 @@ class Index:
         rows = list(rows)
         ids = self._ids([r[0] for r in rows] + [r[1] for r in rows])
         self.con.executemany("insert into edges values(?,?,?,?,?)",
-                             [(ids[a], ids[b], int(k == "certain"), why, g) for a, b, k, why in rows])
+                             [(ids[a], ids[b], graphmod.RANK[k], why, g) for a, b, k, why in rows])
 
     # ---------------------------------------------------------------- refresh
 
@@ -179,6 +179,8 @@ class Index:
         affected: set[str] = set()
         conf_changed: set[str] = set()      # types whose declared conformances changed
         old_conf_edges: set[tuple] = set()  # (type, parent) pairs as they were
+        held_changed: set[str] = set()      # types whose stored values hold different types
+        old_held_edges: set[tuple] = set()  # (type, held type) pairs as they were
         swift_changed, ns_changed = False, False
         for f in changed + removed:
             row = con.execute("select inv, meta from files where path=?", (f,)).fetchone()
@@ -187,8 +189,8 @@ class Index:
             new_meta = refs = None
             if new_inv is not None and f.endswith(".swift"):
                 raw = (ROOT / f).read_bytes()
-                refs, params, conf, clos = graphmod.swift_file(f, raw, new_inv["units"])
-                new_meta = (params, conf, clos)
+                refs, params, conf, clos, held = graphmod.swift_file(f, raw, new_inv["units"])
+                new_meta = (params, conf, clos, held)
             swift_changed |= f.endswith(".swift")
             ns_changed |= bool(invmod.NS_CODE.search(f))
             # what resolution elsewhere depends on: each unit's name, kind, type and parameters,
@@ -205,7 +207,11 @@ class Index:
                         t = graphmod.short(u["type"])
                         if t:
                             affected |= {"n:" + t, "t:" + t}
-            om, nm = old_meta or ({}, {}, {}), new_meta or ({}, {}, {})
+            om, nm = old_meta or ({}, {}, {}, {}), new_meta or ({}, {}, {}, {})
+            for t in om[3].keys() | nm[3].keys():
+                if om[3].get(t) != nm[3].get(t):
+                    held_changed.add(t)
+                    old_held_edges |= {(t, h) for h in om[3].get(t, ())}
             for t in om[1].keys() | nm[1].keys():
                 if om[1].get(t) != nm[1].get(t):
                     conf_changed.add(t)
@@ -257,6 +263,24 @@ class Index:
             own_files = {u["file"] for u in units.values() if graphmod.short(u.get("type")) in reach}
         else:
             own_files = set()
+        if held_changed:
+            # decoding a type reaches what it holds, transitively: every type that holds a changed
+            # one, before or after, resolves its `T.self` references differently
+            up = collections.defaultdict(set)
+            for (m,) in con.execute("select meta from files where meta is not null"):
+                for t, hs in pickle.loads(m)[3].items():
+                    for h in hs:
+                        up[h].add(t)
+            for t, h in old_held_edges:
+                up[h].add(t)
+            reach, todo_t = set(), list(held_changed)
+            while todo_t:
+                x = todo_t.pop()
+                if x not in reach:
+                    reach.add(x)
+                    todo_t.extend(up.get(x, ()))
+            for t in reach:
+                affected |= {"n:" + t, "t:" + t}
         todo = {f for f in changed if f.endswith(".swift")} | {f for f in own_files if f.endswith(".swift")}
         for k in affected:
             todo |= {f for (f,) in con.execute("select file from refkeys where key=?", (k,))}
@@ -269,7 +293,7 @@ class Index:
                     continue
                 self._put_edges(r.resolve_file(pickle.loads(row[0])), "swift:" + f)
             done["resolved"] = len(todo)
-            self._put_edges(r.protocol_edges(), "proto")
+            self._put_edges(r.protocol_edges() + r.format_edges(), "proto")
         if ns_changed:
             inv = {f: pickle.loads(b) for f, b in con.execute("select path, inv from files")}
             self._put_edges(graphmod.wiring_edges(
@@ -376,10 +400,11 @@ class Index:
 
     def _combine(self, rows) -> tuple[dict, dict]:
         kinds, why = {}, collections.defaultdict(set)
-        for other, certain, reason in rows:
-            if kinds.get(other) != "certain":
-                kinds[other] = "certain" if certain else "possible"
-            if certain:
+        names = {v: k for k, v in graphmod.RANK.items()}
+        for other, rank, reason in rows:
+            if rank > graphmod.RANK.get(kinds.get(other), -1):
+                kinds[other] = names[rank]
+            if rank > 0:
                 why[other].add(reason)
         return kinds, why
 
@@ -392,7 +417,7 @@ class Index:
         if self.unit(node) is None:
             return {}, {}
         rows = self.con.execute(
-            "select i.name, e.certain, e.reason from edges e join ids i on i.id = e.src join units u on u.node = i.name "
+            "select i.name, e.rank, e.reason from edges e join ids i on i.id = e.src join units u on u.node = i.name "
             "where e.dst = (select id from ids where name=?) and e.src != e.dst", (node,))
         return self._combine(rows)
 
@@ -400,14 +425,14 @@ class Index:
         if self.unit(node) is None:
             return {}
         rows = self.con.execute(
-            "select i.name, e.certain, e.reason from edges e join ids i on i.id = e.dst join units u on u.node = i.name "
+            "select i.name, e.rank, e.reason from edges e join ids i on i.id = e.dst join units u on u.node = i.name "
             "where e.src = (select id from ids where name=?) and e.src != e.dst", (node,))
         return self._combine(rows)[0]
 
     def graph(self) -> dict:
         """The whole graph in graph.build's form."""
         units = self.units()
-        rows = self.con.execute("select s.name, d.name, case e.certain when 1 then 'certain' else 'possible' end, e.reason "
+        rows = self.con.execute("select s.name, d.name, case e.rank when 2 then 'certain' when 1 then 'implicit' else 'possible' end, e.reason "
                                 "from edges e join ids s on s.id = e.src join ids d on d.id = e.dst")
         return graphmod.assemble(rows, units)
 

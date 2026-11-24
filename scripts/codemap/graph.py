@@ -50,12 +50,27 @@ NOT_A_REFERENCE = {
 
 FUNC_KINDS = ("function_declaration", "protocol_function_declaration", "function_declaration(fallback)",
               "init_declaration", "subscript_declaration", "ns-cfunc", "ns-objcmethod")
+# Edge kinds, strongest first. A certain edge is a call that can only mean one unit; an implicit
+# edge is a link the framework makes (SwiftUI, Codable, Equatable) that no call in the code shows;
+# a possible edge is a name that could mean several units.
+RANK = {"certain": 2, "implicit": 1, "possible": 0}
+# Members the frameworks call on a type's behalf when a value of it is made or its type is passed.
+WITNESS = {"body", "makeBody", "makeUIView", "updateUIView", "makeUIViewController", "updateUIViewController",
+           "makeCoordinator", "dismantleUIView", "dismantleUIViewController", "sizeThatFits", "placeSubviews",
+           "reduce", "defaultValue", "animatableData", "path", "makeAsyncIterator", "==", "<", "hash"}
 PROP_KINDS = ("computed", "observed", "closure-init")
+
+
+def _type_names(text: str) -> list[str]:
+    """The type names written in `text`, a qualified name (`Outer.Inner`) as its last part."""
+    return [m.split(".")[-1] for m in re.findall(r"\b[A-Z]\w*(?:\.[A-Z]\w*)*", text)]
 
 
 def _swift_refs(raw: bytes, parser, units: list[dict]):
     """References made inside each unit, the parameter lists of the file's functions, the
-    conformances declared in the file, and the names of stored closures each unit assigns."""
+    conformances declared in the file, the names of stored closures each unit assigns, and the
+    type names each type's stored properties and enum cases hold (`contains`). A `T.self`
+    reference is recorded as a "meta" reference to T."""
     tree = parser.parse(raw)
 
     def txt(n):
@@ -66,6 +81,7 @@ def _swift_refs(raw: bytes, parser, units: list[dict]):
     params = {}                                   # unit start line -> [(label, has_default)]
     conforms = collections.defaultdict(set)       # type name -> {inherited names}
     closure_assigns = collections.defaultdict(set)  # name -> {unit start}
+    contains = collections.defaultdict(set)       # type name -> {type names its stored values hold}
 
     def arg_labels(call):
         labels, trailing = [], 0
@@ -99,13 +115,23 @@ def _swift_refs(raw: bytes, parser, units: list[dict]):
             return ("type", t.split(".")[-1])
         return ("unknown", None)
 
-    def walk(n, cur):
+    def walk(n, cur, owner=None):
         if n.type in ("class_declaration", "protocol_declaration"):
             nm = n.child_by_field_name("name")
             name = txt(nm).split("<")[0].split(".")[-1] if nm else "?"
+            owner = name
             for c in n.children:
                 if c.type == "inheritance_specifier":
                     conforms[name].add(txt(c).split("<")[0].split(".")[-1].strip())
+        if owner is not None and n.parent is not None and n.parent.type in ("class_body", "enum_class_body"):
+            held = None
+            if n.type == "property_declaration" and not any(c.type == "computed_property" for c in n.children):
+                held = next((c for c in n.children if c.type == "type_annotation"), None)
+            elif n.type == "enum_entry":
+                held = n
+            if held is not None:
+                contains[owner] |= {t for t in _type_names(txt(held) if n.type != "enum_entry" else
+                                    " ".join(txt(c) for c in n.children if c.type == "enum_type_parameters"))}
         u = by_start.get(n.start_point[0] + 1)
         if u is not None and n.type in (
                 "function_declaration", "init_declaration", "deinit_declaration", "subscript_declaration",
@@ -140,8 +166,20 @@ def _swift_refs(raw: bytes, parser, units: list[dict]):
             elif n.type == "navigation_expression" and not (n.parent is not None and n.parent.type == "call_expression"
                                                             and n.parent.children and n.parent.children[0] == n):
                 suf = n.child_by_field_name("suffix")
-                if suf is not None:
-                    refs[cur].append(("prop", txt(suf).lstrip("."), None, 0, receiver(n.child_by_field_name("target"))))
+                tgt = n.child_by_field_name("target")
+                if suf is not None and txt(suf).lstrip(".") == "self" and tgt is not None:
+                    # `T.self`, `[T].self`, `T?.self`: the type itself is passed (to a decoder, a
+                    # preference or an environment lookup)
+                    # the call it is handed to, by name: decode/encode calls run Codable
+                    host, up = "", n.parent
+                    while up is not None and up.type in ("value_argument", "value_arguments", "call_suffix"):
+                        up = up.parent
+                    if up is not None and up.type == "call_expression" and up.children:
+                        host = re.split(r"\W+", txt(up.children[0]).strip())[-1]
+                    for t in _type_names(txt(tgt)):
+                        refs[cur].append(("meta", t, [host], 0, ("type", t)))
+                elif suf is not None:
+                    refs[cur].append(("prop", txt(suf).lstrip("."), None, 0, receiver(tgt)))
             elif n.type == "simple_identifier" and n.parent is not None and n.parent.type not in NOT_A_REFERENCE \
                     and not (n.parent.type == "call_expression" and n.parent.children and n.parent.children[0] == n):
                 refs[cur].append(("prop", txt(n), None, 0, ("implicit", None)))
@@ -153,10 +191,10 @@ def _swift_refs(raw: bytes, parser, units: list[dict]):
                     if m:
                         closure_assigns[m.group(1)].add(cur)
         for c in n.children:
-            walk(c, cur)
+            walk(c, cur, owner)
 
     walk(tree.root_node, None)
-    return refs, params, conforms, closure_assigns
+    return refs, params, conforms, closure_assigns, contains
 
 
 TEST_TARGETS = ("EmuquTests/", "EmuquUITests/")
@@ -193,9 +231,10 @@ def build(inv: dict, records: dict, root: Path) -> dict:
     found = recorded_edges(records)
     swift = {f: swift_file(f, (root / f).read_bytes(), inv[f]["units"]) for f in inv if f.endswith(".swift")}
     r = Resolver(units, swift)
-    for refs, _, _, _ in swift.values():
-        found += r.resolve_file(refs)
+    for data in swift.values():
+        found += r.resolve_file(data[0])
     found += r.protocol_edges()
+    found += r.format_edges()
     found += wiring_edges(inv, root, units)
     return assemble(found, units)
 
@@ -212,16 +251,17 @@ def unit_table(inv: dict) -> dict:
 
 def assemble(found, units: dict) -> dict:
     """The graph from (src, dst, kind, reason) contributions: an edge from or to a node that does not
-    exist, or to itself, is dropped; an edge is certain when any contribution is (never downgraded), and a
-    certain edge keeps every reason that made it certain."""
+    exist, or to itself, is dropped; an edge takes the strongest kind any contribution gives it
+    (certain, then implicit, then possible), and keeps the reasons of its certain and implicit
+    contributions."""
     edges = collections.defaultdict(dict)
     why = collections.defaultdict(set)
     for a, b, kind, reason in found:
         if a == b or a not in units or b not in units:
             continue
-        if edges[a].get(b) != "certain":
+        if RANK[kind] > RANK.get(edges[a].get(b), -1):
             edges[a][b] = kind
-        if kind == "certain":
+        if kind != "possible":
             why[(a, b)].add(reason)
     return {"edges": {k: dict(v) for k, v in edges.items()}, "units": units,
             "why": {k: sorted(v) for k, v in why.items()}}
@@ -244,17 +284,18 @@ _PARSER = []
 
 def swift_file(f: str, raw: bytes, us: list[dict]):
     """One Swift file's (references by node, parameter lists by node, conformances, closure
-    assignments by name), with unit start lines turned into node keys."""
+    assignments by name, held types by type), with unit start lines turned into node keys."""
     if not _PARSER:
         import tree_sitter as ts
         import tree_sitter_swift as tss
         _PARSER.append(ts.Parser(ts.Language(tss.language())))
-    refs, params, conf, clos = _swift_refs(raw, _PARSER[0], us)
+    refs, params, conf, clos, held = _swift_refs(raw, _PARSER[0], us)
     key_at = {u["start"]: f"{f}::{u['key']}" for u in us}
     return ({key_at[s]: rs for s, rs in refs.items() if s in key_at},
             {key_at[s]: ps for s, ps in params.items() if s in key_at},
             {t: set(v) for t, v in conf.items()},
-            {n: {key_at[s] for s in starts if s in key_at} for n, starts in clos.items()})
+            {n: {key_at[s] for s in starts if s in key_at} for n, starts in clos.items()},
+            {t: set(v) for t, v in held.items()})
 
 
 def short(t):
@@ -267,12 +308,19 @@ class Resolver:
     def __init__(self, units: dict, swift: dict):
         self.units = units
         self.params, self.conforms, self.closure_assigns = {}, collections.defaultdict(set), collections.defaultdict(set)
-        for refs, params, conf, clos in swift.values():
+        self.contains = collections.defaultdict(set)
+        for refs, params, conf, clos, held in swift.values():
             self.params.update(params)
             for t, v in conf.items():
                 self.conforms[t] |= v
             for n, v in clos.items():
                 self.closure_assigns[n] |= v
+            for t, v in held.items():
+                self.contains[t] |= v
+        self.by_type = collections.defaultdict(list)
+        for k, u in units.items():
+            if u["kind"] != "file" and u["type"] and k.split("::")[0].endswith(".swift"):
+                self.by_type[short(u["type"])].append(k)
         self.by_name = collections.defaultdict(list)
         for k, u in units.items():
             if u["kind"] != "file" and (k.split("::")[0].endswith(".swift") or u["kind"] in ("ns-cfunc", "ns-objcmethod")):
@@ -312,6 +360,37 @@ class Resolver:
             out.append(k)
         return out
 
+    def coding(self, k) -> bool:
+        """Whether a unit is a type's `init(from:)` or `encode(to:)`, which Codable calls."""
+        u, labels = self.units[k], [p[0] for p in self.params.get(k) or []]
+        return (u["name"] == "init" and labels == ["from"]) or (u["name"] == "encode" and labels == ["to"])
+
+    def witnesses(self, t) -> list:
+        """The members of type `t` that the frameworks call on its behalf: SwiftUI's (body,
+        makeBody, body(content:), the UIKit-wrapper and Layout methods, preference reduce),
+        Equatable, Comparable and Hashable's operators, and an async sequence's iterator."""
+        return [k for k in self.by_type.get(short(t), ()) if self.units[k]["name"] in WITNESS and not self.coding(k)]
+
+    def held(self, t) -> set:
+        """`t` and every repository type its stored values hold, transitively."""
+        out, todo = set(), [short(t)]
+        while todo:
+            x = todo.pop()
+            if x and x not in out and x in self.repo_types:
+                out.add(x)
+                todo.extend(self.contains.get(x, ()))
+        return out
+
+    def format_edges(self) -> list:
+        """An implicit edge from each type's `init(from:)` to its `encode(to:)`: the decoder reads
+        what the encoder wrote, so changing the encoder can break it."""
+        out = []
+        for t, ks in self.by_type.items():
+            dec = [k for k in ks if self.coding(k) and self.units[k]["name"] == "init"]
+            enc = [k for k in ks if self.coding(k) and self.units[k]["name"] == "encode"]
+            out += [(d, e, "implicit", "same stored format") for d in dec for e in enc]
+        return out
+
     def resolve_file(self, refs: dict) -> list:
         """(src, dst, kind, reason) for every reference in one file's units."""
         return [(src, dst, kind, reason) for src, rs in refs.items() for dst, kind, reason in self.resolve(src, rs)]
@@ -323,6 +402,16 @@ class Resolver:
         found = []
         own = family(units[src]["type"])
         for kind, name, labels, trailing, (rkind, rtype) in rs:
+            if kind == "meta":
+                if name in repo_types:
+                    # `T.self` handed to a decoder, a preference or an environment lookup: the
+                    # framework calls T's witnesses, and decoding T runs the Codable members of T
+                    # and of every type its stored values hold
+                    found += [(k, "implicit", "framework calls") for k in self.witnesses(name)]
+                    if re.search(r"(?i)code", (labels or [""])[0]):
+                        found += [(k, "implicit", "decodes or encodes " + name)
+                                  for t in sorted(self.held(name)) for k in self.by_type.get(t, ()) if self.coding(k)]
+                continue
             if not name or name in ("self", "super"):
                 continue
             if kind == "call" and rkind == "implicit" and name in repo_types:
@@ -330,6 +419,8 @@ class Resolver:
                       and _labels_match(params.get(k), labels or [], trailing)]
                 for k in cs:
                     found.append((k, "certain" if len(cs) == 1 else "possible", "initializer"))
+                # making a value of a SwiftUI or Equatable type: the framework calls its witnesses
+                found += [(k, "implicit", "framework calls") for k in self.witnesses(name)]
                 continue
             unresolved = False  # the receiver's type is unknown, or a framework type
             if rkind in ("self", "super", "implicit"):

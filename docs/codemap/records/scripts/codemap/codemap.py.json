@@ -472,7 +472,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/codemap/index.py::def Index.graph": "46ebe012451685a7",
+    "scripts/codemap/index.py::def Index.graph": "350d06b0f1b08f9b",
     "scripts/codemap/index.py::def Index.inventory": "82175465c4c8258b",
     "scripts/codemap/index.py::def open_index": "89e30daef005e70a",
     "scripts/codemap/inventory.py::def inventory": "9c1468b9894854e2"
@@ -1033,8 +1033,8 @@
   },
   {
    "key": "def walk_callers",
-   "hash": "6725b941909f8511",
-   "does": "Walks certain callers outward from a node, one call at a time (breadth first, callers sorted). Returns the distance of every caller reached, the callers whose record has an `entry` as (distance, node, entry), the test units reached (by distance) and the doc sections reached (by distance). Tests and doc sections end the walk on their branch; an entry point does not.",
+   "hash": "dff7b37c7365f4fd",
+   "does": "Walks certain and implicit callers outward from a node, one call at a time (breadth first, callers sorted). Returns the distance of every caller reached, the callers whose record has an `entry` as (distance, node, entry), the test units reached (by distance) and the doc sections reached (by distance). Tests and doc sections end the walk on their branch; an entry point does not.",
    "entry": null,
    "calls": [
     "scripts/codemap/codemap.py::def record_of"
@@ -1097,8 +1097,8 @@
   },
   {
    "key": "def cmd_impact",
-   "hash": "352f83fe10b853b7",
-   "does": "Prints, as Markdown, what a change can break, nearest first. Targets: the named `path::key` nodes, or changed_since(base) over the index's per-file inventory (base from `--base REF`, default origin/main). An unknown named node prints up to 15 nodes containing its short name (Index.named_like) and returns 2. Opens the index (open_index, which re-reads only what changed) and answers from it: records, callers, units, stores and alike code are indexed lookups (View over Index.record, callers, unit, store_users). For each target: its contract, or what it does; 1) its certain and possible non-test, non-doc direct callers, each certain one with why the edge is certain (the graph's `why`) and the part of its record that names the target (_mentions), up to 20 possible; 2) the test suites (_suite over the tests walk_callers reaches; only classes with test methods) with how many calls away, nearest 25; 3) the units at least 35% alike (Index.similar), skipped for a deleted unit; 4) for a unit with a record, the stores it shares (state_partners: readers of what it writes, other writers of what it reads, up to 8 each) and how many stores its certain callees write (state_through_callees); 5) the entry points walk_callers found, nearest 10; 6) the doc sections that describe it directly (one call away) and how many describe its callers; and, when the overlay has any, the open flags on it and its certain direct callers. A header gives the target count and the union of all suites as `-only-testing:` arguments: first those at most two calls away, then all when there are more. With no targets it says 'No mapped code changed.' The same text is appended to $GITHUB_STEP_SUMMARY (up to 900,000 characters) when that is set. Returns 0.",
+   "hash": "0378f0eee08b5876",
+   "does": "Prints, as Markdown, what a change can break, nearest first. Targets: the named `path::key` nodes, or changed_since(base) over the index's per-file inventory (base from `--base REF`, default origin/main). An unknown named node prints up to 15 nodes containing its short name (Index.named_like) and returns 2. Opens the index (open_index, which re-reads only what changed) and answers from it: records, callers, units, stores and alike code are indexed lookups (View over Index.record, callers, unit, store_users). For each target: its contract, or what it does; 1) its non-test, non-doc direct callers: each certain one with why the edge is certain and the part of its record that names the target (_mentions), up to 20 that reach it through the frameworks (implicit edges, with their reasons) and up to 20 possible; 2) the test suites (_suite over the tests walk_callers reaches; only classes with test methods) with how many calls away, nearest 25; 3) the units at least 35% alike (Index.similar), skipped for a deleted unit; 4) for a unit with a record, the stores it shares (state_partners: readers of what it writes, other writers of what it reads, up to 8 each) and how many stores its certain callees write (state_through_callees); 5) the entry points walk_callers found, nearest 10; 6) the doc sections that describe it directly (one call away) and how many describe its callers; and, when the overlay has any, the open flags on it and its certain direct callers. A header gives the target count and the union of all suites as `-only-testing:` arguments: first those at most two calls away, then all when there are more. With no targets it says 'No mapped code changed.' The same text is appended to $GITHUB_STEP_SUMMARY (up to 900,000 characters) when that is set. Returns 0.",
    "entry": null,
    "calls": [
     "scripts/codemap/codemap.py::def all_records",
@@ -1183,8 +1183,8 @@
     "scripts/codemap/codemap.py::def main": "b2cec83bf52eabd8",
     "scripts/codemap/codemap.py::def record_of": "439da59188c303b1",
     "scripts/codemap/codemap.py::def state_partners": "e0bf53148027f949",
-    "scripts/codemap/codemap.py::def state_through_callees": "7fe173a50231c85b",
-    "scripts/codemap/codemap.py::def walk_callers": "6a394696ffbe1bc9",
+    "scripts/codemap/codemap.py::def state_through_callees": "09ffbe3f19bbe64c",
+    "scripts/codemap/codemap.py::def walk_callers": "541451d31320c869",
     "scripts/codemap/index.py::def Index.callees": "cf41a481209e0efb",
     "scripts/codemap/index.py::def Index.callers": "92c14f4eefa087c8",
     "scripts/codemap/index.py::def Index.callers_why": "2e144244664e354e",
@@ -1201,8 +1201,8 @@
   },
   {
    "key": "def state_through_callees",
-   "hash": "5f7db012c1d4951f",
-   "does": "The stores a node reaches through its certain callees, transitively: {(\"reads\" or \"writes\", store): set of callee nodes whose own record lists it}. A store is the record entry up to ' (' . File nodes and non-string entries are skipped; the node itself is not counted. Records list only their own state, so this is how impact shows a caller's full reach.",
+   "hash": "6c2b66a8fe6b82bb",
+   "does": "The stores a node reaches through its certain and implicit callees, transitively: {(\"reads\" or \"writes\", store): set of callee nodes whose own record lists it}. A store is the record entry up to ' (' . File nodes and non-string entries are skipped; the node itself is not counted. Records list only their own state, so this is how impact shows a caller's full reach.",
    "entry": null,
    "calls": [
     "scripts/codemap/codemap.py::def record_of"
@@ -1218,7 +1218,7 @@
     {
      "at": "+11",
      "cond": "file node or no record",
-     "effect": "no state from it; its certain callees are still walked"
+     "effect": "no state from it; its certain and implicit callees are still walked"
     },
     {
      "at": "+14",
@@ -1336,12 +1336,12 @@
     "scripts/codemap/codemap.py::def cmd_ack_from": "f1efcc03ebe66f72",
     "scripts/codemap/codemap.py::def cmd_callers": "f8a5067af340c75e",
     "scripts/codemap/codemap.py::def cmd_check": "6523bff4391b736c",
-    "scripts/codemap/codemap.py::def cmd_impact": "55a7dadc552daafa",
+    "scripts/codemap/codemap.py::def cmd_impact": "c5d798691b14f268",
     "scripts/codemap/codemap.py::def cmd_move": "d3afe24b00bef5c3",
     "scripts/codemap/codemap.py::def cmd_stamp": "f82bc37ee57ec08e",
     "scripts/codemap/codemap.py::def cmd_sync": "ea6b82466df26d40",
     "scripts/codemap/codemap.py::def stamp_targets": "029e2027da56bd70",
-    "scripts/codemap/report.py::def build": "e69bde64f1e19180"
+    "scripts/codemap/report.py::def build": "fad437e1c725b067"
    }
   }
  ],
@@ -1351,6 +1351,6 @@
   "scripts/codemap/codemap.py::def main": "b2cec83bf52eabd8",
   "scripts/codemap/codemap.py::def prefilled": "b2d328e8393d9456",
   "scripts/codemap/codemap.py::def save": "6f5770c51e2ef059",
-  "scripts/codemap/report.py::def build": "e69bde64f1e19180"
+  "scripts/codemap/report.py::def build": "fad437e1c725b067"
  }
 }

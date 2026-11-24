@@ -1,6 +1,6 @@
 {
  "file": "scripts/codemap/index.py",
- "hash": "6056629fbdcfa7fd",
+ "hash": "1d4dc2c1945a5843",
  "role": "The persistent, incrementally updated index every code-map command reads: units, inventory entries, call-graph edges with reasons, record stores and 4-token code runs in build/codemap-index.sqlite. refresh() re-reads only files and records whose size or modification time changed and re-resolves only the files whose references can resolve differently; queries are indexed lookups. Run as a script it refreshes and prints what it redid; with --verify it compares its graph and inventory with graph.build from scratch.",
  "types": [
   "Index",
@@ -131,8 +131,8 @@
   },
   {
    "key": "def Index._put_edges",
-   "hash": "e986f7011b872097",
-   "does": "Replaces the edge contributions stored under one group (a file's Swift references, a record's calls, protocol requirements or build wiring) with the given (src, dst, kind, reason) rows, stored as ids with certain as 1 or 0.",
+   "hash": "6a19f0aa644296fb",
+   "does": "Replaces the edge contributions stored under one group (a file's Swift references, a record's calls, protocol requirements with same-stored-format links, or build wiring) with the given (src, dst, kind, reason) rows, stored as ids with the kind as its RANK.",
    "entry": null,
    "calls": [
     "scripts/codemap/index.py::def Index.id",
@@ -172,7 +172,7 @@
     }
    ],
    "deps": {
-    "scripts/codemap/index.py::def Index._refresh_files": "f5e00c774f0b048c",
+    "scripts/codemap/index.py::def Index._refresh_files": "585bb6d84881ddea",
     "scripts/codemap/index.py::def Index._refresh_records": "85d30aeda8723173",
     "scripts/codemap/index.py::def _stamp": "f5e3c319eadf5e29",
     "scripts/codemap/inventory.py::def tracked_files": "4b08bc3276525808"
@@ -180,20 +180,21 @@
   },
   {
    "key": "def Index._refresh_files",
-   "hash": "c726d7d14191b6f6",
-   "does": "For each changed or removed file: parses the new version (inventory; swift_file for Swift), notes which names and types resolution elsewhere depends on changed (a unit added, removed, or with a different name, kind, type or parameters; a stored-closure name; a type whose conformances changed), and replaces the file's rows (files, units with a file node, reference keys, its Swift edges). Then re-resolves the changed Swift files, every Swift file whose references name an affected name or type, and, when conformances changed, every file with units of a type whose family reaches a changed type before or after; rebuilds protocol-requirement edges when any Swift file changed, and build wiring when any script, Makefile or workflow changed.",
+   "hash": "30d0b1d14599cb75",
+   "does": "For each changed or removed file: parses the new version (inventory; swift_file for Swift), notes which names and types resolution elsewhere depends on changed (a unit added, removed, or with a different name, kind, type or parameters; a stored-closure name; a type whose conformances or held types changed), and replaces the file's rows (files, units with a file node, reference keys, its Swift edges). Then re-resolves the changed Swift files, every Swift file whose references name an affected name or type, and, when conformances changed, every file with units of a type whose family reaches a changed type before or after, and, when held types changed, every file referring to a type that holds a changed one before or after; rebuilds protocol-requirement and same-stored-format edges when any Swift file changed, and build wiring when any script, Makefile or workflow changed.",
    "entry": null,
    "calls": [
-    "scripts/codemap/inventory.py::def inventory",
-    "scripts/codemap/graph.py::def swift_file",
+    "scripts/codemap/graph.py::def Resolver.__init__",
+    "scripts/codemap/graph.py::def Resolver.format_edges",
+    "scripts/codemap/graph.py::def Resolver.protocol_edges",
+    "scripts/codemap/graph.py::def Resolver.resolve_file",
     "scripts/codemap/graph.py::def short",
-    "scripts/codemap/index.py::def _sig",
+    "scripts/codemap/graph.py::def swift_file",
+    "scripts/codemap/graph.py::def wiring_edges",
     "scripts/codemap/index.py::def Index._put_edges",
     "scripts/codemap/index.py::def Index.units",
-    "scripts/codemap/graph.py::def Resolver.__init__",
-    "scripts/codemap/graph.py::def Resolver.resolve_file",
-    "scripts/codemap/graph.py::def Resolver.protocol_edges",
-    "scripts/codemap/graph.py::def wiring_edges"
+    "scripts/codemap/index.py::def _sig",
+    "scripts/codemap/inventory.py::def inventory"
    ],
    "reads": [
     "file:changed in-scope files",
@@ -240,13 +241,14 @@
     }
    ],
    "deps": {
-    "scripts/codemap/graph.py::def Resolver.__init__": "f9bf06f5aedc1eda",
+    "scripts/codemap/graph.py::def Resolver.__init__": "a5ab250add218088",
+    "scripts/codemap/graph.py::def Resolver.format_edges": "f579d9c2814f02c0",
     "scripts/codemap/graph.py::def Resolver.protocol_edges": "49bd746eca6d5130",
     "scripts/codemap/graph.py::def Resolver.resolve_file": "d335821e89a61404",
     "scripts/codemap/graph.py::def short": "8a404d3b33d427f4",
-    "scripts/codemap/graph.py::def swift_file": "ac9eeb4ae15d2775",
+    "scripts/codemap/graph.py::def swift_file": "40b8c8159843538e",
     "scripts/codemap/graph.py::def wiring_edges": "08c37f78e0c7aadb",
-    "scripts/codemap/index.py::def Index._put_edges": "24d197910e3cf371",
+    "scripts/codemap/index.py::def Index._put_edges": "52f20db0e2fb2397",
     "scripts/codemap/index.py::def Index.inv": "5b1b54316dc278b7",
     "scripts/codemap/index.py::def Index.unit": "010dc2859bc0a581",
     "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7",
@@ -353,7 +355,7 @@
    "branches": [],
    "deps": {
     "scripts/codemap/graph.py::def recorded_edges": "5fcffe019357d077",
-    "scripts/codemap/index.py::def Index._put_edges": "24d197910e3cf371",
+    "scripts/codemap/index.py::def Index._put_edges": "52f20db0e2fb2397",
     "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7",
     "scripts/codemap/index.py::def _stamp": "f5e3c319eadf5e29"
    }
@@ -370,8 +372,8 @@
    ],
    "branches": [],
    "deps": {
-    "scripts/codemap/graph.py::def build": "b2ae839c6e336bd3",
-    "scripts/codemap/index.py::def Index.graph": "46ebe012451685a7",
+    "scripts/codemap/graph.py::def build": "2cd6f8201c28e1d6",
+    "scripts/codemap/index.py::def Index.graph": "350d06b0f1b08f9b",
     "scripts/codemap/index.py::def Index.unit": "010dc2859bc0a581"
    }
   },
@@ -390,8 +392,8 @@
   },
   {
    "key": "def Index._combine",
-   "hash": "213d1f5207767f19",
-   "does": "Folds edge rows (other node, certain flag, reason) into {node: 'certain'|'possible'} (certain wins) and {node: reasons of its certain rows}.",
+   "hash": "340da5d8ee407963",
+   "does": "Folds edge rows (other node, rank, reason) into {node: 'certain'|'implicit'|'possible'} (the strongest rank wins) and {node: reasons of its certain and implicit rows}.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -412,12 +414,12 @@
    "branches": [],
    "deps": {
     "scripts/codemap/index.py::def Index.callers_why": "2e144244664e354e",
-    "scripts/codemap/index.py::def Index.graph": "46ebe012451685a7"
+    "scripts/codemap/index.py::def Index.graph": "350d06b0f1b08f9b"
    }
   },
   {
    "key": "def Index.callers_why",
-   "hash": "6502c8086cc49e16",
+   "hash": "2e363550b474ab1b",
    "does": "({caller: kind}, {caller: reasons}) for a node: edge rows into it from existing units other than itself, folded by _combine; empty when the node does not exist.",
    "entry": null,
    "calls": [
@@ -428,7 +430,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/codemap/index.py::def Index._combine": "4c755e67cda74fce",
+    "scripts/codemap/index.py::def Index._combine": "98002a848260f70f",
     "scripts/codemap/index.py::def Index.id": "a3277187274f29e1",
     "scripts/codemap/index.py::def Index.unit": "010dc2859bc0a581",
     "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7"
@@ -436,7 +438,7 @@
   },
   {
    "key": "def Index.callees",
-   "hash": "009ea9c0b04c2f5b",
+   "hash": "81c607f101b0b918",
    "does": "{callee: kind} for a node: edge rows out of it to existing units other than itself, folded by _combine; empty when the node does not exist.",
    "entry": null,
    "calls": [
@@ -447,7 +449,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/codemap/index.py::def Index._combine": "4c755e67cda74fce",
+    "scripts/codemap/index.py::def Index._combine": "98002a848260f70f",
     "scripts/codemap/index.py::def Index.id": "a3277187274f29e1",
     "scripts/codemap/index.py::def Index.unit": "010dc2859bc0a581",
     "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7"
@@ -455,8 +457,8 @@
   },
   {
    "key": "def Index.graph",
-   "hash": "746ca9aba0dd9727",
-   "does": "The whole graph in graph.build's form: every stored edge row with its names, assembled over units().",
+   "hash": "483dfaa17c1e0d4d",
+   "does": "The whole graph in graph.build's form: every stored edge row with its names and its kind from its rank, assembled over units().",
    "entry": null,
    "calls": [
     "scripts/codemap/index.py::def Index.units",
@@ -466,8 +468,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/codemap/graph.py::def assemble": "577bb7649c323fa0",
-    "scripts/codemap/graph.py::def build": "b2ae839c6e336bd3",
+    "scripts/codemap/graph.py::def assemble": "d2079ab22c464584",
+    "scripts/codemap/graph.py::def build": "2cd6f8201c28e1d6",
     "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7"
    }
   },
@@ -680,8 +682,8 @@
    "branches": [],
    "deps": {
     "scripts/codemap/codemap.py::def all_records": "3e3143a0d4a0752c",
-    "scripts/codemap/graph.py::def build": "b2ae839c6e336bd3",
-    "scripts/codemap/index.py::def Index.graph": "46ebe012451685a7",
+    "scripts/codemap/graph.py::def build": "2cd6f8201c28e1d6",
+    "scripts/codemap/index.py::def Index.graph": "350d06b0f1b08f9b",
     "scripts/codemap/index.py::def Index.inv": "5b1b54316dc278b7",
     "scripts/codemap/index.py::def Index.inventory": "82175465c4c8258b",
     "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7",
@@ -691,10 +693,10 @@
   }
  ],
  "deps": {
-  "scripts/codemap/graph.py::def build": "b2ae839c6e336bd3",
+  "scripts/codemap/graph.py::def build": "2cd6f8201c28e1d6",
   "scripts/codemap/index.py::def Index.callees": "cf41a481209e0efb",
   "scripts/codemap/index.py::def Index.callers": "92c14f4eefa087c8",
-  "scripts/codemap/index.py::def Index.graph": "46ebe012451685a7",
+  "scripts/codemap/index.py::def Index.graph": "350d06b0f1b08f9b",
   "scripts/codemap/index.py::def Index.id": "a3277187274f29e1",
   "scripts/codemap/index.py::def Index.inv": "5b1b54316dc278b7",
   "scripts/codemap/index.py::def Index.inventory": "82175465c4c8258b",
