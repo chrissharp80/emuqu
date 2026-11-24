@@ -107,7 +107,7 @@ extension OvernightStreamingCoordinator {
         collector.overnightRun.usesDeviceBackup = useDeviceInternalBackup
         try collector.polarManager.startStreaming()  // primary data source
         // Only once streaming started: a failed start must not leave it sampling.
-        AppDependencies.current.app.systemDiagnosticsManager.startSamplingDuringRecording()
+        collector.services.systemDiagnosticsManager.startSamplingDuringRecording()
         if useDeviceInternalBackup, collector.polarManager.connectedDeviceType != .veritySense {
             launchDeviceRecordingLoop()  // H10-only internal-recording backup
         }
@@ -676,7 +676,7 @@ extension OvernightStreamingCoordinator {
     /// The morning stop and the pause's gather both stop through here.
     func stopStreamingInfrastructure() async -> (HRVSession, [RRPoint], Int) {
         collector.control.stopStreamingTimer()
-        AppDependencies.current.app.systemDiagnosticsManager.stopSamplingAfterRecording()
+        collector.services.systemDiagnosticsManager.stopSamplingAfterRecording()
         collector.streamingLifecycle.isStreamingMode = false
         let baseSession = collector.sessionState.currentSession ?? HRVSession()
         let reconnectCount = collector.polarManager.streamingReconnectCount

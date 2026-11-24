@@ -255,7 +255,7 @@ extension CollectorSessionControl {
         clearPausedSessionState()
         collector.overnightStreaming.startOvernightStreamingTimer()
         // The pause's gather stopped it; the resumed segment samples as a night does.
-        AppDependencies.current.app.systemDiagnosticsManager.startSamplingDuringRecording()
+        collector.services.systemDiagnosticsManager.startSamplingDuringRecording()
         debugLog("[RRCollector] ▶ Resumed overnight streaming. New session: \(session.id.uuidString.prefix(8))")
     }
 

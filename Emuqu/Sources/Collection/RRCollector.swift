@@ -118,6 +118,10 @@ final class RRCollector {
     let analysisPipeline: HRVAnalysisPipeline
     let sleepBoundaryResolver: SleepBoundaryResolver
     let settingsManager: SettingsManager
+    /// The services the collector's parts read beyond its constructor
+    /// arguments: the workout slot, the workout backups, the live-HRV broker,
+    /// the diagnostics sampler and the beat-consistency priors.
+    let services: CollectorServices
     let cloudSyncManager: CloudKitSyncManager
     let acceptanceService: SessionAcceptanceService
     let morningProcessingService: MorningProcessingService
@@ -502,8 +506,10 @@ final class RRCollector {
         streamingLifecycle: StreamingLifecycle? = nil,
         morningCoordination: MorningCoordination? = nil,
         sessionState: SessionState? = nil,
-        scoring: SessionScoringContext? = nil
+        scoring: SessionScoringContext? = nil,
+        services: CollectorServices = CollectorServices(.current)
     ) {
+        self.services = services
         self.polarManager = polarManager
         self.healthKit = healthKit
         self.archive = archive
@@ -520,7 +526,7 @@ final class RRCollector {
         self.scoring = scoring ?? SessionScoringContext(
             settingsManager: settingsManager, healthKit: healthKit, baselineTracker: baselineTracker
         )
-        let resolvedCloudSyncManager = cloudSyncManager ?? AppDependencies.current.storage.cloudKitSyncManager
+        let resolvedCloudSyncManager = cloudSyncManager ?? services.cloudKitSyncManager
         self.cloudSyncManager = resolvedCloudSyncManager
         self.reconciliation = reconciliation ?? ReconciliationManager(archive: archive)
         let resolvedPipeline = analysisPipeline ?? Self.makePipeline(
@@ -623,7 +629,7 @@ final class RRCollector {
         // archive change signal. Cache invalidates on add/delete/merge
         // so stale features can't survive past a session-list change.
         // Reads during HRV view open are zero-archive after first warm.
-        AppDependencies.current.analysis.beatConsistencyPriorsCache.bindToArchiveSignal(self.archiveSignal, archive: self.archive)
+        services.beatConsistencyPriorsCache.bindToArchiveSignal(self.archiveSignal, archive: self.archive)
         installArchivedCopyListener()
         control.restorePausedStateIfNeeded()
         control.refreshRecentPausedSession()
@@ -834,4 +840,23 @@ private func phaseHumanLabel(_ phase: RecordingPhase) -> String {
     case .analyzing: return String(localized: "Analyzing", bundle: bundle)
     case .awaitingAcceptance: return String(localized: "Awaiting session review", bundle: bundle)
     }
+}
+
+/// The services the recording collector's parts read beyond what its
+/// initializer takes, and nothing else. Each accessor resolves on use, as
+/// the container's do, so building a collector constructs none of them.
+struct CollectorServices: Sendable {
+    private let container: AppDependencies
+
+    init(_ container: AppDependencies) { self.container = container }
+
+    @MainActor
+    var beatConsistencyPriorsCache: BeatConsistencyPriorsCache { container.analysis.beatConsistencyPriorsCache }
+    @MainActor
+    var cloudKitSyncManager: CloudKitSyncManager { container.storage.cloudKitSyncManager }
+    var liveHRVBroker: LiveHRVBroker { container.assistant.liveHRVBroker }
+    @MainActor
+    var recorderBox: RecorderBox { container.app.recorderBox }
+    var systemDiagnosticsManager: SystemDiagnosticsManager { container.app.systemDiagnosticsManager }
+    var workoutTrackBackup: WorkoutTrackBackup { container.storage.workoutTrackBackup }
 }

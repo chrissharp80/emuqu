@@ -45,7 +45,7 @@ extension SessionRecoveryCoordinator {
     /// A workout is recording or finishing, so the strap's recording is its
     /// backup. The Record screen's strap-only Stop and Discard leave it alone.
     var strapRecordingBelongsToLiveWorkout: Bool {
-        guard let recorder = AppDependencies.current.app.recorderBox.recorder else { return false }
+        guard let recorder = collector.services.recorderBox.recorder else { return false }
         return recorder.lifecycle.phase == .recording || recorder.lifecycle.phase == .finalizing
     }
 

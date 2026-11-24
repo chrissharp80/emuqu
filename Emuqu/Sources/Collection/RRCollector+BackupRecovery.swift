@@ -28,7 +28,7 @@ extension SessionRecoveryCoordinator {
         if collector.sessionState.isCollecting || collector.streamingLifecycle.isEndingOvernight,
            let id = collector.sessionState.currentSession?.id { ids.insert(id) }
         if let id = collector.streamingLifecycle.pausedSession?.id { ids.insert(id) }
-        if let recorder = AppDependencies.current.app.recorderBox.recorder,
+        if let recorder = collector.services.recorderBox.recorder,
            recorder.lifecycle.phase == .recording || recorder.lifecycle.phase == .finalizing,
            let id = recorder.lifecycle.currentSession?.id {
             ids.insert(id)
@@ -108,7 +108,7 @@ extension SessionRecoveryCoordinator {
     /// (the launch alert's persisted state); see
     /// `SessionRecoveryService.recoveredSessionType`.
     func recoverFromBackup(_ sessionId: UUID, recordedType: SessionType? = nil) async -> HRVSession? {
-        if AppDependencies.current.storage.workoutTrackBackup.retrieve(sessionId) != nil {
+        if collector.services.workoutTrackBackup.retrieve(sessionId) != nil {
             return await recoverWorkoutFromBackup(sessionId)
         }
         let session = await recoverHRVFromBackup(sessionId, recordedType: recordedType)
@@ -187,7 +187,7 @@ extension SessionRecoveryCoordinator {
     /// recovery service falls back to the streamed disk backup it reads on
     /// its own.
     private func strapRecordingForWorkoutRecovery(sessionId: UUID) async -> [RRPoint]? {
-        guard let workoutStart = AppDependencies.current.storage.workoutTrackBackup.retrieve(sessionId)?.header.startDate,
+        guard let workoutStart = collector.services.workoutTrackBackup.retrieve(sessionId)?.header.startDate,
               !strapRecordingBelongsToLiveSession else { return nil }
         let manager = collector.polarManager
         manager.recording.beginTransfer()
@@ -537,14 +537,14 @@ extension SessionRecoveryCoordinator {
         let live = liveRecordingIds()
         if let flagged = flaggedInterruptedWorkoutId(live: live) { return flagged }
         let archive = collector.archive
-        let rawBackup = collector.rawBackup
+        let (rawBackup, tracks) = (collector.rawBackup, collector.services.workoutTrackBackup)
         return await Task.detached(priority: .userInitiated) {
             // Only the last 24h: a genuine crash recovery is for something
             // that just happened, not a stale or corrupt old backup.
             let cutoff = Date().addingTimeInterval(-24 * 60 * 60)
             let candidates = unrecoveredBackupIds(since: cutoff, archive: archive, rawBackup: rawBackup)
                 .filter { !live.contains($0) }
-            return newestWorkoutBackup(among: candidates, in: rawBackup, capturedSince: cutoff)
+            return newestWorkoutBackup(among: candidates, in: rawBackup, tracks: tracks, capturedSince: cutoff)
         }.value
     }
 
@@ -707,8 +707,9 @@ private func unrecoveredBackupIds(since cutoff: Date, archive: SessionArchive, r
 /// The newest of `candidates` that decodes, is dated inside the window by its
 /// own header, and carries a workout track — the checks the index cannot
 /// answer. Only the day's candidates reach here, so only their files are read.
-private func newestWorkoutBackup(among candidates: [UUID], in rawBackup: RawRRBackup, capturedSince cutoff: Date) -> UUID? {
-    let workoutTracks = AppDependencies.current.storage.workoutTrackBackup
+private func newestWorkoutBackup(
+    among candidates: [UUID], in rawBackup: RawRRBackup, tracks workoutTracks: WorkoutTrackBackup, capturedSince cutoff: Date
+) -> UUID? {
     return candidates
         .compactMap { rawBackup.readableBackup($0) }
         .filter { $0.captureDate >= cutoff && workoutTracks.retrieve($0.id) != nil }

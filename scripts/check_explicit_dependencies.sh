@@ -14,7 +14,8 @@
 # the chat view model, its router and tool runner a `ChatServices`, and the
 # assistant's context source and builder a `ContextServices`, and the voice
 # conversation and its audio pipeline a `VoiceServices`, and the AI providers
-# an `AIProviderServices` from the registry), and
+# an `AIProviderServices` from the registry, and the recording collector's
+# parts the `CollectorServices` the collector holds), and
 # their tests construct them with substitutes. One new
 # `AppDependencies.current` read in them hides an edge again and puts the
 # tests back on the live services.
@@ -65,6 +66,7 @@ EXPLICIT_PATTERNS=(
     "Emuqu/Sources/Assistant/VoiceServices.swift"
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift"
     "Emuqu/Sources/Assistant/Providers/*.swift"
+    "Emuqu/Sources/Collection/RRCollector+*.swift"
 )
 APP_DIRS=("Emuqu" "EmuquWatch Watch App")
 

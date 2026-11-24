@@ -340,7 +340,7 @@ extension CollectorSessionControl {
     /// deadlock risk, no `dispatchPrecondition`. Stale-by-one-runloop-tick is
     /// the tradeoff; for "what's happening right now" it's invisible.
     func publishLiveHRVSnapshotsToAssistant() {
-        AppDependencies.current.assistant.liveHRVBroker.registerProvider { [weak collector] in
+        collector.services.liveHRVBroker.registerProvider { [weak collector] in
             guard let collector, let mirror = Self.currentLiveHRVSnapshotMirror(of: collector) else { return nil }
             return Self.liveSnapshot(from: mirror, now: Date())
         }
