@@ -48,7 +48,7 @@ extension PDFReportGenerator {
         let pageRect: CGRect
 
         mutating func ensureSpace(_ needed: CGFloat, y: CGFloat, generator: PDFReportGenerator) -> CGFloat {
-            generator.ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+            generator.sections.ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         }
     }
 
@@ -121,7 +121,7 @@ extension PDFReportGenerator {
         let explanation = summaryExplanationText(summary)
         let explanationHeight = max(55, wrappedHeight(explanation, width: contentWidth - 40))
         let cardHeight = 50 + explanationHeight + 5
-        let color = diagnosticColorForScore(summary.headlineScore)
+        let color = overnight.diagnosticColorForScore(summary.headlineScore)
         drawSummaryCardFrame(color: color, y: y, contentWidth: contentWidth, cardHeight: cardHeight)
         drawSummaryCardCopy(summary, color: color, y: y, contentWidth: contentWidth)
         explanation.pdfDraw(in: CGRect(x: config.margins.left + 20, y: y + 50, width: contentWidth - 40, height: explanationHeight))

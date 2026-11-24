@@ -58,6 +58,6 @@ final class RecoveredWorkoutReviewTests: XCTestCase {
             collector.morningCoordination.recoveredWorkoutReview, card,
             "an unreadable workout is not one with too few beats: the card stays so Save can be tried again"
         )
-        XCTAssertTrue(archive.exists(workout.id), "nothing was rewritten or removed")
+        XCTAssertTrue(archive.store.exists(workout.id), "nothing was rewritten or removed")
     }
 }

@@ -67,7 +67,7 @@ extension EmuquApp {
     private func presentInterruptedSessionAlertIfNeeded() {
         guard let state = collector.getPersistedRecordingState() else { return }
         // Only alert if the session isn't already archived (e.g. auto-archived on background)
-        guard !collector.archive.exists(state.sessionId) else {
+        guard !collector.archive.store.exists(state.sessionId) else {
             collector.clearPersistedRecordingStatePublic()
             return
         }
@@ -202,7 +202,7 @@ extension EmuquApp {
     /// (still to be recovered, or still being recovered when `limit` ran out).
     private func savedByAutoRecovery(_ sessionId: UUID, waitingAtMost limit: TimeInterval) async -> String? {
         await InterruptedWorkoutAutoRecovery.waitUntilDone(sessionId, limit: limit)
-        guard collector.archive.exists(sessionId) else { return nil }
+        guard collector.archive.store.exists(sessionId) else { return nil }
         collector.clearPersistedRecordingStatePublic()
         return String(localized: "Saved to your archive.", bundle: languageManager.bundle)
     }

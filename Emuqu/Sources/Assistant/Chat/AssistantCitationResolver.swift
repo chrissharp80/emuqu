@@ -71,7 +71,7 @@ enum AssistantCitationResolver {
     /// A (yyyy-MM-dd) → most-recent-session-id map from the archive index,
     /// cached until any entry's id or display date changes.
     private static func sessionsByDay(_ archive: SessionArchive) -> [String: UUID] {
-        let entries = archive.entries
+        let entries = archive.store.entries
         let signature = entrySignature(entries)
         let id = ObjectIdentifier(archive)
         if let cached = dayIndex.withLock({ $0 }), cached.archive == id, cached.signature == signature {

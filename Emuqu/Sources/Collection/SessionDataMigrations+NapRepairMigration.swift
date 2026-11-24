@@ -101,7 +101,7 @@ extension SessionDataMigrations {
             defaults.set(true, forKey: Self.napRepairMigrationKey)
             return nil
         }
-        let overnightEntries = archive.entries(from: startDate, to: endDate)
+        let overnightEntries = archive.store.entries(from: startDate, to: endDate)
             .filter { $0.sessionType == .overnight }
         // Without HealthKit on this device there is no nap to fold in, ever.
         guard healthKit.isHealthKitAvailable, !overnightEntries.isEmpty else {

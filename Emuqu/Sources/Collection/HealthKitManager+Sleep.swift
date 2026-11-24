@@ -240,14 +240,6 @@ extension SleepHealthQueries {
         )
     }
 
-    /// Estimate sleep boundaries from recorded RR intervals when the watch
-    /// logged no sleep for the night. The estimator itself lives in
-    /// `HRSleepEstimator`; this is the entry point for callers that reach it
-    /// through the manager.
-    nonisolated static func estimateSleepFromHR(rrPoints: [RRPoint], recordingStart: Date) -> SleepData? {
-        HRSleepEstimator.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: recordingStart)
-    }
-
     /// Asleep intervals only (drops inBed / awake), clipped to the nap window.
     nonisolated private static func asleepIntervals(_ samples: [HKCategorySample], clippedTo window: (start: Date, end: Date)) -> [(start: Date, end: Date)] {
         let asleepValues: Set<Int> = [
@@ -331,7 +323,7 @@ extension SleepHealthQueries {
     ///
     /// Apple Watch records HR every ~10 minutes even without Sleep Mode enabled.
     /// This method queries those passive HR samples and detects sleep using the same
-    /// HR-drop algorithm as `estimateSleepFromHR`, adapted for sparser data.
+    /// HR-drop algorithm as `HRSleepEstimator.estimateSleepFromHR`, adapted for sparser data.
     ///
     /// Use case: user wears Apple Watch overnight but doesn't enable Sleep Focus,
     /// so Apple's native sleep tracking writes no sleep samples to HealthKit.

@@ -269,7 +269,7 @@ extension CollectorSessionControl {
     /// to iCloud again so other devices see it too.
     private func linkChildToParent(childId: UUID, parentId: UUID) {
         do {
-            guard collector.archive.exists(parentId) else { return }
+            guard collector.archive.store.exists(parentId) else { return }
             try collector.archive.update(parentId, requestingReupload: true) { parent in
                 var links = parent.linkedSessionIds ?? []
                 links.append(childId)
@@ -355,7 +355,7 @@ extension CollectorSessionControl {
         var finalSession = paused
         finalSession.state = .complete
         do {
-            guard collector.archive.exists(paused.id) else {
+            guard collector.archive.store.exists(paused.id) else {
                 try collector.archive.archive(finalSession, skipSameNightMerge: false, requestingReupload: true)
                 return finalSession
             }

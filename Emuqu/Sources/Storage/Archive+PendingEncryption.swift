@@ -111,10 +111,10 @@ func reencryptPendingSessions(in archive: SessionArchive) {
 private func reencryptOne(_ id: UUID, in archive: SessionArchive) {
     guard let parked = archive.store.parkedCopies(of: id) else { return }
     let parkedEncrypted = parked.map { reencryptParkedCopy($0, id: id, in: archive) }.allSatisfy { $0 }
-    if archive.exists(id) {
+    if archive.store.exists(id) {
         reencryptArchived(id, in: archive)
         if !parkedEncrypted { PendingEncryptionLedger.record(id) }
-    } else if parkedEncrypted, !parked.isEmpty || archive.wasIntentionallyDeleted(id) {
+    } else if parkedEncrypted, !parked.isEmpty || archive.store.wasIntentionallyDeleted(id) {
         PendingEncryptionLedger.clear(id)
     }
 }

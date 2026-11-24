@@ -226,7 +226,7 @@ enum RouteTRIMPEstimator {
         archive: SessionArchive, from earliest: Date, to latest: Date
     ) -> (runs: [PriorRun], complete: Bool) {
         let cutoff = earliest.addingTimeInterval(-Double(priorLookbackDays) * 86_400)
-        let entries = archive.entries
+        let entries = archive.store.entries
             .filter { $0.sessionType == .workout && $0.date >= cutoff && $0.date <= latest }
             .sorted { $0.date > $1.date }
         var runs: [PriorRun] = []
@@ -343,7 +343,7 @@ enum RouteTRIMPEstimator {
     /// older than `priorLookbackDays` before anything is decoded.
     private static func archivedRuns(archive: SessionArchive, before workoutStart: Date) -> some Sequence<PriorRun> {
         let cutoff = workoutStart.addingTimeInterval(-Double(priorLookbackDays) * 86_400)
-        return archive.entries
+        return archive.store.entries
             .filter { $0.sessionType == .workout && ($0.endDate ?? $0.date) <= workoutStart && $0.date >= cutoff }
             .sorted { $0.date > $1.date }
             .lazy

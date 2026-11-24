@@ -178,14 +178,14 @@ final class LiveReadinessTests: XCTestCase {
         // Past a full day the interpolation has landed on the live ATL/CTL, so
         // the score is the calculator's output for those with no freshness
         // bonus at all.
-        let unbiased = RecoveryScoreCalculator.calculateReadiness(
+        let unbiased = ReadinessScoring.calculateReadiness(
             recoveryScore: 70, todayTrimp: 0, ctl: 40, atl: 35,
             morningATL: nil, acuteChronicRatio: 35.0 / 40.0
         )
         XCTAssertEqual(r.score, unbiased, accuracy: 0.01)
         // Measured from yesterday's ATL of 60, the 25-unit drop would mint the
         // capped bonus; the suppression is what keeps the score below that.
-        let withYesterdaysBonus = RecoveryScoreCalculator.calculateReadiness(
+        let withYesterdaysBonus = ReadinessScoring.calculateReadiness(
             recoveryScore: 70, todayTrimp: 0, ctl: 40, atl: 35,
             morningATL: 60, acuteChronicRatio: 35.0 / 40.0
         )

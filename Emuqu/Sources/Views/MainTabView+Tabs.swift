@@ -107,7 +107,7 @@ extension MainTabView {
             // Compute the true archive count off the main thread too, so the
             // body doesn't read `archive.entries.count` (lock + potential
             // full-index re-sort) on every render.
-            let count = await Task.detached { archiveRef.entries.count }.value
+            let count = await Task.detached { archiveRef.store.entries.count }.value
             timing.countedAt = Date()
             await MainActor.run { [timing] in
                 applyDashboardLoad(loaded, count: count, timing: timing)

@@ -160,7 +160,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertEqual(collector.sessionState.reviewArchivedSessionId, night.id)
         await collector.rejectSession()
 
-        XCTAssertFalse(archive.entries.contains { $0.sessionId == night.id }, "Discard left the recovered night in History")
+        XCTAssertFalse(archive.store.entries.contains { $0.sessionId == night.id }, "Discard left the recovered night in History")
     }
 
     /// A strap armed two hours into a night was downloaded into that night:
@@ -206,11 +206,11 @@ final class StrapRecoveryFlowTests: XCTestCase {
     func testARewrittenNightIsAnotherCopyForTheRebuild() throws {
         let night = completeNight()
         _ = try archive.archive(night, skipSameNightMerge: true)
-        let decoded = RRCollector.ArchivedCopy(try XCTUnwrap(archive.entries.first { $0.sessionId == night.id }))
+        let decoded = RRCollector.ArchivedCopy(try XCTUnwrap(archive.store.entries.first { $0.sessionId == night.id }))
 
         try archive.update(night.id, requestingReupload: false) { $0.notes = "from iCloud" }
 
-        let rewritten = try XCTUnwrap(archive.entries.first { $0.sessionId == night.id }.map(RRCollector.ArchivedCopy.init))
+        let rewritten = try XCTUnwrap(archive.store.entries.first { $0.sessionId == night.id }.map(RRCollector.ArchivedCopy.init))
         XCTAssertEqual(rewritten.sessionId, decoded.sessionId)
         XCTAssertNotEqual(rewritten, decoded, "the rewrite is not reused")
     }

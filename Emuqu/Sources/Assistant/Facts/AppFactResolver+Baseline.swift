@@ -45,7 +45,7 @@ struct BaselineNamespace: FactNamespaceResolver {
     /// RMSSD baseline matches the app's `BaselineTracker` (which does too).
     /// Each resolver reads this once and derives everything else from it.
     private func samples() -> [Sample] {
-        archive.entries
+        archive.store.entries
             .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
             .sorted { $0.date < $1.date }
             .compactMap { sample(for: $0) }
@@ -123,7 +123,7 @@ struct BaselineNamespace: FactNamespaceResolver {
     }
 
     private func baselineAvailability() -> Availability {
-        let entries = archive.entries.filter { $0.sessionType == .overnight }
+        let entries = archive.store.entries.filter { $0.sessionType == .overnight }
         guard !entries.isEmpty,
               let earliest = entries.map(\.date).min(),
               let latest = entries.map(\.date).max()

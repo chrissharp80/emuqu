@@ -120,7 +120,7 @@ enum ReportBaselineNights {
     static let count = BaselineTracker.recoveryWindowNights
 
     static func before(_ night: Date, archive: SessionArchive, sleepSchedule: SleepSchedule) -> [HRVSession] {
-        let entries = archive.entries
+        let entries = archive.store.entries
             .filter { $0.sessionType == .overnight && $0.date < night }
             .sorted { $0.date > $1.date }
         let reportedNight = sleepSchedule.nightKey(for: night)

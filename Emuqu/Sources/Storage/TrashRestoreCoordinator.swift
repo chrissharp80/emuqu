@@ -77,8 +77,8 @@ struct TrashRestoreCoordinator {
     /// empty this device's Trash copy, which nothing lists any more.
     func adoptFromAnotherDevice(_ sessionId: UUID) {
         do {
-            try manager.archive.unmarkAsDeleted(sessionId)
-            manager.archive.discardTrashed(sessionId)
+            try manager.archive.store.unmarkAsDeleted(sessionId)
+            manager.archive.store.discardTrashed(sessionId)
             debugLog("[CloudKit] \(sessionId.uuidString.prefix(8)) was restored on another device — dropping this device's deletion", level: .info)
         } catch {
             debugLog("[CloudKit] Could not adopt the restore of \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)

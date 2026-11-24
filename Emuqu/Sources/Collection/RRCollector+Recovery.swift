@@ -135,7 +135,7 @@ extension SessionRecoveryCoordinator {
               StrapRecordingPolicy.recording(startedAt: start, belongsToSessionStartedAt: persisted.startTime)
         else { return nil }
         debugLog("[Recovery] Recording started \(start), during the persisted session \(persisted.sessionId.uuidString.prefix(8))")
-        let existing = collector.archive.exists(persisted.sessionId) ? collector.archive.retrieveOrLog(persisted.sessionId) : nil
+        let existing = collector.archive.store.exists(persisted.sessionId) ? collector.archive.retrieveOrLog(persisted.sessionId) : nil
         return DeviceRecordingSession.DownloadPlacement(
             sessionId: persisted.sessionId, sessionType: persisted.sessionType, startDate: persisted.startTime,
             deviceProvenance: existing?.deviceProvenance ?? collector.deviceRecording.deviceRecordingProvenance(),
@@ -153,7 +153,7 @@ extension SessionRecoveryCoordinator {
         let end = start.addingTimeInterval(StrapExerciseDecoder.durationSeconds(of: recording.points))
         let span = SessionMerger.span(start: start, end: end)
         let allowsSameSleep = settings.sessionMergeMode != .off && recording.startedAt != nil
-        for entry in collector.archive.entries where entry.sessionType == .overnight {
+        for entry in collector.archive.store.entries where entry.sessionType == .overnight {
             let relation = SessionMerger.relation(
                 of: span, to: SessionMerger.span(of: entry), mergeGap: settings.effectiveMergeGapSeconds
             )

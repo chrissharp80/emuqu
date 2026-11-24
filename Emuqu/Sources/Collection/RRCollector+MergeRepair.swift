@@ -83,7 +83,7 @@ extension SessionRecoveryCoordinator {
     /// the index's `linkedSessionIds` — avoids loading sessions from disk just
     /// to check whether they have links (saves ~700KB per session).
     nonisolated private func linkedOvernightEntries() async -> [SessionArchiveEntry] {
-        let entries = await MainActor.run { collector.archive.entries }
+        let entries = await MainActor.run { collector.archive.store.entries }
         let linkedEntries = entries.filter { entry in
             entry.sessionType == .overnight &&
                 entry.linkedSessionIds != nil &&

@@ -347,7 +347,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
         try testArchive.archive(session)
 
         // Verify it exists
-        XCTAssertTrue(testArchive.exists(session.id))
+        XCTAssertTrue(testArchive.store.exists(session.id))
 
         // Retrieve
         let retrieved = try testArchive.retrieve(session.id)

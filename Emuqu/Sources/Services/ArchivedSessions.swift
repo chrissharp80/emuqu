@@ -10,7 +10,7 @@ struct ArchivedSessions: Sendable {
     private let load: @Sendable (UUID) -> HRVSession?
 
     init(archive: SessionArchive, caller: String) {
-        entries = archive.entries
+        entries = archive.store.entries
         load = { archive.retrieveOrLog($0, caller: caller) }
     }
 

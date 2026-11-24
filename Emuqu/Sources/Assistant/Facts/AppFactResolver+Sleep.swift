@@ -54,7 +54,7 @@ enum OvernightArchive {
     /// any HRV-bearing type means all four `hrv.*` / `sleep.*` / `vitals.*` /
     /// `recovery.*` namespaces vanish from the tool catalog.
     static func availability(_ archive: SessionArchive) -> Availability {
-        let dates = archive.entries
+        let dates = archive.store.entries
             .filter { hrvBearingTypes.contains($0.sessionType) }
             .map(\.date)
         guard let earliest = dates.min(), let latest = dates.max() else {
@@ -115,7 +115,7 @@ enum OvernightArchive {
     }
 
     private static func reliableEntries(_ archive: SessionArchive, scoredOnly: Bool) -> [SessionArchiveEntry] {
-        archive.entries.filter {
+        archive.store.entries.filter {
             hrvBearingTypes.contains($0.sessionType) && $0.isReliableForHRVAggregates
                 && (!scoredOnly || $0.recoveryScore != nil)
         }

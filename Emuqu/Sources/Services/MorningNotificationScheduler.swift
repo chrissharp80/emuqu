@@ -315,7 +315,7 @@ final class MorningNotificationScheduler {
 
     private static func overnightNights(in archive: SessionArchive) -> Int {
         let calendar = Calendar.current
-        let nights = archive.entries
+        let nights = archive.store.entries
             .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
             .map { calendar.startOfDay(for: $0.date) }
         return Set(nights).count
@@ -335,7 +335,7 @@ final class MorningNotificationScheduler {
     /// dashboard show the same number.
     private static func todaysScore(in archive: SessionArchive) -> Int? {
         let calendar = Calendar.current
-        let entries = archive.entries
+        let entries = archive.store.entries
             .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates && calendar.isDateInToday($0.endDate ?? $0.date) }
             .sorted { recordedSeconds($0) > recordedSeconds($1) }
             .prefix(7)

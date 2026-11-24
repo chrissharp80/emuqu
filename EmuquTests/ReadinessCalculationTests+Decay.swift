@@ -11,7 +11,7 @@ extension ReadinessCalculationTests {
     // MARK: - ACWR Suppression
 
     func testNoACWRPenaltyInSweetSpot() {
-        let withACWR = RecoveryScoreCalculator.calculateReadiness(
+        let withACWR = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 50,
@@ -19,7 +19,7 @@ extension ReadinessCalculationTests {
             morningATL: nil,
             acuteChronicRatio: 1.0
         )
-        let withoutACWR = RecoveryScoreCalculator.calculateReadiness(
+        let withoutACWR = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 50,
@@ -36,7 +36,7 @@ extension ReadinessCalculationTests {
     }
 
     func testACWRPenaltyAbove1_3() {
-        let base = RecoveryScoreCalculator.calculateReadiness(
+        let base = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 50,
@@ -44,7 +44,7 @@ extension ReadinessCalculationTests {
             morningATL: nil,
             acuteChronicRatio: nil
         )
-        let suppressed = RecoveryScoreCalculator.calculateReadiness(
+        let suppressed = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 50,
@@ -56,7 +56,7 @@ extension ReadinessCalculationTests {
     }
 
     func testACWRPenaltyCapped() {
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 50,
@@ -74,7 +74,7 @@ extension ReadinessCalculationTests {
     func testNoDetrainingPenaltyBelowSweetSpot() {
         // ACWR < 0.8 should NOT penalize readiness — short rest periods
         // are recovery, not detraining (Impellizzeri et al. 2020).
-        let atSweetSpot = RecoveryScoreCalculator.calculateReadiness(
+        let atSweetSpot = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 50,
@@ -82,7 +82,7 @@ extension ReadinessCalculationTests {
             morningATL: nil,
             acuteChronicRatio: 0.8
         )
-        let wellBelow = RecoveryScoreCalculator.calculateReadiness(
+        let wellBelow = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 50,
@@ -102,7 +102,7 @@ extension ReadinessCalculationTests {
 
     func testATLDissipationBonus() {
         // Morning ATL=60, current ATL=55 → 5 points of fatigue cleared.
-        let withDissipation = RecoveryScoreCalculator.calculateReadiness(
+        let withDissipation = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 50,
@@ -110,7 +110,7 @@ extension ReadinessCalculationTests {
             morningATL: 60,
             acuteChronicRatio: nil
         )
-        let withoutDissipation = RecoveryScoreCalculator.calculateReadiness(
+        let withoutDissipation = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 50,
@@ -131,7 +131,7 @@ extension ReadinessCalculationTests {
         // must score exactly what a drop that just reaches the cap scores.
         let r = RecoveryScoreConstants.Readiness.self
         func readiness(morningATL: Double?) -> Double {
-            RecoveryScoreCalculator.calculateReadiness(
+            ReadinessScoring.calculateReadiness(
                 recoveryScore: 60,
                 todayTrimp: 0,
                 ctl: 50,
@@ -156,7 +156,7 @@ extension ReadinessCalculationTests {
     func testRecoveryModulatesReadiness() {
         // Different recovery scores, same training state → different readiness.
         // Recovery reflects actual autonomic state (Plews et al. 2013).
-        let readinessGoodRecovery = RecoveryScoreCalculator.calculateReadiness(
+        let readinessGoodRecovery = ReadinessScoring.calculateReadiness(
             recoveryScore: 95,
             todayTrimp: 100,
             ctl: 50,
@@ -164,7 +164,7 @@ extension ReadinessCalculationTests {
             morningATL: nil,
             acuteChronicRatio: nil
         )
-        let readinessPoorRecovery = RecoveryScoreCalculator.calculateReadiness(
+        let readinessPoorRecovery = ReadinessScoring.calculateReadiness(
             recoveryScore: 40,
             todayTrimp: 100,
             ctl: 50,
@@ -184,7 +184,7 @@ extension ReadinessCalculationTests {
     // MARK: - Edge Cases
 
     func testReadinessNeverNegative() {
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 10,
             todayTrimp: 500,
             ctl: 0,
@@ -196,7 +196,7 @@ extension ReadinessCalculationTests {
     }
 
     func testReadinessLowForExtremeOverload() {
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 50,
@@ -223,7 +223,7 @@ extension ReadinessCalculationTests {
         // Just finished a 120-TRIMP workout (hoursAgo ≈ 0.5).
         // Model readiness ≈ 24, recovery uplift: 24 + (90-24)*0.30 ≈ 44.
         let loads = [RecoveryScoreCalculator.WorkoutLoad(hoursAgo: 0.5, trimp: 120)]
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 120,
             ctl: 40,
@@ -250,7 +250,7 @@ extension ReadinessCalculationTests {
         // ATL would have absorbed more by now (≈43 from EWMA step), so
         // effectiveLoad = 43 + 13.3 = 56.3, ratio = 1.41 → readiness ≈ 42.
         let loads = [RecoveryScoreCalculator.WorkoutLoad(hoursAgo: 24, trimp: 120)]
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 40,
@@ -271,7 +271,7 @@ extension ReadinessCalculationTests {
         // acuteFatigue = 120 × 0.30 × exp(-48/24) = 36 × 0.135 = 4.9.
         // ATL has decayed to ≈37, effectiveLoad = 37 + 4.9 = 41.9, ratio = 1.05 → ~67.
         let loads = [RecoveryScoreCalculator.WorkoutLoad(hoursAgo: 48, trimp: 120)]
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 90,
             todayTrimp: 0,
             ctl: 40,
@@ -297,7 +297,7 @@ extension ReadinessCalculationTests {
             // Simulate ATL absorbing the workout over time (simplified)
             let atlAbsorbed = trimp * (1 - exp(-hours / (7 * 24)))
             let currentATL = baseATL + atlAbsorbed * (1.0 / 7.0)
-            let readiness = RecoveryScoreCalculator.calculateReadiness(
+            let readiness = ReadinessScoring.calculateReadiness(
                 recoveryScore: 90,
                 todayTrimp: hours < 24 ? trimp : 0,
                 ctl: 40,
@@ -323,11 +323,11 @@ extension ReadinessCalculationTests {
         let loads11pm = [RecoveryScoreCalculator.WorkoutLoad(hoursAgo: 3, trimp: 100)]
         let loads1am = [RecoveryScoreCalculator.WorkoutLoad(hoursAgo: 5, trimp: 100)]
 
-        let readiness11pm = RecoveryScoreCalculator.calculateReadiness(
+        let readiness11pm = ReadinessScoring.calculateReadiness(
             recoveryScore: 85, todayTrimp: 100, ctl: 40, atl: 32,
             recentWorkoutLoads: loads11pm
         )
-        let readiness1am = RecoveryScoreCalculator.calculateReadiness(
+        let readiness1am = ReadinessScoring.calculateReadiness(
             recoveryScore: 85, todayTrimp: 0, ctl: 40, atl: 32,
             recentWorkoutLoads: loads1am
         )
@@ -348,11 +348,11 @@ extension ReadinessCalculationTests {
 
     func testFallbackToLegacyWithoutWorkoutLoads() {
         // When recentWorkoutLoads is nil, should use the todayTrimp × 0.35 fallback.
-        let withLoads = RecoveryScoreCalculator.calculateReadiness(
+        let withLoads = ReadinessScoring.calculateReadiness(
             recoveryScore: 90, todayTrimp: 100, ctl: 50, atl: 40,
             recentWorkoutLoads: [.init(hoursAgo: 0.5, trimp: 100)]
         )
-        let withoutLoads = RecoveryScoreCalculator.calculateReadiness(
+        let withoutLoads = ReadinessScoring.calculateReadiness(
             recoveryScore: 90, todayTrimp: 100, ctl: 50, atl: 40,
             recentWorkoutLoads: nil
         )
@@ -370,7 +370,7 @@ extension ReadinessCalculationTests {
         // readiness ~85. With good recovery (80), readiness should clearly
         // indicate "ready."
         let rested = TrainingLoadSeries.Point(atl: 48, ctl: 49).stepped(load: 0).stepped(load: 0)
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 80,
             todayTrimp: 0,
             ctl: rested.ctl,
@@ -393,7 +393,7 @@ extension ReadinessCalculationTests {
         var atl: Double = 50
         for day in 0 ..< 3 {
             let acr = atl / ctl
-            let readiness = RecoveryScoreCalculator.calculateReadiness(
+            let readiness = ReadinessScoring.calculateReadiness(
                 recoveryScore: 75,
                 todayTrimp: 0,
                 ctl: ctl,

@@ -24,6 +24,6 @@ struct OvernightReportRenderer {
     }
 
     func drawCompactStatBox(title: String, value: String, color: UIColor, rect: CGRect) {
-        generator.drawCompactStatBox(title: title, value: value, color: color, rect: rect)
+        generator.sections.drawCompactStatBox(title: title, value: value, color: color, rect: rect)
     }
 }

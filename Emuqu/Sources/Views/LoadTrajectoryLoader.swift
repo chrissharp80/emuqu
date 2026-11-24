@@ -92,7 +92,7 @@ struct LoadTrajectoryLoader: View {
 
     @MainActor
     private func workoutRows(on day: Date) async -> [LoadTrajectoryView.RecentWorkout] {
-        let entries = collector.archive.entries
+        let entries = collector.archive.store.entries
             .filter { $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: day) }
             .sorted { $0.date < $1.date }
         let archived = await workoutRows(for: entries)
@@ -211,7 +211,7 @@ struct LoadTrajectoryLoader: View {
     private func loadRecentWorkouts() async {
         recentWorkoutsGeneration += 1
         let generation = recentWorkoutsGeneration
-        let entrySnapshot = collector.archive.entries
+        let entrySnapshot = collector.archive.store.entries
             .filter { $0.sessionType == .workout }
             .sorted { $0.date > $1.date }
             .prefix(20)

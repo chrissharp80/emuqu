@@ -412,7 +412,7 @@ final class IntegrationTests: XCTestCase {
         let tinyStart = currentEnd.addingTimeInterval(60)
         let tiny = LinkedSegmentInfo(id: UUID(), startDate: tinyStart, endDate: tinyStart.addingTimeInterval(2 * 60))
 
-        let normalized = SessionArchive.normalizedSplitNightSegments(
+        let normalized = ArchiveStore.normalizedSplitNightSegments(
             currentSessionId: UUID(),
             currentStartDate: currentStart,
             currentEndDate: currentEnd,
@@ -432,7 +432,7 @@ final class IntegrationTests: XCTestCase {
 
         let linked = LinkedSegmentInfo(id: UUID(), startDate: firstStart, endDate: firstEnd)
 
-        let normalized = SessionArchive.normalizedSplitNightSegments(
+        let normalized = ArchiveStore.normalizedSplitNightSegments(
             currentSessionId: UUID(),
             currentStartDate: secondStart,
             currentEndDate: secondEnd,
@@ -461,7 +461,7 @@ final class IntegrationTests: XCTestCase {
         let currentStart = linkedA.startDate
         let currentEnd = currentStart.addingTimeInterval(5 * 60)
 
-        let normalized = SessionArchive.normalizedSplitNightSegments(
+        let normalized = ArchiveStore.normalizedSplitNightSegments(
             currentSessionId: UUID(),
             currentStartDate: currentStart,
             currentEndDate: currentEnd,

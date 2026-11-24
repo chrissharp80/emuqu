@@ -321,7 +321,7 @@ final class SleepBoundaryResolver: Sendable {
         sessionStart: Date
     ) -> SleepBoundaries? {
         // Try static estimation from HealthKitManager (uses HR patterns)
-        if let estimation = SleepHealthQueries.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: sessionStart) {
+        if let estimation = HRSleepEstimator.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: sessionStart) {
             let startMs = estimation.sleepStart.flatMap { MillisecondOffset.between($0, and: sessionStart) }
             let endMs = estimation.sleepEnd.flatMap { MillisecondOffset.between($0, and: sessionStart) }
             if startMs != nil || endMs != nil {

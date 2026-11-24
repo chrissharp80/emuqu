@@ -73,7 +73,7 @@ enum SleepBoundaryWrite {
     static func write(_ edit: Edit, readFrom read: HRVSession, inputs: Inputs, to archive: SessionArchive) throws -> Outcome {
         logBoundaryUpdate(edit, on: read)
         guard edit.isUserAdjustment || shouldApplyAutomaticUpdate(edit, to: read) else { return .declined }
-        guard archive.exists(read.id) else {
+        guard archive.store.exists(read.id) else {
             debugLog("[UpdateSleepBounds] Bailed: session \(read.id.uuidString.prefix(8)) not in archive")
             return .notArchived
         }

@@ -118,7 +118,7 @@ extension DeviceRecordingSession {
                 deviceProvenance: deviceRecordingProvenance(), existing: nil
             )
         }
-        let archived = collector.archive.exists(base.id) ? collector.archive.retrieveOrLog(base.id) : nil
+        let archived = collector.archive.store.exists(base.id) ? collector.archive.retrieveOrLog(base.id) : nil
         return DownloadPlacement(
             sessionId: base.id, sessionType: base.sessionType, startDate: base.startDate,
             deviceProvenance: base.deviceProvenance ?? deviceRecordingProvenance(), existing: archived
@@ -144,7 +144,7 @@ extension DeviceRecordingSession {
         let session = await analyzeAndAssemble(placement: placement, series: series, summary: merged.summary)
         // A night already in the archive is replaced only on Accept, so
         // Discard leaves it exactly as it was.
-        if !collector.archive.exists(session.id) { collector.morning.archiveForReview(session) }
+        if !collector.archive.store.exists(session.id) { collector.morning.archiveForReview(session) }
         return session
     }
 
@@ -301,7 +301,7 @@ extension DeviceRecordingSession {
     /// its own start instead.
     private func findRecoverableArchivedSession() -> HRVSession? {
         let cutoff = Date().addingTimeInterval(-24 * 3600)
-        let candidates = collector.archive.entries
+        let candidates = collector.archive.store.entries
             .filter { Self.looksLikeUnresolvedOvernight($0, cutoff: cutoff) }
             .sorted { $0.date > $1.date }
         guard let best = candidates.first else { return nil }

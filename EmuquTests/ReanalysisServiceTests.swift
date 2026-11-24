@@ -286,7 +286,7 @@ final class ReanalysisServiceTests: XCTestCase {
 
         guard case .notArchived = outcome else { return XCTFail("expected no write, got \(outcome)") }
         XCTAssertNil(outcome.written)
-        XCTAssertFalse(archive.exists(session.id), "A rescore archived a session the archive did not hold")
+        XCTAssertFalse(archive.store.exists(session.id), "A rescore archived a session the archive did not hold")
     }
 
     /// A rescore that finishes while "Delete All My Data" runs is refused by

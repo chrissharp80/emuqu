@@ -219,10 +219,10 @@ struct ReportsListView: View {
     nonisolated private static func buildRows() -> [ReportRow] {
         var archive: SessionArchive { AppDependencies.current.storage.sessionArchive }
         let cutoff = Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date.distantPast
-        let workoutEntries = archive.entries
+        let workoutEntries = archive.store.entries
             .filter { $0.sessionType == .workout && $0.date >= cutoff }
             .sorted { $0.date > $1.date }
-        let overnightEntries = archive.entries
+        let overnightEntries = archive.store.entries
             .filter { $0.sessionType == .overnight && $0.date >= cutoff }
             .sorted { $0.date > $1.date }
         let overnights = lightweightSessions(overnightEntries, archive: archive)

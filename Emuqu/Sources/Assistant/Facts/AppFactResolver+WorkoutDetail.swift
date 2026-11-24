@@ -721,7 +721,7 @@ enum SegmentPointSampler {
         in archive: SessionArchive, near target: CLLocation, radius: Double,
         include: (SessionArchiveEntry) -> Bool = { _ in true }
     ) -> [FactValue] {
-        let entries = archive.entries.filter { $0.sessionType == .workout && include($0) }.sorted { $0.date > $1.date }
+        let entries = archive.store.entries.filter { $0.sessionType == .workout && include($0) }.sorted { $0.date > $1.date }
         var tracksRead = 0
         var out: [FactValue] = []
         for entry in entries.prefix(lookbackScanLimit) where tracksRead < lookbackGPSWorkouts {

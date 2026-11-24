@@ -753,7 +753,7 @@ extension OvernightStreamingCoordinator {
     /// whose pre-archive failed keeps it until Accept saves the night, so a
     /// crash on the review card still offers the night at launch.
     private func clearPersistedStateIfSaved(_ finalSession: HRVSession) {
-        guard finalSession.state != .complete || collector.archive.exists(finalSession.id) else {
+        guard finalSession.state != .complete || collector.archive.store.exists(finalSession.id) else {
             debugLog("[RRCollector] Night \(finalSession.id.uuidString.prefix(8)) is not in the archive — keeping its recording marker until Accept", level: .warning)
             return
         }

@@ -361,11 +361,11 @@ extension WorkoutSessionLifecycle {
     private func installConversationContextProviders() {
         recorder.conversation.contextSnapshotProvider = { [weak recorder] in
             guard let recorder, let sport = recorder.currentSession?.sport else { return nil }
-            return recorder.buildContext(sport: sport).asFactSheet()
+            return recorder.aiContext.buildContext(sport: sport).asFactSheet()
         }
         recorder.conversation.liveWorkoutSnapshotProvider = { [weak recorder] in
             guard let recorder, let sport = recorder.currentSession?.sport else { return nil }
-            return recorder.buildContext(sport: sport)
+            return recorder.aiContext.buildContext(sport: sport)
         }
     }
 
@@ -447,7 +447,7 @@ extension WorkoutSessionLifecycle {
     /// comparable to historical logs.
     func wireEarlyHRObservationAndStampAnnounce(effectiveSource: HRSource) {
         if effectiveSource == .strap {
-            recorder.observeHeartRate()
+            recorder.ticker.observeHeartRate()
         }
         AppDependencies.current.collection.workoutStartLatencyTracker.recordAnnounceFire()
     }
@@ -708,7 +708,7 @@ extension WorkoutSessionLifecycle {
             stamps.mark("watch")
             recorder.session.loadIntervalPlan(intervalPlan, startAt: startDate)
             stamps.mark("intervals")
-            recorder.startTicker()
+            recorder.ticker.startTicker()
             stamps.mark("ticker")
             debugLog("[Recorder.start] tail-task " + stamps.breakdown())
         }

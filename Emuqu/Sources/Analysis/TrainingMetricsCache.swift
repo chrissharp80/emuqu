@@ -166,7 +166,7 @@ final class TrainingMetricsCache {
     /// the full rebuild the persistence exists to skip.
     private func workoutFingerprint() -> String {
         var digest = SHA256()
-        let workouts = archiveSource().entries
+        let workouts = archiveSource().store.entries
             .filter { $0.sessionType == .workout }
             .sorted { $0.sessionId.uuidString < $1.sessionId.uuidString }
         for entry in workouts {

@@ -94,7 +94,7 @@ extension RecoveryScoreCalculator {
         referenceDate: Date
     ) -> (days: Int, penalty: Double)? {
         guard let lastDate = stats.lastDataPointDate else { return nil }
-        let daysSince = baselineStalenessDays(baselineDate: lastDate, referenceDate: referenceDate)
+        let daysSince = ScoreDetailBuilder.baselineStalenessDays(baselineDate: lastDate, referenceDate: referenceDate)
         guard daysSince >= RecoveryScoreConstants.BaselineStaleness.staleAfterDays else { return nil }
         let weeksStale = Double(daysSince - RecoveryScoreConstants.BaselineStaleness.staleAfterDays) / 7.0
         let penalty = min(

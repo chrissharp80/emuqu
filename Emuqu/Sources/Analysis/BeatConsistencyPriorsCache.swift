@@ -196,7 +196,7 @@ final class BeatConsistencyPriorsCache {
     /// touched because per-session features are immutable.
     private func reconcileAgainstBoundArchive() {
         guard let archive = boundArchive else { return }
-        let liveIds = Set(archive.entries.map(\.sessionId))
+        let liveIds = Set(archive.store.entries.map(\.sessionId))
         let stale = entries.keys.filter { !liveIds.contains($0) }
         let staleFeatureless = featureless.subtracting(liveIds)
         guard !stale.isEmpty || !staleFeatureless.isEmpty else { return }
@@ -306,7 +306,7 @@ final class BeatConsistencyPriorsCache {
             guard let prior = try? archive.retrieve(id) else { return .unavailable }
             return Self.baselineFeatures(from: prior).map(WarmOutcome.features) ?? WarmOutcome.featureless
         }.value
-        guard archive.exists(id) else { return }
+        guard archive.store.exists(id) else { return }
         switch outcome {
         case let .features(features): store(features, for: id)
         case .featureless: markFeatureless(id)

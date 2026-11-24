@@ -47,7 +47,7 @@ final class SessionDiscardTests: XCTestCase {
     }
 
     private func isArchived(_ id: UUID) -> Bool {
-        archive.entries.contains { $0.sessionId == id }
+        archive.store.entries.contains { $0.sessionId == id }
     }
 
     private func review(_ night: HRVSession, savedForReview: UUID?, on collector: RRCollector) {
@@ -65,7 +65,7 @@ final class SessionDiscardTests: XCTestCase {
         await collector.rejectSession()
 
         XCTAssertFalse(isArchived(night.id), "The discarded night is still in history")
-        XCTAssertTrue(archive.wasIntentionallyDeleted(night.id), "No tombstone: a sync could re-add the night")
+        XCTAssertTrue(archive.store.wasIntentionallyDeleted(night.id), "No tombstone: a sync could re-add the night")
         XCTAssertTrue(isArchived(earlier.id))
         XCTAssertNil(collector.sessionState.reviewArchivedSessionId)
         XCTAssertNil(collector.sessionState.currentSession)
@@ -82,7 +82,7 @@ final class SessionDiscardTests: XCTestCase {
         await collector.rejectSession()
 
         XCTAssertTrue(isArchived(night.id))
-        XCTAssertFalse(archive.wasIntentionallyDeleted(night.id))
+        XCTAssertFalse(archive.store.wasIntentionallyDeleted(night.id))
     }
 
     func testDiscardNeverRemovesANightOtherThanTheOneUnderReview() async throws {
@@ -139,7 +139,7 @@ final class SessionDiscardTests: XCTestCase {
         await collector.rejectSession()
 
         XCTAssertTrue(isArchived(night.id), "Discard removed the night the recording was folded into")
-        XCTAssertFalse(archive.wasIntentionallyDeleted(night.id))
+        XCTAssertFalse(archive.store.wasIntentionallyDeleted(night.id))
         XCTAssertNil(collector.sessionState.reviewFoldedIntoSessionId)
     }
 

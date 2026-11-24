@@ -9,10 +9,8 @@ import SwiftUI
 /// session, the settings object and the GPS track; `units` reads the
 /// process-wide store.
 ///
-/// `elevationSeries` and `hrrProvenanceLabel` are statics here. Both touch
-/// no instance state, and this is the only place
-/// that needs them beyond the share sheet, which reaches them through a
-/// forwarder.
+/// `elevationSeries` and `hrrProvenanceLabel` are statics here: both touch
+/// no instance state, and only these cards use them.
 ///
 /// Deliberately NOT a `View`: it returns view trees into the host view's
 /// body, so SwiftUI view identity, animation and `@State` stay the host's.

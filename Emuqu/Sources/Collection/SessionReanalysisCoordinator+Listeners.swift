@@ -218,7 +218,7 @@ extension SessionReanalysisCoordinator {
     /// overnight session) would freeze the UI on resume. A read that throws is
     /// logged at `.error` and treated as no session.
     private func loadTodaysOvernightSession() async -> HRVSession? {
-        let candidateEntry = archive.entries
+        let candidateEntry = archive.store.entries
             .filter { $0.sessionType == .overnight }
             .sorted { $0.date > $1.date }
             .first { Date().timeIntervalSince($0.endDate ?? $0.date) < 18 * 60 * 60 }

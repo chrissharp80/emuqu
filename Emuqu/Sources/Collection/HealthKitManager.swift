@@ -371,7 +371,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     ) async -> (exported: Int, skipped: Int, failed: Int) {
         guard isHealthKitAvailable, workoutWriteAuthorized else { return (0, 0, 0) }
         await PendingWorkoutReplacements.finish(in: sampleReplacer.store)
-        let candidates = archive.entries.filter { $0.sessionType == .workout }
+        let candidates = archive.store.entries.filter { $0.sessionType == .workout }
         let watermark = Self.backfillWatermark(candidates)
         if UserDefaults.standard.string(forKey: Self.backfillWatermarkKey) == watermark {
             return (0, candidates.count, 0)

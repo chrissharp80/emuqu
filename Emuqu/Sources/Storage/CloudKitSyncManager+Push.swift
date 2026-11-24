@@ -179,7 +179,7 @@ extension CloudKitSyncManager {
     /// succeed; excluding them is what kills the per-cycle error spam.
     /// Local-only ids were read out of Apple Health and are never uploaded.
     private func pendingPushBatch() -> [UUID] {
-        let allEntries = archive.entries
+        let allEntries = archive.store.entries
         let pendingIdsAll = Set(allEntries.map { $0.sessionId })
             .union(state.pendingUploadIds)
             .subtracting(state.uploadedSessionIds)

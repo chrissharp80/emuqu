@@ -537,9 +537,9 @@ extension VitalsHealthQueries {
     }
 }
 
-// `DailyActivity` stays nested on the manager: it is the return type of the
-// `fetchDailyActivity` forwarder and is named `HealthKitManager.DailyActivity`
-// at every call site.
+// `DailyActivity` is nested on the manager, the type every caller names it
+// through (`HealthKitManager.DailyActivity`); `fetchDailyActivity` above
+// returns it.
 extension HealthKitManager {
     struct DailyActivity: Identifiable, Equatable, Sendable {
         let date: Date

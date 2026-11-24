@@ -597,7 +597,7 @@ final class DataPurgeServiceTests: XCTestCase {
 
         XCTAssertFalse(syncWasOn, "iCloud sync was still on while the remote deletion ran")
         XCTAssertTrue(writeRefused, "An archive write went through while the purge ran")
-        XCTAssertFalse(archive.exists(night.id))
+        XCTAssertFalse(archive.store.exists(night.id))
         XCTAssertFalse(PurgeGate.isPurging, "The purge left the gate closed")
         XCTAssertNoThrow(try archive.archive(night), "Archive writes stayed refused after the purge")
     }

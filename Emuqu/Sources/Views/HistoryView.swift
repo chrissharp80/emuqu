@@ -590,7 +590,7 @@ struct HistoryView: View {
 
     @ViewBuilder
     private var noReadingsYetSection: some View {
-        if collector.archive.entries.isEmpty {
+        if collector.archive.store.entries.isEmpty {
             Text(String(localized: "No Readings Yet", bundle: LanguageManager.appBundle))
                 .font(.headline)
             Text(String(localized: "Your HRV readings will appear here", bundle: LanguageManager.appBundle))

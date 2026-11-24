@@ -96,7 +96,7 @@ enum SessionStorageDiagnostic {
     /// so the user sees their most recent sessions first, and one snapshot
     /// keeps ids / list / count mutually consistent.
     static func run(archive: SessionArchive, backup: RawRRBackup) -> Report {
-        let archiveEntries = archive.entries
+        let archiveEntries = archive.store.entries
         let sessions = archiveEntries.map { inspectSession(entry: $0, archive: archive, backup: backup) }
         let counts = statusCounts(in: sessions)
         let orphaned = orphanedBackupIds(archivedIds: Set(archiveEntries.map(\.sessionId)), archive: archive, backup: backup)
@@ -118,7 +118,7 @@ enum SessionStorageDiagnostic {
     /// and was not deleted (`Report.orphanedBackupIds`), in id order.
     static func orphanedBackupIds(archivedIds: Set<UUID>, archive: SessionArchive, backup: RawRRBackup) -> [UUID] {
         Set(backup.unarchivedSessionIds).subtracting(archivedIds)
-            .filter { !archive.wasIntentionallyDeleted($0) }
+            .filter { !archive.store.wasIntentionallyDeleted($0) }
             .sorted { $0.uuidString < $1.uuidString }
     }
 

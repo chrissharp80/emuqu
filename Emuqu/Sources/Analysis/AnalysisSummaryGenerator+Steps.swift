@@ -463,7 +463,7 @@ extension AnalysisSummaryGenerator {
     /// Post-exercise recovery tips when current readiness has dropped below
     /// the morning recovery score due to training done since the reading.
     func postExerciseSteps(readiness: Double, recoveryScore _: Double) -> [String] {
-        let label = RecoveryScoreCalculator.readinessLabel(for: RecoveryScoreCalculator.toTenScale(readiness))
+        let label = ReadinessScoring.readinessLabel(for: RecoveryScoreCalculator.toTenScale(readiness))
         var steps = sessionCostSteps(readiness: readiness, label: label)
         // Carry forward any relevant sleep tips from the morning analysis.
         if sleep.isShortSleep {

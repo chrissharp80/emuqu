@@ -217,7 +217,7 @@ struct MorningResultsView: View {
 
             // PDF Generation Loading Overlay
             if vm.isGeneratingPDF {
-                pdfLoadingOverlay
+                reanalysis.pdfLoadingOverlay
             }
 
             // Reanalysis Loading Overlay
@@ -278,7 +278,7 @@ struct MorningResultsView: View {
     ) -> some View {
         // MARK: - Recovery Score Hero (matches Recovery Dashboard)
 
-        recoveryScoreCard(breakdownMessage: ScoreBreakdownCopy.message(for: breakdown, loadLevel: vm.adviceLoadLevel))
+        cards.recoveryScoreCard(breakdownMessage: ScoreBreakdownCopy.message(for: breakdown, loadLevel: vm.adviceLoadLevel))
 
         // Feeling badge (read-only in this view — editing only
         // happens on the Dashboard while the session is today's.
@@ -293,7 +293,7 @@ struct MorningResultsView: View {
         // MARK: - Training Readiness (today only; the readiness frozen at acceptance)
 
         if !vm.isHistoricalSession {
-            trainingReadinessCard
+            cards.trainingReadinessCard
         }
     }
 
@@ -337,13 +337,13 @@ struct MorningResultsView: View {
                 baselineStats: vm.baselineStats
             )
         } label: {
-            hrvMetricCard
+            cards.hrvMetricCard
         }
         .buttonStyle(.plain)
     }
 
     private var sleepDetailLink: some View {
-        NavigationLink { sleepDetailDestination } label: { sleepMetricCardCompact }
+        NavigationLink { sleepDetailDestination } label: { cards.sleepMetricCardCompact }
             .buttonStyle(.plain)
     }
 
@@ -383,7 +383,7 @@ struct MorningResultsView: View {
         // Analysis Summary
         analysisSummarySection
 
-        tagsAndNotesSection
+        cards.tagsAndNotesSection
 
         actionButtons
     }
@@ -406,7 +406,7 @@ struct MorningResultsView: View {
                 followsLiveLoad: !vm.isHistoricalSession
             )
         } label: {
-            trainingLoadCard(context)
+            cards.trainingLoadCard(context)
         }
         .buttonStyle(.plain)
     }
@@ -421,7 +421,7 @@ struct MorningResultsView: View {
                 result: vm.displayResult,
                 healthKitSleep: dependencies.app.settingsManager.settings.enableSleepIntegration ? vm.healthKitSleep : nil,
                 onReanalyzeAt: isManualWindowMode && onReanalyzeAt != nil ? { tsMs in
-                    handleManualReanalysis(timestampMs: tsMs)
+                    reanalysis.handleManualReanalysis(timestampMs: tsMs)
                 } : nil,
                 isManualWindowMode: isManualWindowMode,
                 manualResult: manualResult,
@@ -436,21 +436,21 @@ struct MorningResultsView: View {
         _ breakdown: RecoveryScoreCalculator.ScoreBreakdown
     ) -> some View {
         // Score Breakdown - what's contributing and what's holding back
-        scoreBreakdownSection(breakdown: breakdown)
+        cards.scoreBreakdownSection(breakdown: breakdown)
     
         if vm.hasRawData, onReanalyze != nil {
-            windowSelectionMethodSection
+            reanalysis.windowSelectionMethodSection
         }
     }
 
     @ViewBuilder
     private var dataSourceSection: some View {
         if let summary = vm.displaySession.dataSourceSummary {
-            dataSourceSummaryCard(summary)
+            cards.dataSourceSummaryCard(summary)
             // Streaming-only night → offer to pull the strap's
             // full-night internal recording and re-merge + re-score.
             if summary.selectedSource == "streaming" {
-                overnightStrapMergeCard
+                reanalysis.overnightStrapMergeCard
             }
         }
     }
@@ -590,7 +590,7 @@ struct MorningResultsView: View {
     @ViewBuilder
     private var reanalyzeActions: some View {
         Button(String(localized: "Re-analyze", bundle: LanguageManager.appBundle)) {
-            performReanalysis()
+            reanalysis.performReanalysis()
         }
         Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
     }

@@ -60,7 +60,7 @@ final class ReanalysisService {
         let atl = trainingContext?.atl ?? 0
         let ctl = trainingContext?.ctl ?? 0
         let acr: Double? = ctl > 0 ? atl / ctl : nil
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: compositeScore,
             todayTrimp: 0,
             ctl: ctl,

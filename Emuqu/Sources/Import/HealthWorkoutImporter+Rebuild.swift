@@ -54,7 +54,7 @@ extension HealthWorkoutImporter {
         now: Date = Date()
     ) -> [InterruptedSession] {
         let start = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
-        let workouts = archive.entries(from: start, to: now).filter { $0.sessionType == .workout }
+        let workouts = archive.store.entries(from: start, to: now).filter { $0.sessionType == .workout }
         let stubs = workouts
             .compactMap { Self.stub(from: $0, archive: archive) }
             .sorted { $0.startDate > $1.startDate }

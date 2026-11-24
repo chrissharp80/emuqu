@@ -119,7 +119,7 @@ final class DemoSessionSeederTests: XCTestCase {
         XCTAssertEqual(ids.count, plans.count)
         XCTAssertEqual(finalizedStarts, plans.map(\.start), "Each night is scored against the nights before it")
         XCTAssertEqual(reports, Array(1 ... plans.count))
-        let entries = archive.entries
+        let entries = archive.store.entries
         XCTAssertEqual(Set(entries.map(\.sessionId)), Set(ids))
         XCTAssertTrue(entries.allSatisfy { DemoSessionSeeder.isSampleData($0.tags) }, "Every sample night carries the Demo tag")
         XCTAssertTrue(entries.allSatisfy { $0.sessionType == .overnight && $0.recoveryScore == 7 })
@@ -156,16 +156,16 @@ final class DemoSessionSeederTests: XCTestCase {
             plans, into: archive, pipeline: try stubPipeline(), finalize: { $0 }, progress: { _, _ in }
         )
 
-        let targets = DemoSessionSeeder.sampleSessionIds(in: archive.entries, seededIds: [])
+        let targets = DemoSessionSeeder.sampleSessionIds(in: archive.store.entries, seededIds: [])
         XCTAssertEqual(Set(targets), Set(seeded))
         let removed = DemoSessionSeeder.remove(targets, from: archive)
 
         XCTAssertEqual(Set(removed), Set(seeded))
-        XCTAssertEqual(Set(archive.entries.map(\.sessionId)), [untagged.id, lookalike.id])
+        XCTAssertEqual(Set(archive.store.entries.map(\.sessionId)), [untagged.id, lookalike.id])
         XCTAssertEqual(try archive.retrieve(untagged.id)?.rrSeries?.points, untagged.rrSeries?.points)
         XCTAssertEqual(try archive.retrieve(lookalike.id)?.tags, lookalike.tags)
-        XCTAssertTrue(seeded.allSatisfy { archive.wasIntentionallyDeleted($0) }, "Tombstoned, so a sync pull cannot restore them")
-        XCTAssertTrue(DemoSessionSeeder.sampleSessionIds(in: archive.entries, seededIds: Set(seeded)).isEmpty)
+        XCTAssertTrue(seeded.allSatisfy { archive.store.wasIntentionallyDeleted($0) }, "Tombstoned, so a sync pull cannot restore them")
+        XCTAssertTrue(DemoSessionSeeder.sampleSessionIds(in: archive.store.entries, seededIds: Set(seeded)).isEmpty)
     }
 
     func testRemovalFindsASeededNightWhoseTagWasEditedAway() async throws {
@@ -175,8 +175,8 @@ final class DemoSessionSeederTests: XCTestCase {
         )
         try archive.updateTags(seeded[0], tags: [])
 
-        XCTAssertEqual(DemoSessionSeeder.sampleSessionIds(in: archive.entries, seededIds: []).count, 2)
-        XCTAssertEqual(Set(DemoSessionSeeder.sampleSessionIds(in: archive.entries, seededIds: Set(seeded))), Set(seeded))
+        XCTAssertEqual(DemoSessionSeeder.sampleSessionIds(in: archive.store.entries, seededIds: []).count, 2)
+        XCTAssertEqual(Set(DemoSessionSeeder.sampleSessionIds(in: archive.store.entries, seededIds: Set(seeded))), Set(seeded))
     }
 
     // MARK: - The real pipeline
@@ -228,11 +228,11 @@ final class DemoSessionSeederTests: XCTestCase {
 
         XCTAssertEqual(added, 15)
         XCTAssertTrue(library.isPresent)
-        let sample = try archive.entries.filter { $0.sessionId != real.id }.map { try XCTUnwrap(archive.retrieve($0.sessionId)) }
+        let sample = try archive.store.entries.filter { $0.sessionId != real.id }.map { try XCTUnwrap(archive.retrieve($0.sessionId)) }
         XCTAssertTrue(sample.allSatisfy { $0.recoveryScore != nil && $0.isReliableForHRVAggregates })
         XCTAssertTrue(sample.allSatisfy { $0.sleepSnapshot != nil && $0.vitalsSnapshot != nil })
         XCTAssertTrue(sample.allSatisfy { $0.notes == SampleDataLibrary.sampleNote })
-        XCTAssertNotNil(DashboardSessionPolicy.latestOvernightScore(inEntries: archive.entries, calendar: calendar), "No hero score")
+        XCTAssertNotNil(DashboardSessionPolicy.latestOvernightScore(inEntries: archive.store.entries, calendar: calendar), "No hero score")
         XCTAssertTrue(collector.baselineTracker.hasValidBaseline)
         let scores = sample.sorted { $0.startDate < $1.startDate }.compactMap(\.recoveryScore)
         XCTAssertGreaterThan((scores.max() ?? 0) - (scores.min() ?? 0), 1.5, "Scores should vary night to night: \(scores)")
@@ -241,7 +241,7 @@ final class DemoSessionSeederTests: XCTestCase {
 
         XCTAssertEqual(removed, added)
         XCTAssertFalse(library.isPresent)
-        XCTAssertEqual(archive.entries.map(\.sessionId), [real.id])
+        XCTAssertEqual(archive.store.entries.map(\.sessionId), [real.id])
         XCTAssertEqual(try archive.retrieve(real.id)?.rrSeries?.points, real.rrSeries?.points)
         XCTAssertEqual(collector.baselineTracker.daysCollected, 0, "The baseline must forget the sample nights")
         XCTAssertEqual(collector.settingsManager.settings.baselineRMSSD, priorBaseline)

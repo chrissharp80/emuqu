@@ -187,7 +187,7 @@ struct TagsNamespace: FactNamespaceResolver {
 
     /// Index entries whose tag list contains the named tag, newest first.
     private func sessionsWithTag(_ tagName: String) -> [SessionArchiveEntry] {
-        archive.entries
+        archive.store.entries
             .filter { entry in entry.tags.contains { Self.nameMatches(tagName, tag: $0) } }
             .sorted { $0.date > $1.date }
     }
@@ -198,9 +198,9 @@ struct TagsNamespace: FactNamespaceResolver {
     }
 
     private func tagsAvailability() -> Availability {
-        let hasAny = !archive.entries.isEmpty
+        let hasAny = !archive.store.entries.isEmpty
         guard hasAny else { return .unavailable }
-        let dates = archive.entries.map(\.date)
+        let dates = archive.store.entries.map(\.date)
         guard let earliest = dates.min(), let latest = dates.max() else {
             return .alwaysAvailable
         }
@@ -211,7 +211,7 @@ struct TagsNamespace: FactNamespaceResolver {
     private func sessionsOn(_ iso: String) -> [SessionArchiveEntry]? {
         guard let target = FactLocalDay.formatter().date(from: iso) else { return nil }
         let cal = Calendar.current
-        return archive.entries.filter { cal.isDate($0.date, inSameDayAs: target) }
+        return archive.store.entries.filter { cal.isDate($0.date, inSameDayAs: target) }
     }
 
     var entries: [FactEntry] {
@@ -349,7 +349,7 @@ struct TagsNamespace: FactNamespaceResolver {
     private func taggedScores(matching param: String) -> ([Double], [Double]) {
         var tagged: [Double] = []
         var untagged: [Double] = []
-        for s in self.archive.entries where s.sessionType == .overnight && s.isReliableForHRVAggregates {
+        for s in self.archive.store.entries where s.sessionType == .overnight && s.isReliableForHRVAggregates {
             guard let score = s.recoveryScore else { continue }
             let has = s.tags.contains { Self.nameMatches(param, tag: $0) }
             if has { tagged.append(score) } else { untagged.append(score) }
@@ -372,7 +372,7 @@ struct HRRNamespace: FactNamespaceResolver {
     /// when `period` is not one `PeriodParser` reads.
     private func sessionsWithHRR(_ period: String) -> [HRVSession]? {
         guard let interval = PeriodParser.interval(for: period) else { return nil }
-        return archive.entries
+        return archive.store.entries
             .filter { $0.sessionType == .workout && interval.containsBeforeEnd($0.date) }
             .sorted { $0.date > $1.date }
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }

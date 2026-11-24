@@ -115,7 +115,7 @@ extension WorkoutRecorder {
     /// archive by `launchHRRCaptureAndRearchive`.
     private func runFinalize(rrPoints: [RRPoint], stopDate: Date, startedAt: Date) async -> HRVSession {
         debugLog("[Recorder.stop] step=finalizeSession (rrPoints=\(rrPoints.count), elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
-        let finished = await finalizeSession(rrPoints: rrPoints, stopDate: stopDate, hrrSamples: [])
+        let finished = await finalizer.finalizeSession(rrPoints: rrPoints, stopDate: stopDate, hrrSamples: [])
         debugLog("[Recorder.stop] step=finalizeSession done (elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         return finished
     }
@@ -129,7 +129,7 @@ extension WorkoutRecorder {
     /// mid-sentence while they debrief the workout. The user
     /// closes voice when they're done.
     func tearDownLiveWorkoutServices() {
-        stopTicker()
+        ticker.stopTicker()
         startedLocation?.stopTracking()
         pedometer.stop()
         // Stop the BLE peripheral advertisement so we don't continue to
@@ -218,7 +218,7 @@ extension WorkoutRecorder {
         // useful.
         if let sport = finished.workoutMetadata?.sport,
            sport.usesGPS {
-            archiveWorkoutTrackAsBreadcrumbTrail(
+            aiContext.archiveWorkoutTrackAsBreadcrumbTrail(
                 track: location.track,
                 sport: sport,
                 start: finished.startDate,
@@ -366,7 +366,7 @@ extension WorkoutRecorder {
         archive: SessionArchive,
         sessionId: UUID
     ) throws -> HRVSession? {
-        guard archive.exists(sessionId) else { return nil }
+        guard archive.store.exists(sessionId) else { return nil }
         var updated: HRVSession?
         // In place, under the archive lock, so the Health export stamp
         // written meanwhile on another thread is kept.

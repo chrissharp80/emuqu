@@ -451,7 +451,7 @@ struct MetricCompareToHistorySheet: View {
     /// Static and nonisolated, archive passed in, so it runs from a
     /// `Task.detached` without capturing `self`.
     nonisolated private static func computePoints(metricLabel: String, archive: SessionArchive) -> [Point] {
-        let allEntries = archive.entries.sorted { $0.date > $1.date }
+        let allEntries = archive.store.entries.sorted { $0.date > $1.date }
         var collected: [Point] = []
         for entry in allEntries {
             if let point = pointValue(metricLabel: metricLabel, entry: entry, archive: archive) {

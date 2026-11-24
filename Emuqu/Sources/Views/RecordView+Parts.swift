@@ -1,9 +1,8 @@
 import SwiftUI
 
-// Record-tab panels live in `RecordPanels`.
-//
-// `panels` is rebuilt on each access from the view's live state, and every
-// mutation travels back through a binding.
+// The Record tab's panels live in `RecordPanels`. `panels` is rebuilt on each
+// access from the view's live state, and every mutation travels back through
+// a binding or one of the view's actions.
 
 extension RecordView {
     /// Grouped onto fewer lines than one argument per line to stay inside the
@@ -28,16 +27,4 @@ extension RecordView {
             breathingAudio: breathingAudio
         )
     }
-
-    var overnightRecordingSection: some View { panels.overnightRecordingSection }
-
-    var quickReadingSection: some View { panels.quickReadingSection }
-
-    func continueRecoveryCard(session: HRVSession) -> some View {
-        panels.continueRecoveryCard(session: session)
-    }
-
-    func recoverStoredData() { panels.recoverStoredData() }
-
-    func discardAndStartFresh() { panels.discardAndStartFresh() }
 }

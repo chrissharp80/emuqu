@@ -54,7 +54,7 @@ enum RescoreWrite {
     /// archive while the rescore ran, and archived a reading still waiting
     /// for the user to accept or discard it.
     static func write(_ rescored: HRVSession, readFrom read: HRVSession, kind: Kind, to archive: SessionArchive) throws -> Outcome {
-        guard archive.exists(rescored.id) else {
+        guard archive.store.exists(rescored.id) else {
             debugLog("[ReanalysisService] Rescored session \(rescored.id.uuidString.prefix(8)) is not in the archive — not written")
             return .notArchived
         }

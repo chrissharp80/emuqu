@@ -225,7 +225,7 @@ extension FitnessSummaryCards {
     /// decoding stops once 20 matches are found.
     nonisolated private static func priorRuns(ofRoute routeName: String, excluding sessionId: UUID) -> [HRVSession] {
         let archive = AppDependencies.current.storage.sessionArchive
-        return archive.entries.lazy
+        return archive.store.entries.lazy
             .filter { $0.sessionType == .workout && $0.sessionId != sessionId }
             .compactMap { try? archive.retrieveLightweight($0.sessionId) }
             .filter { $0.workoutMetadata?.recognizedRouteName == routeName }

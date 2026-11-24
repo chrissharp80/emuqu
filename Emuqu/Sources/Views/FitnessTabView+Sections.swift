@@ -394,7 +394,7 @@ extension FitnessTabView {
     private func applyCachedMeanHRR(workouts: [HRVSession], archive: SessionArchive) {
         let workoutById = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var drops: [Int] = []
-        for entry in archive.entries where entry.sessionType == .workout && withinDays(entry.date, 7) {
+        for entry in archive.store.entries where entry.sessionType == .workout && withinDays(entry.date, 7) {
             let session = workoutById[entry.sessionId]
                 ?? archive.retrieveLightweightOrLog(entry.sessionId, caller: "fitness.summary.hrr")
             if let drop = session?.workoutMetadata?.hrrSamples?.bestAtOneMinute?.drop {
@@ -466,7 +466,7 @@ extension FitnessTabView {
 /// need this week's workouts.
 @MainActor
 private func weekWorkoutSessionIds(archive: SessionArchive, since weekAgo: Date) -> [UUID] {
-    archive.entries
+    archive.store.entries
         .filter { $0.sessionType == .workout && $0.date >= weekAgo }
         .map { $0.sessionId }
 }

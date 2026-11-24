@@ -112,9 +112,9 @@ enum FTPAutoEstimator {
     /// workout is no longer in the archive.
     static func needsRecompute(archive: SessionArchive, now: Date) -> Bool {
         guard let last = lastComputedAt, now.timeIntervalSince(last) < rescanInterval else { return true }
-        if archive.entries.contains(where: { $0.sessionType == .workout && $0.date > last }) { return true }
+        if archive.store.entries.contains(where: { $0.sessionType == .workout && $0.date > last }) { return true }
         guard let anchor = sourceSessionId else { return false }
-        return !archive.entries.contains { $0.sessionId == anchor }
+        return !archive.store.entries.contains { $0.sessionId == anchor }
     }
 
     /// Scan synchronously on the caller's thread. Reads are lightweight (no
@@ -216,7 +216,7 @@ enum FTPAutoEstimator {
     /// the scan incomplete only when the failure may clear.
     private static func recentRunningWorkouts(archive: SessionArchive, now: Date) -> (sessions: [HRVSession], complete: Bool) {
         let cutoff = now.addingTimeInterval(-Double(lookbackDays) * 86_400)
-        let entries = archive.entries.filter { $0.sessionType == .workout && $0.date >= cutoff && $0.date <= now }
+        let entries = archive.store.entries.filter { $0.sessionType == .workout && $0.date >= cutoff && $0.date <= now }
         var sessions: [HRVSession] = []
         var complete = true
         for entry in entries {

@@ -157,7 +157,7 @@ extension MorningDetailCards {
     private var normalizedSplitNightSegments: [LinkedSegmentInfo]? {
         guard let linked = linkedSegments, sleepWasActuallySplit else { return nil }
         let shown = vm.displaySession
-        return SessionArchive.normalizedSplitNightSegments(
+        return ArchiveStore.normalizedSplitNightSegments(
             currentSessionId: shown.id,
             currentStartDate: shown.startDate,
             currentEndDate: shown.endDate ?? shown.startDate,
@@ -205,9 +205,7 @@ extension MorningDetailCards {
 
     // MARK: - Tags & Notes (Combined Compact Section)
 
-    /// Tags and notes live in `TagsAndNotesCard`. The
-    /// forwarder returns the same view tree from the same position, so
-    /// nothing about the rendered hierarchy changes.
+    /// Tags and notes live in `TagsAndNotesCard`.
     var tagsAndNotesSection: some View {
         TagsAndNotesCard(
             notes: $notes,
