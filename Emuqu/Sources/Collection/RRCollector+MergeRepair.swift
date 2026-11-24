@@ -195,7 +195,7 @@ extension SessionRecoveryCoordinator {
             deviceProvenance: session.deviceProvenance,
             linkedSessionIds: session.linkedSessionIds, pausedDate: session.pausedDate
         )
-        var repaired = await collector.processOvernightData(
+        var repaired = await collector.morning.processOvernightData(
             points: mergedPoints, baseSession: baseSession,
             dataSource: session.dataSourceSummary?.selectedSource ?? "streaming",
             reconnectCount: session.dataSourceSummary?.reconnectCount ?? 0,

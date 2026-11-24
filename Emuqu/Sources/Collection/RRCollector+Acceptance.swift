@@ -6,13 +6,13 @@ extension MorningSessionPipeline {
     /// Accept the current session - archives and updates the baseline. The
     /// H10's own copy stays on the strap as a backup until the next recording.
     func acceptSession() async throws {
-        guard let session = collector.currentSession, session.state == .complete else {
+        guard let session = collector.sessionState.currentSession, session.state == .complete else {
             throw RRCollector.CollectorError.noSessionToAccept
         }
         do {
             try await runAcceptance(session)
         } catch {
-            await MainActor.run { collector.lastError = error }
+            await MainActor.run { collector.sessionState.lastError = error }
             throw error
         }
         await MainActor.run { clearAcceptedSessionState() }
@@ -86,12 +86,12 @@ extension MorningSessionPipeline {
     /// archived. The night stays, so "Discard" no longer points at it. The
     /// one reset of the review UI: acceptance and rejection run it too.
     func clearAcceptanceState() {
-        collector.currentSession = nil
+        collector.sessionState.currentSession = nil
         collector.sessionState.forgetReviewedNight()
-        collector.needsAcceptance = false
-        collector.recordingPhase = .idle
-        collector.verificationResult = nil
-        collector.recoveryWindow = nil
+        collector.sessionState.needsAcceptance = false
+        collector.sessionState.recordingPhase = .idle
+        collector.sessionState.verificationResult = nil
+        collector.sessionState.recoveryWindow = nil
         collector.healthKit.writes.stopObservingSleepData()
     }
 
@@ -104,7 +104,7 @@ extension MorningSessionPipeline {
     /// `RRCollector.rejectSession` runs first.
     func rejectSession() async {
         await collector.acceptanceService.processRejection(
-            sessionId: collector.currentSession?.id,
+            sessionId: collector.sessionState.currentSession?.id,
             clearPersistedRecordingState: { [weak collector] in
                 collector?.clearPersistedRecordingState()
             }
@@ -138,7 +138,7 @@ extension RRCollector {
     /// a night awaits acceptance; a sleep refresh reaches it whenever the
     /// card holds the archive's copy.
     func takeArchivedCopy(_ rewrite: ArchivedSessionRewrite) {
-        guard !rewrite.onlyWhileAwaitingAcceptance || needsAcceptance else { return }
+        guard !rewrite.onlyWhileAwaitingAcceptance || sessionState.needsAcceptance else { return }
         adoptArchivedCopy(rewrite.session)
     }
 
@@ -159,8 +159,8 @@ extension RRCollector {
     /// so nothing that reads it later works from the copy before it.
     func adoptArchivedCopy(_ archived: HRVSession) {
         let state = sessionState
-        guard let current = currentSession, current.id == archived.id,
-              state.reviewArchivedSessionId == archived.id || pausedSession?.id == archived.id
+        guard let current = sessionState.currentSession, current.id == archived.id,
+              state.reviewArchivedSessionId == archived.id || streamingLifecycle.pausedSession?.id == archived.id
         else { return }
         let matched = state.reviewArchivedEntries.flatMap { $0.sessionId == archived.id ? $0 : nil }
         var adopted = archived
@@ -170,7 +170,7 @@ extension RRCollector {
             if current.morningFeeling != matched.morningFeeling { adopted.morningFeeling = current.morningFeeling }
             state.reviewArchivedEntries = SessionState.ReviewEntries(of: archived)
         }
-        currentSession = adopted
-        if pausedSession?.id == archived.id, adopted.state == .paused { pausedSession = adopted }
+        sessionState.currentSession = adopted
+        if streamingLifecycle.pausedSession?.id == archived.id, adopted.state == .paused { streamingLifecycle.pausedSession = adopted }
     }
 }

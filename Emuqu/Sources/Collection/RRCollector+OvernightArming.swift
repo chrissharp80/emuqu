@@ -57,7 +57,7 @@ extension OvernightStreamingCoordinator {
 
     /// Whether this night still wants the strap armed.
     private var nightWantsArming: Bool {
-        collector.isOvernightStreaming && !collector.isOvernightEnding && !Task.isCancelled
+        collector.streamingLifecycle.isOvernightStreaming && !collector.isOvernightEnding && !Task.isCancelled
     }
 
     /// A refusal for a low battery, and the level the strap reported then.
@@ -123,8 +123,8 @@ extension OvernightStreamingCoordinator {
     /// Once per kind, so a retry every few minutes does not repeat the alert.
     private func surfaceArmingRefusal(_ error: Error, _ refusal: StrapRecordingPolicy.StartRefusal) {
         debugLogExternal("The strap refused to record to its own memory — \(error). This night records from the live stream.", cause: .strap)
-        if let shown = collector.lastError, StrapRecordingPolicy.startRefusal(for: shown) == refusal { return }
-        collector.lastError = error
+        if let shown = collector.sessionState.lastError, StrapRecordingPolicy.startRefusal(for: shown) == refusal { return }
+        collector.sessionState.lastError = error
     }
 
     private func armWhenStrapIsReady() async throws {
@@ -153,8 +153,8 @@ extension OvernightStreamingCoordinator {
         // trigger the destructive pause-and-fetch (see
         // RRCollector+Bindings reconnectExhausted handler).
         collector.overnightDeviceBackupActive = true
-        if let shown = collector.lastError, StrapRecordingPolicy.startRefusal(for: shown) != .retryable {
-            collector.lastError = nil
+        if let shown = collector.sessionState.lastError, StrapRecordingPolicy.startRefusal(for: shown) != .retryable {
+            collector.sessionState.lastError = nil
         }
     }
 
@@ -168,7 +168,7 @@ extension OvernightStreamingCoordinator {
     /// night started since, owns the strap and is left to it.
     private func settleLateArmedRecording() async {
         debugLog("[RRCollector] H10 internal recording started after the night stopped wanting it — not marking the night strap-backed", level: .warning)
-        guard !collector.isOvernightStreaming, collector.polarManager.transfersInFlight == 0 else { return }
+        guard !collector.streamingLifecycle.isOvernightStreaming, collector.polarManager.transfersInFlight == 0 else { return }
         await collector.polarManager.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
     }
 

@@ -129,7 +129,7 @@ struct SampleDataLibrary {
             baselineStats: collector.scoringBaselineStats(for: night),
             recordingStart: night.startDate, recordingEnd: night.endDate ?? night.startDate
         ).dataQuality
-        if let outcome = await collector.computeRecoveryScore(for: session, from: result) {
+        if let outcome = await collector.morning.computeRecoveryScore(for: session, from: result) {
             session.recoveryScore = outcome.score
             session.scoreBreakdown = outcome.breakdown
             session.frozenReadiness = ReanalysisService.computeFrozenReadiness(

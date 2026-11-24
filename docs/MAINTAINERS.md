@@ -373,9 +373,9 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
   not end cleanly) and `OvernightStreamingCoordinator` (bluetooth-central
   overnight capture — start, keep-alive, reconnect, morning gather, strap
   merge). Each is a value holding the collector strongly, built on demand
-  (`collector.recovery`, `collector.overnightStreaming`); the collector keeps
-  thin forwarders so call sites did not move with the split. See ADR 005 for
-  why they are not `unowned` back-pointers.
+  (`collector.recovery`, `collector.overnightStreaming`, `collector.morning`,
+  `collector.deviceRecording`), and callers name the one they ask. See ADR 005
+  for why they are not `unowned` back-pointers.
 - `PolarManager.swift` (+`+Streaming`, `+Recording`, `+Observers`) — Polar BLE.
 - `HealthKitManager.swift` (+`+HRV`, `+HeartRate`, `+SleepTrends`, `+Store`, `+Heat`) — HealthKit read/write. Three query classes hold the reads: `VitalsHealthQueries`, `TrainingHealthQueries` and `SleepHealthQueries`. Sleep export, trend analysis and the observers stay on `+SleepTrends` — those write and observe, which is a different job with different failure modes.
 - Apple Health write-back: `HealthExportIdentity` stamps every sample and workout the app exports with the session's sync identifier and a rising sync version, so a re-export replaces the earlier copy rather than adding one; `HealthKitWorkoutExport` (the workout, with its samples and route) and `HealthWriteAndObserve.swift` (`HealthSampleReplacer`, `removeExports` for a session deleted forever, and `HealthSampleWatch`, the anchored observer that hands the app other sources' new samples). A workout saved while the phone was locked, when its earlier exports could not be read, is noted in `PendingWorkoutReplacements` and its earlier copies are deleted on the next return to the app.
@@ -844,10 +844,9 @@ sub-objects — `ArchiveSignal`, `DeviceStatus`, `SessionState`,
 `StreamingLifecycle`, `MorningCoordination`. All live state lives on these; the
 parent `RRCollector` is a dependency-wiring shell that publishes nothing.
 **How to observe it:** inject and observe the relevant sub-object directly
-(`@Environment(DeviceStatus.self)`). Reads of the parent's back-compat
-forwarders (`collector.isOvernightStreaming`) are plain computed properties;
-under `@Observable` they track through to the sub-object, but prefer the
-sub-object in views so the dependency is visible.
+(`@Environment(DeviceStatus.self)`), or read it through the collector
+(`collector.streamingLifecycle.isOvernightStreaming`); either establishes
+observation on the sub-object that owns the value.
 
 **Observation framework, everywhere.** Every observable
 type is `@Observable`; the `legacy_observable_object_budget` ratchet (§10) sits

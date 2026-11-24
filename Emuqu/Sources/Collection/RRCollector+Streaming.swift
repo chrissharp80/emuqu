@@ -50,15 +50,15 @@ extension CollectorSessionControl {
 
     @MainActor
     private func resetStateForQuickStreaming(_ session: HRVSession, durationSeconds: Int) {
-        collector.currentSession = session
-        collector.collectedPoints = []
+        collector.sessionState.currentSession = session
+        collector.sessionState.collectedPoints = []
         collector.sessionStartTime = Date()
-        collector.isStreamingMode = true
-        collector.recordingPhase = .streaming(targetSeconds: durationSeconds)
-        collector.streamingTargetSeconds = durationSeconds
-        collector.streamingElapsedSeconds = 0
-        collector.isCollecting = true
-        collector.pausedBeatCount = 0
+        collector.streamingLifecycle.isStreamingMode = true
+        collector.sessionState.recordingPhase = .streaming(targetSeconds: durationSeconds)
+        collector.streamingLifecycle.streamingTargetSeconds = durationSeconds
+        collector.streamingLifecycle.streamingElapsedSeconds = 0
+        collector.sessionState.isCollecting = true
+        collector.streamingLifecycle.pausedBeatCount = 0
     }
 
     /// Start the streaming countdown timer.
@@ -84,13 +84,13 @@ extension CollectorSessionControl {
     /// reading the app was suspended through still ends at its target.
     @MainActor
     private func streamingCountdownTick() {
-        guard collector.isStreamingMode, collector.streamingTimer != nil else { return }
-        collector.streamingElapsedSeconds = collector.streamingElapsedNow
-        if let session = collector.currentSession {
+        guard collector.streamingLifecycle.isStreamingMode, collector.streamingTimer != nil else { return }
+        collector.streamingLifecycle.streamingElapsedSeconds = collector.streamingElapsedNow
+        if let session = collector.sessionState.currentSession {
             runQuickStreamingBackup(session: session)
         }
         guard quickReadingComplete() else { return }
-        debugLog("[RRCollector] Streaming complete: elapsed=\(collector.streamingElapsedSeconds)s, target=\(collector.streamingTargetSeconds)s")
+        debugLog("[RRCollector] Streaming complete: elapsed=\(collector.streamingLifecycle.streamingElapsedSeconds)s, target=\(collector.streamingLifecycle.streamingTargetSeconds)s")
         collector.streamingTimer?.invalidate()
         collector.streamingTimer = nil
         // Play completion sound and vibrate (works even in silent mode)
@@ -103,8 +103,8 @@ extension CollectorSessionControl {
     /// run on as long as it may for them.
     @MainActor
     private func quickReadingComplete() -> Bool {
-        let elapsed = collector.streamingElapsedSeconds
-        let target = collector.streamingTargetSeconds
+        let elapsed = collector.streamingLifecycle.streamingElapsedSeconds
+        let target = collector.streamingLifecycle.streamingTargetSeconds
         guard elapsed >= target else { return false }
         return collector.polarManager.streamedRRPoints.count >= Self.minimumQuickReadingBeats
             || elapsed >= target + Self.maxQuickReadingExtensionSeconds
@@ -157,18 +157,18 @@ extension CollectorSessionControl {
     /// Safety: if this is an overnight streaming session, route to the proper
     /// overnight flow instead.
     func stopStreamingSession() async -> HRVSession? {
-        guard collector.isStreamingMode else { return nil }
-        if collector.isOvernightStreaming {
+        guard collector.streamingLifecycle.isStreamingMode else { return nil }
+        if collector.streamingLifecycle.isOvernightStreaming {
             debugLog("[RRCollector] ⚠️ stopStreamingSession() called during overnight streaming - redirecting to stopOvernightStreaming()")
-            return await collector.stopOvernightStreaming()
+            return await collector.overnightStreaming.stopOvernightStreaming()
         }
         stopStreamingTimer()
-        collector.isStreamingMode = false
-        let baseSession = collector.currentSession ?? HRVSession()
+        collector.streamingLifecycle.isStreamingMode = false
+        let baseSession = collector.sessionState.currentSession ?? HRVSession()
         let elapsedHoursForBattery = collector.streamingHoursForBattery
         let rrPoints = collector.polarManager.stopStreaming()
         await publishQuickStreamingStopped(rrPoints: rrPoints, elapsedHours: elapsedHoursForBattery)
-        await collector.backupStreamingData(rrPoints, sessionId: baseSession.id)
+        await collector.overnightStreaming.backupStreamingData(rrPoints, sessionId: baseSession.id)
         // A slow heart's 2-minute reading ran on until it had these (see
         // `quickReadingComplete`); one stopped early can still fall short.
         guard rrPoints.count >= Self.minimumQuickReadingBeats else {
@@ -196,10 +196,10 @@ extension CollectorSessionControl {
     private func publishQuickStreamingStopped(rrPoints: [RRPoint], elapsedHours: Double) async {
         await MainActor.run {
             collector.deviceStatus.isStreaming = false
-            collector.recordingPhase = .analyzing
-            collector.isCollecting = false
-            collector.collectedPoints = rrPoints
-            collector.streamingElapsedSeconds = 0
+            collector.sessionState.recordingPhase = .analyzing
+            collector.sessionState.isCollecting = false
+            collector.sessionState.collectedPoints = rrPoints
+            collector.streamingLifecycle.streamingElapsedSeconds = 0
             collector.polarManager.recordRecordingHours(elapsedHours)
         }
     }
@@ -223,10 +223,10 @@ extension CollectorSessionControl {
         )
         collector.clearPersistedRecordingState()
         await MainActor.run {
-            collector.currentSession = failedSession
-            collector.lastError = RRCollector.CollectorError.insufficientData
+            collector.sessionState.currentSession = failedSession
+            collector.sessionState.lastError = RRCollector.CollectorError.insufficientData
             collector.sessionStartTime = nil
-            collector.recordingPhase = .idle
+            collector.sessionState.recordingPhase = .idle
         }
         return failedSession
     }
@@ -260,13 +260,13 @@ extension CollectorSessionControl {
     private func publishStreamingResult(_ finalSession: HRVSession, verifyResult: Verification.Result) async {
         let deviation = collector.baselineTracker.deviation(for: finalSession)
         await MainActor.run {
-            collector.currentSession = finalSession
-            collector.verificationResult = verifyResult
-            collector.recoveryWindow = nil
-            collector.needsAcceptance = false
-            collector.baselineDeviation = deviation
+            collector.sessionState.currentSession = finalSession
+            collector.sessionState.verificationResult = verifyResult
+            collector.sessionState.recoveryWindow = nil
+            collector.sessionState.needsAcceptance = false
+            collector.sessionState.baselineDeviation = deviation
             collector.sessionStartTime = nil
-            collector.recordingPhase = .idle
+            collector.sessionState.recordingPhase = .idle
         }
     }
 
@@ -288,7 +288,7 @@ extension CollectorSessionControl {
             // The reading on screen is not saved: say so. Its recording marker
             // stays, so the next launch offers it from the raw backup.
             debugLog("[RRCollector] Failed to archive streaming session: \(error)", level: .error)
-            await MainActor.run { collector.lastError = error }
+            await MainActor.run { collector.sessionState.lastError = error }
         }
     }
 }
@@ -304,7 +304,7 @@ func publishAnalyzingSession(on collector: RRCollector, baseSession: HRVSession,
         state: .analyzing, sessionType: baseSession.sessionType,
         rrSeries: series, analysisResult: nil, artifactFlags: nil
     )
-    collector.currentSession = analyzingSession
+    collector.sessionState.currentSession = analyzingSession
     return analyzingSession
 }
 
@@ -315,7 +315,7 @@ extension RRCollector {
     /// count when there is no start time.
     var streamingHoursForBattery: Double {
         sessionStartTime.map { max(0, Date().timeIntervalSince($0)) / 3600.0 }
-            ?? Double(streamingElapsedSeconds) / 3600.0
+            ?? Double(streamingLifecycle.streamingElapsedSeconds) / 3600.0
     }
 
     /// The streaming session's elapsed seconds for a 1 Hz tick to publish:
@@ -323,6 +323,6 @@ extension RRCollector {
     /// the tick misses every second the app is suspended. One tick on from
     /// the last value when there is no start time.
     var streamingElapsedNow: Int {
-        sessionStartTime.map { max(0, Int(Date().timeIntervalSince($0))) } ?? streamingElapsedSeconds + 1
+        sessionStartTime.map { max(0, Int(Date().timeIntervalSince($0))) } ?? streamingLifecycle.streamingElapsedSeconds + 1
     }
 }

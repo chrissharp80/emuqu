@@ -44,7 +44,7 @@ extension CollectorSessionControl {
     /// Forward Polar errors to RRCollector's lastError.
     private func bindPolarErrorForwarding() {
         ObservationLoop.observe(collector, read: { $0.polarManager.lastError }, onChange: { collector, error in
-            if let error { collector.lastError = error }
+            if let error { collector.sessionState.lastError = error }
         })
     }
 
@@ -60,11 +60,11 @@ extension CollectorSessionControl {
     private func bindRecordingStateTracking() {
         ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.isRecordingOnDevice }, onChange: { collector, isRecording in
             collector.deviceStatus.isRecordingOnDevice = isRecording
-            if isRecording, collector.recordingPhase == .idle, !collector.recovery.strapRecordingBelongsToLiveWorkout {
-                collector.recordingPhase = .deviceRecording
-            } else if !isRecording, collector.recordingPhase == .deviceRecording {
-                collector.isCollecting = false
-                collector.recordingPhase = .idle
+            if isRecording, collector.sessionState.recordingPhase == .idle, !collector.recovery.strapRecordingBelongsToLiveWorkout {
+                collector.sessionState.recordingPhase = .deviceRecording
+            } else if !isRecording, collector.sessionState.recordingPhase == .deviceRecording {
+                collector.sessionState.isCollecting = false
+                collector.sessionState.recordingPhase = .idle
             }
         })
     }
@@ -109,7 +109,7 @@ extension CollectorSessionControl {
     /// Streaming state: observe both polarManager.isStreaming and isStreamingMode to avoid race.
     private func bindStreamingState() {
         ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.isStreaming }, onChange: { collector, streaming in
-            collector.deviceStatus.isStreaming = streaming || collector.isStreamingMode
+            collector.deviceStatus.isStreaming = streaming || collector.streamingLifecycle.isStreamingMode
         })
         armStreamingModeObservation()
     }
@@ -180,14 +180,14 @@ extension CollectorSessionControl {
         armStreamingModeObservation()
     }
 
-    /// Mirror HealthKit's sleep-data version onto `collector.sleepDataVersion`,
+    /// Mirror HealthKit's sleep-data version onto `collector.morningCoordination.sleepDataVersion`,
     /// which the morning results screen observes. The rescore of today's
     /// night when that sleep improves on its frozen snapshot is the
     /// saved-session reanalysis's own observation
     /// (`SessionReanalysisCoordinator.observeHealthKitSleep`).
     private func bindHealthKitSleep() {
         ObservationLoop.observe(collector, read: { $0.healthKit.sleepDataVersion }, onChange: { collector, version in
-            collector.sleepDataVersion = version
+            collector.morningCoordination.sleepDataVersion = version
         })
         bindHealthKitVitals()
     }
@@ -207,7 +207,7 @@ extension CollectorSessionControl {
     private func bindBatteryAndReconnect() {
         ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.batteryLevel }, onChange: { collector, level in
             collector.deviceStatus.batteryLevel = level
-            guard let level, collector.isPaused, level <= 5 else { return }
+            guard let level, collector.streamingLifecycle.isPaused, level <= 5 else { return }
             debugLog("[RRCollector] 🪫 Battery critical (\(level)%) while paused — auto-finalizing")
             collector.control.finalizeFromPause()
         })
@@ -231,7 +231,7 @@ extension CollectorSessionControl {
     /// strap file, so the buffered live stream is the only copy — pause
     /// to save it for resume.
     private func handleReconnectExhaustedDuringOvernight() {
-        guard collector.isOvernightStreaming else { return }
+        guard collector.streamingLifecycle.isOvernightStreaming else { return }
         if collector.overnightDeviceBackupActive {
             debugLog("[RRCollector] Reconnect exhausted, but H10 internal backup is recording the full night — NOT pausing; the strap keeps recording and the morning stop will fetch it", level: .warning)
             collector.polarManager.reconnectExhausted = false

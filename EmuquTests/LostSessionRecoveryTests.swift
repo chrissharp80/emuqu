@@ -82,8 +82,8 @@ final class LostSessionRecoveryTests: XCTestCase {
         try archive.archive(archived)
         try backup(archived.id)
         let recording = HRVSession(sessionType: .overnight)
-        collector.currentSession = recording
-        collector.isCollecting = true
+        collector.sessionState.currentSession = recording
+        collector.sessionState.isCollecting = true
         try backup(recording.id)
 
         let lost = await collector.recovery.checkForLostSessions()
@@ -95,7 +95,7 @@ final class LostSessionRecoveryTests: XCTestCase {
     /// The backup of a paused night is not lost either: the night resumes.
     func testAPausedNightIsNotLost() async throws {
         let paused = HRVSession(sessionType: .overnight)
-        collector.pausedSession = paused
+        collector.streamingLifecycle.pausedSession = paused
         try backup(paused.id)
 
         let lost = await collector.recovery.checkForLostSessions()
@@ -108,13 +108,13 @@ final class LostSessionRecoveryTests: XCTestCase {
     /// standing exception for the id.
     func testABackupIsLostOnceItsRecordingIsNoLongerLive() async throws {
         let recording = HRVSession(sessionType: .overnight)
-        collector.currentSession = recording
-        collector.isCollecting = true
+        collector.sessionState.currentSession = recording
+        collector.sessionState.isCollecting = true
         try backup(recording.id)
         let whileRecording = await collector.recovery.checkForLostSessions()
         XCTAssertTrue(whileRecording.isEmpty)
 
-        collector.isCollecting = false
+        collector.sessionState.isCollecting = false
         let afterwards = await collector.recovery.checkForLostSessions()
 
         XCTAssertEqual(afterwards.map(\.id), [recording.id])
@@ -148,13 +148,13 @@ final class LostSessionRecoveryTests: XCTestCase {
         let interrupted = await collector.recovery.findInterruptedWorkoutSessionId()
         XCTAssertEqual(interrupted, workout.id)
 
-        collector.currentSession = workout
-        collector.isCollecting = true
+        collector.sessionState.currentSession = workout
+        collector.sessionState.isCollecting = true
         let whileRecording = await collector.recovery.findInterruptedWorkoutSessionId()
         XCTAssertNil(whileRecording, "a workout still recording was taken for an interrupted one")
 
-        collector.isCollecting = false
-        collector.currentSession = nil
+        collector.sessionState.isCollecting = false
+        collector.sessionState.currentSession = nil
         collector.persistRecordingState(sessionId: UUID(), startTime: Date(), sessionType: .overnight)
         let overnight = await collector.recovery.findInterruptedWorkoutSessionId()
         XCTAssertNil(overnight, "an overnight marker was taken for a workout")

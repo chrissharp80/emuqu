@@ -59,13 +59,13 @@ final class StrapRecoveryFlowTests: XCTestCase {
         let tonightId = UUID()
         collector.persistRecordingState(sessionId: tonightId, startTime: Date().addingTimeInterval(-8 * 3600), sessionType: .overnight)
 
-        let session = try await collector.retryFetchRecording()
+        let session = try await collector.recovery.retryFetchRecording()
 
         XCTAssertEqual(session?.id, tonightId, "Retry filed the attempt under a new session")
         XCTAssertEqual(session?.state, .failed)
         XCTAssertFalse(fetched(radio), "last night's file was downloaded for tonight")
-        guard case .noRecordingSinceSessionStart? = collector.lastError as? PolarManager.PolarError else {
-            return XCTFail("expected the strap to hold no recording from this session, got \(String(describing: collector.lastError))")
+        guard case .noRecordingSinceSessionStart? = collector.sessionState.lastError as? PolarManager.PolarError else {
+            return XCTFail("expected the strap to hold no recording from this session, got \(String(describing: collector.sessionState.lastError))")
         }
     }
 
@@ -74,13 +74,13 @@ final class StrapRecoveryFlowTests: XCTestCase {
     /// screen is not, and the beats would be merged into it.
     func testStopFilesTheRecordingUnderOnlyAStrapRecordingSession() {
         let collector = makeCollector(FakeStrapRadio())
-        collector.currentSession = HRVSession(sessionType: .quick, deviceProvenance: DeviceProvenance.current(
+        collector.sessionState.currentSession = HRVSession(sessionType: .quick, deviceProvenance: DeviceProvenance.current(
             deviceId: deviceId, deviceModel: "Polar H10", recordingMode: .streaming
         ))
         XCTAssertNil(collector.deviceRecording.resolveBaseSession(), "a quick reading took the strap's recording")
 
         let strapSession = HRVSession(sessionType: .overnight, deviceProvenance: collector.deviceRecording.deviceRecordingProvenance())
-        collector.currentSession = strapSession
+        collector.sessionState.currentSession = strapSession
         XCTAssertEqual(collector.deviceRecording.resolveBaseSession()?.id, strapSession.id)
     }
 
@@ -104,11 +104,11 @@ final class StrapRecoveryFlowTests: XCTestCase {
         radio.setRecording(ongoing: true, entryId: exerciseId(start))
         let collector = makeCollector(radio)
         collector.polarManager.isRecordingOnDevice = true
-        collector.isCollecting = true
+        collector.sessionState.isCollecting = true
 
         XCTAssertFalse(collector.offersStrapRecovery)
         do {
-            _ = try await collector.recoverFromDevice()
+            _ = try await collector.recovery.recoverFromDevice()
             XCTFail("Recover stopped a live session's recording")
         } catch {
             XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
@@ -138,7 +138,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertFalse(collector.hasUnrecoveredData)
         XCTAssertFalse(collector.offersStrapRecovery)
         do {
-            _ = try await collector.recoverFromDevice()
+            _ = try await collector.recovery.recoverFromDevice()
             XCTFail("an already-saved recording was recovered again")
         } catch {
             XCTAssertEqual(error as? RRCollector.CollectorError, .strapRecordingAlreadySaved)
@@ -153,8 +153,8 @@ final class StrapRecoveryFlowTests: XCTestCase {
     func testANightSavedForReviewIsTheOneDiscardRemoves() async throws {
         let collector = makeCollector(FakeStrapRadio())
         let night = completeNight()
-        collector.currentSession = night
-        collector.needsAcceptance = true
+        collector.sessionState.currentSession = night
+        collector.sessionState.needsAcceptance = true
 
         collector.morning.archiveForReview(night)
         XCTAssertEqual(collector.sessionState.reviewArchivedSessionId, night.id)
@@ -269,7 +269,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         )
 
         XCTAssertNil(points)
-        XCTAssertEqual(collector.lastError as? RRCollector.CollectorError, .strapStillHoldsNight(missingMinutes: 30))
+        XCTAssertEqual(collector.sessionState.lastError as? RRCollector.CollectorError, .strapStillHoldsNight(missingMinutes: 30))
         XCTAssertTrue(collector.hasUnrecoveredData, "Resume would clear a copy nobody was told about")
     }
 
@@ -292,7 +292,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertNil(points)
         XCTAssertFalse(fetched(radio))
         XCTAssertFalse(radio.calls.contains(.stopRecording))
-        XCTAssertNil(collector.lastError, "no strap copy of this night exists to recover")
+        XCTAssertNil(collector.sessionState.lastError, "no strap copy of this night exists to recover")
     }
 
     /// The night's arming is read by the gate and then cleared with it.

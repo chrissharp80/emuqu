@@ -172,7 +172,7 @@ struct RecordView: View {
         // Flag OR newest un-archived workout backup, so the recovery card shows
         // even when the crash flag did not persist. Off-main: the scan
         // does per-backup disk I/O and would block the main thread here.
-        interruptedWorkoutId = await collector.findInterruptedWorkoutSessionId()
+        interruptedWorkoutId = await collector.recovery.findInterruptedWorkoutSessionId()
     }
 
     // MARK: - Sheets and covers
@@ -355,7 +355,7 @@ struct RecordView: View {
         Task {
             isRecoveringWorkout = true
             workoutRecoverMessage = nil
-            let recovered = await collector.recoverInterruptedWorkoutFromStrap()
+            let recovered = await collector.recovery.recoverInterruptedWorkoutFromStrap()
             isRecoveringWorkout = false
             if recovered != nil {
                 interruptedWorkoutId = nil
@@ -389,7 +389,7 @@ struct RecordView: View {
     /// re-archive carrying the tags and notes the user picked was not stored,
     /// the tag-save failure alert says so first.
     private func finishAutoAccept(tagsStored: Bool) {
-        collector.clearAcceptanceState()
+        collector.morning.clearAcceptanceState()
         if !tagsStored, !selectedTags.isEmpty || !sessionNotes.isEmpty {
             debugLog("[AutoAccept] Re-archive not stored — the pre-night tags and notes were not saved", level: .warning)
             tagSaveFailureMessage = String(localized: "The tags and notes you picked for this reading couldn't be saved. Add them again from History.", bundle: LanguageManager.appBundle)
@@ -416,7 +416,7 @@ struct RecordView: View {
         let retrieved = await collector.retrieveFullSessionAsync(session.id)
         let latestSession = preSessionTagged(retrieved ?? session)
         debugLog("[AutoAccept] archive.retrieve(\(session.id.uuidString.prefix(8))): \(retrieved == nil ? "FAILED — using in-memory session" : "OK"), source=\(latestSession.dataSourceSummary?.selectedSource ?? "nil")")
-        return await collector.updateCompositeRecoveryScore(for: latestSession, exportMetrics: true)
+        return await collector.morning.updateCompositeRecoveryScore(for: latestSession, exportMetrics: true)
     }
 
 }

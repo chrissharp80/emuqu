@@ -236,7 +236,7 @@ final class RRCollectorSaveResultTests: XCTestCase {
         try archive.archive(session)
         session.tags = [ReadingTag.alcohol]
 
-        let stored = await collector.updateCompositeRecoveryScore(for: session)
+        let stored = await collector.morning.updateCompositeRecoveryScore(for: session)
 
         XCTAssertTrue(stored)
         XCTAssertEqual(try archive.retrieve(session.id)?.tags, [ReadingTag.alcohol])
@@ -250,7 +250,7 @@ final class RRCollectorSaveResultTests: XCTestCase {
         try archive.archive(session)
         session.tags = [ReadingTag.alcohol]
 
-        let stored = await collector.updateCompositeRecoveryScore(for: session)
+        let stored = await collector.morning.updateCompositeRecoveryScore(for: session)
 
         XCTAssertFalse(stored)
         XCTAssertEqual(try archive.retrieve(session.id)?.tags, [])
@@ -263,8 +263,8 @@ final class RRCollectorSaveResultTests: XCTestCase {
     private func reviewCard() -> HRVSession {
         var card = night()
         card.recoveryScore = 6.1
-        collector.currentSession = card
-        collector.needsAcceptance = true
+        collector.sessionState.currentSession = card
+        collector.sessionState.needsAcceptance = true
         collector.sessionState.reviewArchivedSessionId = card.id
         collector.sessionState.reviewArchivedEntries = SessionState.ReviewEntries(of: card)
         return card
@@ -277,7 +277,7 @@ final class RRCollectorSaveResultTests: XCTestCase {
         var card = reviewCard()
         card.tags = [ReadingTag.alcohol]
         card.notes = "late dinner"
-        collector.currentSession = card
+        collector.sessionState.currentSession = card
         var rescored = HRVSession(
             id: card.id, startDate: card.startDate, endDate: card.endDate, state: .complete,
             sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
@@ -287,10 +287,10 @@ final class RRCollectorSaveResultTests: XCTestCase {
 
         makeReanalysis().finishRescore(sessionId: card.id, prior: nil, updated: rescored, reason: "sleep")
 
-        XCTAssertEqual(collector.currentSession?.recoveryScore, 7.4)
-        XCTAssertEqual(collector.currentSession?.tags, [ReadingTag.alcohol], "edited on the card")
-        XCTAssertEqual(collector.currentSession?.notes, "late dinner", "edited on the card")
-        XCTAssertEqual(collector.currentSession?.morningFeeling, 2, "left alone on the card, edited in History")
+        XCTAssertEqual(collector.sessionState.currentSession?.recoveryScore, 7.4)
+        XCTAssertEqual(collector.sessionState.currentSession?.tags, [ReadingTag.alcohol], "edited on the card")
+        XCTAssertEqual(collector.sessionState.currentSession?.notes, "late dinner", "edited on the card")
+        XCTAssertEqual(collector.sessionState.currentSession?.morningFeeling, 2, "left alone on the card, edited in History")
     }
 
     /// Stop, Retry or Recover into a night already archived leaves the
@@ -300,25 +300,25 @@ final class RRCollectorSaveResultTests: XCTestCase {
         var card = reviewCard()
         collector.sessionState.reviewArchivedSessionId = nil
         card.recoveryScore = 8.2
-        collector.currentSession = card
+        collector.sessionState.currentSession = card
         var oldArchived = card
         oldArchived.recoveryScore = 5.0
 
         makeReanalysis().finishRescore(sessionId: card.id, prior: nil, updated: oldArchived, reason: "sleep")
 
-        XCTAssertEqual(collector.currentSession?.recoveryScore, 8.2)
+        XCTAssertEqual(collector.sessionState.currentSession?.recoveryScore, 8.2)
     }
 
     /// No session awaits acceptance: a rescore leaves the current session.
     func testARescoreWithNothingAwaitingAcceptanceLeavesTheCurrentSession() {
         let card = reviewCard()
-        collector.needsAcceptance = false
+        collector.sessionState.needsAcceptance = false
         var rescored = card
         rescored.recoveryScore = 7.4
 
         makeReanalysis().finishRescore(sessionId: card.id, prior: nil, updated: rescored, reason: "sleep")
 
-        XCTAssertEqual(collector.currentSession?.recoveryScore, 6.1)
+        XCTAssertEqual(collector.sessionState.currentSession?.recoveryScore, 6.1)
     }
 
     func testAnotherSessionsArchivedCopyLeavesTheReviewCardAlone() {
@@ -328,8 +328,8 @@ final class RRCollectorSaveResultTests: XCTestCase {
 
         collector.adoptArchivedCopy(other)
 
-        XCTAssertEqual(collector.currentSession?.id, card.id)
-        XCTAssertEqual(collector.currentSession?.recoveryScore, 6.1)
+        XCTAssertEqual(collector.sessionState.currentSession?.id, card.id)
+        XCTAssertEqual(collector.sessionState.currentSession?.recoveryScore, 6.1)
     }
 
     // MARK: - Segment unlink

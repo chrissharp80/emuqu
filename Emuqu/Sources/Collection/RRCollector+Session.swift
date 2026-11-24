@@ -15,21 +15,21 @@ extension RRCollector {
             debugLog("[RRCollector] Not resetting the session: a night's ending is in progress", level: .warning)
             return
         }
-        let resetsPause = pausedSession != nil
-        currentSession = nil
-        collectedPoints = []
-        verificationResult = nil
-        recoveryWindow = nil
-        needsAcceptance = false
-        lastError = nil
-        isCollecting = false
-        isStreamingMode = false
+        let resetsPause = streamingLifecycle.pausedSession != nil
+        sessionState.currentSession = nil
+        sessionState.collectedPoints = []
+        sessionState.verificationResult = nil
+        sessionState.recoveryWindow = nil
+        sessionState.needsAcceptance = false
+        sessionState.lastError = nil
+        sessionState.isCollecting = false
+        streamingLifecycle.isStreamingMode = false
         sessionStartTime = nil
         sessionState.forgetReviewedNight()
-        recordingPhase = .idle
-        baselineDeviation = nil
-        isPaused = false
-        pausedSession = nil
+        sessionState.recordingPhase = .idle
+        sessionState.baselineDeviation = nil
+        streamingLifecycle.isPaused = false
+        streamingLifecycle.pausedSession = nil
         if resetsPause { clearPausedSessionState() }
     }
 
@@ -40,7 +40,7 @@ extension RRCollector {
     /// strap. Throws `alreadyRecording` or `notConnected`; `what` names the
     /// start in the log.
     func requireConnectedWithNoNightHeld(starting what: String) throws {
-        guard !isPaused, !streamingLifecycle.isEndingOvernight else {
+        guard !streamingLifecycle.isPaused, !streamingLifecycle.isEndingOvernight else {
             debugLog("[RRCollector] Not starting \(what): a night is paused or being ended", level: .warning)
             throw CollectorError.alreadyRecording
         }
@@ -59,7 +59,7 @@ extension RRCollector {
         }
         guard recovery.strapRecordingBelongsToLiveWorkout else { return false }
         debugLog("[RRCollector] Not \(action) the strap recording: it is a live workout's backup", level: .warning)
-        lastError = CollectorError.alreadyRecording
+        sessionState.lastError = CollectorError.alreadyRecording
         return true
     }
 

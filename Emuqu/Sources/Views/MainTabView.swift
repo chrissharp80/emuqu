@@ -458,12 +458,12 @@ struct MainTabView: View {
     }
 
     private func recoverInterruptedWorkoutOnLaunch() async {
-        await collector.autoRecoverInterruptedWorkoutOnLaunch()
+        await collector.recovery.autoRecoverInterruptedWorkoutOnLaunch()
         // Also surface any ALREADY-archived recovered workout the user
         // hasn't confirmed yet (e.g. a prior silent recovery with a
         // wrong, over-long duration) so they can trim it.
         if collector.morningCoordination.recoveredWorkoutReview == nil {
-            collector.surfaceExistingRecoveredWorkoutForReview()
+            collector.recovery.surfaceExistingRecoveredWorkoutForReview()
         }
         // If anything needs review, land the user on Record so the
         // review/trim card is visible — never a silent archive.

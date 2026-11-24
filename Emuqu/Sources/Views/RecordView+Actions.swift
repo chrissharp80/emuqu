@@ -48,12 +48,12 @@ extension RecordView {
         switch mode {
         case .streaming:
             // Streaming mode with overnight processing pipeline.
-            try collector.startOvernightStreaming(sessionType: type, useDeviceInternalBackup: false)
+            try collector.overnightStreaming.startOvernightStreaming(sessionType: type, useDeviceInternalBackup: false)
         case .internalCapture:
             // Device-only recording mode (H10 exercise recording / Verity offline PPI).
-            try await collector.startSession(sessionType: type)
+            try await collector.deviceRecording.startSession(sessionType: type)
         case .both:
-            try collector.startOvernightStreaming(sessionType: type, useDeviceInternalBackup: true)
+            try collector.overnightStreaming.startOvernightStreaming(sessionType: type, useDeviceInternalBackup: true)
         }
     }
 
@@ -132,7 +132,7 @@ extension RecordView {
     }
 
     private func stopOvernightAndApplyOutcome() async {
-        let session = await collector.stopOvernightStreaming()
+        let session = await collector.overnightStreaming.stopOvernightStreaming()
         await MainActor.run { applyStopOutcome(session, navigateOnSuccess: false) }
     }
 
@@ -151,7 +151,7 @@ extension RecordView {
     private func stopInternalRecording() async {
         await RecordingKeepAwake.during {
             do {
-                let session = try await collector.stopSession()
+                let session = try await collector.deviceRecording.stopSession()
                 applyStopOutcome(session, navigateOnSuccess: true)
             } catch {
                 sessionState.lastError = error
@@ -183,7 +183,7 @@ extension RecordView {
         isRetrying = true
         await RecordingKeepAwake.during {
             do {
-                let session = try await collector.retryFetchRecording()
+                let session = try await collector.recovery.retryFetchRecording()
                 finishRetry(session)
             } catch {
                 sessionState.lastError = error
@@ -232,7 +232,7 @@ extension RecordView {
         Task {
             if let session = sessionState.currentSession { await persistTagsAndNotes(for: session) }
             do {
-                try await collector.acceptSession()
+                try await collector.morning.acceptSession()
             } catch RRCollector.CollectorError.noSessionToAccept {
                 debugLog("[RecordView] ⚠️ No complete session to accept")
             } catch {

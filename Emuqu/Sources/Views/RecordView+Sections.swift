@@ -529,7 +529,7 @@ extension RecordView {
         interruptedWorkoutId = nil
         recoveredWorkoutFailure = nil
         Task {
-            let closed = await collector.retrimRecoveredWorkout(sessionId: review.sessionId, endSec: endSec)
+            let closed = await collector.recovery.retrimRecoveredWorkout(sessionId: review.sessionId, endSec: endSec)
             if !closed {
                 recoveredWorkoutFailure = String(localized: "Couldn't save the trimmed workout. Try again.", bundle: LanguageManager.appBundle)
             }
@@ -540,7 +540,7 @@ extension RecordView {
     func discardRecoveredWorkout(_ review: MorningCoordination.RecoveredWorkoutReview) {
         interruptedWorkoutId = nil
         recoveredWorkoutFailure = nil
-        if !collector.discardRecoveredWorkout(sessionId: review.sessionId) {
+        if !collector.recovery.discardRecoveredWorkout(sessionId: review.sessionId) {
             recoveredWorkoutFailure = String(localized: "Couldn't delete this workout. Try again.", bundle: LanguageManager.appBundle)
         }
     }
