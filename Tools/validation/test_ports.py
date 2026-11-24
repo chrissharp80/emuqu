@@ -1,5 +1,8 @@
-"""Reproduce the Emuqu unit-test expectations (EmuquTests/* @ e028039) against
-the Python ports. Each case names the Swift test it mirrors. Run:
+"""Reproduce the Emuqu unit-test expectations (EmuquTests/* @ e028039, and the
+seven HRVSleepStageClassifierTests recording-break and artifact-gap cases added
+at 0bf50c7) against the Python ports. Each case names the Swift test it
+mirrors. The ports follow the code at those commits, so a full match does not
+by itself show that the current Swift code agrees with them. Run:
     python3 -I test_ports.py
 Prints PASS/FAIL per case and a summary; exit code 1 on any failure.
 """

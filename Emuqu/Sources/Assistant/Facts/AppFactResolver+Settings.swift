@@ -164,7 +164,7 @@ struct WebSearchNamespace: FactNamespaceResolver {
             return error.factValue
         }
         let webStartedAt = Date()
-        debugLog("[WebSearch] action fired: query=\"\(q.prefix(60))\" intent=\(intent.rawValue) max=\(maxResults)")
+        debugLog("[WebSearch] action fired: query of \(q.count) characters, intent=\(intent.rawValue) max=\(maxResults)")
         let raced = await racedSearch(query: q, intent: intent, maxResults: maxResults)
         let elapsed = String(format: "%.2f", Date().timeIntervalSince(webStartedAt))
         guard let capturedResult = raced else {
@@ -237,13 +237,13 @@ struct WebSearchNamespace: FactNamespaceResolver {
         elapsed: String
     ) -> FactValue {
         if results.isEmpty {
-            debugLog("[WebSearch] zero results in \(elapsed)s for query \"\(q.prefix(60))\" intent=\(intent.rawValue)")
+            debugLog("[WebSearch] zero results in \(elapsed)s, intent=\(intent.rawValue)")
             return .missing(
                 reason: .notRecorded,
                 detail: "no results from \(intent.rawValue) domains for query '\(q)' — broaden the query or try a different intent"
             )
         }
-        debugLog("[WebSearch] OK \(results.count) results in \(elapsed)s for query \"\(q.prefix(60))\" intent=\(intent.rawValue)")
+        debugLog("[WebSearch] OK \(results.count) results in \(elapsed)s, intent=\(intent.rawValue)")
         return .record([
             "query": .string(q),
             "intent": .string(intent.rawValue),

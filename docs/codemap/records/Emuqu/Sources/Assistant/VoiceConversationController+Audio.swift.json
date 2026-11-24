@@ -651,15 +651,15 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.dispatchTranscript(_:)": "dafbdbf78d7734d5",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.droppedAsEcho(_:)": "b7642892b3e52853",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.droppedAsEcho(_:)": "eabab44e30e58523",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleEmptyTranscript()": "a24f4c9e3bbefdde",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func VoiceAudioPipeline.droppedAsEcho(_:)",
-   "hash": "fc2ca28113880ba7",
-   "does": "Drops the transcript as echo when it looks like the last AI reply (flashes a transient inbox notice, re-arms) or when it is a medical-refusal echo (re-arms); returns whether it dropped.",
+   "hash": "75bebe9acb1ca208",
+   "does": "Drops the transcript as echo when it looks like the last AI reply (flashes a transient inbox notice, re-arms) or when it is a medical-refusal echo (re-arms); returns whether it dropped. Each drop logs the transcript's length, never its words.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.looksLikeEcho(of:)",
@@ -677,16 +677,16 @@
     {
      "at": "+1",
      "cond": "looksLikeEcho(transcript)",
-     "effect": "true: warning log, transient notice, reArmListening, return true"
+     "effect": "true: warning log (transcript length only), transient notice, reArmListening, return true"
     },
     {
      "at": "+10",
      "cond": "isMedicalRefusalEcho",
-     "effect": "false: return false; true: log, reArmListening, return true (no user notice)"
+     "effect": "false: return false; true: log (transcript length only), reArmListening, return true (no user notice)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.flashTransientNotice(_:)": "97698c695bd1a5f4",
+    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.flashTransientNotice(_:)": "91a2301e82d11e65",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.isMedicalRefusalEcho(_:)": "ea374da731698e9b",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.reArmListening()": "37f8606240d80eeb",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.looksLikeEcho(of:)": "6a055ed8771af945",

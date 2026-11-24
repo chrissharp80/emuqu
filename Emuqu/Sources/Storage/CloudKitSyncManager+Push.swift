@@ -603,17 +603,22 @@ extension CloudKitSyncManager {
     /// Race an async operation against a timeout. Returns
     /// `.success(value)` if the operation finished first, `.failure(error)`
     /// if the operation threw, `.failure(SyncTimeoutError.timedOut)` if
-    /// the sleep won the race. Used to cap the remote delete
+    /// the deadline passed first, and `.failure(CancellationError())` at once
+    /// if the caller was cancelled. Used to cap the remote delete
     /// (`CloudDeletionCoordinator.performDeleteAllRemoteData`) so a wedged
     /// CloudKit call can't hold it; the full sync uses the no-progress
-    /// `withProgressWatchdog` instead. `runWithTimeout`
-    /// returns without awaiting the loser, so a call that ignores
-    /// cancellation cannot hold it past the deadline.
+    /// `withProgressWatchdog` instead. `Deadline.race` returns without
+    /// awaiting the loser, so a call that ignores cancellation cannot hold
+    /// it past the deadline.
     func withTimeoutResult<T: Sendable>(
         seconds: TimeInterval,
         operation: @Sendable @escaping () async throws -> T
     ) async -> Result<T, Error> {
-        await runWithTimeout(seconds: seconds) { await Self.captured(operation) } ?? .failure(SyncTimeoutError.timedOut)
+        do {
+            return .success(try await Deadline.race(seconds: seconds, timeout: SyncTimeoutError.timedOut, operation: operation))
+        } catch {
+            return .failure(error)
+        }
     }
 
     /// Race `operation` against a NO-PROGRESS watchdog. Fails ONLY if no progress

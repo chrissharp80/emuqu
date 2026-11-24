@@ -1002,25 +1002,23 @@
   },
   {
    "key": "func CloudKitSyncManager.withTimeoutResult(seconds:operation:)",
-   "hash": "c18d32d28a0dba0c",
-   "does": "Races an async throwing operation against a timeout via runWithTimeout; returns .success, .failure(error), or .failure(SyncTimeoutError.timedOut) when the timer wins. Used by the remote delete (CloudDeletionCoordinator.performDeleteAllRemoteData).",
+   "hash": "798f162f9210b737",
+   "does": "Races an async throwing operation against a timeout through Deadline.race (timeout SyncTimeoutError.timedOut): returns .success(value), .failure(the operation's error), .failure(SyncTimeoutError.timedOut) when the deadline passes first, or .failure(CancellationError) at once when the caller is cancelled. Used by the remote delete (CloudDeletionCoordinator.performDeleteAllRemoteData).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)"
+    "Emuqu/Sources/Utilities/Deadline.swift::func Deadline.race(seconds:timeout:operation:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "?? — runWithTimeout returned nil (timer fired first)",
-     "effect": "fallback .failure(SyncTimeoutError.timedOut)"
+     "at": "+6",
+     "cond": "Deadline.race threw",
+     "effect": ".failure(that error): the operation's error, SyncTimeoutError.timedOut, or CancellationError; else .success"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "3ebe96c57aa110d7",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)": "72d8f50d153f59b8",
+    "Emuqu/Sources/Utilities/Deadline.swift::func Deadline.race(seconds:timeout:operation:)": "25d7b1d60093b82d",
     "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
@@ -1030,8 +1028,8 @@
    "does": "Runs the operation in an unstructured Task and a poller Task; resumes with the operation's Result, or with .failure(SyncTimeoutError.stalled) once lastSyncProgressAt has been stale for stuckAfter seconds, then cancels (but does not await) the operation task.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func FirstResultGate.resume(_:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::init FirstResultGate(_:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::func FirstResultGate.resume(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.awaitProgressStall(stuckAfter:unlessResolved:)"
    ],
@@ -1053,7 +1051,9 @@
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::init FirstResultGate(_:)": "d0f5e7a34e2054b9",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.awaitProgressStall(stuckAfter:unlessResolved:)": "82feb9639be25e6c",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.captured(_:)": "72d8f50d153f59b8",
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6",
+    "Emuqu/Sources/Utilities/Deadline.swift::func FirstResultGate.resume(_:)": "8c9954be5417adb5",
+    "Emuqu/Sources/Utilities/Deadline.swift::init FirstResultGate(_:)": "d0f5e7a34e2054b9"
    }
   },
   {
@@ -1083,7 +1083,7 @@
    "does": "Polls every 5 s until cancelled or the gate is resolved; returns as soon as lastSyncProgressAt is older than stuckAfter.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::var FirstResultGate.isResolved",
+    "Emuqu/Sources/Utilities/Deadline.swift::var FirstResultGate.isResolved",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
    ],
    "reads": [
@@ -1104,7 +1104,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::var FirstResultGate.isResolved": "74897fb999670377",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4",
+    "Emuqu/Sources/Utilities/Deadline.swift::var FirstResultGate.isResolved": "74897fb999670377"
    }
   }
  ],

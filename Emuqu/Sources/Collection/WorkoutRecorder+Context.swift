@@ -119,7 +119,7 @@ extension WorkoutAIContextBuilder {
         recorder.plannedRoute = match.route
         recorder.plannedRouteWasAutoDetected = true
         recorder.plannedRouteDirection = match.direction
-        debugLog("[WorkoutRecorder] auto-bound saved route '\(match.savedRoute.name)' \(match.direction == .reverse ? "(reverse)" : "") fit \(Int(match.meanFitMeters.rounded())) m")
+        debugLog("[WorkoutRecorder] auto-bound saved route \(match.savedRoute.id.uuidString.prefix(8)) \(match.direction == .reverse ? "(reverse)" : "") fit \(Int(match.meanFitMeters.rounded())) m")
     }
 
     /// Projects `location` onto `route`, continuing from the last tick's point.

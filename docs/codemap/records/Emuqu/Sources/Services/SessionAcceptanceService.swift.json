@@ -231,10 +231,10 @@
   {
    "key": "func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)",
    "hash": "8f7c2be181817e5d",
-   "does": "Races, against a 10 s runWithTimeout: the sleep fetch over the search range with RR offsets anchored at sessionStart (sleepOrNil rrStart), the previous day's qualifying nap (fetchDaytimeNapMinutes anchored at the session start, credited via withNapSleepMinutes when > 0, as the morning pass does), and fetchRecoveryVitals; returns (sleep, vitals) or (nil, nil) on timeout.",
+   "does": "Races, against a 10 s runWithTimeout: the sleep fetch over the search range with RR offsets anchored at sessionStart (sleepOrNil rrStart), the previous day's qualifying nap (fetchDaytimeNapMinutes anchored at the session start, credited via withNapSleepMinutes when > 0, as the morning pass does), and fetchRecoveryVitals; returns (sleep, vitals), or (nil, nil) on timeout or at once when the caller is cancelled.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::func runWithTimeout(seconds:operation:)",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:rrStart:)",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:)",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)",
@@ -256,7 +256,7 @@
     {
      "at": "+18",
      "cond": "race returned a value",
-     "effect": "false (timeout): log and return (nil, nil); true: return both"
+     "effect": "false (timeout or caller cancelled): log and return (nil, nil); true: return both"
     }
    ],
    "deps": {
@@ -264,7 +264,8 @@
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:)": "c1f14cd2cbc5e1fd",
     "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func runWithTimeout(seconds:operation:)": "3ebe96c57aa110d7",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:rrStart:)": "79d054c30c4e5168",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Deadline.swift::func runWithTimeout(seconds:operation:)": "9e18694990d5274e"
    }
   },
   {
@@ -391,7 +392,7 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)": "69af74a0ae36c606",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)": "016ce7254b653cf5",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)": "2521b62450bd77f5",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepToFreeze(fetched:morning:)": "6413b67cdc295229"
    }
@@ -706,7 +707,7 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)": "69af74a0ae36c606",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.fetchSleepAndVitals(rrPoints:fetchStart:fetchEnd:sessionStart:sessionEnd:)": "016ce7254b653cf5",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepFetchRange(for:sessionEnd:sleepSchedule:)": "2521b62450bd77f5",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepToFreeze(fetched:morning:)": "6413b67cdc295229"
    }

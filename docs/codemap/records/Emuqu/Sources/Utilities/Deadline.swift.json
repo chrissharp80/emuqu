@@ -1,0 +1,234 @@
+{
+ "file": "Emuqu/Sources/Utilities/Deadline.swift",
+ "hash": "61b9a7940d9ab6d5",
+ "role": "The app's one hard wall clock for async work (strap SDK calls, geocoding, workout finalization, the CloudKit remote delete): Deadline.race runs the operation in its own Task and resumes the caller at the first of result (value or the operation's own error), deadline (the given timeout error) or caller cancellation (CancellationError), dropping late results; runWithTimeout is its value-or-nil form; FirstResultGate resumes a continuation once for the CloudKit progress watchdog.",
+ "types": [
+  "Deadline: enum — namespace for race()",
+  "DeadlineRace<T>: class (private, Sendable) — lock-protected continuation + clock/call tasks + cancelled flag",
+  "ResumeOnce<T>: class (private, Sendable) — resumes a CheckedContinuation at most once"
+ ],
+ "state": [
+  "DeadlineRace.parts: OSAllocatedUnfairLock<Parts> (per race)",
+  "ResumeOnce.resumed: OSAllocatedUnfairLock<Bool> (per race)"
+ ],
+ "toplevel": "No code outside units.",
+ "units": [
+  {
+   "key": "func Deadline.race(seconds:timeout:operation:)",
+   "hash": "1a12a38df5655a5c",
+   "does": "Creates a DeadlineRace and suspends on a checked throwing continuation that the race resumes once: with the operation's value or thrown error, with `timeout` when `seconds` pass first, or with CancellationError at once when the calling task is cancelled (onCancel → race.cancel()). Never waits for the operation to stop.",
+   "entry": "Called from RRCollector+OvernightArming.swift:45, PolarManager+Recording.swift:462, StrapRecordingCoordinator+Transfer.swift:116 and :322; test StrapTransferTests.swift:206.",
+   "calls": [
+    "Emuqu/Sources/Utilities/Deadline.swift::func DeadlineRace.begin(_:seconds:timeout:operation:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::func DeadlineRace.cancel()",
+    "Emuqu/Sources/Utilities/Deadline.swift::init ResumeOnce(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Deadline.swift::func DeadlineRace.begin(_:seconds:timeout:operation:)": "b7af443c93a203bc",
+    "Emuqu/Sources/Utilities/Deadline.swift::func DeadlineRace.cancel()": "ca0396335250938a",
+    "Emuqu/Sources/Utilities/Deadline.swift::init ResumeOnce(_:)": "7b0edfc7efd04475"
+   }
+  },
+  {
+   "key": "var DeadlineExpired.errorDescription",
+   "hash": "dffd58f72df86933",
+   "does": "'no result within <seconds> s': the reason runWithTimeout logs when the deadline passed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func runWithTimeout(seconds:operation:)",
+   "hash": "5616ab99fa41cd1a",
+   "does": "Returns Deadline.race(seconds, timeout: DeadlineExpired(seconds), operation); on any thrown error (the deadline, the operation's own error, or the caller's cancellation, which resumes it at once) logs '[runWithTimeout] no result: <reason>' and returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Deadline.swift::func Deadline.race(seconds:timeout:operation:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "Deadline.race threw (deadline, operation error or caller cancellation)",
+     "effect": "log the reason and return nil; otherwise the value"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Deadline.swift::func Deadline.race(seconds:timeout:operation:)": "25d7b1d60093b82d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "init FirstResultGate(_:)",
+   "hash": "1e151f4fa3006aab",
+   "does": "Wraps the continuation in an OSAllocatedUnfairLock.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var FirstResultGate.isResolved",
+   "hash": "b4f2e0be6ac83246",
+   "does": "True once the stored continuation has been taken (resume called).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func FirstResultGate.resume(_:)",
+   "hash": "6d58ff88820659ff",
+   "does": "Atomically takes the continuation out of the lock and resumes it with the value; later calls find nil and do nothing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func DeadlineRace.begin(_:seconds:timeout:operation:)",
+   "hash": "e8e4e5b9d371f293",
+   "does": "Stores the ResumeOnce; if already cancelled resumes CancellationError; else starts a clock Task (expire) and a call Task (run), records both, and if cancel() ran meanwhile calls cancel() again so the new tasks get cancelled.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Deadline.swift::func DeadlineRace.expire(after:with:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::func DeadlineRace.run(_:finish:clock:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::func DeadlineRace.cancel()",
+    "Emuqu/Sources/Utilities/Deadline.swift::func ResumeOnce.callAsFunction(_:)",
+    "ext:Task"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "caller was cancelled before begin",
+     "effect": "true: resumes with CancellationError and returns without starting tasks; false: starts clock and call tasks"
+    },
+    {
+     "at": "+20",
+     "cond": "cancelled flag set while tasks were being created",
+     "effect": "true: cancel() resumes (no-op if already resumed) and cancels both tasks; false: nothing"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Deadline.swift::func DeadlineRace.cancel()": "ca0396335250938a",
+    "Emuqu/Sources/Utilities/Deadline.swift::func DeadlineRace.expire(after:with:)": "e248f0c3dd488637",
+    "Emuqu/Sources/Utilities/Deadline.swift::func DeadlineRace.run(_:finish:clock:)": "dc999725e435f283",
+    "Emuqu/Sources/Utilities/Deadline.swift::func ResumeOnce.callAsFunction(_:)": "5c383851d478c173",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
+   }
+  },
+  {
+   "key": "func DeadlineRace.cancel()",
+   "hash": "6b9c53e2fe5cb465",
+   "does": "Marks the race cancelled, resumes the caller with CancellationError (ignored if already resumed), and cancels the clock and call tasks.",
+   "entry": "withTaskCancellationHandler onCancel in Deadline.race (caller's task cancelled, e.g. user Cancel on a strap transfer).",
+   "calls": [
+    "Emuqu/Sources/Utilities/Deadline.swift::func ResumeOnce.callAsFunction(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/Deadline.swift::func ResumeOnce.callAsFunction(_:)": "5c383851d478c173",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
+   }
+  },
+  {
+   "key": "func DeadlineRace.expire(after:with:)",
+   "hash": "ec212673859e377e",
+   "does": "Sleeps `seconds` (a TimeInterval, negative taken as zero); if the sleep is cancelled (call finished first) returns silently; otherwise resumes the caller with `timeout` and cancels both tasks.",
+   "entry": "Clock Task started by DeadlineRace.begin.",
+   "calls": [
+    "Emuqu/Sources/Utilities/Deadline.swift::func ResumeOnce.callAsFunction(_:)",
+    "ext:Task.sleep"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "Task.sleep throws (clock cancelled)",
+     "effect": "catch: return silently — expected when the operation finished first; no throw: deadline reached, caller resumed with timeout"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Deadline.swift::func ResumeOnce.callAsFunction(_:)": "5c383851d478c173",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
+   }
+  },
+  {
+   "key": "func DeadlineRace.run(_:finish:clock:)",
+   "hash": "1d6948a407432788",
+   "does": "Awaits the operation, resumes the caller with its value or error, then cancels the clock task.",
+   "entry": "Call Task started by DeadlineRace.begin.",
+   "calls": [
+    "Emuqu/Sources/Utilities/Deadline.swift::func ResumeOnce.callAsFunction(_:)",
+    "closure:operation passed by Deadline.race callers (strap SDK calls, map and geocoder lookups, HealthKit queries, the CloudKit remote delete)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "operation throws",
+     "effect": "catch: caller resumed with that error (dropped if deadline/cancel already resumed); no throw: resumed with value"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Deadline.swift::func ResumeOnce.callAsFunction(_:)": "5c383851d478c173",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
+   }
+  },
+  {
+   "key": "init ResumeOnce(_:)",
+   "hash": "caef46352dc00a97",
+   "does": "Stores the checked continuation.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ResumeOnce.callAsFunction(_:)",
+   "hash": "90c9cd9c5b213341",
+   "does": "Resumes the continuation with the result only the first time (setIfClear on `resumed`); later results are dropped.",
+   "entry": "Invoked as a function by DeadlineRace.begin/cancel/expire/run.",
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()",
+    "ext:CheckedContinuation.resume"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "this is the first call",
+     "effect": "true: continuation resumed with the result; false: result dropped"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()": "7eb7fa9354ab076a"
+   }
+  }
+ ],
+ "deps": {}
+}

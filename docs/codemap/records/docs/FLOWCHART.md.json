@@ -635,8 +635,8 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 11a. UI Session Data Flow",
-   "hash": "be9f58600f503feb",
-   "does": "Claims MainTabView owns the dashboard slice (seeded count, 50 ms reload guard), TrendsV2View/HistoryView load independently, every view observes RRCollector.archiveVersion and CloudKitSyncManager.pullVersion, dashboard loads recentSessionsAsync(limit: 35), Trends loads limit nil then filters overnight/analysisResult/isReliableForHRVAggregates in TimeRange 7/14/30/90/all, History uses archive.entries; each view's refresh cancels its prior one except TrendsV2View.loadSessions, which runs one load at a time and repeats it when a refresh came during it (reloadRequested); mutation paths call notifyArchiveChanged. Dashboard numbers: dashboardSessionLoadLimit 35, 0.05 s guard.",
+   "hash": "24b1ac172b6b43ba",
+   "does": "Claims MainTabView owns the dashboard slice (seeded count, 50 ms reload guard), TrendsV2View/HistoryView load independently, every view observes RRCollector.archiveVersion and CloudKitSyncManager.pullVersion, dashboard loads recentSessionsAsync(limit: 35), Trends loads every session through allSessionsAsync (nil, leaving its sessions, when its task is cancelled; all views share decodeInParallel, at most one read per core at a time) then filters overnight/analysisResult/isReliableForHRVAggregates in TimeRange 7/14/30/90/all, History uses archive.entries; each view's refresh cancels its prior one except TrendsV2View.loadSessions, which runs one load at a time and repeats it when a refresh came during it (reloadRequested); mutation paths call notifyArchiveChanged. Dashboard numbers: dashboardSessionLoadLimit 35, 0.05 s guard.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()",
@@ -655,7 +655,7 @@
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "090a425376b10bfe",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadPassesDebounce()": "6d7c9e1c6b4d3542",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()": "954470e0a722865c",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()": "b460c785d65cb9b3"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()": "c89b045820e7e696"
    }
   },
   {

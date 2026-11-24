@@ -1,0 +1,120 @@
+{
+ "file": "EmuquTests/DebugLogExportTests.swift",
+ "hash": "24cc4c3640272ebf",
+ "role": "Tests for the log export's read of the log file (DebugLogger.readLogFile) and its fallback header (DebugLogger.unreadableFileSource): a missing file is empty, a readable one is its text, a non-UTF-8 file throws, and the fallback source line names the failure.",
+ "types": [
+  "DebugLogExportTests: class — XCTestCase over a temporary directory; nested ReadFailure (a LocalizedError)"
+ ],
+ "state": [
+  "directory: <tmp>/DebugLogExportTests-<uuid> (created in setUpWithError, removed in tearDownWithError)"
+ ],
+ "toplevel": "",
+ "units": [
+  {
+   "key": "func DebugLogExportTests.setUpWithError()",
+   "hash": "80818935dc86dea8",
+   "does": "Creates the test's directory.",
+   "entry": "XCTest runner: per-test setUp",
+   "calls": [
+    "ext:FileManager.createDirectory(at:withIntermediateDirectories:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/DebugLogExportTests-<uuid>/ (created)"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogExportTests.tearDownWithError()",
+   "hash": "754e9b6cca8be8c4",
+   "does": "Removes the test's directory.",
+   "entry": "XCTest runner: per-test tearDown",
+   "calls": [
+    "ext:FileManager.removeItem(at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/DebugLogExportTests-<uuid>/ (removed)"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogExportTests.testAMissingLogFileReadsAsEmpty()",
+   "hash": "dc90c474e5eb5bb3",
+   "does": "Asserts readLogFile of a path with no file returns ''.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.readLogFile(at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.readLogFile(at:)": "acfd951adb611403"
+   }
+  },
+  {
+   "key": "func DebugLogExportTests.testAReadableLogFileReadsAsItsText()",
+   "hash": "de8b393461fb8cb0",
+   "does": "Writes two lines to a file and asserts readLogFile returns them.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.readLogFile(at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/DebugLogExportTests-<uuid>/debug_log.txt"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.readLogFile(at:)": "acfd951adb611403"
+   }
+  },
+  {
+   "key": "func DebugLogExportTests.testAnUnreadableLogFileThrows()",
+   "hash": "9ff076f1ab938c76",
+   "does": "Writes bytes that are not UTF-8 (0xFF 0xFE) and asserts readLogFile throws.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.readLogFile(at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/DebugLogExportTests-<uuid>/debug_log.txt"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.readLogFile(at:)": "acfd951adb611403"
+   }
+  },
+  {
+   "key": "func DebugLogExportTests.testTheFallbackSourceSaysTheFileCouldNotBeRead()",
+   "hash": "78f17b5627fd5a06",
+   "does": "Asserts unreadableFileSource of a planted error says the log file could not be read and includes the error's description.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.unreadableFileSource(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.unreadableFileSource(_:)": "afd839e7e5365d82"
+   }
+  },
+  {
+   "key": "var DebugLogExportTests.ReadFailure.errorDescription",
+   "hash": "27b174eba8aa728c",
+   "does": "'planted read failure': the description the fallback source line must carry.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

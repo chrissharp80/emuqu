@@ -863,14 +863,17 @@
   },
   {
    "key": "func DebugLogger.exportLogs()",
-   "hash": "d1b05069cc5b36e0",
-   "does": "With Persistent Logging off returns exportMemoryLogs(); otherwise synchronously flushes pending lines, reads debug_log.txt ('' when unreadable), scrubs every line again with scrubPHI (lines an earlier build flushed went through its narrower scrubber; already-scrubbed lines come through unchanged) and returns exportHeader(newline count, source 'log file (trimmed by size, up to 2 MB)') + that text.",
+   "hash": "c5262fa8f9f4879a",
+   "does": "With Persistent Logging off returns exportMemoryLogs(source: in-memory buffer, Persistent Logging is off). Otherwise synchronously flushes pending lines and reads debug_log.txt through readLogFile ('' when there is no file yet); when the file is there but cannot be read, NSLogs the reason and returns exportMemoryLogs(source: unreadableFileSource(error)), so a failed read never exports as an empty log. Else scrubs every line again (scrubbedLines) and returns exportHeader(newline count, source 'log file (trimmed by size, up to 2 MB)') + that text.",
    "entry": "Copy Log to Clipboard (SettingsPages+DiagnosticActions.swift:82, detached task)",
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportMemoryLogs()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportMemoryLogs(source:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDiskSync()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportHeader(entryCount:source:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.readLogFile(at:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.unreadableFileSource(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubbedLines(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportHeader(entryCount:source:)",
+    "ext:NSLog"
    ],
    "reads": [
     "mem:DebugLogger.persistentBox",
@@ -886,9 +889,9 @@
      "effect": "returns the in-memory export"
     },
     {
-     "at": "+4",
-     "cond": "file unreadable/missing",
-     "effect": "rawContent = '' (export is header only)"
+     "at": "+9",
+     "cond": "readLogFile threw (file there but unreadable)",
+     "effect": "NSLog the reason; return the in-memory export under a header saying the log file could not be read"
     },
     {
      "at": "+18",
@@ -898,15 +901,70 @@
    ],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportHeader(entryCount:source:)": "b81a9a65a3251d3d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportMemoryLogs()": "b542ffb0160d5140",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportMemoryLogs(source:)": "a9828b7e5a6518c7",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushToDiskSync()": "2708646537e67dd9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.readLogFile(at:)": "acfd951adb611403",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubbedLines(_:)": "582f8464f8baecbc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.unreadableFileSource(_:)": "afd839e7e5365d82"
+   }
+  },
+  {
+   "key": "func DebugLogger.readLogFile(at:)",
+   "hash": "cea028587e6c10a1",
+   "does": "Static: the log file's UTF-8 text; '' when no file exists at url (nothing flushed since Persistent Logging was turned on); throws when a file is there but cannot be read as UTF-8.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.fileExists",
+    "ext:String(contentsOf:encoding:)"
+   ],
+   "reads": [
+    "file:debug_log.txt"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no file at url",
+     "effect": "return ''"
+    },
+    {
+     "at": "+2",
+     "cond": "read or decode fails",
+     "effect": "throws"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.unreadableFileSource(_:)",
+   "hash": "a6b8752b4a5536b2",
+   "does": "Static: the export header's source line when the log file could not be read: 'in-memory buffer, last 7 days (the log file could not be read: <reason>)'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func DebugLogger.scrubbedLines(_:)",
+   "hash": "ab012fcb4ee55811",
+   "does": "Static: splits the text on newlines (empty lines kept), runs scrubPHI over each line and joins them again; lines an earlier build flushed went through its narrower scrubber, and an already-scrubbed line comes through unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "7bf0551ca86415fb"
    }
   },
   {
-   "key": "func DebugLogger.exportMemoryLogs()",
-   "hash": "54ab2c431b4cfa3b",
-   "does": "Snapshots exportBuffer plus not-yet-recorded pendingEntries, formats and scrubs each with scrubPHI, and returns exportHeader(line count, source 'in-memory buffer, last 7 days (Persistent Logging is off)') + the lines.",
+   "key": "func DebugLogger.exportMemoryLogs(source:)",
+   "hash": "97222e1676f68cd6",
+   "does": "Snapshots exportBuffer plus not-yet-recorded pendingEntries, formats and scrubs each with scrubPHI, and returns exportHeader(line count, source) + the lines; `source` says why the buffer is exported (Persistent Logging off, or the log file could not be read).",
    "entry": null,
    "calls": [
     "ext:OSAllocatedUnfairLock.withLock",
@@ -1008,7 +1066,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "6ed3037129724044"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "eb4b99d98f200147"
    }
   },
   {

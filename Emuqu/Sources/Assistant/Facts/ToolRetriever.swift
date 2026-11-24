@@ -100,8 +100,8 @@ enum ToolRetriever {
     /// index is keyed by tool name, so a tool's score lookup is O(1).)
     ///
     /// The closing `debugLog` is a breadcrumb showing how aggressive the
-    /// filter was for this query; `.info` keeps it out of the user-facing
-    /// problems list.
+    /// filter was for this query. It logs the query's word count, never its
+    /// text: the query is what the user asked, and the log can be exported.
     static func retrieve(
         query: String,
         tools: [ToolSpec],
@@ -120,7 +120,7 @@ enum ToolRetriever {
         let scoreFloor = max(0.05, maxScore * 0.10)
         let top = Self.topScoring(scored, targetK: targetK, scoreFloor: scoreFloor)
         let retained = Self.withEssentials(top, from: tools)
-        debugLog("[ToolRetriever] query='\(query.prefix(80))' → \(retained.count)/\(tools.count) tools (maxScore=\(String(format: "%.2f", maxScore)), floor=\(String(format: "%.2f", scoreFloor)))")
+        debugLog("[ToolRetriever] query of \(queryTokens.count) words → \(retained.count)/\(tools.count) tools (maxScore=\(String(format: "%.2f", maxScore)), floor=\(String(format: "%.2f", scoreFloor)))")
         return retained
     }
 

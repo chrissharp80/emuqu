@@ -1030,7 +1030,11 @@ that device (`BroadcasterDisclosure`, kept out of the iCloud settings backup).
 
 **On the device.** Log lines are scrubbed by `DebugLogger.scrubPHI`, which
 redacts every named value whose key is not on a short allow-list of counts and
-identifiers, so a new key is covered without anyone naming it. The CSV, GPX,
+identifiers, so a new key is covered without anyone naming it. The scrubber
+cannot recognise free text or place names, so those never reach a log call:
+`make log-redaction-guard` fails on a query, transcript or prompt, a street,
+city or saved-route name, or a coordinate interpolated into one, and the call
+logs a length, a count or whether a name was found instead. The CSV, GPX,
 TCX, report-PDF, log and crash exports are written through `ExportFile` (§5.5a)
 with complete file protection. The conversation summary is sealed beside the
 history, as the conversation is.

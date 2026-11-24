@@ -274,6 +274,17 @@ check "log_redaction" \
     "Emuqu/Sources/Utilities/Errors.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedLeak(apiKey: String) { debugLog(\"key: \\(apiKey)\") }'+chr(10))"
 
+# What the user asked, and the street they are on, interpolated into a log.
+check "log_redaction/user_text" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedQuery(query: String) { debugLog(\"asked: \\(query.prefix(80))\") }'+chr(10))"
+
+check "log_redaction/place_name" \
+    "./scripts/check_log_redaction.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedRoute(savedRoute: SavedRoute) { debugLog(\"route: \\(savedRoute.name)\") }'+chr(10))"
+
 # The Watch logs through `os.Logger` values named `log`, and through a
 # `Logger(…)` built in place with the level call chained on the next line.
 check "log_redaction/watch_logger" \

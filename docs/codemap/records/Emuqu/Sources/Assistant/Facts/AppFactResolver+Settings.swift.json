@@ -227,15 +227,15 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.resolveWebSearch(_:)": "e3ab1f11786dae70",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.resolveWebSearch(_:)": "b88751342f57813c",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)": "946dd1182951eac7",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
    }
   },
   {
    "key": "func WebSearchNamespace.resolveWebSearch(_:)",
-   "hash": "c18d624b1f88963d",
-   "does": "Validates query, maps intent, parses max_results (1–10, default '5'), runs the 15 s raced Tavily search, logs, and converts the outcome to a FactValue.",
+   "hash": "22cc5bf76a8d01df",
+   "does": "Validates query, maps intent, parses max_results (1–10, default '5'), runs the 15 s raced Tavily search, logs the query's length (never its text), intent and limit, and converts the outcome to a FactValue.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchIntent(_:)",
@@ -272,7 +272,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "a3e073118e862f5b",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "7e99d869b02bcbdf",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.racedSearch(query:intent:maxResults:)": "aeba84526a2392af",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchIntent(_:)": "16963724f32ed5d3",
@@ -305,7 +305,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchFailure(_:elapsed:)": "a3178b2555927063",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchResults(_:query:intent:elapsed:)": "b91cd00dd2db8ad8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Settings.swift::func WebSearchNamespace.searchResults(_:query:intent:elapsed:)": "96aef7c109b6e5a5"
    }
   },
   {
@@ -374,8 +374,8 @@
   },
   {
    "key": "func WebSearchNamespace.searchResults(_:query:intent:elapsed:)",
-   "hash": "15cd00598ea4182b",
-   "does": "Turns Tavily results into a record (query, intent, result_count, results list) or missing(notRecorded) when empty; logs either way.",
+   "hash": "5ee91a5537355e92",
+   "does": "Turns Tavily results into a record (query, intent, result_count, results list) or missing(notRecorded) when empty; logs the count, time and intent either way, never the query.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",

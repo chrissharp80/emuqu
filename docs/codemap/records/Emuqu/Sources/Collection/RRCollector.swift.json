@@ -499,30 +499,98 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)": "9d111ea881f5c333"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)": "d504459cc99ae8ec"
    }
   },
   {
-   "key": "func RRCollector.decodeInParallel(_:archive:)",
-   "hash": "f2fa94ff895cb588",
-   "does": "Nonisolated: runs a TaskGroup that decodes each entry lightweight and gathers results in original order (failures dropped). Also used by recentSessionsAsync(limit:before:type:).",
+   "key": "func RRCollector.allSessionsAsync()",
+   "hash": "1d00fada082dc82a",
+   "does": "Decodes every archive entry lightweight (no rrSeries) through decodeInParallel on a detached userInitiated task, in archive order. Cancelling the calling task cancels that task (no new read starts); a cancelled call returns nil rather than a partial list.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.addDecodeTasks(_:entries:archive:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.collectIndexed(_:capacity:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)",
+    "ext:withTaskCancellationHandler",
+    "ext:Task.detached"
+   ],
+   "reads": [
+    "mem:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "the calling task is cancelled once the load returns",
+     "effect": "nil; else the sessions"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.decodeInParallel(_:archive:)": "d504459cc99ae8ec"
+   }
+  },
+  {
+   "key": "var RRCollector.decodeWidth",
+   "hash": "b51a0be372c7c847",
+   "does": "Nonisolated static: how many sessions decodeInParallel reads and decodes at once: the active processor count, at least 2.",
+   "entry": null,
+   "calls": [
+    "ext:ProcessInfo.activeProcessorCount"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func RRCollector.decodeInParallel(_:archive:)",
+   "hash": "634db13ce50f2e9d",
+   "does": "Nonisolated: in a TaskGroup, starts lightweight decodes of the first decodeWidth entries, then drainRefilling starts the next entry as each read finishes, so at most decodeWidth reads run at once; once the task is cancelled no new read starts. Returns the decoded sessions in the entries' order (failures dropped). Also used by recentSessionsAsync(limit:before:type:) and allSessionsAsync.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.decodeWidth",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.addDecodeTask(_:index:entry:archive:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.drainRefilling(_:entries:next:archive:)",
+    "ext:withTaskGroup"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.addDecodeTasks(_:entries:archive:)": "e485a85bba805588",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.collectIndexed(_:capacity:)": "b87ab1d2154fe504"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.addDecodeTask(_:index:entry:archive:)": "205abfe165b45115",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.drainRefilling(_:entries:next:archive:)": "bda71328dcb9f186",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.decodeWidth": "7477c0c87720122c"
    }
   },
   {
-   "key": "func RRCollector.addDecodeTasks(_:entries:archive:)",
-   "hash": "ce2216e2b84e3b9d",
-   "does": "Nonisolated: adds one child task per entry calling archive.retrieveLightweightOrLog, tagged with its index.",
+   "key": "func RRCollector.drainRefilling(_:entries:next:archive:)",
+   "hash": "efde2a10faa80d14",
+   "does": "Nonisolated static: awaits each finished decode, keeps the session when it decoded, and while unread entries remain and the task is not cancelled starts the next one in its place; returns the kept sessions sorted by entry index.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.addDecodeTask(_:index:entry:archive:)",
+    "ext:TaskGroup.next"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "session decoded",
+     "effect": "kept with its index; nil dropped"
+    },
+    {
+     "at": "+11",
+     "cond": "no unread entry left, or the task is cancelled",
+     "effect": "start nothing more; keep draining the reads already running"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.addDecodeTask(_:index:entry:archive:)": "205abfe165b45115"
+   }
+  },
+  {
+   "key": "func RRCollector.addDecodeTask(_:index:entry:archive:)",
+   "hash": "e8427553ff0466fa",
+   "does": "Nonisolated static: adds a child task that reads the entry's session lightweight (retrieveLightweightOrLog) and yields (index, session or nil).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
@@ -531,33 +599,11 @@
     "archive:SessionArchive.retrieveLightweight"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "for each entry",
-     "effect": "adds a task"
-    }
-   ],
+   "branches": [],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
-  },
-  {
-   "key": "func RRCollector.collectIndexed(_:capacity:)",
-   "hash": "2c0ffa36148c7b9b",
-   "does": "Nonisolated: drains the group, drops nil (failed decode) results and sorts by original index.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "for each (index, session?) result",
-     "effect": "appends non-nil sessions; nil dropped"
-    }
-   ],
-   "deps": {}
   },
   {
    "key": "func RRCollector.retrieveFullSessionAsync(_:)",

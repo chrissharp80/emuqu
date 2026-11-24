@@ -146,8 +146,8 @@
   },
   {
    "key": "§ Security Policy > Security Posture > Logging",
-   "hash": "932b30b0469f46b8",
-   "does": "DebugLog: 5,000-entry in-memory ring; disk persistence always on in DEBUG, opt-in in Release; file in the App Group container with completeUntilFirstUserAuthentication. Says scrubPHI redacts every named value whose key's last word is not on the loggable allow-list (redactUnlistedKeyValues, loggableKeyWords), a number after a health-metric name in prose, any bpm value, the numbers chained to a redaction by an arrow, comparison, comma or range dash, and latitude/longitude values (DebugLogger.scrubPHI, metricPattern, redactValueChains), and that session IDs are kept as random UUIDs. Says lines are scrubbed at flush (flushPendingLines) and a file export scrubs every line again (exportLogs), while an in-memory export (Persistent Logging off, exportMemoryLogs) and the error-catalog export (exportErrorCatalog) scrub each line at export; the export file goes to the temporary Exports folder with complete protection, replaces the previous export and is removed at next launch (exportToFile, ExportFile.write, ExportFile.removeLeftovers); `make log-redaction-guard` fails a log call that interpolates a raw health or identifying value.",
+   "hash": "a1d7f926235f411b",
+   "does": "DebugLog: 5,000-entry in-memory ring; disk persistence always on in DEBUG, opt-in in Release; file in the App Group container with completeUntilFirstUserAuthentication. Says scrubPHI redacts every named value whose key's last word is not on the loggable allow-list (redactUnlistedKeyValues, loggableKeyWords), a number after a health-metric name in prose, any bpm value, the numbers chained to a redaction by an arrow, comparison, comma or range dash, and latitude/longitude values (DebugLogger.scrubPHI, metricPattern, redactValueChains), and that session IDs are kept as random UUIDs. Says lines are scrubbed at flush (flushPendingLines) and a file export scrubs every line again (exportLogs), while an in-memory export (Persistent Logging off, or a log file that is there but cannot be read, whose export header says so; exportMemoryLogs(source:), readLogFile) and the error-catalog export (exportErrorCatalog) scrub each line at export; the export file goes to the temporary Exports folder with complete protection, replaces the previous export and is removed at next launch (exportToFile, ExportFile.write, ExportFile.removeLeftovers); `make log-redaction-guard` fails a log call that interpolates a raw health or identifying value, a coordinate, a query, transcript or prompt, or a street, city, place or saved-route name, and such calls log a length, count or found/not-found instead (scrubPHI recognises only numbers in known shapes).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::init DebugLogger()",
@@ -170,7 +170,7 @@
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.removeLeftovers()": "2938ba72f922f474",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()": "a1e2da0314a4f1d3",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "6ed3037129724044",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportLogs()": "eb4b99d98f200147",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFile()": "ad4b019436b2112f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.flushPendingLines()": "a876249b88e75f55",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.redactUnlistedKeyValues(in:)": "a279e292e9491408",

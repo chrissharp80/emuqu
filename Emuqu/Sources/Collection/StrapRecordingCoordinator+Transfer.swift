@@ -116,7 +116,7 @@ extension StrapRecordingCoordinator {
     ) async throws -> T {
         if manager.fetchCancelled { throw CancellationError() }
         let timeout = PolarManager.PolarError.fetchFailed("strap \(phase) timed out after \(seconds)s (strap unresponsive)")
-        let task = Task { try await StrapDeadline.race(seconds: seconds, timeout: timeout, operation: operation) }
+        let task = Task { try await Deadline.race(seconds: TimeInterval(seconds), timeout: timeout, operation: operation) }
         let handle = StrapTransferHandle(cancel: { task.cancel() })
         manager.activeTransfer = handle
         defer { if manager.activeTransfer?.id == handle.id { manager.activeTransfer = nil } }
@@ -231,7 +231,7 @@ extension StrapRecordingCoordinator {
     /// whose beats the session saved from the stream (`streamHoldsIt`) goes on
     /// the download record.
     ///
-    /// A deadline (`StrapDeadline.race`) that has already given up on this
+    /// A deadline (`Deadline.race`) that has already given up on this
     /// stop cancels the task but cannot cancel the strap's status query, whose
     /// late answer resumes it. Acting on it would stop the strap after the
     /// caller moved on, possibly ending a recording started since, so a
@@ -339,8 +339,8 @@ extension StrapRecordingCoordinator {
         ), let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { return }
         let budget = StrapRecordingPolicy.TransferBudget.unattended
         do {
-            _ = try await StrapDeadline.race(
-                seconds: budget.stopSeconds,
+            _ = try await Deadline.race(
+                seconds: TimeInterval(budget.stopSeconds),
                 timeout: PolarManager.PolarError.fetchFailed("H10 stop timed out after \(budget.stopSeconds)s")
             ) {
                 try await self.stopH10Recording(

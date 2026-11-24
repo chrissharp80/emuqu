@@ -79,7 +79,7 @@
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.downloadWithRetries(api:deviceId:selection:showsProgress:justStopped:)": "b3fa74e2203fdf42",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.noteDownloaded(_:showsProgress:)": "0050185ee9a9ff01",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.runBounded(seconds:phase:_:)": "32c614bda9abfa16",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.runBounded(seconds:phase:_:)": "a79202b55d10a09d",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.settleFailedTransfer(_:)": "c928ecc05b57c272",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopRunningRecording(api:deviceId:showsProgress:)": "4407b1b694fa5b42"
    }
@@ -185,11 +185,11 @@
   },
   {
    "key": "func StrapRecordingCoordinator.runBounded(seconds:phase:_:)",
-   "hash": "ae03f0067d65ca86",
-   "does": "Runs one transfer phase inside its own Task raced against StrapDeadline (seconds, timeout error fetchFailed \"strap <phase> timed out\"), registers a StrapTransferHandle on PolarManager.activeTransfer so Cancel can end it, propagates caller cancellation to the task, and clears the handle when done if it is still the current one.",
+   "hash": "1f5f220283957979",
+   "does": "Runs one transfer phase inside its own Task raced against Deadline.race (seconds, timeout error fetchFailed \"strap <phase> timed out\"), registers a StrapTransferHandle on PolarManager.activeTransfer so Cancel can end it, propagates caller cancellation to the task, and clears the handle when done if it is still the current one.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::func Deadline.race(seconds:timeout:operation:)",
     "closure:operation passed by caller (stop / download / reconnect phase)"
    ],
    "reads": [
@@ -212,8 +212,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "8d202b4b5ef89477",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
+    "Emuqu/Sources/Utilities/Deadline.swift::func Deadline.race(seconds:timeout:operation:)": "25d7b1d60093b82d"
    }
   },
   {
@@ -334,7 +334,7 @@
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.connectToLastDevice()": "d13a01cbbd155f33",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.awaitLinkAndRecordingState(until:)": "159902716902ac72",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.runBounded(seconds:phase:_:)": "32c614bda9abfa16",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.runBounded(seconds:phase:_:)": "a79202b55d10a09d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -653,12 +653,12 @@
   },
   {
    "key": "func StrapRecordingCoordinator.stopDeviceRecordingIfNeeded(streamHoldsIt:)",
-   "hash": "f399d14341cc2666",
-   "does": "End-of-session H10 stop when nothing will be downloaded: if the policy says an H10 is recording on-device, runs stopH10Recording (no finalize, no progress, not cancellable, streamHoldsIt passed through) under a 45 s StrapDeadline; on failure forces recordingState .idle and logs an external message.",
+   "hash": "c1bdb4ef46d7342b",
+   "does": "End-of-session H10 stop when nothing will be downloaded: if the policy says an H10 is recording on-device, runs stopH10Recording (no finalize, no progress, not cancellable, streamHoldsIt passed through) under a 45 s Deadline.race; on failure forces recordingState .idle and logs an external message.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)",
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)",
+    "Emuqu/Sources/Utilities/Deadline.swift::func Deadline.race(seconds:timeout:operation:)",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)"
    ],
@@ -695,9 +695,9 @@
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "8d202b4b5ef89477",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)": "58196bc9228c9e5e",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)": "7e8c68285a88c935",
+    "Emuqu/Sources/Utilities/Deadline.swift::func Deadline.race(seconds:timeout:operation:)": "25d7b1d60093b82d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "c08b307347bf7c10"
    }
   },
