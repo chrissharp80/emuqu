@@ -195,4 +195,38 @@ final class CloudPullRecordTests: XCTestCase {
         XCTAssertFalse(archive.store.exists(forgotten.id))
         XCTAssertFalse(manager.state.uploadedSessionIds.contains(forgotten.id))
     }
+
+    // MARK: - A restore made on another device
+
+    /// Adopting another device's restore drops the local deletion but keeps
+    /// this device's Trash copy; the copy goes only once the iCloud session
+    /// is in the archive, so a failed download leaves a copy on disk.
+    func testAnAdoptedRestoreKeepsTheTrashCopyUntilTheSessionIsImported() async throws {
+        let session = night()
+        try archive.archive(session)
+        XCTAssertTrue(try archive.delete(session.id))
+        XCTAssertTrue(archive.store.trashedIds.contains(session.id))
+
+        XCTAssertTrue(manager.trashRestore.adoptFromAnotherDevice(session.id))
+        XCTAssertFalse(archive.store.wasIntentionallyDeleted(session.id))
+        XCTAssertTrue(archive.store.trashedIds.contains(session.id), "The Trash copy went before the restore was imported")
+
+        let outcome = await manager.pull.processRemoteRecord(try liveRecord(of: session), forgotten: [])
+        XCTAssertEqual(outcome.new, 1)
+        XCTAssertTrue(archive.store.exists(session.id))
+        XCTAssertFalse(archive.store.trashedIds.contains(session.id))
+    }
+
+    // MARK: - Refreshing a session held here
+
+    /// The replacement is stamped with the date of the revision that was
+    /// downloaded, not the one the listing showed: another device may have
+    /// edited the record between the two reads.
+    func testTheReplacementTakesTheDownloadedRevisionsDate() {
+        let id = UUID()
+        let downloadedAt = Date(timeIntervalSince1970: 1_790_100_000)
+        let fetched = record(of: id, isDeleted: 0)
+        fetched[CloudKitSessionFreshness.modifiedAtField] = downloadedAt as CKRecordValue
+        XCTAssertEqual(manager.pull.remoteCopy(of: fetched, sessionId: id).modifiedAt, downloadedAt)
+    }
 }
