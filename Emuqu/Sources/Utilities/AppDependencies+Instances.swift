@@ -62,6 +62,14 @@ extension AssistantContextSource {
     static let shared = AssistantContextSource(services: ContextServices(.current))
 }
 
+extension VoiceConversationController {
+    /// Shared instance — there's only one mic + recognizer + synth at the
+    /// hardware level, and the chat view and every other surface (workout
+    /// recording, the Watch) drive the same controller rather than fight for
+    /// the audio session.
+    static let shared = VoiceConversationController(services: VoiceServices(.current))
+}
+
 extension AssistantViewModel {
     /// The app's chat: one transcript, one provider choice.
     static let shared = AssistantViewModel(services: ChatServices(.current))

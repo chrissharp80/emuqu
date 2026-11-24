@@ -41,11 +41,13 @@ import UIKit
 @Observable
 @MainActor
 final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
-    /// Shared instance — there's only one mic + recognizer + synth at the
-    /// hardware level, and we want the typed chat view AND any other surface
-    /// (workout recording, future floating mic) to drive the same controller
-    /// rather than fight for the audio session.
-    static let shared = VoiceConversationController()
+    /// Every service the conversation and its audio pipeline read.
+    let services: VoiceServices
+
+    init(services: VoiceServices) {
+        self.services = services
+        super.init()
+    }
 
     /// Typed errors for the speech-recognition / audio-engine startup
     /// path, rather than stringly-typed `NSError(domain:code:)` values
@@ -116,7 +118,7 @@ final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
             // (barge-in, "thinking"). Throttling isn't needed; state
             // transitions are infrequent (a few per minute at most).
             guard state != oldValue else { return }
-            AppDependencies.current.services.watchConnectivityBridge.pushVoiceChatState(state.watchLabel)
+            services.watchConnectivityBridge.pushVoiceChatState(state.watchLabel)
         }
     }
     /// Partial live transcription as the user speaks (empty when not listening).
@@ -240,7 +242,7 @@ final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
     /// Computed property (not stored) so the @MainActor-isolated `.shared`
     /// is only accessed from the @MainActor methods that read it.
     @MainActor
-    var assistantViewModel: AssistantViewModel { AppDependencies.current.assistant.assistantViewModel }
+    var assistantViewModel: AssistantViewModel { services.assistantViewModel }
     /// Observation handles watching the view model's streaming response.
     var assistantObservers: [ObservationHandle] = []
 
@@ -484,7 +486,7 @@ final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
     /// session's first coach line or recovery line.
     @MainActor
     private func refreshVoices() {
-        let language = ConversationVoicePicker.preferredLanguage()
+        let language = ConversationVoicePicker.preferredLanguage(forceEnglish: services.settingsManager.settings.forceAIEnglish)
         bestVoiceLanguage = language
         WorkoutStartCue.prewarm(forLanguage: LanguageManager.appLocale.language.languageCode?.identifier ?? "en")
         Task { [weak self] in
@@ -502,7 +504,7 @@ final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
     /// English-only AI responses.
     @MainActor
     private func recognizerLocale() -> Locale {
-        AppDependencies.current.app.settingsManager.settings.forceAIEnglish
+        services.settingsManager.settings.forceAIEnglish
             ? Locale(identifier: "en-US") : LanguageManager.appLocale
     }
 
