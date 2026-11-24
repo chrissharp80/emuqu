@@ -257,7 +257,7 @@ extension CloudDeletionCoordinator {
         let recordID = CKRecord.ID(recordName: sessionId.uuidString, zoneID: manager.zoneID)
         do {
             let existingRecord = try await manager.privateDB.record(for: recordID)
-            let deletedAt = manager.archive.deletionTime(of: sessionId)
+            let deletedAt = manager.archive.store.deletionTime(of: sessionId)
             if TrashRestoreCoordinator.restoreIsNewer(existingRecord, thanDeletionAt: deletedAt) {
                 return false
             }
@@ -316,8 +316,8 @@ extension CloudDeletionCoordinator {
     /// upload. The deletions stay listed and go up once it is allowed.
     func reconcileLocalDeletions() async {
         guard manager.cloudUploadsAllowed else { return }
-        let deleted = manager.archive.deletedIds
-        let archivedAndInCloud = manager.state.uploadedSessionIds.filter { manager.archive.exists($0) }
+        let deleted = manager.archive.store.deletedIds
+        let archivedAndInCloud = manager.state.uploadedSessionIds.filter { manager.archive.store.exists($0) }
         await manager.liveBackup.retryAwaitingDeletion(among: deleted.union(ForgottenSessions.ids).union(archivedAndInCloud))
         let due = Self.tombstonesDue(among: deleted)
         guard !due.isEmpty else { return }

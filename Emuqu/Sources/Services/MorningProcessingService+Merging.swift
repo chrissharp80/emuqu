@@ -251,7 +251,7 @@ extension MorningProcessingService {
     /// its night's anchor.
     private func sameNightEntries(of baseSession: HRVSession, sleepSchedule: SleepSchedule) -> [SessionArchiveEntry] {
         let nightStart = sleepSchedule.overnightWindowStart(relativeTo: baseSession.startDate)
-        return archive.entries.filter {
+        return archive.store.entries.filter {
             $0.sessionType == .overnight && $0.sessionId != baseSession.id
                 && sleepSchedule.overnightWindowStart(relativeTo: $0.date) == nightStart
         }

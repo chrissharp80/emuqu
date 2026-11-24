@@ -390,7 +390,7 @@ final class RecoveryScoreCalculatorTests: XCTestCase {
     func testReadinessAdvisoryZoneSoftens() {
         // ATL=40, CTL=50 → ratio 0.8 → base readiness 85.
         // ACWR 1.4: excess=0.1, penalty=0.10 → 85*0.9 ≈ 76.5
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 90.0, todayTrimp: 0, ctl: 50,
             atl: 40, morningATL: nil, acuteChronicRatio: 1.4
         )
@@ -417,7 +417,7 @@ final class RecoveryScoreCalculatorTests: XCTestCase {
         //     readiness += (90 − 76.5)·recoveryUpliftFraction (0.30) ≈ 80.55.
         // The autonomic rescue is intentional: when HRV directly says
         // "recovered", the ACR proxy shouldn't override it.
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 90.0, todayTrimp: 0, ctl: 50,
             atl: 40, morningATL: nil, acuteChronicRatio: 1.6
         )
@@ -444,7 +444,7 @@ final class RecoveryScoreCalculatorTests: XCTestCase {
     func testReadinessDrivenByCapacityRatio() {
         // CTL=40, ATL=30, no strain → ratio 30/40 = 0.75 → readiness ~86
         // Purely fitness-fatigue driven, independent of recovery score.
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 95.0, todayTrimp: 0, ctl: 40,
             atl: 30, morningATL: nil, acuteChronicRatio: nil
         )
@@ -463,7 +463,7 @@ final class RecoveryScoreCalculatorTests: XCTestCase {
     func testReadinessOverloadedAthlete() {
         // CTL=40, ATL=55 → ratio 55/40 = 1.375 → model readiness ~42.5
         // Recovery uplift: 42.5 + (90-42.5)*0.30 = 56.75. Overreaching zone.
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 90.0, todayTrimp: 0, ctl: 40,
             atl: 55, morningATL: nil, acuteChronicRatio: nil
         )
@@ -476,11 +476,11 @@ final class RecoveryScoreCalculatorTests: XCTestCase {
 
     func testReadinessFreshnessGainFromDissipation() {
         // Morning ATL=60, current ATL=55 → 5 points dissipated.
-        let withDissipation = RecoveryScoreCalculator.calculateReadiness(
+        let withDissipation = ReadinessScoring.calculateReadiness(
             recoveryScore: 90.0, todayTrimp: 0, ctl: 50,
             atl: 55, morningATL: 60, acuteChronicRatio: nil
         )
-        let withoutDissipation = RecoveryScoreCalculator.calculateReadiness(
+        let withoutDissipation = ReadinessScoring.calculateReadiness(
             recoveryScore: 90.0, todayTrimp: 0, ctl: 50,
             atl: 55, morningATL: nil, acuteChronicRatio: nil
         )
@@ -494,7 +494,7 @@ final class RecoveryScoreCalculatorTests: XCTestCase {
     func testReadinessStrainIncreasesEffectiveLoad() {
         // CTL=40, ATL=30, todayTrimp=100 → effective load = 30 + 35 = 65
         // ratio = 65/40 = 1.625 → readiness ~25
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: 90.0, todayTrimp: 100, ctl: 40,
             atl: 30, morningATL: nil, acuteChronicRatio: nil
         )
@@ -507,11 +507,11 @@ final class RecoveryScoreCalculatorTests: XCTestCase {
 
     func testReadinessACWRSuppression() {
         // Same training state, but with high ACWR → reduced readiness.
-        let base = RecoveryScoreCalculator.calculateReadiness(
+        let base = ReadinessScoring.calculateReadiness(
             recoveryScore: 90.0, todayTrimp: 0, ctl: 40,
             atl: 40, morningATL: nil, acuteChronicRatio: 1.0
         )
-        let suppressed = RecoveryScoreCalculator.calculateReadiness(
+        let suppressed = ReadinessScoring.calculateReadiness(
             recoveryScore: 90.0, todayTrimp: 0, ctl: 40,
             atl: 40, morningATL: nil, acuteChronicRatio: 1.6
         )

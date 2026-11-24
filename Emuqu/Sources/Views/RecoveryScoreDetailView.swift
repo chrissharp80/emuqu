@@ -174,7 +174,7 @@ struct RecoveryScoreDetailView: View {
             // ended (after the breakdown froze). The Recovery Vitals card
             // re-fetches live, so refresh the frozen Vitals factor from
             // effectiveVitals when it now carries respiration. Composite is preserved.
-            return RecoveryScoreCalculator.breakdownRefreshingVitalsFactor(
+            return VitalsScoring.breakdownRefreshingVitalsFactor(
                 stored, freshVitals: effectiveVitals, baselineStats: baselineStats
             )
         }

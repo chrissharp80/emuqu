@@ -37,7 +37,7 @@ final class SessionDecodeTests: XCTestCase {
 
     func testEverySessionComesBackInTheArchivesOrder() async throws {
         try archiveNights(RRCollector.decodeWidth * 3 + 1)
-        let entries = archive.entries
+        let entries = archive.store.entries
         let archive = archive
         let decoded = await Task.detached { await RRCollector.decodeInParallel(entries, archive: archive) }.value
         XCTAssertEqual(decoded.map(\.id), entries.map(\.sessionId))
@@ -47,7 +47,7 @@ final class SessionDecodeTests: XCTestCase {
     /// read starts after cancellation.
     func testACancelledDecodeStartsNoNewReads() async throws {
         try archiveNights(RRCollector.decodeWidth * 3)
-        let entries = archive.entries
+        let entries = archive.store.entries
         let archive = archive
         let decoded = await Task.detached {
             withUnsafeCurrentTask { $0?.cancel() }
@@ -59,7 +59,7 @@ final class SessionDecodeTests: XCTestCase {
     func testAllSessionsAsyncReturnsTheWholeArchive() async throws {
         try archiveNights(5)
         let loaded = await makeCollector().allSessionsAsync()
-        XCTAssertEqual(loaded?.map(\.id), archive.entries.map(\.sessionId))
+        XCTAssertEqual(loaded?.map(\.id), archive.store.entries.map(\.sessionId))
     }
 
     /// The screen went away: nil, so nothing partial replaces what it shows.

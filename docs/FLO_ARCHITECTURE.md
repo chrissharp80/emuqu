@@ -128,7 +128,7 @@ Main API: `send(text:fromVoice:)`, `send(prefab:)`, `acknowledgeConsentAndContin
 
 `SendOutcome`: `.dispatched`, `.queued`, `.rejectedEmpty`, `.rejectedNoProvider`, `.requiresConsent(ProviderID)`.
 
-Routing and streaming stages live on `AssistantTurnRouter` and `AssistantToolRunner` (the `+Routing`, `+Tools` and `+*Forwarding` files) so the view-model type stays under the type-size budget.
+Routing and streaming stages live on `AssistantTurnRouter` and `AssistantToolRunner` (the `+Routing` and `+Tools` files, reached through `router` and `tools` in `+Parts`) so the view-model type stays under the type-size budget.
 
 The streaming task is created from MainActor code, so resolvers run on the main actor. Fact bodies declare either `.sync` (in-memory reads) or `.awaitable` (network, HealthKit, geocoding), and awaitable ones suspend the actor instead of blocking it (§6.5).
 

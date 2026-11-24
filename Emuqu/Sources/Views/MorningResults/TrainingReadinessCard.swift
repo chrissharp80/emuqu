@@ -27,7 +27,7 @@ struct TrainingReadinessCard: View {
         if let frozen = frozenReadiness { return frozen }
         let ctl = trainingContext?.ctl ?? 0
         let atlVal = trainingContext?.atl ?? 0
-        let r100 = RecoveryScoreCalculator.calculateReadiness(
+        let r100 = ReadinessScoring.calculateReadiness(
             recoveryScore: recoveryScore,
             todayTrimp: 0,
             ctl: ctl,

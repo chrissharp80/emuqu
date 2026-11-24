@@ -181,7 +181,7 @@ struct HealthWorkoutSummary: Codable {
         guard let startDate = calendar.date(byAdding: .day, value: -days, to: calendar.startOfDay(for: endDate)) else {
             return []
         }
-        let entries = archive.entries(from: startDate, to: endDate)
+        let entries = archive.store.entries(from: startDate, to: endDate)
             .filter { $0.sessionType == .workout }
         return entries.compactMap { summary(from: $0, archive: archive) }
     }

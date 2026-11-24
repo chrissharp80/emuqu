@@ -596,7 +596,7 @@ struct FitnessTabView: View {
     // MARK: - Data helpers
 
     func recentWorkoutEntries() -> [SessionArchiveEntry] {
-        collector.archive.entries
+        collector.archive.store.entries
             .filter { $0.sessionType == .workout }
             .sorted { $0.date > $1.date }
     }
@@ -738,7 +738,7 @@ struct FitnessTabView: View {
     /// (`importGPXFile`), not the main actor; only the message lands here.
     private func importGPX(from url: URL) {
         let archive = collector.archive
-        let starts = archive.entries.filter { $0.sessionType == .workout }.map(\.date)
+        let starts = archive.store.entries.filter { $0.sessionType == .workout }.map(\.date)
         Task {
             let outcome = await Task.detached(priority: .userInitiated) {
                 Self.importGPXFile(url, archive: archive, existingStarts: starts)

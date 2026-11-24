@@ -21,7 +21,7 @@ struct DeepDiveReportRenderer {
         needed: CGFloat, y: CGFloat, pageNumber: inout Int,
         context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
-        generator.ensureSpace(
+        generator.sections.ensureSpace(
             needed: needed, y: y, pageNumber: &pageNumber,
             context: context, pageRect: pageRect
         )

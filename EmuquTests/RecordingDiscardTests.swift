@@ -62,7 +62,7 @@ final class RecordingDiscardTests: XCTestCase {
     }
 
     private func isArchived(_ id: UUID) -> Bool {
-        archive.entries.contains { $0.sessionId == id }
+        archive.store.entries.contains { $0.sessionId == id }
     }
 
     func testDiscardEndsTheRecordingAndKeepsNothing() async throws {

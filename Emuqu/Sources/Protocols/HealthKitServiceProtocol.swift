@@ -133,7 +133,7 @@ extension HealthKitServiceProtocol {
 
     func estimateSleepFromRR(rrPoints: [RRPoint], recordingStart: Date) async -> SleepData? {
         await Task.detached(priority: .userInitiated) {
-            SleepHealthQueries.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: recordingStart)
+            HRSleepEstimator.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: recordingStart)
         }.value
     }
 

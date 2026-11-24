@@ -120,12 +120,12 @@ enum DemoSessionSeeder {
         finalize: @MainActor (HRVSession) async -> HRVSession,
         progress: @MainActor (Int, Int) -> Void
     ) async throws -> [UUID] {
-        let nights = await buildAll(unoccupied(plans, in: archive.entries), pipeline: pipeline, progress: progress)
+        let nights = await buildAll(unoccupied(plans, in: archive.store.entries), pipeline: pipeline, progress: progress)
         var finished: [HRVSession] = []
         for night in withVitals(nights) {
             finished.append(await finalize(night))
         }
-        let toWrite = finished.filter { !isOccupied($0.startDate, $0.endDate ?? $0.startDate, in: archive.entries) }
+        let toWrite = finished.filter { !isOccupied($0.startDate, $0.endDate ?? $0.startDate, in: archive.store.entries) }
         try await Task.detached(priority: .userInitiated) { try writeAll(toWrite, to: archive) }.value
         debugLog("[SampleData] Seeded \(toWrite.count) sample nights", level: .info)
         return toWrite.map(\.id)
@@ -252,7 +252,7 @@ enum DemoSessionSeeder {
         ids.compactMap { id in
             do {
                 try archive.delete(id)
-                archive.discardTrashed(id)
+                archive.store.discardTrashed(id)
                 return id
             } catch {
                 let shortId = id.uuidString.prefix(8)

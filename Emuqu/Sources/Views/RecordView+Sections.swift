@@ -145,8 +145,8 @@ extension RecordView {
         if deviceStatus.isDeviceConnected, collector.offersStrapRecovery, !fetchFailed, !sessionState.needsAcceptance, !deviceStatus.isStreaming, !sessionState.isCollecting, deviceStatus.fetchProgress == nil, morningCoordination.morningStatus == nil {
             RecoverableDataCard(
                 deviceName: deviceStatus.connectedDeviceType?.displayName ?? String(localized: "Device", bundle: LanguageManager.appBundle),
-                onRecover: recoverStoredData,
-                onDiscard: discardAndStartFresh
+                onRecover: panels.recoverStoredData,
+                onDiscard: panels.discardAndStartFresh
             )
         }
     }
@@ -250,14 +250,14 @@ extension RecordView {
         if (selectedSessionType == .overnight || selectedSessionType == .nap)
             && !streamingLifecycle.isOvernightStreaming && !streamingLifecycle.isPaused,
             let recentSession = sessionState.recentPausedSession {
-            continueRecoveryCard(session: recentSession)
+            panels.continueRecoveryCard(session: recentSession)
         }
     }
 
     @ViewBuilder
     var overnightRecordingSectionIfSelected: some View {
         if selectedSessionType == .overnight || selectedSessionType == .nap {
-            overnightRecordingSection
+            panels.overnightRecordingSection
         }
     }
 
@@ -265,7 +265,7 @@ extension RecordView {
     @ViewBuilder
     var quickReadingSectionIfSelected: some View {
         if selectedSessionType == .quick {
-            quickReadingSection
+            panels.quickReadingSection
         }
     }
 

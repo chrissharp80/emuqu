@@ -680,7 +680,7 @@ final class StreamTextBuffer {
     private func scrubbing(_ text: String) -> String {
         let result = CoachVoiceGuard.scrub(text, continuing: &safetyCopy)
         for trigger in result.triggers {
-            owner.recordCoachVoiceInterception(reason: trigger.reason)
+            owner.router.recordCoachVoiceInterception(reason: trigger.reason)
         }
         return result.scrubbed
     }

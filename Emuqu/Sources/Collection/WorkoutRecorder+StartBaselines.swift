@@ -99,7 +99,7 @@ extension WorkoutRecorder {
     /// readings only 3–4 weeks of workouts), plus the overnight and quick
     /// readings that ended today, for the readiness snapshot.
     nonisolated private static func recentLightweightSessions(archive: SessionArchive) -> [HRVSession] {
-        let entries = archive.entries
+        let entries = archive.store.entries
         let today = Calendar.current.startOfDay(for: Date())
         let workouts = entries.filter { $0.sessionType == .workout }.prefix(60)
         let mornings = entries.filter {

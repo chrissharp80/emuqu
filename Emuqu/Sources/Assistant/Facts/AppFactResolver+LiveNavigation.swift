@@ -862,7 +862,7 @@ extension WorkoutLiveCoachingNamespace {
     @MainActor private static func postStopHRRWindowOpen(now: Date = Date()) -> Bool {
         let window = Double(WorkoutStatsCards.hrrCaptureWindowSec + WorkoutStatsCards.hrrWriteGraceSec)
         let archive = AppDependencies.current.storage.sessionArchive
-        guard let entry = archive.entries.filter({ $0.sessionType == .workout }).max(by: { $0.date < $1.date }),
+        guard let entry = archive.store.entries.filter({ $0.sessionType == .workout }).max(by: { $0.date < $1.date }),
               let end = entry.endDate, now.timeIntervalSince(end) <= window,
               let session = archive.retrieveLightweightOrLog(entry.sessionId, caller: "WorkoutLiveCoachingNamespace.hrrCaptureStatus")
         else { return false }

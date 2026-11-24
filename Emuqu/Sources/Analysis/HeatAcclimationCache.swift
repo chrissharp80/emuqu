@@ -254,7 +254,7 @@ final class HeatAcclimationCache {
     private func archivedWorkouts(since windowStart: Date) async -> [WorkoutForHeat] {
         let archive = self.archive
         return await Task.detached(priority: .userInitiated) {
-            archive.entries
+            archive.store.entries
                 .filter { $0.sessionType == .workout && $0.date >= windowStart }
                 .compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "HeatAcclimationCache") }
                 // Outdoor sports only: a treadmill or indoor-bike session

@@ -342,12 +342,12 @@ struct DataSettingsPage: View {
             Label(String(localized: "Archived sessions", bundle: LanguageManager.appBundle),
                   systemImage: "externaldrive.fill")
             Spacer()
-            Text("\(collector.archive.entries.count)")
+            Text("\(collector.archive.store.entries.count)")
                 .foregroundColor(AppTheme.textSecondary)
                 .monospacedDigit()
         }
         .accessibilityElement(children: .combine)
-        .accessibilityValue(Text("\(collector.archive.entries.count) sessions", bundle: LanguageManager.appBundle))
+        .accessibilityValue(Text("\(collector.archive.store.entries.count) sessions", bundle: LanguageManager.appBundle))
     }
 
     private var uploadedCountRow: some View {

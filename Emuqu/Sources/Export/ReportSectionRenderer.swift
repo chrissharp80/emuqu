@@ -30,6 +30,6 @@ struct ReportSectionRenderer {
     }
 
     func diagnosticColorForScore(_ score: Double) -> UIColor {
-        generator.diagnosticColorForScore(score)
+        generator.overnight.diagnosticColorForScore(score)
     }
 }

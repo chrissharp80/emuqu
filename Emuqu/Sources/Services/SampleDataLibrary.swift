@@ -50,7 +50,7 @@ struct SampleDataLibrary {
     }
 
     private var sampleIds: [UUID] {
-        DemoSessionSeeder.sampleSessionIds(in: collector.archive.entries, seededIds: Set(loadLedger().sessionIds))
+        DemoSessionSeeder.sampleSessionIds(in: collector.archive.store.entries, seededIds: Set(loadLedger().sessionIds))
     }
 
     // MARK: - Load
@@ -191,7 +191,7 @@ struct SampleDataLibrary {
     /// device that never saw the sample nights would have.
     private func rebuildBaseline() async {
         let archive = collector.archive
-        let entries = archive.entries
+        let entries = archive.store.entries
         let sessions = await Task.detached(priority: .userInitiated) {
             entries.compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "sampleDataBaseline") }
         }.value

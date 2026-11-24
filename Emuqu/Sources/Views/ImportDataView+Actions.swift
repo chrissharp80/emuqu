@@ -111,7 +111,7 @@ extension ImportDataView {
         let fileName = eliteResult.originalFileName
         let summaries = eliteResult.sessions
         return await Task.detached(priority: .userInitiated) {
-            summaries.filter { !archive.holdsCopy(of: importer.createAnalyzedSession(from: $0, originalFileName: fileName)) }
+            summaries.filter { !archive.store.holdsCopy(of: importer.createAnalyzedSession(from: $0, originalFileName: fileName)) }
         }.value
     }
 
@@ -501,7 +501,7 @@ extension ImportDataView {
         for (i, session) in flowResult.sessions.enumerated() {
             log("CSV[\(i)]: date=\(session.sessionDate) parsed=\(session.date) beats=\(session.beatCount)")
         }
-        log("Archive has \(collector.archive.entries.count) entries")
+        log("Archive has \(collector.archive.store.entries.count) entries")
     }
 
     /// Filter to the sessions the archive holds no copy of, by the rule a
@@ -517,7 +517,7 @@ extension ImportDataView {
         let fileName = flowResult.originalFileName
         let sessions = flowResult.sessions
         let newSessions = await Task.detached(priority: .userInitiated) {
-            sessions.filter { !archive.holdsCopy(of: importer.createSessionFromFlowHRVData($0, originalFileName: fileName)) }
+            sessions.filter { !archive.store.holdsCopy(of: importer.createSessionFromFlowHRVData($0, originalFileName: fileName)) }
         }.value
         log("New sessions after filter: \(newSessions.count) of \(sessions.count)")
         return newSessions
@@ -564,7 +564,7 @@ extension ImportDataView {
             log("=== SAVE COMPLETE ===")
             log("Time: \(String(format: "%.1f", locale: LanguageManager.appLocale, Date().timeIntervalSince(startTime)))s")
             log("Saved: \(processedCount), Unchanged: \(analyzedSessions.count - processedCount), Failed: \(failedCount)")
-            log("Archive now has \(collector.archive.entries.count) entries")
+            log("Archive now has \(collector.archive.store.entries.count) entries")
             await MainActor.run {
                 reportBatchOutcome(processed: processedCount, total: analyzedSessions.count, failed: failedCount)
             }

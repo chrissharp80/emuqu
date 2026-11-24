@@ -104,7 +104,7 @@ final class AssistantContextSource: Sendable {
     private func recentLightweightSessions() -> [HRVSession] {
         let archive = AppDependencies.current.storage.sessionArchive
         let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date.distantPast
-        return archive.entries
+        return archive.store.entries
             .filter { $0.date >= cutoff }
             .sorted { $0.date > $1.date }
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "AssistantContextSource.build") }

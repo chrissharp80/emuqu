@@ -200,7 +200,7 @@ final class CollectorMigrationParityTests: XCTestCase {
         await migrations.runInsufficientDataMigrationIfNeeded()
 
         XCTAssertEqual(
-            collector.archive.entries.count, 0,
+            collector.archive.store.entries.count, 0,
             "Empty archive must remain empty after the insufficient-data migration."
         )
         XCTAssertTrue(UserDefaults.standard.bool(forKey: "didRunInsufficientDataMigration_v1"),
@@ -273,7 +273,7 @@ final class CollectorMigrationParityTests: XCTestCase {
         await migrations.runTrimpRepairMigrationIfNeeded()
 
         XCTAssertEqual(
-            collector.archive.entries.count, 0,
+            collector.archive.store.entries.count, 0,
             "Empty archive must remain empty after TRIMP repair migration."
         )
         XCTAssertTrue(UserDefaults.standard.bool(forKey: "didRunTrimpRepairMigration_v1"),

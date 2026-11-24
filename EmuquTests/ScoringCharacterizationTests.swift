@@ -437,14 +437,14 @@ final class ScoringCharacterizationTests: XCTestCase {
         // Tested on the unit, not through `calculateReadiness`: the recovery
         // modulation stage rescales the result afterwards and hides the cap.
         let base = 50.0
-        let small = RecoveryScoreCalculator.applyFreshnessBonus(base, morningATL: 40 + underCapDrop, atl: 40)
-        let huge = RecoveryScoreCalculator.applyFreshnessBonus(base, morningATL: 10_000, atl: 40)
+        let small = ReadinessScoring.applyFreshnessBonus(base, morningATL: 40 + underCapDrop, atl: 40)
+        let huge = ReadinessScoring.applyFreshnessBonus(base, morningATL: 10_000, atl: 40)
 
         XCTAssertEqual(small - base, underCapDrop * multiplier, accuracy: 0.001, "Below the cap the bonus is linear")
         XCTAssertEqual(huge - base, cap, accuracy: 0.001, "Above the cap the bonus stops — it must not keep climbing")
         // No morning reading, or ATL that went UP, means no bonus at all.
-        XCTAssertEqual(RecoveryScoreCalculator.applyFreshnessBonus(base, morningATL: nil, atl: 40), base)
-        XCTAssertEqual(RecoveryScoreCalculator.applyFreshnessBonus(base, morningATL: 30, atl: 40), base)
+        XCTAssertEqual(ReadinessScoring.applyFreshnessBonus(base, morningATL: nil, atl: 40), base)
+        XCTAssertEqual(ReadinessScoring.applyFreshnessBonus(base, morningATL: 30, atl: 40), base)
     }
 
     // MARK: - The low-CTL confidence ramp on the ACWR penalty
@@ -458,16 +458,16 @@ final class ScoringCharacterizationTests: XCTestCase {
         let acr = 1.7
         // Recovery below the rescue threshold so only the ramp is in play.
         let below = RecoveryScoreConstants.Readiness.acwrRescueRecoveryThreshold - 10
-        let atFull = RecoveryScoreCalculator.dampenedACWRPenalty(acr: acr, ctl: full, recoveryScore: below)
-        let atHalf = RecoveryScoreCalculator.dampenedACWRPenalty(acr: acr, ctl: full / 2, recoveryScore: below)
-        let atZero = RecoveryScoreCalculator.dampenedACWRPenalty(acr: acr, ctl: 0, recoveryScore: below)
+        let atFull = ReadinessScoring.dampenedACWRPenalty(acr: acr, ctl: full, recoveryScore: below)
+        let atHalf = ReadinessScoring.dampenedACWRPenalty(acr: acr, ctl: full / 2, recoveryScore: below)
+        let atZero = ReadinessScoring.dampenedACWRPenalty(acr: acr, ctl: 0, recoveryScore: below)
 
         XCTAssertGreaterThan(atFull, 0)
         XCTAssertEqual(atHalf, atFull / 2, accuracy: 0.0001, "Half the confidence CTL must mean half the penalty")
         XCTAssertEqual(atZero, 0, accuracy: 0.0001, "No training history means no ACWR penalty at all")
         // Above full confidence the ramp saturates rather than continuing.
         XCTAssertEqual(
-            RecoveryScoreCalculator.dampenedACWRPenalty(acr: acr, ctl: full * 4, recoveryScore: below),
+            ReadinessScoring.dampenedACWRPenalty(acr: acr, ctl: full * 4, recoveryScore: below),
             atFull, accuracy: 0.0001
         )
     }
@@ -475,10 +475,10 @@ final class ScoringCharacterizationTests: XCTestCase {
     func testACWRPenaltyIsCappedWhenRecoveryIsClearlyGood() {
         let r = RecoveryScoreConstants.Readiness.self
         let severe = 1.9
-        let rescued = RecoveryScoreCalculator.dampenedACWRPenalty(
+        let rescued = ReadinessScoring.dampenedACWRPenalty(
             acr: severe, ctl: r.acwrFullConfidenceCTL, recoveryScore: r.acwrRescueRecoveryThreshold
         )
-        let notRescued = RecoveryScoreCalculator.dampenedACWRPenalty(
+        let notRescued = ReadinessScoring.dampenedACWRPenalty(
             acr: severe, ctl: r.acwrFullConfidenceCTL, recoveryScore: r.acwrRescueRecoveryThreshold - 1
         )
         XCTAssertEqual(rescued, r.acwrPenaltyAutonomicRescueCap, accuracy: 0.0001)
@@ -495,7 +495,7 @@ final class ScoringCharacterizationTests: XCTestCase {
         for recovery in [0.0, 50, 100] {
             for trimp in values {
                 for ctl in values {
-                    let readiness = RecoveryScoreCalculator.calculateReadiness(
+                    let readiness = ReadinessScoring.calculateReadiness(
                         recoveryScore: recovery, todayTrimp: trimp, ctl: ctl, atl: trimp,
                         morningATL: trimp, acuteChronicRatio: ctl > 0 ? trimp / ctl : nil
                     )
@@ -514,21 +514,21 @@ final class ScoringCharacterizationTests: XCTestCase {
 
     func testReadinessLabelBands() {
         let labels = RecoveryScoreConstants.ReadinessLabels.self
-        XCTAssertEqual(RecoveryScoreCalculator.readinessLabel(for: labels.readyThreshold), "Ready")
-        XCTAssertEqual(RecoveryScoreCalculator.readinessLabel(for: labels.readyThreshold - 0.01), "Moderate")
-        XCTAssertEqual(RecoveryScoreCalculator.readinessLabel(for: labels.moderateThreshold), "Moderate")
-        XCTAssertEqual(RecoveryScoreCalculator.readinessLabel(for: labels.moderateThreshold - 0.01), "Fatigued")
-        XCTAssertEqual(RecoveryScoreCalculator.readinessLabel(for: labels.fatiguedThreshold), "Fatigued")
-        XCTAssertEqual(RecoveryScoreCalculator.readinessLabel(for: labels.fatiguedThreshold - 0.01), "Rest")
-        XCTAssertEqual(RecoveryScoreCalculator.readinessLabel(for: 0), "Rest")
+        XCTAssertEqual(ReadinessScoring.readinessLabel(for: labels.readyThreshold), "Ready")
+        XCTAssertEqual(ReadinessScoring.readinessLabel(for: labels.readyThreshold - 0.01), "Moderate")
+        XCTAssertEqual(ReadinessScoring.readinessLabel(for: labels.moderateThreshold), "Moderate")
+        XCTAssertEqual(ReadinessScoring.readinessLabel(for: labels.moderateThreshold - 0.01), "Fatigued")
+        XCTAssertEqual(ReadinessScoring.readinessLabel(for: labels.fatiguedThreshold), "Fatigued")
+        XCTAssertEqual(ReadinessScoring.readinessLabel(for: labels.fatiguedThreshold - 0.01), "Rest")
+        XCTAssertEqual(ReadinessScoring.readinessLabel(for: 0), "Rest")
     }
 
     /// The label takes a 0–10 value while `calculateReadiness` returns 0–100.
     /// Every call site converts, but the signature invited the mistake, so the
     /// clamp is now part of the contract.
     func testReadinessLabelClampsAnUnconvertedHundredScaleValue() {
-        XCTAssertEqual(RecoveryScoreCalculator.readinessLabel(for: 100), "Ready")
-        XCTAssertEqual(RecoveryScoreCalculator.readinessLabel(for: Double.nan), "Moderate")
+        XCTAssertEqual(ReadinessScoring.readinessLabel(for: 100), "Ready")
+        XCTAssertEqual(ReadinessScoring.readinessLabel(for: Double.nan), "Moderate")
     }
 
     // MARK: - M30: the displayed sub-score is the one that fed the composite
@@ -543,7 +543,7 @@ final class ScoringCharacterizationTests: XCTestCase {
     func testRestingHRSubScoreIsLinearAtTheDocumentedRate() throws {
         func subScore(_ bpm: Double) throws -> Double {
             try XCTUnwrap(
-                RecoveryScoreCalculator.calculateVitalsScore(
+                VitalsScoring.calculateVitalsScore(
                     vitals: vitals(restingHR: bpm), baselineStats: baseline
                 ),
                 "Expected a vitals sub-score for \(bpm) bpm"
@@ -561,11 +561,11 @@ final class ScoringCharacterizationTests: XCTestCase {
 
     func testSleepHRDetailReportsTheSubScoreThatFedTheComposite() {
         let readings = vitals(restingHR: 70) // +4 SD above a 58 / 3 baseline
-        guard let vitalsScore = RecoveryScoreCalculator.calculateVitalsScore(
+        guard let vitalsScore = VitalsScoring.calculateVitalsScore(
             vitals: readings, baselineStats: baseline
         ) else { return XCTFail("Expected a vitals sub-score") }
 
-        let detail = RecoveryScoreCalculator.buildVitalsDetail(
+        let detail = VitalsScoring.buildVitalsDetail(
             vitals: readings, baselineStats: baseline, score: vitalsScore
         )
         // With only RHR present the vitals score IS the RHR sub-score, so the

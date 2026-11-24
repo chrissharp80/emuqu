@@ -16,8 +16,8 @@ extension PDFReportGenerator {
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
         PDFReadingDirection.beginPage(context)
-        var y = drawHeader(session: inputs.session, result: inputs.result, in: context, pageRect: pageRect)
-        y = drawSummaryCard(
+        var y = sections.drawHeader(session: inputs.session, result: inputs.result, in: context, pageRect: pageRect)
+        y = sections.drawSummaryCard(
             result: inputs.result,
             ans: inputs.result.ansMetrics,
             compositeScore: inputs.compositeRecoveryScore,
@@ -28,7 +28,7 @@ extension PDFReportGenerator {
         )
         y = drawPage1Sections(inputs, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
         y = drawPage1Tail(inputs, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
-        drawFooter(pageNumber: pageNumber, in: context, pageRect: pageRect)
+        sections.drawFooter(pageNumber: pageNumber, in: context, pageRect: pageRect)
         pageNumber += 1
         return y
     }
@@ -45,15 +45,15 @@ extension PDFReportGenerator {
         var y = drawOvernightStatsIfAvailable(inputs, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
         if inputs.sections.contains(.sleep), let sleep = inputs.sleepData, sleep.totalSleepMinutes > 0 {
             let stages = sleep.deepSleepMinutes != nil || sleep.remSleepMinutes != nil
-            y = ensureSpace(needed: stages ? 130 : 86, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+            y = sections.ensureSpace(needed: stages ? 130 : 86, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
             y = drawSleepAnalysisSection(sleep: sleep, yPosition: y, in: context, pageRect: pageRect)
         }
         if inputs.sections.contains(.trainingLoad), let training = inputs.trainingContext {
-            y = ensureSpace(needed: 86, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+            y = sections.ensureSpace(needed: 86, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
             y = drawTrainingLoadSection(training: training, yPosition: y, in: context, pageRect: pageRect)
         }
         if inputs.sections.contains(.vitals), let vitalsData = inputs.vitals, vitalsData.hasAnyData {
-            y = ensureSpace(needed: 86, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+            y = sections.ensureSpace(needed: 86, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
             y = drawVitalsSection(vitals: vitalsData, yPosition: y, in: context, pageRect: pageRect)
         }
         return drawScoreBreakdownIfSelected(inputs, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
@@ -69,9 +69,9 @@ extension PDFReportGenerator {
         guard inputs.sections.contains(.scoreBreakdown), let breakdown = inputs.scoreBreakdown else { return y }
         let loadLevel = adviceLoadLevel(inputs)
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
-        let needed = scoreBreakdownHeight(breakdown: breakdown, loadLevel: loadLevel, contentWidth: contentWidth)
-        let top = ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        return drawScoreBreakdownSection(breakdown: breakdown, loadLevel: loadLevel, yPosition: top, in: context, pageRect: pageRect)
+        let needed = sections.scoreBreakdownHeight(breakdown: breakdown, loadLevel: loadLevel, contentWidth: contentWidth)
+        let top = sections.ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        return sections.drawScoreBreakdownSection(breakdown: breakdown, loadLevel: loadLevel, yPosition: top, in: context, pageRect: pageRect)
     }
 
     /// The advice gate's read of the report's training load: today's live
@@ -92,8 +92,8 @@ extension PDFReportGenerator {
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
         guard inputs.sections.contains(.overnightStats), inputs.hasRawData, let series = inputs.series else { return y }
-        let top = ensureSpace(needed: 135, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        return drawOvernightStatsSection(inputs, series: series, yPosition: top, pageRect: pageRect)
+        let top = sections.ensureSpace(needed: 135, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        return overnight.drawOvernightStatsSection(inputs, series: series, yPosition: top, pageRect: pageRect)
     }
 
     /// Detailed tables, tags/notes, and the imported-data caveat.
@@ -116,7 +116,7 @@ extension PDFReportGenerator {
         y = drawTagsAndNotesIfAny(inputs.session, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
         if !inputs.hasRawData {
             let needed = importedDataNoteHeight(session: inputs.session, pageRect: pageRect)
-            y = ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+            y = sections.ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
             y = drawImportedDataNote(yPosition: y, session: inputs.session, in: context, pageRect: pageRect)
         }
         return y
@@ -133,9 +133,9 @@ extension PDFReportGenerator {
     ) -> CGFloat {
         guard !session.tags.isEmpty || !(session.notes ?? "").isEmpty else { return y }
         let pageBody = pageRect.height - config.margins.top - config.margins.bottom - 70
-        let notesHeight = min(sessionNotesHeight(session: session, pageRect: pageRect), pageBody)
-        let top = ensureSpace(needed: 50 + notesHeight, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        return drawTagsAndNotesSection(session: session, yPosition: top, in: context, pageRect: pageRect)
+        let notesHeight = min(overnight.sessionNotesHeight(session: session, pageRect: pageRect), pageBody)
+        let top = sections.ensureSpace(needed: 50 + notesHeight, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        return overnight.drawTagsAndNotesSection(session: session, yPosition: top, in: context, pageRect: pageRect)
     }
 
     /// Draw detailed metric tables (time domain, frequency domain, nonlinear, ANS)
@@ -143,20 +143,20 @@ extension PDFReportGenerator {
         result: HRVAnalysisResult, yPosition: CGFloat, pageNumber: inout Int,
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
-        var y = ensureSpace(needed: 60, y: yPosition, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        y = drawTimeDomainSection(result, yPosition: y, in: context, pageRect: pageRect)
+        var y = sections.ensureSpace(needed: 60, y: yPosition, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        y = sections.drawTimeDomainSection(result, yPosition: y, in: context, pageRect: pageRect)
 
         if let fd = result.frequencyDomain {
-            y = ensureSpace(needed: 60, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-            y = drawFrequencyDomainSection(fd, yPosition: y, in: context, pageRect: pageRect)
+            y = sections.ensureSpace(needed: 60, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+            y = sections.drawFrequencyDomainSection(fd, yPosition: y, in: context, pageRect: pageRect)
         }
 
-        y = ensureSpace(needed: 60, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        y = drawNonlinearSection(result, yPosition: y, in: context, pageRect: pageRect)
+        y = sections.ensureSpace(needed: 60, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        y = sections.drawNonlinearSection(result, yPosition: y, in: context, pageRect: pageRect)
 
         if let ans = result.ansMetrics {
-            y = ensureSpace(needed: 60, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-            y = drawANSSection(ans, yPosition: y, in: context, pageRect: pageRect)
+            y = sections.ensureSpace(needed: 60, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+            y = sections.drawANSSection(ans, yPosition: y, in: context, pageRect: pageRect)
         }
 
         return y
@@ -176,20 +176,20 @@ extension PDFReportGenerator {
     ) -> CGFloat {
         PDFReadingDirection.beginPage(context)
         var y = config.margins.top
-        y = drawOvernightHRChart(series: series, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
-        y = ensureSpace(needed: 220, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        y = drawPoincarePlot(series: series, flags: inputs.artifactFlags, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
+        y = overnight.drawOvernightHRChart(series: series, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
+        y = sections.ensureSpace(needed: 220, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        y = sections.drawPoincarePlot(series: series, flags: inputs.artifactFlags, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
 
         if let fd = inputs.result.frequencyDomain {
             let window = inputs.result.windowStart ..< max(inputs.result.windowStart, inputs.result.windowEnd)
-            y = ensureSpace(needed: 150, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-            y = drawPSDGraph(series: series, flags: inputs.artifactFlags, fd: fd, window: window, yPosition: y, in: context, pageRect: pageRect)
+            y = sections.ensureSpace(needed: 150, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+            y = sections.drawPSDGraph(series: series, flags: inputs.artifactFlags, fd: fd, window: window, yPosition: y, in: context, pageRect: pageRect)
         }
 
-        y = ensureSpace(needed: 115, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        y = drawTachogram(series: series, flags: inputs.artifactFlags, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
+        y = sections.ensureSpace(needed: 115, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        y = sections.drawTachogram(series: series, flags: inputs.artifactFlags, result: inputs.result, yPosition: y, in: context, pageRect: pageRect)
         y = drawQualityAndWindow(inputs, series: series, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
-        drawFooter(pageNumber: pageNumber, in: context, pageRect: pageRect)
+        sections.drawFooter(pageNumber: pageNumber, in: context, pageRect: pageRect)
         pageNumber += 1
         return y
     }
@@ -200,11 +200,11 @@ extension PDFReportGenerator {
         _ inputs: ReportInputs, series: RRSeries, y: CGFloat, pageNumber: inout Int,
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
-        var y = ensureSpace(needed: 78, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        y = drawQualitySection(inputs.result, session: inputs.session, yPosition: y, in: context, pageRect: pageRect)
+        var y = sections.ensureSpace(needed: 78, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        y = sections.drawQualitySection(inputs.result, session: inputs.session, yPosition: y, in: context, pageRect: pageRect)
         guard inputs.result.windowStartMs != nil || inputs.result.windowSelectionReason != nil else { return y }
-        y = ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        return drawWindowSelectionSection(result: inputs.result, series: series, yPosition: y, in: context, pageRect: pageRect)
+        y = sections.ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        return sections.drawWindowSelectionSection(result: inputs.result, series: series, yPosition: y, in: context, pageRect: pageRect)
     }
 
     /// Draw deep-dive analysis pages and analysis summary
@@ -214,7 +214,7 @@ extension PDFReportGenerator {
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) {
         PDFReadingDirection.beginPage(context)
-        var y = drawDeepHRVAnalysis(
+        var y = deepDive.drawDeepHRVAnalysis(
             result: inputs.result,
             session: inputs.session,
             recentSessions: inputs.recentSessions,
@@ -226,7 +226,7 @@ extension PDFReportGenerator {
         y = drawDeepSleepIfAvailable(inputs, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
         y = drawDeepTrainingAndVitals(inputs, y: y, pageNumber: &pageNumber, in: context, pageRect: pageRect)
         _ = y
-        drawFooter(pageNumber: pageNumber, in: context, pageRect: pageRect)
+        sections.drawFooter(pageNumber: pageNumber, in: context, pageRect: pageRect)
         pageNumber += 1
         drawAnalysisSummaryPage(inputs, pageNumber: pageNumber, in: context, pageRect: pageRect)
     }
@@ -242,13 +242,13 @@ extension PDFReportGenerator {
     ) -> CGFloat {
         var y = y
         if inputs.sections.contains(.trainingLoad), let training = inputs.trainingContext {
-            y = ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-            y = drawDeepTrainingAnalysis(training: training, pageNumber: &pageNumber, yPosition: y, in: context, pageRect: pageRect)
+            y = sections.ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+            y = deepDive.drawDeepTrainingAnalysis(training: training, pageNumber: &pageNumber, yPosition: y, in: context, pageRect: pageRect)
         }
 
         if inputs.sections.contains(.vitals), let vitalsData = inputs.vitals, vitalsData.hasAnyData {
-            y = ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-            y = drawDeepVitalsAnalysis(vitals: vitalsData, pageNumber: &pageNumber, yPosition: y, in: context, pageRect: pageRect)
+            y = sections.ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+            y = deepDive.drawDeepVitalsAnalysis(vitals: vitalsData, pageNumber: &pageNumber, yPosition: y, in: context, pageRect: pageRect)
         }
         return y
     }
@@ -260,8 +260,8 @@ extension PDFReportGenerator {
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
         guard inputs.sections.contains(.sleep), let sleep = inputs.sleepData, sleep.totalSleepMinutes > 0 else { return y }
-        let y = ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        return drawDeepSleepAnalysis(
+        let y = sections.ensureSpace(needed: 100, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+        return deepDive.drawDeepSleepAnalysis(
             sleep: sleep,
             sleepTrend: inputs.sleepTrend,
             pageNumber: &pageNumber,
@@ -279,7 +279,7 @@ extension PDFReportGenerator {
         PDFReadingDirection.beginPage(context)
         var page = pageNumber
         _ = drawAnalysisSummarySection(inputs, yPosition: config.margins.top, pageNumber: &page, in: context, pageRect: pageRect)
-        drawFooter(pageNumber: page, in: context, pageRect: pageRect)
+        sections.drawFooter(pageNumber: page, in: context, pageRect: pageRect)
     }
 
     /// Generate and save PDF to temporary file, return URL

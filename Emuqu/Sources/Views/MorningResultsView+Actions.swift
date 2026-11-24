@@ -182,18 +182,24 @@ extension MorningResultsView {
     private var emailSectionPickerSheet: some View {
         ReportSectionPicker(
             onGenerate: { style, sections in
-                emailReport(style: style, sections: sections)
+                reanalysis.emailReport(style: style, sections: sections, onFailure: showExportError)
             },
-            availableSections: availableReportSections
+            availableSections: reanalysis.availableReportSections
         )
         .presentationDetents([.medium, .large])
+    }
+
+    /// Where every export from this screen reports a failure: the alert
+    /// bound to `exportErrorMessage`.
+    private func showExportError(_ message: String) {
+        exportErrorMessage = message
     }
 
     @ViewBuilder
     private var exportRRButton: some View {
         if vm.hasRawData {
             Button {
-                exportRRData()
+                reanalysis.exportRRData(onFailure: showExportError)
             } label: {
                 Label(String(localized: "Export RR", bundle: LanguageManager.appBundle), systemImage: "waveform.path")
                     .frame(maxWidth: .infinity)
@@ -325,9 +331,9 @@ extension MorningResultsView {
     private var reportSectionPickerSheet: some View {
         ReportSectionPicker(
             onGenerate: { style, sections in
-                exportPDF(style: style, sections: sections)
+                reanalysis.exportPDF(style: style, sections: sections, onFailure: showExportError)
             },
-            availableSections: availableReportSections
+            availableSections: reanalysis.availableReportSections
         )
         .presentationDetents([.medium, .large])
     }

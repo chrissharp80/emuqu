@@ -237,7 +237,7 @@ extension WorkoutTicker {
     private func runSportScopedTickWork(sport: Sport) {
         // Push a live state snapshot to the paired Watch (no-op if unpaired).
         pushLiveStateToWatch(sport: sport)
-        recorder.updateThresholdBreaches(sport: sport)
+        recorder.aiContext.updateThresholdBreaches(sport: sport)
         attemptRouteDetectionIfEligible(sport: sport)
         pushZwiftBroadcasterUpdate()
         refreshEnvironmentContextIfNeeded(sport: sport)
@@ -781,12 +781,12 @@ extension WorkoutTicker {
             sport: sport.displayName, snapshotAt: Date(), sessionStartAt: recorder.sessionStartDate ?? Date(), elapsedSeconds: recorder.elapsedSeconds, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: recorder.settingsProvider().effectiveMaxHR,
             beatCount: recorder.beatCount, distanceMeters: recorder.distanceMeters, stepCount: recorder.stepCount, cadenceStepsPerMin: recorder.cadenceStepsPerMin, elevationGainMeters: recorder.elevationGainMeters, alpha1: recorder.dfa.currentAlpha1,
             alpha1Band: recorder.dfa.currentBand.label, alpha1Status: recorder.dfa.status.label, alpha1FitQualityR2: recorder.dfa.fitQuality, strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: recorder.liveTrack.count,
-            gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy, currentPaceSecPerKm: recorder.currentPaceSecPerKm, currentSpeedMS: speedMS, powerWatts: recorder.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: recorder.recentSplitPacesSecPerKm(),
+            gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy, currentPaceSecPerKm: recorder.currentPaceSecPerKm, currentSpeedMS: speedMS, powerWatts: recorder.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: recorder.aiContext.recentSplitPacesSecPerKm(),
             currentLatitude: loc?.coordinate.latitude, currentLongitude: loc?.coordinate.longitude, currentAltitudeMeters: loc?.altitude, currentHeadingDegrees: heading, currentHeadingCardinal: heading.map(Self.cardinal(fromCourse:)),
-            currentGradePercent: recorder.computeCurrentGradePercent(), unitsPreference: UnitsPreferenceStore.current.rawValue, targetZone: recorder.targetZone, recognizedRouteName: recorder.plannedRoute?.name, recognizedRouteWasAutoDetected: recorder.plannedRouteWasAutoDetected,
+            currentGradePercent: recorder.aiContext.computeCurrentGradePercent(), unitsPreference: UnitsPreferenceStore.current.rawValue, targetZone: recorder.targetZone, recognizedRouteName: recorder.plannedRoute?.name, recognizedRouteWasAutoDetected: recorder.plannedRouteWasAutoDetected,
             recognizedRouteDirection: recognizedRouteDirectionLabel(), routeTotalDistanceMeters: recorder.plannedRoute?.totalDistanceMeters, routeClimbCount: recorder.plannedRoute?.climbs.count, currentRoadName: road?.road, currentLocality: road?.locality,
             currentAdministrativeArea: road?.administrativeArea, currentCountry: road?.country, currentCountryCode: road?.countryCode, currentCompactAddress: road?.compactAddress, currentNearestCrossStreet: road?.nearestCrossStreet,
-            routeTopology: recorder.liveRouteTopologySnapshot(currentLocation: loc), weather: recorder.liveWeatherSnapshot(), reverseSplitDeltaSecPerKm: trends.reverseSplitDeltaSecPerKm,
+            routeTopology: recorder.aiContext.liveRouteTopologySnapshot(currentLocation: loc), weather: recorder.aiContext.liveWeatherSnapshot(), reverseSplitDeltaSecPerKm: trends.reverseSplitDeltaSecPerKm,
             liveHRDriftPercent: trends.hrDriftPercent, aerobicDecouplingPercent: trends.aerobicDecouplingPercent, cadenceDriftSpm: trends.cadenceDriftSpm,
             gradeAdjustedPaceSecPerKm: liveGradeAdjustedPace(), recentSplitGradeAdjustedPaces: trends.recentSplitGradeAdjustedPaces, projectedMinutesUntilFade: trends.projectedMinutesUntilFade,
             historicalSportAvgPaceSecPerKm: recorder.cachedHistoricalBaselines.avgPaceSecPerKm, historicalSportAvgHR: recorder.cachedHistoricalBaselines.avgHR, historicalSportAvgAlpha1: recorder.cachedHistoricalBaselines.avgAlpha1,
@@ -794,7 +794,7 @@ extension WorkoutTicker {
             todayCTL: recorder.cachedTodayReadiness.ctl, todayTSB: recorder.cachedTodayReadiness.tsb, projectedDaysUntilFresh: recorder.cachedTrainingProjection.daysUntilFresh, projectedTSBTomorrowSteadyState: recorder.cachedTrainingProjection.tsbTomorrowSteadyState,
             recoveryHoursNeeded: liveRecoveryHoursNeeded(), zone1Sec: liveZoneBreakdown.z1Sec, zone2Sec: liveZoneBreakdown.z2Sec, zone3Sec: liveZoneBreakdown.z3Sec, zone4Sec: liveZoneBreakdown.z4Sec, zone5Sec: liveZoneBreakdown.z5Sec, dominantZone: liveZoneBreakdown.dominantZone,
             predictedRaceTime5KSec: recorder.cachedRacePredictionsByDistance[5_000], predictedRaceTime10KSec: recorder.cachedRacePredictionsByDistance[10_000], predictedRaceTimeHalfSec: recorder.cachedRacePredictionsByDistance[21_097.5],
-            predictedRaceTimeMarathonSec: recorder.cachedRacePredictionsByDistance[42_195], activeThresholds: activeThresholdSnapshots(), thresholdBreachSec: thresholdBreachSecByID(), intervalProgress: recorder.liveIntervalProgressSnapshot()
+            predictedRaceTimeMarathonSec: recorder.cachedRacePredictionsByDistance[42_195], activeThresholds: activeThresholdSnapshots(), thresholdBreachSec: thresholdBreachSecByID(), intervalProgress: recorder.aiContext.liveIntervalProgressSnapshot()
         )
     }
 
@@ -808,7 +808,7 @@ extension WorkoutTicker {
     private func liveGradeAdjustedPace() -> Double? {
         WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(
             pace: recorder.currentPaceSecPerKm,
-            gradePercent: recorder.computeCurrentGradePercent()
+            gradePercent: recorder.aiContext.computeCurrentGradePercent()
         )
     }
 
@@ -865,7 +865,7 @@ extension WorkoutTicker {
         // attempts `attemptAutoRouteDetection` returns at once until the
         // track reaches `recorder.nextRouteDetectionAtMeters`.
         if recorder.plannedRoute == nil, sport.usesGPS {
-            recorder.attemptAutoRouteDetection(sport: sport)
+            recorder.aiContext.attemptAutoRouteDetection(sport: sport)
         }
     }
 
@@ -914,7 +914,7 @@ extension WorkoutTicker {
         // Build a factual context snapshot and let the voice coach decide
         // whether any trigger rules fire. The coach enforces cooldowns
         // and mute/quiet-mode internally.
-        let context = recorder.buildContext(sport: sport)
+        let context = recorder.aiContext.buildContext(sport: sport)
         recorder.voiceCoach.tick(context: context)
     }
 }

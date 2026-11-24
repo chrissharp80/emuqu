@@ -109,7 +109,7 @@ extension ArchiveStore {
             }
             // Update with any new/better data from import: an edit made here,
             // stamped and queued to upload again (`postBatchChangeNotifications`).
-            guard archive.mergeSessionData(from: session, into: &existingSession) else { return }
+            guard SessionMerger.mergeSessionData(from: session, into: &existingSession) else { return }
             existingSession.modifiedAt = CloudKitSessionFreshness.stamp()
             try _archive(existingSession)
             outcome.updatedIds.append(existingSession.id)

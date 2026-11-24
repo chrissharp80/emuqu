@@ -152,7 +152,7 @@ extension MorningSessionPipeline {
     /// (`OvernightStreamingCoordinator.clearPersistedStateIfSaved`).
     func archiveForReview(_ finalSession: HRVSession) {
         guard finalSession.state == .complete else { return }
-        let isNewEntry = !collector.archive.entries.contains { $0.sessionId == finalSession.id }
+        let isNewEntry = !collector.archive.store.entries.contains { $0.sessionId == finalSession.id }
         do {
             debugLog("[RRCollector] Pre-archiving session for review: \(finalSession.id.uuidString)")
             let entry = try collector.archive.archive(finalSession)

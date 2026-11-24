@@ -664,7 +664,7 @@ enum RecoveryScoreCalculator {
     ) -> Double {
         let deduction = missingSleep ? RecoveryScoreConstants.missingSleepPenalty : 0
         let clamped = min(ScoringBounds.maxScore, max(ScoringBounds.minScore, weightedSum - deduction))
-        return applyVitalsOverrides(score: clamped, vitals: vitals)
+        return VitalsScoring.applyVitalsOverrides(score: clamped, vitals: vitals)
     }
 
     /// Core breakdown logic shared by both calculateWithBreakdown() overloads.
@@ -684,8 +684,8 @@ enum RecoveryScoreCalculator {
         referenceDate: Date
     ) -> ScoreBreakdown {
         let inputs = rawInputs.scoringWristTemperatureAgainstBaseline()
-        let vitalsScore = calculateVitalsScore(vitals: inputs.vitals, baselineStats: inputs.baselineStats)
-        let (composite, tier, factors) = buildTierComposite(tierInputs(
+        let vitalsScore = VitalsScoring.calculateVitalsScore(vitals: inputs.vitals, baselineStats: inputs.baselineStats)
+        let (composite, tier, factors) = ScoreDetailBuilder.buildTierComposite(tierInputs(
             inputs, vitalsScore: vitalsScore, config: config, ansBalance: ansBalance, referenceDate: referenceDate
         ))
         let missingSleep = missingSleepPenaltyApplies(inputs, tier: tier, config: config)
@@ -693,7 +693,7 @@ enum RecoveryScoreCalculator {
         logScoreTriage(tier: tier, composite: finalComposite, hasHRV: inputs.rmssd != nil, hasSleep: inputs.sleepData != nil, hasVitals: vitalsScore != nil, comebackModeActive: config.isComebackModeActive)
         return ScoreBreakdown(
             compositeScore: finalComposite, tier: tier, factors: factors,
-            penalties: vitalsPenaltyDescriptions(inputs.vitals) + (missingSleep ? [missingSleepPenaltyDescription] : []),
+            penalties: VitalsScoring.vitalsPenaltyDescriptions(inputs.vitals) + (missingSleep ? [missingSleepPenaltyDescription] : []),
             spo2PenaltyApplied: inputs.vitals?.isSpO2Concerning ?? false
         )
     }

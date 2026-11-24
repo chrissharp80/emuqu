@@ -508,7 +508,7 @@ final class AssistantViewModel {
             AppleFoundationProvider.prewarm()
         }
         AppDependencies.current.app.keyboardPerfSignpost.event("AssistantViewModel.send.beforeDispatch")
-        dispatch()
+        router.dispatch()
     }
 
     /// True, with the reason shown, when Flo is switched off or its notice
@@ -763,7 +763,7 @@ final class AssistantViewModel {
         // Must have a user turn before it to regenerate from.
         guard lastAssistantIndex > 0, turns[lastAssistantIndex - 1].role == .user else { return }
         guard !holdRegenerationForConsent(userText: turns[lastAssistantIndex - 1].text) else { return }
-        dispatch(regenerating: turns[lastAssistantIndex].id)
+        router.dispatch(regenerating: turns[lastAssistantIndex].id)
     }
 
     /// True, with the consent sheet requested, when the selected provider has

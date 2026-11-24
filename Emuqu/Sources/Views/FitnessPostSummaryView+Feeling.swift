@@ -515,7 +515,7 @@ extension FitnessPostSummaryView {
 
     private func routeMap(_ coordinates: [CLLocationCoordinate2D]) -> some View {
         Map(
-            initialPosition: .region(regionForTrack(coordinates)),
+            initialPosition: .region(summary.regionForTrack(coordinates)),
             interactionModes: []
         ) {
             MapPolyline(coordinates: coordinates)

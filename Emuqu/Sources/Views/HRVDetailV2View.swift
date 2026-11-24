@@ -345,7 +345,7 @@ struct HRVDetailV2View: View {
     /// a CoW array is undefined behaviour.
     private func overnightPriorIds(archive: SessionArchive) -> [UUID] {
         Array(
-            archive.entries
+            archive.store.entries
                 .filter { $0.sessionType == .overnight && $0.sessionId != session.id }
                 .prefix(28)
                 .map(\.sessionId)
@@ -688,7 +688,7 @@ extension HRVDetailV2View {
     /// left out as the Compare-to-history sheet leaves them out. RMSSD, HR
     /// and stress come from the index entry; SDNN needs a lightweight read.
     nonisolated static func averagesForTrend(archive: SessionArchive, excluding id: UUID, since cutoff: Date) -> TrendAverages {
-        let nights = archive.entries.filter {
+        let nights = archive.store.entries.filter {
             $0.sessionType == .overnight && $0.isReliableForHRVAggregates && $0.sessionId != id && $0.date >= cutoff
         }
         let sdnns = nights.compactMap {

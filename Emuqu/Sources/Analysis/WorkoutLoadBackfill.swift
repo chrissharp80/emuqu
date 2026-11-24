@@ -98,7 +98,7 @@ enum WorkoutLoadBackfill {
         guard let startDate = calendar.date(
             byAdding: .day, value: -lookbackDays, to: calendar.startOfDay(for: endDate)
         ) else { return true }
-        let entries = archive.entries(from: startDate, to: endDate).filter { $0.sessionType == .workout }
+        let entries = archive.store.entries(from: startDate, to: endDate).filter { $0.sessionType == .workout }
         guard !entries.isEmpty else {
             debugLog("[WorkoutLoadBackfill] No workout entries in the last \(lookbackDays) days — nothing to backfill.")
             return true

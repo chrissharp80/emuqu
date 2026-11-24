@@ -410,7 +410,7 @@ final class SessionArchive: @unchecked Sendable {
         if let uuid = UUID(uuidString: bareId), deleted.contains(uuid) { return nil }
         guard let data = attempt("Archive.readOrphan", { try Data(contentsOf: file) }),
               let session = attempt("Archive.decodeOrphan", {
-                  try Self.loadAndDecodeSessionFile(at: file, decoder: Self.sessionDecoder, encryption: encryption)
+                  try ArchiveStore.loadAndDecodeSessionFile(at: file, decoder: Self.sessionDecoder, encryption: encryption)
               })
         else {
             debugLog("[Archive] reconcileOrphanFiles: skipping undecodable orphan \(name)")
@@ -501,7 +501,7 @@ final class SessionArchive: @unchecked Sendable {
         let entry: SessionArchiveEntry
         let wasArchived = index.contains { $0.sessionId == session.id }
         do {
-            entry = try _archive(session, skipSameNightMerge: skipSameNightMerge)
+            entry = try store._archive(session, skipSameNightMerge: skipSameNightMerge)
         } catch {
             archiveLock.unlock()
             throw error
@@ -544,13 +544,13 @@ final class SessionArchive: @unchecked Sendable {
     func updateIfChanged(_ id: UUID, requestingReupload: Bool = true, _ change: (inout HRVSession) -> Bool) throws -> Bool {
         archiveLock.lock()
         do {
-            guard var session = try _retrieve(id) else { throw ArchiveError.fileNotFound }
+            guard var session = try store._retrieve(id) else { throw ArchiveError.fileNotFound }
             guard change(&session) else {
                 archiveLock.unlock()
                 return false
             }
             if requestingReupload { session.modifiedAt = CloudKitSessionFreshness.stamp() }
-            _ = try _archive(session, skipSameNightMerge: true)
+            _ = try store._archive(session, skipSameNightMerge: true)
         } catch {
             archiveLock.unlock()
             throw error
@@ -575,7 +575,7 @@ final class SessionArchive: @unchecked Sendable {
         archiveLock.lock()
         defer { archiveLock.unlock() }
         do {
-            let session = try _retrieve(id)
+            let session = try store._retrieve(id)
             countRead(failure: nil)
             return session
         } catch {

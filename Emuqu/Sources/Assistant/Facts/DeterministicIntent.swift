@@ -207,7 +207,7 @@ enum DeterministicIntent {
                 #"^\s*how\s+(?:was|did)\s+(?:my\s+)?last\s+workout(?:\s+go)?\??\s*$"#
             ],
             handler: { _, ctx in
-                guard let last = ctx.archive.entries
+                guard let last = ctx.archive.store.entries
                     .first(where: { $0.sessionType == .workout })
                 else { return nil }
                 let durationMin = activeMinutes(last, archive: ctx.archive)
@@ -232,7 +232,7 @@ enum DeterministicIntent {
                 let target = dayStart(isYesterday: isYesterday, now: ctx.now)
                 // Every workout that day counts: two sessions are one
                 // answer of their combined time, not the newest one's.
-                let sameDay = ctx.archive.entries.filter {
+                let sameDay = ctx.archive.store.entries.filter {
                     $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: target)
                 }
                 if !sameDay.isEmpty {
@@ -398,9 +398,9 @@ enum DeterministicIntent {
                 #"^\s*(?:total\s+)?session\s+count\??\s*$"#
             ],
             handler: { _, ctx in
-                let total = ctx.archive.entries.count
-                let workouts = ctx.archive.entries.filter { $0.sessionType == .workout }.count
-                let overnight = ctx.archive.entries.filter { $0.sessionType == .overnight }.count
+                let total = ctx.archive.store.entries.count
+                let workouts = ctx.archive.store.entries.filter { $0.sessionType == .workout }.count
+                let overnight = ctx.archive.store.entries.filter { $0.sessionType == .overnight }.count
                 return String(
                     localized: "Total sessions: \(total). Overnight: \(overnight). Workouts: \(workouts).",
                     bundle: LanguageManager.appBundle
@@ -496,7 +496,7 @@ enum DeterministicIntent {
         // must not answer from an `.insufficient`/`.preSleep` partial; the index
         // mirrors the quality flag. Falls through to the LLM if today's only
         // overnight is untrustworthy — correct, rather than voicing a bogus number.
-        return archive.entries
+        return archive.store.entries
             .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
             .sorted { $0.date > $1.date }
             .first { entry in

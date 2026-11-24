@@ -49,7 +49,7 @@ extension SessionRecoveryCoordinator {
     /// rather than rebuilding it only to have the write refused.
     func restoreFromTrash(_ sessionId: UUID) async -> HRVSession? {
         recoveryService.restoreFromTrash(sessionId)
-        guard !collector.archive.deletedIds.contains(sessionId) else {
+        guard !collector.archive.store.deletedIds.contains(sessionId) else {
             debugLog("[Recovery] Could not restore \(sessionId.uuidString.prefix(8)): it is still marked deleted", level: .error)
             recoveryService.restoreFromTrashFailed(sessionId)
             return nil
@@ -66,7 +66,7 @@ extension SessionRecoveryCoordinator {
     /// as the raw-backup restore does, so the night isn't counted twice.
     private func restoreKeptSession(_ sessionId: UUID) -> HRVSession? {
         let archive = collector.archive
-        guard var session = archive.trashedSession(sessionId) else { return nil }
+        guard var session = archive.store.trashedSession(sessionId) else { return nil }
         collector.morning.supersedeSameNightSession(newSession: &session)
         do {
             try archive.archive(session, skipSameNightMerge: true)
@@ -74,7 +74,7 @@ extension SessionRecoveryCoordinator {
             debugLog("[Recovery] Could not put back trashed session \(sessionId.uuidString.prefix(8)): \(error)", level: .error)
             return nil
         }
-        archive.discardTrashed(sessionId)
+        archive.store.discardTrashed(sessionId)
         collector.rawBackup.markAsArchived(sessionId)
         Task { await collector.cloudSyncManager.forceReuploadSession(session) }
         Task { @MainActor in collector.archiveSignal.notifyChanged() }
@@ -524,7 +524,7 @@ extension SessionRecoveryCoordinator {
         guard collector.morningCoordination.recoveredWorkoutReview == nil else { return }
         let reviewed = Set(UserDefaults.standard.stringArray(forKey: Self.reviewedRecoveredKey) ?? [])
         let cutoff = Date().addingTimeInterval(-48 * 60 * 60)
-        let candidates = collector.archive.entries
+        let candidates = collector.archive.store.entries
             .filter { $0.sessionType == .workout && $0.date >= cutoff }
             .sorted { $0.date > $1.date }
         for entry in candidates {
@@ -565,7 +565,7 @@ extension SessionRecoveryCoordinator {
         guard let state = collector.getPersistedRecordingState(),
               state.sessionType == .workout,
               !live.contains(state.sessionId),
-              !collector.archive.exists(state.sessionId) else { return nil }
+              !collector.archive.store.exists(state.sessionId) else { return nil }
         return state.sessionId
     }
 
@@ -710,7 +710,7 @@ extension SessionRecoveryCoordinator {
 /// deleted or rejected keeps its backup, and a backup already folded into a
 /// session is marked archived; neither is an interrupted workout.
 private func unrecoveredBackupIds(since cutoff: Date, archive: SessionArchive, rawBackup: RawRRBackup) -> [UUID] {
-    let excluded = Set(archive.entries.map(\.sessionId)).union(archive.deletedIds)
+    let excluded = Set(archive.store.entries.map(\.sessionId)).union(archive.store.deletedIds)
     let unarchived = Set(rawBackup.unarchivedSessionIds)
     return rawBackup.sessionIds(indexedSince: cutoff).filter { !excluded.contains($0) && unarchived.contains($0) }
 }

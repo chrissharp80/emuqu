@@ -79,9 +79,9 @@ final class ArchivePolicyTests: XCTestCase {
         now: Date? = nil,
         mergeMode: SessionMergeMode = .defaultGap
     ) -> [UUID] {
-        SessionArchive.duplicatesToQuarantine(
+        ArchiveMigrations.duplicatesToQuarantine(
             overnightEntries: entries,
-            linkedIds: SessionArchive.linkedSessionIdSet(in: entries),
+            linkedIds: ArchiveMigrations.linkedSessionIdSet(in: entries),
             schedule: schedule,
             now: now ?? farFuture,
             mergeMode: mergeMode
@@ -258,7 +258,7 @@ final class ArchivePolicyTests: XCTestCase {
         let existing = makeSession(points: rrPoints(count: 200), withAnalysis: true, recoveryScore: 2.5)
         let imported = makeSession(points: rrPoints(count: 400), withAnalysis: true, recoveryScore: 7.5)
 
-        let outcome = SessionArchive.mergeOutcome(imported: imported, existing: existing)
+        let outcome = SessionMerger.mergeOutcome(imported: imported, existing: existing)
 
         guard case let .composite(_, summary, _, adoptImportedAnalysis) = outcome.rrChange else {
             return XCTFail("Both sides have RR data — expected a composite outcome, got \(String(describing: outcome.rrChange))")
@@ -269,7 +269,7 @@ final class ArchivePolicyTests: XCTestCase {
 
         // Apply and confirm the end state matches the decision.
         var target = existing
-        SessionArchive.apply(outcome, from: imported, to: &target)
+        SessionMerger.apply(outcome, from: imported, to: &target)
         XCTAssertEqual(target.recoveryScore, 7.5)
         XCTAssertEqual(target.dataSourceSummary?.selectedSource, "composite")
         XCTAssertNil(target.artifactFlags, "Composite merge invalidates stale artifact flags")
@@ -281,7 +281,7 @@ final class ArchivePolicyTests: XCTestCase {
         let existing = makeSession(points: rrPoints(count: 400), withAnalysis: true, recoveryScore: 7.5)
         let imported = makeSession(points: rrPoints(count: 200), withAnalysis: true, recoveryScore: 2.5)
 
-        let outcome = SessionArchive.mergeOutcome(imported: imported, existing: existing)
+        let outcome = SessionMerger.mergeOutcome(imported: imported, existing: existing)
 
         guard case let .composite(_, _, _, adoptImportedAnalysis) = outcome.rrChange else {
             return XCTFail("Both sides have RR data — expected a composite outcome")
@@ -289,7 +289,7 @@ final class ArchivePolicyTests: XCTestCase {
         XCTAssertFalse(adoptImportedAnalysis, "Smaller-session analysis must not clobber the existing one")
 
         var target = existing
-        SessionArchive.apply(outcome, from: imported, to: &target)
+        SessionMerger.apply(outcome, from: imported, to: &target)
         XCTAssertEqual(target.recoveryScore, 7.5, "Existing score survives the merge")
     }
 
@@ -322,7 +322,7 @@ final class ArchivePolicyTests: XCTestCase {
         let existing = makeSession(points: nil)
         let imported = makeSession(points: rrPoints(count: 200), withAnalysis: true, recoveryScore: 6.0)
 
-        let outcome = SessionArchive.mergeOutcome(imported: imported, existing: existing)
+        let outcome = SessionMerger.mergeOutcome(imported: imported, existing: existing)
 
         guard case let .adoptImportedSeries(adoptImportedAnalysis) = outcome.rrChange else {
             return XCTFail("Existing has no RR — expected adoptImportedSeries")
@@ -330,7 +330,7 @@ final class ArchivePolicyTests: XCTestCase {
         XCTAssertTrue(adoptImportedAnalysis)
 
         var target = existing
-        SessionArchive.apply(outcome, from: imported, to: &target)
+        SessionMerger.apply(outcome, from: imported, to: &target)
         XCTAssertEqual(target.rrSeries?.points.count, 200)
         XCTAssertEqual(target.recoveryScore, 6.0)
     }
@@ -348,7 +348,7 @@ final class ArchivePolicyTests: XCTestCase {
             importedMetrics: HRVSession.ImportedMetrics(rmssd: 50, rmssdRaw: 48, artifactPercent: 1, source: "test")
         )
 
-        let outcome = SessionArchive.mergeOutcome(imported: imported, existing: existing)
+        let outcome = SessionMerger.mergeOutcome(imported: imported, existing: existing)
 
         XCTAssertNil(outcome.rrChange)
         XCTAssertFalse(outcome.adoptAnalysisResult, "Imported has no analysis to offer")
@@ -359,7 +359,7 @@ final class ArchivePolicyTests: XCTestCase {
         XCTAssertTrue(outcome.hasChanges)
 
         var target = existing
-        SessionArchive.apply(outcome, from: imported, to: &target)
+        SessionMerger.apply(outcome, from: imported, to: &target)
         XCTAssertEqual(target.recoveryScore, 5.0)
         XCTAssertEqual(target.tags.map(\.id), [ReadingTag.morning.id, ReadingTag.stressed.id])
         XCTAssertEqual(target.notes, "imported note")
@@ -372,13 +372,13 @@ final class ArchivePolicyTests: XCTestCase {
         let existing = makeSession(points: nil, recoveryScore: 5.0, tags: [ReadingTag.morning], notes: "keep")
         let imported = makeSession(points: nil, tags: [ReadingTag.morning])
 
-        let outcome = SessionArchive.mergeOutcome(imported: imported, existing: existing)
+        let outcome = SessionMerger.mergeOutcome(imported: imported, existing: existing)
 
         XCTAssertNil(outcome.rrChange)
         XCTAssertFalse(outcome.hasChanges)
 
         var target = existing
-        SessionArchive.apply(outcome, from: imported, to: &target)
+        SessionMerger.apply(outcome, from: imported, to: &target)
         XCTAssertEqual(target.recoveryScore, 5.0)
         XCTAssertEqual(target.notes, "keep")
         XCTAssertEqual(target.tags.map(\.id), [ReadingTag.morning.id])

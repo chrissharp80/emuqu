@@ -251,7 +251,7 @@ extension CollectorSessionControl {
     /// rebuild started by another pull leaves the first one's result alone.
     private func bindCloudSyncBaseline() {
         ObservationLoop.observe(collector, read: { $0.cloudSyncManager.pullVersion }, onChange: { collector, _ in
-            guard collector.baselineTracker.daysCollected == 0, !collector.archive.entries.isEmpty else { return }
+            guard collector.baselineTracker.daysCollected == 0, !collector.archive.store.entries.isEmpty else { return }
             collector.rebuildBaselineOffMain()
         })
     }
@@ -290,7 +290,7 @@ extension CollectorSessionControl {
         guard maxGap > 0 else { return nil }
         let now = Date()
         let cutoff = now.addingTimeInterval(-maxGap)
-        let entries = archive.entries
+        let entries = archive.store.entries
         // By when the night stopped, not when it started: a night paused or
         // finished minutes ago may have begun hours before the window.
         let loaded = entries

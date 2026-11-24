@@ -175,7 +175,7 @@ final class LostSessionRecoveryTests: XCTestCase {
         XCTAssertEqual(UserDefaults.standard.dictionary(forKey: Self.attemptsKey)?[workout.id.uuidString] as? Int, 3,
                        "an attempt was counted although none was made")
         XCTAssertFalse(InterruptedWorkoutAutoRecovery.isRunning(workout.id), "the recovery stayed registered")
-        XCTAssertFalse(archive.exists(workout.id))
+        XCTAssertFalse(archive.store.exists(workout.id))
     }
 
     /// A workout the launch alert is already recovering is left to it: launch

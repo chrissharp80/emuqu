@@ -98,7 +98,7 @@ extension CloudPullCoordinator {
         guard results.allSatisfy({ if case .success = $0.1 { true } else { false } }) else { return }
         let remoteIds = Set(results.compactMap { UUID(uuidString: $0.0.recordName) })
         let missing = manager.state.uploadedSessionIds.filter {
-            !remoteIds.contains($0) && manager.archive.exists($0) && !manager.archive.wasIntentionallyDeleted($0)
+            !remoteIds.contains($0) && manager.archive.store.exists($0) && !manager.archive.store.wasIntentionallyDeleted($0)
         }
         let confirmed = missing.intersection(manager.missingFromLastListing)
         manager.missingFromLastListing = missing
@@ -175,7 +175,7 @@ extension CloudPullCoordinator {
         // Hoisted so the detached closure captures the archive, not `self`.
         let archive = manager.archive
         await Task.detached(priority: .utility) {
-            archive.runDeferredMigrations()
+            archive.migrations.runDeferredMigrations()
         }.value
         guard !counts.backfillIds.isEmpty else { return }
         NotificationCenter.default.post(
@@ -280,8 +280,8 @@ extension CloudPullCoordinator {
     /// the daily re-check of local deletions doing it up to a day later. A
     /// session deleted forever here never reaches this point.
     private func adoptRestoreIfNewer(_ record: CKRecord, sessionId: UUID) {
-        guard !manager.archive.exists(sessionId), manager.archive.wasIntentionallyDeleted(sessionId),
-              TrashRestoreCoordinator.restoreIsNewer(record, thanDeletionAt: manager.archive.deletionTime(of: sessionId))
+        guard !manager.archive.store.exists(sessionId), manager.archive.store.wasIntentionallyDeleted(sessionId),
+              TrashRestoreCoordinator.restoreIsNewer(record, thanDeletionAt: manager.archive.store.deletionTime(of: sessionId))
         else { return }
         manager.trashRestore.adoptFromAnotherDevice(sessionId)
     }
@@ -307,7 +307,7 @@ extension CloudPullCoordinator {
     /// not make it uploaded. Whether a held copy is replaced by a newer one is
     /// `refreshIfRemoteIsNewer`'s decision.
     private func isKnownLocally(_ sessionId: UUID) -> Bool {
-        guard manager.archive.exists(sessionId) || manager.archive.wasIntentionallyDeleted(sessionId) else {
+        guard manager.archive.store.exists(sessionId) || manager.archive.store.wasIntentionallyDeleted(sessionId) else {
             return false
         }
         if !manager.state.pendingUploadIds.contains(sessionId) {
@@ -428,7 +428,7 @@ extension CloudPullCoordinator {
     /// again, tries once more.
     func handleDeletedRecord(sessionId: UUID, sessionIdString: String) -> (new: Int, deleted: Int) {
         var deletedCount = 0
-        if manager.archive.exists(sessionId) {
+        if manager.archive.store.exists(sessionId) {
             do {
                 try removeLocalCopy(sessionId)
                 deletedCount = 1
@@ -466,7 +466,7 @@ extension CloudPullCoordinator {
             }
         }
         try manager.archive.deleteWithoutTrash(sessionId)
-        if !manager.archive.discardTrashed(sessionId) {
+        if !manager.archive.store.discardTrashed(sessionId) {
             debugLog("[CloudKit] Pull: \(sessionId.uuidString.prefix(8)) left a copy in the Trash, removed when the Trash expires", level: .warning)
         }
     }

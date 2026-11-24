@@ -660,7 +660,7 @@ final class CloudKitSyncManager {
         }
         fullSyncsAdmitted += 1
         defer { fullSyncsAdmitted -= 1 }
-        debugLog("[CloudKit] performFullSync entering serializer (uploaded=\(state.uploadedSessionIds.count), pending=\(state.pendingUploadIds.count), archive=\(archive.entries.count))")
+        debugLog("[CloudKit] performFullSync entering serializer (uploaded=\(state.uploadedSessionIds.count), pending=\(state.pendingUploadIds.count), archive=\(archive.store.entries.count))")
         await syncSerializer.run { [self] in
             guard settings.iCloudSyncEnabled, !PurgeGate.isPurging else {
                 debugLog("[CloudKit] performFullSync skipped — sync turned off, or Delete All My Data started, while it waited")

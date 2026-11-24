@@ -22,7 +22,7 @@ extension SessionDataMigrations {
         guard !defaults.bool(forKey: Self.timeInBedRepairKey) else { return }
         var repaired = 0
         var failed = 0
-        for entry in archive.entries where entry.sessionType == .overnight {
+        for entry in archive.store.entries where entry.sessionType == .overnight {
             switch await repairTimeInBed(entry) {
             case .repaired: repaired += 1
             case .failed: failed += 1

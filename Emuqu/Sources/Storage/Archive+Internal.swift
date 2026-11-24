@@ -208,7 +208,7 @@ extension ArchiveStore {
             guard var existingSession = try _retrieve(existing.sessionId) else {
                 throw SessionArchive.ArchiveError.fileNotFound
             }
-            if archive.mergeSessionData(from: session, into: &existingSession) { existingSession.modifiedAt = CloudKitSessionFreshness.stamp() }
+            if SessionMerger.mergeSessionData(from: session, into: &existingSession) { existingSession.modifiedAt = CloudKitSessionFreshness.stamp() }
             // Re-archive the merged existing session (this is a re-archive, won't recurse)
             return try _archive(existingSession)
         } catch {

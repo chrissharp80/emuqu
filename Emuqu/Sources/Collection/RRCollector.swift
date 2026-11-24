@@ -4,17 +4,22 @@ import os
 /// RR interval collector - orchestrates Polar device recording and analysis.
 ///
 /// The collector holds the dependencies and the shared state; most of the
-/// behaviour lives on coordinators it builds on demand and reaches through
-/// forwarders (`+…Forwarding`, and the forwarders below):
-///   control (CollectorSessionControl) – +Bindings, +Streaming, +PauseResume
+/// behaviour lives on coordinators it builds on demand (`control` below, the
+/// rest in +Coordinators). Each file listed extends the coordinator before it:
+///   control (CollectorSessionControl) – +Bindings, +Streaming, +PauseResume,
+///     +Discard
 ///   overnightStreaming (OvernightStreamingCoordinator) – +OvernightStreaming,
-///     +OvernightArming, +OvernightGather
+///     +OvernightArming
 ///   deviceRecording (DeviceRecordingSession) – +DeviceRecording
-///   morning (MorningSessionPipeline) – +MorningProcessing
-///   recovery (SessionRecoveryCoordinator) – +Recovery, +BackupRecovery
+///   morning (MorningSessionPipeline) – +MorningProcessing, +OvernightGather,
+///     +Analysis, +Acceptance
+///   recovery (SessionRecoveryCoordinator) – +Recovery, +BackupRecovery,
+///     +MergeRepair
 ///   import (SessionImport) – +Import
 /// Extensions on the collector itself: +Lifecycle (persisted recording
-/// state, data rescue, emergency backup), +Acceptance, +Analysis.
+/// state, data rescue, emergency backup), +RecordingCore, +Session,
+/// +PriorSessions, and the collector-side halves of +Acceptance, +Streaming
+/// and +Import.
 ///
 /// Rescoring saved sessions is not the collector's: the composition root
 /// owns `SessionReanalysisCoordinator`, built from the same scoring context,
@@ -233,7 +238,7 @@ final class RRCollector {
     /// JSON parsing. Call `retrieveFullSessionAsync` for the single session
     /// that needs chart data.
     func recentSessionsAsync(limit: Int?) async -> [HRVSession] {
-        let allEntries = archive.entries
+        let allEntries = archive.store.entries
         let entries = limit.map { Array(allEntries.prefix($0)) } ?? allEntries
         let archive = self.archive
         return await Task.detached(priority: .userInitiated) {
@@ -246,7 +251,7 @@ final class RRCollector {
     /// read starts, and nil comes back rather than part of the history, so a
     /// caller never shows or acts on an incomplete list.
     func allSessionsAsync() async -> [HRVSession]? {
-        let entries = archive.entries
+        let entries = archive.store.entries
         let archive = self.archive
         let work = Task.detached(priority: .userInitiated) {
             await Self.decodeInParallel(entries, archive: archive)
@@ -442,7 +447,7 @@ final class RRCollector {
     @MainActor
     func boot() {
         guard didBootBaseline.setIfClear() else { return }
-        guard baselineTracker.daysCollected == 0, !archive.entries.isEmpty else { return }
+        guard baselineTracker.daysCollected == 0, !archive.store.entries.isEmpty else { return }
         rebuildBaselineOffMain()
     }
 
@@ -483,7 +488,7 @@ final class RRCollector {
     @MainActor
     private func commitRebuiltBaseline(_ sessions: [HRVSession], decoded: [ArchivedCopy: HRVSession], copies: [ArchivedCopy], replacing: Bool) {
         if replacing {
-            guard archive.entries.map(ArchivedCopy.init) == copies else { return restartReplacingRebuild(reusing: decoded) }
+            guard archive.store.entries.map(ArchivedCopy.init) == copies else { return restartReplacingRebuild(reusing: decoded) }
             baselineTracker.reset()
         } else if baselineTracker.daysCollected > 0 {
             return
@@ -841,7 +846,7 @@ extension RRCollector {
     @MainActor
     fileprivate func rebuildBaselineOffMain(replacing: Bool, reusing decoded: [ArchivedCopy: HRVSession]) {
         let archive = self.archive
-        let copies = archive.entries.map(ArchivedCopy.init)
+        let copies = archive.store.entries.map(ArchivedCopy.init)
         Task.detached(priority: .utility) {
             let read = Self.decodedSessions(of: copies, reusing: decoded, from: archive)
             let sessions = read.map { $0.1 }
@@ -875,7 +880,7 @@ extension RRCollector {
 /// start. A quick reading or a workout that ended just before is not one.
 private func archiveHoldsSession(runningAt date: Date, slackMinutes: Int, in archive: SessionArchive) -> Bool {
     let slack = TimeInterval(slackMinutes * 60)
-    return archive.entries.contains { entry in
+    return archive.store.entries.contains { entry in
         guard entry.sessionType == .overnight || entry.sessionType == .nap else { return false }
         let runsUntil = max(entry.endDate ?? entry.date, entry.date.addingTimeInterval(slack))
         return entry.date.addingTimeInterval(-slack) <= date && date <= runsUntil

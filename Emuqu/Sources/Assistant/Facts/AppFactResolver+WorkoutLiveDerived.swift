@@ -186,7 +186,7 @@ extension WorkoutLiveNamespace {
     /// loads workoutMetadata with recognizedRouteName + samples).
     private func routeHistorySessions(named routeName: String) -> [HRVSession] {
         let archive = self.archive
-        let recent = archive.entries
+        let recent = archive.store.entries
             .filter { $0.sessionType == .workout }
             .sorted { $0.date > $1.date }
             .prefix(Self.routeHistoryScanLimit)

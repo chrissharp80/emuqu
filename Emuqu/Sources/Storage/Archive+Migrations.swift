@@ -143,7 +143,7 @@ extension ArchiveMigrations {
         at fileURL: URL, entry: SessionArchiveEntry, label: String, encryption: EncryptionManager
     ) -> HRVSession? {
         do {
-            return try SessionArchive.loadAndDecodeSessionFile(at: fileURL, decoder: SessionArchive.lightweightSessionDecoder, encryption: encryption)
+            return try ArchiveStore.loadAndDecodeSessionFile(at: fileURL, decoder: SessionArchive.lightweightSessionDecoder, encryption: encryption)
         } catch {
             debugLog("[Archive] \(label): failed to load session \(entry.sessionId.uuidString.prefix(8)): \(error)", level: .warning)
             return nil
@@ -475,14 +475,14 @@ extension ArchiveMigrations {
     /// `archiveLock`.
     private func carryUserContent(of loserIds: [UUID], intoKeeper keeperId: UUID) -> Bool? {
         do {
-            guard var keeper = try archive._retrieve(keeperId) else { return false }
+            guard var keeper = try archive.store._retrieve(keeperId) else { return false }
             var changed = false
-            for loser in try loserIds.compactMap({ try archive._retrieve($0) }) {
+            for loser in try loserIds.compactMap({ try archive.store._retrieve($0) }) {
                 changed = Self.carryUserContent(from: loser, into: &keeper) || changed
             }
             guard changed else { return false }
             keeper.modifiedAt = CloudKitSessionFreshness.stamp()
-            _ = try archive._archive(keeper, skipSameNightMerge: true)
+            _ = try archive.store._archive(keeper, skipSameNightMerge: true)
             return true
         } catch {
             debugLog("[Archive] dedupe: could not carry the content of \(loserIds.count) duplicate(s) into \(keeperId.uuidString.prefix(8)) — kept this pass: \(error)", level: .warning)
@@ -877,7 +877,7 @@ extension ArchiveMigrations {
     private func loadForRelink(_ work: RelinkWork) -> HRVSession? {
         do {
             // Encrypted-file dual-format reader.
-            return try SessionArchive.loadAndDecodeSessionFile(
+            return try ArchiveStore.loadAndDecodeSessionFile(
                 at: work.fileURL, decoder: SessionArchive.sessionDecoder, encryption: archive.encryption
             )
         } catch {

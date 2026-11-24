@@ -352,7 +352,7 @@ drift — treat them as scale indicators, not invariants. Directories are under
 The signal-processing and scoring engine. Mostly pure transforms.
 
 - `HRVAnalysisPipeline.swift` — top-level orchestrator: raw RR → `AnalysisResult`.
-- `RecoveryScoreCalculator.swift` (+`+Composite`, `+Tiers`, `+Training`, and the `+DetailForwarding` / `+ReadinessForwarding` / `+VitalsForwarding` shims) — composite 0-100 recovery score (HRV 60 / Sleep 25 / Vitals 15).
+- `RecoveryScoreCalculator.swift` (+`+Composite`, `+Tiers`, `+Training`, `+Parts`; readiness in `ReadinessScoring`, vitals in `VitalsScoring`, tier composition in `ScoreDetailBuilder`) — composite 0-100 recovery score (HRV 60 / Sleep 25 / Vitals 15).
 - Signal metrics: `TimeDomainAnalysis`, `FrequencyDomainAnalysis`, `NonlinearAnalysis`, `DFAAnalysis`, `LiveDFAAnalyzer` (rolling α1 during workouts).
 - `WindowSelection.swift` (+`+Evaluation`, `+Filters`) — picks the best recovery window (score = RMSSD × stability), not raw peak RMSSD.
 - Workout analytics: `WorkoutAnalyzer.swift`, `WorkoutAnalysisSnapshotBuilder.swift`, `WorkoutLiveTrends.swift`, `WorkoutAlpha1Reanalyzer`, `BarometricAltitudeProcessor`, `TopoElevationService`.
@@ -394,9 +394,6 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
   | `SleepRefreshPolicy` | May sleep be refreshed; is it an improvement; what to update | Scoring-window and onset logic that needs direct tests |
   | `HRSleepEstimator` | Sleep boundaries inferred from heart rate alone | One onset clamp shared by every HR-based detector |
 
-  Where an external caller needs the old entry point, a one-line forwarder
-  keeps it (`HealthKitManager.estimateSleepFromHR`).
-
 ### 5.3 `Assistant/` — the "Flo" AI subsystem (~118 files)
 
 Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
@@ -419,7 +416,7 @@ Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 
 ### 5.5 `Storage/` — persistence, encryption, sync (~49 files)
 
-- `Archive.swift` (+`+MergeForwarding`, `+Migrations`, `+Repair`; merge logic in `SessionMerger`) — the on-disk session archive (JSON in the App Group, SHA-256 integrity, in-memory index).
+- `Archive.swift` (+`+StoreAPI`, `+Migrations`, `+Repair`, `+Parts`; merge logic in `SessionMerger`, migrations in `ArchiveMigrations`) — the on-disk session archive (JSON in the App Group, SHA-256 integrity, in-memory index).
 - iCloud: `CloudKitSyncManager`, `CloudKitLiveBackupManager`, `CloudKitSyncState`, `Reconciliation`; `CloudSessionPayload` (`CloudSessionPayload.swift`) — the upload shape, with Apple Health data left out; `CloudAccountIdentity` + `CloudAccountGuard` (`CloudAccountIdentity.swift`) — the Apple ID sync was turned on for, checked before anything is read from or written to iCloud; `CloudAccountChangeHandler` — what `.CKAccountChanged` does to sync.
 - Support: `EncryptionManager`, `DataCompression` (ZLIB), `RawRRBackup`, `WorkoutTrackBackup`, caches (`SleepDataCache`, `UIStateCache`, `RespiratoryBaselineCache`, `WristTemperatureBaselineCache`), `SessionStorageDiagnostic`.
 

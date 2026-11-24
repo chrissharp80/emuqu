@@ -19,7 +19,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
     let archive: SessionArchive
 
     func workoutEntries() -> [SessionArchiveEntry] {
-        archive.entries
+        archive.store.entries
             .filter { $0.sessionType == .workout }
             .sorted { $0.date > $1.date }
     }

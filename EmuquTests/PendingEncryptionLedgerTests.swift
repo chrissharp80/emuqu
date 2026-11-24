@@ -277,7 +277,7 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         reencryptPendingSessions(in: archive)
 
         XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
-        XCTAssertTrue(archive.exists(session.id))
+        XCTAssertTrue(archive.store.exists(session.id))
     }
 
     /// An indexed session whose file is gone while a plaintext copy of it sits
@@ -300,7 +300,7 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         try requireEncryptionKey()
         reencryptPendingSessions(in: archive)
 
-        XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: trashed)))
+        XCTAssertTrue(ArchiveStore.looksEncrypted(try Data(contentsOf: trashed)))
         XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
     }
 
@@ -320,9 +320,9 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         try requireEncryptionKey()
         reencryptPendingSessions(in: archive)
 
-        XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: trashed)))
+        XCTAssertTrue(ArchiveStore.looksEncrypted(try Data(contentsOf: trashed)))
         XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
-        XCTAssertEqual(archive.trashedSession(session.id)?.id, session.id)
+        XCTAssertEqual(archive.store.trashedSession(session.id)?.id, session.id)
     }
 
     /// An archive in its own folder, removed after the test, holding the
@@ -376,7 +376,7 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         _ = try archive.archive(session)
 
         let bytes = try Data(contentsOf: archive.archiveDirectory.appendingPathComponent("\(session.id.uuidString).json"))
-        XCTAssertTrue(SessionArchive.looksEncrypted(bytes), "An archive write with the key available wrote plaintext")
+        XCTAssertTrue(ArchiveStore.looksEncrypted(bytes), "An archive write with the key available wrote plaintext")
         XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id),
                        "An encrypted write left its session queued for re-encryption")
     }

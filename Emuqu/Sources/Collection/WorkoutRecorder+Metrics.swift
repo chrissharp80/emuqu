@@ -389,7 +389,7 @@ extension WorkoutSessionLifecycle {
             pdfURL: coachReportPDFURL(for: session),
             todayOvernight: todaysOvernight(in: recentOvernight, reportedNightCutoff: dayCutoff),
             recentOvernight: recentOvernight,
-            pastWorkoutIds: archive.entries
+            pastWorkoutIds: archive.store.entries
                 .filter { $0.sessionType == .workout && $0.sessionId != session.id }
                 .sorted { $0.date > $1.date }
                 .prefix(CoachReportGenerator.historyLimit)
@@ -411,7 +411,7 @@ extension WorkoutSessionLifecycle {
     private static func recentOvernightSessions(
         archive: SessionArchive, reportedNightCutoff: Date, sleepSchedule: SleepSchedule
     ) -> [HRVSession] {
-        let entries = archive.entries.filter { $0.sessionType == .overnight }.sorted { $0.date > $1.date }
+        let entries = archive.store.entries.filter { $0.sessionType == .overnight }.sorted { $0.date > $1.date }
         let reported = entries.first { $0.date >= reportedNightCutoff }
         var nights = reported.flatMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "CoachReport.reportedNight") }
             .map { [$0] } ?? []

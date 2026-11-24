@@ -122,7 +122,7 @@ struct FitnessPostSummaryView: View {
     @State var elevResmoothPreview: (gain: Double, loss: Double)?
     @State var elevResmoothError: String?
     /// Route-history baseline summary, loaded async by
-    /// `loadRouteHistorySummary()` (FitnessPostSummaryView+SummaryForwarding.swift).
+    /// `loadRouteHistorySummary()` (FitnessPostSummaryView+Parts.swift).
     /// The summary walk does synchronous archive disk reads
     /// (`retrieveLightweight` per prior workout entry), so it must not run
     /// inside `routeHistoryBaselineCard`'s body path on every SwiftUI
@@ -292,7 +292,7 @@ struct FitnessPostSummaryView: View {
         // easy to scroll past; people walked away before the
         // capture window finished. Auto-dismisses when capture
         // completes (samples present) or fails (samples == []).
-        hrrCaptureBanner
+        stats.hrrCaptureBanner
         // Recovered / partial-data banner. Sits above the hero so
         // the user can't miss it — every metric below is being
         // shown with that context. nil for clean live workouts;
@@ -310,13 +310,13 @@ struct FitnessPostSummaryView: View {
         feelingSection
 
         // α1 — the physiological centerpiece below the hero.
-        alpha1ReportCard
-        alpha1LT1EstimateCard
-        if !track.isEmpty { alpha1RouteColoredCard(track: track) }
-        alpha1CrossingsCard
+        alpha1Report.alpha1ReportCard
+        thresholds.alpha1LT1EstimateCard
+        if !track.isEmpty { alpha1Report.alpha1RouteColoredCard(track: track) }
+        thresholds.alpha1CrossingsCard
 
         // HRR (autonomic recovery rate).
-        hrrCard
+        stats.hrrCard
     }
 
     /// Time-series charts, each rendered only when the recording actually
@@ -325,28 +325,28 @@ struct FitnessPostSummaryView: View {
     private var summaryChartCards: some View {
         if let samples = session.workoutMetadata?.samples, !samples.isEmpty {
             if samples.contains(where: { $0.heartRate != nil }) {
-                hrChartCard(samples: samples)
+                stats.hrChartCard(samples: samples)
             }
             if samples.contains(where: { $0.paceSecPerKm != nil }) {
-                paceChartCard(samples: samples)
+                stats.paceChartCard(samples: samples)
             }
             if samples.contains(where: { $0.cadenceStepsPerMin != nil && ($0.cadenceStepsPerMin ?? 0) > 0 }) {
-                cadenceChartCard(samples: samples)
+                stats.cadenceChartCard(samples: samples)
             }
             if samples.contains(where: { ($0.powerWatts ?? 0) > 0 }) {
-                powerChartCard(samples: samples)
+                stats.powerChartCard(samples: samples)
             }
         }
-        if !track.isEmpty { elevationCard }
+        if !track.isEmpty { stats.elevationCard }
     }
 
     @ViewBuilder
     private var summaryDetailCards: some View {
         // HR zone distribution and derived metrics.
-        hrZoneDistributionCard
-        derivedMetricsCard
-        physiologyCard
-        environmentCard
+        thresholds.hrZoneDistributionCard
+        thresholds.derivedMetricsCard
+        summary.physiologyCard
+        summary.environmentCard
         summarySplitsAndActions
     }
 
@@ -356,7 +356,7 @@ struct FitnessPostSummaryView: View {
         // track (`FitnessSummaryCards.resolveSplits`), re-bucketed from the
         // GPS track when the stored splits are in the other unit.
         if let cachedSplits {
-            splitsCard(cachedSplits)
+            summary.splitsCard(cachedSplits)
         }
         // Route history baseline. Only renders
         // when this workout was bound to a saved-library route
@@ -364,18 +364,18 @@ struct FitnessPostSummaryView: View {
         // compare against. First-time runs of a route get
         // nothing — we don't fabricate a baseline from one
         // datapoint.
-        routeHistoryBaselineCard
+        summary.routeHistoryBaselineCard
         summaryActionCards
     }
 
     @ViewBuilder
     private var summaryActionCards: some View {
-        coachReportCard
-        reanalyzeAlpha1Card
-        resmoothElevationCard
-        saveRouteCard
+        summary.coachReportCard
+        summary.reanalyzeAlpha1Card
+        summary.resmoothElevationCard
+        summary.saveRouteCard
         recoverWorkoutSection
-        exportCard
+        summary.exportCard
     }
 
     @ViewBuilder
@@ -454,7 +454,7 @@ struct FitnessPostSummaryView: View {
         let id = initialSession.id
         reloadGeneration += 1
         let generation = reloadGeneration
-        let fileHash = archive.entries.first { $0.sessionId == id }?.fileHash
+        let fileHash = archive.store.entries.first { $0.sessionId == id }?.fileHash
         Task { @MainActor in
             let latest = await Task.detached(priority: .userInitiated) {
                 archive.retrieveOrLog(id, caller: "FitnessPostSummary.reload")

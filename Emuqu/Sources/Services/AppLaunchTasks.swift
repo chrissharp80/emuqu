@@ -423,8 +423,8 @@ extension EmuquApp {
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {
             NSLog("[App][bg] archive migrations — start")
             archiveRef.upgradeExistingFileProtection()
-            archiveRef.runDeferredMigrations()
-            await collectorJob.recovery.permanentlyDelete(archiveRef.expiredDeletionIds())
+            archiveRef.migrations.runDeferredMigrations()
+            await collectorJob.recovery.permanentlyDelete(archiveRef.store.expiredDeletionIds())
             NSLog("[App][bg] archive migrations — done")
         }
         let reanalysisJob = reanalysis
@@ -452,7 +452,7 @@ extension EmuquApp {
         coord: LaunchCoordinator, archive: SessionArchive, backup: RawRRBackup, lowPower: Bool
     ) {
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {
-            let archived = Set(archive.entries.map(\.sessionId))
+            let archived = Set(archive.store.entries.map(\.sessionId))
             let corrected = backup.reconcileArchived(against: archived)
             guard corrected > 0 else { return }
             NSLog("[App][bg] backup reconcile — %d backup(s) were already archived", corrected)
@@ -635,7 +635,7 @@ extension EmuquApp {
         let gateNow = Date()
         storeKitManager.migrateLegacyTestFlightFlag(now: gateNow)
         let archive = collector.archive
-        let hasHistory: Bool? = archive.hasCompleteIndex ? !archive.entries.isEmpty : nil
+        let hasHistory: Bool? = archive.hasCompleteIndex ? !archive.store.entries.isEmpty : nil
         storeKitManager.grandfatherExistingUserIfNeeded(hasHistory: hasHistory, now: gateNow)
         NSLog("[App][launch] access check: paywallEnabled=\(StoreKitManager.paywallEnabled) isPurchased=\(storeKitManager.isPurchased) trialDaysRemaining=\(settingsManager.trialDaysRemaining)")
     }
@@ -824,7 +824,7 @@ extension EmuquApp {
         // Iterating newest-first means the dashboard-visible session
         // gets rescored FIRST, so even if the run is cut short,
         // the user's currently-displayed score is the corrected one.
-        let allEntries = await MainActor.run { reanalysis.archive.entries }
+        let allEntries = await MainActor.run { reanalysis.archive.store.entries }
         let unprocessed = allEntries.filter { !processed.contains($0.sessionId) }
         guard !unprocessed.isEmpty else {
             return RescoreChunk(processed: 0, totalDone: processed.count, total: allEntries.count, complete: true)

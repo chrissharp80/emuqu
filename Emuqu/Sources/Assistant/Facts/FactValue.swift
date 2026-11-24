@@ -81,7 +81,7 @@ struct Availability: Sendable {
     /// archive holds a single workout, otherwise valid across the span of
     /// archived workout dates. Shared by the `walks.*` and `hrr.*` namespaces.
     static func workouts(in archive: SessionArchive) -> Availability {
-        let dates = archive.entries.filter { $0.sessionType == .workout }.map(\.date)
+        let dates = archive.store.entries.filter { $0.sessionType == .workout }.map(\.date)
         guard let earliest = dates.min(), let latest = dates.max() else { return .unavailable }
         return Availability(hasData: true, validRange: earliest ... latest, lastUpdated: latest)
     }

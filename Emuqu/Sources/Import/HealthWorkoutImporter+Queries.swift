@@ -23,7 +23,7 @@ extension HealthWorkoutImporter {
         guard manager.isHealthKitAvailable else { return [] }
         let start = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
         let workouts = await externalWorkouts(from: start, to: now)
-        let archived = archive.entries(from: start, to: now)
+        let archived = archive.store.entries(from: start, to: now)
             .filter { $0.sessionType == .workout }
             .map(\.date)
         return workouts

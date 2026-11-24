@@ -326,7 +326,7 @@ enum WorkoutRecoveryService {
     /// (`carryForward`) and the next backfill is told to look again, so the
     /// rebuild replaces the copy there.
     private static func carryArchived(into session: inout HRVSession, recovered: RecoveredWorkout, deps: Dependencies) {
-        guard deps.archive.exists(session.id), let archived = deps.archive.retrieveOrLog(session.id) else { return }
+        guard deps.archive.store.exists(session.id), let archived = deps.archive.retrieveOrLog(session.id) else { return }
         Self.carryForward(from: archived, into: &session)
         if Self.wasExportedByEmuqu(archived) { HealthKitManager.requestBackfillRescan() }
         guard var metadata = session.workoutMetadata else { return }

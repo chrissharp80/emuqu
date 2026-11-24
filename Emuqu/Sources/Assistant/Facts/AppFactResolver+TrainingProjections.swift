@@ -180,7 +180,7 @@ extension TrainingLoadNamespace {
     /// `training.race_predictions` resolves on the main actor, mid-workout
     /// too, and decoding a years-deep archive there stalls the recorder.
     private func racePredictions(for sport: Sport) -> [Double: RaceTimePrediction.Prediction] {
-        let workouts = archive.entries.filter { $0.sessionType == .workout }
+        let workouts = archive.store.entries.filter { $0.sessionType == .workout }
         let cutoff = Date().addingTimeInterval(-RaceTimePrediction.recentWindowDays * 86_400)
         let recent = loadSessions(workouts.filter { $0.date >= cutoff })
         let fromRecent = RaceTimePrediction.predictWithBasis(from: recent, sport: sport)
@@ -257,7 +257,7 @@ extension TrainingLoadNamespace {
     /// rather than decrypting the whole history.
     private func recentWorkouts(of sport: Sport, limit: Int) -> [HRVSession] {
         var out: [HRVSession] = []
-        for entry in archive.entries.filter({ $0.sessionType == .workout }).sorted(by: { $0.date > $1.date }) {
+        for entry in archive.store.entries.filter({ $0.sessionType == .workout }).sorted(by: { $0.date > $1.date }) {
             guard out.count < limit else { break }
             guard let session = archive.retrieveLightweightOrLog(entry.sessionId),
                   session.workoutMetadata?.sport == sport else { continue }

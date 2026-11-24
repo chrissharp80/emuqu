@@ -46,7 +46,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
     /// Workouts that could be saved, newest first: the ones started on
     /// `dateISO`, or without a date the 20 most recent.
     private func workoutCandidates(matching dateISO: String?) -> [SessionArchiveEntry] {
-        let workouts = archive.entries
+        let workouts = archive.store.entries
             .filter { $0.sessionType == .workout }
             .sorted { $0.date > $1.date }
         guard let dateISO else { return Array(workouts.prefix(20)) }

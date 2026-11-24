@@ -24,7 +24,7 @@ extension SessionDataMigrations {
         // decrypts and decodes each one (SessionArchive owns its own lock).
         let archive = self.archive
         let (cleaned, failed, examined) = await Task.detached(priority: .utility) {
-            let workouts = archive.entries.filter { $0.sessionType == .workout }
+            let workouts = archive.store.entries.filter { $0.sessionType == .workout }
             let outcomes = workouts.map { Self.stripWorkoutSleepSnapshot($0, archive: archive) }
             return (outcomes.filter { $0 == .stripped }.count, outcomes.filter { $0 == .failed }.count, workouts.count)
         }.value

@@ -145,7 +145,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         _ = try archive.archive(session)
 
         // Should only have one entry
-        let entries = archive.entries
+        let entries = archive.store.entries
         let matchingEntries = entries.filter { $0.sessionId == session.id }
         XCTAssertEqual(matchingEntries.count, 1, "Should not create duplicate entries")
     }
@@ -205,12 +205,12 @@ final class ArchiveIntegrityTests: XCTestCase {
         testSessionIds.append(session.id)
         _ = try archive.archive(session)
         try archive.delete(session.id)
-        XCTAssertTrue(archive.trashedIds.contains(session.id))
-        let kept = try XCTUnwrap(archive.trashedSession(session.id))
+        XCTAssertTrue(archive.store.trashedIds.contains(session.id))
+        let kept = try XCTUnwrap(archive.store.trashedSession(session.id))
         XCTAssertEqual(kept.notes, "kept")
         XCTAssertEqual(kept.sessionType, session.sessionType)
-        archive.discardTrashed(session.id)
-        XCTAssertNil(archive.trashedSession(session.id))
+        archive.store.discardTrashed(session.id)
+        XCTAssertNil(archive.store.trashedSession(session.id))
     }
 
     /// Test session deletion
@@ -218,10 +218,10 @@ final class ArchiveIntegrityTests: XCTestCase {
         let session = createTestSession()
 
         _ = try archive.archive(session)
-        XCTAssertTrue(archive.exists(session.id))
+        XCTAssertTrue(archive.store.exists(session.id))
 
         try archive.delete(session.id)
-        XCTAssertFalse(archive.exists(session.id))
+        XCTAssertFalse(archive.store.exists(session.id))
 
         let retrieved = try? archive.retrieve(session.id)
         XCTAssertNil(retrieved)
@@ -238,8 +238,8 @@ final class ArchiveIntegrityTests: XCTestCase {
 
         XCTAssertThrowsError(try archive.delete(session.id))
 
-        XCTAssertTrue(archive.exists(session.id))
-        XCTAssertFalse(archive.wasIntentionallyDeleted(session.id))
+        XCTAssertTrue(archive.store.exists(session.id))
+        XCTAssertFalse(archive.store.wasIntentionallyDeleted(session.id))
         XCTAssertEqual(try archive.retrieve(session.id)?.id, session.id)
     }
 
@@ -253,8 +253,8 @@ final class ArchiveIntegrityTests: XCTestCase {
 
         try archive.delete(session.id)
 
-        XCTAssertFalse(archive.exists(session.id))
-        XCTAssertTrue(archive.wasIntentionallyDeleted(session.id))
+        XCTAssertFalse(archive.store.exists(session.id))
+        XCTAssertTrue(archive.store.wasIntentionallyDeleted(session.id))
     }
 
     /// A deletion made on another device removes the file without the Trash,
@@ -267,8 +267,8 @@ final class ArchiveIntegrityTests: XCTestCase {
 
         try archive.deleteWithoutTrash(session.id)
 
-        XCTAssertFalse(archive.exists(session.id))
-        XCTAssertTrue(archive.wasIntentionallyDeleted(session.id))
+        XCTAssertFalse(archive.store.exists(session.id))
+        XCTAssertTrue(archive.store.wasIntentionallyDeleted(session.id))
         XCTAssertFalse(FileManager.default.fileExists(atPath: archiveDirectory.appendingPathComponent("\(session.id.uuidString).json").path))
     }
 
@@ -283,16 +283,16 @@ final class ArchiveIntegrityTests: XCTestCase {
         _ = try archive.archive(kept)
         let deletedId = UUID()
         let untombstonedId = UUID()
-        try archive.markAsDeleted(deletedId)
-        defer { attempt("test.forgetDeleted") { try archive.unmarkAsDeleted(deletedId) } }
+        try archive.store.markAsDeleted(deletedId)
+        defer { attempt("test.forgetDeleted") { try archive.store.unmarkAsDeleted(deletedId) } }
         let leftover = archiveDirectory.appendingPathComponent("\(deletedId.uuidString).json")
         let notTombstoned = archiveDirectory.appendingPathComponent("\(untombstonedId.uuidString).json")
         try Data("{}".utf8).write(to: leftover)
         try Data("{}".utf8).write(to: notTombstoned)
 
-        archive.discardTrashed(deletedId)
-        archive.discardTrashed(untombstonedId)
-        archive.discardTrashed(kept.id)
+        archive.store.discardTrashed(deletedId)
+        archive.store.discardTrashed(untombstonedId)
+        archive.store.discardTrashed(kept.id)
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: leftover.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: notTombstoned.path))
@@ -309,7 +309,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         let leftover = archiveDirectory.appendingPathComponent("\(deletedId.uuidString).json")
         try Data("{}".utf8).write(to: leftover)
 
-        archive.discardTrashed(deletedId)
+        archive.store.discardTrashed(deletedId)
 
         XCTAssertFalse(archive.hasCompleteIndex)
         XCTAssertTrue(FileManager.default.fileExists(atPath: leftover.path))
@@ -341,7 +341,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         try unreadable.write(to: deletedFile)
         try occupySetAsideNames(of: deletedFile)
 
-        XCTAssertThrowsError(try archive.unmarkAsDeleted(UUID()))
+        XCTAssertThrowsError(try archive.store.unmarkAsDeleted(UUID()))
 
         XCTAssertEqual(try Data(contentsOf: deletedFile), unreadable)
     }
@@ -351,7 +351,7 @@ final class ArchiveIntegrityTests: XCTestCase {
     func testADeletionMarkThatCannotBeSavedIsNotKept() throws {
         let id = UUID()
         // Built (and its directory made) before the directory is locked.
-        XCTAssertTrue(archive.entries.isEmpty)
+        XCTAssertTrue(archive.store.entries.isEmpty)
         try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: archiveDirectory.path)
         defer {
             attempt("test.unlockArchiveDirectory") {
@@ -359,9 +359,9 @@ final class ArchiveIntegrityTests: XCTestCase {
             }
         }
 
-        XCTAssertThrowsError(try archive.markAsDeleted(id))
+        XCTAssertThrowsError(try archive.store.markAsDeleted(id))
 
-        XCTAssertFalse(archive.wasIntentionallyDeleted(id))
+        XCTAssertFalse(archive.store.wasIntentionallyDeleted(id))
     }
 
     /// Puts a folder at every name the set-aside of `file` can take from a
@@ -415,7 +415,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         _ = try archive.archive(session3)
 
         // Filter for morning tag
-        let morningEntries = archive.entries(includingTags: [ReadingTag.morning])
+        let morningEntries = archive.store.entries(includingTags: [ReadingTag.morning])
 
         let morningIds = Set(morningEntries.map(\.sessionId))
         XCTAssertTrue(morningIds.contains(session1.id))
@@ -472,7 +472,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         XCTAssertTrue(collected.isEmpty, "Concurrent archive failed: \(collected.joined(separator: "; "))")
 
         for session in sessions {
-            XCTAssertTrue(archive.exists(session.id))
+            XCTAssertTrue(archive.store.exists(session.id))
         }
     }
 
@@ -527,7 +527,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         }
         testSessionIds.append(contentsOf: sessions.map(\.id))
 
-        let count = try archive.archiveBatch(sessions)
+        let count = try archive.store.archiveBatch(sessions)
 
         XCTAssertEqual(count, sessions.count, "Should archive all \(sessions.count) sessions. Got \(count)")
 
@@ -547,11 +547,11 @@ final class ArchiveIntegrityTests: XCTestCase {
 
         testSessionIds.append(contentsOf: Set(sessions.map(\.id)))
 
-        let count = try archive.archiveBatch(sessions)
+        let count = try archive.store.archiveBatch(sessions)
 
         // The repeated session is skipped: ten unique sessions are written.
         XCTAssertEqual(count, 10)
-        XCTAssertEqual(archive.entries.count, 10)
+        XCTAssertEqual(archive.store.entries.count, 10)
     }
 
     // MARK: - Integrity Verification
@@ -596,7 +596,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         // Sanity: the file on disk should be encrypted (starts with the "FR" magic).
         let fileURL = archive.resolveFileURL(for: entry)
         let onDisk = try Data(contentsOf: fileURL)
-        XCTAssertTrue(SessionArchive.looksEncrypted(onDisk), "Archived session should be encrypted on disk")
+        XCTAssertTrue(ArchiveStore.looksEncrypted(onDisk), "Archived session should be encrypted on disk")
 
         // Forge a bad hash in the index file to simulate corruption that
         // repair would normally fix.
@@ -655,10 +655,10 @@ final class ArchiveIntegrityTests: XCTestCase {
         _ = try archive.archive(session)
 
         // Should find session within tolerance
-        XCTAssertTrue(archive.hasSessionNear(date: baseDate.addingTimeInterval(10 * 60), toleranceMinutes: 30))
+        XCTAssertTrue(archive.store.hasSessionNear(date: baseDate.addingTimeInterval(10 * 60), toleranceMinutes: 30))
 
         // Should not find session outside tolerance
-        XCTAssertFalse(archive.hasSessionNear(date: baseDate.addingTimeInterval(60 * 60), toleranceMinutes: 30))
+        XCTAssertFalse(archive.store.hasSessionNear(date: baseDate.addingTimeInterval(60 * 60), toleranceMinutes: 30))
     }
 
     // MARK: - Edge Cases
@@ -666,7 +666,7 @@ final class ArchiveIntegrityTests: XCTestCase {
     /// Test empty archive
     func testEmptyArchive() {
         // A fresh private directory holds no sessions and no integrity results.
-        XCTAssertTrue(archive.entries.isEmpty)
+        XCTAssertTrue(archive.store.entries.isEmpty)
         XCTAssertTrue(archive.verifyIntegrity().isEmpty)
     }
 
@@ -701,8 +701,8 @@ extension ArchiveIntegrityTests {
 
         XCTAssertFalse(service.permanentlyDelete(session.id))
 
-        XCTAssertTrue(archive.wasIntentionallyDeleted(session.id))
-        XCTAssertTrue(archive.trashedIds.contains(session.id))
+        XCTAssertTrue(archive.store.wasIntentionallyDeleted(session.id))
+        XCTAssertTrue(archive.store.trashedIds.contains(session.id))
         XCTAssertFalse(ForgottenSessions.ids.contains(session.id))
     }
 
@@ -726,12 +726,12 @@ extension ArchiveIntegrityTests {
         try archive.delete(session.id)
 
         XCTAssertTrue(service.permanentlyDelete(session.id))
-        XCTAssertTrue(archive.wasIntentionallyDeleted(session.id), "forgotten before iCloud confirmed the deletion")
+        XCTAssertTrue(archive.store.wasIntentionallyDeleted(session.id), "forgotten before iCloud confirmed the deletion")
         XCTAssertTrue(ForgottenSessions.ids.contains(session.id))
 
         UserDefaults.standard.set([session.id.uuidString: Date().timeIntervalSince1970], forKey: key)
         XCTAssertTrue(service.permanentlyDelete(session.id))
-        XCTAssertFalse(archive.wasIntentionallyDeleted(session.id))
+        XCTAssertFalse(archive.store.wasIntentionallyDeleted(session.id))
     }
 
     /// One session removed whose Apple Health samples would not go, and one
@@ -804,13 +804,13 @@ extension ArchiveIntegrityTests {
 
         XCTAssertEqual(outcome.new, 0)
         XCTAssertNil(outcome.backfillId)
-        XCTAssertFalse(archive.exists(session.id))
+        XCTAssertFalse(archive.store.exists(session.id))
         XCTAssertFalse(manager.state.uploadedSessionIds.contains(session.id))
 
         let imported = await manager.pull.processRemoteRecord(record, forgotten: [])
 
         XCTAssertEqual(imported.new, 1, "the record itself could not be imported")
-        XCTAssertTrue(archive.exists(session.id))
+        XCTAssertTrue(archive.store.exists(session.id))
     }
 
     // MARK: Sealed index
@@ -823,7 +823,7 @@ extension ArchiveIntegrityTests {
         _ = try archive.archive(session)
 
         let stored = try Data(contentsOf: archiveDirectory.appendingPathComponent("index.json"))
-        XCTAssertTrue(SessionArchive.looksEncrypted(stored))
+        XCTAssertTrue(ArchiveStore.looksEncrypted(stored))
         XCTAssertNil(stored.range(of: Data("slept badly".utf8)))
         XCTAssertEqual(reopenedArchive().entryById(session.id)?.notes, "slept badly")
     }
@@ -835,13 +835,13 @@ extension ArchiveIntegrityTests {
         testSessionIds.append(session.id)
         _ = try archive.archive(session)
         let indexURL = archiveDirectory.appendingPathComponent("index.json")
-        try SessionArchive.indexEncoder.encode(archive.entries).write(to: indexURL)
+        try SessionArchive.indexEncoder.encode(archive.store.entries).write(to: indexURL)
 
         let reopened = reopenedArchive()
         XCTAssertNotNil(reopened.entryById(session.id))
         _ = try reopened.archive(createTestSession())
 
-        XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: indexURL)))
+        XCTAssertTrue(ArchiveStore.looksEncrypted(try Data(contentsOf: indexURL)))
         XCTAssertNotNil(reopenedArchive().entryById(session.id))
     }
 
@@ -852,12 +852,12 @@ extension ArchiveIntegrityTests {
         testSessionIds.append(session.id)
         _ = try archive.archive(session)
         let indexURL = archiveDirectory.appendingPathComponent("index.json")
-        try SessionArchive.indexEncoder.encode(archive.entries).write(to: indexURL)
+        try SessionArchive.indexEncoder.encode(archive.store.entries).write(to: indexURL)
 
         let reopened = reopenedArchive()
         reopened.resealPlainIndexIfNeeded()
 
-        XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: indexURL)))
+        XCTAssertTrue(ArchiveStore.looksEncrypted(try Data(contentsOf: indexURL)))
         XCTAssertNotNil(reopenedArchive().entryById(session.id))
     }
 

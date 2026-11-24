@@ -282,7 +282,7 @@ extension CloudPullCoordinator {
             serverVersion: record.recordChangeTag, heldVersion: manager.state.recordVersions[sessionId]
         )
         let decision = CloudKitSessionFreshness.decide(localModifiedAt: localModifiedAt, remoteModifiedAt: remoteModifiedAt, onTie: tie)
-        guard decision == .importRemote, manager.archive.exists(sessionId),
+        guard decision == .importRemote, manager.archive.store.exists(sessionId),
               let assetURL = await assetURL(for: record) else { return RecordOutcome() }
         let remote = RemoteCopy(modifiedAt: remoteModifiedAt, version: record.recordChangeTag, onTie: tie)
         return await replaceLocalCopy(from: assetURL, sessionId: sessionId, remote: remote)

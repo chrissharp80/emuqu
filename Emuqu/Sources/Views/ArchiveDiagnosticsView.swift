@@ -138,7 +138,7 @@ struct ArchiveDiagnosticsView: View {
     /// on a userInitiated detached task; UI displays whatever was last shown
     /// until the walk finishes, then updates atomically.
     private func refreshDiagnostics() async {
-        let entries = collector.archive.entries
+        let entries = collector.archive.store.entries
         diagnosticInfo = await Task.detached(priority: .userInitiated) {
             Self.indexReport(entries: entries)
         }.value
@@ -172,7 +172,7 @@ struct ArchiveDiagnosticsView: View {
     /// every button tap. Off-loaded to a userInitiated detached task; result
     /// assigned back on MainActor.
     private func scanFileSystem() async {
-        let indexedFileNames = Set(collector.archive.entries.map { URL(fileURLWithPath: $0.filePath).lastPathComponent })
+        let indexedFileNames = Set(collector.archive.store.entries.map { URL(fileURLWithPath: $0.filePath).lastPathComponent })
         diagnosticInfo = await Task.detached(priority: .userInitiated) {
             Self.fileSystemReport(indexedFileNames: indexedFileNames)
         }.value
@@ -245,7 +245,7 @@ struct ArchiveDiagnosticsView: View {
     private func performRepair() {
         isRepairing = true
         let archive = collector.archive
-        let indexedBefore = archive.entries.count
+        let indexedBefore = archive.store.entries.count
         Task {
             let outcome = await Task.detached(priority: .userInitiated) { Self.repair(archive) }.value
             isRepairing = false

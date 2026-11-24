@@ -256,17 +256,17 @@ struct EmuquApp: App {
     /// timeout; nothing in the view tree branches on it.
     private var rootTabView: some View {
         MainTabView(
-            initialSessionCount: collector.archive.entries.count,
+            initialSessionCount: collector.archive.store.entries.count,
             // Cold-start hero-score seed from the synchronously-loaded
             // index, so the ring paints the last score immediately instead
             // of blank until the async session decrypt lands.
             initialSeedScore: DashboardSessionPolicy.latestOvernightScore(
-                inEntries: collector.archive.entries, calendar: .current
+                inEntries: collector.archive.store.entries, calendar: .current
             ),
             // Cold-start seed for the rest of the summary (HRV/Sleep chips,
             // Recent strip) from the same synchronous index.
             initialSeedSummary: DashboardSessionPolicy.dashboardSummarySeed(
-                inEntries: collector.archive.entries, today: Date(), calendar: .current
+                inEntries: collector.archive.store.entries, today: Date(), calendar: .current
             ),
             requestedTab: $requestedTab
         )

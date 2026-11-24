@@ -602,7 +602,7 @@ final class MorningResultsViewModel {
     private func estimateSleepFallback(for window: (start: Date, end: Date)) async -> SleepData? {
         if let points = session.rrSeries?.points,
            !points.isEmpty,
-           let rrEstimate = SleepHealthQueries.estimateSleepFromHR(rrPoints: points, recordingStart: window.start),
+           let rrEstimate = HRSleepEstimator.estimateSleepFromHR(rrPoints: points, recordingStart: window.start),
            rrEstimate.nightSleepMinutes > 0 {
             return rrEstimate
         }

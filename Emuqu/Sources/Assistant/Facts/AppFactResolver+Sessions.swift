@@ -27,7 +27,7 @@ struct SessionNamespace: FactNamespaceResolver {
     /// HealthKit call — which satisfies the synchronous, metadata-only
     /// `availability` contract.
     private func overnightAvailability() -> Availability {
-        let dates = archive.entries.filter { $0.sessionType == .overnight }.map(\.date)
+        let dates = archive.store.entries.filter { $0.sessionType == .overnight }.map(\.date)
         guard let earliest = dates.min(), let latest = dates.max() else { return .unavailable }
         return Availability(hasData: true, validRange: earliest ... latest, lastUpdated: latest)
     }
@@ -36,7 +36,7 @@ struct SessionNamespace: FactNamespaceResolver {
     /// before partial, then longest first.
     private func overnightEntries() -> [SessionArchiveEntry] {
         let calendar = Calendar.current
-        return archive.entries
+        return archive.store.entries
             .filter { $0.sessionType == .overnight }
             .sorted { Self.precedes($0, $1, calendar: calendar) }
     }
@@ -181,7 +181,7 @@ struct SessionNamespace: FactNamespaceResolver {
         guard let uuid = UUID(uuidString: idString) else {
             return .missing(reason: .invalidParameter, detail: "expected a session UUID, got '\(idString)'")
         }
-        guard let entry = archive.entries.first(where: { $0.sessionId == uuid }) else {
+        guard let entry = archive.store.entries.first(where: { $0.sessionId == uuid }) else {
             return .missing(reason: .notRecorded, detail: "session not found")
         }
         guard entry.sessionType == .overnight else {
@@ -401,7 +401,7 @@ struct WalksNamespace: FactNamespaceResolver {
     /// Walk and hike sessions in the interval, newest first. The sport lives
     /// on the session, not the index, so each workout in it is loaded.
     private func walksInPeriod(_ interval: DateInterval) -> [HRVSession] {
-        archive.entries
+        archive.store.entries
             .filter { $0.sessionType == .workout && interval.containsBeforeEnd($0.date) }
             .sorted { $0.date > $1.date }
             .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
@@ -783,7 +783,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
         guard let interval = PeriodParser.interval(for: param) else {
             return .missing(reason: .invalidParameter, detail: "unknown period '\(param)' — accepts 7d/14d/30d/60d/90d/180d/365d, last_week/this_week, last_month, last_quarter, last_year, all_time")
         }
-        let entries = self.archive.entries
+        let entries = self.archive.store.entries
             .filter { $0.sessionType == .workout && interval.containsBeforeEnd($0.date) }
         let sessions = entries.compactMap { self.archive.retrieveLightweightOrLog($0.sessionId) }
         var totals: [String: Double] = [:]
