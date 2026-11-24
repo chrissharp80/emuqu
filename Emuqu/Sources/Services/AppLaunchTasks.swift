@@ -65,7 +65,7 @@ extension EmuquApp {
             recorderBox.bind(core: collector, conversation: voiceChat)
         }
         guard let recorder = recorderBox.recorder else { return }
-        switch recorder.phase {
+        switch recorder.lifecycle.phase {
         case .idle, .finished, .failed: break
         case .recording, .finalizing: return
         }
@@ -89,7 +89,7 @@ extension EmuquApp {
     /// A Watch stop only applies mid-workout; every other phase ignores it.
     @MainActor
     private static func isRecording(_ recorder: WorkoutRecorder) -> Bool {
-        if case .recording = recorder.phase { return true }
+        if case .recording = recorder.lifecycle.phase { return true }
         return false
     }
 
@@ -98,7 +98,7 @@ extension EmuquApp {
         let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutPause)
         for await _ in stream {
             guard let recorder = launchServices.recorderBox().recorder else { continue }
-            if case .recording = recorder.phase {
+            if case .recording = recorder.lifecycle.phase {
                 recorder.pause(isAuto: false)
             }
         }
@@ -109,8 +109,8 @@ extension EmuquApp {
         let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutResume)
         for await _ in stream {
             guard let recorder = launchServices.recorderBox().recorder else { continue }
-            if case .recording = recorder.phase {
-                recorder.resume()
+            if case .recording = recorder.lifecycle.phase {
+                recorder.session.resume()
             }
         }
     }

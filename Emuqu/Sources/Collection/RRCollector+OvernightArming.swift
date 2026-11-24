@@ -169,7 +169,7 @@ extension OvernightStreamingCoordinator {
     private func settleLateArmedRecording() async {
         debugLog("[RRCollector] H10 internal recording started after the night stopped wanting it — not marking the night strap-backed", level: .warning)
         guard !collector.streamingLifecycle.isOvernightStreaming, collector.polarManager.transfersInFlight == 0 else { return }
-        await collector.polarManager.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+        await collector.polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
     }
 
     /// Before a night that arms the H10's own recording: a strap whose last

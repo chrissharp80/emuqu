@@ -39,7 +39,7 @@ struct FitnessStrapSection {
     @Binding var meanHRR1m7d: Double?
 }
 
-// MARK: - Forwarders
+// MARK: - Host accessor
 
 // The strap and workout-history surfaces of the fitness tab.
 // `strapSection` is rebuilt on each access from the

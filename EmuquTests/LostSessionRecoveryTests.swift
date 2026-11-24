@@ -126,12 +126,12 @@ final class LostSessionRecoveryTests: XCTestCase {
         let orphan = UUID()
         try backup(orphan)
 
-        let marked = collector.recovery.deleteLostSessions([orphan])
+        let marked = collector.recovery.recoveryService.deleteLostSessions([orphan])
 
         XCTAssertEqual(marked, [orphan])
         let lost = await collector.recovery.checkForLostSessions()
         XCTAssertTrue(lost.isEmpty)
-        let deleted = collector.recovery.checkForDeletedSessions()
+        let deleted = collector.recovery.recoveryService.checkForDeletedSessions()
         XCTAssertEqual(deleted.map(\.id), [orphan])
         XCTAssertEqual(deleted.first?.beatCount, 300)
     }

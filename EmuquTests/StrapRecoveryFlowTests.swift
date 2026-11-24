@@ -327,7 +327,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
             manager.readiness.settleWithoutSummary()
         }
 
-        let back = await manager.reconnectForTransfer()
+        let back = await manager.recording.reconnectForTransfer()
 
         XCTAssertTrue(back)
         XCTAssertTrue(manager.isRecordingOnDevice, "the strap's own status was not read after the reconnect")

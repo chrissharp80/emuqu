@@ -8,8 +8,8 @@ import SwiftUI
 struct StreamingProgressPanel: View {
     /// Plain reference for non-observable access (onStreamingComplete).
     /// State reads go through the observable sub-objects below
-    /// (`streamingLifecycle`, `polarManager`, `breathingAudio`), which SwiftUI
-    /// tracks; reads through the collector's forwarders don't re-render.
+    /// (`streamingLifecycle`, `polarManager`, `breathingAudio`), which own
+    /// that state and which SwiftUI tracks.
     let collector: RRCollector
     var streamingLifecycle: StreamingLifecycle
     var polarManager: PolarManager

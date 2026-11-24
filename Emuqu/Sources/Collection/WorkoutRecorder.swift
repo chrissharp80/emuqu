@@ -37,10 +37,6 @@ final class WorkoutRecorder {
     /// to that alone. Forwarding keeps `recorder.phase`,
     /// `recorder.currentSession`, etc. readable.
     let lifecycle = WorkoutLifecycle()
-    var phase: Phase { lifecycle.phase }
-    var currentSession: HRVSession? { lifecycle.currentSession }
-    var finishedSession: HRVSession? { lifecycle.finishedSession }
-    var elapsedSeconds: Int { lifecycle.elapsedSeconds }
     /// HR metrics (currentHR, peakHR, beatCount) live in a dedicated
     /// sub-observable so HR-only displays aren't invalidated by motion or
     /// lifecycle updates. Getters forward
@@ -48,9 +44,6 @@ final class WorkoutRecorder {
     /// Named `workoutHR` (not `hr`) to avoid shadowing local `hr` vars in
     /// tick code.
     let workoutHR = WorkoutHR()
-    var currentHR: Int? { workoutHR.currentHR }
-    var peakHR: Int { workoutHR.peakHR }
-    var beatCount: Int { workoutHR.beatCount }
     /// Motion metrics (GPS + pedometer + foot pod) live in a
     /// dedicated sub-observable so the live-map view and the stat-chip
     /// view can subscribe to only the signal they actually use: the 1 Hz
@@ -60,13 +53,6 @@ final class WorkoutRecorder {
     /// Getters below forward `recorder.distanceMeters` etc.
     /// reads through to `motion`.
     let motion = WorkoutMotion()
-    var distanceMeters: Double { motion.distanceMeters }
-    var elevationGainMeters: Double { motion.elevationGainMeters }
-    var liveTrack: [CLLocation] { motion.liveTrack }
-    var stepCount: Int { motion.stepCount }
-    var cadenceStepsPerMin: Double? { motion.cadenceStepsPerMin }
-    var powerWatts: Int? { motion.powerWatts }
-    var footPodActive: Bool { motion.footPodActive }
     /// Live DFA α1 + band. Owns its own rolling window.
     let dfa = LiveDFAAnalyzer()
     /// Structured-interval controller. Nil unless the user picked an interval
@@ -79,8 +65,6 @@ final class WorkoutRecorder {
         get { lifecycle.targetZone }
         set { lifecycle.targetZone = newValue }
     }
-    /// Which HR source is live for this workout. Read through to `lifecycle`.
-    var activeHRSource: HRSource { lifecycle.activeHRSource }
 
     // MARK: Dependencies
 
@@ -117,27 +101,6 @@ final class WorkoutRecorder {
     }
 
     func pause(isAuto: Bool = false) { session.pause(isAuto: isAuto) }
-    func resume() { session.resume() }
-    func archive(session archived: HRVSession) async { await session.archive(session: archived) }
-
-    func buildAiContextSnapshot(
-        _ snap: AssistantContext.LiveWorkoutSnapshot, sport: Sport, stopDate: Date
-    ) -> [String: String] {
-        session.buildAiContextSnapshot(snap, sport: sport, stopDate: stopDate)
-    }
-
-    /// Pure computations — no recorder state — so they forward to the type.
-    static func computeNormalizedPower(samples: [WorkoutSample]) -> Double? {
-        WorkoutSessionLifecycle.computeNormalizedPower(samples: samples)
-    }
-
-    nonisolated static func estimateMETs(
-        sport: Sport, paceSecPerKm: Double?, heartRate: Int?, userMaxHR: Int
-    ) -> Double? {
-        WorkoutSessionLifecycle.estimateMETs(
-            sport: sport, paceSecPerKm: paceSecPerKm, heartRate: heartRate, userMaxHR: userMaxHR
-        )
-    }
 
     /// Two overloads rather than a defaulted parameter: repeating the default
     /// here would be a second `AppDependencies.current.app.settingsManager` reference for a value the

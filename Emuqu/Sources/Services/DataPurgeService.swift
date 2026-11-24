@@ -242,7 +242,7 @@ enum DataPurgeService {
 
     private static func collectorIsRecording(_ collector: RRCollector) -> Bool {
         if collector.sessionState.isCollecting || collector.streamingLifecycle.isOvernightStreaming || collector.streamingLifecycle.isPaused
-            || collector.isRecordingOnDevice || collector.sessionState.needsAcceptance {
+            || collector.deviceStatus.isRecordingOnDevice || collector.sessionState.needsAcceptance {
             return true
         }
         return switch collector.sessionState.recordingPhase {
@@ -253,7 +253,7 @@ enum DataPurgeService {
 
     /// `.recording` covers a paused workout too: pausing keeps the phase.
     private static func workoutIsRecording(_ workout: WorkoutRecorder) -> Bool {
-        switch workout.phase {
+        switch workout.lifecycle.phase {
         case .recording, .finalizing: true
         case .idle, .finished, .failed: false
         }
@@ -602,7 +602,7 @@ enum DataPurgeService {
         if let deleteRemote {
             remoteDeleted = await deleteRemote()
         } else {
-            remoteDeleted = await cloudSync.deleteAllRemoteData()
+            remoteDeleted = await cloudSync.deletion.deleteAllRemoteData()
         }
         if !remoteDeleted {
             errors.append(String(localized: "iCloud: remote deletion failed — check internet + iCloud sign-in, then run Delete All My Data again", bundle: LanguageManager.appBundle))

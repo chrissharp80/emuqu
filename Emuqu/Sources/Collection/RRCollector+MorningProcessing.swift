@@ -74,7 +74,7 @@ extension MorningSessionPipeline {
             sleepSchedule: settings.sleepSchedule,
             enableTrainingLoadIntegration: settings.enableTrainingLoadIntegration,
             typicalSleepHours: settings.typicalSleepHours,
-            scoringConfig: collector.currentScoringConfig,
+            scoringConfig: collector.scoring.currentScoringConfig,
             ansConfig: collector.ansConfig(for: baseSession),
             sessionMergeMode: settings.sessionMergeMode,
             mergeGapSeconds: settings.effectiveMergeGapSeconds

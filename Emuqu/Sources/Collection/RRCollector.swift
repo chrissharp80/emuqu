@@ -95,15 +95,6 @@ final class RRCollector {
     // `collector.isDeviceConnected` / `collector.batteryLevel` etc. reads
     // through to it. SwiftUI views read
     // `deviceStatus` directly from the environment.
-    var fetchProgress: PolarManager.FetchProgress? { deviceStatus.fetchProgress }
-    var isDeviceConnected: Bool { deviceStatus.isDeviceConnected }
-    var isStreaming: Bool { deviceStatus.isStreaming }
-    var hasStoredExercise: Bool { deviceStatus.hasStoredExercise }
-    var batteryLevel: Int? { deviceStatus.batteryLevel }
-    var isRecordingOnDevice: Bool { deviceStatus.isRecordingOnDevice }
-    var connectedDeviceType: PolarDeviceType? { deviceStatus.connectedDeviceType }
-    var recordingState: PolarManager.RecordingState { deviceStatus.recordingState }
-    var connectionState: PolarManager.ConnectionState { deviceStatus.connectionState }
 
     /// Cached result of `findRecentPausedSession()`, updated on every
     /// `archiveSignal` bump. Forwarded from `SessionState` for back-compat.
@@ -150,29 +141,8 @@ final class RRCollector {
         CollectorSessionControl(collector: self)
     }
 
-    func setupBindings() { control.setupBindings() }
-    func armObservationLoops() { control.armObservationLoops() }
-    func runMergeDataLossMigrationIfNeeded() { control.runMergeDataLossMigrationIfNeeded() }
-    func publishLiveHRVSnapshotsToAssistant() { control.publishLiveHRVSnapshotsToAssistant() }
     func startStreamingSession(durationSeconds: Int = 180) throws {
         try control.startStreamingSession(durationSeconds: durationSeconds)
-    }
-    func stopStreamingSession() async -> HRVSession? { await control.stopStreamingSession() }
-    func stopStreamingTimer() { control.stopStreamingTimer() }
-    func pauseOvernightStreaming() async -> HRVSession? { await control.pauseOvernightStreaming() }
-    func resumeOvernightStreaming(linkedSessionId: UUID) throws {
-        try control.resumeOvernightStreaming(linkedSessionId: linkedSessionId)
-    }
-    func finalizeFromPause() { control.finalizeFromPause() }
-    func persistPausedSessionState(sessionId: UUID) { control.persistPausedSessionState(sessionId: sessionId) }
-    func clearPausedSessionState() { control.clearPausedSessionState() }
-    func restorePausedStateIfNeeded() { control.restorePausedStateIfNeeded() }
-    func refreshRecentPausedSession() { control.refreshRecentPausedSession() }
-
-    nonisolated static func findRecentPausedSessionOffMain(
-        archive: SessionArchive, maxGap: TimeInterval
-    ) -> HRVSession? {
-        CollectorSessionControl.findRecentPausedSessionOffMain(archive: archive, maxGap: maxGap)
     }
 
     // MARK: - Dependencies
@@ -379,16 +349,6 @@ final class RRCollector {
     /// (`SessionScoringContext.scoringBaselineStats(for:)`).
     func scoringBaselineStats(for session: HRVSession) -> BaselineTracker.RecoveryBaselineStats? {
         scoring.scoringBaselineStats(for: session)
-    }
-
-    /// Current scoring configuration for RecoveryScoreCalculator, from the settings.
-    var currentScoringConfig: RecoveryScoreCalculator.ScoringConfiguration {
-        scoring.currentScoringConfig
-    }
-
-    /// Current ANS configuration: today's training load, every stored night as baseline.
-    var currentANSConfig: HRVAnalysisPipeline.ANSConfiguration {
-        scoring.currentANSConfig
     }
 
     /// ANS configuration for analysing `session`
@@ -696,7 +656,7 @@ final class RRCollector {
     /// here is cold-start cost. The disk-touching parts already hop off the
     /// main actor (`restorePausedStateIfNeeded` defers to `Task.detached`).
     private func wireCollaborators() {
-        setupBindings()
+        control.setupBindings()
         setupDataRescueCallback()
         setupLifecycleObservers()
         // Wire the Beat Consistency priors cache to the
@@ -705,11 +665,11 @@ final class RRCollector {
         // Reads during HRV view open are zero-archive after first warm.
         AppDependencies.current.analysis.beatConsistencyPriorsCache.bindToArchiveSignal(self.archiveSignal, archive: self.archive)
         installArchivedCopyListener()
-        restorePausedStateIfNeeded()
-        refreshRecentPausedSession()
-        publishLiveHRVSnapshotsToAssistant()
-        armObservationLoops()
-        runMergeDataLossMigrationIfNeeded()
+        control.restorePausedStateIfNeeded()
+        control.refreshRecentPausedSession()
+        control.publishLiveHRVSnapshotsToAssistant()
+        control.armObservationLoops()
+        control.runMergeDataLossMigrationIfNeeded()
     }
 
     /// Write the snapshot mirror so the off-main provider

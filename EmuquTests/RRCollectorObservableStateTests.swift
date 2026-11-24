@@ -197,25 +197,25 @@ final class RRCollectorObservableStateTests: XCTestCase {
     // MARK: - DeviceStatus back-compat forwarding
 
     func testDeviceStatusProxiesMatchCollectorGetters() {
-        XCTAssertEqual(collector.isDeviceConnected, collector.deviceStatus.isDeviceConnected)
-        XCTAssertEqual(collector.isStreaming, collector.deviceStatus.isStreaming)
-        XCTAssertEqual(collector.hasStoredExercise, collector.deviceStatus.hasStoredExercise)
-        XCTAssertEqual(collector.batteryLevel, collector.deviceStatus.batteryLevel)
-        XCTAssertEqual(collector.isRecordingOnDevice, collector.deviceStatus.isRecordingOnDevice)
-        XCTAssertEqual(collector.connectedDeviceType, collector.deviceStatus.connectedDeviceType)
-        XCTAssertEqual(collector.recordingState, collector.deviceStatus.recordingState)
-        XCTAssertEqual(collector.connectionState, collector.deviceStatus.connectionState)
+        XCTAssertEqual(collector.deviceStatus.isDeviceConnected, collector.deviceStatus.isDeviceConnected)
+        XCTAssertEqual(collector.deviceStatus.isStreaming, collector.deviceStatus.isStreaming)
+        XCTAssertEqual(collector.deviceStatus.hasStoredExercise, collector.deviceStatus.hasStoredExercise)
+        XCTAssertEqual(collector.deviceStatus.batteryLevel, collector.deviceStatus.batteryLevel)
+        XCTAssertEqual(collector.deviceStatus.isRecordingOnDevice, collector.deviceStatus.isRecordingOnDevice)
+        XCTAssertEqual(collector.deviceStatus.connectedDeviceType, collector.deviceStatus.connectedDeviceType)
+        XCTAssertEqual(collector.deviceStatus.recordingState, collector.deviceStatus.recordingState)
+        XCTAssertEqual(collector.deviceStatus.connectionState, collector.deviceStatus.connectionState)
         // fetchProgress is a struct — just check both resolve to the same optional state.
-        XCTAssertEqual(collector.fetchProgress == nil, collector.deviceStatus.fetchProgress == nil)
+        XCTAssertEqual(collector.deviceStatus.fetchProgress == nil, collector.deviceStatus.fetchProgress == nil)
     }
 
     func testDeviceStatusWriteReflectsInCollectorGetter() {
         collector.deviceStatus.isDeviceConnected = true
         collector.deviceStatus.batteryLevel = 75
         collector.deviceStatus.connectionState = .connected
-        XCTAssertTrue(collector.isDeviceConnected)
-        XCTAssertEqual(collector.batteryLevel, 75)
-        XCTAssertEqual(collector.connectionState, .connected)
+        XCTAssertTrue(collector.deviceStatus.isDeviceConnected)
+        XCTAssertEqual(collector.deviceStatus.batteryLevel, 75)
+        XCTAssertEqual(collector.deviceStatus.connectionState, .connected)
     }
 
     func testDeviceStatusIsInjectable() {
@@ -227,8 +227,8 @@ final class RRCollectorObservableStateTests: XCTestCase {
             healthKit: HealthKitManager(),
             deviceStatus: customStatus
         )
-        XCTAssertEqual(injected.batteryLevel, 42)
-        XCTAssertTrue(injected.isDeviceConnected)
+        XCTAssertEqual(injected.deviceStatus.batteryLevel, 42)
+        XCTAssertTrue(injected.deviceStatus.isDeviceConnected)
         XCTAssertTrue(injected.deviceStatus === customStatus)
     }
 
@@ -470,7 +470,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
         collector.settingsManager.settings.vo2MaxOverride = 52.0
         collector.settingsManager.settings.useHealthKitVO2Max = true  // override must still win
 
-        let config = collector.currentANSConfig
+        let config = collector.scoring.currentANSConfig
         XCTAssertEqual(config.vo2Max, 52.0)
     }
 
@@ -486,7 +486,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
         collector.settingsManager.settings.useHealthKitVO2Max = false
         collector.cachedTrainingLoad = nil
 
-        let config = collector.currentANSConfig
+        let config = collector.scoring.currentANSConfig
         XCTAssertNil(config.vo2Max)
     }
 
@@ -496,14 +496,14 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
         collector.settingsManager.settings.enableTrainingLoadIntegration = false
 
-        let config = collector.currentANSConfig
+        let config = collector.scoring.currentANSConfig
         XCTAssertEqual(config.trainingLoadAdjustment, 0)
     }
 
     // MARK: - findRecentPausedSessionOffMain (pure static)
 
     func testFindRecentPausedSessionReturnsNilWhenMaxGapIsZero() {
-        let result = RRCollector.findRecentPausedSessionOffMain(
+        let result = CollectorSessionControl.findRecentPausedSessionOffMain(
             archive: collector.archive,
             maxGap: 0
         )
@@ -511,7 +511,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
     }
 
     func testFindRecentPausedSessionReturnsNilWhenMaxGapIsNegative() {
-        let result = RRCollector.findRecentPausedSessionOffMain(
+        let result = CollectorSessionControl.findRecentPausedSessionOffMain(
             archive: collector.archive,
             maxGap: -1
         )
@@ -526,16 +526,16 @@ final class RRCollectorObservableStateTests: XCTestCase {
         XCTAssertEqual(collector.streamingLifecycle.streamingElapsedSeconds, 0)
         XCTAssertEqual(collector.streamingLifecycle.pausedBeatCount, 0)
         XCTAssertNil(collector.morningCoordination.morningStatus)
-        XCTAssertFalse(collector.isDeviceConnected)
-        XCTAssertFalse(collector.isStreaming)
-        XCTAssertFalse(collector.hasStoredExercise)
-        XCTAssertNil(collector.batteryLevel)
-        XCTAssertFalse(collector.isRecordingOnDevice)
-        XCTAssertNil(collector.connectedDeviceType)
-        XCTAssertEqual(collector.connectionState, .disconnected)
-        XCTAssertEqual(collector.recordingState, .idle)
+        XCTAssertFalse(collector.deviceStatus.isDeviceConnected)
+        XCTAssertFalse(collector.deviceStatus.isStreaming)
+        XCTAssertFalse(collector.deviceStatus.hasStoredExercise)
+        XCTAssertNil(collector.deviceStatus.batteryLevel)
+        XCTAssertFalse(collector.deviceStatus.isRecordingOnDevice)
+        XCTAssertNil(collector.deviceStatus.connectedDeviceType)
+        XCTAssertEqual(collector.deviceStatus.connectionState, .disconnected)
+        XCTAssertEqual(collector.deviceStatus.recordingState, .idle)
         XCTAssertNil(collector.recentPausedSession)
-        XCTAssertNil(collector.fetchProgress)
+        XCTAssertNil(collector.deviceStatus.fetchProgress)
         XCTAssertNil(collector.sessionState.lastError)
         XCTAssertNil(collector.sessionState.verificationResult)
         XCTAssertNil(collector.sessionState.recoveryWindow)

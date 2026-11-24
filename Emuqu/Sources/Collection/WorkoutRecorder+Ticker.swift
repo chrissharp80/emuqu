@@ -65,7 +65,7 @@ extension WorkoutTicker {
     /// of its own; after a gap it jumps to the real time, and the seconds in
     /// the gap have no sample, as none was taken.
     private func runTick() {
-        guard case .recording = recorder.phase else { return }
+        guard case .recording = recorder.lifecycle.phase else { return }
         evaluateAutoPauseResume()
         if !recorder.lifecycle.isPaused {
             let lifecycle = recorder.lifecycle
@@ -80,7 +80,7 @@ extension WorkoutTicker {
     /// Look at the current movement signals and decide whether to
     /// auto-pause or auto-resume. Runs every tick while recording.
     func evaluateAutoPauseResume() {
-        guard let sport = recorder.currentSession?.sport else { return }
+        guard let sport = recorder.lifecycle.currentSession?.sport else { return }
         if !recorder.lifecycle.isPaused {
             accrueStationaryAndMaybeAutoPause(sport: sport)
         } else if recorder.lifecycle.autoPaused {
@@ -137,7 +137,7 @@ extension WorkoutTicker {
         if steps != recorder.lastPedometerStepAdvance.count {
             recorder.lastPedometerStepAdvance = (steps, now)
         }
-        guard let cadence = recorder.cadenceStepsPerMin else { return nil }
+        guard let cadence = recorder.motion.cadenceStepsPerMin else { return nil }
         guard WorkoutSessionLifecycle.pedometerSports.contains(sport),
               recorder.footPod.cadenceStepsPerMin == nil,
               let advancedAt = recorder.lastPedometerStepAdvance.at,
@@ -154,7 +154,7 @@ extension WorkoutTicker {
 
     private func accrueMovingAndMaybeAutoResume(sport: Sport) {
         if recorder.autoPause.accrueMoving(isMoving: isMovingAgain(sport: sport)) {
-            recorder.resume()
+            recorder.session.resume()
         }
     }
 
@@ -211,7 +211,7 @@ extension WorkoutTicker {
         if recorder.settingsProvider().enableAIAssistant {
             publishLiveWorkoutSnapshot()
         }
-        if let sport = recorder.currentSession?.sport {
+        if let sport = recorder.lifecycle.currentSession?.sport {
             runSportScopedTickWork(sport: sport)
         }
         advanceIntervalPlanUnlessPaused()
@@ -222,7 +222,7 @@ extension WorkoutTicker {
     /// a step must not advance or be announced during a rest stop.
     private func advanceIntervalPlanUnlessPaused() {
         guard !recorder.lifecycle.isPaused else { return }
-        _ = recorder.intervalController.tick(totalDistanceMeters: recorder.distanceMeters)
+        _ = recorder.intervalController.tick(totalDistanceMeters: recorder.motion.distanceMeters)
     }
 
     /// The half of the tick that needs a sport: Watch push, threshold
@@ -253,7 +253,7 @@ extension WorkoutTicker {
     /// stutter during recording. Buffer/sessionId/deviceId are captured
     /// as value types into the detached task.
     private func runIncrementalBackup(buffer: [RRPoint]) {
-        guard let session = recorder.currentSession else { return }
+        guard let session = recorder.lifecycle.currentSession else { return }
         let sessionId = session.id
         let deviceId = recorder.core.polarManager.connectedDeviceId
         let bufferSnapshot = buffer  // copy before handing off
@@ -489,8 +489,8 @@ extension WorkoutTicker {
     /// so the per-second sample knows its heart rate came from Apple Health.
     private func arbitrateHRSource() {
         let arbitration = HRArbitration.decide(HRArbitration.Inputs(
-            sourceMode: recorder.activeHRSource,
-            recordingElapsedSeconds: recorder.elapsedSeconds,
+            sourceMode: recorder.lifecycle.activeHRSource,
+            recordingElapsedSeconds: recorder.lifecycle.elapsedSeconds,
             strapSilentFor: recorder.lastStrapHRAt.map { Date().timeIntervalSince($0) } ?? .infinity,
             watchRoutedSilentFor: recorder.lastWatchRoutedHRAt.map { Date().timeIntervalSince($0) } ?? .infinity,
             latestWatchHR: freshWristHR(now: Date()),
@@ -500,7 +500,7 @@ extension WorkoutTicker {
         if recorder.lifecycle.strapNotice != arbitration.strapNotice {
             recorder.lifecycle.strapNotice = arbitration.strapNotice
             if let notice = arbitration.strapNotice {
-                debugLog("[Recorder] Strap notice raised \(recorder.elapsedSeconds)s in: \(notice)", level: .warning)
+                debugLog("[Recorder] Strap notice raised \(recorder.lifecycle.elapsedSeconds)s in: \(notice)", level: .warning)
             }
         }
     }
@@ -549,7 +549,7 @@ extension WorkoutTicker {
     /// "spm" on the row sport in the recording view.
     private func mirrorMotionAndPowerSensors() {
         recorder.motion.footPodActive = recorder.footPod.connectionState == .connected
-        let isRow = recorder.currentSession?.sport == .row
+        let isRow = recorder.lifecycle.currentSession?.sport == .row
         let erg = isRow ? AppDependencies.current.collection.concept2Manager : nil
         if isRow, let ergDist = erg?.distanceMeters {
             recorder.motion.distanceMeters = ergDist
@@ -618,10 +618,10 @@ extension WorkoutTicker {
     /// A row whose heart rate is the Watch's wrist HR has its offset added to
     /// `recorder.wristHROffsets`.
     private func capturePerSecondSample() {
-        guard !recorder.lifecycle.isPaused, let sport = recorder.currentSession?.sport else { return }
+        guard !recorder.lifecycle.isPaused, let sport = recorder.lifecycle.currentSession?.sport else { return }
         recorder.workoutSamples.append(makeSample(sport: sport, paceSecPerKm: recorder.currentPaceSecPerKm))
-        if recorder.hrFromWrist, recorder.currentHR != nil {
-            recorder.wristHROffsets.append(recorder.elapsedSeconds)
+        if recorder.hrFromWrist, recorder.workoutHR.currentHR != nil {
+            recorder.wristHROffsets.append(recorder.lifecycle.elapsedSeconds)
         }
         capWorkoutSampleMemory()
     }
@@ -630,15 +630,15 @@ extension WorkoutTicker {
     /// (`finiteValuesOnly`): the archive cannot encode NaN or infinity.
     private func makeSample(sport: Sport, paceSecPerKm: Double?) -> WorkoutSample {
         WorkoutSample(
-            offsetSec: recorder.elapsedSeconds, heartRate: recorder.currentHR,
-            distanceMeters: recorder.distanceMeters > 0 ? recorder.distanceMeters : nil,
-            paceSecPerKm: paceSecPerKm, cadenceStepsPerMin: recorder.cadenceStepsPerMin,
+            offsetSec: recorder.lifecycle.elapsedSeconds, heartRate: recorder.workoutHR.currentHR,
+            distanceMeters: recorder.motion.distanceMeters > 0 ? recorder.motion.distanceMeters : nil,
+            paceSecPerKm: paceSecPerKm, cadenceStepsPerMin: recorder.motion.cadenceStepsPerMin,
             altitudeMeters: recorder.startedLocation?.currentLocation?.altitude, alpha1: recorder.dfa.currentAlpha1,
-            mets: WorkoutRecorder.estimateMETs(
-                sport: sport, paceSecPerKm: paceSecPerKm, heartRate: recorder.currentHR,
+            mets: WorkoutSessionLifecycle.estimateMETs(
+                sport: sport, paceSecPerKm: paceSecPerKm, heartRate: recorder.workoutHR.currentHR,
                 userMaxHR: recorder.settingsProvider().effectiveMaxHR
             ),
-            powerWatts: recorder.powerWatts
+            powerWatts: recorder.motion.powerWatts
         ).finiteValuesOnly
     }
 
@@ -647,14 +647,14 @@ extension WorkoutTicker {
     /// A paused tick clears it: a pause is not a pace, and the window must not
     /// span it. The rower's odometer is its only distance.
     private func updateLivePace() {
-        guard !recorder.lifecycle.isPaused, let sport = recorder.currentSession?.sport else {
+        guard !recorder.lifecycle.isPaused, let sport = recorder.lifecycle.currentSession?.sport else {
             recorder.livePace.reset()
             return
         }
         let paused = recorder.lifecycle.pausedMotion
         let outdoors = sport.usesGPS
         recorder.livePace.update(LivePaceEstimator.Reading(
-            now: Date(), distanceMeters: recorder.distanceMeters,
+            now: Date(), distanceMeters: recorder.motion.distanceMeters,
             gpsMeters: outdoors ? recorder.location.distanceMeters : nil,
             pedometerMeters: LivePaceEstimator.countsSteps(sport) ? paused.pedometerDistance(recorder.pedometer.distanceMeters) : nil,
             footPodSpeedMS: recorder.footPod.instantaneousSpeedMS,
@@ -693,7 +693,7 @@ extension WorkoutTicker {
     /// grade, units preference, and α1 diagnostic status — every piece
     /// of state the AI might need to sound like a real coach.
     private func publishLiveWorkoutSnapshot() {
-        guard let sport = recorder.currentSession?.sport else { return }
+        guard let sport = recorder.lifecycle.currentSession?.sport else { return }
         let loc = recorder.startedLocation?.currentLocation
         let heading = Self.validCourse(loc)
         AppDependencies.current.assistant.liveWorkoutBroker.publish(
@@ -719,7 +719,7 @@ extension WorkoutTicker {
     /// Only meaningful when the strap is the selected source — on watch/none
     /// there is no strap silence to report.
     func strapSilentSeconds() -> Double? {
-        guard recorder.activeHRSource == .strap, let last = recorder.lastStrapHRAt else { return nil }
+        guard recorder.lifecycle.activeHRSource == .strap, let last = recorder.lastStrapHRAt else { return nil }
         return Date().timeIntervalSince(last)
     }
 
@@ -778,10 +778,10 @@ extension WorkoutTicker {
     ) -> AssistantContext.LiveWorkoutSnapshot {
         let (road, trends) = (AppDependencies.current.location.roadGeocodingService.current, syncedLiveTrends())
         return AssistantContext.LiveWorkoutSnapshot(
-            sport: sport.displayName, snapshotAt: Date(), sessionStartAt: recorder.sessionStartDate ?? Date(), elapsedSeconds: recorder.elapsedSeconds, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: recorder.settingsProvider().effectiveMaxHR,
-            beatCount: recorder.beatCount, distanceMeters: recorder.distanceMeters, stepCount: recorder.stepCount, cadenceStepsPerMin: recorder.cadenceStepsPerMin, elevationGainMeters: recorder.elevationGainMeters, alpha1: recorder.dfa.currentAlpha1,
-            alpha1Band: recorder.dfa.currentBand.label, alpha1Status: recorder.dfa.status.label, alpha1FitQualityR2: recorder.dfa.fitQuality, strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: recorder.liveTrack.count,
-            gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy, currentPaceSecPerKm: recorder.currentPaceSecPerKm, currentSpeedMS: speedMS, powerWatts: recorder.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: recorder.aiContext.recentSplitPacesSecPerKm(),
+            sport: sport.displayName, snapshotAt: Date(), sessionStartAt: recorder.sessionStartDate ?? Date(), elapsedSeconds: recorder.lifecycle.elapsedSeconds, heartRate: recorder.workoutHR.currentHR, peakHR: recorder.workoutHR.peakHR, userMaxHR: recorder.settingsProvider().effectiveMaxHR,
+            beatCount: recorder.workoutHR.beatCount, distanceMeters: recorder.motion.distanceMeters, stepCount: recorder.motion.stepCount, cadenceStepsPerMin: recorder.motion.cadenceStepsPerMin, elevationGainMeters: recorder.motion.elevationGainMeters, alpha1: recorder.dfa.currentAlpha1,
+            alpha1Band: recorder.dfa.currentBand.label, alpha1Status: recorder.dfa.status.label, alpha1FitQualityR2: recorder.dfa.fitQuality, strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: recorder.motion.liveTrack.count,
+            gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy, currentPaceSecPerKm: recorder.currentPaceSecPerKm, currentSpeedMS: speedMS, powerWatts: recorder.motion.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: recorder.aiContext.recentSplitPacesSecPerKm(),
             currentLatitude: loc?.coordinate.latitude, currentLongitude: loc?.coordinate.longitude, currentAltitudeMeters: loc?.altitude, currentHeadingDegrees: heading, currentHeadingCardinal: heading.map(Self.cardinal(fromCourse:)),
             currentGradePercent: recorder.aiContext.computeCurrentGradePercent(), unitsPreference: UnitsPreferenceStore.current.rawValue, targetZone: recorder.targetZone, recognizedRouteName: recorder.plannedRoute?.name, recognizedRouteWasAutoDetected: recorder.plannedRouteWasAutoDetected,
             recognizedRouteDirection: recognizedRouteDirectionLabel(), routeTotalDistanceMeters: recorder.plannedRoute?.totalDistanceMeters, routeClimbCount: recorder.plannedRoute?.climbs.count, currentRoadName: road?.road, currentLocality: road?.locality,
@@ -844,13 +844,13 @@ extension WorkoutTicker {
         let paceDisplay = pace.flatMap { units.formatPace(secondsPerMeter: $0 / 1000) }
         let settings = recorder.settingsProvider()
         recorder.watchBridge.sendLiveState(WatchConnectivityBridge.LiveState(
-            sport: sport, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: settings.effectiveMaxHR,
+            sport: sport, heartRate: recorder.workoutHR.currentHR, peakHR: recorder.workoutHR.peakHR, userMaxHR: settings.effectiveMaxHR,
             totals: WatchConnectivityBridge.LiveTotals(
-                elapsedSec: recorder.elapsedSeconds, distanceMeters: recorder.distanceMeters,
-                elevationGainMeters: recorder.elevationGainMeters
+                elapsedSec: recorder.lifecycle.elapsedSeconds, distanceMeters: recorder.motion.distanceMeters,
+                elevationGainMeters: recorder.motion.elevationGainMeters
             ),
             paceDisplay: paceDisplay, alpha1: recorder.dfa.currentAlpha1, band: recorder.dfa.currentBand.localizedLabel,
-            cadenceSpm: recorder.cadenceStepsPerMin, targetZone: recorder.targetZone, unitsPreference: units.rawValue,
+            cadenceSpm: recorder.motion.cadenceStepsPerMin, targetZone: recorder.targetZone, unitsPreference: units.rawValue,
             isRecording: true, isPaused: recorder.lifecycle.isPaused, autoPaused: recorder.lifecycle.autoPaused,
             paceSecPerKm: pace, alpha1Status: recorder.dfa.status
         ))

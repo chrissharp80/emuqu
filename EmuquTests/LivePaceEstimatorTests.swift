@@ -97,10 +97,10 @@ final class LivePaceEstimatorTests: XCTestCase {
     /// nothing on the rest.
     func testTheWalkersMETsAreSteady() {
         let paces = PaceRun(speedMS: 1.4, fixEverySec: 1, accuracyM: 5).paces(ticks: 120)
-        let expected = WorkoutRecorder.estimateMETs(sport: .walk, paceSecPerKm: Self.walkerPace, heartRate: nil, userMaxHR: 190)
+        let expected = WorkoutSessionLifecycle.estimateMETs(sport: .walk, paceSecPerKm: Self.walkerPace, heartRate: nil, userMaxHR: 190)
         XCTAssertNotNil(expected)
         for tick in 20 ..< 120 {
-            let mets = WorkoutRecorder.estimateMETs(sport: .walk, paceSecPerKm: paces[tick], heartRate: nil, userMaxHR: 190)
+            let mets = WorkoutSessionLifecycle.estimateMETs(sport: .walk, paceSecPerKm: paces[tick], heartRate: nil, userMaxHR: 190)
             XCTAssertEqual(mets, expected, "tick \(tick)")
         }
     }

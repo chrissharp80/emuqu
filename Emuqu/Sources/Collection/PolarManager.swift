@@ -103,30 +103,6 @@ final class PolarManager: NSObject {
         StrapRecordingCoordinator(manager: self)
     }
 
-    // Forwarders for the call sites that reach recording through the manager.
-    // The behaviour lives one reference away in `StrapRecordingCoordinator`.
-
-    func startRecording() async throws { try await recording.startRecording() }
-    func stopDeviceRecordingIfNeeded(streamHoldsIt: Bool) async {
-        await recording.stopDeviceRecordingIfNeeded(streamHoldsIt: streamHoldsIt)
-    }
-    func fetchRecording(
-        recordedSince: Date?, budget: StrapRecordingPolicy.TransferBudget
-    ) async throws -> StrapRecording {
-        try await recording.fetchRecording(recordedSince: recordedSince, budget: budget)
-    }
-    func fetchRecordingIfAvailable(recordedSince: Date?) async -> StrapRecording? {
-        await recording.fetchRecordingIfAvailable(recordedSince: recordedSince)
-    }
-    func reconnectForTransfer() async -> Bool { await recording.reconnectForTransfer() }
-    func beginTransfer() { recording.beginTransfer() }
-    func checkRecordingStatus(deviceId: String? = nil) async throws -> Bool {
-        try await recording.checkRecordingStatus(deviceId: deviceId)
-    }
-    func checkForStoredExercises(deviceId: String? = nil) async {
-        await recording.checkForStoredExercises(deviceId: deviceId)
-    }
-    func discardStoredExercises() async throws { try await recording.discardStoredExercises() }
     var hasStoredExercise: Bool = false // True if H10 has stored data that can be recovered
     var storedExerciseDate: Date? // Date of stored exercise on H10 (for archive comparison)
     var firmwareVersion: String? // User-visible revision (prefers DIS software revision, falls back to firmware revision)
@@ -199,7 +175,6 @@ final class PolarManager: NSObject {
     var battery: StrapBatteryUsageTracker { StrapBatteryUsageTracker(manager: self) }
 
     func loadBatteryUsageStateIfNeeded(for deviceId: String) { battery.loadState(for: deviceId) }
-    func recordRecordingHours(_ hours: Double) { battery.recordRecordingHours(hours) }
     func checkBatteryStaleness() { battery.recomputeStaleness() }
 
     func applyBatteryLevelUpdate(from identifier: String, batteryLevel: UInt) {

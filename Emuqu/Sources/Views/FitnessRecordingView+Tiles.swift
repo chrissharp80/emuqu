@@ -36,12 +36,12 @@ extension FitnessRecordingView {
 
     private func elapsedInterval(at now: Date) -> TimeInterval {
         let lifecycle = recorder.lifecycle
-        if case .recording = recorder.phase, !lifecycle.isPaused,
-           let start = recorder.currentSession?.startDate {
+        if case .recording = recorder.lifecycle.phase, !lifecycle.isPaused,
+           let start = recorder.lifecycle.currentSession?.startDate {
             let paused = lifecycle.pauseTimeline.spans.reduce(0) { $0 + $1.seconds }
             return max(0, now.timeIntervalSince(start) - paused)
         }
-        return TimeInterval(recorder.elapsedSeconds)
+        return TimeInterval(recorder.lifecycle.elapsedSeconds)
     }
 
     @ViewBuilder
@@ -71,7 +71,7 @@ extension FitnessRecordingView {
         metricTile(
             icon: "shoe.2",
             label: labels.steps,
-            value: recorder.stepCount > 0 ? "\(recorder.stepCount)" : "—",
+            value: recorder.motion.stepCount > 0 ? "\(recorder.motion.stepCount)" : "—",
             caption: cadenceCaption
         )
         metricTile(icon: "mountain.2", label: labels.elevation, value: elevationLabel)
@@ -82,7 +82,7 @@ extension FitnessRecordingView {
     @ViewBuilder
     private var conditionalMetricTiles: some View {
         // Conditional tiles — only render when their source has data, so
-        if recorder.footPodActive, let w = recorder.powerWatts {
+        if recorder.motion.footPodActive, let w = recorder.motion.powerWatts {
             metricTile(
                 icon: "bolt.fill",
                 label: labels.power,
@@ -322,7 +322,7 @@ extension FitnessRecordingView {
     /// coordinates); the card maps it only when it draws.
     var mapCard: some View {
         StableMapCard(
-            track: recorder.liveTrack,
+            track: recorder.motion.liveTrack,
             accuracy: recorder.locationManager.lastHorizontalAccuracy
         )
     }
@@ -330,15 +330,15 @@ extension FitnessRecordingView {
     // MARK: - Derived labels
 
     var distanceLabel: String {
-        units.formatDistance(meters: recorder.distanceMeters)
+        units.formatDistance(meters: recorder.motion.distanceMeters)
     }
 
     var elevationLabel: String {
-        units.formatElevation(meters: recorder.elevationGainMeters)
+        units.formatElevation(meters: recorder.motion.elevationGainMeters)
     }
 
     var cadenceCaption: String? {
-        guard let c = recorder.cadenceStepsPerMin, c > 0 else { return nil }
+        guard let c = recorder.motion.cadenceStepsPerMin, c > 0 else { return nil }
         return String(localized: "\(Int(c.rounded())) spm", bundle: LanguageManager.appBundle)
     }
 
@@ -359,10 +359,10 @@ extension FitnessRecordingView {
     /// the "Pace" tile tells you both "right now" (big) and "for the whole
     /// workout so far" (small).
     var avgPaceCaption: String? {
-        guard recorder.distanceMeters > 50, recorder.elapsedSeconds > 10 else { return nil }
+        guard recorder.motion.distanceMeters > 50, recorder.lifecycle.elapsedSeconds > 10 else { return nil }
         return units.formatPace(
-            elapsedSec: recorder.elapsedSeconds,
-            distanceMeters: recorder.distanceMeters
+            elapsedSec: recorder.lifecycle.elapsedSeconds,
+            distanceMeters: recorder.motion.distanceMeters
         ).map { String(localized: "avg \($0)", bundle: LanguageManager.appBundle) }
     }
 
@@ -382,8 +382,8 @@ extension FitnessRecordingView {
     }
 
     var peakHRCaption: String? {
-        guard recorder.peakHR > 0 else { return nil }
-        return String(localized: "peak \(recorder.peakHR)", bundle: LanguageManager.appBundle)
+        guard recorder.workoutHR.peakHR > 0 else { return nil }
+        return String(localized: "peak \(recorder.workoutHR.peakHR)", bundle: LanguageManager.appBundle)
     }
 
     var currentMETs: Double? {
@@ -406,7 +406,7 @@ extension FitnessRecordingView {
     /// never silently say "warming up" after 10 min of a silent strap — the
     /// user (and the AI coach) can see WHY the number is not there.
     var alpha1Caption: String? {
-        if recorder.activeHRSource != .strap {
+        if recorder.lifecycle.activeHRSource != .strap {
             return String(localized: "Connect a chest strap to enable α1", bundle: LanguageManager.appBundle)
         }
         switch recorder.dfa.status {
@@ -448,7 +448,7 @@ extension FitnessRecordingView {
     /// moment stop() is called; the button no-ops further holds
     /// while in this state.
     var isFinalizing: Bool {
-        switch recorder.phase {
+        switch recorder.lifecycle.phase {
         case .recording, .idle, .failed: return false
         case .finalizing, .finished: return true
         }

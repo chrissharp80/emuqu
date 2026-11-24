@@ -177,7 +177,7 @@ struct TrashView: View {
     // MARK: - Actions
 
     private func loadDeletedSessions() {
-        deletedSessions = collector.recovery.checkForDeletedSessions()
+        deletedSessions = collector.recovery.recoveryService.checkForDeletedSessions()
     }
 
     private func restoreSession(_ id: UUID) {

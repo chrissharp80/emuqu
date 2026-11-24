@@ -102,7 +102,7 @@ struct SampleDataLibrary {
     /// and nights analysed side by side would otherwise read each other's.
     private var pipeline: DemoSessionSeeder.NightPipeline {
         let shared = collector.analysisPipeline
-        let ansConfig = collector.currentANSConfig
+        let ansConfig = collector.scoring.currentANSConfig
         return DemoSessionSeeder.NightPipeline(analyze: { session in
             let analysis = HRVAnalysisPipeline(
                 artifactDetector: shared.artifactDetector, windowSelector: WindowSelector(), healthKit: shared.healthKit

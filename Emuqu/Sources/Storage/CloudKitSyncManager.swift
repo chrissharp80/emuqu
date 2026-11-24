@@ -455,16 +455,6 @@ final class CloudKitSyncManager {
         CloudDeletionCoordinator(manager: self)
     }
 
-    /// Forwarders so existing call sites did not change in the same commit as
-    /// the move. Behaviour lives in `CloudDeletionCoordinator`.
-    func deleteAllRemoteData() async -> Bool {
-        await deletion.deleteAllRemoteData()
-    }
-
-    func clearSanitizeDripState() {
-        deletion.clearSanitizeDripState()
-    }
-
     /// Rewrites earlier uploads without their Apple Health readings, built on
     /// each access; its list lives in UserDefaults.
     var healthScrub: CloudHealthScrubCoordinator {
@@ -493,12 +483,6 @@ final class CloudKitSyncManager {
         await settingsSync.scrubStoredRecord(keepingOutHealthFilledFrom: settings)
     }
 
-    /// Whether an error means the zone is already gone — used by tests and by
-    /// callers deciding whether a delete needs retrying.
-    static func isZoneAlreadyGoneError(_ error: Error) -> Bool {
-        CloudDeletionCoordinator.isZoneAlreadyGoneError(error)
-    }
-
     /// The pull subsystem, built on each access; it holds no state of its own.
     var pull: CloudPullCoordinator {
         CloudPullCoordinator(manager: self)
@@ -507,14 +491,6 @@ final class CloudKitSyncManager {
     /// Restores from the Trash that must outrank an iCloud tombstone.
     var trashRestore: TrashRestoreCoordinator {
         TrashRestoreCoordinator(manager: self)
-    }
-
-    /// Fetch remote changes and merge them locally.
-    ///
-    /// Forwarder so the one existing call site did not have to change in the
-    /// same commit as the move. The behaviour lives in `CloudPullCoordinator`.
-    func pullRemoteChanges() async {
-        await pull.pullRemoteChanges()
     }
 
     /// Re-save a record that lost a revision race on the direct upload path.
@@ -770,7 +746,7 @@ final class CloudKitSyncManager {
             await self.deletion.reconcileLocalDeletions()
             try Task.checkCancellation()
             try await self.accountGuard.requireConfirmedAccount()
-            await self.pullRemoteChanges()
+            await self.pull.pullRemoteChanges()
             let afterUploaded = await MainActor.run { self.state.uploadedSessionIds.count }
             return afterUploaded - beforeUploaded
         }

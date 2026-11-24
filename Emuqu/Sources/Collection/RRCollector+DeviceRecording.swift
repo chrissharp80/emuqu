@@ -44,7 +44,7 @@ extension DeviceRecordingSession {
         guard !collector.reconciliation.sessionExists(session.id) else {
             throw RRCollector.CollectorError.sessionExists
         }
-        try await collector.polarManager.startRecording()
+        try await collector.polarManager.recording.startRecording()
         await publishDeviceRecordingStarted(session: session, startTime: startTime)
         // Persisted at once, with the phase just set: survives app crashes,
         // phone reboots, etc.
@@ -96,10 +96,10 @@ extension DeviceRecordingSession {
         let bgTask = BackgroundTaskAssertion.forRecordingStop(named: "DeviceRecordingStop")
         defer { bgTask.end() }
         let base = resolveBaseSession()
-        collector.polarManager.beginTransfer()
+        collector.polarManager.recording.beginTransfer()
         let recording: StrapRecording
         do {
-            recording = try await collector.polarManager.fetchRecording(recordedSince: base?.startDate, budget: .attended)
+            recording = try await collector.polarManager.recording.fetchRecording(recordedSince: base?.startDate, budget: .attended)
         } catch {
             return await makeFailedSession(from: base ?? HRVSession(), error: error)
         }

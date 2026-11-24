@@ -50,6 +50,9 @@ final class CloudKitSyncManagerTests: XCTestCase {
 
     override func tearDown() async throws {
         hostSyncDefaults?.restore()
+        // Settings are written on a background queue. Drain it first, or a
+        // write landing in the folder while it is removed fails the removal.
+        _ = settings.flushPendingWritesSynchronously()
         try FileManager.default.removeItem(at: directory)
         try await super.tearDown()
     }
@@ -348,11 +351,11 @@ final class CloudKitSyncManagerTests: XCTestCase {
 
     func testIsZoneAlreadyGoneErrorMatchesZoneNotFoundAndUserDeletedZone() {
         let zoneNotFound = ckError(.zoneNotFound, message: "Zone does not exist")
-        XCTAssertTrue(CloudKitSyncManager.isZoneAlreadyGoneError(zoneNotFound),
+        XCTAssertTrue(CloudDeletionCoordinator.isZoneAlreadyGoneError(zoneNotFound),
                       "Deleting a zone that's already gone IS the requested end state")
 
         let userDeleted = ckError(.userDeletedZone, message: "User deleted the zone")
-        XCTAssertTrue(CloudKitSyncManager.isZoneAlreadyGoneError(userDeleted))
+        XCTAssertTrue(CloudDeletionCoordinator.isZoneAlreadyGoneError(userDeleted))
     }
 
     func testIsZoneAlreadyGoneErrorUnwrapsPartialFailureWhenAllZonesGone() {
@@ -370,7 +373,7 @@ final class CloudKitSyncManagerTests: XCTestCase {
                 CKPartialErrorsByItemIDKey: [zoneID: inner]
             ]
         ))
-        XCTAssertTrue(CloudKitSyncManager.isZoneAlreadyGoneError(outer))
+        XCTAssertTrue(CloudDeletionCoordinator.isZoneAlreadyGoneError(outer))
     }
 
     func testIsZoneAlreadyGoneErrorRejectsPartialFailureWithRealError() {
@@ -397,18 +400,18 @@ final class CloudKitSyncManagerTests: XCTestCase {
                 CKPartialErrorsByItemIDKey: [goneZoneID: gone, failedZoneID: failed]
             ]
         ))
-        XCTAssertFalse(CloudKitSyncManager.isZoneAlreadyGoneError(outer))
+        XCTAssertFalse(CloudDeletionCoordinator.isZoneAlreadyGoneError(outer))
     }
 
     func testIsZoneAlreadyGoneErrorRejectsTransientAndNonCKErrors() {
         let network = ckError(.networkFailure, message: "Network unavailable")
-        XCTAssertFalse(CloudKitSyncManager.isZoneAlreadyGoneError(network))
+        XCTAssertFalse(CloudDeletionCoordinator.isZoneAlreadyGoneError(network))
 
         let notAuthenticated = ckError(.notAuthenticated, message: "Not signed in")
-        XCTAssertFalse(CloudKitSyncManager.isZoneAlreadyGoneError(notAuthenticated))
+        XCTAssertFalse(CloudDeletionCoordinator.isZoneAlreadyGoneError(notAuthenticated))
 
         let plain = NSError(domain: NSURLErrorDomain, code: -1009, userInfo: nil)
-        XCTAssertFalse(CloudKitSyncManager.isZoneAlreadyGoneError(plain))
+        XCTAssertFalse(CloudDeletionCoordinator.isZoneAlreadyGoneError(plain))
 
         // Empty partial-failure dictionary carries no proof the zones are
         // gone — must not be treated as success.
@@ -417,7 +420,7 @@ final class CloudKitSyncManagerTests: XCTestCase {
             code: CKError.Code.partialFailure.rawValue,
             userInfo: [NSLocalizedDescriptionKey: "Partial failure"]
         ))
-        XCTAssertFalse(CloudKitSyncManager.isZoneAlreadyGoneError(emptyPartial))
+        XCTAssertFalse(CloudDeletionCoordinator.isZoneAlreadyGoneError(emptyPartial))
     }
 
     func testClearSanitizeDripStateRemovesBothKeys() {
@@ -437,7 +440,7 @@ final class CloudKitSyncManagerTests: XCTestCase {
         defaults.set(true, forKey: initializedKey)
         defaults.set([UUID().uuidString], forKey: legacyRemainingKey)
 
-        manager.clearSanitizeDripState()
+        manager.deletion.clearSanitizeDripState()
 
         XCTAssertNil(defaults.stringArray(forKey: legacyRemainingKey),
                      "The v3 drip's list must go too")

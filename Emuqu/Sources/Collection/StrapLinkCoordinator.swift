@@ -476,10 +476,10 @@ struct StrapLinkCoordinator {
         _ = try await manager.link.whenFeatureUsable(
             feature, until: Date().addingTimeInterval(statusCheckWindowSec),
             while: { manager.readiness.generation == generation },
-            perform: { try await manager.checkRecordingStatus(deviceId: deviceId) }
+            perform: { try await manager.recording.checkRecordingStatus(deviceId: deviceId) }
         )
         guard manager.readiness.generation == generation else { return }
-        await manager.checkForStoredExercises(deviceId: deviceId)
+        await manager.recording.checkForStoredExercises(deviceId: deviceId)
     }
 
     // MARK: - Feed health

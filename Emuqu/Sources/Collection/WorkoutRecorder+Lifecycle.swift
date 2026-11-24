@@ -23,7 +23,7 @@ extension WorkoutFinalizer {
         stopDate: Date,
         hrrSamples: [HRRSample]
     ) async -> HRVSession {
-        guard var session = recorder.currentSession, let startDate = recorder.sessionStartDate else {
+        guard var session = recorder.lifecycle.currentSession, let startDate = recorder.sessionStartDate else {
             debugLog("[WorkoutRecorder.finalize] no current session or start date — nothing to finalize or archive", level: .warning)
             return HRVSession(sessionType: .workout)
         }
@@ -39,7 +39,7 @@ extension WorkoutFinalizer {
         )
         attachAIContextSnapshot(to: &session, sport: analysis.sport, stopDate: stopDate)
         await attachTrainingSnapshot(to: &session, stopDate: stopDate)
-        await recorder.archive(session: session)
+        await recorder.session.archive(session: session)
         return session
     }
 
@@ -253,7 +253,7 @@ extension WorkoutFinalizer {
         metadata.samples = recorder.workoutSamples.isEmpty ? nil : recorder.workoutSamples
         metadata.healthKitHROffsets = Self.healthKitHROffsets(
             samples: recorder.workoutSamples, backfilled: backfillResult.filledOffsets + recorder.wristHROffsets,
-            source: recorder.activeHRSource
+            source: recorder.lifecycle.activeHRSource
         )
         recorder.wristHROffsets = []
         if let splits = metadata.splits, let samples = metadata.samples {
@@ -278,7 +278,7 @@ extension WorkoutFinalizer {
         let avgPower = Double(recorder.powerSampleSum) / Double(recorder.powerSampleCount)
         metadata.averagePowerWatts = avgPower
         metadata.peakPowerWatts = recorder.maxPowerObserved
-        let np = WorkoutRecorder.computeNormalizedPower(samples: recorder.workoutSamples)
+        let np = WorkoutSessionLifecycle.computeNormalizedPower(samples: recorder.workoutSamples)
         metadata.normalizedPowerWatts = np
         if let np, np > 0, avgPower > 0 {
             metadata.variabilityIndex = np / avgPower
@@ -293,7 +293,7 @@ extension WorkoutFinalizer {
     /// Recorded time with pauses left out: the ticker counts only while the
     /// workout runs. Wall-clock start to stop stands in when no tick counted.
     private func activeDurationSeconds(startDate: Date, stopDate: Date) -> TimeInterval {
-        recorder.elapsedSeconds > 0 ? Double(recorder.elapsedSeconds) : stopDate.timeIntervalSince(startDate)
+        recorder.lifecycle.elapsedSeconds > 0 ? Double(recorder.lifecycle.elapsedSeconds) : stopDate.timeIntervalSince(startDate)
     }
 
     /// Finalize stage 7 — route-history TRIMP fallback estimate.
@@ -342,7 +342,7 @@ extension WorkoutFinalizer {
             metadata.strokeCount = erg.strokeCount
             metadata.dragFactor = erg.dragFactor
             metadata.averageSplitSecPer500m = Self.averageSplitSecPer500m(
-                movingSeconds: recorder.elapsedSeconds, distanceMeters: recorder.distanceMeters
+                movingSeconds: recorder.lifecycle.elapsedSeconds, distanceMeters: recorder.motion.distanceMeters
             )
         }
     }
@@ -438,7 +438,7 @@ extension WorkoutFinalizer {
         // when it generated coaching for this session.
         defer { recorder.liveSnapshotAtStop = nil }
         if let liveSnap = recorder.liveSnapshotAtStop {
-            session.aiContext = recorder.buildAiContextSnapshot(liveSnap, sport: sport, stopDate: stopDate)
+            session.aiContext = recorder.session.buildAiContextSnapshot(liveSnap, sport: sport, stopDate: stopDate)
         }
     }
 
