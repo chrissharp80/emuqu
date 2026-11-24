@@ -1228,40 +1228,6 @@ The remaining `@unchecked Sendable` / `nonisolated(unsafe)` annotations are
 listed by file in `scripts/check_unchecked_sendable.sh`; each names the queue
 or lock that owns its state.
 
-### Extraction pattern for oversized types
-
-`check_aggregate_type_size.sh` measures every type against a line threshold it
-defines. Two ratchets bound the result: `.ci/aggregate_type_size_budget.txt`
-caps how many types are over it, and `.ci/aggregate_type_excess_budget.txt`
-caps the total overshoot. Both only ever ratchet down. The cuts that reduce
-them follow one pattern:
-
-1. **Pick the seam by ratio, not size.** What decides a good extraction is how
-   many members of the parent the candidate files still need, not how many
-   lines they are. `VitalsHealthQueries` was 486 lines needing six members;
-   `WorkoutRecorder+Context` is 638 lines needing thirty-seven, and stays where
-   it is — cutting it would move coupling around rather than remove it.
-2. **Extracted helpers are values that hold the parent strongly.** The parent
-   builds the helper on demand (`collector.recovery`, `generator.deepDive`) and
-   does not retain it, so there is no cycle and nothing that can outlive its
-   owner. `unowned` is banned by
-   `scripts/check_no_unowned.sh` (ADR 005). Value-type parents take the values
-   they need instead: `ThresholdCards` holds the session. All-static namespaces
-   need no reference at all (`VitalsScoring`, `ReadinessScoring`,
-   `ScoreDetailBuilder`).
-3. **Do not change what callers see.** Every extraction ships a
-   `+…Forwarding.swift` extension that keeps the original API on the parent, and
-   re-exports moved nested types with a typealias. SwiftUI extractions forward
-   through a plain value type rather than a new `View`, so view identity — and
-   therefore animation and `@State` behaviour — is unchanged.
-4. **Lazy-build the sub-object.** A `.summary` PDF never draws deep-dive pages
-   and never allocates that renderer.
-
-The extracted files keep the parent's history in a header comment naming what
-was cut, when, and why that seam and not another.
-
----
-
 ## Home-screen widget
 
 The app has no home-screen widget, Lock Screen accessory or Live Activity, and

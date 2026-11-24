@@ -17,10 +17,9 @@ import SwiftUI
 /// opens the same sheet and runs the same rebuild — this adds a way in, not a
 /// second implementation.
 ///
-/// Its own type rather than another computed property on `FitnessTabView`
-/// because that type is measured whole by `check_aggregate_type_size.sh` and
-/// this is a self-contained readout: it takes a stub and a tap handler, and
-/// stores nothing.
+/// Its own type rather than a computed property on `FitnessTabView`: it is a
+/// self-contained readout that takes a stub and a tap handler and stores
+/// nothing.
 struct InterruptedRecordingCard: View {
     let stub: HealthWorkoutImporter.InterruptedSession
     let onTap: () -> Void

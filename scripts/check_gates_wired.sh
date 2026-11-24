@@ -18,10 +18,8 @@
 # literal `if: false`, either directly or through a `make` target whose recipe
 # (or a prerequisite's) names it. A mention in a YAML comment is not a run.
 #
-# This is the third member of a family: `verify_gates_fail.sh` proves a gate
-# goes red on a real violation, `check_gate_preflight.sh` proves it fails closed
-# on a missing input, and this proves it is reached at all. A gate needs all
-# three to be worth its runtime.
+# `verify_gates_fail.sh` proves a gate goes red on a real violation; this proves
+# it is reached at all.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

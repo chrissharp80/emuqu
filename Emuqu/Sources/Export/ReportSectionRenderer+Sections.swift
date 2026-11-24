@@ -827,10 +827,6 @@ extension ReportSectionRenderer {
 // computed properties — and calls nothing inside it, so none is a method
 // in anything but placement. `private` at file scope is fileprivate, so
 // every call site in this file resolves the same way.
-//
-// This is what `check_aggregate_type_size.sh` measures: a type is the sum of
-// its parts across every file, so code that does not need the type inflates
-// that number without making the type do more.
 
 /// The "Recording: … (n beats)" line. A HealthKit summary import has no raw
 /// beats, so it says so rather than printing "0.0 min (0 beats)" above

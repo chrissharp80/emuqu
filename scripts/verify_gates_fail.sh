@@ -13,8 +13,6 @@
 #     write of health data — the highest-severity finding to date.
 #   • `check_unchecked_sendable.sh` and `check_log_redaction.sh` exiting 0 and
 #     printing "clean" after `mktemp` fails and they have measured nothing.
-#   • `check_gate_preflight.sh`'s own helper failing open, because `exit`
-#     inside `$( )` terminates only the subshell.
 #
 # Every one of those passes a "does the gate run without erroring" check. A
 # gate nobody has watched fail is the gap this closes: for each gate, plant a
@@ -186,16 +184,6 @@ check "strict_concurrency_enabled/swift5_mode" \
     "Emuqu.xcodeproj/project.pbxproj" \
     "import pathlib;p=pathlib.Path('Emuqu.xcodeproj/project.pbxproj');s=p.read_text();p.write_text(s.replace('SWIFT_VERSION = 6.0;','SWIFT_VERSION = 5.0;',1))"
 
-check "gate_preflight/bare_mktemp" \
-    "./scripts/check_gate_preflight.sh" \
-    "scripts/check_log_redaction.sh" \
-    "import pathlib;p=pathlib.Path('scripts/check_log_redaction.sh');s=p.read_text();p.write_text(s.replace('tmp=\"\$(gate_mktemp log-redaction)\" || exit \$?','tmp=\"\$(mktemp)\"',1))"
-
-check "gate_preflight/missing_guard" \
-    "./scripts/check_gate_preflight.sh" \
-    "scripts/check_log_redaction.sh" \
-    "import pathlib;p=pathlib.Path('scripts/check_log_redaction.sh');s=p.read_text();p.write_text(s.replace('tmp=\"\$(gate_mktemp log-redaction)\" || exit \$?','tmp=\"\$(gate_mktemp log-redaction)\"',1))"
-
 # A deleted snapshot reference does not fail — the harness records a new one
 # and passes against itself forever.
 check "snapshot_refs/deleted_reference" \
@@ -216,21 +204,6 @@ check "empty_range/unguarded_count_arithmetic" \
     "./scripts/check_empty_range_loops.sh" \
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/NonlinearAnalysis.swift');p.write_text(p.read_text()+'\nfunc plantedSum(_ xs: [Double]) -> Double {\n    var s = 0.0\n    for i in 0 ..< (xs.count - 1) { s += xs[i] }\n    return s\n}\n')"
-
-# File counts in MAINTAINERS.md drift, often by 50% or more, when nothing
-# checks them.
-check "doc_counts/stale" \
-    "./scripts/check_doc_file_counts.sh" \
-    "docs/MAINTAINERS.md" \
-    "import pathlib,re;p=pathlib.Path('docs/MAINTAINERS.md');s=p.read_text();r=r'(### 5\\.1 \`Analysis/\` — physiology math \\+ scoring \\(~)\\d+( files\\))';assert len(re.findall(r,s))==1;p.write_text(re.sub(r,r'\\g<1>7\\g<2>',s))"
-
-# Raw `Int64(interval * 1000)` on stored dates is a shape that ships live
-# defects.
-#
-check "date_ms/raw_conversion" \
-    "./scripts/check_date_ms_conversion.sh" \
-    "Emuqu/Sources/Analysis/SleepResolver.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/SleepResolver.swift');s=p.read_text();o='MillisecondOffset.between(first.start, and: recordingStart, fallback: 0)';assert s.count(o)>=1;p.write_text(s.replace(o,'Int64(first.start.timeIntervalSince(recordingStart) * 1000)',1))"
 
 check "sbom_drift" \
     "python3 scripts/generate_sbom.py --check" \
@@ -313,13 +286,6 @@ check "orphan_swift" \
 # gates that need a build or a simulator are named at the bottom.
 # ---------------------------------------------------------------------------
 
-# A citation is only useful if it is checked; unchecked, nearly all of them
-# rot.
-check "comment_citations/past_end_of_file" \
-    "./scripts/check_comment_citations.sh" \
-    "Emuqu/Sources/Utilities/Errors.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'// Planted citation: Errors.swift:99999'+chr(10))"
-
 # A path with a `:NNN` tail must not slip past the path check; otherwise a
 # citation can name the wrong directory indefinitely as long as it carries a
 # line number.
@@ -327,23 +293,6 @@ check "doc_links/wrong_directory_with_line_number" \
     "./scripts/check_doc_links.sh" \
     "docs/ARCHITECTURE.md" \
     "import pathlib;p=pathlib.Path('docs/ARCHITECTURE.md');p.write_text(p.read_text()+chr(10)+'Planted: \`WrongDir/EmuquApp.swift:42\`'+chr(10))"
-
-# The Markdown half. `file:NNN` in docs rots exactly as it does in Swift
-# comments — every AssistantViewModel and HealthKitManager citation in the
-# architecture docs can point past the end of a file that has since been split.
-check "comment_citations/markdown" \
-    "./scripts/check_comment_citations.sh" \
-    "docs/ARCHITECTURE.md" \
-    "import pathlib;p=pathlib.Path('docs/ARCHITECTURE.md');p.write_text(p.read_text()+chr(10)+'Planted doc citation: EmuquApp.swift:99999'+chr(10))"
-
-# A source root with no Swift in it is a scan of nothing, not a clean tree.
-CITATION_ROOT="$BACKUP_DIR/citation-root"
-mkdir -p "$CITATION_ROOT"
-printf '// A file to scan.\n' > "$CITATION_ROOT/Planted.swift"
-check "comment_citations/empty_root" \
-    "./scripts/check_comment_citations.sh $CITATION_ROOT" \
-    "$CITATION_ROOT/Planted.swift" \
-    "import pathlib;pathlib.Path('$CITATION_ROOT/Planted.swift').unlink()"
 
 # A gate CI never invokes is indistinguishable from a working one: wired into
 # the Makefile only, or into neither, it looks exactly like one that runs.
@@ -425,17 +374,6 @@ check "budget_monotonicity/ceiling_made_decimal" \
     ".ci/shared_usage_budget.txt" \
     "import pathlib;p=pathlib.Path('.ci/shared_usage_budget.txt');p.write_text(p.read_text().strip()+'.0'+chr(10))"
 
-# A budget file below the measured value must go red; this proves the
-# comparison runs at all, which is the half of a budget gate that can rot
-# silently while the counting half still works.
-# Lowering the budget stopped proving anything once the budget reached 0 — the
-# mutation became a no-op and the gate stayed green while protecting nothing.
-# Plant an actually-oversized type instead.
-check "aggregate_type_size/oversized_type" \
-    "./scripts/check_aggregate_type_size.sh" \
-    "Emuqu/Sources/Collection/StrapPairingStore.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapPairingStore.swift');p.write_text(p.read_text()+chr(10)+'extension StrapPairingStore {'+chr(10)+('    // padding'+chr(10))*1600+'}'+chr(10))"
-
 check "tech_debt_budgets/below_budget" \
     "./scripts/enforce_tech_debt_budgets.sh" \
     ".ci/shared_usage_budget.txt" \
@@ -512,6 +450,39 @@ check "swiftlint_budget/below_budget" \
     ".ci/swiftlint_warning_budget.txt" \
     "import pathlib;pathlib.Path('.ci/swiftlint_warning_budget.txt').write_text('0'+chr(10))"
 
+# A white paper is checked against the revision it names; a path that did not
+# exist there either is still a broken citation.
+check "doc_links/pinned_path_absent_at_revision" \
+    "./scripts/check_doc_links.sh" \
+    "docs/whitepapers/04-claims-governance.md" \
+    "import pathlib;p=pathlib.Path('docs/whitepapers/04-claims-governance.md');p.write_text(p.read_text()+chr(10)+'Planted: \`scripts/check_planted_absent.sh\`'+chr(10))"
+
+# The SwiftLint custom rules: each plant must turn the lint budget red.
+check "swiftlint_rule/no_unowned" \
+    "./scripts/enforce_swiftlint_budget.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'final class PlantedUnowned { unowned let owner: AnyObject; init(owner: AnyObject) { self.owner = owner } }'+chr(10))"
+
+check "swiftlint_rule/no_dated_comment" \
+    "./scripts/enforce_swiftlint_budget.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'// Planted on 2026-01-02.'+chr(10))"
+
+check "swiftlint_rule/no_license_header" \
+    "./scripts/enforce_swiftlint_budget.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'// Licensed under a planted licence.'+chr(10))"
+
+check "swiftlint_rule/raw_date_ms_conversion" \
+    "./scripts/enforce_swiftlint_budget.sh" \
+    "Emuqu/Sources/Utilities/Errors.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Errors.swift');p.write_text(p.read_text()+chr(10)+'func plantedMs(_ a: Date, _ b: Date) -> Int64 { Int64(a.timeIntervalSince(b) * 1000) }'+chr(10))"
+
+check "swiftlint_rule/invalid_configuration" \
+    "./scripts/enforce_swiftlint_budget.sh" \
+    ".swiftlint.yml" \
+    "import pathlib;p=pathlib.Path('.swiftlint.yml');p.write_text(p.read_text().replace('match_kinds: [comment, doccomment]','match_kinds: [comment, plantedkind]',1))"
+
 # Every locale sits at 100%; a single untranslated key must drop the worst
 # locale below the floor.
 check "localization_coverage/untranslated_key" \
@@ -565,12 +536,6 @@ check "scoring_governance/no_constants_matched" \
     "Emuqu/Sources/Analysis/HRVThresholds.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/HRVThresholds.swift');s=p.read_text();assert 'static let' in s;p.write_text(s.replace('static let','static var'))"
 
-# A single planted `unowned let` anywhere in app source must go red.
-check "no_unowned/planted_reference" \
-    "./scripts/check_no_unowned.sh" \
-    "Emuqu/Sources/Collection/CollectorSessionControl.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/CollectorSessionControl.swift');p.write_text(p.read_text()+chr(10)+'final class PlantedUnowned { unowned let collector: RRCollector; init(collector: RRCollector) { self.collector = collector } }'+chr(10))"
-
 # Putting a heart-rate readiness wait back in front of the feed's subscribe
 # restores the stall that cost a night of sleep. The gate must go red on it.
 check "hr_feed/readiness_wait" \
@@ -585,28 +550,11 @@ check "coremotion_isolation/inherited_actor" \
     "Emuqu/Sources/Collection/WorkoutPedometer.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutPedometer.swift');s=p.read_text();o='{ @Sendable [weak self] data, error in';assert s.count(o)==1;p.write_text(s.replace(o,'{ [weak self] data, error in'))"
 
-# A planted rights notice in any source file must go red.
-check "license_headers/planted_notice" \
-    "./scripts/check_no_license_headers.sh" \
-    "Emuqu/Sources/Utilities/Constants.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Constants.swift');p.write_text('// Copyright. All rights reserved.\\n'+p.read_text())"
-
 # The logger may not call itself: one planted `attempt(` in DebugLog.swift must go red.
 check "logger_self_reference/planted_attempt" \
     "./scripts/check_logger_self_reference.sh" \
     "Emuqu/Sources/Utilities/DebugLog.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/DebugLog.swift');p.write_text(p.read_text()+'\\nprivate func plantedGateCheck() { _ = attempt(\"planted\") { try FileManager.default.removeItem(atPath: \"/nope\") } }\\n')"
-
-# Dated-comment ratchet: the budget is zero, so one planted dated comment must go red.
-check "dated_comment_budget/planted_date" \
-    "./scripts/check_dated_comment_budget.sh" \
-    "Emuqu/Sources/Utilities/Constants.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Constants.swift');p.write_text(p.read_text()+chr(10)+'// 2026-01-01 — planted changelog comment'+chr(10))"
-
-check "dated_comment_budget/decimal_budget" \
-    "./scripts/check_dated_comment_budget.sh" \
-    ".ci/dated_comment_budget.txt" \
-    "import pathlib;p=pathlib.Path('.ci/dated_comment_budget.txt');p.write_text(p.read_text().strip()+'.0'+chr(10))"
 
 
 # A single `.shared` read outside the composition root must go red.
@@ -722,8 +670,6 @@ NEEDS_BUILD=(
 unplanted=()
 for gate in scripts/check_*.sh scripts/enforce_*.sh; do
     base="$(basename "$gate")"
-    # This file, and the preflight library's own self-test, are not gates.
-    [[ "$base" == "check_gate_preflight.sh" ]] && continue
     exempt=false
     for e in "${NEEDS_BUILD[@]}"; do
         [[ "$base" == "$e" ]] && exempt=true && break

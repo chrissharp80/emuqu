@@ -26,9 +26,8 @@ import Foundation
 /// Task or a resumed continuation that keeps this object alive after the
 /// collector has gone reads the reference and traps ("Attempted to read an
 /// unowned reference but object … was already destroyed"). A strong
-/// reference from a transient value cannot
-/// outlive its owner and cannot form a cycle, so the class of bug is gone;
-/// `scripts/check_no_unowned.sh` keeps it gone.
+/// reference from a transient value cannot outlive its owner and cannot form a
+/// cycle (ADR 005).
 @MainActor
 struct CollectorSessionControl {
     let collector: RRCollector

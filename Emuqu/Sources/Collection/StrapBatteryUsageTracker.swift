@@ -3,14 +3,13 @@ import Foundation
 /// How much recording the strap has done since it last reported a NEW battery
 /// percentage, and whether the displayed percentage is still believable.
 ///
-/// Its own type because `PolarManager` is over the aggregate type-size
-/// threshold and this is a self-contained concern: three counters, their
-/// per-device persistence, and one rule for reading them. It touches no BLE
+/// A self-contained concern: three counters, their per-device persistence,
+/// and one rule for reading them. It touches no BLE
 /// and makes no async call.
 ///
-/// Holds the manager strongly and is built on demand by it, the shape
-/// `check_no_unowned.sh` requires: a value with no stored state of its own
-/// cannot outlive what it points at and cannot form a cycle. The counters stay
+/// Holds the manager strongly and is built on demand by it (ADR 005): a value
+/// with no stored state of its own cannot outlive what it points at and
+/// cannot form a cycle. The counters stay
 /// on the manager, which is where they were and where the observable state
 /// belongs; only the rules for reading and updating them moved here.
 @MainActor

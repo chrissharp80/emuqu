@@ -34,7 +34,7 @@ with the same shape.
 3. Fire-and-forget tasks launched from a helper capture the owner strongly for
    their duration. A one-time migration or an upload should keep its owner
    alive until it finishes; that is the point of running it.
-4. `unowned` is not used in app source. `scripts/check_no_unowned.sh` fails
+4. `unowned` is not used in app source. The `no_unowned` SwiftLint rule fails
    the build on any occurrence, and `verify_gates_fail.sh` proves that gate
    goes red on a planted one.
 

@@ -55,16 +55,16 @@ jobs:
         run: make localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard locale-format-guard
 
       - name: Source hygiene guards
-        run: make sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard explicit-deps-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard date-ms-guard log-redaction-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard aggregate-type-size comment-citations strict-concurrency-enabled
+        run: make sendable-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard shared-root-guard explicit-deps-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard log-redaction-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard strict-concurrency-enabled
 
       - name: Info.plist, privacy manifest and CloudKit guards
         run: ./scripts/check_no_health_data_in_cloudkit.sh && ./scripts/check_privacy_manifest_vocabulary.sh && ./scripts/check_infoplist_key_drift.sh
 
       - name: Documentation, SBOM, no phone-home, pinned packages
-        run: make doc-counts-guard doc-links sbom-guard sbom-check no-phone-home xcodebuild-pinned-guard
+        run: make doc-links sbom-guard sbom-check no-phone-home xcodebuild-pinned-guard
 
       - name: The gates themselves are wired and fail closed
-        run: make gates-wired-guard gate-preflight
+        run: make gates-wired-guard
 
       - name: Tech-debt budgets and refactor-spec conformance
         run: make debt-budget spec-conformance

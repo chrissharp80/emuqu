@@ -2,10 +2,7 @@ import Foundation
 
 /// Progress of a device-memory fetch, as the record screen shows it.
 ///
-/// A top-level type, not a nested one: the aggregate type-size gate counts a
-/// nested type against its parent no matter which file it sits in, and
-/// `PolarManager` is over the threshold. `PolarManager.FetchProgress` remains
-/// as a typealias so no call site changes.
+/// `PolarManager.FetchProgress` is a typealias for it.
 ///
 /// The stage raw values and `statusMessage` are English log text; the record
 /// screen shows its own localized wording per stage

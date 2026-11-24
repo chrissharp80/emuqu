@@ -440,10 +440,6 @@ private func bandedAscending(_ value: Double, _ cases: [(Double, String)], else 
 // calls nothing that stayed behind, so none was a method in anything but
 // placement. `private` at file scope is fileprivate, so every call site in
 // this file resolves exactly as before.
-//
-// This is what `check_aggregate_type_size.sh` measures: a type is the sum of
-// its parts across every file, so code that does not need the type inflates
-// that number without making the type do more.
 
 /// SDNN, pNN50 and SDSD are marked, and not read, when they are estimates.
 private func timeDomainRows(result: HRVAnalysisResult, session: HRVSession, bundle: Bundle) -> [DeepDiveReportRenderer.DeepDiveMetric] {

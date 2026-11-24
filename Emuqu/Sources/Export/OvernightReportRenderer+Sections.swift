@@ -610,10 +610,6 @@ extension OvernightReportRenderer {
 // computed properties — and calls nothing inside it, so none is a method
 // in anything but placement. `private` at file scope is fileprivate, so
 // every call site in this file resolves.
-//
-// This is what `check_aggregate_type_size.sh` measures: a type is the sum of
-// its parts across every file, so code that does not need the type inflates
-// that number without making the type do more.
 
 /// "7h 42m" / "42m" for the recording span, first to last beat on the
 /// series' wall clock, so a strap disconnect gap counts as recorded time.

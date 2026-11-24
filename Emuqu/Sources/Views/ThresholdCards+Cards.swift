@@ -559,15 +559,10 @@ final class Alpha1StatsCache {
 /// Average pace with net climb treated as an uphill penalty of +2 s/km per
 /// percent of average grade, expressed in seconds per metre.
 ///
-/// Every value is annotated. Written inline as four chained expressions of
-/// untyped `Double` arithmetic with optional coalescing, this cost 2,171 ms to
-/// type-check on a CI runner (run 33200086130) while measuring under 120 ms on
-/// the developer Mac — the local number does not predict the runner's.
+/// Every value is annotated: as chained untyped `Double` arithmetic with
+/// optional coalescing, the expression takes seconds to type-check.
 ///
-/// File scope rather than a method, because `FitnessPostSummaryView` is already
-/// over the aggregate-type-size threshold and `check_aggregate_type_size.sh`
-/// counts any growth in a type that is already over. This function needs no
-/// part of the view, so it does not have to live inside it.
+/// File scope rather than a method: it needs no part of the view.
 private func gradeAdjustedSecondsPerMetre(
     distanceMetres dist: Double,
     duration: Double,
