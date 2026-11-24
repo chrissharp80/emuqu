@@ -1348,9 +1348,14 @@ reference: [`codemap/README.md`](codemap/README.md).
 
 The call graph combines the calls the records name with the calls, property
 reads, protocol dispatch and closure assignments found mechanically in the code.
-`make codemap-impact` lists, for every unit a branch changed, its callers up to
-the user-facing triggers that reach it, the tests and docs that reach it, the
-shared state it touches and who else touches it. Pull requests get the same list in the `gates.yml` job summary.
+`make codemap-impact` answers "what else can this change break?" for every unit
+a branch changed, nearest first: the test suites to run (as `xcodebuild`
+`-only-testing:` arguments), its callers and what each relies on, code elsewhere
+that is alike and may need the same change, the shared state it touches and who
+else touches it, then the user-facing entry points and docs that reach it. Pull
+requests get the same list in the `gates.yml` job summary.
+`scripts/codemap/measure.py` checks it against the history: of the units real
+commits had to change together, how many it would have named.
 
 `make codemap-guard` (also in `make ci`, both workflows and the pre-commit hook)
 fails when:

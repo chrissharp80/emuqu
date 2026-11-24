@@ -674,9 +674,87 @@ def changed_since(base: str, inv: dict) -> list[tuple[str, str]]:
     return out
 
 
+def _mentions(rec: dict | None, callee: str) -> str:
+    """The sentence (or branch) of a caller's record that names `callee`: what the caller says it
+    relies on. Falls back to the first sentence of what it does."""
+    if not rec:
+        return ""
+    name = callee.split("::", 1)[1].split("(")[0].split(".")[-1].split(" ")[-1]
+    texts = re.split(r"(?<=[.;])\s+", (rec.get("does") or rec.get("role") or "").strip())
+    texts += [f"when {b.get('cond')}: {b.get('effect')}" for b in rec.get("branches") or []]
+    for t in texts:
+        if name and re.search(rf"\b{re.escape(name)}\b", t):
+            return t.strip()[:240]
+    return texts[0].strip()[:240] if texts and texts[0] else ""
+
+
+def _suite(node: str, units: dict, test_classes: set[str]) -> str | None:
+    """The xcodebuild test identifier (`Target/Class`) of a test unit, or None when its type is not
+    a class with test methods (a fixture or helper extension)."""
+    f = node.split("::")[0]
+    t = ((units.get(node) or {}).get("type") or "").split(".")[0]
+    s = f"{f.split('/')[0]}/{t}"
+    return s if s in test_classes else None
+
+
+def walk_callers(callers: dict, recs: dict, node: str):
+    """Certain callers of `node`, outward one call at a time. Returns (distance by caller, the
+    callers with an `entry` as (distance, node, entry), tests by distance, doc sections by
+    distance). The walk stops at tests and doc sections; it goes on past an entry point."""
+    dist, frontier, triggers, tests, docs = {node: 0}, [node], [], {}, {}
+    while frontier:
+        nxt = []
+        for x in frontier:
+            for c, k in sorted(callers.get(x, {}).items()):
+                if k != "certain" or c in dist:
+                    continue
+                dist[c] = dist[x] + 1
+                if c.startswith(TEST_ROOTS):
+                    tests[c] = dist[c]
+                elif c.split("::")[0].endswith(".md"):
+                    docs[c] = dist[c]
+                else:
+                    cr = record_of(recs, c)
+                    if cr is not None and cr.get("entry"):
+                        triggers.append((dist[c], c, cr["entry"]))
+                    nxt.append(c)
+        frontier = nxt
+    return dist, triggers, tests, docs
+
+
+def store_users_of(recs: dict) -> dict[str, dict[str, set[str]]]:
+    """{store: {"reads": units, "writes": units}} from every unit record's own reads and writes."""
+    out = collections.defaultdict(lambda: {"reads": set(), "writes": set()})
+    for f, rec in recs.items():
+        for u in rec.get("units", []):
+            for which in ("reads", "writes"):
+                for st in u.get(which) or []:
+                    if isinstance(st, str) and ":" in st:
+                        out[st.split(" (")[0].strip()][which].add(f"{f}::{u['key']}")
+    return out
+
+
+def state_partners(store_users: dict, rec: dict | None, node: str) -> list[tuple[str, str, set[str]]]:
+    """For each store the unit itself uses: (writes|reads, store, the other units a change can
+    reach through it). A write can break every reader; a read can be broken by every other writer."""
+    out = []
+    for which in ("writes", "reads"):
+        for st in (rec or {}).get(which) or []:
+            if not isinstance(st, str):
+                continue
+            key = st.split(" (")[0].strip()
+            others = (store_users[key]["reads"] if which == "writes" else store_users[key]["writes"]) - {node}
+            if others:
+                out.append((which, key, others))
+    return out
+
+
 def cmd_impact(args: list[str]) -> int:
+    """What a change can break, nearest first: direct callers and what each relies on, the test
+    suites that reach it, the same code elsewhere, shared state, then the entry points and docs."""
     from inventory import inventory
     import graph as graphmod
+    import similar
     base = "origin/main"
     if args[:1] == ["--base"]:
         if len(args) < 2:
@@ -695,83 +773,96 @@ def cmd_impact(args: list[str]) -> int:
             near = sorted(k for k in units if a.split("::")[-1].split("(")[0].split(".")[-1] in k)[:15]
             print(f"impact: no unit {a!r}. Units with that name:\n  " + "\n  ".join(near or ["(none)"]), file=sys.stderr)
         return 2
-    is_test = lambda n: n.startswith(("EmuquTests/", "EmuquUITests/"))
+    is_test = lambda n: n.startswith(TEST_ROOTS)
     is_doc = lambda n: n.split("::")[0].endswith(".md")
+    index = similar.Index(similar.unit_texts(inv, ROOT))
+    test_classes = {f"{n.split('/')[0]}/{(u.get('type') or '').split('.')[0]}" for n, u in units.items()
+                    if is_test(n) and u.get("name", "").startswith("test")}
 
-    store_users = collections.defaultdict(lambda: {"reads": set(), "writes": set()})
-    for f, rec in recs.items():
-        for u in rec.get("units", []):
-            for which in ("reads", "writes"):
-                for st in u.get(which) or []:
-                    if isinstance(st, str) and ":" in st:
-                        store_users[st.split(" (")[0].strip()][which].add(f"{f}::{u['key']}")
+    store_users = store_users_of(recs)
 
-    lines = [f"# Code map impact{'' if args else f' since {base}'}", ""]
-    if not targets:
-        lines.append("No mapped code changed.")
+    sections, all_suites = [], {}
     for node, how in targets:
         r = record_of(recs, node)
-        lines += [f"## `{node}` ({how})", ""]
+        lines = [f"## `{node}` ({how})", ""]
         if r is not None and how != "deleted":
-            lines.append(f"Does: {(r.get('does') or r.get('role') or '').strip()[:400]}")
+            promise = (r.get("contract") or "").strip()
+            lines.append(f"{'Contract' if promise else 'Does'}: {(promise or r.get('does') or r.get('role') or '').strip()[:500]}")
+        # 1. direct callers, and what each says it relies on
         direct = callers.get(node, {})
-        cert = sorted(c for c, k in direct.items() if k == "certain")
-        poss = sorted(c for c, k in direct.items() if k == "possible")
-        lines.append(f"\n**Direct callers:** {len(cert)} certain, {len(poss)} possible.")
-        lines += [f"- {c} ({', '.join(g['why'].get((c, node), []))})" for c in cert]
-        lines += [f"- (possible) {c}" for c in poss[:40]] + ([f"- ... {len(poss) - 40} more possible"] if len(poss) > 40 else [])
-        # walk certain callers to triggers
-        seen, todo, triggers, tests, docs = {node}, [node], [], set(), set()
-        while todo:
-            x = todo.pop()
-            for c, k in callers.get(x, {}).items():
-                if k != "certain" or c in seen:
-                    continue
-                seen.add(c)
-                if is_test(c):
-                    tests.add(c)
-                    continue
-                if is_doc(c):
-                    docs.add(c)
-                    continue
-                cr = record_of(recs, c)
-                if cr is not None and cr.get("entry"):
-                    triggers.append((c, cr["entry"]))
-                todo.append(c)
-        lines.append(f"\n**Reached from {len(triggers)} trigger(s)** (units with an outside trigger, through certain callers):")
-        lines += [f"- {c}: {e}" for c, e in sorted(triggers)[:80]] + ([f"- ... {len(triggers) - 80} more"] if len(triggers) > 80 else [])
-        lines.append(f"\n**Tests that reach it:** {len(tests)}")
-        lines += [f"- {t}" for t in sorted(tests)[:60]] + ([f"- ... {len(tests) - 60} more"] if len(tests) > 60 else [])
-        lines.append(f"\n**Docs that describe it or its callers:** {len(docs)}")
-        lines += [f"- {d}" for d in sorted(docs)]
-        if r is not None and how != "deleted" and "::" in node and node.split("::", 1)[1]:
+        cert = sorted(c for c, k in direct.items() if k == "certain" and not is_test(c) and not is_doc(c))
+        poss = sorted(c for c, k in direct.items() if k == "possible" and not is_test(c) and not is_doc(c))
+        lines.append(f"\n### 1. Code that calls it: {len(cert)} certain, {len(poss)} possible")
+        for c in cert:
+            lines.append(f"- `{c}` ({', '.join(g['why'].get((c, node), []))})")
+            said = _mentions(record_of(recs, c), node)
+            if said:
+                lines.append(f"  - relies on: {said}")
+        lines += [f"- (possible) `{c}`" for c in poss[:20]] + ([f"- ... {len(poss) - 20} more possible"] if len(poss) > 20 else [])
+        dist, triggers, tests, docs = walk_callers(callers, recs, node)
+        # 2. test suites, nearest first
+        suites = {}
+        for t, d in tests.items():
+            s = _suite(t, units, test_classes)
+            if s:
+                suites[s] = min(d, suites.get(s, d))
+        for s, d in suites.items():
+            all_suites[s] = min(d, all_suites.get(s, d))
+        lines.append(f"\n### 2. Test suites that reach it: {len(suites)}")
+        for s, d in sorted(suites.items(), key=lambda x: (x[1], x[0]))[:25]:
+            lines.append(f"- {s} ({'calls it' if d == 1 else f'{d - 1} call(s) away'})")
+        if len(suites) > 25:
+            lines.append(f"- ... {len(suites) - 25} more, further away")
+        # 3. the same code elsewhere
+        twins = index.similar(node) if how != "deleted" else []
+        lines.append(f"\n### 3. Same code elsewhere (may need the same change): {len(twins)}")
+        lines += [f"- `{o}` ({int(sc * 100)}% alike)" for o, sc in twins]
+        # 4. shared state
+        if r is not None and how != "deleted" and node.split("::", 1)[1]:
             shared = []
-            for which in ("reads", "writes"):
-                for st in r.get(which) or []:
-                    if isinstance(st, str):
-                        key = st.split(" (")[0].strip()
-                        others = (store_users[key]["reads"] | store_users[key]["writes"]) - {node}
-                        if others:
-                            shared.append(f"- {which[:-1]}s `{key}`: also written by {len(store_users[key]['writes'] - {node})}, "
-                                          f"read by {len(store_users[key]['reads'] - {node})}: "
-                                          + ", ".join(sorted(others)[:12]) + (" ..." if len(others) > 12 else ""))
-            lines.append(f"\n**Shared state:** {len(shared)} store(s) also used elsewhere")
+            for which, key, others in state_partners(store_users, r, node):
+                role = "read by" if which == "writes" else "also written by"
+                shared.append(f"- {which[:-1]}s `{key}`, {role} {len(others)}: "
+                              + ", ".join(f"`{o}`" for o in sorted(others)[:8]) + (" ..." if len(others) > 8 else ""))
+            effects = sorted(k for (w, k) in state_through_callees(g, recs, node) if w == "writes")
+            lines.append(f"\n### 4. Shared state: {len(shared)} store(s) it uses that other code also uses")
             lines += shared
-            via = state_through_callees(g, recs, node)
-            lines.append(f"\n**State reached through its callees:** {len(via)} store(s)")
-            lines += [f"- {which} `{key}` (by {', '.join(sorted(by)[:4])}{' ...' if len(by) > 4 else ''})"
-                      for (which, key), by in sorted(via.items())[:60]]
-            if len(via) > 60:
-                lines.append(f"- ... {len(via) - 60} more")
+            if effects:
+                lines.append(f"- through its callees it also writes {len(effects)} store(s) "
+                             f"(`codemap.py impact` on a callee shows its own)")
+        # 5. entry points and docs, nearest first
+        lines.append(f"\n### 5. Entry points that reach it: {len(triggers)}")
+        for d, c, e in sorted(triggers)[:10]:
+            lines.append(f"- {e} (`{c}`, {d} call(s) away)")
+        if len(triggers) > 10:
+            lines.append(f"- ... {len(triggers) - 10} more, further away")
+        near_docs = sorted(dc for dc, d in docs.items() if d == 1)
+        lines.append(f"\n### 6. Docs: {len(near_docs)} describe it directly, {len(docs) - len(near_docs)} describe its callers")
+        lines += [f"- {dc}" for dc in near_docs]
         open_flags = []
         for n in [node] + cert:
             nr = record_of(recs, n)
             for fl in (nr or {}).get("flags") or []:
                 open_flags.append(f"- [{fl.get('sev')}] {n}: {fl.get('text', '')[:300]}")
-        lines.append(f"\n**Open findings on it and its direct callers:** {len(open_flags)}")
-        lines += open_flags
-        lines.append("")
-    text = "\n".join(lines) + "\n"
+        if open_flags:
+            lines.append(f"\n### Open findings on it and its direct callers: {len(open_flags)}")
+            lines += open_flags
+        sections.append("\n".join(lines) + "\n")
+
+    head = [f"# Code map impact{'' if args else f' since {base}'}", ""]
+    if not targets:
+        head.append("No mapped code changed.")
+    else:
+        head.append(f"{len(targets)} unit(s). Test suites to run, nearest first ({len(all_suites)}):")
+        ordered = [s for s, _ in sorted(all_suites.items(), key=lambda x: (x[1], x[0]))]
+        near = [s for s in ordered if all_suites[s] <= 2]
+        if near:
+            head.append(f"\nThe {len(near)} that call it or a direct caller:\n```\n"
+                        + " ".join(f"-only-testing:{s}" for s in near) + "\n```")
+        if len(ordered) > len(near):
+            head.append(f"\nAll {len(ordered)}:\n```\n" + " ".join(f"-only-testing:{s}" for s in ordered) + "\n```")
+        head.append("")
+    text = "\n".join(head) + "\n" + "\n".join(sections)
     print(text)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:

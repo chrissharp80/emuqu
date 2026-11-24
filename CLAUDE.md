@@ -19,8 +19,9 @@ Before you change code:
 
 1. Run `.venv-codemap/bin/python scripts/codemap/codemap.py impact <path::key>` for each unit you
    will change (or `make codemap-impact` for the whole branch). Read the unit's record, its
-   callers, the triggers and tests that reach it, the shared state it touches, and, with the
-   overlay, the open findings. Every path it lists has to keep working.
+   callers and what each relies on, the same code elsewhere (which may need the same change), the
+   shared state it touches, and, with the overlay, the open findings. Every path it lists has to
+   keep working; run the test suites it lists.
 
 When you change code:
 
