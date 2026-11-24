@@ -14,10 +14,29 @@ extension SessionRecoveryCoordinator {
             artifactDetector: collector.artifactDetector,
             windowSelector: collector.windowSelector,
             cloudSyncManager: collector.cloudSyncManager,
-            baselineTracker: collector.baselineTracker
+            baselineTracker: collector.baselineTracker,
+            exportToHealth: Self.healthExport(healthKit: collector.healthKit, settingsManager: collector.settingsManager)
         )
         collector._recoveryService = service
         return service
+    }
+
+    /// A recovered night's export to Apple Health, read against the setting
+    /// at the time of recovery. Not awaited: the night is already archived.
+    private static func healthExport(healthKit: HealthKitManager, settingsManager: SettingsManager) -> @Sendable (HRVSession) -> Void {
+        { session in
+            Task { @MainActor in await exportIfEnabled(session, healthKit: healthKit, settingsManager: settingsManager) }
+        }
+    }
+
+    @MainActor
+    private static func exportIfEnabled(_ session: HRVSession, healthKit: HealthKitManager, settingsManager: SettingsManager) async {
+        guard settingsManager.settings.enableHealthKitExport else { return }
+        do {
+            try await healthKit.exportSessionMetrics(from: session)
+        } catch {
+            debugLog("[Recovery] Apple Health export of a recovered night failed: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Retry Fetch
@@ -144,24 +163,31 @@ extension SessionRecoveryCoordinator {
     }
 
     /// The archived overnight a recovered recording merges into, by the same
-    /// rule as every other merge (`SessionMerger.relation`): a copy of the
-    /// same recording always, a segment of the same sleep within the merge
-    /// gap when merging is on and the recording's start is known. Recordings
-    /// further apart stay separate nights.
+    /// rule and preference as every other merge (`SessionMerger.relation`,
+    /// `ArchiveStore.mergeTarget`): a copy of the same recording first, else
+    /// the nearest segment of the same sleep within the merge gap when merging
+    /// is on and the recording's start is known. A segment absorbed into
+    /// another entry's linked series (a paused night's earlier half) is never
+    /// the target: its night is the entry that absorbed it. Recordings further
+    /// apart stay separate nights.
     private func archivedNightToMergeInto(_ recording: StrapRecording, start: Date) -> HRVSession? {
         let settings = collector.settingsManager.settings
         let end = start.addingTimeInterval(StrapExerciseDecoder.durationSeconds(of: recording.points))
         let span = SessionMerger.span(start: start, end: end)
         let allowsSameSleep = settings.sessionMergeMode != .off && recording.startedAt != nil
-        for entry in collector.archive.store.entries where entry.sessionType == .overnight {
-            let relation = SessionMerger.relation(
-                of: span, to: SessionMerger.span(of: entry), mergeGap: settings.effectiveMergeGapSeconds
-            )
-            guard relation == .sameRecording || (relation == .sameSleep && allowsSameSleep) else { continue }
-            guard let session = collector.archive.retrieveOrLog(entry.sessionId) else { continue }
-            debugLog("[Recovery] Same-night session \(session.id.uuidString.prefix(8)) (\(session.rrSeries?.points.count ?? 0) beats, source \(session.dataSourceSummary?.selectedSource ?? "nil"))")
-            return session
-        }
-        return nil
+        let entries = collector.archive.store.entries
+        let absorbed = Set(entries.flatMap { $0.linkedSessionIds ?? [] })
+        let related = entries
+            .filter { $0.sessionType == .overnight && !absorbed.contains($0.sessionId) }
+            .map { entry in
+                let entrySpan = SessionMerger.span(of: entry)
+                let relation = SessionMerger.relation(of: span, to: entrySpan, mergeGap: settings.effectiveMergeGapSeconds)
+                return (entry: entry, relation: relation, gap: SessionMerger.gapBetween(span, entrySpan))
+            }
+        let target = related.first { $0.relation == .sameRecording }
+            ?? (allowsSameSleep ? related.filter { $0.relation == .sameSleep }.min { $0.gap < $1.gap } : nil)
+        guard let target, let session = collector.archive.retrieveOrLog(target.entry.sessionId) else { return nil }
+        debugLog("[Recovery] Same-night session \(session.id.uuidString.prefix(8)) (\(session.rrSeries?.points.count ?? 0) beats, source \(session.dataSourceSummary?.selectedSource ?? "nil"))")
+        return session
     }
 }

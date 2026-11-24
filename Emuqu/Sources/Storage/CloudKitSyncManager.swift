@@ -194,7 +194,8 @@ final class CloudKitSyncManager {
         settingsManager: settingsManager,
         archiveKey: archive.encryption,
         ensureZone: { [weak self] in try await self?.ensureZoneExists() ?? () },
-        confirmAccount: { [weak self] in await self?.accountGuard.confirmAccount() == .confirmed }
+        confirmAccount: { [weak self] in await self?.accountGuard.confirmAccount() == .confirmed },
+        zoneGone: { [weak self] in _ = await self?.accountGuard.zoneWasDeleted() }
     )
 
     /// Whether the custom zone has been created
@@ -512,13 +513,11 @@ final class CloudKitSyncManager {
         await state.saveSyncStateAsync()
     }
 
+    /// The batch push's handling (`handleSaveFailure`), so a deleted zone
+    /// stops sync here too instead of queueing a retry, then the queue is
+    /// saved as this path saves state after every upload.
     private func handleUploadError(_ error: Error, sessionId: UUID) async {
-        CloudKitSessionFreshness.noteSaveFailure(error, uploading: sessionId)
-        if Self.isPermanentSchemaError(error) {
-            flagSchemaUnavailable(reason: error.localizedDescription)
-            return
-        }
-        state.markFailed(sessionId)
+        _ = await handleSaveFailure(error, sessionId: sessionId)
         await state.savePendingQueueAsync()
     }
 
@@ -770,7 +769,10 @@ final class CloudKitSyncManager {
     /// partway (deleted iCloud data, another account) turned iCloud Sync off
     /// and left its own message; that is kept. One the user turned off while
     /// it ran stamps nothing either; `performFullSyncBody` then leaves
-    /// `.syncing`.
+    /// `.syncing`. Nor does one whose bookkeeping could not be written
+    /// (`CloudKitSyncState.hasUnsavedBookkeeping`): a relaunch would load the
+    /// older files, so the sync is shown as failed and the next one is not
+    /// held back by the interval.
     private func finishSuccessfulSync(pushed: Int, startedAt: Date) {
         // Turned off during this run, by `CloudAccountGuard.stopSync` (its
         // message stays) or by the user: nothing is stamped.
@@ -778,6 +780,9 @@ final class CloudKitSyncManager {
         if !schemaUnavailable {
             if let syncError = lastPullErrorMessage ?? lastPushErrorMessage {
                 syncState = .error(syncError)
+            } else if state.hasUnsavedBookkeeping {
+                debugLog("[CloudKit] Full sync ran, but its record of what was uploaded could not be saved — not stamped, so the next activation syncs again", level: .error)
+                syncState = .error(CloudSyncMessages.progressNotSaved)
             } else {
                 lastSyncDate = Date()
                 syncState = .idle

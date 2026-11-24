@@ -155,17 +155,34 @@ extension CloudKitSyncManager {
             trashRestore.clear(sessionId)
         } catch let error as CKError where error.code == .serverRecordChanged {
             return await resolveConflict(error, prepared: prepared, sessionId: sessionId)
-        } catch let error as CKError where error.code == .zoneNotFound || error.code == .userDeletedZone {
-            return await handleZoneGone(error, sessionId: sessionId)
         } catch {
-            if Self.isPermanentSchemaError(error) {
-                flagSchemaUnavailable(reason: error.localizedDescription)
-                return true
-            }
-            state.markFailed(sessionId)
-            CloudKitSessionFreshness.noteSaveFailure(error, uploading: sessionId)
+            return await handleSaveFailure(error, sessionId: sessionId)
         }
         return false
+    }
+
+    /// What a failed session save does, for the batch push and the direct
+    /// upload alike (a conflict is resolved by each caller first). The zone
+    /// gone stops sync (`handleZoneGone`); a schema the container does not
+    /// have stops CloudKit for this launch; anything else queues the session
+    /// for a retry. Returns true when the push cycle must stop.
+    func handleSaveFailure(_ error: Error, sessionId: UUID) async -> Bool {
+        if let ckError = error as? CKError, Self.isZoneGone(ckError) {
+            return await handleZoneGone(ckError, sessionId: sessionId)
+        }
+        CloudKitSessionFreshness.noteSaveFailure(error, uploading: sessionId)
+        if Self.isPermanentSchemaError(error) {
+            flagSchemaUnavailable(reason: error.localizedDescription)
+            return true
+        }
+        state.markFailed(sessionId)
+        return false
+    }
+
+    /// The app's zone is not on the server: deleted with the user's iCloud
+    /// data, or another account is signed in.
+    nonisolated static func isZoneGone(_ error: CKError) -> Bool {
+        error.code == .zoneNotFound || error.code == .userDeletedZone
     }
 
     // MARK: - Push helpers
@@ -419,7 +436,7 @@ extension CloudKitSyncManager {
     /// the session stays queued and the reason ends the sync as an error.
     /// Always `true`: every remaining push would meet the same zone.
     private func handleZoneGone(_ error: CKError, sessionId: UUID) async -> Bool {
-        debugLog("[CloudKit] Push: zone gone (\(error.code.rawValue)) — iCloud data was deleted, or the account changed", level: .warning)
+        debugLog("[CloudKit] Save: zone gone (\(error.code.rawValue)) — iCloud data was deleted, or the account changed", level: .warning)
         if let message = await accountGuard.zoneWasDeleted() {
             state.markFailed(sessionId)
             lastPushErrorMessage = message

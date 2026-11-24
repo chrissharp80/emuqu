@@ -7,8 +7,8 @@ import Foundation
 ///
 /// Separate from CloudKitSyncManager's session sync, with its own record type
 /// ("RawBackup"); it shares the sync manager's zone, and the sync manager's
-/// zone-creation step and account check are passed in as `ensureZone` and
-/// `confirmAccount`.
+/// zone-creation step, account check and deleted-zone handling are passed in
+/// as `ensureZone`, `confirmAccount` and `zoneGone`.
 @MainActor
 final class CloudKitLiveBackupManager {
     private let container = CKContainer(identifier: AppConfig.iCloudContainerIdentifier)
@@ -36,6 +36,10 @@ final class CloudKitLiveBackupManager {
     /// (`CloudAccountGuard.confirmAccount`). Nothing is uploaded to, or read
     /// back from, another account.
     private let confirmAccount: () async -> Bool
+    /// The sync manager's handling of a deleted zone
+    /// (`CloudAccountGuard.zoneWasDeleted`): sync stops for the user to opt in
+    /// again, as the session uploads do.
+    private let zoneGone: () async -> Void
 
     /// Sessions whose live backup this device put in iCloud and has not
     /// deleted yet. Persisted, so a night that ends after iCloud Sync was
@@ -55,12 +59,14 @@ final class CloudKitLiveBackupManager {
         settingsManager: SettingsManager,
         archiveKey: EncryptionManager,
         ensureZone: @escaping () async throws -> Void,
-        confirmAccount: @escaping () async -> Bool
+        confirmAccount: @escaping () async -> Bool,
+        zoneGone: @escaping () async -> Void
     ) {
         self.settingsManager = settingsManager
         self.archiveKey = archiveKey
         self.ensureZone = ensureZone
         self.confirmAccount = confirmAccount
+        self.zoneGone = zoneGone
     }
 
     private var settings: UserSettings {
@@ -92,6 +98,9 @@ final class CloudKitLiveBackupManager {
             try await saveWithAsset(record, compressedData: compressedData, sessionId: sessionId)
             backedUpIds.insert(sessionId.uuidString)
             debugLog("[CloudKit] Live backup: \(points.count) beats → iCloud (\(compressedData.count)B)")
+        } catch let error as CKError where CloudKitSyncManager.isZoneGone(error) {
+            debugLog("[CloudKit] Live backup: zone gone (\(error.code.rawValue)) — iCloud data was deleted, or the account changed", level: .warning)
+            await zoneGone()
         } catch {
             handleUploadFailure(error)
         }

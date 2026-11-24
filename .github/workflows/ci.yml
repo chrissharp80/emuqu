@@ -443,30 +443,6 @@ jobs:
         run: |
           echo "- Thread Sanitizer (unit suite): ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 
-  # The mutation harness: each mutation changes the meaning of one high-stakes
-  # behaviour (the score arithmetic, encryption, the medical-claim guard, the
-  # data purge) and requires the suite to notice. A build per mutation, so it
-  # runs at scope `full`, which every release runs.
-  mutations:
-    name: Mutations caught
-    if: inputs.scope == 'full'
-    runs-on: macos-26
-    timeout-minutes: 330
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.6.app
-
-      - name: Every mutation is caught
-        run: ./scripts/verify_tests_fail.sh
-
-      - name: Write the result to the run summary
-        if: always()
-        run: |
-          echo "- Mutations caught: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
-
   # Release compiles with the optimizer, and some diagnostics exist only
   # there: an optimizer-only warning, made an error by warnings-as-errors,
   # passes every Debug build and test run. Without this job the first place

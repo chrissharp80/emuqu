@@ -198,18 +198,23 @@ final class HistoryViewModel {
         return chain
     }
 
-    /// Highest recovery score wins, and any real score (0 included) beats no
-    /// score; ties break to the later end date, then the later start, so the
-    /// choice is stable across recomputes.
-    nonisolated private static func chainWinner(_ chain: [SessionArchiveEntry]) -> SessionArchiveEntry? {
+    /// The member that spans the most of the night stands for it, as on the
+    /// Dashboard (`DashboardSessionPolicy`, `endDate − date`): a resumed
+    /// night's final session is re-anchored to the night's start and holds
+    /// every segment's beats, while a paused segment keeps the partial score
+    /// it was given at the pause. Ties break to the later end date, then the
+    /// later start, then the scored member, so the choice is stable across
+    /// recomputes.
+    nonisolated static func chainWinner(_ chain: [SessionArchiveEntry]) -> SessionArchiveEntry? {
         chain.max { a, b in
-            let scoreA = a.recoveryScore ?? -Double.infinity
-            let scoreB = b.recoveryScore ?? -Double.infinity
-            if scoreA != scoreB { return scoreA < scoreB }
+            let spanA = (a.endDate ?? a.date).timeIntervalSince(a.date)
+            let spanB = (b.endDate ?? b.date).timeIntervalSince(b.date)
+            if spanA != spanB { return spanA < spanB }
             let aEnd = a.endDate ?? .distantPast
             let bEnd = b.endDate ?? .distantPast
             if aEnd != bEnd { return aEnd < bEnd }
-            return a.date < b.date
+            if a.date != b.date { return a.date < b.date }
+            return (a.recoveryScore ?? -Double.infinity) < (b.recoveryScore ?? -Double.infinity)
         }
     }
 

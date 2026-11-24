@@ -37,6 +37,7 @@ extension CollectorSessionControl {
         bindHealthKitSleep()
         bindBatteryAndReconnect()
         bindCloudSyncBaseline()
+        collector.notificationObservers.add(collector.baselineArchiveSync.observe())
     }
 
     // MARK: - Binding Groups

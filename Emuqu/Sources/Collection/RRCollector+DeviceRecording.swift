@@ -251,11 +251,11 @@ extension DeviceRecordingSession {
     ///
     /// Archive recovery handles the "app was killed overnight" case: the
     /// persisted-state file didn't restore (either lost, corrupted, or never
-    /// reached disk), but the archive still has a placeholder overnight
-    /// session that was created when recording started. Without this step,
-    /// the strap download would land in a fresh session while the placeholder
-    /// stays in the archive with 0 RR points and a default score — causing the
-    /// dashboard to pick the wrong one.
+    /// reached disk), but the archive still holds that night's strap
+    /// recording session, unfinished (`isUnfinishedStrapNight`). Without this
+    /// step, the strap download would land in a fresh session while the
+    /// unfinished one stays in the archive, and the dashboard could pick the
+    /// wrong one.
     func resolveBaseSession() -> HRVSession? {
         if let current = collector.sessionState.currentSession, current.deviceProvenance?.recordingMode == .deviceInternal { return current }
         if let persisted = collector.getPersistedRecordingState() {
@@ -285,14 +285,13 @@ extension DeviceRecordingSession {
         )
     }
 
-    /// Search the archive for a recent overnight session that looks like a
-    /// placeholder waiting for data. Returns nil if no good candidate found.
+    /// Search the archive for a recent strap-recorded overnight session that
+    /// never finished. Returns nil if no good candidate found.
     ///
-    /// A placeholder is identified by: overnight type, started within 24h,
-    /// AND either (no meanRMSSD recorded) OR (recoveryScore is at/below the
-    /// 1.0 floor that gets written before real analysis runs). The second
-    /// predicate catches cases where some beats got streamed to the archive
-    /// via the live-backup path but no real analysis ever completed.
+    /// A candidate is an overnight session started within 24h whose own
+    /// record says it was recorded to the strap's memory and is still
+    /// collecting, analysing or failed. The score is never consulted: a scored
+    /// night is finished whatever its score, and a low one is a real night.
     ///
     /// If there are multiple candidates, we can't tell which one the
     /// device was actually recording for. Returning the newest risks
@@ -302,24 +301,32 @@ extension DeviceRecordingSession {
     private func findRecoverableArchivedSession() -> HRVSession? {
         let cutoff = Date().addingTimeInterval(-24 * 3600)
         let candidates = collector.archive.store.entries
-            .filter { Self.looksLikeUnresolvedOvernight($0, cutoff: cutoff) }
+            .filter { $0.sessionType == .overnight && $0.date >= cutoff }
             .sorted { $0.date > $1.date }
+            .compactMap { collector.archive.retrieveLightweightOrLog($0.sessionId) }
+            .filter(Self.isUnfinishedStrapNight)
         guard let best = candidates.first else { return nil }
         if candidates.count > 1 {
             logAmbiguousRecoveryCandidates(candidates)
             return nil
         }
         do {
-            return try collector.archive.retrieve(best.sessionId)
+            return try collector.archive.retrieve(best.id)
         } catch {
-            debugLog("[RRCollector] Archive recovery: failed to retrieve session \(best.sessionId.uuidString.prefix(8)): \(error)")
+            debugLog("[RRCollector] Archive recovery: failed to retrieve session \(best.id.uuidString.prefix(8)): \(error)")
             return nil
         }
     }
 
-    private static func looksLikeUnresolvedOvernight(_ entry: SessionArchiveEntry, cutoff: Date) -> Bool {
-        guard entry.sessionType == .overnight, entry.date >= cutoff else { return false }
-        return entry.meanRMSSD == nil || (entry.recoveryScore ?? 0) <= 1.0
+    /// An overnight session recorded to the strap's memory whose recording
+    /// was never turned into a finished night.
+    static func isUnfinishedStrapNight(_ session: HRVSession) -> Bool {
+        guard session.sessionType == .overnight,
+              session.deviceProvenance?.recordingMode == .deviceInternal else { return false }
+        switch session.state {
+        case .collecting, .analyzing, .failed: return true
+        case .complete, .paused: return false
+        }
     }
 
     /// When a recording the app cannot otherwise date began: aligned to
@@ -565,9 +572,9 @@ extension DeviceRecordingSession.DownloadPlacement {
 // needs to be inside the type.
 
 @MainActor
-private func logAmbiguousRecoveryCandidates(_ candidates: [SessionArchiveEntry]) {
-    debugLog("[RRCollector] Archive recovery: found \(candidates.count) unresolved overnight candidates within 24h — refusing to guess, filing the recording by its own start", level: .warning)
+private func logAmbiguousRecoveryCandidates(_ candidates: [HRVSession]) {
+    debugLog("[RRCollector] Archive recovery: found \(candidates.count) unfinished strap nights within 24h — refusing to guess, filing the recording by its own start", level: .warning)
     for c in candidates.prefix(5) {
-        debugLog("[RRCollector]   candidate \(c.sessionId.uuidString.prefix(8)) date=\(c.date)")
+        debugLog("[RRCollector]   candidate \(c.id.uuidString.prefix(8)) date=\(c.startDate)")
     }
 }

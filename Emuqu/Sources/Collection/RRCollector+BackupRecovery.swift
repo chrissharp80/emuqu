@@ -181,14 +181,18 @@ extension SessionRecoveryCoordinator {
     }
 
     /// The H10 keeps recording internally through a crash. Its recording of
-    /// this workout (one that started after the workout did) is downloaded,
-    /// stopping it if it still runs, and placed on the workout's clock by the
-    /// recording's own start, as the live finish places it. nil → the
-    /// recovery service falls back to the streamed disk backup it reads on
-    /// its own.
+    /// this workout (one that started after the workout did, and no later
+    /// than the workout's last known moment) is downloaded, stopping it if it
+    /// still runs, and placed on the workout's clock by the recording's own
+    /// start, as the live finish places it. A recording that began after the
+    /// workout was last heard from belongs to a later session (an overnight
+    /// armed that evening): it is kept aside as a rescue backup, as the
+    /// overnight merge does. nil → the recovery service falls back to the
+    /// streamed disk backup it reads on its own.
     private func strapRecordingForWorkoutRecovery(sessionId: UUID) async -> [RRPoint]? {
-        guard let workoutStart = collector.services.workoutTrackBackup.retrieve(sessionId)?.header.startDate,
+        guard let backup = collector.services.workoutTrackBackup.retrieve(sessionId),
               !strapRecordingBelongsToLiveSession else { return nil }
+        let workoutStart = backup.header.startDate
         let manager = collector.polarManager
         manager.recording.beginTransfer()
         guard await manager.recording.reconnectForTransfer(), manager.isRecordingOnDevice || manager.hasStoredExercise,
@@ -197,9 +201,34 @@ extension SessionRecoveryCoordinator {
             debugLog("[Recovery] Workout strap recovery: no usable H10 recording — using disk backup")
             return nil
         }
+        guard Self.recording(startedAt: recording.startedAt, belongsToWorkoutLastHeardAt: Self.lastKnownMoment(of: backup)) else {
+            let keptAside = manager.rescueToBackup(recording)
+            debugLog("[Recovery] Workout strap recovery: the strap's recording began after the workout — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed; the strap keeps it"); using disk backup")
+            return nil
+        }
         debugLog("[Recovery] Workout strap recovery: pulled \(recording.points.count) beats from H10")
         return recording.points(onClockOf: workoutStart)
     }
+
+    /// The last moment the workout's own backup records: its newest GPS fix
+    /// or sample, else its start.
+    static func lastKnownMoment(of backup: WorkoutTrackBackup.Recovered) -> Date {
+        let start = backup.header.startDate
+        let lastSample = backup.samples.map(\.offsetSec).max().map { start.addingTimeInterval(TimeInterval($0)) }
+        return [start, backup.track.last?.timestamp, lastSample].compactMap { $0 }.max() ?? start
+    }
+
+    /// Whether a recording that began at `start` can be the workout's: one
+    /// with no start cannot be placed, and one that began more than
+    /// `armingSlackSeconds` after the workout was last heard from is a later
+    /// session's. The slack covers a workout that died before its first
+    /// sample, while the strap was still being armed.
+    static func recording(startedAt start: Date?, belongsToWorkoutLastHeardAt lastKnown: Date) -> Bool {
+        guard let start else { return false }
+        return start <= lastKnown.addingTimeInterval(armingSlackSeconds)
+    }
+
+    static let armingSlackSeconds: TimeInterval = 15 * 60
 
     /// Re-finalize a recovered workout at a user-chosen end (seconds from
     /// start) by clipping its archived RR series — the review/trim card's

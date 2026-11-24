@@ -405,12 +405,42 @@ extension OvernightStreamingCoordinator {
         let (finalPoints, dataSource, finalDeviceBeats) = selectBestDataSource(
             streamingPoints: streamingPoints, devicePoints: fetched.devicePoints, baseSession: baseSession
         )
+        await backUpDownloadedNight(fetched.devicePoints, chosen: finalPoints, usedDevice: finalDeviceBeats != nil, baseSession: baseSession)
         return await analyzeAndFinalizeOvernight(
             finalPoints: finalPoints, baseSession: baseSession,
             streamingBeats: streamingPoints.count, deviceBeats: finalDeviceBeats,
             dataSource: dataSource, reconnectCount: reconnectCount,
             prefetchedSleepData: fetched.sleep
         )
+    }
+
+    /// The strap's beats are on this device before anything else can fail.
+    /// The download is on record as soon as the beats arrive, and the stream's
+    /// own backup, dated by the night's start, would then count as holding the
+    /// strap's recording (`RRCollector.isStrapRecordingSaved`) and let the
+    /// next arming clear it. So the night's backup is replaced by the merged
+    /// beats it will be scored on. When the strap's beats were not used, or
+    /// that backup cannot be written (it would replace a larger one), they get
+    /// their own backup in Lost Sessions (`rescueDownloadedBeats`).
+    private func backUpDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async {
+        guard let devicePoints, !devicePoints.isEmpty else { return }
+        if usedDevice, await backUpMergedNight(chosen, sessionId: baseSession.id) { return }
+        collector.morning.rescueDownloadedBeats(devicePoints, baseSession: baseSession)
+    }
+
+    /// Replaces the night's backup with `points`; false when it was not written.
+    private func backUpMergedNight(_ points: [RRPoint], sessionId: UUID) async -> Bool {
+        let backup = collector.rawBackup
+        let did = collector.polarManager.connectedDeviceId
+        return await Task.detached(priority: .utility) {
+            do {
+                try backup.backup(points: points, sessionId: sessionId, deviceId: did)
+                return true
+            } catch {
+                debugLog("[RRCollector] Failed to back up the merged night (\(points.count) beats): \(error)", level: .error)
+                return false
+            }
+        }.value
     }
 
     /// ALWAYS pull and merge the strap's internal recording on an H10 "both"

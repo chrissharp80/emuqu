@@ -16,8 +16,14 @@ jobs:
     if: github.repository_owner == 'chrissharp80'
     uses: ./.github/workflows/ci.yml
 
+  # Every mutation of a high-stakes behaviour must fail the suite before a
+  # build reaches testers.
+  mutations:
+    if: github.repository_owner == 'chrissharp80'
+    uses: ./.github/workflows/mutations.yml
+
   deploy:
-    needs: quality-gate
+    needs: [quality-gate, mutations]
     # Spelled out rather than leaning on the implicit `success()` that GitHub
     # inserts when an `if:` carries no status function. This gate is the only
     # thing standing between a red build and real testers, so it says what it
@@ -26,7 +32,7 @@ jobs:
     # The branch is checked here as well as in the `testflight` environment's
     # rule. That rule lives in repository settings, where a change to it shows
     # in no diff; this one is in the code.
-    if: needs.quality-gate.result == 'success' && github.repository_owner == 'chrissharp80' && github.ref == 'refs/heads/main'
+    if: needs.quality-gate.result == 'success' && needs.mutations.result == 'success' && github.repository_owner == 'chrissharp80' && github.ref == 'refs/heads/main'
     runs-on: macos-26
     timeout-minutes: 60
     # The signing and App Store Connect secrets live in this environment, which

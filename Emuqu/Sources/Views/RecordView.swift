@@ -372,6 +372,10 @@ struct RecordView: View {
     func autoAcceptOvernight() {
         debugLog("[AutoAccept] autoAcceptOvernight called")
         Task {
+            if let session = sessionState.currentSession, !isInArchive(session) {
+                await acceptUnsavedNight(session)
+                return
+            }
             let tagsStored: Bool
             if let session = sessionState.currentSession {
                 tagsStored = await scoreLatestVersion(of: session)
@@ -381,6 +385,31 @@ struct RecordView: View {
             }
             await MainActor.run { finishAutoAccept(tagsStored: tagsStored) }
         }
+    }
+
+    /// Whether the night on the review card is in the archive: under its own
+    /// id, or folded into a night the archive already held.
+    private func isInArchive(_ session: HRVSession) -> Bool {
+        collector.archive.store.exists(session.id) || sessionState.reviewFoldedIntoSessionId != nil
+    }
+
+    /// The save before review failed, so there is no archived night to
+    /// re-score: the full acceptance archives it, with the tags and notes
+    /// picked before the night. If that fails too, the night stays awaiting
+    /// acceptance on the Record tab with the error shown (`acceptSession`
+    /// sets `lastError`), and Save tries again; nothing is cleared.
+    private func acceptUnsavedNight(_ session: HRVSession) async {
+        debugLog("[AutoAccept] Night \(session.id.uuidString.prefix(8)) is not in the archive — running the full acceptance", level: .warning)
+        await persistTagsAndNotes(for: session)
+        do {
+            try await collector.morning.acceptSession()
+        } catch {
+            debugLog("[AutoAccept] Acceptance failed — the night stays on the review card: \(error)", level: .error)
+            selectedTab = .record
+            return
+        }
+        selectedTags.removeAll()
+        sessionNotes = ""
     }
 
     /// Leaves review and clears the pre-night selection: it belongs to this

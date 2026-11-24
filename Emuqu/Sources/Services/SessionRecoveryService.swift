@@ -27,6 +27,9 @@ final class SessionRecoveryService {
     let windowSelector: WindowSelector
     let cloudSyncManager: CloudKitSyncManager
     let baselineTracker: BaselineTracker
+    /// Mirrors a recovered night to Apple Health when the user's export is on,
+    /// as acceptance does (`SessionAcceptanceService.exportToHealthIfEnabled`).
+    let exportToHealth: @Sendable (HRVSession) -> Void
 
     // MARK: - Initialization
 
@@ -36,7 +39,8 @@ final class SessionRecoveryService {
         artifactDetector: ArtifactDetector,
         windowSelector: WindowSelector,
         cloudSyncManager: CloudKitSyncManager,
-        baselineTracker: BaselineTracker
+        baselineTracker: BaselineTracker,
+        exportToHealth: @escaping @Sendable (HRVSession) -> Void = { _ in }
     ) {
         self.archive = archive
         self.rawBackup = rawBackup
@@ -44,6 +48,7 @@ final class SessionRecoveryService {
         self.windowSelector = windowSelector
         self.cloudSyncManager = cloudSyncManager
         self.baselineTracker = baselineTracker
+        self.exportToHealth = exportToHealth
     }
 
     /// The recovery window for a crash-recovered
