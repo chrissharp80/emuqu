@@ -247,7 +247,7 @@ struct WorkoutPreflightView: View {
     // MARK: - Start button
 
     private var startButton: some View {
-        let phase = recorder.phase
+        let phase = recorder.lifecycle.phase
         let canTap = plan.canStart(recorderPhase: phase)
         return Button {
             // Stamp the tap time so the recorder can compute
@@ -311,7 +311,7 @@ struct WorkoutPreflightView: View {
     /// `alreadyRecording` to the user from a mis-timed tap. Once the workout
     /// is recording, the plan's per-workout picks are cleared for the next.
     private func runStartSequence() async {
-        guard plan.canStart(recorderPhase: recorder.phase) else { return }
+        guard plan.canStart(recorderPhase: recorder.lifecycle.phase) else { return }
         let source = resolveSourceAndReconnect()
         // Hand off to the recorder via the callback the tab provided.
         // The tab handles the routing to FitnessRecordingView.
@@ -323,7 +323,7 @@ struct WorkoutPreflightView: View {
             plan.selectedThresholds,
             plan.selectedRoute
         )
-        if recorder.phase == .recording { plan.clearPerWorkoutPicks() }
+        if recorder.lifecycle.phase == .recording { plan.clearPerWorkoutPicks() }
     }
 
     /// No connect-poll. Apple Fitness
@@ -346,7 +346,7 @@ struct WorkoutPreflightView: View {
             hasKnownStrap: !polar.knownDevices.isEmpty
         )
         if source == .strap, polar.connectionState != .connected, !polar.knownDevices.isEmpty {
-            polar.connectToLastDevice()
+            polar.discovery.connectToLastDevice()
         }
         return source
     }

@@ -148,14 +148,14 @@ struct FitnessTabView: View {
             } message: {
                 Text(startError ?? "")
             }
-            .onChange(of: recorderBox.recorder?.phase) { _, newPhase in
+            .onChange(of: recorderBox.recorder?.lifecycle.phase) { _, newPhase in
                 captureFinishedSession(phase: newPhase)
             }
             // Watch start / stop / pause / resume are handled once, app-wide,
             // by `AppLaunchTasks.runAppLevelWatchWorkoutListeners`; the tab
             // only closes its own summary sheet on Save & Done.
             .task { await listenForWatchAcknowledge() }
-            .onChange(of: recorderBox.recorder?.finishedSession?.workoutMetadata?.hrrSamples?.count ?? -1) { _, _ in
+            .onChange(of: recorderBox.recorder?.lifecycle.finishedSession?.workoutMetadata?.hrrSamples?.count ?? -1) { _, _ in
                 refreshOpenSummaryWithHRR()
             }
     }
@@ -275,7 +275,7 @@ struct FitnessTabView: View {
     }
 
     private func captureFinishedSession(phase: WorkoutRecorder.Phase?) {
-        if phase == .finished, let session = recorderBox.recorder?.finishedSession {
+        if phase == .finished, let session = recorderBox.recorder?.lifecycle.finishedSession {
             lastCompletedSession = session
         }
     }
@@ -289,7 +289,7 @@ struct FitnessTabView: View {
     /// when the HRR detached task writes the samples back, and we push
     /// the refreshed session into the sheet's bound state.
     private func refreshOpenSummaryWithHRR() {
-        guard let newSession = recorderBox.recorder?.finishedSession,
+        guard let newSession = recorderBox.recorder?.lifecycle.finishedSession,
               let currentId = lastCompletedSession?.id,
               newSession.id == currentId
         else { return }

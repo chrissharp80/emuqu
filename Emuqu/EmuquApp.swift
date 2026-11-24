@@ -465,7 +465,7 @@ struct EmuquApp: App {
 
     /// A workout is recording or still being saved on the phone.
     private var isWorkoutInProgress: Bool {
-        switch AppDependencies.current.app.recorderBox.recorder?.phase {
+        switch AppDependencies.current.app.recorderBox.recorder?.lifecycle.phase {
         case .recording?, .finalizing?: return true
         default: return false
         }

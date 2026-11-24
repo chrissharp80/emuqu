@@ -172,11 +172,11 @@ extension WorkoutSessionLifecycle {
     /// `applyStartParameters` clears the old summary once the start can no
     /// longer fail.
     func guardStartablePhase() throws {
-        switch recorder.phase {
+        switch recorder.lifecycle.phase {
         case .idle, .finished, .failed:
             return
         case .recording, .finalizing:
-            debugLog("[Recorder.start] BAIL — already recording (phase=\(recorder.phase))", level: .warning)
+            debugLog("[Recorder.start] BAIL — already recording (phase=\(recorder.lifecycle.phase))", level: .warning)
             throw WorkoutRecorderError.alreadyRecording
         }
     }
@@ -220,7 +220,7 @@ extension WorkoutSessionLifecycle {
             throw WorkoutRecorderError.strapBusy
         }
         if case .reconnectThenUseStrap = resolution {
-            recorder.core.polarManager.connectToLastDevice()
+            recorder.core.polarManager.discovery.connectToLastDevice()
         }
         return resolved
     }
@@ -360,11 +360,11 @@ extension WorkoutSessionLifecycle {
     /// values before TTS speaks the line.
     private func installConversationContextProviders() {
         recorder.conversation.contextSnapshotProvider = { [weak recorder] in
-            guard let recorder, let sport = recorder.currentSession?.sport else { return nil }
+            guard let recorder, let sport = recorder.lifecycle.currentSession?.sport else { return nil }
             return recorder.aiContext.buildContext(sport: sport).asFactSheet()
         }
         recorder.conversation.liveWorkoutSnapshotProvider = { [weak recorder] in
-            guard let recorder, let sport = recorder.currentSession?.sport else { return nil }
+            guard let recorder, let sport = recorder.lifecycle.currentSession?.sport else { return nil }
             return recorder.aiContext.buildContext(sport: sport)
         }
     }
@@ -773,11 +773,11 @@ extension WorkoutSessionLifecycle {
     /// initiated so the auto-resume path knows it may re-enable the
     /// clock; user-initiated pauses can only be resumed by the user.
     func pause(isAuto: Bool = false) {
-        guard case .recording = recorder.phase, !recorder.lifecycle.isPaused else { return }
+        guard case .recording = recorder.lifecycle.phase, !recorder.lifecycle.isPaused else { return }
         recorder.lifecycle.isPaused = true
         recorder.lifecycle.autoPaused = isAuto
         recorder.lifecycle.pausedMotion.pause(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())
-        recorder.lifecycle.pauseTimeline.pause(atElapsed: recorder.elapsedSeconds, now: Date())
+        recorder.lifecycle.pauseTimeline.pause(atElapsed: recorder.lifecycle.elapsedSeconds, now: Date())
         recorder.startedLocation?.isPaused = true
         recorder.autoPause.reset()
         debugLog("[WorkoutRecorder] paused (auto=\(isAuto))")
@@ -785,7 +785,7 @@ extension WorkoutSessionLifecycle {
 
     /// Resume the active workout. No-op if not paused.
     func resume() {
-        guard case .recording = recorder.phase, recorder.lifecycle.isPaused else { return }
+        guard case .recording = recorder.lifecycle.phase, recorder.lifecycle.isPaused else { return }
         recorder.lifecycle.isPaused = false
         recorder.lifecycle.autoPaused = false
         recorder.lifecycle.pausedMotion.resume(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())

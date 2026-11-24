@@ -17,14 +17,11 @@ struct FitnessRecordingView: View {
     private var coach: WorkoutVoiceCoach
     var conversation: VoiceConversationController
     private var intervals: IntervalController
-    // Explicit sub-object references. The recorder is `@Observable`, but
-    // the live metrics (`recorder.elapsedSeconds`, `recorder.distanceMeters`,
-    // `recorder.workoutHR.currentHR` etc.) are computed forwarders onto
-    // lifecycle / workoutHR / motion / dfa, which hold that state; only a
-    // few things, such as the planned route, live on the recorder itself.
-    // Holding the sub-objects here keeps their observation explicit;
-    // observed only through the forwarders, the metrics can show as zeros
-    // until the screen is re-mounted.
+    // Explicit sub-object references. The live metrics live on the
+    // recorder's lifecycle / workoutHR / motion / dfa objects; only a few
+    // things, such as the planned route, live on the recorder itself.
+    // Holding the sub-objects here keeps their observation explicit: the
+    // metrics re-render when the object that owns them changes.
     private var lifecycle: WorkoutLifecycle
     private var workoutHR: WorkoutHR
     private var motion: WorkoutMotion
@@ -68,7 +65,7 @@ struct FitnessRecordingView: View {
         dfa = recorder.dfa
     }
 
-    private var sport: Sport? { recorder.currentSession?.sport }
+    private var sport: Sport? { recorder.lifecycle.currentSession?.sport }
     var usesGPS: Bool { sport?.usesGPS == true }
     /// Read once when the screen is built (the parent rebuilds it), not from
     /// UserDefaults by every tile on every 1 Hz body pass.
@@ -264,12 +261,12 @@ struct FitnessRecordingView: View {
 
     @ViewBuilder
     private var beatCountPill: some View {
-        if recorder.beatCount > 0 {
+        if recorder.workoutHR.beatCount > 0 {
             HStack(spacing: 4) {
                 Image(systemName: "heart.fill")
                     .font(.caption2)
                     .foregroundStyle(AppTheme.fitnessAccent)
-                Text("\(recorder.beatCount)")
+                Text("\(recorder.workoutHR.beatCount)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -303,7 +300,7 @@ struct FitnessRecordingView: View {
             Circle()
                 .fill(.white)
                 .frame(width: 6, height: 6)
-                .opacity(recorder.phase == .finalizing || lifecycle.isPaused ? 0.5 : 1)
+                .opacity(recorder.lifecycle.phase == .finalizing || lifecycle.isPaused ? 0.5 : 1)
             Text(recordingPillText)
                 .font(.caption2.weight(.bold))
         }
@@ -314,7 +311,7 @@ struct FitnessRecordingView: View {
     }
 
     private var recordingPillText: String {
-        if recorder.phase == .finalizing { return labels.saving }
+        if recorder.lifecycle.phase == .finalizing { return labels.saving }
         guard lifecycle.isPaused else { return labels.rec }
         return lifecycle.autoPaused
             ? String(localized: "Auto-paused", bundle: LanguageManager.appBundle)
@@ -324,9 +321,9 @@ struct FitnessRecordingView: View {
     // MARK: - HR Hero
 
     private var hrHeroCard: some View {
-        let zone = HRZone.classify(hr: recorder.currentHR ?? 0, userMaxHR: userMaxHR)
+        let zone = HRZone.classify(hr: recorder.workoutHR.currentHR ?? 0, userMaxHR: userMaxHR)
         let zoneColor = zone?.color ?? AppTheme.fitnessAccent
-        let hrText = recorder.currentHR.map(String.init) ?? "—"
+        let hrText = recorder.workoutHR.currentHR.map(String.init) ?? "—"
         return VStack(spacing: 4) {
             hrHeroHeader(zone: zone, zoneColor: zoneColor)
             hrHeroReadout(hrText: hrText, zoneColor: zoneColor)
@@ -337,7 +334,7 @@ struct FitnessRecordingView: View {
         .padding(.horizontal, 16)
         .background(hrHeroBackground(zoneColor))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(heartRateAccessibilityLabel(hrText: hrText, zone: zone, peakHR: recorder.peakHR))
+        .accessibilityLabel(heartRateAccessibilityLabel(hrText: hrText, zone: zone, peakHR: recorder.workoutHR.peakHR))
         .accessibilityAddTraits(.updatesFrequently)
     }
 
@@ -407,8 +404,8 @@ struct FitnessRecordingView: View {
 
     @ViewBuilder
     private var peakHRLabel: some View {
-        if recorder.peakHR > 0 {
-            Text(String(localized: "peak \(recorder.peakHR)", bundle: LanguageManager.appBundle))
+        if recorder.workoutHR.peakHR > 0 {
+            Text(String(localized: "peak \(recorder.workoutHR.peakHR)", bundle: LanguageManager.appBundle))
                 .font(.caption2)
                 .foregroundStyle(AppTheme.textTertiary)
         }

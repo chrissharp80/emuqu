@@ -205,7 +205,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
     /// the strap may still be recording internally, and that survives.
     func testAnExplicitDisconnectClearsIdentityButNotTheDeviceRecording() {
         let manager = linkedManager(streaming: false)
-        manager.disconnect()
+        manager.discovery.disconnect()
 
         XCTAssertNil(manager.connectedDeviceId)
         XCTAssertNil(manager.connectedDeviceType)
@@ -219,7 +219,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
     /// The drop callback that follows the user's disconnect is not chased.
     func testTheCallbackAfterAnExplicitDisconnectIsNotChased() {
         let manager = linkedManager(streaming: false)
-        manager.disconnect()
+        manager.discovery.disconnect()
         drop(manager)
 
         XCTAssertNil(manager.linkRuntime.reconnectTargetId)
@@ -231,7 +231,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
         let manager = PolarManager()
         manager.isRecordingOnDevice = true
         manager.recordingState = .recording
-        manager.disconnect()
+        manager.discovery.disconnect()
 
         XCTAssertTrue(manager.isRecordingOnDevice)
         XCTAssertEqual(manager.recordingState, .recording)
@@ -241,7 +241,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
 
     func testCancellingOutsideAConnectionAttemptIsANoOp() {
         let manager = linkedManager(streaming: false)
-        manager.cancelConnection()
+        manager.discovery.cancelConnection()
 
         XCTAssertEqual(manager.connectionState, .connected, "a connected device must not be torn down by a cancel")
         XCTAssertEqual(manager.connectedDeviceId, "H10-ABC123")
@@ -251,7 +251,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
         let manager = PolarManager()
         manager.connectionState = .connecting
         manager.pendingDeviceId = nil
-        manager.cancelConnection()
+        manager.discovery.cancelConnection()
 
         XCTAssertEqual(manager.connectionState, .connecting, "nothing to cancel without a pending device")
     }
@@ -261,7 +261,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
     func testReconnectingWithNoKnownDeviceDoesNotEnterConnecting() {
         let manager = PolarManager()
         manager.knownDevices = []
-        manager.connectToLastDevice()
+        manager.discovery.connectToLastDevice()
 
         XCTAssertEqual(manager.connectionState, .disconnected)
         XCTAssertNil(manager.pendingDeviceId)

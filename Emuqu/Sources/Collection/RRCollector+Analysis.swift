@@ -61,7 +61,7 @@ extension MorningSessionPipeline {
                 baselineStats: baselineStats, sleepData: sleep,
                 vitals: vitals, typicalSleepHours: collector.settingsManager.settings.typicalSleepHours
             ),
-            trainingContext: training, config: collector.currentScoringConfig,
+            trainingContext: training, config: collector.scoring.currentScoringConfig,
             useBaselineHRV: quality.useBaselineHRV, perceivedReadiness: session.perceivedReadiness,
             ansBalance: ReanalysisService.ansBalance(of: result), referenceDate: sessionEnd
         )

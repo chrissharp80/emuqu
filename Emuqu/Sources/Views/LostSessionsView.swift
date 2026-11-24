@@ -347,7 +347,7 @@ struct LostSessionsView: View {
     /// the rest stay, selected rows stay selected, and the alert counts them.
     private func deleteSessions(_ idsToDelete: Set<UUID>) {
         pendingDeleteIds = nil
-        let deleted = collector.recovery.deleteLostSessions(Array(idsToDelete))
+        let deleted = collector.recovery.recoveryService.deleteLostSessions(Array(idsToDelete))
         lostSessions.removeAll { deleted.contains($0.id) }
         selectedSessions.subtract(deleted)
         deleteFailedCount = idsToDelete.count - deleted.count

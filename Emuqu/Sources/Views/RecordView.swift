@@ -5,10 +5,9 @@ struct RecordView: View {
     @Environment(\.dependencies) var dependencies
     @Environment(RRCollector.self) var collector
     // Direct sub-object observation. Recording state lives on these
-    // @Observable sub-objects; `RRCollector` is @Observable too, and a read
-    // through one of its forwarders is still tracked, but it hides which
-    // object the view depends on. Recording-state reads in this view (and its
-    // +Panels / +Sections extensions) go through these references.
+    // @Observable sub-objects, not on `RRCollector`; holding them here shows
+    // which object each read depends on. Recording-state reads in this view
+    // (and its +Panels / +Sections extensions) go through these references.
     @Environment(DeviceStatus.self) var deviceStatus
     @Environment(StreamingLifecycle.self) var streamingLifecycle
     @Environment(SessionState.self) var sessionState

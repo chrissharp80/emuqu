@@ -30,7 +30,7 @@ extension RRCollector {
         sessionState.baselineDeviation = nil
         streamingLifecycle.isPaused = false
         streamingLifecycle.pausedSession = nil
-        if resetsPause { clearPausedSessionState() }
+        if resetsPause { control.clearPausedSessionState() }
     }
 
     /// A quick reading or a strap-only recording may start only with the

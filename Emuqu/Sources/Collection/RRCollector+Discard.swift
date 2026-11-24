@@ -99,7 +99,7 @@ extension CollectorSessionControl {
         let session = collector.sessionState.currentSession
         debugLog("[RRCollector] 🗑 Discarding strap recording \(session?.id.uuidString.prefix(8) ?? "-")")
         do {
-            try await collector.polarManager.discardStoredExercises()
+            try await collector.polarManager.recording.discardStoredExercises()
         } catch {
             debugLog("[RRCollector] ⚠️ Could not discard the strap recording: \(error)", level: .warning)
             collector.sessionState.lastError = error
@@ -120,11 +120,11 @@ extension CollectorSessionControl {
     /// the beats: no gather, no "saving" status, no analysis.
     private func stopStreamingWithoutKeeping() {
         let elapsedHours = collector.streamingHoursForBattery
-        collector.stopStreamingTimer()
+        collector.control.stopStreamingTimer()
         AppDependencies.current.app.systemDiagnosticsManager.stopSamplingAfterRecording()
         collector.streamingLifecycle.isStreamingMode = false
         _ = collector.polarManager.stopStreaming()
-        collector.polarManager.recordRecordingHours(elapsedHours)
+        collector.polarManager.battery.recordRecordingHours(elapsedHours)
         collector.streamingLifecycle.isOvernightStreaming = false
         collector.overnightDeviceBackupActive = false
         collector.deviceStatus.isStreaming = false
@@ -138,7 +138,7 @@ extension CollectorSessionControl {
     /// strap still holds it.
     private func clearStrapCopy() async -> Bool {
         do {
-            try await collector.polarManager.discardStoredExercises()
+            try await collector.polarManager.recording.discardStoredExercises()
             return false
         } catch {
             debugLog("[RRCollector] ⚠️ Could not clear the strap's copy of the discarded recording: \(error)", level: .warning)

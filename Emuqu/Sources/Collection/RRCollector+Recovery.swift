@@ -46,7 +46,7 @@ extension SessionRecoveryCoordinator {
     /// backup. The Record screen's strap-only Stop and Discard leave it alone.
     var strapRecordingBelongsToLiveWorkout: Bool {
         guard let recorder = AppDependencies.current.app.recorderBox.recorder else { return false }
-        return recorder.phase == .recording || recorder.phase == .finalizing
+        return recorder.lifecycle.phase == .recording || recorder.lifecycle.phase == .finalizing
     }
 
     /// A recording still running on the strap that no session owns: none is
@@ -69,7 +69,7 @@ extension SessionRecoveryCoordinator {
         // An earlier operation's error must not stand in for this one's.
         collector.sessionState.lastError = nil
         try checkRecoverable()
-        collector.polarManager.beginTransfer()
+        collector.polarManager.recording.beginTransfer()
         let recording = try await downloadForRecovery()
         let placement = await recoveryPlacement(for: recording)
         let session = await collector.deviceRecording.assembleDownloadedSession(recording, placement: placement)
@@ -99,7 +99,7 @@ extension SessionRecoveryCoordinator {
 
     private func downloadForRecovery() async throws -> StrapRecording {
         do {
-            let recording = try await collector.polarManager.fetchRecording(recordedSince: nil, budget: .attended)
+            let recording = try await collector.polarManager.recording.fetchRecording(recordedSince: nil, budget: .attended)
             debugLog("[Recovery] Got \(recording.points.count) beats from strap, started \(recording.startedAt?.description ?? "unknown")")
             return recording
         } catch {

@@ -649,7 +649,7 @@ struct DataSettingsPage: View {
     /// task would only hop straight back to it.
     func refreshDeletedCount() {
         Task {
-            deletedSessionCount = collector.recovery.checkForDeletedSessions().count
+            deletedSessionCount = collector.recovery.recoveryService.checkForDeletedSessions().count
         }
     }
 

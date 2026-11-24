@@ -105,7 +105,7 @@ extension MorningSessionPipeline {
             collector.sessionState.isCollecting = false
             collector.sessionState.collectedPoints = streamingPoints
             collector.streamingLifecycle.streamingElapsedSeconds = 0
-            collector.polarManager.recordRecordingHours(elapsedHours)
+            collector.polarManager.battery.recordRecordingHours(elapsedHours)
         }
     }
 }

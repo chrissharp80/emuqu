@@ -23,7 +23,7 @@ extension MorningSessionPipeline {
         let settings = collector.settingsManager.settings
         let trainingContext = await scoringTrainingContext(result: session.analysisResult, sessionEnd: session.endDate ?? session.startDate)
         let inputs = SessionAcceptanceService.AcceptanceInputs(
-            scoringConfig: collector.currentScoringConfig,
+            scoringConfig: collector.scoring.currentScoringConfig,
             trainingContext: trainingContext,
             baselineStats: collector.scoringBaselineStats(for: session),
             typicalSleepHours: settings.typicalSleepHours,
@@ -67,7 +67,7 @@ extension MorningSessionPipeline {
 
         let updated = await collector.acceptanceService.updateCompositeRecoveryScore(
             for: session,
-            scoringConfig: collector.currentScoringConfig,
+            scoringConfig: collector.scoring.currentScoringConfig,
             trainingContext: trainingContext,
             baselineStats: collector.scoringBaselineStats(for: session),
             typicalSleepHours: settings.typicalSleepHours,

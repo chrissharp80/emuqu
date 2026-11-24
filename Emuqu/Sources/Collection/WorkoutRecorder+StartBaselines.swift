@@ -21,7 +21,7 @@ extension WorkoutRecorder {
         // SessionArchive owns its own lock — safe to read off the main
         // actor. We just need a stable reference to the archive instance.
         let archive = core.archive
-        let sessionId = currentSession?.id
+        let sessionId = lifecycle.currentSession?.id
         Task.detached(priority: .utility) { [weak self] in
             guard let self else { return }
             await self.computeAndCacheStartBaselines(sportForBaselines: sport, sessionId: sessionId, archive: archive)
@@ -77,7 +77,7 @@ extension WorkoutRecorder {
         projection: TrainingProjectionSnapshot,
         racePredictions: [Double: Double]
     ) {
-        guard let sessionId, currentSession?.id == sessionId else { return }
+        guard let sessionId, lifecycle.currentSession?.id == sessionId else { return }
         cachedHistoricalBaselines = baselines
         cachedTodayReadiness = readiness
         cachedTrainingProjection = projection

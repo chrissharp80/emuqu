@@ -170,7 +170,7 @@ extension StrapRecordingCoordinator {
     func reconnectForTransfer() async -> Bool {
         guard manager.connectionState != .connected else { return true }
         debugLog("[PolarManager] Strap not connected — reconnecting for the transfer…")
-        manager.connectToLastDevice()
+        manager.discovery.connectToLastDevice()
         let window = StrapRecordingPolicy.reconnectWindowSeconds
         manager.transfersInFlight += 1
         defer { manager.transfersInFlight -= 1 }

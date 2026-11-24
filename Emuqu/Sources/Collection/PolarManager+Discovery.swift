@@ -7,12 +7,6 @@ extension PolarManager {
     /// outlives the manager nor retains it.
     var discovery: StrapDiscoveryCoordinator { StrapDiscoveryCoordinator(manager: self) }
 
-    func startScanning() { discovery.startScanning() }
-    func stopScanning() { discovery.stopScanning() }
-    func connect(deviceId: String) { discovery.connect(deviceId: deviceId) }
-    func connectToLastDevice() { discovery.connectToLastDevice() }
-    func disconnect() { discovery.disconnect() }
-    func cancelConnection() { discovery.cancelConnection() }
     /// Cancel or Skip on a strap download. Ends the running transfer phase at
     /// once rather than only setting a flag a stuck call never reads.
     func cancelFetch() { recording.cancelActiveTransfer() }

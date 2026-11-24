@@ -671,7 +671,7 @@ extension RecordPanels {
     func discardAndStartFresh() {
         Task {
             do {
-                try await collector.polarManager.discardStoredExercises()
+                try await collector.polarManager.recording.discardStoredExercises()
             } catch {
                 // `discardStoredExercises` doesn't set lastError itself.
                 debugLog("[RecordView] ⚠️ Failed to discard stored recordings: \(error)")

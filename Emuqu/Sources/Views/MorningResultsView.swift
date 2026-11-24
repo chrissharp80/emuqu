@@ -125,8 +125,8 @@ struct MorningResultsView: View {
     @ScaledMetric(relativeTo: .largeTitle) var heroScoreFontSize: CGFloat = 56
     @ScaledMetric(relativeTo: .title) var metricValueFontSize: CGFloat = 32
 
-    /// Collector access for non-observable methods. State reads MUST go through the
-    /// sub-objects below — `collector.X` forwarders don't trigger SwiftUI re-renders.
+    /// Collector access for non-observable methods. State reads go through the
+    /// sub-objects below, which own that state.
     @Environment(RRCollector.self) var collector
     @Environment(MorningCoordination.self) var morningCoordination
     /// Observe archive changes so re-analyze / sleep

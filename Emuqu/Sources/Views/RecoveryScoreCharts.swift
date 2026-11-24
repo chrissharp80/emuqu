@@ -34,12 +34,10 @@ struct RecoveryScoreCharts {
     @Binding var fallbackHRSamples: [(date: Date, hr: Double)]
 }
 
-// MARK: - Forwarders
+// MARK: - Host accessor
 
-// Charts live in `RecoveryScoreCharts`, keeping 672 lines out of
-// RecoveryScoreDetailView. `charts` is rebuilt on each access from the view's
-// live state and every mutation travels back through a binding, so behaviour
-// matches an inline implementation.
+// `charts` is rebuilt on each access from the view's live state, and every
+// mutation travels back through a binding.
 
 extension RecoveryScoreDetailView {
     var charts: RecoveryScoreCharts {

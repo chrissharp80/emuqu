@@ -59,7 +59,7 @@ extension RecordView {
 
     func pauseRecording() {
         Task {
-            await collector.pauseOvernightStreaming()
+            await collector.control.pauseOvernightStreaming()
         }
     }
 
@@ -67,7 +67,7 @@ extension RecordView {
         guard let pausedSession = streamingLifecycle.pausedSession else { return }
         Task {
             do {
-                try collector.resumeOvernightStreaming(linkedSessionId: pausedSession.id)
+                try collector.control.resumeOvernightStreaming(linkedSessionId: pausedSession.id)
             } catch {
                 // `resumeOvernightStreaming` doesn't set lastError itself.
                 debugLog("[RecordView] ⚠️ Failed to resume recording: \(error)")
@@ -77,7 +77,7 @@ extension RecordView {
     }
 
     func finalizeFromPause() {
-        collector.finalizeFromPause()
+        collector.control.finalizeFromPause()
     }
 
     /// Ends the recording in progress without keeping anything from it. The
@@ -111,7 +111,7 @@ extension RecordView {
     func startLinkedRecording(linkedTo session: HRVSession) {
         Task {
             do {
-                try collector.resumeOvernightStreaming(linkedSessionId: session.id)
+                try collector.control.resumeOvernightStreaming(linkedSessionId: session.id)
             } catch {
                 debugLog("[RecordView] ⚠️ Failed to start linked recording: \(error)")
                 sessionState.lastError = error
@@ -215,7 +215,7 @@ extension RecordView {
     /// A failed reading is not archived and gets none.
     func stopStreaming() {
         Task {
-            let session = await collector.stopStreamingSession()
+            let session = await collector.control.stopStreamingSession()
             guard let session, session.state == .complete else { return }
             await persistTagsAndNotes(for: session)
         }

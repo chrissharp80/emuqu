@@ -50,7 +50,7 @@ extension WorkoutRecorder {
     /// stop, so it is saved with the others and Apple Health counts the
     /// paused tail as paused, not as moving.
     func stop() async {
-        guard case .recording = phase else { return }
+        guard case .recording = lifecycle.phase else { return }
         let finalizeStartedAt = Date()
         debugLog("[Recorder.stop] entry — phase flipping to .finalizing")
         let bgTask = BackgroundTaskAssertion(name: "WorkoutRecorder.stop")
@@ -78,7 +78,7 @@ extension WorkoutRecorder {
     /// it read as an 80 bpm drop when the last minute fell 15. The live
     /// reading, else the last sampled one; 0 (no reading) skips the capture.
     private func heartRateAtStop() -> Int {
-        if let current = currentHR, current > 0 { return current }
+        if let current = workoutHR.currentHR, current > 0 { return current }
         return workoutSamples.last(where: { $0.heartRate != nil })?.heartRate ?? 0
     }
 
@@ -175,7 +175,7 @@ extension WorkoutRecorder {
     /// strap connections still produces a single coherent RR series.
     func snapshotAndMergeRRBuffers() -> [RRPoint] {
         let merged = WorkoutRRMerge.merged(
-            source: activeHRSource,
+            source: lifecycle.activeHRSource,
             streaming: core.polarManager.streamedRRPoints,
             watchRouted: watchRoutedRRBuffer
         )
@@ -198,10 +198,10 @@ extension WorkoutRecorder {
         // elapsed time. Only when the workout actually used the strap —
         // .watch / .none sources don't drain the H10. Captured before the
         // reset below so the value isn't lost.
-        if activeHRSource == .strap {
+        if lifecycle.activeHRSource == .strap {
             let workoutHoursForBattery = Double(lifecycle.elapsedSeconds) / 3600.0
             await MainActor.run {
-                core.polarManager.recordRecordingHours(workoutHoursForBattery)
+                core.polarManager.battery.recordRecordingHours(workoutHoursForBattery)
             }
         }
     }
@@ -286,7 +286,7 @@ extension WorkoutRecorder {
         let sessionId = finished.id
         let archive = core.archive
         let polarRef = core.polarManager
-        let strap = activeHRSource == .strap ? (manager: polarRef, streamStart: polarRef.streamingStartTime) : nil
+        let strap = lifecycle.activeHRSource == .strap ? (manager: polarRef, streamStart: polarRef.streamingStartTime) : nil
         Task.detached(priority: .userInitiated) {
             await self.captureHRRAndRearchive(
                 captureService: captureService, stopDate: stopDate, endHR: endHR,
@@ -400,7 +400,7 @@ extension WorkoutRecorder {
     /// started meanwhile is buffering on the same manager.
     @MainActor
     private func releaseStrapAfterHRR(_ polarRef: PolarManager, workoutStreamStart: Date?) {
-        guard phase != .recording, phase != .finalizing else {
+        guard lifecycle.phase != .recording, lifecycle.phase != .finalizing else {
             debugLog("[WorkoutRecorder] HRR window closed during a new workout — leaving the strap session running")
             return
         }
@@ -409,7 +409,7 @@ extension WorkoutRecorder {
             return
         }
         _ = polarRef.stopStreaming()
-        polarRef.disconnect()
+        polarRef.discovery.disconnect()
     }
 
     /// Auto-interject the HRR summary when the capture window
@@ -422,7 +422,7 @@ extension WorkoutRecorder {
     private func announceHRRAndStageReport(samples: [HRRSample], finalSession: HRVSession) {
         let summaryShowsThisSession = lifecycle.finishedSession?.id == finalSession.id
         if summaryShowsThisSession { lifecycle.finishedSession = finalSession }
-        let anotherWorkoutOwnsTheScreen = phase == .recording || phase == .finalizing
+        let anotherWorkoutOwnsTheScreen = lifecycle.phase == .recording || lifecycle.phase == .finalizing
             || (lifecycle.finishedSession != nil && !summaryShowsThisSession)
         if !anotherWorkoutOwnsTheScreen { speakHRRInterjection(samples: samples) }
         // Auto Coach Report. With HRR in

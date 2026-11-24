@@ -62,13 +62,13 @@ extension WorkoutAIContextBuilder {
     /// The live trends come from the recorder's tally (`syncedLiveTrends`),
     /// read after `contextInputs` updated its zone fold.
     func buildContext(sport: Sport) -> WorkoutAIContext {
-        let (inputs, trends) = (contextInputs(), recorder.ticker.syncedLiveTrends())
+        let (inputs, trends, motion) = (contextInputs(), recorder.ticker.syncedLiveTrends(), recorder.motion)
         return WorkoutAIContext(
-            sport: sport, nowAt: Date(), sessionStart: inputs.startDate, elapsedSeconds: recorder.elapsedSeconds, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: inputs.userMaxHR, hrDriftPercent: nil, alpha1: recorder.dfa.currentAlpha1,
-            band: recorder.dfa.currentBand, alpha1FitQuality: recorder.dfa.fitQuality, alpha1Status: recorder.dfa.status, distanceMeters: recorder.distanceMeters, currentPaceSecPerKm: recorder.currentPaceSecPerKm,
-            currentSpeedMS: recorder.currentSpeedMS, cadenceStepsPerMin: recorder.cadenceStepsPerMin, powerWatts: recorder.powerWatts, footPodActive: recorder.footPodActive, currentMETs: inputs.lastSample?.mets, recentSplitPaces: recentSplitPacesSecPerKm(),
+            sport: sport, nowAt: Date(), sessionStart: inputs.startDate, elapsedSeconds: recorder.lifecycle.elapsedSeconds, heartRate: recorder.workoutHR.currentHR, peakHR: recorder.workoutHR.peakHR, userMaxHR: inputs.userMaxHR, hrDriftPercent: nil, alpha1: recorder.dfa.currentAlpha1,
+            band: recorder.dfa.currentBand, alpha1FitQuality: recorder.dfa.fitQuality, alpha1Status: recorder.dfa.status, distanceMeters: motion.distanceMeters, currentPaceSecPerKm: recorder.currentPaceSecPerKm,
+            currentSpeedMS: recorder.currentSpeedMS, cadenceStepsPerMin: motion.cadenceStepsPerMin, powerWatts: motion.powerWatts, footPodActive: motion.footPodActive, currentMETs: inputs.lastSample?.mets, recentSplitPaces: recentSplitPacesSecPerKm(),
             currentLatitude: inputs.loc?.coordinate.latitude, currentLongitude: inputs.loc?.coordinate.longitude, currentAltitudeMeters: inputs.loc?.altitude, currentHeadingDegrees: inputs.heading, gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy,
-            elevationGainMeters: recorder.elevationGainMeters, currentGradePercent: inputs.grade, upcomingClimb: computeUpcomingClimb(currentLocation: inputs.loc), routeTopology: computeRouteTopology(currentLocation: inputs.loc), weather: AppDependencies.current.location.weatherService.current,
+            elevationGainMeters: motion.elevationGainMeters, currentGradePercent: inputs.grade, upcomingClimb: computeUpcomingClimb(currentLocation: inputs.loc), routeTopology: computeRouteTopology(currentLocation: inputs.loc), weather: AppDependencies.current.location.weatherService.current,
             strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: recorder.ticker.strapSilentSeconds(), wristHeartRateLive: recorder.ticker.freshWristHR(now: Date()) != nil,
             currentRoadName: inputs.road?.road, currentLocality: inputs.road?.locality, currentAdministrativeArea: inputs.road?.administrativeArea,
             currentCountryCode: inputs.road?.countryCode, currentCompactAddress: inputs.road?.compactAddress, currentNearestCrossStreet: inputs.road?.nearestCrossStreet, currentNearestIntersection: inputs.road?.nearestIntersection, sessionAverageHR: trends.sessionAverageHR,
@@ -403,9 +403,9 @@ extension WorkoutAIContextBuilder {
             paceSecPerKm: recorder.currentPaceSecPerKm,
             alpha1: recorder.dfa.currentAlpha1,
             cadenceSPM: recorder.motion.cadenceStepsPerMin,
-            distanceMeters: recorder.distanceMeters,
-            elapsedSec: recorder.sessionStartDate.map { _ in recorder.elapsedSeconds },
-            elevationGainMeters: recorder.elevationGainMeters,
+            distanceMeters: recorder.motion.distanceMeters,
+            elapsedSec: recorder.sessionStartDate.map { _ in recorder.lifecycle.elapsedSeconds },
+            elevationGainMeters: recorder.motion.elevationGainMeters,
             gradePercent: computeCurrentGradePercent()
         )
     }

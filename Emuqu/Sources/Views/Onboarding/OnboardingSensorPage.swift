@@ -159,13 +159,13 @@ struct OnboardingSensorPage: View {
     private func startPairingScan() {
         polar.lastError = nil
         pairingAttempted = true
-        polar.startScanning()
+        polar.discovery.startScanning()
     }
 
     private func startConnect(_ deviceId: String) {
         polar.lastError = nil
         pairingAttempted = true
-        polar.connect(deviceId: deviceId)
+        polar.discovery.connect(deviceId: deviceId)
     }
 
     @ViewBuilder
@@ -285,7 +285,7 @@ struct OnboardingSensorPage: View {
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
             Button(String(localized: "Cancel", bundle: LanguageManager.appBundle)) {
-                polar.cancelConnection()
+                polar.discovery.cancelConnection()
             }
             .buttonStyle(.zenSecondary)
         }
@@ -381,7 +381,7 @@ struct OnboardingSensorPage: View {
 
     private func stopScanningOnLeave() {
         if polar.connectionState == .scanning {
-            polar.stopScanning()
+            polar.discovery.stopScanning()
         }
     }
 
@@ -403,7 +403,7 @@ struct OnboardingSensorPage: View {
 
     private var stopScanningButton: some View {
         Button(String(localized: "Stop Scanning", bundle: LanguageManager.appBundle)) {
-            polar.stopScanning()
+            polar.discovery.stopScanning()
         }
         .buttonStyle(.zenSecondary)
     }

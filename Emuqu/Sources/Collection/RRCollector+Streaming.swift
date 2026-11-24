@@ -190,7 +190,7 @@ extension CollectorSessionControl {
     private func disconnectVeritySenseAfterQuickSession() {
         guard collector.polarManager.connectedDeviceType == .veritySense else { return }
         debugLog("[RRCollector] Auto-disconnecting Verity Sense after session end")
-        collector.polarManager.disconnect()
+        collector.polarManager.discovery.disconnect()
     }
 
     private func publishQuickStreamingStopped(rrPoints: [RRPoint], elapsedHours: Double) async {
@@ -200,7 +200,7 @@ extension CollectorSessionControl {
             collector.sessionState.isCollecting = false
             collector.sessionState.collectedPoints = rrPoints
             collector.streamingLifecycle.streamingElapsedSeconds = 0
-            collector.polarManager.recordRecordingHours(elapsedHours)
+            collector.polarManager.battery.recordRecordingHours(elapsedHours)
         }
     }
 
