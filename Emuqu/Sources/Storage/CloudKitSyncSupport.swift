@@ -57,16 +57,15 @@ final class SyncSerializer {
 //
 // Backs `UserSettings` up to the user's iCloud private DB on every
 // settings change (debounced) and provides a one-shot restore that
-// pulls the cloud copy back down. Lives in this file so we don't need
-// to touch `project.pbxproj` to add a new compilation unit.
+// pulls the cloud copy back down.
 //
-// The loss-of-data hole this guards against:
+// The data loss this guards against:
 //   • Settings are stored as a single JSON file at
 //     `<AppGroup>/user_settings.json` with `URLFileProtection.complete`.
 //   • A Watch-triggered background launch while the device is locked
-//     hits `init()`, the load fails silently, defaults are kept, and
-//     the next save() overwrites the real file. The user re-inputs
-//     everything from scratch.
+//     hits `init()` with that file unreadable; if defaults were kept and
+//     saved, the next save() would overwrite the real file and the user
+//     would re-enter everything from scratch.
 // `SettingsManager` distinguishes "file missing" from "file
 // locked" and refuses to save over the locked case (see
 // `SettingsManager.LoadOutcome`). This sync layer is the second leg:
@@ -587,10 +586,10 @@ final class CloudKitSettingsSync {
 /// uploaded at all (`uploadable`); a restore keeps this device's own values
 /// for them (`restorable`).
 ///
-/// The settings now go through `CloudPayloadCodec`, the same envelope and the
+/// The settings go through `CloudPayloadCodec`, the same envelope and the
 /// same iCloud Keychain key as session payloads, so any device on the Apple
-/// ID that can restore a session can restore the settings. `deviceName` is no
-/// longer written: nothing read it, and a device name is often the owner's
+/// ID that can restore a session can restore the settings. `deviceName` is
+/// not written: nothing reads it, and a device name is often the owner's
 /// name.
 ///
 /// ## Old records

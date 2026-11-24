@@ -52,9 +52,8 @@ extension RoadGeocodingService {
         await enrich(location: location, road: placemark.thoroughfare, enabled: enrichCrossStreet)
     }
 
-    /// Seen in a real user log: CLGeocoder hung 26.4s
-    /// on workout start (`[GeocodingLatency] geocoder resolved in
-    /// 26.372s — Cedar Ln`). Apple's geocoder has no client-tunable
+    /// CLGeocoder can hang for tens of seconds on workout start, and
+    /// Apple's geocoder has no client-tunable
     /// timeout. `runWithTimeout` races a 5 s sleep task against the call;
     /// on timeout we treat it as a failed lookup and let the next refresh
     /// try again. 5 s caps how long a wedged geocoder can starve the rest
@@ -158,8 +157,8 @@ extension RoadGeocodingService {
     ///     parks).
     ///   • The closest hit is more than 50 m from the user (the
     ///     "current road" claim would be too loose to trust).
-    /// Hard 5 s wall-clock cap. A real-world log showed this
-    /// call hanging for 30+ s, blocking the entire location pipeline at
+    /// Hard 5 s wall-clock cap. This call can hang
+    /// for 30+ s, blocking the entire location pipeline at
     /// workout start. MKLocalSearch has no built-in timeout. `runWithTimeout`
     /// returns nil on overrun; we treat that the same as "no usable results"
     /// and fall through to CLGeocoder.
@@ -389,10 +388,8 @@ extension RoadGeocodingService {
     /// One radius of the escalating scan. Nil means the search itself timed
     /// out; an empty array means it returned nothing usable.
     ///
-    /// Same 5 s wall-clock cap as the tile-search path. A
-    /// real-world log showed this hanging 30+ s on workout start; the 30 s log
-    /// line ("cross-street MKLocalSearch radius 200m in 30.724s") was the
-    /// smoking gun. A per-radius cap means a stalled tile service caps the
+    /// Same 5 s wall-clock cap as the tile-search path: the
+    /// search can hang 30+ s on workout start. A per-radius cap means a stalled tile service caps the
     /// scan's cross-street latency at ~10 s across its two radii instead of
     /// multiplying.
     private func crossStreetCandidates(
@@ -435,9 +432,9 @@ extension RoadGeocodingService {
     }
 
     /// Only log the "no candidates" line once per
-    /// road. The user's debug log had this fire 30+ times along a stretch of
-    /// road where MapKit just doesn't have cross-street data — same message
-    /// every time. Throttled by current road name; a new road logs again.
+    /// road. Along a stretch of road where MapKit has no cross-street data it
+    /// would otherwise repeat the same message on every cycle. Throttled by
+    /// current road name; a new road logs again.
     private func logNoCrossStreet(currentRoad: String?, radii: [CLLocationDistance]) {
         let key = currentRoad ?? "(unknown)"
         guard lastNoCrossStreetRoad != key else { return }

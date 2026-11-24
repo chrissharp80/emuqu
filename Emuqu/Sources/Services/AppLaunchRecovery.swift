@@ -40,7 +40,7 @@ extension EmuquApp {
     /// Runs once the archive's launch boot (`LaunchArchiveBoot`) has adopted
     /// orphan files: a session whose file was written just before a crash,
     /// but not yet listed in the index, is archived, and asking about it
-    /// would have offered to rebuild it from its backup over the saved copy.
+    /// would offer to rebuild it from its backup over the saved copy.
     ///
     /// The alert is raised only with no launch modal on screen; an alert under
     /// a full-screen cover can be dropped. `EmuquApp.handleLaunchModalChange`
@@ -59,10 +59,9 @@ extension EmuquApp {
     }
 
     /// Dismiss means "stop re-prompting me." Re-prompting on every launch
-    /// (and re-writing the termination report on every launch) is exactly
-    /// the loop the user complained about ("discarding for hours"). So
-    /// both the alert AND the
-    /// termination report are skipped when this session was previously
+    /// (and re-writing the termination report on every launch) traps the
+    /// user discarding the same session over and over. So both the alert AND
+    /// the termination report are skipped once this session has been
     /// dismissed. The backup is still recoverable via Settings → iCloud & Data → Recover Lost Sessions
     /// for users who change their mind.
     private func presentInterruptedSessionAlertIfNeeded() {
@@ -287,9 +286,7 @@ extension EmuquApp {
         }
     }
 
-    /// Delete and recreate one App Group directory. Split out of
-    /// `removeStoredSessionData` to keep both inside the spec nesting limit —
-    /// loop, then do, then the existence check was three levels deep.
+    /// Delete and recreate one App Group directory.
     private static func resetSharedDirectory(named name: String) {
         let directory = AppConfig.sharedContainerURL().appendingPathComponent(name, isDirectory: true)
         do {

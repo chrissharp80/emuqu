@@ -445,7 +445,7 @@ struct VitalsDetailV2View: View {
     }
 
     /// Sleep HR (~45-70 bpm) and respiratory rate (~12-20 br/min) each get
-    /// their own chart and Y scale; on one shared axis the breathing line was
+    /// their own chart and Y scale; on one shared axis the breathing line is
     /// pressed flat.
     private func trendPlot(_ series: [TrendPoint]) -> some View {
         VStack(alignment: .leading, spacing: 8) {

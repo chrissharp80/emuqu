@@ -1,7 +1,7 @@
 import Foundation
 
 // Which heart-rate source the workout shows, decided each tick from the strap
-// channels and the Watch's wrist HR. Split out of WorkoutRecorder+Ticker.swift.
+// channels and the Watch's wrist HR.
 
 extension WorkoutTicker {
     // MARK: - HR-source arbitration (pure decision core)

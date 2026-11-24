@@ -4,9 +4,6 @@ import Foundation
 
 /// Training readiness: the ACWR-dampened readiness score, the freshness
 /// bonus, and the label/message pair the UI shows for it.
-///
-/// Split out of `RecoveryScoreCalculator`, alongside
-/// `VitalsScoring`, to keep the calculator under the 1500-line limit.
 enum ReadinessScoring {
     // MARK: - Training Readiness
 
@@ -233,7 +230,7 @@ enum ReadinessScoring {
     ///
     /// The damper is kept because it is heavily dampened already (see below),
     /// and removing it would change every user's readiness on no better
-    /// evidence than it was added with. It is described as what it is — a
+    /// evidence than supports keeping it. It is described as what it is — a
     /// conservative response to an abrupt change in workload, on the general
     /// principle that bodies absorb gradual change better than abrupt change.
     ///
@@ -313,8 +310,8 @@ enum ReadinessScoring {
     /// Fatigue dissipation bonus: each ATL unit drop since morning = 1.5 readiness points, capped at 20.
     /// `internal` for the same reason as `dampenedACWRPenalty`: the cap is
     /// invisible from `calculateReadiness` because the recovery-modulation
-    /// stage rescales the result afterwards, so removing the cap left the
-    /// suite green until it was tested directly.
+    /// stage rescales the result afterwards, so only a direct test can see the
+    /// cap go missing.
     static func applyFreshnessBonus(_ readiness: Double, morningATL: Double?, atl: Double) -> Double {
         guard let morningATL, morningATL > 0 else { return readiness }
         let atlDrop = max(0, morningATL - atl)

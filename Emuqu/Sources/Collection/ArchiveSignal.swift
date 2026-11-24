@@ -3,7 +3,7 @@ import Observation
 
 /// Published signal for archive mutations.
 ///
-/// Split out from `RRCollector` so views and view-models that only care about
+/// Separate from `RRCollector` so views and view-models that only care about
 /// archive add/update/delete/reanalyze events don't re-render on every BLE /
 /// streaming / recording property the collector also publishes.
 ///
@@ -36,17 +36,15 @@ final class ArchiveSignal {
     /// injectable so a test can hand the signal a private
     /// `NotificationCenter()` and count bumps exactly. On the default centre
     /// every archive write in the process (another test's tearDown, a
-    /// collector's launch-time repair) also lands here, which is what made
-    /// `testArchiveVersionReadsThroughArchiveSignal` flaky.
+    /// collector's launch-time repair) also lands here, which would make exact
+    /// counts (`testArchiveVersionReadsThroughArchiveSignal`) flaky.
     @ObservationIgnored private let center: NotificationCenter
 
-    /// Coalescing is required, per a user's actual log:
-    /// on a single app launch, CloudKit's full-sync pull fired
-    /// `sameNightMerge` for 37 sessions in 5 seconds (each one re-
-    /// archives → posts `.flowRecoveryArchiveChanged`). Without
-    /// coalescing, MainTabView reloads the dashboard 37 times back to
-    /// back, each one re-decoding 35 lightweight entries. That's the
-    /// "every screen hangs" the user reported.
+    /// Coalescing is required: one CloudKit full-sync pull can fire
+    /// `sameNightMerge` for dozens of sessions within seconds, each one re-
+    /// archiving and posting `.flowRecoveryArchiveChanged`. Without
+    /// coalescing, MainTabView reloads the dashboard once per post, back to
+    /// back, each one re-decoding the lightweight entries, and every screen hangs.
     ///
     /// 80 ms window — short enough that intentional single-action user
     /// writes (delete a session, save morning feeling) feel
@@ -62,21 +60,16 @@ final class ArchiveSignal {
     /// block to that queue **and blocks the posting thread until it finishes**
     /// (`_CFXNotificationPost` → `-[NSOperation waitUntilFinished]`). Because
     /// `SessionArchive.archive(_:)` posts this notification from whatever thread
-    /// performed the write, `queue: .main` turned every background archive write
+    /// performed the write, `queue: .main` would turn every background archive write
     /// into a synchronous round-trip through the main queue.
     ///
-    /// That was a real deadlock, not a theoretical one: with the main thread
-    /// blocked waiting on background archive writes, the writers blocked waiting
-    /// on main, and neither side could progress. `testConcurrentAccess` hung the
-    /// whole test suite indefinitely on exactly this cycle. It is also the most
-    /// likely mechanism behind the "every screen hangs" report described below —
-    /// 37 CloudKit-pull archive writes × one blocking main-queue round-trip each,
-    /// multiplied by the five observers of this notification.
+    /// With the main thread blocked waiting on background archive writes and the
+    /// writers blocked waiting on main, neither side can progress: a deadlock.
+    /// `testConcurrentAccess` exercises exactly this cycle.
     ///
     /// `queue: nil` runs the block synchronously on the posting thread, which is
-    /// all this block ever needed: it does no main-actor work itself, it just
-    /// schedules `Task { @MainActor in … }`. Behaviour is identical; the blocking
-    /// wait is gone.
+    /// all this block needs: it does no main-actor work itself, it just
+    /// schedules `Task { @MainActor in … }`.
     init(center: NotificationCenter = .default) {
         self.center = center
         observers.add(center.addObserver(
@@ -106,10 +99,10 @@ final class ArchiveSignal {
         }
     }
 
-    /// Manually broadcast an archive change. Kept for legacy callers;
-    /// the `version` bump happens via the observer above (single source
-    /// of truth). New code shouldn't need to call this; archive writes
-    /// propagate automatically via `SessionArchive.archive(_:)`.
+    /// Manually broadcast an archive change. The `version` bump happens via the
+    /// observer above (single source of truth); archive writes propagate
+    /// automatically via `SessionArchive.archive(_:)`, so most code never
+    /// needs this.
     func notifyChanged() {
         center.post(name: .flowRecoveryArchiveChanged, object: nil)
     }

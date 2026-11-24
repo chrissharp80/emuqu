@@ -4,10 +4,6 @@ import Foundation
 /// pause/resume path that lets a night be split and rejoined, and the Combine
 /// bindings that republish the sub-objects' state for the views.
 ///
-/// ## Why this is not on `RRCollector`
-///
-/// As extensions it would add 1,012 lines to the collector.
-///
 /// All three live together because pause/resume and the streaming session are
 /// the same state machine seen from two directions, and the bindings republish
 /// exactly what those two change.

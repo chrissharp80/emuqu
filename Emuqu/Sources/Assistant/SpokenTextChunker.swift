@@ -2,7 +2,7 @@ import Foundation
 
 /// Buffers streaming text and emits complete sentences ready for TTS.
 ///
-/// Split out from `VoiceConversationController` so the sentence-boundary
+/// A separate type so the sentence-boundary
 /// logic (plus markdown stripping for speech) is a pure, testable unit
 /// with zero audio dependencies.
 ///

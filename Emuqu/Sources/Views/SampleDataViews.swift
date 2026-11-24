@@ -141,9 +141,9 @@ struct SampleDataOfferRow: View {
 
     private var buttonLabel: some View {
         // Primary-text label on the tinted fill: the tint colour itself on
-        // its own 15% wash failed the dashboard's contrast audit.
+        // its own 15% wash fails text contrast.
         // Shrinks rather than growing without limit: at the largest
-        // accessibility text size the unbounded label pushed the button off
+        // accessibility text size an unbounded label pushes the button off
         // the bottom of the dashboard and under the tab bar.
         Label(String(localized: "No strap yet? Explore with sample data", bundle: LanguageManager.appBundle), systemImage: "wand.and.stars")
             .font(.subheadline.weight(.semibold))

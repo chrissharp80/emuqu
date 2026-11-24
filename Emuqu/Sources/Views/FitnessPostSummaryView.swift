@@ -47,11 +47,11 @@ struct FitnessPostSummaryView: View {
     // Exports are pre-built in memory once the archived copy of the session
     // has loaded on first appear (`reloadFromArchive`). Two reasons:
     //
-    //   1. Decoding the GPS polyline is non-trivial for long tracks. The
-    //      previous computed-property version re-decoded on EVERY SwiftUI
-    //      body pass (the `if !track.isEmpty` check alone triggered it in
-    //      mapCard, elevationCard, and all three export handlers), so a
-    //      500-point track got decoded 5–10× per render.
+    //   1. Decoding the GPS polyline is non-trivial for long tracks. A
+    //      computed property would re-decode on EVERY SwiftUI body pass
+    //      (the `if !track.isEmpty` check alone triggers it in mapCard,
+    //      elevationCard, and all three export handlers), decoding a
+    //      500-point track 5–10× per render.
     //   2. The GPX / CSV / TCX rows have their bytes ready ahead of time, so
     //      a tap only writes the file and opens the share sheet, which
     //      deletes it when it closes (`FileShareButton`).
@@ -126,8 +126,8 @@ struct FitnessPostSummaryView: View {
     /// The summary walk does synchronous archive disk reads
     /// (`retrieveLightweight` per prior workout entry), so it must not run
     /// inside `routeHistoryBaselineCard`'s body path on every SwiftUI
-    /// render. nil while loading — which renders exactly what a nil
-    /// summary always rendered (no card), so there's no new UI state.
+    /// render. nil while loading, which renders the same as a nil summary
+    /// (no card), so there is no separate loading state.
     @State var routeHistory: FitnessSummaryCards.RouteHistorySummary?
     /// Bumped by every route-history load; only the newest load's result lands.
     @State var routeHistoryGeneration = 0
@@ -257,8 +257,8 @@ struct FitnessPostSummaryView: View {
     /// Reserve the map slot immediately when the session has
     /// a polyline stored — prevents layout shift when the
     /// async polyline decode finishes and the real map
-    /// appears. Users were complaining that α1 would load,
-    /// then get shoved down when the map popped in.
+    /// appears. Without it the α1 card loads, then gets
+    /// shoved down when the map pops in.
     /// "How did that feel?" 5-emoji rater
     /// (also at top below verdict pill; user fills once,
     /// both sync). Same `feelingSection` view rendered twice

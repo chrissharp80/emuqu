@@ -1,9 +1,7 @@
 import CoreLocation
 import Foundation
 
-// The assistant-memory namespace, split out of
-// `AppFactResolver+RoutesAndDevices.swift` to keep that file under the
-// 1,000-line ceiling.
+// The assistant-memory namespace.
 
 // MARK: - assistant.memory.* namespace (UserFactsStore)
 //
@@ -84,7 +82,7 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
     // this" in chat or edit the facts list manually in Settings,
     // and any context the AI learns mid-conversation evaporates
     // when the chat ends.
-    // These actions close the loop. Mirror the existing
+    // These actions close the loop. Mirror the
     // `assistant.artifacts.add` / `update_status` shape so
     // the toolset is consistent. Saving without being asked is gated
     // on the user's auto-memory setting. The destructive actions run only
@@ -202,9 +200,9 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
 
     /// Whether `value` appears in `message` as whole words, ignoring case,
     /// whitespace and punctuation: the user said it, rather than the model
-    /// having taken it from something it read. "chris@example.com" is stated
-    /// by "add chris@example.com as Chris"; "Chris" is not stated by
-    /// "Christina".
+    /// having taken it from something it read. "sam@example.com" is stated
+    /// by "add sam@example.com as Sam"; "Sam" is not stated by
+    /// "Samantha".
     static func isStated(_ value: String, in message: String?) -> Bool {
         let needle = normalizedForQuote(value)
         guard !needle.isEmpty, let message else { return false }

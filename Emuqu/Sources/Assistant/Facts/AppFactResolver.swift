@@ -35,8 +35,7 @@ import os
 // closures are `@MainActor` and SUSPEND the actor on
 // `FactResolveTimeout.withTimeout(seconds:)` races — budgets and
 // timeout fallbacks without a DispatchSemaphore main-thread park,
-// which produces the App Watchdog kill signature (a workout
-// terminated mid-session in the field).
+// which gets the app killed by the App Watchdog, mid-workout included.
 //
 // The synchronous `resolve(_:)` walk still exists for composite bodies,
 // which read their children through it. On the async tool path a
@@ -60,11 +59,9 @@ import os
 // raw beat-stream. A "what were my last 10 workouts" query drops
 // from 50ms+ resolve time to <1ms.
 /// Shared period vocabulary for every namespace that takes a `$period`
-/// parameter. The previous implementation had six separate copies that
-/// each accepted a different subset of tokens — so a tool description
-/// promising "7d / 30d / this_week" silently returned an empty list
-/// when the model used those tokens against a parser that only knew
-/// `last_7d`. Funneling all callers here closes that gap.
+/// parameter. Every caller parses here, so a tool description promising
+/// "7d / 30d / this_week" holds for every namespace rather than one
+/// parser silently returning an empty list for a token it doesn't know.
 ///
 /// Accepted vocabulary (case-insensitive, leading "last_" optional):
 ///   • numeric: 7d, 14d, 30d, 60d, 90d, 180d, 365d
@@ -176,8 +173,7 @@ enum PeriodParser {
 enum AppFactResolverFactory {
     /// Build a fully-populated registry. The caller hands in the
     /// singletons / repositories it already uses elsewhere (no service
-    /// location inside fact code — per refactor spec's explicit
-    /// dependency wiring rule).
+    /// location inside fact code).
     ///
     /// Composites go LAST so their dependencies (every atomic namespace) are
     /// already registered. Composite resolvers call back into the registry to

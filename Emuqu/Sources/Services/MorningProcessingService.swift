@@ -2,8 +2,6 @@ import Foundation
 import HealthKit
 import UIKit
 
-/// Extracted processing logic from `RRCollector+MorningProcessing`.
-///
 /// Owns the heavy analysis pipeline (artifact detection, sleep polling,
 /// window selection, HRV analysis, recovery scoring) without mutating
 /// any observable UI state. The caller (`RRCollector`) performs the
@@ -117,11 +115,9 @@ final class MorningProcessingService {
     /// Runs artifact detection, the sleep-boundary poll, window selection and
     /// the HRV analysis, with the per-step timing instrumentation intact.
     ///
-    /// Kept out of `processOvernightData` as its largest contiguous,
-    /// self-contained stretch. The
-    /// concurrency notes below are load-bearing and travel with the code.
-    /// Per-step timing instrumentation lets us attribute
-    /// the user's "still ~5 min for 10 sec of work" complaint. Each
+    /// The concurrency notes below are load-bearing and travel with the code.
+    /// Per-step timing instrumentation attributes a long wait to the step
+    /// that caused it. Each
     /// line in the log gives a wall-clock delta for one step — the
     /// sum should bound the user-visible wait.
     ///
@@ -149,9 +145,9 @@ final class MorningProcessingService {
         isBackgroundRefinement: Bool,
         settings: SettingsSnapshot,
         trainingContext: TrainingContext?,
-        // Both default so the parameter count stays inside budget; both are
-        // genuinely optional — a background refinement has no status
-        // callback, and the prefetch is a best-effort optimisation.
+        // Both default because both are genuinely optional — a background
+        // refinement has no status callback, and the prefetch is a
+        // best-effort optimisation.
         prefetchedSleepData: SleepData? = nil,
         statusCallback: StatusCallback? = nil
     ) async -> AnalysisPhaseResult {
@@ -204,7 +200,6 @@ final class MorningProcessingService {
 
     /// Process overnight data and return a result struct.
     ///
-    /// This is the heavy lifting extracted from `RRCollector.processOvernightData`.
     /// The caller is responsible for updating observable state, archiving,
     /// and CloudKit sync based on the returned result.
     ///

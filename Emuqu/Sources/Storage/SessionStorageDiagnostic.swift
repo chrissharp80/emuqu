@@ -5,8 +5,7 @@ import Foundation
 /// per-session: is the rrSeries on disk in the main archive, in the
 /// RawRRBackup safety net, both, or neither.
 ///
-/// This replaces the "I assumed your data is gone" speculation with an
-/// actual inspection of the file system. Run from Settings → Archive
+/// It inspects the file system rather than guessing. Run from Settings → Archive
 /// Diagnostics → "RR Storage Audit." Surfaces a per-session list with
 /// status icons and a recovery summary so the user knows exactly which
 /// sessions can be repaired.
@@ -23,8 +22,8 @@ import Foundation
 ///
 /// The diagnostic is read-only. Backup beat counts come from the backup
 /// index rather than a decode of each backup: decoding reconciles and
-/// rewrites the index, and a backup that failed to decode fell out of the
-/// orphan list, which is the case this report exists to show.
+/// rewrites the index, and a backup that fails to decode would fall out of
+/// the orphan list, which is the case this report exists to show.
 enum SessionStorageDiagnostic {
     // MARK: - Report types
 

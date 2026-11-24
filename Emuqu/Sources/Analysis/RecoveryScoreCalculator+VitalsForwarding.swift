@@ -1,10 +1,7 @@
 import Foundation
 
-// The vitals sub-score lives in `VitalsScoring` — part of keeping
-// RecoveryScoreCalculator under the 1500-line limit.
-//
-// These forwarders keep every existing call site working, tests included. The
-// scoring itself is unchanged: same inputs, same arithmetic, same output.
+// The vitals sub-score lives in `VitalsScoring`. These forwarders expose it on
+// `RecoveryScoreCalculator` and add no logic of their own.
 
 extension RecoveryScoreCalculator {
     static func calculateVitalsScore(

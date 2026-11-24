@@ -208,8 +208,8 @@ final class EncryptionManager: Sendable {
     /// call re-tries the keychain. We must never silently create a new key
     /// when the old one is just temporarily inaccessible.
     /// Decryption only ever reads keys. Creating one for whatever version
-    /// byte a blob carries stored a new random key for every corrupt or bare
-    /// legacy file, and that key could never open it.
+    /// byte a blob carries would store a new random key for every corrupt or
+    /// bare legacy file, and that key could never open it.
     ///
     /// The Keychain round-trips run outside the lock, so a thread decrypting
     /// with a cached key (the main thread, on a cold dashboard) never waits

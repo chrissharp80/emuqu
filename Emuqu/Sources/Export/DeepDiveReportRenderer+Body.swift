@@ -4,11 +4,9 @@ import UIKit
 
 // MARK: - Deep-Dive: Sleep, Training, Vitals
 //
-// Split out of `PDFReportGenerator+DeepDive.swift` to keep that file under
-// the 1000-line file limit. The HRV deep dive, the shared drawing helpers
-// and the interpretation bands stay behind; the three body-system sections live
-// here. The helpers those sections call are internal rather than `private`
-// because Swift's `private` does not reach across files.
+// The three body-system sections. The helpers they call are internal
+// rather than `private` because Swift's `private` does not reach across
+// files.
 
 extension DeepDiveReportRenderer {
     // MARK: - Deep Sleep Analysis
@@ -358,11 +356,8 @@ extension DeepDiveReportRenderer {
 
 // MARK: - File-scope helpers
 //
-// Kept outside the type. Each touches no instance state —
-// including the computed properties — and
-// calls nothing inside the type, so none is a method in anything but
-// placement. `private` at file scope is fileprivate, so every call site in
-// this file resolves the same way.
+// Each touches no instance state — including the computed properties —
+// and calls nothing on the type, so none needs to be a method.
 
 private func sleepDurationRows(sleep: PDFReportGenerator.SleepData, bundle: Bundle) -> [DeepDiveReportRenderer.DeepDiveMetric] {
     [

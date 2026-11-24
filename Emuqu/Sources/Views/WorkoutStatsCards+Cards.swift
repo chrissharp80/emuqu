@@ -4,9 +4,7 @@ import MapKit
 import MessageUI
 import SwiftUI
 
-// Split out from FitnessPostSummaryView.swift to keep the primary
-// file under the 1500-line tech-debt budget. Holds
-// headline-card derived values + time-series chart cards.
+// Headline-card derived values + time-series chart cards.
 
 extension WorkoutStatsCards {
     // MARK: - Headline-card derived values
@@ -260,8 +258,7 @@ extension WorkoutStatsCards {
     ///      Checks the last ≤ 15 samples (3 is too few — multi-sample
     ///      tail artefacts slip through), ≥ 1.5× baseline
     ///      median gets dropped.
-    /// The user's complaint "I did NOT start running" on a walk where
-    /// the final 5-10 samples show 140 spm maps to case 1 — foot-pod
+    /// A walk whose final 5-10 samples show 140 spm is case 1: foot-pod
     /// noise at stop time that a per-row threshold alone can't catch.
     func filterCadence(_ points: [(Double, Double)], sport: Sport) -> [(Double, Double)] {
         Self.truncatingTailSpike(points.filter { $0.1 <= Self.cadenceCap(for: sport) })
@@ -482,14 +479,13 @@ extension WorkoutStatsCards {
         return String(format: "%d:%02d", m, s)
     }
 
-    /// Heart-rate recovery — promoted to its own card because it was getting
-    /// lost in the "Physiology" grab-bag below. HRR is one of the signature
+    /// Heart-rate recovery, a card of its own rather than part of the
+    /// "Physiology" group below. HRR is one of the signature
     /// numbers for post-workout autonomic recovery (12+ bpm drop in the first
     /// minute = healthy parasympathetic reactivation).
     ///
     /// Capture UX: the backing task runs for up to 120 s after Stop. Rather
-    /// than showing an opaque spinner — a user complaint that
-    /// "HRR sits and spins and I have no idea what's happening" — the
+    /// than an opaque spinner, the
     /// header shows a live `MM:SS remaining` countdown and the HR at Stop is
     /// rendered inline so the user can sanity-check the drop once numbers
     /// arrive. While the capture is open the whole card is redrawn once a

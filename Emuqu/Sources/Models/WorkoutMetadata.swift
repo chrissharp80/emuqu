@@ -639,9 +639,9 @@ struct WorkoutMetadata: Codable, Equatable {
     /// The power TSS frozen at finalize, re-derived over MOVING time.
     ///
     /// TSS is IF² × hours of effort × 100, and NP is computed over the moving
-    /// samples only, so the hours must be moving hours too. Finalize used
-    /// start-to-stop wall-clock time, so a 60-minute ride with a 30-minute
-    /// café stop at IF 0.8 was stored as 96 TSS instead of 64. When the frozen
+    /// samples only, so the hours must be moving hours too. A stored value can
+    /// cover start-to-stop wall-clock time, so a 60-minute ride with a 30-minute
+    /// café stop at IF 0.8 stores 96 TSS instead of 64. When the frozen
     /// IF (which carries the FTP of that day) and the per-second samples are
     /// both present, the moving-time figure is returned; otherwise the stored
     /// value. Stored fields only, so it is safe off the main actor.

@@ -15,16 +15,14 @@ extension SessionDataMigrations {
     /// would only have moved it for reasons that have nothing to do with
     /// training (today's settings and baseline, the time since the night).
     ///
-    /// Why this exists: an earlier `HealthKitManager.WorkoutSummary.calculateTrimp`
-    /// lacked the 0.64 Banister scaling factor, so CTL/ATL values
-    /// captured onto every morning session were inflated by ~1.56×.
-    /// Historic sessions still carry those inflated numbers in their
-    /// `trainingSnapshot` — which the AI's training tools and the
-    /// reanalysis / rescoring flows read.  Left alone, the AI would
-    /// report pre-fix CTLs when asked about historical dates, and any
-    /// session that got re-scored against the corrected thresholds
-    /// would land in the "novel load" (punishing) path because its
-    /// stored CTL is higher than the current CTL — a silent drift.
+    /// Sessions archived by builds whose `WorkoutSummary.calculateTrimp` lacked
+    /// the 0.64 Banister scaling factor carry CTL/ATL inflated by ~1.56× in
+    /// their `trainingSnapshot`, which the AI's training tools and the
+    /// reanalysis / rescoring flows read. Left alone, the AI would report
+    /// inflated CTLs for historical dates, and any session re-scored against
+    /// the corrected thresholds would land in the "novel load" (punishing)
+    /// path because its stored CTL is higher than the current CTL — a silent
+    /// drift.
     ///
     /// The migration is safe-idempotent:
     ///   • Gated by a UserDefaults flag.

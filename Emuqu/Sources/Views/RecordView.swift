@@ -135,10 +135,9 @@ struct RecordView: View {
     // MARK: - Body structure
     //
     // `body` is split into the scroll container, the stack of sections, and
-    // one property per section (as one declaration it was 444 lines nested
-    // eight deep). Every extraction is a computed property on this same
-    // struct, so view identity and @State ownership are unaffected — no
-    // child structs, no state moved.
+    // one property per section. Every section is a computed property on this
+    // same struct, so view identity and @State ownership are unaffected — no
+    // child structs, no state held elsewhere.
 
     private var recordScroll: some View {
         ScrollViewReader { scrollProxy in
@@ -171,8 +170,8 @@ struct RecordView: View {
     /// Resolve an interrupted workout once on appear.
     private func resolveInterruptedWorkout() async {
         // Flag OR newest un-archived workout backup, so the recovery card shows
-        // even when the crash flag did not persist. 2026-08 — off-main: the scan
-        // does per-backup disk I/O and was trapping the main thread here.
+        // even when the crash flag did not persist. Off-main: the scan
+        // does per-backup disk I/O and would block the main thread here.
         interruptedWorkoutId = await collector.findInterruptedWorkoutSessionId()
     }
 
@@ -232,8 +231,7 @@ struct RecordView: View {
 
     /// Humanise Polar SDK errors. Raw `PolarErrors` enum text
     /// ("PolarBleSdk.PolarErrors error 3.") gives the user no idea whether
-    /// to retry or give up (reported by a tester with an H10 stuck at 30%
-    /// retrieval after an overnight session).
+    /// to retry or give up.
     @ViewBuilder
     private var errorAlertMessage: some View {
         if let error = sessionState.lastError {
@@ -258,7 +256,7 @@ struct RecordView: View {
     /// at low battery) is already waiting for acceptance.
     private func routeOvernightAcceptance(_ needsAcceptance: Bool) {
         // Overnight/nap: go to Dashboard and auto-accept immediately.
-        // Device fetch is now inline (completed before score is shown),
+        // Device fetch is inline (completed before score is shown),
         // so the score is final — no background refinement to wait for.
         if needsAcceptance,
            let session = sessionState.currentSession,

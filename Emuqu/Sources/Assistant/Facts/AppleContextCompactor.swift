@@ -16,8 +16,8 @@ import Foundation
 /// **Strategy.** Verbatim deletion of older turns once the
 /// transcript approaches 70% of the budget — keep the system
 /// prompt, drop the oldest user/assistant pairs in chronological
-/// order until we're back under the threshold. The research note's
-/// citation (CogCanvas, arxiv.org/pdf/2601.00821) reports verbatim
+/// order until we're back under the threshold. CogCanvas
+/// (arxiv.org/pdf/2601.00821) reports verbatim
 /// compaction beats LLM-summarized compaction 19% → 93% on
 /// fact-preservation in coaching dialog. We stay verbatim.
 ///
@@ -25,7 +25,7 @@ import Foundation
 /// Intelligence to compress its own context — which means a
 /// recursive call to the very model we're trying to fit context
 /// for. Verbatim drop has zero overhead, deterministic behaviour,
-/// and preserves quoted preferences ("call me Chris", "I run
+/// and preserves quoted preferences ("call me Sam", "I run
 /// 50 km/week") that summaries blur.
 ///
 /// **Token estimation.** ASCII text counts at ~4 characters per

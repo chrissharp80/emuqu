@@ -1,10 +1,8 @@
 import CoreLocation
 import Foundation
 
-// The per-second loop lives in `WorkoutTicker` — 936 lines off
-// `WorkoutRecorder`, its largest single file.
-//
-// These forwarders keep every existing call site working.
+// The per-second loop lives in `WorkoutTicker`; these forwarders give
+// `WorkoutRecorder` callers the same entry points.
 
 extension WorkoutRecorder {
     /// The tick loop. Built when a workout starts.
@@ -20,7 +18,7 @@ extension WorkoutRecorder {
     func liveZoneBreakdown() -> WorkoutZoneBreakdown { ticker.liveZoneBreakdown() }
     func syncedLiveTrends() -> WorkoutLiveTrends.Tally { ticker.syncedLiveTrends() }
 
-    /// The HR-source arbitration moved with the ticker; this keeps
+    /// The HR-source arbitration lives on the ticker; this keeps
     /// `WorkoutRecorder.HRArbitration` resolving for its tests and call sites.
     typealias HRArbitration = WorkoutTicker.HRArbitration
 

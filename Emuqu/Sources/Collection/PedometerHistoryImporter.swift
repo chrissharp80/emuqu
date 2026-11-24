@@ -76,8 +76,6 @@ enum PedometerHistoryImporter {
     /// way — but if it ever gains `@MainActor`, an inherited-isolation handler
     /// would assert the main queue on CoreMotion's own worker thread, and
     /// libdispatch answers a failed queue assertion with `__builtin_trap()`.
-    /// That is not hypothetical: it is what `WorkoutPedometer` did, and it cost
-    /// a user a whole recorded walk.
     private static func queryPedometerData(pedometer: CMPedometer, from: Date, to: Date) async -> DailySteps? {
         await withCheckedContinuation { continuation in
             pedometer.queryPedometerData(from: from, to: to) { @Sendable data, error in

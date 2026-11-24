@@ -70,25 +70,25 @@ final class RRCollector {
     /// before trying again after a refusal that can clear up.
     @ObservationIgnored var armingRetryInterval: TimeInterval = StrapRecordingPolicy.armingRetryIntervalSeconds
 
-    // Archive update trigger — moved to a dedicated `ArchiveSignal` object so
+    // Archive update trigger — lives on a dedicated `ArchiveSignal` object so
     // views that only care about archive changes don't observe the full
     // collector (whose state also changes on BLE + streaming +
     // recording updates).
     //
-    // Back-compat accessor so non-SwiftUI internals and tests can still read
+    // Accessor so non-SwiftUI internals and tests can read
     // the value via `collector.archiveVersion`. SwiftUI views read
     // `archiveSignal` directly from the environment.
     var archiveVersion: Int { archiveSignal.version }
 
-    // Proxied PolarManager state moved to a dedicated `DeviceStatus` object
+    // Proxied PolarManager state lives on a dedicated `DeviceStatus` object
     // so views that only care about BLE connection / battery / device
     // recording state don't re-render on every archive / streaming /
     // morning-processing property the collector also publishes.
     //
     // Writers: `RRCollector+Bindings.setupBindings()` pushes PolarManager
-    // updates into `deviceStatus`. Back-compat computed getters below
-    // forward existing `collector.isDeviceConnected` / `collector.batteryLevel`
-    // etc. reads through to the new object. SwiftUI views read
+    // updates into `deviceStatus`. The computed getters below forward
+    // `collector.isDeviceConnected` / `collector.batteryLevel` etc. reads
+    // through to it. SwiftUI views read
     // `deviceStatus` directly from the environment.
     var fetchProgress: PolarManager.FetchProgress? { deviceStatus.fetchProgress }
     var isDeviceConnected: Bool { deviceStatus.isDeviceConnected }
@@ -429,20 +429,16 @@ final class RRCollector {
     /// when the in-memory tracker is still empty (i.e. on first call) and
     /// flips `_didBootBaseline` to short-circuit subsequent calls.
     ///
-    /// **Behaviour parity.** The user-visible state at "I just opened the
-    /// app and the first frame painted" is identical: the dashboard's
-    /// recovery-score path doesn't read baseline numbers until after a new
-    /// reading is processed, and `runLaunchTask` already starts well after
-    /// boot() has a chance to run. The rebuild was always best-effort
-    /// recovery from CloudKit-restored state — pushing it a frame later
-    /// doesn't change correctness.
+    /// Deferring is safe: the dashboard's recovery-score path doesn't read
+    /// baseline numbers until after a new reading is processed, and
+    /// `runLaunchTask` starts well after boot() has a chance to run. The
+    /// rebuild is best-effort recovery from CloudKit-restored state.
     ///
-    /// NOTE — no Polar BLE prewarm (`ensureApiReady()` shortly after launch)
-    /// here: initializing the CoreBluetooth central at launch instead of
-    /// lazily on first connect correlated with the strap not showing HR at
-    /// session start. The long-stable behavior is lazy init on the
-    /// Record/connect path — do not add a launch-time BLE init without
-    /// on-device verification of the connect flow.
+    /// No Polar BLE prewarm (`ensureApiReady()` shortly after launch) here:
+    /// initializing the CoreBluetooth central at launch instead of lazily on
+    /// first connect correlates with the strap not showing HR at session
+    /// start. Keep the init lazy on the Record/connect path unless the connect
+    /// flow is verified on a device.
     @MainActor
     func boot() {
         guard didBootBaseline.setIfClear() else { return }
@@ -453,15 +449,12 @@ final class RRCollector {
     /// Decrypt the archive OFF the main actor. `boot()` runs
     /// synchronously on the main actor right after first paint
     /// (`EmuquApp.runDeferredBoot` → `timedBoot("collector")`), and this walk
-    /// does an AES-GCM decrypt + JSON decode PER archived session — a field
-    /// trace measured it stalling the main thread ~6.3s on a full archive,
-    /// freezing the dashboard until it finished. It's the LAST main-actor
-    /// decrypt of the launch path (the `fromAppArchive` /
-    /// `calculateTrainingMetrics` decrypts were already moved off-main). The
-    /// rebuild is best-effort recovery from CloudKit-restored state (see the
-    /// note on `boot()`), so deferring it a few frames off-main is
-    /// correctness-neutral. Decrypt on a utility task, then hop back to mutate
-    /// the MainActor-isolated `baselineTracker`.
+    /// does an AES-GCM decrypt + JSON decode PER archived session, which on a
+    /// full archive stalls the main thread for seconds and freezes the
+    /// dashboard. The rebuild is best-effort recovery from CloudKit-restored
+    /// state (see the note on `boot()`), so deferring it a few frames off-main
+    /// is correctness-neutral. Decrypt on a utility task, then hop back to
+    /// mutate the MainActor-isolated `baselineTracker`.
     /// Also the rebuild after a CloudKit pull into an empty baseline
     /// (`CollectorSessionControl.bindCloudSyncBaseline`).
     @MainActor
@@ -872,9 +865,8 @@ extension RRCollector {
 
 // MARK: - File-scope helpers
 //
-// Kept outside RRCollector. Each names no member of the type and calls
-// nothing inside it, so none needs to be a member. `private` at file
-// scope is fileprivate, so every call site in this file resolves.
+// Each names no member of `RRCollector` and calls nothing on it, so none needs
+// to be inside the type.
 
 /// Whether the archive holds a night or nap, the only sessions a strap
 /// recording is saved into, that was running at `date`: one that started no

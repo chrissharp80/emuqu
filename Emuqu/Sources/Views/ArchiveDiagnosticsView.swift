@@ -85,10 +85,9 @@ struct ArchiveDiagnosticsView: View {
         SampleDataSection()
     }
 
-    /// No wipe here. This page once had a local-only "Clear All Archive
-    /// Data" that removed the whole archive directory, Trash and deletion
-    /// list included, after one alert, with no recording guard and no lock:
-    /// unsynced nights were lost for good. Deleting data goes through Delete
+    /// No wipe here. A local-only wipe of the archive directory takes Trash
+    /// and the deletion list with it and, with no recording guard and no lock,
+    /// loses unsynced nights for good. Deleting data goes through Delete
     /// All My Data, which has the typed-phrase gate and the recording guard.
     private var actionsSection2: some View {
         Section {

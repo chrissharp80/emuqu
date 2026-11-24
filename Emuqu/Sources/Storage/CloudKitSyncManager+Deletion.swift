@@ -1,8 +1,7 @@
 import CloudKit
 import Foundation
 
-// The remote-deletion paths, split out of `CloudKitSyncManager.swift` to keep
-// that type under its size ceiling: the zone wipe behind "Delete All My Data"
+// The remote-deletion paths: the zone wipe behind "Delete All My Data"
 // (GDPR / App Store), which removes every remote record the app has ever
 // created, and the per-session tombstones a deletion on this device writes.
 
@@ -292,11 +291,10 @@ extension CloudDeletionCoordinator {
     /// adopted (`flagRecordDeleted`). The deleted list only grows, so a
     /// deletion iCloud has confirmed is re-checked once a day
     /// (`tombstoneRecheckInterval`), not on every sync: one fetch per deleted
-    /// session per sync was hundreds of round-trips for a long-time user.
+    /// session per sync is hundreds of round-trips for a long-time user.
     ///
-    /// Not a serial for-loop awaiting each delete in turn (53 deletions ×
-    /// ~150 ms network roundtrip each = an 8-second chunk inside a 49.5 s
-    /// full-sync a user logged). CloudKit handles parallel ops in a single
+    /// Not a serial for-loop awaiting each delete in turn: at ~150 ms a
+    /// network round-trip, 53 deletions add 8 s to a full sync. CloudKit handles parallel ops in a single
     /// zone fine; this runs with a bounded concurrency of 6 so we don't
     /// hammer the zone's per-second rate limit. Each delete fails
     /// independently — no shared throw. A cancelled sync (the stall watchdog

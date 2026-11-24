@@ -85,8 +85,8 @@ struct ProfileSettingsPage: View {
     }
 
     /// Wheel, not the compact calendar. The compact style opens on the
-    /// current month and pages back one month at a time: a tester born in
-    /// 1964 had to tap through more than seven hundred months. The wheel's
+    /// current month and pages back one month at a time: someone born in
+    /// 1964 would tap through more than seven hundred months. The wheel's
     /// year column is one flick.
     private func birthdayWheel(showing birthday: Date) -> some View {
         VStack(alignment: .leading, spacing: 4) {

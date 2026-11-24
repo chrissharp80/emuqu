@@ -1,9 +1,8 @@
 import Foundation
 import UIKit
 
-// Overnight stats and the overnight charts, split out of
-// `PDFReportGenerator+Sections.swift`. Sleep, training-load and
-// vitals sections stay there.
+// Overnight stats and the overnight charts. The sleep, training-load and
+// vitals sections are in `PDFReportGenerator+Sections.swift`.
 
 extension OvernightReportRenderer {
     // MARK: - Overnight Stats Section
@@ -606,10 +605,8 @@ extension OvernightReportRenderer {
 
 // MARK: - File-scope helpers
 //
-// Kept outside the type. Each touches no instance state — including the
-// computed properties — and calls nothing inside it, so none is a method
-// in anything but placement. `private` at file scope is fileprivate, so
-// every call site in this file resolves.
+// Each touches no instance state — including the computed properties —
+// and calls nothing on the type, so none needs to be a method.
 
 /// "7h 42m" / "42m" for the recording span, first to last beat on the
 /// series' wall clock, so a strap disconnect gap counts as recorded time.

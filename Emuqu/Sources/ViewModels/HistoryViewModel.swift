@@ -67,7 +67,7 @@ final class HistoryViewModel {
         displayLimit += pageSize
     }
 
-    // MARK: - Core Logic (moved from HistoryView.filteredEntries)
+    // MARK: - Core Logic
     //
     // The BFS chain dedup + same-night collapse +
     // filter passes must not run synchronously on @MainActor when the

@@ -199,7 +199,7 @@ struct PreScorePromptView: View {
                     .multilineTextAlignment(.center)
             }
             // Shares the row's width instead of a fixed 60 pt: five fixed
-            // buttons overflowed a 375 pt phone and clipped translated labels.
+            // buttons overflow a 375 pt phone and clip translated labels.
             .frame(minWidth: 44, maxWidth: .infinity, minHeight: 60)
             .contentShape(Rectangle())
         }

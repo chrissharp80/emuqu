@@ -1,13 +1,13 @@
 import SwiftUI
 
-// The connection section, actions and computed properties, split out of
-// `RecordView.swift`. What stays behind is the recording UI itself
-// and the morning-results preview.
+// The connection section, actions and computed properties.
+// `RecordView.swift` holds the recording UI itself and the
+// morning-results preview.
 
 extension RecordView {
     // MARK: - Connection Section
 
-    // connectionSection moved to ConnectionPanel struct (isolated PolarManager observation)
+    // connectionSection is the ConnectionPanel struct (isolated PolarManager observation).
 
     var isBatteryCritical: Bool {
         guard let battery = deviceStatus.batteryLevel else { return false }

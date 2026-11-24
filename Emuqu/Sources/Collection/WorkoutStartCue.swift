@@ -4,15 +4,13 @@ import Foundation
 import os
 import UIKit
 
-/// The multi-modal "recording has started" cue, lifted out of
-/// `WorkoutRecorder`.
+/// The multi-modal "recording has started" cue.
 ///
-/// It is a self-contained mechanism: a few
-/// pre-warmed statics, a handful of functions, and a file-scope voice cache
-/// that between them touch no recorder state at all. As its own type the pre-warm
-/// contract — `prepare()` at launch, never construct a feedback generator on
-/// the workout-start hot path — is stated where it belongs instead of as a
-/// comment on a property halfway down a lifecycle extension.
+/// It is a self-contained mechanism: a few pre-warmed statics, a handful of
+/// functions, and a file-scope voice cache that between them touch no
+/// recorder state at all. As its own type it states the pre-warm contract —
+/// `prepare()` at launch, never construct a feedback generator on the
+/// workout-start hot path — where it belongs.
 ///
 /// A namespace rather than an instance: every layer here is process-wide by
 /// nature — one Taptic Engine, one speech synthesizer, one system sound.
@@ -63,19 +61,14 @@ enum WorkoutStartCue {
     @MainActor static let notificationFeedback = UINotificationFeedbackGenerator()
     @MainActor static let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
 
-    /// `announceStart` is now fire-and-forget from the recorder's perspective:
+    /// `announceStart` is fire-and-forget from the recorder's perspective:
     /// it owes nothing to start() except scheduling the user-feedback layers
     /// in priority order. Haptic + chime are sub-10 ms when the generators are
     /// pre-warmed (we warm at launch). Voice utterance build + speak() ALWAYS
-    /// hops off the main actor — the speech daemon has been observed to stall
-    /// the calling thread for tens of seconds on first cold use after an audio
-    /// interruption (which the log file shows happened 11 minutes before this
-    /// workout started).
+    /// hops off the main actor — the speech daemon can stall the calling
+    /// thread for tens of seconds on first cold use after an audio interruption.
     ///
-    /// A user debug log
-    /// showed a 14.65-second gap between the `phase.recording → announce.fire`
-    /// log and the next synchronous log in start(). The only meaningful work
-    /// between them is this function. The two known main-thread stallers are
+    /// The two known main-thread stallers are
     ///   (a) `AVSpeechSynthesisVoice.speechVoices()` enumeration via
     ///       `cachedCompactVoice`, which IPCs into the speech daemon and
     ///       blocks for up to tens of seconds on first cold call after an
@@ -85,7 +78,7 @@ enum WorkoutStartCue {
     /// Both are mitigated: voice is cached (see `cachedCompactVoice`)
     /// and haptic generators are pre-warmed. Belt-and-braces, the utterance
     /// build + speak() is hopped onto a detached Task so even if voice
-    /// enumeration regresses, the main actor doesn't wait for it.
+    /// enumeration stalls, the main actor doesn't wait for it.
     @MainActor
     static func announceStart(sport: Sport) {
         let t0 = Date()
@@ -120,7 +113,7 @@ enum WorkoutStartCue {
     @MainActor
     private static func speakStartAnnouncementOffMain(sportName: String) {
         // The app's language, not the phone's, for both words and voice: an
-        // English "<sport> started" was read by the phone's voice.
+        // English "<sport> started" would be read by the phone's voice.
         let lang = LanguageManager.appLocale.language.languageCode?.identifier ?? "en"
         let phrase = String(localized: "\(sportName) started", bundle: LanguageManager.appBundle)
         let audio = AppDependencies.current.collection.backgroundAudioManager
@@ -136,9 +129,9 @@ enum WorkoutStartCue {
     /// `AVAudioSession.setActive(true)` in `beginCue()`. That call
     /// synchronously blocks the calling thread while iOS negotiates
     /// with the audio service, and when the service is in a recovery
-    /// state (e.g., after a phone-call interruption, as seen in user
-    /// debug logs) the negotiation can take tens of seconds — on the
-    /// main actor it would freeze the entire workout UI. The session
+    /// state (e.g., after a phone-call interruption) the negotiation can take
+    /// tens of seconds — on the main actor it would freeze the entire workout
+    /// UI. The session
     /// is held only for this utterance: `releaser` ends this cue's hold
     /// when it finishes or is cancelled, and a callback for any other
     /// utterance can't end it.
@@ -233,18 +226,13 @@ enum WorkoutStartCue {
     /// Returns a compact (`.default` quality) voice that is guaranteed to
     /// be bundled with iOS — never an enhanced/premium voice.
     ///
-    /// Guards against the workout-start hang.
-    ///
     /// `AVSpeechSynthesisVoice(language:)` returns the system's "preferred"
     /// voice for the language, which on iOS 17+ is frequently an enhanced
     /// (premium) voice. The FIRST `speak()` against an enhanced voice that
     /// hasn't been downloaded blocks the main thread synchronously while
-    /// iOS pulls the voice file. Observed in the wild as up to 60 seconds
-    /// of total app unresponsiveness when the user tapped Start — the main
-    /// actor was held by the announce Task, blocking every deferred Task
-    /// (HR subscription, location tracking, pedometer, etc.) behind it.
-    /// Force-quitting "fixed it" because partial-download state persisted,
-    /// so the next launch's speak() returned quickly.
+    /// iOS pulls the voice file — up to a minute of total app unresponsiveness
+    /// after Start, with every deferred Task (HR subscription, location
+    /// tracking, pedometer, etc.) queued behind the announce Task.
     ///
     /// Compact voices have `quality == .default` and ship in the system
     /// image — they never download. Prefer one in the user's language;

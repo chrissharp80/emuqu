@@ -91,8 +91,7 @@ struct RecoveryScoreDetailView: View {
     /// Drives the chart's loading-vs-empty-state branch so a session
     /// loaded lightweight (no rrSeries) shows a spinner until the
     /// background reload completes — rather than briefly flashing
-    /// "No overnight HRV trace" before the data arrives. Was the
-    /// "charts flaky / sometimes empty" report.
+    /// "No overnight HRV trace" before the data arrives.
     @State var didCompleteInitialLoad: Bool = false
     /// Preview window the user is dragging in the inline
     /// Pick Window slider. Drawn as a lighter dashed band on the HRV
@@ -111,7 +110,7 @@ struct RecoveryScoreDetailView: View {
     @State var organizedZoneRanges: [HRVAnalysisResult.TimeRange] = []
     /// Hover/scrub time on the HRV-overnight chart (iOS 17 .chartXSelection).
     /// Drives the floating value-pill annotation that shows RMSSD at the
-    /// selected time, matching the granular hover values of the legacy
+    /// selected time, matching the granular hover values of the
     /// MorningResults chart.
     @State var hrvHoverDate: Date?
     /// Hover/scrub time on the HR-overnight chart.
@@ -164,14 +163,13 @@ struct RecoveryScoreDetailView: View {
     // is nil (e.g. after a session recovery that didn't persist
     // snapshots, or a session imported via CloudKit pull) the live
     // recompute drops to tier 1 and shows different factor scores
-    // than the headline frozen score. User saw "Excellent 93" in the
-    // ring and a tier-1 factor list contradicting it.
+    // than the headline frozen score.
     //
     // Falls through to live recompute only when no frozen breakdown
-    // exists — keeps the legacy/pre-breakdown sessions rendering.
+    // exists, so sessions stored without one still render.
     var breakdown: RecoveryScoreCalculator.ScoreBreakdown {
         if let stored = session.scoreBreakdown {
-            // #4 — the frozen breakdown may read "RR — no data" because Apple
+            // The frozen breakdown may read "RR — no data" because Apple
             // wrote overnight respiratory rate minutes after the recording
             // ended (after the breakdown froze). The Recovery Vitals card
             // re-fetches live, so refresh the frozen Vitals factor from
@@ -343,8 +341,8 @@ struct RecoveryScoreDetailView: View {
         await loadOrganizedZones()
         // Mark initial load complete — the chart's empty-vs-loading branch
         // flips to "real empty state" only after we've finished the
-        // lightweight → full reload round trip. Prevents the "No HRV trace"
-        // flash users were reporting.
+        // lightweight → full reload round trip. Prevents a "No HRV trace"
+        // flash.
         didCompleteInitialLoad = true
     }
 

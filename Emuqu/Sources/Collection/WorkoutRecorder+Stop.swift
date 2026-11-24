@@ -11,8 +11,8 @@ extension WorkoutRecorder {
     /// Stop the session, archive immediately, and transition to `.finished`.
     ///
     /// Critical UX point: the summary must appear **instantly** when the user
-    /// taps Stop. The previous implementation awaited HRR capture for up to
-    /// 120 seconds — that's not acceptable; users tap Stop and wait.
+    /// taps Stop. HRR capture takes up to 120 seconds, so it never runs on
+    /// that path.
     ///
     /// Flow:
     ///   1. Stop the strap + location immediately.
@@ -27,10 +27,9 @@ extension WorkoutRecorder {
     /// with the per-step `[Recorder.stop] step=…` lines and the
     /// "[WorkoutRecorder] archived session …" line at the end of
     /// `archive()`, we get a complete "where did the time go" trail in the
-    /// debug log. If a future hang report comes back, the user's log shows
-    /// EXACTLY which step ate the budget. Without this stamp, a hang inside
-    /// the very first synchronous call (cancelling sensors, tearing down the
-    /// strap) is invisible.
+    /// debug log, down to the step a hang is in. Without this stamp, a hang
+    /// inside the very first synchronous call (cancelling sensors, tearing down
+    /// the strap) is invisible.
     ///
     /// The workout correlation scope is closed LAST. Everything before it —
     /// the merge, the archive write, the sync hand-off — belongs to this
@@ -39,13 +38,13 @@ extension WorkoutRecorder {
     /// user has moved on, and tagging its lines as part of a finished workout
     /// would misrepresent when they happened.
     ///
-    /// The finalize runs under a `BackgroundTaskAssertion`. A termination
-    /// report showed: user tapped End during a workout, iOS SIGKILL'd the app
-    /// 19 s later at 228 MB phys footprint — once `stop()` tears the session
-    /// down, nothing keeps the app scheduled, leaving the training-load and
-    /// archive work with no background budget. The assertion asks for the full budget (~30 s); its
-    /// expiration handler ends the task, so running out suspends the app
-    /// rather than getting it killed. A free no-op in the foreground.
+    /// The finalize runs under a `BackgroundTaskAssertion`: once `stop()` tears
+    /// the session down, nothing keeps the app scheduled, leaving the
+    /// training-load and archive work with no background budget, and iOS can
+    /// SIGKILL the app seconds after End. The assertion asks for the full
+    /// budget (~30 s); its expiration handler ends the task, so running out
+    /// suspends the app rather than getting it killed. A free no-op in the
+    /// foreground.
     ///
     /// Stopped while paused (by hand or by auto-pause), the pause ends at the
     /// stop, so it is saved with the others and Apple Health counts the
@@ -126,8 +125,8 @@ extension WorkoutRecorder {
     /// Voice conversation lifecycle is INDEPENDENT of workout
     /// lifecycle. The recorder never starts voice (the user opens
     /// it manually via the chat mic button), so it shouldn't stop
-    /// it either. Tearing voice down here cut the user off
-    /// mid-sentence when they were debriefing the workout. The user
+    /// it either. Tearing voice down here would cut the user off
+    /// mid-sentence while they debrief the workout. The user
     /// closes voice when they're done.
     func tearDownLiveWorkoutServices() {
         stopTicker()
@@ -244,9 +243,8 @@ extension WorkoutRecorder {
 
     /// stop() — post-workout foot-pod disconnect (strap stays up for HRR).
     func disconnectFootPodPostWorkout() {
-        // Secondary-sensor cleanup. The user's spec:
-        // "disconnect the footpod after the exercise. not the strap
-        // because you need HRR." Footpod doesn't participate in HRR
+        // Secondary-sensor cleanup: the foot pod goes after the exercise,
+        // the strap stays for HRR. Footpod doesn't participate in HRR
         // (cadence + power are session-only), so we drop it the moment
         // recording phase is `.finished`. The strap stays connected
         // through the HRR window — the detached HRR-capture task
@@ -274,8 +272,8 @@ extension WorkoutRecorder {
     ///
     /// Priority is `.userInitiated` rather than `.background`. Background
     /// tasks get aggressively throttled / suspended for 60-120 s
-    /// waits, which made HRR capture silently fail whenever iOS
-    /// decided to deprioritise it (user-visible as "no signal" in
+    /// waits, which makes HRR capture silently fail whenever iOS
+    /// decides to deprioritise it (user-visible as "no signal" in
     /// the summary even when the strap was clearly still producing
     /// beats). `.userInitiated` tells the scheduler this work
     /// directly maps to a user-visible number they're waiting for.
@@ -385,8 +383,7 @@ extension WorkoutRecorder {
     /// `polarManager.isStreaming == true` to sample HR at +60s / +120s.
     ///
     /// The strap's BLE connection is released
-    /// now that HRR is captured. User's spec: drop the
-    /// strap after HRR even if voice chat is going. The
+    /// now that HRR is captured, even if voice chat is going. The
     /// chat continues without live HR (the AI handles
     /// "no current HR" gracefully via the missingReason
     /// envelope on `workout.live.hr.current`), and the
@@ -440,7 +437,7 @@ extension WorkoutRecorder {
         Self.scheduleCoachReportEmail(for: finalSession, settings: settingsProvider())
     }
 
-    /// Voice path enqueues if chat is busy (round 17 trigger queue). Skipped
+    /// Voice path enqueues if chat is busy (the trigger queue). Skipped
     /// when we got nothing — silence is more honest than narrating an empty
     /// result.
     ///
@@ -451,13 +448,11 @@ extension WorkoutRecorder {
     /// design IGNORES tool calls AND gets an empty context
     /// snapshot once the session has ended — the
     /// contextSnapshotProvider keys off `currentSession`, which
-    /// stop() cleared ~60–120 s ago. So a "look it up via
+    /// stop() cleared ~60–120 s earlier. A "look it up via
     /// the workout.most_recent + session.* tools" wording leaves
-    /// the model with no way to see the value: it announced "no
-    /// data" on every walk where Tier-1 capture actually
-    /// succeeded (user report — treadmill walks,
-    /// where the stationary strap reliably samples at +60/+120 s,
-    /// so this fired daily). Pass the figures inline; no lookup.
+    /// the model with no way to see the value, so it announces "no
+    /// data" even when Tier-1 capture succeeded. Pass the figures inline;
+    /// no lookup.
     @MainActor
     private func speakHRRInterjection(samples: [HRRSample]) {
         guard !samples.isEmpty, let one = samples.bestAtOneMinute else { return }

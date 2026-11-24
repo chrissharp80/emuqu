@@ -5,10 +5,9 @@ import Foundation
 /// whose word wins, a deletion or a later restore. The push, pull and deletion
 /// paths all ask it.
 ///
-/// Split out of `CloudKitSyncManager` the same way as `CloudPullCoordinator`
-/// and `CloudDeletionCoordinator`: a distinct job, reached through one
-/// explicit `manager` reference, with its own persisted record of pending
-/// restores.
+/// Like `CloudPullCoordinator` and `CloudDeletionCoordinator`: a distinct
+/// job, reached through one explicit `manager` reference, with its own
+/// persisted record of pending restores.
 @MainActor
 struct TrashRestoreCoordinator {
     let manager: CloudKitSyncManager

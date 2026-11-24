@@ -1,7 +1,7 @@
 import Foundation
 
 /// Which of a workout's five possible training-load figures it is actually
-/// scored by, lifted out of `HealthKitManager.WorkoutSummary`.
+/// scored by.
 ///
 /// The order below IS the function, and the number it picks becomes the
 /// workout's contribution to CTL, ATL and TSB — so every recommendation the app
@@ -67,12 +67,11 @@ enum TrainingLoadPrecedence {
     /// but it reads ONLY `meta.samples` (no SettingsManager), and samples
     /// ARE populated by the `archive.retrieveLightweight` read in
     /// `WorkoutSummary.summary(from:archive:)` (HealthDataTypes.swift), so
-    /// it's safe off-main. Dropping it under-counted load for any workout
+    /// it's safe off-main. Without it, load is under-counted for any workout
     /// with no power and no stored hrTSS — e.g. treadmill walks, which then
-    /// fell all the way through to the HR-Banister fallback (low for
-    /// easy-HR walks) or nil. Real-world hit: a user doing MORE treadmill
-    /// volume saw TSB sit at ~−2 instead of the expected ~−13 because each
-    /// walk's MET-based load never reached ATL.
+    /// fall all the way through to the HR-Banister fallback (low for
+    /// easy-HR walks) or nil, so a user doing MORE treadmill volume sees TSB
+    /// sit at ~−2 instead of ~−13.
     ///
     /// `internal` rather than `private` so the PRECEDENCE can
     /// be tested. The order is the whole content of this function, and the

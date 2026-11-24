@@ -33,8 +33,8 @@ struct StrapPPIReading: Equatable, Sendable {
 ///
 /// Heart rate is read from the strap's standard Heart Rate Service through
 /// `StandardHeartRateLink`, not from the SDK: the SDK delivers heart rate only
-/// once its whole setup of the strap is done, which on a slow link was the
-/// better part of a minute. The subscription is opened as soon as the SDK
+/// once its whole setup of the strap is done, which on a slow link can take
+/// the better part of a minute. The subscription is opened as soon as the SDK
 /// reports the link, on the peripheral the SDK named; if it ends, the feed
 /// re-opens it on a short schedule and on every link change.
 ///

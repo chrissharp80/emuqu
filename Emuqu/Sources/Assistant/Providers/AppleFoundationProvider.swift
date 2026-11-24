@@ -72,7 +72,7 @@ final class AppleFoundationProvider: AIProvider {
     // Session cache. The on-device Apple Foundation Model
     // pays a non-trivial warmup cost when a fresh `LanguageModelSession`
     // is created (instructions get tokenised, KV cache primed). Building
-    // a new session on every `send` was the dominant source of perceived
+    // a new session on every `send` would be the dominant source of perceived
     // slowness for "ask the AI" → "answer arrives" latency, especially
     // for follow-up questions where the user expects snappy turn-taking.
     //
@@ -357,7 +357,7 @@ final class AppleFoundationProvider: AIProvider {
 
         /// The instructions are Apple's own short prompt rebuilt from the
         /// composed one (`AssistantSystemPrompt.appleInstructions`): the shared
-        /// prompt alone overflowed the 4K window. The composed prompt already
+        /// prompt alone overflows the 4K window. The composed prompt already
         /// carries the rendered data context under "# Current data", so
         /// `contextRendered` (the cloud live-state block, a subset of it) is
         /// not appended again.

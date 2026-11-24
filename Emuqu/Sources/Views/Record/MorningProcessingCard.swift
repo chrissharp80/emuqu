@@ -181,10 +181,9 @@ struct MorningProcessingCard: View {
         switch status {
         case .saving: String(localized: "Securing data...", bundle: LanguageManager.appBundle)
         case .fetchingDevice: String(localized: "Downloading from strap...", bundle: LanguageManager.appBundle)
-        // Be explicit it's an Apple Watch / Health sync we're waiting on — the
-        // user reported assuming the spinner meant "downloading from the
-        // strap" (which doesn't happen for streaming-only sessions). Calling
-        // out HealthKit explicitly removes the ambiguity.
+        // Be explicit it's an Apple Watch / Health sync we're waiting on —
+        // otherwise the spinner reads as "downloading from the strap" (which
+        // doesn't happen for streaming-only sessions).
         case .waitingForSleep: String(localized: "Waiting for Apple Watch sleep data...", bundle: LanguageManager.appBundle)
         case .analyzing: String(localized: "Calculating your score...", bundle: LanguageManager.appBundle)
         case .complete: String(localized: "Ready", bundle: LanguageManager.appBundle)

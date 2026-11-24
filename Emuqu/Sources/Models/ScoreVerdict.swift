@@ -122,9 +122,9 @@ extension ScoreVerdict {
     /// a non-finite (NaN/Inf) input to `0`. `value` is expected already on the
     /// 0–100 display scale.
     ///
-    /// Why this exists: a `recoveryScore` archived by an older build can
-    /// be non-finite (a short quick reading with nil DFA-α1 / frequency-domain,
-    /// or an old compute path). `Int(NaN)` / `Int(Inf)` is a hard `Fatal error`,
+    /// An archived `recoveryScore` can be non-finite (a short quick reading
+    /// with nil DFA-α1 / frequency-domain, or an older compute path).
+    /// `Int(NaN)` / `Int(Inf)` is a hard `Fatal error`,
     /// and a NaN fed into SwiftUI `.trim`/frame geometry corrupts the render.
     /// This is the ONE place the raw→display clamp lives, so every score render
     /// site is trap-proof by construction rather than each re-deriving the guard.

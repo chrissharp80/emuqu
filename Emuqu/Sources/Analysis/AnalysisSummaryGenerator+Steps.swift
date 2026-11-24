@@ -3,9 +3,7 @@
 //  Emuqu
 //
 //  The "what to do about it" half of the morning summary: actionable steps,
-//  tag-specific advice, and the post-exercise readouts. Split out of
-//  AnalysisSummaryGenerator+Interpretation, which had crossed
-//  1000 lines.
+//  tag-specific advice, and the post-exercise readouts.
 //
 
 import Foundation

@@ -2,15 +2,12 @@ import SwiftUI
 
 /// The tags row and free-text notes on the morning results screen.
 ///
-/// Split out of `MorningResultsView`. Needs three things — the
-/// notes binding, the selected tags, and a toggle callback — which is what makes
-/// this worth cutting: the rest of `+DetailCards` reaches for the view model
-/// fourteen times and would need a twenty-argument initialiser to move,
-/// shrinking the type-size metric while making the design worse.
+/// Needs three things: the notes binding, the selected tags, and a toggle
+/// callback.
 ///
-/// Deliberately NOT a `View`. It returns the same view trees the extension
-/// returned, so SwiftUI view identity, animation and `@State` behaviour are
-/// unchanged; wrapping them in a new `View` would have changed identity.
+/// Deliberately NOT a `View`: it returns view trees into the host view's
+/// body, so SwiftUI view identity, animation and `@State` stay the host's;
+/// wrapping them in a new `View` would change identity.
 @MainActor
 struct TagsAndNotesCard {
     @Binding var notes: String
@@ -43,8 +40,7 @@ struct TagsAndNotesCard {
         }
     }
 
-    /// Split from `tagsRow` to keep each builder within two levels of nesting,
-    /// the way the original three properties in `+DetailCards` did.
+    /// Split from `tagsRow` to keep each builder within two levels of nesting.
     private var chipRow: some View {
         HStack(spacing: 8) {
             ForEach(stripTags) { tag in
@@ -75,7 +71,7 @@ struct TagsAndNotesCard {
         sectionLabel(icon: "note.text", title: String(localized: "Notes", bundle: LanguageManager.appBundle))
     }
 
-    /// The tags and notes headers were byte-identical apart from icon and
+    /// The tags and notes headers are identical apart from icon and
     /// title, so they share one builder here rather than two copies.
     private func sectionLabel(icon: String, title: String) -> some View {
         HStack {

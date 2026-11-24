@@ -9,7 +9,7 @@ import Foundation
 // reply cache apply to the whole app.
 //
 // **Endpoints.** `endpoints` lists the instances in the order they are asked:
-//   1. overpass.private.coffee (formerly overpass.kumi.systems). Its operator
+//   1. overpass.private.coffee. Its operator
 //      invites any project to use it, sets no rate limit, and asks for a
 //      User-Agent with contact details, no personal data in requests, and
 //      notice before large-scale use.

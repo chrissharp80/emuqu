@@ -8,7 +8,7 @@ import Foundation
 /// The Polar SDK delivers heart rate only after it has set the whole strap up:
 /// every service discovered in one step, every characteristic, every readable
 /// value read, notifications enabled one at a time. On a link the app built
-/// that took seconds; on a link the phone already had open when the app
+/// that takes seconds; on a link the phone already had open when the app
 /// connected, the discovery step alone can take 16–23 s and the first beat
 /// arrive 25–70 s in. Heart rate needs none of that — one service,
 /// one characteristic, one subscription — and it is what every heart-rate app

@@ -4,7 +4,7 @@ import UIKit
 
 /// Persists the assistant's chat thread to a file in the App Group container.
 ///
-/// MVP: a single rolling thread, cleared via the chat UI's "Clear" action.
+/// A single rolling thread, cleared via the chat UI's "Clear" action.
 /// Multi-thread history can layer on later without changing this file's shape.
 ///
 /// The thread can quote HRV, heart rate, sleep and location, so the JSON is

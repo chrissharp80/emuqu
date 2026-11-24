@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Split out from HelpContent.swift to keep the
-// primary file under the 1500-line tech-debt budget.
+// Help Center articles: AI assistant, Get Me Back, your data,
+// personalization and app navigation.
 
 extension HelpContent {
     // MARK: AI Assistant

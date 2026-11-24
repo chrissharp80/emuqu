@@ -12,7 +12,7 @@ import SwiftUI
 // Read the chat ScrollView's content frame + viewport size so we can compute
 // whether the user is near the bottom. If they are, streaming-token updates
 // autoscroll. If they've scrolled up to read earlier turns, we leave them
-// alone — no more being yanked back to the bottom mid-read.
+// alone rather than yank them back to the bottom mid-read.
 struct ChatScrollPositionKey: PreferenceKey {
     static let defaultValue: CGRect = .zero
     static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
@@ -43,17 +43,16 @@ struct ExportShareURL: Identifiable {
     var id: String { url.path }
 }
 
-// MARK: - Chat Input Bar (extracted for keyboard performance)
+// MARK: - Chat Input Bar (its own view, so typing re-renders only the bar)
 //
 // Owns its own `@State draft`, `@State speech`, `@FocusState
 // inputFocused`, `@State voiceErrorMessage`, and `@ObservedObject
 // inbox`. Sits below the parent's chat ScrollView. Each keystroke
 // flips `draft`, which only re-renders THIS view — the chat history,
 // scroll-position GeometryReader, voice status pill, and top bar all
-// stay frozen. Before this extraction, `@State draft` lived on
-// `AssistantChatView` itself and every keystroke ran the full body
-// re-eval including a per-keystroke `viewModel.turns.filter { ... }`
-// linear scan over the whole chat history.
+// stay frozen. With `draft` on `AssistantChatView` itself, every
+// keystroke would re-run its full body, including a
+// `viewModel.turns.filter { ... }` linear scan over the whole chat history.
 //
 // Public surface: takes the shared `viewModel` (so the Send button can
 // dispatch) and a `isAppleActive` flag (so the Apple-only stub copy
@@ -177,8 +176,8 @@ struct ChatInputBar: View {
         )
     }
 
-    /// Keyboard-perf disables. Three captured traces showed
-    /// first-focus blocking main for 9–18 s while iOS loads various Apple
+    /// Keyboard-perf disables. First focus can block main for 9–18 s
+    /// while iOS loads various Apple
     /// Intelligence text subsystems. Disabling the ones we don't need lets iOS
     /// skip the corresponding model loads:
     ///   • autocorrectionDisabled — also kills inline predictions per Apple docs

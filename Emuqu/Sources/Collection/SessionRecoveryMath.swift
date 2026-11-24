@@ -1,17 +1,12 @@
 import Foundation
 
-/// The pure decisions inside crash-session recovery, lifted out of
-/// `SessionRecoveryCoordinator`.
+/// The pure decisions inside crash-session recovery.
 ///
 /// Every one of them decides what happens to data the user cannot re-record —
 /// which recording survives a merge, whether an archived merge is the corrupt
-/// kind, what the review card says — and every one of them was a `private
-/// static` on a coordinator that also owns the strap, the archive and the
-/// scoring pipeline. None of it could be reached from a test.
-///
-/// Two of them were wrong in ways only a mutation run found: the merge
-/// tie-break was unreachable through its own caller, and the review card's
-/// `Int(Double)` conversion would have killed the process on a NaN mean HR.
+/// kind, what the review card says — so they live here, apart from
+/// `SessionRecoveryCoordinator` (which also owns the strap, the archive and
+/// the scoring pipeline), where a test can reach each one directly.
 enum SessionRecoveryMath {
     /// Whether one session is a segment resumed from another.
     ///
@@ -88,8 +83,8 @@ enum SessionRecoveryMath {
     /// Detect the v5 merge corruption: a child series longer than its parent
     /// whose timestamps jump BACKWARDS at the splice point.
     ///
-    /// A correct merge produces monotonically increasing `t_ms`. The v5 bug
-    /// concatenated the two series without rebasing the second, so the first
+    /// A correct merge produces monotonically increasing `t_ms`. A v5-corrupted
+    /// series has the two concatenated without the second rebased, so the first
     /// beat past the parent's length restarts near zero. Comparing it against
     /// half the preceding value catches that without flagging an ordinary gap.
     nonisolated static func hasV5TimestampDiscontinuity(

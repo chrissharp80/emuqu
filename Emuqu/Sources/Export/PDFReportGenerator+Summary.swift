@@ -317,11 +317,8 @@ extension PDFReportGenerator {
 
 // MARK: - File-scope helpers
 //
-// Kept outside the type. Each touches no instance state —
-// including the computed properties — and
-// calls nothing inside it, so none is a method in anything but
-// placement. `private` at file scope is fileprivate, so every call site in
-// this file resolves the same way.
+// Each touches no instance state — including the computed properties —
+// and calls nothing on the type, so none needs to be a method.
 
 /// The report's trend is already the generator's input type; a trend over no
 /// nights is passed as none.

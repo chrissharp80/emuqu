@@ -1,11 +1,9 @@
 import Foundation
 
-// `UserSettings`' hand-written `Codable` conformance, split out of
-// `UserSettings+Model.swift` to keep that file under the 1000-line
-// limit. The decoder is not one monolithic initializer: it seeds
-// `self` from the designated `init()` and then fills each settings domain from
-// its own small function. Each `decodeX` has an `encodeX` covering the same
-// keys (routing mode is encoded with the onboarding group, and
+// `UserSettings`' hand-written `Codable` conformance. The decoder is not one
+// monolithic initializer: it seeds `self` from the designated `init()` and
+// then fills each settings domain from its own small function. Each `decodeX`
+// has an `encodeX` covering the same keys (routing mode is encoded with the onboarding group, and
 // `profileFieldsFromHealth` is decoded last but encoded with the profile), so a
 // missing field shows up as a difference between the two halves of one pair.
 //
@@ -380,9 +378,8 @@ extension UserSettings {
 
     /// HealthKit export selection, plus the performance / battery
     /// toggles. Every field must be in CodingKeys / encode / decode: a
-    /// field with a default but no coding shipped the
-    /// "doesn't remember my AI / Voice choices" bug, where save()
-    /// silently dropped it on every write.
+    /// field with a default but no coding is silently dropped by save() on
+    /// every write, so the user's choice is never remembered.
     private func encodeExportAndPerformance(into container: inout KeyedEncodingContainer<CodingKeys>) throws {
         try container.encode(enableHealthKitExport, forKey: .enableHealthKitExport)
         try container.encode(exportSDNN, forKey: .exportSDNN)

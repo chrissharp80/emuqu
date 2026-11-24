@@ -1,10 +1,10 @@
 import Foundation
 
-// Tier composition and detail sentences live in `ScoreDetailBuilder` — the
-// cut that keeps RecoveryScoreCalculator under the 1500-line limit.
+// Tier composition and detail sentences live in `ScoreDetailBuilder`; these
+// forwarders expose them on `RecoveryScoreCalculator`.
 //
-// `TierInputs` is re-exported as a typealias so the call sites that name
-// `RecoveryScoreCalculator.TierInputs` keep compiling unchanged.
+// `TierInputs` is re-exported as a typealias so call sites can name
+// `RecoveryScoreCalculator.TierInputs`.
 
 extension RecoveryScoreCalculator {
     typealias TierInputs = ScoreDetailBuilder.TierInputs

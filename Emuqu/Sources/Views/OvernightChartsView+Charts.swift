@@ -170,7 +170,7 @@ struct OvernightHRChartCanvas: View {
     /// closer in time, with its wall-clock label.
     ///
     /// Reuses the cached formatter — this runs per scrub frame,
-    /// and allocating a DateFormatter each time was tooltip jank.
+    /// and allocating a DateFormatter each time causes tooltip jank.
     private func hrAtLocation(_ x: CGFloat, size: CGSize) -> (Double, String)? {
         let firstMs = stats.chartStartMs
         let totalDurationMs = stats.chartEndMs - firstMs
@@ -245,9 +245,9 @@ struct OvernightHRChartCanvas: View {
     /// This must not bail whenever the Polar RR series is
     /// missing/empty. For overnight-crashed sessions the RR series is
     /// sometimes empty (the recovery path reconstructs sleep + HK HR but
-    /// can't always rebuild RR), so the user saw a totally blank HR chart even
-    /// though HK HR data WAS available via the gap-fill in
-    /// OvernightChartsView. Now it bails only when BOTH sources are empty; the
+    /// can't always rebuild RR), and bailing then would blank the HR chart
+    /// even though HK HR data IS available via the gap-fill in
+    /// OvernightChartsView. It bails only when BOTH sources are empty; the
     /// Polar pass is gated on `points` being non-empty on its own.
     private struct HRChartGeometry: OvernightChartViewport {
         let size: CGSize

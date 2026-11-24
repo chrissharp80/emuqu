@@ -73,8 +73,7 @@ struct ConfidencePip: View {
     }
 
     /// The row is caption-height (~14 pt). Without the `minHeight` the whole
-    /// control is a 150 × 14 pt tap target against the 44 pt HIG minimum —
-    /// flagged by the accessibility audit on Dashboard.
+    /// control is a 150 × 14 pt tap target against the 44 pt HIG minimum.
     private var bodyLabel: some View {
         HStack(spacing: 4) {
             dots
@@ -89,7 +88,7 @@ struct ConfidencePip: View {
     /// The dots are a redundant visual encoding of `labelText`, which sits
     /// right beside them and says the same thing in words. Exposed, VoiceOver
     /// reads "black circle, white circle, white circle" before the sentence
-    /// that explains it, and the audit scores the glyph run as failing text
+    /// that explains it, and contrast checks score the glyph run as failing text
     /// contrast. Hiding it also satisfies the "never colour alone" rule, since
     /// the words carry the state.
     private var dots: some View {

@@ -7,8 +7,7 @@ import SwiftUI
 
 extension RecordView {
     /// Grouped onto fewer lines than one argument per line to stay inside the
-    /// 20-line declaration limit the refactor spec enforces; the call is a
-    /// single expression either way.
+    /// 20-line declaration limit; the call is a single expression either way.
     var panels: RecordPanels {
         RecordPanels(
             collector: collector, deviceStatus: deviceStatus,

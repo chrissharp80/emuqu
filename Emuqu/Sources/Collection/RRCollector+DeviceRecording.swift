@@ -1,10 +1,6 @@
 import Foundation
 
 // MARK: - Device Internal Recording (H10 / Verity Sense)
-//
-// Kept off `RRCollector` to keep that type's size in check. Same
-// coordinator split as the overnight-streaming and recovery
-// extractions — the collector reads are `collector.` and countable.
 
 extension DeviceRecordingSession {
     /// Context about sleep boundaries from HealthKit
@@ -565,9 +561,8 @@ extension DeviceRecordingSession.DownloadPlacement {
 
 // MARK: - File-scope helpers
 //
-// Each names no member of RRCollector and calls nothing inside it, so
-// none needs to be a member. `private` at file scope is fileprivate, so
-// every call site in this file resolves.
+// Each names no member of `RRCollector` and calls nothing on it, so none
+// needs to be inside the type.
 
 @MainActor
 private func logAmbiguousRecoveryCandidates(_ candidates: [SessionArchiveEntry]) {

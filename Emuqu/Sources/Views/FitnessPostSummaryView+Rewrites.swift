@@ -1,10 +1,8 @@
 import CoreLocation
 import SwiftUI
 
-// Split out from FitnessPostSummaryView+Cards.swift to keep that file under
-// SwiftLint's 1000-line limit. Holds the two cards that rewrite the archived
-// workout in place: re-smooth elevation from terrain data and re-analyze α1
-// from the stored RR series.
+// The two cards that rewrite the archived workout in place: re-smooth
+// elevation from terrain data and re-analyze α1 from the stored RR series.
 
 extension FitnessSummaryCards {
     /// Action card offering to recompute elevation using real terrain data
@@ -90,9 +88,9 @@ extension FitnessSummaryCards {
     }
 
     /// Single atomic action: fetch DEM + save. No preview / second-tap dance.
-    /// The previous two-phase flow kept tripping up the user — they saw the
-    /// right number in the preview but thought "why hasn't it saved?" and
-    /// didn't realise a second tap was needed.
+    /// A two-phase flow shows the right number in the preview and leaves the
+    /// user wondering why it hasn't saved, not realising a second tap is
+    /// needed.
     ///
     /// Default 15 m sustained-climb threshold (calibrated against iSmoothRun /
     /// Apple Fitness / FITIV — all barometer-based on iPhone, all agreed at
@@ -192,8 +190,8 @@ extension FitnessSummaryCards {
     }
 
     /// Action card offering to re-run α1 analysis with the current
-    /// artifact filter. Sessions recorded before `LiveDFAAnalyzer.cleanRRForDFA`
-    /// shipped had unfiltered RR fed into DFA — producing α1 values
+    /// artifact filter. Sessions recorded without `LiveDFAAnalyzer.cleanRRForDFA`
+    /// had unfiltered RR fed into DFA — producing α1 values
     /// stuck at 1.5-2.0 (Brownian range) regardless of effort. This
     /// button regenerates α1 from the stored RRSeries using the current
     /// filter + DFA and writes it back to the archive; the open sheet
@@ -285,8 +283,8 @@ extension FitnessSummaryCards {
     /// definitely shouldn't block the main thread.
     ///
     /// The `HRVSession` snapshot is captured here on the MainActor so the
-    /// detached task doesn't reach back into main-isolated state (Swift 6
-    /// strict concurrency flagged that as an error). `HRVSession` is Codable +
+    /// detached task doesn't reach back into main-isolated state, which Swift 6
+    /// strict concurrency rejects. `HRVSession` is Codable +
     /// value-semantic, so the copy is cheap and safe to move across isolation.
     private func recomputeAlpha1() async -> ([WorkoutSample]?, [WorkoutAlpha1Reanalyzer.Reading]) {
         let sessionSnapshot = session

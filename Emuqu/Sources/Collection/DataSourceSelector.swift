@@ -303,8 +303,8 @@ enum DataSourceSelector {
 
     /// Skip every streaming point that falls within the duplicate-detection
     /// window of the internal beat just appended, not just the next one.
-    /// Before this, a cluster of tightly-spaced streaming points (e.g. 10.01,
-    /// 10.02, 10.03 relative to an internal at 10.00) would have only the first
+    /// Otherwise a cluster of tightly-spaced streaming points (e.g. 10.01,
+    /// 10.02, 10.03 relative to an internal at 10.00) has only the first
     /// skipped and the rest leak into the composite as artificial beats.
     private static func skipStreamingDuplicates(of internalTime: Int64, in streamingPoints: [RRPoint], from idx: inout Int) {
         while idx < streamingPoints.count, abs(streamTime(streamingPoints[idx]) - internalTime) < duplicateToleranceMs {

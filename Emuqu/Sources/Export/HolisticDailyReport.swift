@@ -232,12 +232,11 @@ final class HolisticDailyReport: Sendable {
     /// matches what the Dashboard's Load card shows at the moment the
     /// PDF is rendered, not the frozen morning-acceptance value.
     ///
-    /// User report: "CTL 36.4 here vs 30 in the report".
-    /// Root cause: this report reading `workoutSession.trainingSnapshot`
-    /// (frozen at session acceptance, pre-walk) while the dashboard
-    /// shows the live cache value (post-walk). Both numbers are
-    /// "correct" for their store, but the user reasonably calls the
-    /// report stale. So both read through `TrainingLoadRegistry`.
+    /// `workoutSession.trainingSnapshot` is frozen at session acceptance
+    /// (pre-walk) while the dashboard shows the live cache value
+    /// (post-walk); both are "correct" for their store, but a report that
+    /// disagrees with the dashboard reads as stale. So both read through
+    /// `TrainingLoadRegistry`.
     /// Falls back to the frozen session snapshot only when no live
     /// data exists (cold cache on first launch).
     ///

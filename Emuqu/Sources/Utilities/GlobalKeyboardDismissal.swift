@@ -4,12 +4,11 @@ import UIKit
 /// the keyboard whenever the user taps a non-control area. Works
 /// on every screen in the app — no per-view modifier required.
 ///
-/// **Why this exists.** User report: the keyboard refuses
-/// to dismiss on Profile, Settings → Reports email field, contact
-/// list, and other Forms. SwiftUI's default behavior is `.automatic`
-/// which only fires on certain interactions. Most chat / messaging
-/// apps install a global tap-outside-to-dismiss in addition to per-
-/// scroll dismissal.
+/// **Why a window-level recognizer.** SwiftUI's default `.automatic`
+/// dismissal only fires on certain interactions, so the keyboard stays up on
+/// Profile, the Settings → Reports email field, the contact list and other
+/// Forms. Most chat / messaging apps install a global tap-outside-to-dismiss
+/// in addition to per-scroll dismissal.
 ///
 /// **Why `cancelsTouchesInView = false`.** Without this, the gesture
 /// recognizer would swallow taps before they reach buttons, list

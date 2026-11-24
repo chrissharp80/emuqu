@@ -560,7 +560,7 @@ struct TrainingContext: Codable, Sendable {
     /// Sanitize against NaN/Inf at the source. This is the ONE
     /// place a training snapshot is built from computed PMC metrics, and a
     /// non-finite atl/ctl here would be frozen straight into a session's
-    /// trainingSnapshot (seen in device logs: "was atl=nan/ctl=nan"). Downstream
+    /// trainingSnapshot. Downstream
     /// scoring heals it and swallows NaN, but a persisted NaN pollutes the
     /// stored snapshot, the reanalyze diff, and any future consumer. Clamp
     /// to finite here so the corruption can never leave the initializer.

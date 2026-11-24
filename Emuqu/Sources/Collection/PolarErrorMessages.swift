@@ -8,11 +8,9 @@ import Foundation
 // synthesised `localizedDescription` falls back to "The operation
 // couldn't be completed. (PolarBleSdk.PolarErrors error 3.)" — opaque
 // enough that a user can't even tell whether to retry, restart, or
-// give up. (Real tester report: the alert showed `error 3`
-// while a 2 m 22 s recording sat un-retrieved on the H10. Error 3 is
-// `deviceNotFound` — the strap dropped off Bluetooth mid-transfer;
-// the data was still on the strap and the right user action was
-// "move closer, try again".)
+// give up. (Error 3 is `deviceNotFound`: the strap dropped off Bluetooth
+// mid-transfer, the recording is still on the strap, and the right action
+// is "move closer, try again".)
 //
 // The mapping below is hand-written from `PolarErrors.swift` in the
 // SDK source, with messages tuned to the typical recovery action for

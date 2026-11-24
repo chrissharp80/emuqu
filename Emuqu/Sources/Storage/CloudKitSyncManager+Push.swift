@@ -42,12 +42,12 @@ enum CloudUploadExclusion: Error {
 extension CloudKitSyncManager {
     // MARK: - Push (Upload Pending)
 
-    // Cap the per-cycle push batch. Without it, a user who hits a
-    // permanent server error (schema not promoted) builds up a queue of
-    // 100+ pending sessions, and every sync cycle tries to push all of
-    // them serially on the main actor — 10–50 s of MainActor work per cycle,
-    // which the user perceives as the app "lagging a lot" with iCloud sync on.
-    // Cap keeps each cycle bounded; the rest drain across cycles.
+    // Cap the per-cycle push batch. Without it, a permanent server error
+    // (schema not promoted) builds up a queue of 100+ pending sessions, and
+    // every sync cycle tries to push all of them serially on the main actor —
+    // 10–50 s of MainActor work per cycle, felt as the app lagging whenever
+    // iCloud sync is on. The cap keeps each cycle bounded; the rest drain
+    // across cycles.
     private static let pushBatchLimit = 25
 
     /// Exponential-backoff ceiling: a session is never skipped for more than
@@ -85,8 +85,8 @@ extension CloudKitSyncManager {
     ///
     /// The backoff counter advances on every cycle that gets this far, one
     /// whose whole batch is deferred included; advanced only after a
-    /// non-empty batch, it froze while every pending session was deferred and
-    /// none of them was ever tried again. Each session's turn counts as
+    /// non-empty batch, it would freeze while every pending session was
+    /// deferred and none of them would be tried again. Each session's turn counts as
     /// progress for the stall watchdog, failed or not.
     func pushPendingSessions() async {
         lastPushErrorMessage = nil
@@ -313,11 +313,10 @@ extension CloudKitSyncManager {
     /// A hash mismatch (corrupt file) or a newer-schema payload can NEVER be
     /// fixed by retrying, yet a blanket `markFailed` keeps the id in
     /// the pending set forever, re-throwing + re-logging the same integrity
-    /// error every cycle (field log: session 6B275356 failed its hash on
-    /// every sync).
+    /// error every cycle.
     ///
-    /// A hash mismatch is USUALLY a stale fingerprint on good data (an older
-    /// write path rewrote the file without updating its hash — see
+    /// A hash mismatch is USUALLY a stale fingerprint on good data (a write
+    /// path that rewrote the file without updating its hash — see
     /// `_retrieve`), not real corruption. Repair is attempted first: if the
     /// file still decodes to a valid session, refresh the fingerprint so it
     /// syncs normally — saving the night instead of holding it back. Only
@@ -630,7 +629,7 @@ extension CloudKitSyncManager {
     /// network runs to completion.
     ///
     /// Not a task group: a group waits for every child before returning, so a
-    /// wedged call that ignores cancellation held the sync even after the
+    /// wedged call that ignores cancellation would hold the sync even after the
     /// watchdog fired. The first result resumes the caller; the operation is
     /// then cancelled and left to finish on its own.
     func withProgressWatchdog<T: Sendable>(

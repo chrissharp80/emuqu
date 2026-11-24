@@ -59,18 +59,14 @@ struct DailyLoopAnalysis {
 
     /// The integrative judgement. Three buckets per axis × cross-product.
     ///
-    /// Load-aware guard. Looking only at this morning's HRV vs
-    /// baseline and today's
-    /// workout intensity fails: with the user at TSB −10 ("Sharp jump") and
-    /// a fresh +21 % HRV bounce, the classifier called
-    /// `.underloading` ("room to push") — directly contradicting the
-    /// Training Load card, which was screaming Sharp jump in the
-    /// adjacent row. The HRV bounce is exactly what you'd expect
-    /// from a body finally getting space to recover; treating it as
-    /// "primed to push" stacks more load on a system that's
-    /// absorbing.
+    /// Load-aware guard. Looking only at this morning's HRV vs baseline and
+    /// today's workout intensity is not enough: at TSB −10 ("Sharp jump") a
+    /// +21 % HRV bounce would read as `.underloading` ("room to push") and
+    /// contradict the Training Load card beside it. An HRV bounce is what a
+    /// body given space to recover shows; treating it as "primed to push"
+    /// stacks more load on a system that is still absorbing.
     ///
-    /// Fix: when TSB ≤ −5 OR ACWR ≥ 1.3 (i.e. the user is genuinely
+    /// So when TSB ≤ −5 OR ACWR ≥ 1.3 (i.e. the user is genuinely
     /// loaded by the cumulative model), refuse the `.underloading`
     /// verdict no matter how high HRV is today. The body's job today
     /// is absorption; fall back to `.absorbing` (positive, but
@@ -82,7 +78,7 @@ struct DailyLoopAnalysis {
         guard workoutSession != nil, hasIntensitySignal, let band = recoveryBand else { return .undetermined }
         switch (band, workoutIntensity) {
         case (.above, .easy):
-            // The single regression class the cumulative-load guard exists for.
+            // The one case the cumulative-load guard exists for.
             return isCumulativelyLoaded ? .absorbing : .underloading
         case (.above, .moderate), (.above, .hard):
             return .absorbing
@@ -143,10 +139,9 @@ struct DailyLoopAnalysis {
 
     /// Split the `.absorbing` copy by today's intensity. When today
     /// was actually hard, the "you put real work into the system" line
-    /// lands. When we're in this state because cumulative load (TSB / ACWR)
-    /// tipped us out of `.underloading` despite an easy day, the body is
-    /// absorbing PAST work, not today's — calling an easy walk "real work" was
-    /// the user-visible bug.
+    /// lands. When cumulative load (TSB / ACWR) tipped the state out of
+    /// `.underloading` despite an easy day, the body is absorbing PAST work,
+    /// not today's, and an easy walk must not be called "real work".
     private var absorbingVerdict: (label: String, blurb: String) {
         let label = String(localized: "Absorbing the load", bundle: LanguageManager.appBundle)
         guard workoutIntensity == .easy else {
@@ -215,12 +210,12 @@ struct DailyLoopAnalysis {
     // log-normally distributed, so an ARITHMETIC mean of raw RMSSD
     // plus a fixed ±5% threshold is statistically wrong on two counts: the
     // arithmetic mean is biased upward, and a raw percentage ignores the
-    // person's own day-to-day variability. That mismatch is exactly why the
-    // card could announce "85% above baseline" while the recovery score —
-    // which compares ln(RMSSD) to the geometric baseline in units of SD and
-    // treats ±0.5 SD as "no meaningful change" (the SWC deadband) — scored HRV
-    // as neutral. Both now use the same geometric baseline and the same
-    // ±0.5 SD SWC boundary, so the narrative and the score can't contradict.
+    // person's own day-to-day variability; the card could then announce
+    // "85% above baseline" while the recovery score — which compares
+    // ln(RMSSD) to the geometric baseline in units of SD and treats ±0.5 SD
+    // as "no meaningful change" (the SWC deadband) — scores HRV as neutral.
+    // Both use the same geometric baseline and the same ±0.5 SD SWC
+    // boundary, so the narrative and the score can't contradict.
 
     /// Smallest Worthwhile Change: a morning is only "above"/"below" baseline
     /// once it exceeds ±0.5 SD of ln(RMSSD). Matches the recovery score's

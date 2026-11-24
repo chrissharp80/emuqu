@@ -109,10 +109,9 @@ struct TroubleshootingPage: View {
 
     // MARK: Archive read health
     //
-    // Surfaces the EPERM-storm pattern seen in a user's debug
-    // log — 1,557 file-permission errors over 7 days against
-    // session JSON files
-    // in the App Group container, silently breaking trends and
+    // Surfaces an EPERM storm: repeated file-permission errors against
+    // session JSON files in the App Group container, which silently break
+    // trends and
     // the AI's historical context. The card only renders when
     // `hasReadHealthIssue` is true (>10 EPERM failures AND
     // failure rate > 50%) so a one-off transient doesn't

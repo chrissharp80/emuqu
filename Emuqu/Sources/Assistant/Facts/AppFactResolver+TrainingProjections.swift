@@ -1,10 +1,9 @@
 import Foundation
 
-// The projection half of `TrainingLoadNamespace`, split out of
-// `AppFactResolver+Sessions.swift` when that struct's body passed
-// the 500-line limit. The load snapshot facts — CTL / ATL / TSB / ACWR and the
-// per-period rollups — stay behind; the forward-looking ones (recovery hours,
-// days-until-fresh, race predictions, pace zones) live here.
+// The projection half of `TrainingLoadNamespace`: the forward-looking
+// facts (recovery hours, days-until-fresh, race predictions, pace zones).
+// The load snapshot facts — CTL / ATL / TSB / ACWR and the per-period
+// rollups — are in `AppFactResolver+Sessions.swift`.
 
 extension TrainingLoadNamespace {
     /// Forward-looking projections derived from the same load model.

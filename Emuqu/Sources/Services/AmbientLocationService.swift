@@ -41,8 +41,7 @@ import Foundation
 // `RoadGeocodingService`, which already debounces (25 m / 60 s) so
 // duplicate fixes are cheap.
 //
-// **Why three CLLocationManager instances?** A reasonable question. The
-// app currently has:
+// **Why three CLLocationManager instances?** The app has:
 //   - `WorkoutLocationManager` — `Best`, runs during
 //      workouts, has the `location` background-mode entitlement.
 //   - `BreadcrumbRecorder` — `NearestTenMeters`, runs while Get Me
@@ -58,8 +57,8 @@ import Foundation
 // underlying GPS hardware stream is shared (no extra battery cost
 // from "more managers"; the cost is the highest accuracy any of them
 // requests). Auth dialogs are also handled per-process, not per-
-// manager, so no race there. Consolidation would be a large refactor
-// for cosmetic benefit only — explicitly chosen NOT to do it.
+// manager, so no race there. Consolidating them would buy tidiness
+// and nothing else.
 
 final class AmbientLocationService: NSObject, @unchecked Sendable {
     static let shared = AmbientLocationService()
@@ -93,9 +92,9 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
 
     /// Updates are never paused automatically. iOS pauses a stream it judges
     /// idle (a user sitting still) and does not resume it: the app has to
-    /// start it again, and nothing here would have, because the service
-    /// still counted itself running, so `startIfAuthorized()` did nothing and
-    /// the cached fix went stale for as long as the app stayed in the
+    /// start it again, and nothing here would, because the service
+    /// still counts itself running, so `startIfAuthorized()` does nothing and
+    /// the cached fix goes stale for as long as the app stays in the
     /// foreground. The stream runs only in the foreground (`stop()` on
     /// background), at a hundred metres' accuracy behind a 50 m filter, so a
     /// still user costs little.

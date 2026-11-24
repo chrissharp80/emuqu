@@ -136,7 +136,7 @@ struct MorningResultsView: View {
     /// dashboard, return to the open Recovery Report sheet, and see
     /// the OLD score because `vm.session` was captured at sheet
     /// presentation time. Same problem in reverse: refresh sleep
-    /// inside the report → dashboard didn't see the change without
+    /// inside the report → dashboard doesn't see the change without
     /// re-fetching from disk. The view-model's
     /// `applyExternalArchiveUpdate(version:)` re-loads from
     /// `AppDependencies.current.storage.sessionArchive` and updates `reanalyzedSession` so

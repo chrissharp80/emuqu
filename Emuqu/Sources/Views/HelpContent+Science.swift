@@ -1,10 +1,9 @@
 import SwiftUI
 
-// The core help categories and the age-adjusted HRV-science article, split out
-// of `HelpContent.swift`. The data model — categories, articles,
-// sections — stays behind. `HelpContent+Articles.swift` already holds the
-// assistant/data/personalisation categories, so this file is deliberately named
-// for what it contains rather than reusing that name.
+// The core help categories and the age-adjusted HRV-science article. The
+// data model — categories, articles, sections — is in `HelpContent.swift`;
+// `HelpContent+Articles.swift` holds the assistant/data/personalisation
+// categories, so this file is named for what it contains.
 
 // MARK: - Content
 

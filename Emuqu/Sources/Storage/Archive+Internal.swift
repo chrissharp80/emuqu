@@ -50,24 +50,22 @@ extension ArchiveStore {
     /// sleep-snapshot writes) load sessions via
     /// `retrieveLightweight` for performance, mutate a small field,
     /// and re-archive the result. The lightweight load sets
-    /// `rrSeries = nil` on purpose — but then re-archiving would
+    /// `rrSeries = nil` on purpose, so re-archiving it as-is would
     /// OVERWRITE the on-disk file with a copy that has no rrSeries,
-    /// permanently destroying the strap's beat-by-beat data. The
-    /// user-visible symptom: HRV detail charts show "No RR series"
-    /// for sessions that were originally recorded with a strap.
+    /// permanently destroying the strap's beat-by-beat data (HRV detail
+    /// charts then show "No RR series" for a strap recording).
     ///
-    /// Fix: detect (incoming.rrSeries == nil) AND (an existing file
-    /// has a non-nil rrSeries) — if so, splice the existing rrSeries
-    /// back onto the incoming session before encoding. The caller's
-    /// intent is "update the metadata I touched, leave the rest" —
-    /// not "drop the heavyweight payload."
+    /// So when incoming.rrSeries is nil and an existing file has a
+    /// non-nil rrSeries, the existing rrSeries is spliced back onto the
+    /// incoming session before encoding. The caller's intent is "update
+    /// the metadata I touched, leave the rest", not "drop the heavyweight
+    /// payload."
     ///
     /// The splice must not fail SILENTLY when
     /// `_retrieve` throws (stale archive.index hash after an interrupted
     /// write, decrypt failure, EPERM): the re-archive would then
-    /// overwrite the file with rrSeries=nil — permanently
-    /// destroying the night's beat data, the exact loss this
-    /// block exists to prevent. The common failure
+    /// overwrite the file with rrSeries=nil, permanently
+    /// destroying the night's beat data. The common failure
     /// is a stale HASH with perfectly decodable bytes, so fall
     /// back to the hash-agnostic reader; the write below then
     /// heals the archive.index hash too.
@@ -175,12 +173,11 @@ extension ArchiveStore {
     /// Returns the resulting entry when the merge path handled the archive, or
     /// nil when the caller should write `session` standalone.
     ///
-    /// The diagnostic log below is for the "yesterday's session
-    /// is gone" report. When it fires, the NEW session's UUID is discarded and
+    /// When the merge fires, the NEW session's UUID is discarded and
     /// its data is merged into `existing`. The resulting archive entry is keyed
-    /// by the OLDER session's UUID and date — which is why a fresh recording
+    /// by the OLDER session's UUID and date, so a fresh recording
     /// can appear to "vanish" if it gets folded into an older placeholder-style
-    /// entry. Surfacing it in the log lets us confirm the cause from a trace.
+    /// entry. The diagnostic log below records each fold so a trace shows it.
     /// A archive.retrieve failure on the existing same-night session (transient
     /// decrypt/decode failure, or an entry the id lookup no longer finds)
     /// must NOT fall through to the standalone
@@ -733,9 +730,9 @@ extension ArchiveStore {
     /// into the Trash instead, where expiry (`discardTrashed`) removes it.
     /// One that will do neither stays where it is, so the session goes back
     /// into the index and the error is thrown, as `delete` does: left in the
-    /// archive folder with nothing listing it, the health data stayed on the
-    /// device while the deletion counted as done, and the orphan scan would
-    /// adopt it back once its tombstone was forgotten. The caller retries.
+    /// archive folder with nothing listing it, the health data would stay on
+    /// the device while the deletion counted as done, and the orphan scan would
+    /// adopt it back once its tombstone is forgotten. The caller retries.
     /// Returns false, having done nothing, for an id the archive does not hold.
     @discardableResult
     func deleteWithoutTrash(_ id: UUID) throws -> Bool {
@@ -846,9 +843,9 @@ extension ArchiveStore {
     /// When this device deleted each session. iCloud sync compares it with a
     /// restore made on another device: whichever happened later wins. Kept
     /// beside the deleted-id list rather than in it, so the list's on-disk
-    /// format — read by every older build — is unchanged. Deletions made
-    /// before this existed have no time, and lose to any restore, which can
-    /// only have been made by a build new enough to write one.
+    /// format — read by every older build — is unchanged. A deletion written
+    /// by an older build has no time and loses to any restore, which can only
+    /// come from a build new enough to write one.
     private static let deletionTimesKey = "archive.deletionTimes"
 
     func deletionTime(of id: UUID) -> Date? {

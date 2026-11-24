@@ -1,13 +1,10 @@
 import CoreLocation
 import Foundation
 
-// Pure geometry and physiology live in `WorkoutGeometry`, kept out of
-// WorkoutRecorder.
-//
-// These forwarders keep every existing call site working. None of the
-// functions references a member of the recorder, so nothing needs an `unowned`
-// parent or a state hand-off: they are pure code, and inside the recorder
-// class no test could reach them.
+// Pure geometry and physiology live in `WorkoutGeometry`; these forwarders
+// give `WorkoutRecorder` callers the same entry points. None of the
+// functions references a member of the recorder, so nothing needs an
+// `unowned` parent or a state hand-off.
 
 extension WorkoutRecorder {
     func nextIndex(after startIdx: Int, atDistance meters: Double, in dists: [Double]) -> Int? {

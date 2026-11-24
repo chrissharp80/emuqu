@@ -4,14 +4,10 @@ import Foundation
 /// sessions were written, quarantining duplicates, and re-linking sessions that
 /// belong to the same night.
 ///
-/// ## Why this is not on `SessionArchive`
-///
-/// Migrations are the archive's most separable responsibility: they run once per
-/// install, mutate stored sessions in place, and nothing on the read path
-/// depends on them. The coupling is real, not assumed — these functions read 27
-/// members of the archive, mostly the index and the lock that guards it — so
-/// this type does not claim to be independent. The difference is that those
-/// reads are explicit.
+/// Migrations run once per install, mutate stored sessions in place, and
+/// nothing on the read path depends on them. They read many members of the
+/// archive, mostly the index and the lock that guards it, and every such read
+/// is explicit.
 ///
 /// Migrations mutate archived session FILES, which makes the CloudKit copies
 /// stale; `sessionsNeedReuploadNotification` is how they tell the sync manager

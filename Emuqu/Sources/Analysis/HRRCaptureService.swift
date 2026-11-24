@@ -153,8 +153,7 @@ final class HRRCaptureService {
     /// caught a noise spike between the strap dropping and the +120 s
     /// mark.
     ///
-    /// This was a real user complaint: 1-min HRR read
-    /// 45 bpm, 2-min HRR read 24 bpm — the inversion. The math at
+    /// E.g. 1-min HRR 45 bpm, 2-min HRR 24 bpm — the inversion. The math at
     /// capture time is correct (`stopHR - hrAtSample`), so the only
     /// honest response is to drop the contaminated reading rather than
     /// surface a number that contradicts the physiology.

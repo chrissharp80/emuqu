@@ -350,14 +350,14 @@ final class RawRRBackup: @unchecked Sendable {
     /// on-disk index too when the launch could not read it. A strap fetch made after
     /// a crash is saved under the interrupted night's id, and the strap's copy
     /// can be shorter than what streamed (it started later, or the fetch was
-    /// partial); replacing the streamed file deleted the rest of the night
-    /// for good, since an interrupted night has no archived copy.
+    /// partial); replacing the streamed file would delete the rest of the
+    /// night for good, since an interrupted night has no archived copy.
     ///
     /// `captureDate` is when the recording began. A caller that knows it wins;
     /// otherwise the backup keeps the date it already has rather than the
     /// moment of this write: recovery uses it as the session start, and a
-    /// write-time date moved a recovered night onto the morning it was backed
-    /// up.
+    /// write-time date would move a recovered night onto the morning it was
+    /// backed up.
     ///
     /// On `appendQueue`, like every other change to a backup's files: a
     /// re-seal (`RawBackupSealer.reencrypt`) or an append running alongside
@@ -734,10 +734,10 @@ extension RawRRBackup: SealableBackupStore {
 
     /// Writes `entry` under a file name no earlier write used, then indexes it.
     ///
-    /// Names were once whole-second timestamps, so two backups of a session in
-    /// one second shared a file: when the second's index save threw, the
-    /// rollback put back the old row (same name, old hash) over the new bytes,
-    /// and the backup then failed its hash check and dropped out of every
+    /// A reused name (a whole-second timestamp, say) lets two backups of a
+    /// session share a file: when the second's index save throws, the
+    /// rollback puts back the old row (same name, old hash) over the new bytes,
+    /// and the backup then fails its hash check and drops out of every
     /// listing. A fresh name leaves the restored row and its file intact; the
     /// new file, which nothing indexes, is removed.
     private func writeOneShot(_ entry: BackupEntry, replacing existing: BackupIndex?) throws -> String {

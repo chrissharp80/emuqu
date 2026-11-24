@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Streaming Progress Panel (isolated from RecordView body evaluation)
 
-/// Extracted as a separate View struct so that per-second timer updates and
+/// A separate View struct so that per-second timer updates and
 /// heartbeat-driven state changes only re-evaluate THIS view, not the entire
 /// RecordView body.
 struct StreamingProgressPanel: View {

@@ -11,7 +11,7 @@ extension MorningResultsView {
 
     // Uses the shared AnalysisSummaryGenerator to ensure PDF and app show identical content.
     // Includes training context so tips are consistent with the dashboard view.
-    // analysisSummary is now on MorningResultsViewModel
+    // analysisSummary is on MorningResultsViewModel.
 
     var analysisSummarySection: some View {
         let summary = vm.analysisSummary
@@ -40,8 +40,7 @@ extension MorningResultsView {
     /// The main assessment. Its headline is the Recovery Score's own verdict —
     /// the word, glyph and colour of the ring above it — so this card cannot
     /// say "Recovery Needed" under a ring that says "Good". The app documents
-    /// one score; a second, HRV-only diagnostic score with its own cut-offs
-    /// used to pick this headline.
+    /// one score.
     private func diagnosticCard(_ summary: AnalysisSummaryGenerator.AnalysisSummary) -> some View {
         let verdict = ScoreVerdict(score: vm.compositeRecoveryScore)
         return DiagnosticCard(

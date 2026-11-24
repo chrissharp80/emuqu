@@ -1,8 +1,8 @@
 import Foundation
 import HealthKit
 
-// Exports and observers live in `HealthWriteAndObserve`, keeping ~1,000
-// lines off `HealthKitManager`.
+// Exports and observers live in `HealthWriteAndObserve`; these forwarders
+// give `HealthKitManager` callers the same entry points.
 
 extension HealthKitManager {
     func exportSessionMetrics(from session: HRVSession) async throws {

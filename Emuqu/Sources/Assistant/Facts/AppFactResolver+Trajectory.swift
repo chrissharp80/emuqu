@@ -4,9 +4,7 @@ import Foundation
 //
 // The trajectory verdict the Load & Trajectory screen shows, exposed to the
 // fact catalog. The dashboard chip anchors on yesterday's CTL and the one 8
-// days back, so on a given morning it can show a different verdict. Split
-// out of `AppFactResolver+Sessions.swift` so `TrainingLoadNamespace` stays
-// under the type-body budget.
+// days back, so on a given morning it can show a different verdict.
 
 extension TrainingLoadNamespace {
     /// The Load & Trajectory verdict — assembled from the SAME inputs the

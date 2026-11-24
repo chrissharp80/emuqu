@@ -190,8 +190,8 @@ struct WorkoutAIContext: Equatable {
     /// (current avg minus 60-90s-ago avg). Positive = HR rising right
     /// now; negative = HR falling right now. Used to suppress the
     /// `hr.driftHigh` alert when long-window drift is positive but the
-    /// user is actually descending and HR is recovering — the user was
-    /// hearing "your HR has drifted higher" while it was actively
+    /// user is actually descending and HR is recovering — otherwise the user
+    /// hears "your HR has drifted higher" while it is actively
     /// falling on a downhill. This per-tick slope is the live truth;
     /// `liveHRDriftPercent` is the long-window historical comparison.
     let recentHRSlopeBpm: Double?
@@ -230,11 +230,9 @@ struct WorkoutAIContext: Equatable {
 
     // MARK: Historical baselines (cross-workout)
     //
-    // Prevents the AI complaint "no workout history on file —
-    // session comparisons not available yet." Computed once from the
-    // user's archived sessions matching this workout's sport. Lets the
-    // coach answer "is today faster or slower than usual?" with a real
-    // number instead of declining.
+    // Computed once from the user's archived sessions matching this
+    // workout's sport, so the coach can answer "is today faster or
+    // slower than usual?" with a real number instead of declining.
 
     /// Average pace across the user's last N (≤30) workouts of the
     /// same sport, weighted by distance. Sec/km. Nil when no prior
@@ -256,7 +254,7 @@ struct WorkoutAIContext: Equatable {
 
     // MARK: Readiness / training load (today's context)
     //
-    // Prevents the AI complaint about not knowing whether
+    // Lets the coach know whether
     // today is a push day or a back-off day. Captured from this
     // morning's frozen recovery snapshot at workout start so the
     // numbers don't drift mid-workout while the user is moving.
@@ -475,9 +473,8 @@ struct WorkoutAIContext: Equatable {
 
     /// Fact-sheet section: HR.
     ///
-    /// Includes session-average HR: without it voice users asking
-    /// "what's my average HR" got nothing back even though the buffer
-    /// existed in WorkoutRecorder. Computed in buildContext() and
+    /// Includes session-average HR, so voice users asking
+    /// "what's my average HR" get an answer. Computed in buildContext() and
     /// surfaced here.
     private func heartRateLines() -> [String] {
         var out: [String] = []

@@ -3,9 +3,8 @@ import HealthKit
 
 // MARK: - Sleep queries and estimation
 //
-// Kept off `HealthKitManager`, the same seam as the vitals and training
-// queries. Export, trend analysis and the sleep observers stay
-// on `+SleepTrends.swift` — those write and observe, this one reads.
+// Export, trend analysis and the sleep observers are in `+SleepTrends.swift`:
+// those write and observe, this one reads.
 
 extension SleepHealthQueries {
     // MARK: - Sleep Data
@@ -243,7 +242,7 @@ extension SleepHealthQueries {
 
     /// Estimate sleep boundaries from recorded RR intervals when the watch
     /// logged no sleep for the night. The estimator itself lives in
-    /// `HRSleepEstimator`; this stays for the three call sites that reach it
+    /// `HRSleepEstimator`; this is the entry point for callers that reach it
     /// through the manager.
     nonisolated static func estimateSleepFromHR(rrPoints: [RRPoint], recordingStart: Date) -> SleepData? {
         HRSleepEstimator.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: recordingStart)
@@ -399,13 +398,11 @@ extension SleepHealthQueries {
 
 // MARK: - File-scope helpers
 //
-// Kept out of HealthKitManager. Each names no member of the
-// type and calls nothing inside it, so none needs to be a member.
-// `private` at file scope is fileprivate, so every call site in this
-// file resolves the same way.
+// Each names no member of `HealthKitManager` and calls nothing on it, so none needs
+// to be inside the type.
 
-/// CHOKE POINT for the "HealthKit grafts a foreign night's
-/// sleep onto a short recording" bug. HealthKit returns whole sleep blocks
+/// CHOKE POINT against HealthKit grafting a foreign night's
+/// sleep onto a short recording. HealthKit returns whole sleep blocks
 /// within a broad look-back window; for a short pre-sleep clip it can hand
 /// back the *following* night's full block. Reject any resolved block that
 /// doesn't plausibly belong to THIS recording so no caller — morning

@@ -84,9 +84,8 @@ enum AssistantSystemPrompt {
 
     /// Two-section composer. Stable prefix is large + identical across
     /// turns within a 5-minute window so Anthropic's prompt cache hits
-    /// it on every send (was 0% before this split — the per-second
-    /// `nowSnapshot` immediately after `base` blew the cache prefix
-    /// even though nothing else had changed).
+    /// it on every send. Per-second values such as `nowSnapshot` stay out of
+    /// it: any change inside the prefix misses the cache from that point on.
     @MainActor
     static func composeSplit(
         userFacts: String,
@@ -155,8 +154,8 @@ enum AssistantSystemPrompt {
     /// Apple's window is 4,096 tokens for instructions, tools, transcript and
     /// reply together (`AppleContextCompactor.contextWindow`). The shared
     /// stable half — `base`, the tool overlay and the location guidance — is
-    /// about 11K tokens by the compactor's estimate, so on Apple it overflowed
-    /// the window before any history was added. Apple therefore gets its own
+    /// about 11K tokens by the compactor's estimate, so on Apple it would overflow
+    /// the window before any history is added. Apple therefore gets its own
     /// short stable half (`appleBase` and the condensed overlays, the units,
     /// the disabled features and the user's saved facts) while the per-send
     /// half (clock, training load, corrections, summary, data) is kept as
@@ -199,9 +198,9 @@ enum AssistantSystemPrompt {
     /// **Locale + units directive** — make the user's unit system AND
     /// their location/locale unmissable. Without this the model
     /// defaults to its training-data prior (mostly metric, mostly
-    /// global English) regardless of what the user has set. A US
-    /// user with imperial units explicitly chosen was getting "your
-    /// pace was 5:30 per kilometer" which is wrong on both counts.
+    /// global English) regardless of what the user has set: a US
+    /// user with imperial units explicitly chosen would hear "your
+    /// pace was 5:30 per kilometer", wrong on both counts.
     /// Static per device so prompt cache stays warm; only changes
     /// when the user toggles units or moves country (rare).
     ///
@@ -290,16 +289,11 @@ enum AssistantSystemPrompt {
     /// Inline the dashboard's current training-load
     /// numbers so the AI never has to call a tool to know the
     /// headline TSB / ATL / CTL / recovery score, and can never
-    /// contradict the dashboard. Background:
-    ///
-    /// User asked "what's my current TSB" on Grok. Dashboard
-    /// showed TSB −15.5 / ATL 44.2 / CTL 28.7. Grok answered
-    /// "TSB negative twenty-nine, ATL 58, CTL 29, ACWR 2.0" —
-    /// either because it called `workout.live.today_readiness`
-    /// (frozen at workout-start, would be wrong direction) or
-    /// because the live snapshot the resolver read was stale,
-    /// or because the model misread one of the four tools that
-    /// can return ATL/CTL/TSB and disagree.
+    /// contradict the dashboard. Otherwise a model asked "what's my
+    /// current TSB" can call `workout.live.today_readiness` (frozen at
+    /// workout start), read a stale live snapshot, or misread one of the
+    /// four tools that can return ATL/CTL/TSB and disagree, and quote
+    /// numbers far from the dashboard's.
     ///
     /// Putting the real values in the variable section means
     /// every send carries them in the `<live_state>` block (or
@@ -571,8 +565,7 @@ enum AssistantSystemPrompt {
     /// See TrainingLoadRegistry.swift's header for the
     /// canonical surface→source map. The registry exists because
     /// four readers (dashboard / AI / report / recovery detail)
-    /// reading three different stores drift; the user
-    /// observed dashboard=36.4 CTL, report=30 CTL, AI=29 CTL all in
+    /// reading three different stores drift, quoting different CTLs in
     /// the same minute. The registry guarantees every "live" reader
     /// sees the same number, attaches provenance + as-of timestamp,
     /// and gates on the same cache-invalidation contract (archive
@@ -601,18 +594,12 @@ enum AssistantSystemPrompt {
         return lines.joined(separator: "\n")
     }
 
-    /// Diagnostic so we can prove whether the cache
-    /// the AI reads matches the cache the Dashboard renders. Real
-    /// user transcript: AI quoted "ATL 64.7 / CTL 33.6 / TSB -31.1
-    /// as of 6:42 PM cache" while the dashboard at the same minute
-    /// showed ATL 51.2 / CTL 34.9 / TSB -16.2. They should be the
-    /// same source. If the next log shows the emitted values
-    /// still differ from what the user reports seeing on the
-    /// dashboard at the same time, either (a) the dashboard reads
-    /// a different source than `TrainingMetricsCache.snapshot()`
-    /// (= source-of-truth bug, fixable), or (b) the cache hasn't
-    /// refreshed since the dashboard rendered (= refresh-timing
-    /// bug, also fixable). Either way the log identifies which.
+    /// Diagnostic that shows whether the cache the AI reads matches the
+    /// cache the Dashboard renders; they should be the same source. When the
+    /// logged values differ from what the dashboard shows at the same time,
+    /// either (a) the dashboard reads a different source than
+    /// `TrainingMetricsCache.snapshot()`, or (b) the cache hasn't refreshed
+    /// since the dashboard rendered. The log tells the two apart.
     private static func logDashboardSnapshot(_ load: TrainingLoadRegistry.TrainingLoad) {
         debugLog(
             "[dashboardLoadSnapshot] emitting atl=\(String(format: "%.1f", load.atl)) ctl=\(String(format: "%.1f", load.ctl)) tsb=\(String(format: "%+.1f", load.tsb)) as_of=\(load.asOfDisplay)"

@@ -478,9 +478,8 @@ final class SettingsManager {
 
     /// Refuse to persist over a load that failed silently — that would
     /// replace the user's real settings with the in-memory defaults. See
-    /// `loadOutcome` and `init` for the rationale. (A crash + re-launch
-    /// sequence once stamped fresh defaults onto the file because `init` had
-    /// no way to tell "file missing" from "file unreadable.") The change is
+    /// `loadOutcome` and `init` for the rationale: a save cannot tell "file
+    /// missing" from "file unreadable" on its own. The change is
     /// kept in memory and merged onto the real file once it can be read
     /// (`retryLoadAfterUnlock`). A file that could not be read or kept for
     /// another reason is read again by a change at most once every

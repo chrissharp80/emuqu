@@ -3,7 +3,7 @@ import CoreLocation
 import SwiftUI
 
 // The Fitness-tab hero, the trajectory link card, the summary tiles and
-// the recent-workouts list, split out of `FitnessTabView+Sections.swift`.
+// the recent-workouts list.
 
 extension FitnessStrapSection {
     /// Fitness-tab hero. Loads the latest workout session (full, not index)
@@ -439,9 +439,8 @@ extension FitnessStrapSection {
     }
 
     /// Load color is data-driven, not a fixed orange.
-    /// The user reads orange as "warning" so a moderate session being colored
-    /// orange every time was misleading. Only flips to amber for a genuinely
-    /// hard session (`hardSessionLoad`); below that it sits in the same
+    /// Users read orange as "warning", so colouring every moderate session
+    /// orange misleads. Only flips to amber for a genuinely
     /// fitness-accent palette as the rest of the badge row.
     ///
     /// This value is preferredTrainingLoad (power/HR

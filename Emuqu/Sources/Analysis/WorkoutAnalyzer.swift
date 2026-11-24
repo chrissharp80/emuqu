@@ -702,10 +702,10 @@ enum WorkoutAnalyzer {
     /// site. A malformed `<ele>` in an imported GPX file reaches exactly this
     /// conversion.
     ///
-    /// `GPXImporter` rejects those values at the parse boundary, which is
-    /// where the fix belongs. This is the second line: an encoder that cannot
-    /// crash regardless of what reaches it, because a fixed importer is one
-    /// caller and this is shared by every track-producing path.
+    /// `GPXImporter` rejects those values at the parse boundary. This is the
+    /// second line: an encoder that cannot crash regardless of what reaches it,
+    /// because the importer is one caller and this is shared by every
+    /// track-producing path.
     ///
     /// The clamp is ±`Int.max / 8`, not `Int.min ... Int.max`: the encoders
     /// subtract the previous value (`lat - prevLat`) and then shift the

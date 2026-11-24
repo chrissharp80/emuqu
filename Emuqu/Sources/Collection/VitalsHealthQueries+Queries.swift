@@ -330,7 +330,7 @@ extension VitalsHealthQueries {
     /// off a re-fetch.
     ///
     /// No background delivery: all a fire does is bump a version the open
-    /// screens watch, so waking the app in the background for it spent
+    /// screens watch, so waking the app in the background for it would spend
     /// battery for nothing. Delivery enabled by earlier builds is turned off;
     /// samples that arrive meanwhile are read on the next launch.
     private func observeVitalsType(_ type: HKQuantityType) {
@@ -366,10 +366,7 @@ extension VitalsHealthQueries {
     /// Falls back to the minimum `.heartRate` sample over the same 36h window
     /// only when no RHR sample exists (older devices, users without an Apple
     /// Watch): the lowest instantaneous reading, a stand-in that reads at or
-    /// below a true resting HR, used because nothing better exists then. The
-    /// previous implementation always took the 24h `.heartRate` minimum, which
-    /// conflated "lowest instantaneous beat" with "resting HR" and missed the
-    /// authoritative Watch value entirely.
+    /// below a true resting HR, used because nothing better exists then.
     ///
     /// Excludes our own RHR/HR writes. The app
     /// exports a daily `.restingHeartRate` sample and minute-level `.heartRate`

@@ -1,13 +1,12 @@
 import Foundation
 
 /// A/B-style local telemetry for the pre-score
-/// subjective prompt. Tracks shown / completed / skipped counts so the
-/// build owner can spot the "completion drops > 20%" regression trigger.
+/// subjective prompt. Tracks shown / completed / skipped counts so a
+/// completion drop of more than 20% shows.
 ///
 /// Stored on-device only via UserDefaults. Never uploaded. The
-/// Diagnostics page surfaces a one-line read-out so a single user (or a
-/// TestFlight tester) can sanity-check completion in the field without
-/// any analytics SDK.
+/// Diagnostics page surfaces a one-line read-out so a single user can
+/// sanity-check completion in the field without any analytics SDK.
 ///
 /// Each record call counts on from the value stored in UserDefaults, not
 /// the in-memory copy, so a sweep of these keys (Delete All My Data) is

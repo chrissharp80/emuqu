@@ -134,8 +134,8 @@ extension RRCollector {
     /// (tests/previews build many), as `SessionReanalysisCoordinator` does
     /// for its listeners.
     /// The flush runs inline, not in a `Task`: UIKit exits as soon as the
-    /// termination notification returns, so a deferred flush never ran and up
-    /// to a minute of beats went with it. Observers on `.main` make
+    /// termination notification returns, so a deferred flush would never run and
+    /// up to a minute of beats would go with it. Observers on `.main` make
     /// `assumeIsolated` sound.
     func setupLifecycleObservers() {
         let center = NotificationCenter.default

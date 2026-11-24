@@ -22,10 +22,10 @@ enum AppKnowledgeBase {
     /// Keep "Capabilities the app does NOT have" HONEST and SHORT. The tool
     /// catalog is the source of truth for what the assistant can retrieve —
     /// if a tool exists for it, the app does it, so do not add "No X" lines
-    /// that contradict a shipped tool. (Denials removed because they were
-    /// false: the app HAS Stryd/foot-pod + FTMS cycling power, custom-interval
-    /// structured workouts, and saved-route loading.) These notes lived inside
-    /// the string as `//` lines, which went to the model as prompt text.
+    /// that contradict a shipped tool: the app HAS Stryd/foot-pod + FTMS cycling
+    /// power, custom-interval structured workouts, and saved-route loading. Keep
+    /// these notes out of the string: anything inside it, `//` lines included,
+    /// goes to the model as prompt text.
     static let reference: String = """
     # Emuqu — App Reference
 

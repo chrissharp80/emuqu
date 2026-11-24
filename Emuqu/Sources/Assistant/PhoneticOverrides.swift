@@ -82,7 +82,7 @@ enum PhoneticOverrides {
         //      "HR V" / "H R V" / "B P M" / "alpha one". The
         //      normalizer runs BEFORE PhoneticOverrides, so by the
         //      time these rules fire, "HRV" has been spelled out and
-        //      the original pattern no longer matches.
+        //      a pattern on "HRV" alone would miss it.
         //   3. "live" + measurement nouns the AI commonly speaks
         //      (steps, distance, miles, kilometers, calories, kcal,
         //      power, watts, cadence, training, zone(s)).

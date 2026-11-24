@@ -11,10 +11,6 @@ import UniformTypeIdentifiers
 /// Clipboard — synced to the user's other Apple devices over iCloud, with no
 /// expiry. Both of those carry health data: overnight RMSSD and DFA α1 in the
 /// first case, the whole debug log in the second.
-///
-/// The hardening pattern already existed. It was applied to two sites and not
-/// the other two, which is the shape of defect a shared helper prevents by
-/// construction.
 enum PasteboardWriter {
     /// Copy `text` local-only, with the user-configurable expiry.
     ///

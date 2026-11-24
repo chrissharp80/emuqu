@@ -10,7 +10,7 @@ import SwiftUI
 extension FitnessPostSummaryView {
     /// Rebuilt on each access so the cards always render from live state.
     /// Grouped onto fewer lines than one-argument-per-line purely to stay
-    /// inside the 20-line declaration limit the refactor spec enforces; the
+    /// inside the 20-line declaration limit; the
     /// call is a single expression either way.
     var summary: FitnessSummaryCards {
         FitnessSummaryCards(

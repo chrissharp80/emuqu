@@ -1,8 +1,7 @@
 import SwiftUI
 
-// Drag state, pending-range and the range and split sheets, split out of
-// `SleepTimelineEditorView.swift` at a top-level type boundary.
-// Supporting types the editor uses; none carry editing logic.
+// Drag state, pending-range and the range and split sheets: supporting types
+// `SleepTimelineEditorView` uses; none carry editing logic.
 
 // MARK: - Drag preview struct
 

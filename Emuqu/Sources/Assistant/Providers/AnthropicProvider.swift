@@ -277,10 +277,6 @@ final class AnthropicProvider: KeyedCloudProvider, Sendable {
     /// If there is no user message yet (shouldn't happen — Anthropic requires
     /// at least one) the live state goes into a system block instead, so the
     /// model still sees it.
-    ///
-    /// Extracted from `stream` to keep that method inside the body-length and
-    /// cyclomatic-complexity budgets; this content-shape switch is the bulk
-    /// of both.
     static func spliceLiveState(
         _ contextRendered: String,
         into mapped: inout [RequestBody.Message],

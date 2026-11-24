@@ -8,7 +8,7 @@ import Foundation
 /// when the strap dies mid-workout but the session otherwise completes
 /// cleanly.
 ///
-/// Research context (May 2026 review):
+/// Research context:
 ///   • TRIMP (Banister's, which `WorkoutMetadata.luciaTRIMP` holds despite
 ///     its name, or Edwards' zones when no resting/max HR is known)
 ///     requires HR — there's no published HR-free formulation. The honest fallback when HR is missing is to

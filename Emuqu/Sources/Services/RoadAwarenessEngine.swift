@@ -508,9 +508,8 @@ enum RoadAwarenessEngine {
     /// node the graph cares about turns up (an intersection, or either end of
     /// the way), or until the lookahead budget runs out.
     ///
-    /// Extracted from `lookahead` unchanged. Returning the running totals
-    /// rather than mutating captured `var`s is what lets the walk be read on
-    /// its own.
+    /// Returning the running totals rather than mutating `lookahead`'s
+    /// captured `var`s lets the walk be read on its own.
     private struct Advance {
         let nodeId: Int64?
         let nodeIndex: Int?

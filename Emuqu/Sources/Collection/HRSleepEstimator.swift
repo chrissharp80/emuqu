@@ -1,13 +1,11 @@
 import Foundation
 
-/// Heart-rate-based sleep estimation, lifted out of `HealthKitManager`.
+/// Heart-rate-based sleep estimation.
 ///
 /// This is the fallback used on nights the watch recorded no sleep: infer when
 /// the user fell asleep and woke from the shape of their heart rate alone. It
-/// is pure arithmetic over samples. Buried as `private static`
-/// functions on a 3,500-line manager it was reachable from tests only through
-/// the one public entry point, which is why its onset clamp had to be fixed
-/// three times in three sibling detectors before all of them had it.
+/// is pure arithmetic over samples, kept apart from `HealthKitManager` so tests
+/// reach each detector directly rather than through one public entry point.
 ///
 /// The two paths in here share the threshold, clamp and wake logic:
 ///
@@ -24,14 +22,14 @@ enum HRSleepEstimator {
     /// sleep-onset latency. `detectSleepBoundariesFromHR` thresholds against
     /// the whole night's HR MINIMUM (deep-sleep bradycardia, which occurs
     /// later), so early/light sleep stays above the midpoint and is misread as
-    /// "awake" until HR consolidates into deep sleep ~an hour in (a real 69-min
-    /// "onset" was observed on a 337-min recording, shifting the 30-70% HRV
-    /// band later and shrinking sleep 337→268 min → skewed score). But this
+    /// "awake" until HR consolidates into deep sleep ~an hour in (a 69-min
+    /// "onset" on a 337-min recording shifts the 30-70% HRV band later and
+    /// shrinks sleep 337→268 min, skewing the score). But this
     /// app's recording STARTS at bedtime, so onset can't plausibly be an hour
     /// of lying awake: typical sleep-onset latency is 10-20 min (>30 min is
     /// clinically prolonged). A detection past that ceiling is treated as a
     /// misfire and the onset falls back to the recording start (see
-    /// `plausibleOnsetMs`) — symmetric with the wake side, which already
+    /// `plausibleOnsetMs`) — symmetric with the wake side, which
     /// trusts the recording END.
     ///
     /// - Parameters:
@@ -128,7 +126,7 @@ enum HRSleepEstimator {
 
     /// Mean heart rate over the window's physiologically valid beats
     /// (`HRVConstants.RRInterval.isValid`), as `SleepBoundaryResolver` does:
-    /// averaged in, dropout and artifact intervals moved the night's max/min
+    /// averaged in, dropout and artifact intervals would move the night's max/min
     /// and with them the threshold, onset and wake. Nil when the window has
     /// fewer than 10 beats or half or more of them are artifacts.
     nonisolated static func windowedHR(_ rrPoints: [RRPoint], from windowStart: Int64, to windowEnd: Int64) -> Double? {
@@ -144,15 +142,13 @@ enum HRSleepEstimator {
     ///
     /// Sleep onset is the first of 3 consecutive windows below threshold.
     ///
-    /// Wake is the end of the LAST continuous sleep block. Taking
-    /// the first backward below→above crossing instead meant a
-    /// single mid-night HR bump (bathroom trip, REM tachycardia, or a
-    /// BLE-reconnect gap artifact) was read as "final wake" and the rest of the
-    /// night was discarded — surfacing wake at e.g. 1:30 AM. Instead, find the
-    /// last window you were still asleep (below threshold) and set wake to the
-    /// window right after it. Brief above-threshold blips that are followed by
-    /// more sleep do not truncate the night. (Onset already requires 3
-    /// sustained windows; this makes the wake side comparably robust.)
+    /// Wake is the end of the LAST continuous sleep block: the window right
+    /// after the last one still below threshold. Taking the first backward
+    /// below→above crossing instead would read a single mid-night HR bump
+    /// (bathroom trip, REM tachycardia, or a BLE-reconnect gap artifact) as
+    /// "final wake" and discard the rest of the night. Brief above-threshold
+    /// blips that are followed by more sleep do not truncate the night. (Onset
+    /// requires 3 sustained windows; this makes the wake side comparably robust.)
     nonisolated static func detectSleepBoundariesFromHR(
         _ windowedHR: [(timeMs: Int64, hr: Double)]
     ) -> (sleepOnsetMs: Int64?, wakeMs: Int64?) {
@@ -220,17 +216,14 @@ enum HRSleepEstimator {
     /// `SleepBoundaryResolver.detectSleepOnset`
     /// (`SleepConstants.isPlausibleHROnsetLatency`).
     /// This passive-Watch-HR detector also thresholds against
-    /// deep-sleep bradycardia, which consolidates LATER than true onset, so on
-    /// some nights it reports a bogus long "onset" and shrinks the night (the
-    /// same 66/69-min artifact the other two were clamped for). `windowStart`
-    /// is the recording start (bedtime) for BOTH callers —
+    /// deep-sleep bradycardia, which consolidates LATER than true onset, so
+    /// unclamped it can report a long bogus "onset" and shrink the night.
+    /// `windowStart` is the recording start (bedtime) for BOTH callers —
     /// MorningProcessingService passes `effectiveStartDate`, and
     /// MorningResultsViewModel passes `window.start`, the same anchor its
     /// `estimateSleepFromHR` call on the line above uses — so onset can't
     /// plausibly exceed the typical 10–20 min SOL (>30 clinically prolonged;
-    /// Ohayon et al., Sleep 2004;27(7):1255). This was the THIRD and last
-    /// HR-onset estimator still missing the clamp (the recurrence the 2026-08
-    /// fixes kept re-introducing by fixing one copy at a time).
+    /// Ohayon et al., Sleep 2004;27(7):1255).
     ///
     /// A detection past the ceiling is a misfire, not an onset at minute 20:
     /// onset is undetermined and falls back to `windowStart`, the bedtime.

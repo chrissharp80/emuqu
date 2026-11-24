@@ -174,7 +174,7 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
     /// Abstract routing tier used for this turn (1=Quick,
     /// 2=Auto-cloud, 3=Deep). Stored as a raw Int so the spec's tier
     /// identity survives even if the provider/model later change. nil
-    /// for legacy turns from before adaptive routing existed and for
+    /// for turns saved without a tier and for
     /// Manual-mode turns where tiers don't apply.
     let routedTierRaw: Int?
 
@@ -237,10 +237,10 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
     ///
     /// A default value on a stored property does NOT make Swift's synthesised
     /// `Codable` tolerate a missing key — the synthesised decoder still
-    /// requires it. Adding the field with a default therefore looked safe and
-    /// would have made every transcript written before it undecodable, taking
-    /// the user's entire chat history with it on upgrade. Caught by
-    /// `LocalOnlyTurnTests.testTranscriptsWrittenBeforeTheFieldDecodeAsSendable`.
+    /// requires it, so every transcript saved without the field would fail to
+    /// decode, taking the user's entire chat history with it on upgrade.
+    /// `LocalOnlyTurnTests.testTranscriptsWrittenBeforeTheFieldDecodeAsSendable`
+    /// covers it.
     ///
     /// Absent means sendable, deliberately. Those turns predate the exposure
     /// policy; marking them local-only retroactively would assert something
@@ -802,10 +802,9 @@ extension AIProvider {
     /// large tool catalogs.
     var maxToolSchemaCount: Int? { nil }
 
-    /// Back-compat call site for the pre-tool-use era. Forwards with empty
-    /// tools/rounds so existing callers (summarizer, auto-fact extractor)
-    /// keep working without change. The main chat dispatch path uses the
-    /// full signature with a populated tool catalog.
+    /// Tool-less send for callers that need no tools (summarizer, auto-fact
+    /// extractor): forwards with empty tools/rounds. The main chat dispatch
+    /// path uses the full signature with a populated tool catalog.
     func send(
         messages: [ChatTurn],
         model: ModelOption,

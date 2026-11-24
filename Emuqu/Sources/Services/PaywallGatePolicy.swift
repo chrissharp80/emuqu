@@ -3,7 +3,7 @@ import Foundation
 /// Which launch modal, if any, the paywall gate presents, and whether the
 /// trial clock is anyone's business.
 ///
-/// ## Why this exists
+/// ## Permanent access wins
 ///
 /// A gate that reads the trial clock on its own shows anyone inside the
 /// trial's last week the daily "N days remaining" reminder, whether or not the trial is
@@ -74,8 +74,8 @@ enum PaywallGatePolicy {
     /// Whether an Apple ID recorded as a beta tester has free access on this
     /// install. Only on one `AppTransaction` verified as an App Store
     /// (production) build: App Review and TestFlight share the sandbox
-    /// environment, earlier sandbox builds anchored App Review's Apple IDs as
-    /// testers, and App Review has to meet the customer's paywall.
+    /// environment, App Review's Apple IDs may be anchored as testers, and
+    /// App Review has to meet the customer's paywall.
     static func grantsBetaTesterAccess(isAnchoredBetaTester: Bool, isVerifiedProductionInstall: Bool) -> Bool {
         isAnchoredBetaTester && isVerifiedProductionInstall
     }

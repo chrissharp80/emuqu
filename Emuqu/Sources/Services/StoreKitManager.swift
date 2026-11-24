@@ -42,15 +42,12 @@ final class StoreKitManager {
     ///
     /// Why the persisted cache: StoreKit's `Transaction.currentEntitlements`
     /// is async and the paywall gate fires synchronously, so without it a
-    /// buyer was shown the paywall on every launch. Persisted caching means
+    /// buyer would see the paywall on every launch. Persisted caching means
     /// the gate sees the LAST-KNOWN-GOOD purchase state instantly.
     private(set) var isPurchased: Bool = {
         // Escape hatch. While `paywallEnabled` is `false` this answers and
-        // the cache below is not read. It exists so switching the paywall off
-        // is a one-line change:
-        // pre-launch, the paywall flow made life hard for testers (Apple
-        // sign-in prompts on DEBUG builds, launch-blocking covers on
-        // TestFlight) for zero return while the app was not on the store.
+        // the cache below is not read, so switching the paywall off is a
+        // one-line change.
         if !StoreKitManager.paywallEnabled { return true }
         return UserDefaults.standard.bool(forKey: StoreKitManager.lastKnownPurchasedKey)
     }()
@@ -62,19 +59,19 @@ final class StoreKitManager {
     /// during the free trial, for grandfathered beta testers, and on
     /// developer installs.
     ///
-    /// Conflating the two made the in-app purchase unreachable. Settings →
-    /// Purchase keyed off `isPurchased`, so a user inside their trial
-    /// was shown "Owned" and given no way to buy — and so was App Review,
-    /// which downloads a fresh build, lands in the trial, and then cannot
-    /// exercise the IAP it is there to review. That is the standard
-    /// "we were unable to locate the in-app purchases" rejection.
+    /// Conflating the two makes the in-app purchase unreachable: keyed off
+    /// `isPurchased`, Settings → Purchase shows a user inside their trial
+    /// "Owned" with no way to buy, and so does App Review, which downloads a
+    /// fresh build, lands in the trial, and then cannot exercise the IAP it
+    /// is there to review. That is the standard "we were unable to locate the
+    /// in-app purchases" rejection.
     ///
     /// This value comes ONLY from `Transaction.currentEntitlements`. No
     /// bypass writes it.
     ///
     /// It starts from the last purchase StoreKit confirmed, which is the same
-    /// value, saved. Starting from false, the launch gate ran before the
-    /// first sweep and gave a buyer in the last week of their trial the daily
+    /// value, saved. The launch gate runs before the first sweep, so starting
+    /// from false would give a buyer in the last week of their trial the daily
     /// "N days remaining" reminder.
     private(set) var hasPurchasedProduct = UserDefaults.standard.bool(forKey: StoreKitManager.lastKnownPurchasedKey)
 
@@ -121,8 +118,8 @@ final class StoreKitManager {
     //   - The launch gate never picks `.paywall` as the activeModal
     //   - PaywallView still exists in code but isn't routed to
     //
-    // ON: the paid launch. Besides a purchase, these routes keep the gate
-    // off the path of anyone who should not see it:
+    // ON: besides a purchase, these routes keep the gate off the path of
+    // anyone who should not see it:
     //
     //   • DEBUG builds        → `isDebugBuild` ⇒ `isDeveloperInstall`
     //   • Xcode installs      → `isDeveloperInstall` (verified by AppTransaction)
@@ -179,9 +176,9 @@ final class StoreKitManager {
     /// their iCloud Keychain.
     ///
     /// A sandbox receipt is not recorded as a beta tester. The beta cohort is
-    /// closed, and App Review installs carry the same receipt. An anchor that
-    /// earlier builds wrote on a sandbox receipt grants nothing on a sandbox
-    /// install either; see `isGrandfatheredBetaTester`.
+    /// closed, and App Review installs carry the same receipt. An anchor
+    /// written on a sandbox receipt grants nothing on a sandbox install
+    /// either; see `isGrandfatheredBetaTester`.
     ///
     /// The reconcile lists and reads every keychain item, so it runs on a
     /// background task, not on the main actor at every launch; the legacy
@@ -231,10 +228,9 @@ final class StoreKitManager {
     ///
     /// That flag was only ever written on a genuine sandbox receipt, so a
     /// `true` value is real evidence that this install ran a TestFlight
-    /// build — exactly the fact the anchor wants. Migrating it is what
-    /// keeps the EXISTING beta cohort grandfathered; without this, every
-    /// current tester would be handed a paywall the first time they opened
-    /// the launch build.
+    /// build — exactly the fact the anchor wants. Migrating it keeps the
+    /// beta cohort grandfathered; without it, a tester whose only evidence is
+    /// this flag meets the paywall.
     ///
     /// The legacy key is left in place rather than deleted. Nothing else
     /// reads it, and leaving it costs nothing
@@ -540,13 +536,12 @@ final class StoreKitManager {
     /// The free trial is measured against the anchor's high-water mark, so
     /// winding the device clock back does not extend it. Resolved via
     /// `Self.isTrialActive` so this agrees with the launch gate and the
-    /// paywall — reading the anchor alone here is what let those three
-    /// disagree.
+    /// paywall; reading the anchor alone here lets those three disagree.
     ///
     /// `-UITests-ForcePaywall` removes every route but the Skip (Debug) grant,
-    /// as the launch gate does. Without it the launch refresh re-derived the
-    /// developer-install route, flipped `isPurchased`, and the purchase
-    /// handler took the gate down before it ever drew.
+    /// as the launch gate does. Without it the launch refresh re-derives the
+    /// developer-install route, flips `isPurchased`, and the purchase
+    /// handler takes the gate down before it draws.
     private var hasBypassGrant: Bool {
         if hasPermanentGrant { return true }
         return !UITestLaunchArguments.forcesPaywall && Self.isTrialActive
@@ -590,11 +585,10 @@ final class StoreKitManager {
     /// Whether the free trial is currently running.
     ///
     /// Single source of truth. This resolution (anchor first,
-    /// settings as fallback) must not be duplicated: when `refreshStatus`
-    /// read the anchor ALONE, a user whose trial start
-    /// survived only in the CloudKit-mirrored settings passed the
-    /// launch gate but computed `isPurchased = false`, which is one half of
-    /// how a trial user can end up staring at a hard paywall.
+    /// settings as fallback) must not be duplicated: a caller that reads the
+    /// anchor alone misses a trial start that survives only in the
+    /// CloudKit-mirrored settings, so the launch gate lets the user through
+    /// while `isPurchased` computes false and a trial user meets a hard paywall.
     static var isTrialActive: Bool {
         let clock = trialClock
         return TrialPolicy.isActive(start: clock.start, now: clock.now)
@@ -663,7 +657,7 @@ final class StoreKitManager {
     /// Honoured only once `AppTransaction` has verified this install as an
     /// App Store (production) build. App Review and TestFlight both run in
     /// the sandbox environment and no API tells them apart, so a sandbox
-    /// install, where earlier builds anchored App Review's Apple IDs, meets
+    /// install, where App Review's Apple IDs may hold an anchor, meets
     /// the customer's paywall. A tester's first launch of the App Store build
     /// shows the paywall until that check lands a moment later and the
     /// entitlement refresh takes it down.
@@ -805,8 +799,8 @@ final class StoreKitManager {
     ///
     /// Every route here is positive evidence. A missing App Store receipt is
     /// not: StoreKit 2 does not promise the file exists, so reading its
-    /// absence as a sideload handed the app to any App Store customer whose
-    /// receipt had not landed.
+    /// absence as a sideload would hand the app to any App Store customer
+    /// whose receipt has not landed.
     static var isDeveloperInstall: Bool {
         if isDebugBuild { return true }
         return UserDefaults.standard.bool(forKey: verifiedXcodeInstallKey)

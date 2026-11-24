@@ -90,15 +90,14 @@ enum RecoveryScoreCalculator {
 
         /// The factor's identity, derived from its label.
         ///
-        /// A fresh `UUID()` per initialiser made the same factor a different
-        /// element on every rebuild: SwiftUI saw the breakdown list replaced
-        /// rather than updated, and two breakdowns of identical numbers never
-        /// compared equal. The label is what identifies a factor — there is
-        /// one HRV row, one Sleep row, one Vitals row.
+        /// A fresh `UUID()` per initialiser would make the same factor a
+        /// different element on every rebuild: SwiftUI would see the breakdown
+        /// list replaced rather than updated, and two breakdowns of identical
+        /// numbers would never compare equal. The label is what identifies a
+        /// factor — there is one HRV row, one Sleep row, one Vitals row.
         ///
-        /// Still a `UUID`, and still encoded, so sessions archived before this
-        /// keep decoding unchanged; only the value became a function of the
-        /// label rather than of the clock.
+        /// It is a `UUID`, and encoded, so archived sessions with clock-based
+        /// identities still decode.
         static func identity(for label: String) -> UUID {
             var bytes = Array(SHA256.hash(data: Data(label.utf8)).prefix(16))
             // RFC 4122 name-based (v5) variant and version bits, so the value
@@ -539,8 +538,7 @@ enum RecoveryScoreCalculator {
     /// `.trim(CGFloat(score)/100)`, both of which HARD-CRASH on NaN (the
     /// min/max clamps downstream do NOT sanitize NaN). These inputs are already
     /// optional, so coercing a non-finite value to nil yields a finite,
-    /// sensible score instead of crashing the report. Fixes the TestFlight
-    /// "View full report → flashed up → crash" after a quick reading.
+    /// sensible score instead of crashing the report.
     fileprivate struct FiniteHRVInputs {
         let readiness: Double?
         let rmssd: Double?
@@ -585,15 +583,14 @@ enum RecoveryScoreCalculator {
     /// Rebuilding the composite as the bare
     /// weighted factor sum would silently drop BOTH tails that
     /// `computeBreakdown` applies after weighting: the `min(100, max(0, ...))`
-    /// clamp and `applyVitalsOverrides` (the flat SpO2 penalty). A user whose
-    /// recording was unusable (`useBaselineHRV`), who answered the perceived-
-    /// readiness prompt, and whose watch recorded SpO2 below 95% would get a
-    /// score 10 points higher than the model specifies — with the penalty still
-    /// listed in `penalties` but neither applied nor explained, because
-    /// `vitalsPenaltyMessage` keys on `gapFromFactors > 1` and the rebuild makes
-    /// that gap exactly zero.
+    /// clamp and `applyVitalsOverrides` (the flat SpO2 penalty). With an
+    /// unusable recording (`useBaselineHRV`), a perceived-readiness answer and
+    /// SpO2 below 95%, the score would come out 10 points higher than the model
+    /// specifies — with the penalty listed in `penalties` but neither applied
+    /// nor explained, because `vitalsPenaltyMessage` keys on
+    /// `gapFromFactors > 1` and the rebuild makes that gap exactly zero.
     ///
-    /// The recomposition tail now goes through `composeFinalScore`, which is the
+    /// The recomposition tail goes through `composeFinalScore`, which is the
     /// single place either code path is allowed to turn weighted factors into a
     /// composite. The missing-sleep deduction travels with it, for the same
     /// reason: it is listed in `penalties`, so it must also be applied.
@@ -738,9 +735,8 @@ enum RecoveryScoreCalculator {
     /// `NarrativeLanguage`.
     static var missingSleepPenaltyDescription: String { ScoreBreakdownCopy.missingSleepPenalty }
 
-    /// Without this a user reporting "score seems
-    /// wrong" can't be triaged: we can't tell whether sleep was missing, or
-    /// which inputs the composite actually saw.
+    /// Logs which inputs the composite saw, so a "score seems wrong" can be
+    /// triaged: whether sleep was missing, and what each factor received.
     ///
     /// Gated to DEBUG. The dashboard re-evaluates `body` many
     /// times during a normal launch and each fires this log; Release builds

@@ -19,10 +19,8 @@ struct OnboardingView: View {
     // away from it during iOS's modal anyway).
 
     /// Seven onboarding pages (O1-O7 + dedicated
-    /// Apple Health page). The disclaimer page that
-    /// was sixth is gone: the full disclaimer, with the age confirmation, is
-    /// agreed to before onboarding starts, so a new user met it twice, and
-    /// swiping past the second copy skipped it anyway.
+    /// Apple Health page). There is no disclaimer page: the full disclaimer,
+    /// with the age confirmation, is agreed to before onboarding starts.
     ///   0. Welcome (brand moment + Get started)
     ///   1. What Emuqu does (3-card carousel)
     ///   2. Quick profile
@@ -108,8 +106,8 @@ struct OnboardingView: View {
         // architecture change disclosure — their first reading is already
         // under the new algorithm (HRV/Sleep/Vitals 60/25/15). The
         // disclosure modal AND the one-shot history recompute are both
-        // only for upgrading users whose stored settings predate this
-        // build; mark them done so the new user skips both.
+        // only for upgrading users whose stored settings predate the
+        // change; mark them done so the new user skips both.
         settingsManager.settings.hasAcknowledgedScoreArchitectureChange = true
         settingsManager.settings.hasRunScoreHistoryRecompute = true
         // The free trial is not started here: it starts from the paywall that

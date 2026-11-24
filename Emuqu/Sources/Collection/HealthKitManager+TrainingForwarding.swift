@@ -2,13 +2,10 @@ import CoreLocation
 import Foundation
 import HealthKit
 
-// Training queries live in `TrainingHealthQueries` — several hundred lines
-// kept out of HealthKitManager, one of the largest types in the codebase.
-//
-// These forwarders keep every existing call site working. The queries needed
-// exactly three members of the manager (the store, the bounded-query helper,
-// the sample counter), which is what made this seam worth cutting: recovery and
-// cloud pull each needed a dozen and stayed coupled by design.
+// Training queries live in `TrainingHealthQueries`, which needs only three
+// members of the manager (the store, the bounded-query helper, the sample
+// counter). These forwarders give `HealthKitManager` callers the same
+// entry points.
 
 extension HealthKitManager {
     /// The training-query subsystem: a lightweight value built on each access.
@@ -16,7 +13,7 @@ extension HealthKitManager {
         TrainingHealthQueries(manager: self)
     }
 
-    // MARK: - Pure helpers (no instance state, so they moved as statics)
+    // MARK: - Pure helpers (no instance state)
 
     nonisolated static func deduplicateWorkouts(
         _ workouts: [HealthKitManager.WorkoutSummary]

@@ -91,12 +91,12 @@ extension WorkoutRecorder {
     /// morning-readiness pull all read `workoutMetadata` / `analysisResult` /
     /// `trainingSnapshot` / scoring fields — none of them touch the raw
     /// `rrSeries` blob. Skipping that decode is a pure perf win and reduces the
-    /// lock contention that was bleeding into the user-perceived start time.
+    /// lock contention that would otherwise bleed into the user-perceived start time.
     ///
     /// Picked from the index by type: the 60 newest workouts (the baselines
     /// and race predictions use workouts only, and taking the 60 newest
-    /// entries of every type left a user with daily overnight and quick
-    /// readings 3–4 weeks of workouts), plus the overnight and quick
+    /// entries of every type would leave a user with daily overnight and quick
+    /// readings only 3–4 weeks of workouts), plus the overnight and quick
     /// readings that ended today, for the readiness snapshot.
     nonisolated private static func recentLightweightSessions(archive: SessionArchive) -> [HRVSession] {
         let entries = archive.entries

@@ -11,17 +11,13 @@ extension WorkoutFinalizer {
     /// Assemble the finished `HRVSession` from the captured RR series, the
     /// per-tick sample buffer and the sensor/context caches, then archive it.
     ///
-    /// The archive is kept SYNCHRONOUS. Detaching it to a
-    /// background task would make the .finished
-    /// phase transition appear instantly, but a user's
-    /// termination report (iOS SIGKILL at 228 MB phys_footprint right
-    /// after tapping End) showed the detached path is a data-loss risk: if
-    /// iOS suspends the app between `stop()` returning and the
-    /// detached archive completing, the session is lost. With
-    /// calculateTrainingLoad now bounded by a 1.5 s timeout, the
-    /// synchronous archive only adds ~200 ms — well inside the iOS
-    /// background-task budget — and keeps the session-persistence
-    /// guarantee intact.
+    /// The archive is kept SYNCHRONOUS. Detaching it to a background task
+    /// would make the .finished phase transition appear instantly, but it is a
+    /// data-loss risk: if iOS suspends or kills the app (e.g. a memory SIGKILL
+    /// right after End) between `stop()` returning and the detached archive
+    /// completing, the session is lost. With calculateTrainingLoad bounded by
+    /// a 1.5 s timeout, the synchronous archive only adds ~200 ms — well
+    /// inside the iOS background-task budget.
     func finalizeSession(
         rrPoints: [RRPoint],
         stopDate: Date,
@@ -202,13 +198,10 @@ extension WorkoutFinalizer {
 
     /// Finalize stage 5 — Apple Watch HR backfill + per-second samples attach.
     ///
-    /// Apple Watch HR fallback at finalize.
-    ///
-    /// User report: strap dropped mid-workout (AirPods route change
-    /// forced a BLE renegotiation), the live Watch-HR bridge wasn't
-    /// streaming because the Watch app wasn't open, and the workout
-    /// finished with most heartRate fields = nil. Their request:
-    /// "at the worst it should have fell back on apple."
+    /// Apple Watch HR fallback at finalize: when the strap drops mid-workout
+    /// (e.g. an AirPods route change forces a BLE renegotiation) and the live
+    /// Watch-HR bridge isn't streaming because the Watch app isn't open, the
+    /// workout would otherwise finish with most heartRate fields nil.
     ///
     /// The Apple Watch generates HR samples to HealthKit every
     /// 5–10 s on the wrist regardless of whether our Watch app is
@@ -305,12 +298,10 @@ extension WorkoutFinalizer {
 
     /// Finalize stage 7 — route-history TRIMP fallback estimate.
     ///
-    /// Route-history TRIMP fallback. User report:
-    /// strap dropped on a known daily route and the recorded
-    /// TRIMP came out as 2 — meaningless. They asked why we
-    /// can't notice a familiar effort and infer the load from
-    /// (a) the GPS shape matching a saved route and (b) prior
-    /// sessions on that same route. `WorkoutRecoveryService` does
+    /// Route-history TRIMP fallback. When the strap drops on a known daily
+    /// route the recorded TRIMP can come out meaninglessly low (e.g. 2), so
+    /// the load is inferred from (a) the GPS shape matching a saved route
+    /// and (b) prior sessions on that same route. `WorkoutRecoveryService` does
     /// the same for crash-recovered workouts; sessions that finalize
     /// cleanly with bad HR data need it too, so it runs on every
     /// finalize: if the saved
@@ -486,18 +477,14 @@ extension WorkoutFinalizer {
     /// semantics — includes today) and is kept warm by the dashboard/AI.
     /// Only fall back to the bounded cold fetch when the cache is cold.
     ///
-    /// That fallback is bounded with a 1.5 s timeout. Bug
-    /// report: user tapped End on a workout, UI froze, force-quit was the
-    /// only exit. Trace pointed at this exact call: HealthKit's
-    /// 12-month training-load query was synchronous-await with
-    /// no time bound, so a slow cold HealthKit query held `stop()`
-    /// mid-finalize. The lifecycle phase had already flipped to
-    /// `.finalizing` so the End button silently no-op'd. So: race
-    /// against a timeout. If training-load doesn't complete in
-    /// 1.5 s, skip the snapshot for this session. The next session
-    /// (or any later view that calls calculateTrainingLoad) gets
-    /// a fresh snapshot. Strictly better than the user losing the
-    /// workout entirely.
+    /// That fallback is bounded with a 1.5 s timeout. HealthKit's 12-month
+    /// training-load query has no time bound of its own, so a slow cold query
+    /// would hold `stop()` mid-finalize with the lifecycle already at
+    /// `.finalizing`: the End button silently no-ops and the UI looks frozen.
+    /// If training-load doesn't complete in 1.5 s, the snapshot is skipped for
+    /// this session; the next session (or any later view that calls
+    /// calculateTrainingLoad) gets a fresh one. Strictly better than the user
+    /// losing the workout entirely.
     private func resolveFinalizeTrainingContext(stopDate: Date) async -> TrainingContext? {
         if let live = AppDependencies.current.analysis.trainingMetricsCache.current, live.atl > 0 || live.ctl > 0 {
             return Self.trainingContext(fromCached: live, relativeTo: stopDate)
@@ -657,10 +644,8 @@ extension WorkoutFinalizer {
 
 // MARK: - File-scope helpers
 //
-// Moved out of WorkoutRecorder. Each names no member of the
-// type and calls nothing that stayed behind, so none needed to be inside
-// it. `private` at file scope is fileprivate, so every call site in this
-// file resolves exactly as before.
+// Each names no member of `WorkoutRecorder` and calls nothing on it, so
+// none needs to be inside the type.
 
 @MainActor
 /// IF = NP/FTP — Allen & Coggan, Training and Racing with a Power Meter.

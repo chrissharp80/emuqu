@@ -60,9 +60,8 @@ extension MorningProcessingService {
 
     /// Artifact detection + quality verification, off the main actor.
     ///
-    /// The timing log exists to attribute the user's "still ~5 min
-    /// for 10 sec of work" complaint: each step logs a wall-clock delta, and the
-    /// sum should bound the visible wait.
+    /// The timing log attributes a long wait to the step that caused it: each
+    /// step logs a wall-clock delta, and the sum should bound the visible wait.
     ///
     /// Off-actor because this service is `@MainActor` and these are
     /// pure value-in/value-out CPU passes over a whole night (~20k beats) that

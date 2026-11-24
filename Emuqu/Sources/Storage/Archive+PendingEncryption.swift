@@ -1,11 +1,8 @@
 import Foundation
 
-// Storage-confidentiality policy for the archive, deliberately at file scope.
-//
-// `SessionArchive` is already over the 1,500 aggregate-line budget for
-// central types. None of this is archive *state* — it is a decision about how
-// bytes are written and a repair pass over them — so it lives beside the type
-// rather than inside it. See docs/adr/README.md, decision 001.
+// Storage-confidentiality policy for the archive. None of this is archive
+// *state*: it is a decision about how bytes are written and a repair pass
+// over them.
 
 /// The write options a given disk format demands.
 ///

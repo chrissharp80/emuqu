@@ -3,8 +3,7 @@ import Foundation
 import Speech
 import UIKit
 
-// The public control surface, split out of
-// `VoiceConversationController.swift`: start / stop, interrupt, trigger
+// The public control surface: start / stop, interrupt, trigger
 // handling and its queue. The state machine and settings stay in the main
 // file; voice-activity detection lives in `+Pipeline.swift` and barge-in in
 // `+Speech.swift`.
@@ -33,7 +32,7 @@ extension VoiceConversationController {
     /// (permissions, audio activation). A second toggle while the first
     /// start() is suspended would interleave audio-engine setup —
     /// installTap on a half-configured engine throws an uncatchable
-    /// Obj-C exception (seen in a crash log). State must be .idle
+    /// Obj-C exception. State must be .idle
     /// for a fresh start; otherwise stop() and re-tap is the user path.
     ///
     /// It flips to `.starting` immediately so the UI shows "Connecting…"
@@ -415,15 +414,12 @@ extension VoiceConversationController {
     /// busy, enqueue and play after the current response completes.
     /// Only fire immediately when the AI is idle.
     ///
-    /// Urgency split. Per the user spec ("if my heart
-    /// is exploding then interrupt me. even then, save my words to
-    /// the clipboard"):
+    /// Urgency split:
     ///   • routine triggers (mile markers, drift cues, terrain
-    ///     calls) — queue while the user is mid-utterance / the AI
-    ///     is mid-response. Existing behaviour, plus the
-    ///     mid-utterance guard added in `isBusyWithUserResponse()`.
+    ///     calls) — queue while the user is mid-utterance
+    ///     (`isBusyWithUserResponse()`) or the AI is mid-response.
     ///   • urgent triggers (HR-spike alerts, threshold breaches,
-    ///     strap-drop, future SOS) — preempt regardless. Before
+    ///     strap-drop) — preempt regardless. Before
     ///     preempting, copy the in-progress `partialTranscript` to
     ///     the system clipboard with a 60 s expiration so the user
     ///     can paste their lost words back in once the alert is
@@ -458,12 +454,11 @@ extension VoiceConversationController {
         let words = partialTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !words.isEmpty else { return }
         // Honor `preserveClipboardForPaste` (default
-        // true). User feedback: an interrupting alert makes it easy to lose
-        // the thread, so losing dictated ideas to a 60 s expiration was
-        // actively hostile.
+        // true): an interrupting alert makes it easy to lose the thread, and a
+        // 60 s expiration would throw away the dictated words.
         // When the toggle is on, the urgent-alert clipboard save
         // sticks until the user pastes it or copies something else;
-        // when off, the original 60 s security cap applies.
+        // when off, the 60 s security cap applies.
         // Routed through `PasteboardWriter`, which owns the `.localOnly` +
         // opt-out-expiry policy, so there is one copy of the rule across the
         // app's write sites.

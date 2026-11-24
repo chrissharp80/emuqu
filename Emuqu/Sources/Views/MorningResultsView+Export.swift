@@ -1,8 +1,7 @@
 import SwiftUI
 
-// Split out from MorningResultsView+Reanalysis.swift to keep that file under
-// SwiftLint's 1000-line limit. Holds the report's exports: the PDF report
-// (preview, share and email, rendered off the main actor) and the RR CSV.
+// The report's exports: the PDF report (preview, share and email, rendered
+// off the main actor) and the RR CSV.
 
 extension MorningReanalysisControls {
     // MARK: - PDF report
@@ -57,7 +56,7 @@ extension MorningReanalysisControls {
     /// `renderPDFAsync` returns the URL and only the targeted state
     /// (`exportURL` OR `emailURL`) gets set — never both, never with
     /// intermediate values. Setting `exportURL` first (firing the
-    /// PDFPreview sheet — a "dark popup that did nothing") and then
+    /// PDFPreview sheet) and then
     /// swapping to `emailURL` mid-flight gets SwiftUI's sheet pipeline
     /// stuck so subsequent taps do nothing.
     func emailReport(
@@ -80,13 +79,13 @@ extension MorningReanalysisControls {
     }
 
     /// Renders the PDF and returns the URL. Pure return-style, no
-    /// side-effect on `exportURL` (that side-effect is what causes the
-    /// email-button-stuck bug); callers are responsible for routing to
+    /// side-effect on `exportURL` (that side-effect leaves the email button
+    /// stuck); callers are responsible for routing to
     /// either `exportURL` (preview) or `emailURL` (mail composer).
     ///
-    /// Timing breadcrumbs: users have reported a "super super long wait"
-    /// between tapping the email-report button and the mail composer
-    /// appearing. Without per-step timing the path is opaque: HealthKit
+    /// Timing breadcrumbs: the wait between tapping the email-report button
+    /// and the mail composer appearing can be long. Without per-step timing
+    /// the path is opaque: HealthKit
     /// cold-query, sleep/vitals conversion, and the multi-page comprehensive
     /// PDF render all run here, and any of them could be the bottleneck.
     /// Per-step elapsed makes the next slow run self-explanatory.

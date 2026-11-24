@@ -4,12 +4,9 @@ import Foundation
 /// recognition failure should be retried, and whether the assistant may
 /// interrupt with a proactive trigger.
 ///
-/// ## Why this exists
-///
 /// Both guard against user-visible failures, and inside the audio pipeline
-/// nothing could test them: `VoiceConversationController+Pipeline.swift` and
-/// `+Control.swift` sit at near-zero coverage, because reaching
-/// them means driving `AVAudioEngine` and the speech recogniser.
+/// they cannot be tested without driving `AVAudioEngine` and the speech
+/// recogniser:
 ///
 ///  * **Restarting recognition while TTS is playing thrashes AVAudio.** Every
 ///    restart re-arms the mic loop, which competes with the synthesiser for the

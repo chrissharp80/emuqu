@@ -103,8 +103,8 @@ extension HealthWorkoutImporter {
     ///
     /// It is logged rather than dropped in silence because a crashed recording
     /// is exactly the session most likely to have a damaged file, and "the row
-    /// I came here for isn't listed", with no explanation anywhere, is how this
-    /// feature failed the first time.
+    /// I came here for isn't listed", with no explanation anywhere, leaves the
+    /// user with nothing to go on.
     nonisolated private static func noteUnrebuildable(
         _ entry: SessionArchiveEntry, captured: TimeInterval, readable: Bool
     ) {

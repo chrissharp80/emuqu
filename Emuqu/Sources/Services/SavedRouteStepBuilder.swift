@@ -12,7 +12,7 @@ import MapKit
 // recorded path, not whatever Apple's walking router would compute
 // to the same endpoint.
 //
-// **Why this exists.** SavedRoute is a polyline of trackpoints
+// **Why detect turns here.** SavedRoute is a polyline of trackpoints
 // from a previously-walked path; it has no turn-by-turn
 // instructions baked in. MKDirections won't help — even if we
 // asked it for a route to the same endpoint, it'd pick its own

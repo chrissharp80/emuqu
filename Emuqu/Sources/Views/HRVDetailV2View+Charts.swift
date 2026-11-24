@@ -1,10 +1,9 @@
 import Charts
 import SwiftUI
 
-// Charts, beat-to-beat consistency, the engine room and banners, split out of
-// `HRVDetailV2View.swift`. What stays behind is the hero, the 4-up
-// strip, autonomic capacity and trend analysis — the summary half of the
-// screen.
+// Charts, beat-to-beat consistency, the engine room and banners.
+// `HRVDetailV2View.swift` holds the hero, the 4-up strip, autonomic
+// capacity and trend analysis — the summary half of the screen.
 
 extension HRVDetailV2View {
     // MARK: - Charts

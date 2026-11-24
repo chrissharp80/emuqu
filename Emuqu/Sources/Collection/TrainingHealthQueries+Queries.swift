@@ -67,7 +67,7 @@ extension TrainingHealthQueries {
     /// Absorb every later workout that covers the same physical session into
     /// the one starting at `i`, returning whichever copy carries the richest data.
     ///
-    /// The scan window was widened from a 5-min break to 30 min so a session
+    /// The scan window is 30 min so a session
     /// and its own HealthKit back-fill still collapse even when their start
     /// times drift apart (the archive start and the Apple-Health export start
     /// rarely align to the minute). Same-type near-starts still merge on the

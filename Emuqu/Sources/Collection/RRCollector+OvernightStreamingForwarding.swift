@@ -1,11 +1,8 @@
 import Foundation
 
-// Overnight streaming lives in `OvernightStreamingCoordinator` —
-// 846 lines out of what was still the largest type in the codebase.
-//
-// These forwarders exist so the call sites across the app and the test suite
-// did not have to change in the same commit as the move. They are the
-// collector's overnight-streaming API; the behaviour lives one reference away.
+// Overnight streaming lives in `OvernightStreamingCoordinator`. These
+// forwarders are the collector's overnight-streaming API; the behaviour
+// lives one reference away.
 
 extension RRCollector {
     /// The overnight-streaming subsystem. Lazy: a daytime launch never touches

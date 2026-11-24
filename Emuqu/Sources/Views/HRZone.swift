@@ -2,11 +2,10 @@ import SwiftUI
 
 // MARK: - HR Zone
 //
-// 5-zone model keyed to % of user MAX HR (NOT session-observed peak). The
-// previous implementation divided by `peakHR` within the session, which
-// produced absurd output like "Zone 5 at 100 bpm" when the user was
-// standing still — because the session peak was only ~105, so 100/105 ≈ 95%
-// rounded into Z5. The zone buckets have to be anchored to the user's
+// 5-zone model keyed to % of user MAX HR (NOT session-observed peak).
+// Dividing by the session's `peakHR` produces absurd output like "Zone 5 at
+// 100 bpm" when the user is standing still — a session peak of ~105 puts
+// 100/105 ≈ 95% in Z5. The zone buckets have to be anchored to the user's
 // physiological ceiling, not whatever this particular session happened to
 // hit at its highest.
 //
@@ -32,7 +31,8 @@ enum HRZone: Int {
     /// number in neutral color instead of flagging it as any zone at all.
     ///
     /// Pass `userMaxHR` from `UserSettings.effectiveMaxHR`. Never pass a
-    /// session-peak HR — that's what caused the original bug.
+    /// session-peak HR: the zones would then follow whatever this session
+    /// happened to reach, not the user's physiological ceiling.
     static func classify(hr: Int, userMaxHR: Int) -> HRZone? {
         guard userMaxHR > 0, hr > 0 else { return nil }
         let frac = Double(hr) / Double(userMaxHR)

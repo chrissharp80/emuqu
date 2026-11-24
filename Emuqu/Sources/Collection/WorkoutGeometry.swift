@@ -3,16 +3,10 @@ import Foundation
 
 /// Pure geometry and physiology used while a workout is running.
 ///
-/// Extracted from `WorkoutRecorder`. Every function here is a
-/// function of its arguments alone — none of them touches a single member of
-/// the recorder, which is why they need no forwarding reference
-/// or `unowned` parent.
-///
-/// That property is the point. Inside the recorder class, nothing
-/// tested them: a bearing calculation, a heart-rate zone, a great-circle
-/// distance. The defects found during the recorder split
-/// were all in exactly this shape of code — small, pure, and unreachable by a
-/// test because of the type it happened to live in.
+/// Every function here is a function of its arguments alone — none of them
+/// touches a single member of the recorder, which is why they need no
+/// forwarding reference or `unowned` parent, and why a test can reach each
+/// one: a bearing calculation, a heart-rate zone, a great-circle distance.
 enum WorkoutGeometry {
     /// One kilometre-or-mile chunk of a route: the distance span it covers and
     /// the sample indices bounding it.

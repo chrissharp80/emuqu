@@ -17,11 +17,9 @@ struct SleepTrendStats {
 }
 
 // The trend is built from the sleep each archived overnight session stored
-// with it (`sleepSnapshot`), not read from HealthKit: the HealthKit reader
-// was never called, so every caller passed nothing and the summary's
-// multi-night findings and the report's trend section never appeared. The
-// archive already holds the nights the report is judged against, for a past
-// night as for today's.
+// with it (`sleepSnapshot`), not read from HealthKit: the archive already
+// holds the nights the report is judged against, for a past night as for
+// today's.
 extension SleepTrendStats {
     /// The nights in the `days` before `session`, or nil when there are none.
     /// The session's own night is left out, so "tonight against your recent

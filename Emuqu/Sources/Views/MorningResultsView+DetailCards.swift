@@ -16,8 +16,8 @@ extension MorningDetailCards {
     /// The card carries no `accessibilityIdentifier`, deliberately. An
     /// identifier on a CONTAINER propagates to every leaf inside it and
     /// overrides the identifiers those leaves set for themselves: with one
-    /// here, the score ring and the explainer button both reported as
-    /// "morning.scoreCard" and neither could be addressed by a UI test.
+    /// here, the score ring and the explainer button both report as
+    /// "morning.scoreCard" and neither can be addressed by a UI test.
     /// Identify the parts, never the wrapper.
     func recoveryScoreCard(breakdownMessage: String) -> some View {
         let score = ScoreVerdict.clampedDisplayScore(vm.compositeRecoveryScore)
@@ -93,8 +93,8 @@ extension MorningDetailCards {
                 // Dynamic Type via @ScaledMetric.
                 .font(.system(size: heroScoreFontSize, weight: .bold))
                 .foregroundColor(color)
-            // The dashboard's verdict scale. Morning Results had its own
-            // (80/60/40), so 72 read "Good" here and "Fair" on the dashboard.
+            // The dashboard's verdict scale, so a score reads the same word
+            // here and on the dashboard.
             Text(verbatim: ScoreVerdict(score: score).localizedWord)
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppTheme.textSecondary)
@@ -165,7 +165,7 @@ extension MorningDetailCards {
         )
     }
 
-    // MARK: - Training Readiness Card (extracted to TrainingReadinessCard.swift)
+    // MARK: - Training Readiness Card (TrainingReadinessCard.swift)
 
     /// `trainingContext` always comes from the raw morning ATL/CTL (no EWMA
     /// step) — the frozen morning state, before any intra-day recovery.
@@ -174,10 +174,9 @@ extension MorningDetailCards {
     /// that was computed at session acceptance, regardless of when the user
     /// opens the report (morning vs evening, ATL has decayed, etc.). Without
     /// it the card recomputes live and the displayed readiness can drift away
-    /// from the frozen composite recovery score it sits beside, producing the
-    /// kind of mismatched-numbers UX the user flagged. Falls back to a live
-    /// recompute when frozenReadiness is nil (e.g. legacy sessions archived
-    /// before frozen-readiness was introduced).
+    /// from the frozen composite recovery score it sits beside, putting two
+    /// mismatched numbers side by side. Falls back to a live
+    /// recompute when frozenReadiness is nil (sessions archived without one).
     ///
     /// Reads from `displaySession` (not `session`) so the re-analyze +
     /// sleep-refresh archive observer's reload is honoured — same routing as
@@ -196,13 +195,13 @@ extension MorningDetailCards {
         )
     }
 
-    // MARK: - Score Breakdown (extracted to ScoreBreakdownCard.swift)
+    // MARK: - Score Breakdown (ScoreBreakdownCard.swift)
 
     func scoreBreakdownSection(breakdown: RecoveryScoreCalculator.ScoreBreakdown) -> some View {
         ScoreBreakdownCard(breakdown: breakdown)
     }
 
-    // recoveryBreakdown() is now on MorningResultsViewModel
+    // recoveryBreakdown() is on MorningResultsViewModel.
 
     // MARK: - Tags & Notes (Combined Compact Section)
 
@@ -217,7 +216,7 @@ extension MorningDetailCards {
         ).body
     }
 
-    // MARK: - Training Load Card (extracted to TrainingLoadCard.swift)
+    // MARK: - Training Load Card (TrainingLoadCard.swift)
 
     func trainingLoadCard(_ training: TrainingContext) -> some View {
         TrainingLoadCard(training: training)
@@ -347,7 +346,7 @@ extension MorningDetailCards {
         VStack(spacing: 4) {
             hrvValue
             // Against the scoring baseline, as "What This Means" rates it;
-            // fixed millisecond cut-offs gave a third answer for the night.
+            // fixed millisecond cut-offs would give a third answer for the night.
             Text(AppTheme.hrvLabel(vm.displayResult.timeDomain.rmssd, baseline: hrvBaseline))
                 .font(.caption)
                 .foregroundColor(AppTheme.hrvTextColor(vm.displayResult.timeDomain.rmssd, baseline: hrvBaseline))

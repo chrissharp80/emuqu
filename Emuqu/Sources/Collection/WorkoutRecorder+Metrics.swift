@@ -53,18 +53,18 @@ extension WorkoutSessionLifecycle {
 
     // MARK: - METs estimation
     //
-    /// Rough energy-expenditure proxy. REQUIRES confirmed movement. Earlier
-    /// versions had an HR-only fallback: when no speed was available we
-    /// estimated METs from %-of-max HR. That badly overclaimed when the user
-    /// was sitting still — HR of 100 bpm at rest (caffeine, stress, digestion,
-    /// normal variability) reads as ~3.5 METs by %HR, which is wrong. METs is
-    /// mechanical work, not sympathetic tone. If we don't have motion, we
-    /// return nil and the charts/exports drop the value rather than lie.
+    /// Rough energy-expenditure proxy. REQUIRES confirmed movement. There is
+    /// no HR-only fallback: METs estimated from %-of-max HR badly overclaim
+    /// when the user is sitting still — HR of 100 bpm at rest (caffeine,
+    /// stress, digestion, normal variability) reads as ~3.5 METs by %HR, which
+    /// is wrong. METs is mechanical work, not sympathetic tone. If we don't
+    /// have motion, we return nil and the charts/exports drop the value rather
+    /// than lie.
     ///
     /// Motion confirmation — the caller passes the live pace
     /// (`LivePaceEstimator`), which is nil until movement is measured and once
     /// the user is slower than a stroll. Indoor sports without a pedometer
-    /// signal → nil; that's honest, not a regression.
+    /// signal → nil; that's honest.
     ///
     /// Flagged as "(est)" in UI so users understand the confidence level.
     ///
@@ -277,9 +277,7 @@ extension WorkoutSessionLifecycle {
     ///
     /// The archive write's error must not be discarded: export
     /// succeeding while the stamp fails is the shape of a duplicate HealthKit
-    /// workout on the next backfill pass, so it gets a log line. Extracted
-    /// rather than nested so the error handling stays inside the spec nesting
-    /// limit.
+    /// workout on the next backfill pass, so it gets a log line.
     @available(iOS 17.0, *)
     private static func stampHealthKitExport(sessionId: UUID, archive: SessionArchive) {
         do {
@@ -309,15 +307,15 @@ extension WorkoutSessionLifecycle {
     ///     summary view.
     ///
     /// Render runs on a detached background task — CoreGraphics
-    /// drawing + MKMapSnapshotter are off-main-actor friendly and
-    /// pinning UI for a 6-page render was the previous pain point.
+    /// drawing + MKMapSnapshotter are off-main-actor friendly, and a
+    /// 6-page render on the main actor would pin the UI.
     /// The bridge stage call hops back to MainActor at the end.
     ///
     /// Returns the render task, whose value says whether the staged draft
     /// carries the PDF: the post-summary button waits on it to show the
     /// outcome and offer a retry; the auto path ignores it.
-    /// `settings` defaults to the shared store so the view call site is
-    /// unchanged; the recorder passes its own injected provider.
+    /// `settings` defaults to the shared store, for the view's call site;
+    /// the recorder passes its own injected provider.
     @MainActor
     @discardableResult
     static func scheduleCoachReportEmail(

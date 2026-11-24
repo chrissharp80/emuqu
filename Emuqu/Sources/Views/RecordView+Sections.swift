@@ -509,7 +509,7 @@ extension RecordView {
         }
     }
 
-    // MARK: - Extracted callbacks
+    // MARK: - Callbacks
     //
     // Each of these would, as an inline closure, put its enclosing
     // view one level past the spec nesting limit. Lifting the closure out is

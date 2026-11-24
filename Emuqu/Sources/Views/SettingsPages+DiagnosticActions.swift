@@ -1,13 +1,12 @@
 import SwiftUI
 
-// The action half of `TroubleshootingPage`, split out of
-// `SettingsPages+Diagnostics.swift` so that struct's body stays under
-// the 500-line limit. The read-only diagnostic cards stay behind; the sections
-// that *do* something — repair, re-analyse, rebuild, export — live here, along
-// with the debug-mode-gated advanced controls.
+// The action half of `TroubleshootingPage`: the sections that *do*
+// something — repair, re-analyse, rebuild, export — along with the
+// debug-mode-gated advanced controls. The read-only diagnostic cards are in
+// `SettingsPages+Diagnostics.swift`.
 //
-// Only the file boundary changed. Members here dropped `private`, because
-// Swift's `private` does not reach across files.
+// Members here are not `private`, because Swift's `private` does not reach
+// across files.
 
 extension TroubleshootingPage {
     /// Repair / reanalysis / export controls, plus the debug-gated advanced set.

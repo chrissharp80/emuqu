@@ -3,7 +3,7 @@ import Foundation
 /// Seeds three weeks of synthetic overnight recordings so the app can be
 /// evaluated without a chest strap.
 ///
-/// ## Why this exists
+/// ## Why sample nights
 ///
 /// Emuqu's every screen is downstream of a recording. Without one, a reviewer
 /// sees empty states and cannot assess the product at all — and the reviewer

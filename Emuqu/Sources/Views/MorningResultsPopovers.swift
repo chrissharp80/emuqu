@@ -238,7 +238,7 @@ struct MetricExplanationPopover: View {
         // Emuqu's PNS/SNS share Kubios' published inputs and Nunan 2010 norms,
         // but Kubios' combining weights are proprietary and unpublished, so
         // ours is an equal-thirds mean standing in for a formula we cannot
-        // see. The values do not match Kubios' and never did. A user
+        // see. The values do not match Kubios'. A user
         // cross-checking against Kubios deserves to know that before they
         // conclude one of the two is broken. See `StressAnalyzer`.
         "PNS Index": { (

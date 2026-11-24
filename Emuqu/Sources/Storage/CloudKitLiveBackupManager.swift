@@ -25,9 +25,7 @@ final class CloudKitLiveBackupManager {
     /// Sticky per-launch flag. Set when CloudKit rejects the live-backup
     /// save because the RawBackup record type isn't in production schema.
     /// Without this, the per-minute RR collector ticker fires a doomed
-    /// CloudKit upload every minute, forever. A beta log showed
-    /// `[CloudKit] ⚠️ Live backup upload failed: Cannot create new type
-    /// RawBackup in production schema` repeating every minute for hours.
+    /// CloudKit upload every minute, forever.
     private var schemaUnavailable = false
 
     private let settingsManager: SettingsManager

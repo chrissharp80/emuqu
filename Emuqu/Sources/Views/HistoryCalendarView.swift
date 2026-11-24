@@ -1,8 +1,6 @@
 import SwiftUI
 
-/// Real monthly calendar tied to the user's history.
-/// Unlike a 30-day heatmap with
-/// dead taps and no totals, this surface has:
+/// Real monthly calendar tied to the user's history:
 ///   • Sun–Sat columns, real month grid
 ///   • Swipe / chevrons to scrub back to any month with data
 ///   • Each cell shows the day's preferred LOAD, whatever
@@ -27,11 +25,10 @@ import SwiftUI
 @MainActor
 struct HistoryCalendarView: View {
     let allSessions: [HRVSession]
-    /// Delete a session from the day-summary sheet. The calendar and its day
-    /// sheet were the surface a user was looking at when they hit a bogus
-    /// reading with "no way to delete" — swipe-to-delete only existed on the
-    /// flat History list, and worse, a same-night collapse could hide the row
-    /// there entirely. Plumbed from `TrendsV2View`, which owns the collector.
+    /// Delete a session from the day-summary sheet. The day sheet is where a
+    /// bogus reading is often found, and a same-night collapse can hide its
+    /// row in the flat History list entirely, so the calendar deletes too.
+    /// Plumbed from `TrendsV2View`, which owns the collector.
     /// Returns whether the reading left the archive.
     var onDelete: (HRVSession) async -> Bool = { _ in false }
 
@@ -45,7 +42,7 @@ struct HistoryCalendarView: View {
     // `monthWeeks()` and `monthStats` on every SwiftUI body invalidation
     // (every parent-view recompose, scroll, archive bump): resolving every
     // workout's training load (sample sorts, settings reads), grouping every
-    // session by day and re-allocating the cells. Now rebuilt only when
+    // session by day and re-allocating the cells. They are rebuilt only when
     // `visibleMonth` or the content of `allSessions` changes. Spotting that
     // change still hashes each session once per body evaluation, but only
     // stored scalars (`sessionsFingerprint`), never a resolved load.

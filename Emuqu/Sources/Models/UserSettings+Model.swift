@@ -96,9 +96,9 @@ struct UserSettings: Codable, Equatable {
     }
 
     /// User's maximum heart rate (bpm). Used for workout HR-zone classification
-    /// and voice-coach trigger thresholds. Without this, the app was falling
-    /// back to session-peak HR as the denominator — producing garbage output
-    /// like "Zone 5 at 100 bpm" because the session peak was only ~105.
+    /// and voice-coach trigger thresholds. Session-peak HR is not a usable
+    /// denominator: it produces output like "Zone 5 at 100 bpm" when the
+    /// session peak is only ~105.
     ///
     /// If nil, `effectiveMaxHR` falls back to the Tanaka estimate
     /// 208 − 0.7 × age (`MaxHeartRate.tanaka`; approximate, so users with a
@@ -614,14 +614,13 @@ struct UserSettings: Codable, Equatable {
     /// because their first session is already under the new algorithm.
     var hasRunScoreHistoryRecompute: Bool = false
 
-    /// Symmetric `abs(tempDev)` penalty bug fix.
-    /// Sessions whose frozen score was computed under the buggy logic
-    /// (penalized cooler-than-baseline temp readings) get a one-time
-    /// silent rescore on the next launch when this flag is false.
-    /// Default `true` for new installs (their first score is computed
-    /// under the corrected logic directly). Returning users encode
-    /// `false` via the migration on first launch with this build, get
-    /// rescored once, then this flips to `true` permanently.
+    /// Whether sessions frozen under the asymmetric temperature penalty (one
+    /// that penalized cooler-than-baseline readings) have had their one-time
+    /// silent rescore under the symmetric `abs(tempDev)` penalty; false runs
+    /// it on the next launch.
+    /// Default `true` for new installs (their first score already uses the
+    /// symmetric penalty). Settings decoded without the key read `false`,
+    /// get rescored once, then this flips to `true` permanently.
     var hasFixedTempAsymmetry: Bool = true
 
     // MARK: - Trial

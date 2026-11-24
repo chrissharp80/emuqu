@@ -190,7 +190,7 @@ extension LivePaceEstimator {
         private var steps: [Step] = []
         /// The last reading, kept apart from `steps`: once a stop has pruned
         /// every step, the unchanged distance must not count as a new one
-        /// (it came back every 30 s and anchored the restart on standing time).
+        /// (otherwise it recurs every 30 s and anchors the restart on standing time).
         private var lastMeters: Double = 0
 
         /// A distance that went backwards (a source reset) starts over.

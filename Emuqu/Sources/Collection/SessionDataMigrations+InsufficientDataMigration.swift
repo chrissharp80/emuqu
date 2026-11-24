@@ -7,10 +7,9 @@ extension SessionDataMigrations {
     /// The `_v1` suffix leaves room for future gate revisions.
     private static let insufficientDataMigrationKey = "didRunInsufficientDataMigration_v1"
 
-    /// One-time rescore for sessions archived before the insufficient-data gate
-    /// existed (before April 5, 2026). After this runs, the gate is enforced at
-    /// acceptance time by `SessionAcceptanceService` — so no per-load rewrite is
-    /// needed.
+    /// One-time rescore for sessions archived without the insufficient-data
+    /// gate. New sessions get the gate at acceptance time from
+    /// `SessionAcceptanceService`, so no per-load rewrite is needed.
     ///
     /// Criteria (same as `SessionAcceptanceService`):
     ///   • HRV window < 5 min, OR

@@ -76,7 +76,7 @@ enum OvernightChartDrawing {
     /// agree on a streamed night whose `t_ms` drifted.
     ///
     /// Reuses the cached formatter — these run per scrub frame,
-    /// and allocating a DateFormatter each time was tooltip jank.
+    /// and allocating a DateFormatter each time causes tooltip jank.
     static func clockTimeLabels(session: HRVSession, stats: OvernightStats, width: CGFloat) -> [(text: String, x: CGFloat)] {
         guard let series = session.rrSeries, !series.points.isEmpty else { return [] }
         let chartDurationMs = stats.chartEndMs - stats.chartStartMs

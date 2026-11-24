@@ -1,12 +1,11 @@
 import Foundation
 import HealthKit
 
-// The sleep-boundary half of the morning pipeline, split out of
-// `MorningProcessingService.swift` to keep that file under the
-// 1000-line ceiling. Everything here answers one question: when did the user
-// actually fall asleep and wake up, given HealthKit, the cache, and the RR
-// series itself. The members are internal rather than private because
-// `private` is file-scoped and the caller lives next door.
+// The sleep-boundary half of the morning pipeline. Everything here answers
+// one question: when did the user actually fall asleep and wake up, given
+// HealthKit, the cache, and the RR series itself. The members are internal
+// rather than private because `private` is file-scoped and the caller is in
+// `MorningProcessingService.swift`.
 
 extension MorningProcessingService {
     /// `pollForSleepData` with the wall-clock delta logged, so the morning

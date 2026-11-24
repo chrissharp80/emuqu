@@ -4,7 +4,7 @@ import UIKit
 
 /// Single source of truth for power-state-aware behaviour decisions.
 ///
-/// **Why this exists:** The launch path runs ~5 background tasks
+/// **Why:** The launch path runs ~5 background tasks
 /// (archive migrations, session-data repairs, training-metrics cache
 /// refresh, CloudKit sync) every cold launch, and CloudKit retries push
 /// live-backup uploads every minute when the zone doesn't exist. Run

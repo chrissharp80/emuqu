@@ -2,9 +2,8 @@ import Foundation
 
 /// Correlation-scope plumbing for a workout.
 ///
-/// Split out of `WorkoutRecorder.swift` because that file sits at the 2,000-line
-/// SwiftLint error tier and this is a self-contained concern: it touches one
-/// stored property and nothing else in the recorder.
+/// A self-contained concern: it touches one stored property and nothing
+/// else in the recorder.
 ///
 /// The scope spans `start()` to the end of `stop()` — minutes to hours — so it
 /// uses the explicit `begin`/`end` pair rather than `LogCorrelation.scope`. The

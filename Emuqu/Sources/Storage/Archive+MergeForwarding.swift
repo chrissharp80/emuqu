@@ -2,9 +2,9 @@ import Foundation
 
 // The session-merge decision lives in `SessionMerger`.
 //
-// These forwarders keep the archive's own call sites and the
-// `ArchivePolicyTests` suite working unchanged. `MergeOutcome` is re-exported
-// as a typealias for the same reason.
+// These forwarders let the archive's own call sites and the
+// `ArchivePolicyTests` suite reach it through the archive. `MergeOutcome` is
+// re-exported as a typealias for the same reason.
 
 extension SessionArchive {
     typealias MergeOutcome = SessionMerger.MergeOutcome

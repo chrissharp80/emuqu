@@ -226,9 +226,7 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// It goes into the debug log because that is the artifact users export,
     /// and the same frames are saved with the payload in
     /// `metrickit_history.jsonl` (`persistedFrames`) because the debug log is
-    /// only kept on disk when persistent logging is on. A lost walk once arrived here
-    /// as the number 5, and the stack that would have explained it was
-    /// discarded on the same line that logged the 5.
+    /// only kept on disk when persistent logging is on.
     private func logCrashCallStack(_ crash: MXCrashDiagnostic) {
         let meta = crash.metaData.jsonRepresentation()
         let build = (Self.jsonObject(meta)?["appBuildVersion"] as? String) ?? "?"
@@ -457,13 +455,13 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     /// `fair` is iOS's lowest non-nominal thermal level ("slightly
     /// elevated, apps and system function normally") and routinely
     /// ticks during a normal cold launch on a warm day. Logging it
-    /// as a warning put it in the persistent error catalog where it
-    /// looked like a real problem; only `serious`/`critical` thermal
+    /// as a warning would put it in the persistent error catalog where it
+    /// looks like a real problem; only `serious`/`critical` thermal
     /// or a real memory-warning event should escalate the level.
     ///
     /// A memory warning escalates only the heartbeat that follows it: the
-    /// count lives for the whole process, so keying on `> 0` turned one early
-    /// warning into a warning-level line every 5 s for the rest of the night.
+    /// count lives for the whole process, so keying on `> 0` would turn one
+    /// early warning into a warning-level line every 5 s for the rest of the night.
     ///
     /// The tick counter advances on every tick, whatever the thermal state,
     /// so the once-a-minute cadence carries on unbroken through a warm spell.

@@ -195,7 +195,7 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     /// set, during a workout, was not asked for (the sensor slept between
     /// intervals, or blipped out of range), so the connection is asked for
     /// again: CoreBluetooth keeps that request open until the sensor is back.
-    /// Before, a drop ended cadence, pace and power for the rest of the
+    /// Without it, a drop ends cadence, pace and power for the rest of the
     /// workout.
     @ObservationIgnored private var expectsLink = false
     /// True from a workout's start to its stop. Outside a workout a drop is
@@ -279,7 +279,7 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
 
     /// The sensor a parked reconnect was scanning for did not appear, so the
     /// reconnect ends with the scan; left parked, a later unrelated scan or
-    /// Bluetooth power-on attached it outside any workout.
+    /// Bluetooth power-on would attach it outside any workout.
     private func endTimedOutScan() {
         pendingReconnectId = nil
         stopScanning()

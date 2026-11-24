@@ -16,17 +16,12 @@ import SwiftUI
 /// `validationSection` is an ADDITION to that text, not an edit. It
 /// tightens the page rather than loosening it.
 ///
-/// It is here because `ScoringWeights` in Constants.swift carried this
-/// comment: *"Weights are calibrated against published practitioner
-/// heuristics, **not validated against outcomes**. The methodology page
-/// surfaces this honestly."* The page did not. Nowhere in its original text
-/// did it say the weights were unvalidated; the nearest thing was
-/// "research-informed observations", which is not the same admission. A
-/// source comment asserting a disclosure that does not exist is worse
-/// than no comment, because it stops anyone from going to look.
-///
-/// Either the sentence in Constants had to go or the disclosure had to
-/// exist. The disclosure is the one worth having.
+/// It exists because `ScoringWeights` in Constants.swift states that the
+/// weights are calibrated against published practitioner heuristics, **not
+/// validated against outcomes**, and that this page says so. The rest of the
+/// text says only "research-informed observations", which is not the same
+/// admission. A source comment asserting a disclosure that does not exist is
+/// worse than no comment, because it stops anyone from going to look.
 ///
 /// This file is allowlisted in the build-time copy linter
 /// (`Tools/copy_linter/prohibited_terms.json`) because the verbatim text
@@ -166,7 +161,7 @@ struct RecoveryMethodologyView: View {
             """, bundle: LanguageManager.appBundle))
     }
 
-    /// The four lines that carry this section. Extracted so
+    /// The four lines that carry this section. Kept apart so
     /// `validationSection` stays a layout, and so the list can be read
     /// without the surrounding SwiftUI.
     private var validationBullets: [String] {

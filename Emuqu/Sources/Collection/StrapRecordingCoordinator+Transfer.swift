@@ -9,10 +9,10 @@ import Foundation
 /// Stop, Retry, Recover, the morning and a pause, a workout's end, crash
 /// recovery, the strap merge on a past session, and the rescue before arming
 /// — goes through `fetchRecording`. There is one stop, one reader, one
-/// retry/reconnect loop and one date filter, so a fix to any of them reaches
-/// every flow. Before this, four near-copies had drifted: only one refused a
-/// recording from an earlier session, only one had a hard deadline, and the
-/// Cancel button reached none of them.
+/// — goes through `fetchRecording`. There is one stop, one reader, one
+/// retry/reconnect loop and one date filter, so every flow refuses a
+/// recording from an earlier session, runs under a hard deadline and
+/// answers the Cancel button.
 extension StrapRecordingCoordinator {
     // MARK: - The one fetch
 

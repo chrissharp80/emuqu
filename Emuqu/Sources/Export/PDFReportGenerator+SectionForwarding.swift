@@ -2,14 +2,12 @@ import Foundation
 import PDFKit
 import UIKit
 
-// Report body sections and their charts live in `ReportSectionRenderer` —
-// the largest cut out of PDFReportGenerator, after the deep-dive and
-// overnight pages.
-//
-// These forwarders keep every existing call site working, including the other
-// two renderers: `DeepDiveReportRenderer` reaches `ensureSpace` and
-// `OvernightReportRenderer` reaches `drawCompactStatBox` through the generator,
-// and both of those primitives moved with the sections that own them.
+// Report body sections and their charts live in `ReportSectionRenderer`.
+// These forwarders give `PDFReportGenerator` callers the same entry points,
+// including the other two renderers: `DeepDiveReportRenderer` reaches
+// `ensureSpace` and `OvernightReportRenderer` reaches `drawCompactStatBox`
+// through the generator, and both primitives live with the sections that
+// own them.
 
 extension PDFReportGenerator {
     /// The body-section renderer. Every report draws body sections, so this is

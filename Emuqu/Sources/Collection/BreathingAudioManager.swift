@@ -9,7 +9,7 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
     /// Whether the voice guide is on right now. Not persisted: the live
     /// view switches it off when it disappears, so a saved "on" could only
     /// come back after the app was killed mid-session — and then the pill
-    /// said "Voice on" while nothing had started speaking.
+    /// would say "Voice on" while nothing speaks.
     var isEnabled = false {
         didSet {
             guard isEnabled != oldValue else { return }
@@ -121,7 +121,7 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
         // Releasing the claim drops `.duckOthers`. The session is deactivated
         // only when nothing else (voice chat, a workout cue) holds it, decided
         // on the cue manager's transition queue: checked here on the main
-        // actor, a workout cue activating the session in between was cut off.
+        // actor, a workout cue activating the session in between would be cut off.
         AppDependencies.current.services.audioSessionCoordinator.release(.breathingGuide)
         AppDependencies.current.collection.backgroundAudioManager.deactivateIfIdle { error in
             guard let error else { return }

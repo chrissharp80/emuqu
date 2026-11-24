@@ -18,9 +18,9 @@ import UIKit
 // as `SavedRouteStore`.
 struct EmailContact: Codable, Identifiable, Equatable, Hashable {
     let id: UUID
-    /// Free-text name the user knows the contact by ("Chris", "Coach
+    /// Free-text name the user knows the contact by ("Sam", "Coach
     /// John", "Doctor Lee"). Case-insensitive when matched. Need not
-    /// be unique — multiple "Chris" entries are allowed; the resolver
+    /// be unique — multiple "Sam" entries are allowed; the resolver
     /// surfaces an `invalidParameter` error asking the user to
     /// disambiguate when there are duplicates.
     var name: String
@@ -155,7 +155,7 @@ final class EmailContactStore {
 
     /// Find contacts by case-insensitive name match. Returns ALL matches
     /// — multiple-match handling is the caller's job (the AI resolver
-    /// surfaces an `invalidParameter` to ask the user which "Chris" they
+    /// surfaces an `invalidParameter` to ask the user which "Sam" they
     /// meant).
     ///
     /// A book that could not be read at launch is read again first, so a

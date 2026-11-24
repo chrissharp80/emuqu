@@ -1,7 +1,5 @@
 import Foundation
 
-/// Extracted acceptance logic from RRCollector+Acceptance.
-///
 /// Owns the heavy work of session acceptance (score recomputation, sleep fetch,
 /// archive, baseline update, CloudKit upload, HealthKit export) without directly
 /// mutating any observable UI state. The caller (RRCollector) performs the final

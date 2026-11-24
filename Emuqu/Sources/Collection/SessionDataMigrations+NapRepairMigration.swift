@@ -8,7 +8,7 @@ extension SessionDataMigrations {
     private static let napRepairMigrationKey = "FlowRecovery.napRepairBackfill.v1.done"
 
     /// How far back to scan for nap-repairable overnight sessions. Covers the
-    /// full TestFlight history with margin.
+    /// app's full history with margin.
     private static let napRepairLookbackDays = 400
 
     /// One-time backfill for overnight sessions scored before daytime naps were
@@ -26,8 +26,8 @@ extension SessionDataMigrations {
     /// Idempotency is doubly guarded: the global flag skips the whole scan once it
     /// has converged, and `session.napRepaired == true` skips any individual
     /// session already handled — so a session is never processed twice even if the
-    /// flag is somehow cleared. Each night is decoded off the main actor, as
-    /// hundreds of them held the screen. Every scanned session is marked `napRepaired`
+    /// flag is somehow cleared. Each night is decoded off the main actor:
+    /// hundreds of them would hold the screen. Every scanned session is marked `napRepaired`
     /// whether or not a nap was found, so "already checked" is unambiguous. When
     /// HealthKit cannot be read for a night (locked, or the query failed) the
     /// scan stops without marking that night or setting the flag, and the

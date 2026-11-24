@@ -21,7 +21,7 @@ struct Verification {
         // Quality failures
         case excessiveArtifacts = "excessive_artifacts" // Artifact % above threshold
         case excessiveEctopy = "excessive_ectopy" // Too many ectopic beats
-        /// No longer produced: an overnight's own fall in heart rate drifts the
+        /// Not produced: an overnight's own fall in heart rate drifts the
         /// RR intervals by more than any fixed limit, so drift is reported
         /// as a warning only. Kept so results stored with it still decode.
         case excessiveDrift = "excessive_drift"

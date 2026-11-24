@@ -4,9 +4,9 @@ import MessageUI
 import SwiftUI
 import UIKit
 
-// Recap-card generation, PDF mail/share and the share-sheet rows, split out of
-// `FitnessPostSummaryView+Cards.swift`. These produce artifacts the
-// user sends elsewhere; the cards in that file are what the screen renders.
+// Recap-card generation, PDF mail/share and the share-sheet rows. These
+// produce artifacts the user sends elsewhere; the cards in
+// `FitnessPostSummaryView+Cards.swift` are what the screen renders.
 
 extension FitnessSummaryCards {
 

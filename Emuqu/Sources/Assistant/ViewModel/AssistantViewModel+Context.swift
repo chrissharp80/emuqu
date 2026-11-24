@@ -1,9 +1,9 @@
 import Foundation
 
 // Conversation summarization, token-aware truncation, auto-fact extraction and
-// the announce-but-don't-call detector, split out of
-// `AssistantViewModel+Tools.swift`. These shape what the model is
-// *given*; the tool-use dispatch loop left behind acts on what it returns.
+// the announce-but-don't-call detector. These shape what the model is
+// *given*; the tool-use dispatch loop in `AssistantViewModel+Tools.swift`
+// acts on what it returns.
 
 extension AssistantViewModel {
     // MARK: - Conversation summarization
@@ -73,8 +73,8 @@ extension AssistantViewModel {
     /// as many as its history budget (`conversationTokenBudget`) holds, and
     /// always at least one, cut to that budget. After a long cloud
     /// conversation, Apple's window is far smaller than the turns that fell
-    /// out of it; sent in one call they overflowed it or ran past the
-    /// timeout on every send, so nothing was ever folded in. One batch per
+    /// out of it; sent in one call they would overflow it or run past the
+    /// timeout on every send, and nothing would ever be folded in. One batch per
     /// send advances `summarizedThroughTurnID`, and the next send takes the
     /// next batch.
     static func summaryBatch(_ turns: [ChatTurn], provider: ProviderID) -> [ChatTurn] {
@@ -616,11 +616,11 @@ final class StreamTextBuffer {
     /// (cleared / regenerated), drop the buffered text rather than appending
     /// it to whatever now occupies a stale index.
     ///
-    /// Voice latency fix: the speakable cursor advances when the
-    /// just-published batch contained a sentence-ender. Pushing per-character
-    /// was triggering 500+ Combine publisher updates per response (each
-    /// re-evaluates SwiftUI views observing the chat). Publishes are batched
-    /// now, so the cursor advance is naturally batched too. Once this round
+    /// The speakable cursor advances when the just-published batch
+    /// contained a sentence-ender. Publishes are batched (per-character
+    /// pushes mean 500+ Combine publisher updates per response, each
+    /// re-evaluating SwiftUI views observing the chat), so the cursor
+    /// advance is batched too. Once this round
     /// has seen a tool_use (thisRound non-empty) the cursor stays put — that
     /// text will be rewound. Text published BEFORE the round's first tool_use
     /// can already have been marked speakable (the model's tool decision is

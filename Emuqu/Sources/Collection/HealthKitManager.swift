@@ -75,10 +75,9 @@ final class HealthKitManager: HealthKitServiceProtocol {
 
     /// Single in-flight authorization Task. Prevents concurrent
     /// `requestAuthorization` calls from racing each other — iOS times
-    /// out the permission prompt when two arrive simultaneously
-    /// (first-install bug: one call from the app's
-    /// `loadDataAndContinue`, another from `OnboardingView.task`,
-    /// fired ~ms apart, prompt timed out, user couldn't grant
+    /// out the permission prompt when two arrive simultaneously (on a
+    /// first install, `loadDataAndContinue` and `OnboardingView.task` can
+    /// call milliseconds apart, and the user then cannot grant
     /// permissions). A second caller awaits the in-flight task instead
     /// of starting its own.
     @ObservationIgnored private var pendingAuthTask: Task<Void, Error>?
@@ -138,8 +137,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// Concurrency-safe: a second call while an existing request is
     /// in flight awaits the existing one rather than firing a parallel
     /// `HKHealthStore.requestAuthorization` (which iOS responds to by
-    /// timing out the permission prompt — see the `pendingAuthTask`
-    /// docs above for the first-install bug this guards against).
+    /// timing out the permission prompt — see `pendingAuthTask`).
     func requestAuthorization() async throws {
         // Asking for access, from anywhere, ends onboarding's "Skip for now".
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.healthAccessSkipped)
@@ -176,7 +174,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// iOS never says whether a read was granted, so a scope counts when
     /// another source's sample can be read from the last 30 days. This
     /// app's own writes (heart rate, sleep, workouts) are left out — an app
-    /// can always read what it wrote, so they showed a denied scope as
+    /// can always read what it wrote, so counting them shows a denied scope as
     /// granted. A granted scope with no other data in 30 days still reads as
     /// not granted; nothing in HealthKit can tell those apart.
     func grantedScopeSummary() async -> Set<String> {
@@ -220,21 +218,18 @@ final class HealthKitManager: HealthKitServiceProtocol {
 
     /// Samples in the date range written by any source but this app. The
     /// read-authorization probes use it: an app can always read its own
-    /// writes, so counting them reported access the user had denied.
+    /// writes, so counting them reports access the user denied.
     nonisolated private static func otherSourcesSamples(from start: Date, to end: Date?) -> NSPredicate {
         let range = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
         let ours = HKQuery.predicateForObjects(from: Set([HKSource.default()]))
         return NSCompoundPredicate(andPredicateWithSubpredicates: [range, NSCompoundPredicate(notPredicateWithSubpredicate: ours)])
     }
 
-    /// Auto-recover from the "stale auth set"
-    /// trap. A user's debug log showed "HealthKit export failed:
-    /// Authorization is not determined" because new write types
-    /// (workoutType, activeEnergy, distance) were added to the request
-    /// set in a release AFTER the user's original onboarding. The
-    /// in-memory `authorizationRequested` flag flips to true after
-    /// onboarding's single prompt and never re-fires; new types
-    /// silently stay `.notDetermined` forever.
+    /// Auto-recover from a "stale auth set": write types added to the request
+    /// set in a release after the user's onboarding stay `.notDetermined`
+    /// forever, because the in-memory `authorizationRequested` flag flips to
+    /// true after onboarding's single prompt and never re-fires. Exports of
+    /// those types then fail with "Authorization is not determined".
     ///
     /// This method probes `authorizationStatus(for:)` for every write
     /// type we care about. If ANY are `.notDetermined`, fire the auth
@@ -242,7 +237,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// answered types don't pester the user. Idempotent + safe to call
     /// on every cold start. Read types can't be probed (Apple withholds
     /// the answer for privacy), so this only catches write gaps —
-    /// which is exactly the workout-export case the user hit.
+    /// which is exactly the workout-export case.
     func ensureWriteAuthorizationFresh() async {
         guard isHealthKitAvailable, !isAccessSkipped else { return }
         let undecided = Self.probeableWriteTypes().filter {
@@ -297,8 +292,8 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// A read-only snapshot of WRITE-permission status per key type, for the
     /// Permissions screen. Read permissions are intentionally omitted — Apple
     /// withholds read-authorization status for privacy, so writes are the only
-    /// thing we can honestly show (and the workout-export gap a user hit is a
-    /// write gap). `.sharingAuthorized` = allowed, `.sharingDenied` = the user
+    /// thing we can honestly show (and a missing workout export is a write
+    /// gap). `.sharingAuthorized` = allowed, `.sharingDenied` = the user
     /// declined it in the Health prompt (only fixable in iOS Settings — the
     /// system won't re-prompt), `.notDetermined` = never asked (re-promptable).
     struct WritePermission: Identifiable {
@@ -387,9 +382,9 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// off, so they are named for the user but never block the export.
     ///
     /// `.warning`, not `debugLogExternal`: this has to reach the user-facing
-    /// problems list. Logged as an external event it stayed invisible while
-    /// every workout failed to reach Apple Health — and the training load,
-    /// which is built only from HealthKit workouts, was computed without them.
+    /// problems list. Logged as an external event it would stay invisible while
+    /// every workout fails to reach Apple Health — and the training load, which
+    /// is built only from HealthKit workouts, would be computed without them.
     /// Once per launch, because backfill checks on every foreground.
     private var workoutWriteAuthorized: Bool {
         guard healthStore.authorizationStatus(for: HKObjectType.workoutType()) == .sharingAuthorized else {
@@ -461,8 +456,8 @@ final class HealthKitManager: HealthKitServiceProtocol {
         // Another export of this session is in flight. Counted as not done,
         // so the watermark holds and the next pass checks it again in case
         // that export failed. The session is read only once the claim is
-        // held: read before it, a workout the recorder exported and stamped
-        // in between looked unexported and went to Health twice.
+        // held: read before it, a workout the recorder exports and stamps in
+        // between would look unexported and go to Health twice.
         guard HealthExportClaims.claim(entry.sessionId) else { return tally.failed += 1 }
         defer { HealthExportClaims.release(entry.sessionId) }
         guard var session = readableSession(entry, archive: archive) else { return tally.skipped += 1 }
@@ -699,9 +694,9 @@ final class HealthKitManager: HealthKitServiceProtocol {
 
     /// The passive-activity aggregates are included so the
     /// Fitness tab's daily totals cover EVERY source (iPhone, Apple Watch,
-    /// third-party apps), not just the iPhone-side CMPedometer. A user who
-    /// walks with the Watch but leaves the phone at home was getting
-    /// underreported; HealthKit sums across sources.
+    /// third-party apps), not just the iPhone-side CMPedometer: a user who
+    /// walks with the Watch but leaves the phone at home would otherwise be
+    /// underreported. HealthKit sums across sources.
     ///
     /// Biometric profile reads — body mass, date of birth, biological sex —
     /// back the "Fill from Apple Health" button on the Biometrics settings page
@@ -731,8 +726,8 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// `distanceCycling` are here for reconstruction, not for display.
     ///
     /// `distanceCycling` is authorized for WRITE further down, and a write
-    /// grant reads back as no data at all: a rebuilt ride asked Health how far
-    /// it went, was told nothing, and showed the user 0 km.
+    /// grant alone reads back as no data at all: a rebuilt ride would ask Health
+    /// how far it went, be told nothing, and show the user 0 km.
     ///
     /// Apple Health records all three continuously, with no workout running.
     /// Exercise time is Apple's own minute-by-minute judgement that the user

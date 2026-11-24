@@ -2,9 +2,8 @@ import CoreLocation
 import MapKit
 import SwiftUI
 
-// The metric tiles and inline physiology block, split out of
-// `FitnessRecordingView.swift`. The header and HR hero — the parts
-// the user watches — stay behind.
+// The metric tiles and inline physiology block. The header and HR hero —
+// the parts the user watches — are in `FitnessRecordingView.swift`.
 
 extension FitnessRecordingView {
     // MARK: - Metric tiles (2×2)
@@ -19,9 +18,8 @@ extension FitnessRecordingView {
         }
     }
 
-    /// Bug #13: "Elapsed time not live — snapshot-based, not
-    /// tight enough." The recorder publishes `elapsedSeconds` (Int) once per
-    /// tick (1 Hz), and on a busy main thread the tick can slip — display
+    /// The recorder publishes `elapsedSeconds` (Int) once per
+    /// tick (1 Hz), and on a busy main thread the tick can slip — the display
     /// freezes for 2-3s and the user feels lag. TimelineView pulls its OWN
     /// clock at 0.5s cadence; while recording and not paused, elapsed is the
     /// time since `currentSession.startDate` minus every finished pause. A
@@ -102,8 +100,8 @@ extension FitnessRecordingView {
         }
     }
 
-    /// Live trend tiles (round-2/4 metrics visible on the
-    /// recording screen too, not just to the AI). HR drift = how much HR has
+    /// Live trend tiles, so the drift metrics the assistant reads are on the
+    /// recording screen too. HR drift = how much HR has
     /// crept up vs the first quartile; decoupling = first-half vs second-half
     /// pace/HR efficiency. Both stay hidden until enough samples accumulate so
     /// they do not show "—" all session.
@@ -315,14 +313,11 @@ extension FitnessRecordingView {
 
     // MARK: - Map (inline, smaller)
     //
-    // Single persistent Map instance. The previous implementation branched
-    // between three layouts (no coords / 1 coord / many coords) and each
-    // branch instantiated a new Map — every GPS-fix-count transition tore
-    // one down and created another, which SwiftUI's Map renders as a full
-    // flash + recenter. That's the 2026-04 user report: "the screen was
-    // shifting the whole time between having a map and showing something
-    // else" + elevated battery drain. One Map, three *overlay* states,
-    // stable camera position — no recreate, no recenter.
+    // Single persistent Map instance. Branching between three layouts (no
+    // coords / 1 coord / many coords) with a Map in each would tear one down
+    // and create another on every GPS-fix-count transition, which SwiftUI's
+    // Map renders as a full flash + recenter, and drain the battery. One Map,
+    // three *overlay* states, stable camera position — no recreate, no recenter.
     /// Hands the track array itself to the card (no per-tick copy into
     /// coordinates); the card maps it only when it draws.
     var mapCard: some View {
@@ -403,8 +398,8 @@ extension FitnessRecordingView {
     /// Strap-less workouts have no RR feed, so DFA stays at
     /// warmup-0% forever and the caption would read "warming up — 0 % of
     /// 2-min window" indefinitely, misleading users into thinking they just
-    /// had to wait. Short-circuit when there is no strap source and explain the
-    /// requirement directly. Pairs with the LiveDFAAnalyzer fix that nulls α1
+    /// have to wait. Short-circuit when there is no strap source and explain the
+    /// requirement directly. Pairs with LiveDFAAnalyzer nulling α1
     /// when the strap goes silent.
     ///
     /// Everything else routes by the analyzer's own status, so the caption can

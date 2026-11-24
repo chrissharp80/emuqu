@@ -18,8 +18,8 @@ extension AssistantTurnRouter {
     ///     (`SmartProviderRouter.route`); its mid and deep tiers reach the
     ///     same consented Grok or DeepSeek
     ///
-    /// Tiers with no provider of their own collapse to Apple — the
-    /// spec's "work with what's there." `Mapping.collapsed` is only
+    /// Tiers with no provider of their own collapse to Apple, so routing
+    /// works with whatever is configured. `Mapping.collapsed` is only
     /// logged. The Tier-3 spend cap counts Deep turns that resolve to a
     /// cloud model; a Deep turn that stays on Apple costs nothing and is
     /// not counted.
@@ -97,8 +97,7 @@ extension AssistantTurnRouter {
     }
 
     /// The tier this turn proposes, or nil for Manual mode — which is
-    /// unreachable here (`needsTierProposal` is false for it), and preserves
-    /// the original switch's "unreachable, exhausted above" arm: no tier stage
+    /// unreachable here (`needsTierProposal` is false for it): no tier stage
     /// means `TurnRouter` returns the user's pick.
     private func proposeTier(mode: RoutingMode) -> SmartProviderRouter.Tier? {
         switch mode {
@@ -154,10 +153,9 @@ extension AssistantTurnRouter {
 
     /// Translate a pure `TurnRouter.Decision` provider ID back to the
     /// live `AIProvider` instance. Prefers the active provider on an
-    /// ID match so branches that historically returned
-    /// `owner.registry.activeProvider` keep returning the same instance;
-    /// provider classes are stateless (Apple's session cache is a
-    /// static), so this is parity hygiene, not behavior.
+    /// ID match so callers get the same instance as
+    /// `owner.registry.activeProvider`; provider classes are stateless
+    /// (Apple's session cache is a static), so this does not change behaviour.
     func liveProvider(for id: ProviderID) -> AIProvider {
         if owner.registry.activeProvider.id == id { return owner.registry.activeProvider }
         return owner.registry.allProviders.first(where: { $0.id == id }) ?? owner.registry.activeProvider
@@ -747,9 +745,8 @@ extension AssistantTurnRouter {
         }
     }
 
-    /// Generic provider-failure fallback per
-    /// user spec: "if I don't have an API key or credit
-    /// then it should move to the next one." Auth failures,
+    /// Generic provider-failure fallback: a missing API key or credit
+    /// moves the turn to the next provider. Auth failures,
     /// rate limits, network errors, and "model unavailable"
     /// all qualify. Walk the configured providers in
     /// preference order (user's chosen first — already
@@ -844,7 +841,7 @@ extension AssistantTurnRouter {
     ///
     /// The reason is `%{public}` because it names a rule, never user text; the
     /// matched sentence stays out of the log entirely because it carries the
-    /// user's physiological context. Same contract the previous inline call had.
+    /// user's physiological context.
     func recordCoachVoiceInterception(reason: String) {
         os_log(
             "CoachVoiceGuard intercepted: %{public}@",

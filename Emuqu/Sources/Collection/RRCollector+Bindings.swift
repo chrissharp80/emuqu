@@ -114,7 +114,7 @@ extension CollectorSessionControl {
         armStreamingModeObservation()
     }
 
-    // MARK: - Observation-framework replacements for removed Combine sinks
+    // MARK: - Observation bindings
     //
     // The five recording sub-objects are `@Observable` (Observation framework),
     // so there is no Combine `objectWillChange` / `$property` publisher to sink.
@@ -321,10 +321,7 @@ extension CollectorSessionControl {
 // MARK: - Launch wiring
 //
 // These are the second half of `wireCollaborators()`: the Assistant snapshot
-// provider, the two observation loops and the one-time merge migration. They
-// live here rather than in `RRCollector.swift` because that class body sits
-// against SwiftLint's 500-line `type_body_length` rule, and because binding and
-// observation is what this file is for.
+// provider, the two observation loops and the one-time merge migration.
 extension CollectorSessionControl {
     /// Expose live recording state to the Assistant. Pull-based (rather than
     /// the workout broker's push model) so we don't wake up every RR beat just
@@ -389,11 +386,11 @@ extension CollectorSessionControl {
         armArchiveSignalObservation()
     }
 
-    /// One-time migration: repair sessions affected by the merge data-loss bug
-    /// where background device refinement bypassed `collector.mergeParentSessionData()`.
+    /// One-time migration: repair sessions saved by builds whose background
+    /// device refinement bypassed `collector.mergeParentSessionData()`.
     ///
-    /// v6 fixes v5's 0-offset double-merge, which created corrupted 399K-beat
-    /// sessions with overlapping timestamps. `Task.detached` keeps it off the
+    /// v6 also repairs v5's 0-offset double-merge, which left sessions with
+    /// overlapping timestamps. `Task.detached` keeps it off the
     /// main actor at launch.
     ///
     /// The task holds the collector strongly, so a one-time migration keeps

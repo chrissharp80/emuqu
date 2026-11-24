@@ -73,8 +73,8 @@ struct OvernightStats {
     /// 0-0 bpm even though the chart renders real Apple Watch
     /// data right next to it. So: if the existing summary is zero,
     /// derive min / max / nadir / avg from the HK samples too. The
-    /// chart and the summary now agree about which session they're
-    /// describing. A backfilled nadir also gets its clock time, so the card
+    /// derive min / max / nadir / avg from the HK samples too, so the
+    /// chart and the summary agree about which session they're
     /// and its VoiceOver label never read "at" with no time after it.
     /// `sessionStart` is the date the samples' `timeMs` offsets count from.
     func withHealthKitHR(

@@ -2,10 +2,10 @@ import Foundation
 
 /// Compact, polymorphic tool schema for the AI Coach.
 ///
-/// **Why this exists.** The Fact Catalog has 200+ entries (one per
+/// **Why.** The Fact Catalog has 200+ entries (one per
 /// metric). Emitting one tool per entry blows up the LLM's tool list,
 /// degrades reasoning, kills cache-hit rate, and trips per-provider
-/// caps (xAI's retired Grok 4.1 Fast capped requests at 200). The
+/// caps. The
 /// catalog itself is correctly granular for code that needs typed
 /// resolvers — but the model only
 /// needs to know "ask for a session by date" or "list workouts last
@@ -15,9 +15,8 @@ import Foundation
 /// polymorphic tools that map (tool_name, args) → underlying fact-key
 /// strings, then forward to `FactResolverRegistry.resolveAsync(_:)`
 /// (the suspending twin of `resolve(_:)` — see FactCatalog.swift). The
-/// existing fact catalog and resolvers are unchanged. The model sees
-/// a tighter, easier-to-reason-about surface; the user gets identical
-/// answers.
+/// model sees a tighter, easier-to-reason-about surface over the same
+/// catalog and resolvers.
 ///
 /// **Tool budget.**
 ///   • 21 read tools (cover all `.fixed` + `.parameterized` + `.composite`)
@@ -46,11 +45,9 @@ struct CompactToolRouter {
 
     /// Defensive dedupe. Anthropic returns
     /// HTTP 400 ("tools: Tool names must be unique") if any
-    /// two ToolSpecs share a name. Confirmed in production via
-    /// the [Assistant] primary-failure log: every voice turn
-    /// was 400-ing on this exact validator and falling back to
-    /// OpenAI, which made the user think they were stuck on
-    /// OpenAI even when they'd selected Grok / Anthropic.
+    /// two ToolSpecs share a name, and the turn then falls back
+    /// to another provider, so the user appears stuck on the
+    /// fallback even with Grok / Anthropic selected.
     ///
     /// Read tools are hard-coded; action tools come from the
     /// registry's `toolSchema()` filtered by an allow-list. A
@@ -119,7 +116,7 @@ struct CompactToolRouter {
     /// purpose. Injected into the (cached) system prompt so the model is TOLD
     /// what's reachable instead of guessing or denying it. Generated from
     /// `readTools()`, so it can NEVER drift from the real schema the way the
-    /// hand-written capability docs did. This is the progressive-disclosure
+    /// hand-written capability docs do. This is the progressive-disclosure
     /// index layer (Anthropic "effective context engineering"): a small,
     /// always-present table of contents up front; the tools themselves are the
     /// just-in-time fetch. Byte-stable across sends → safe in the cached prefix.
@@ -444,9 +441,7 @@ struct CompactToolRouter {
     /// Tool name → resolver, for every read tool whose whole implementation
     /// is "hand the parsed args to a resolver of the same shape".
     ///
-    /// As `case "get_x": return await
-    /// resolveX(args: args)` rows inside `resolveReadTool`, these seventeen
-    /// were most of that function's cyclomatic complexity. They share one
+    /// These seventeen share one
     /// signature exactly, so the mapping is data, not control flow: a table
     /// makes adding a tool a one-line edit and makes the genuinely
     /// *different* tools below (which parse their own arguments or fan out to

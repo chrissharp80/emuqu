@@ -6,8 +6,7 @@ import UIKit
 /// Poincaré plot, the PSD graph, the tachogram, the metric grids and the
 /// score-breakdown blocks.
 ///
-/// Split out of `PDFReportGenerator`: 1,353 lines needing six members
-/// of the generator — the config, the settings
+/// It needs six members of the generator — the config, the settings
 /// provider, and four drawing primitives that live in `+Helpers` and belong to
 /// the generator's own vocabulary.
 ///

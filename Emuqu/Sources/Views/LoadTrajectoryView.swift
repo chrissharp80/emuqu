@@ -176,8 +176,8 @@ struct LoadTrajectoryView: View {
     }
 
     /// The loader fills every day of the window, rest days at zero, so an
-    /// account with no workouts still had samples and was told "Maintaining —
-    /// you're holding fitness" over a chart of zeros.
+    /// account with no workouts still has samples; without this it would be
+    /// told "Maintaining — you're holding fitness" over a chart of zeros.
     private var hasAnyLoad: Bool {
         samples.contains { $0.trimp > 0 || $0.ctl > 0 || $0.atl > 0 }
     }
@@ -242,7 +242,7 @@ struct LoadTrajectoryView: View {
         trajectoryChart
             // 240 pt, not 200: ATL and CTL need visible vertical separation when they
             // are numerically close, which is most days. At 200 pt a 4-point delta
-            // between ATL=28 and CTL=24 on a 0–50 Y range was ~16 pt — inside the
+            // between ATL=28 and CTL=24 on a 0–50 Y range is ~16 pt — inside the
             // stroke width itself.
             .frame(height: 240)
             .chartOverlay { proxy in longPressCapture(proxy) }
@@ -316,8 +316,8 @@ struct LoadTrajectoryView: View {
 
     /// Current-value chips at the right edge of the chart. Even
     /// when the ATL line is occluded by CTL its number stays visible here.
-    /// Solves the "I see a key for ATL but cannot find the data" complaint at
-    /// source: the data is labelled, not just plotted.
+    /// A legend key for ATL is useless without its number: the data is
+    /// labelled, not just plotted.
     @ViewBuilder
     private var currentValueChips: some View {
         if let last = samples.last {
@@ -538,9 +538,8 @@ struct LoadTrajectoryView: View {
 
     private var rampSentence: String {
         // Neutral "Ramp: %@" prefix — the sign lives in the number and the
-        // verb now lives in rampBand.localizedSentence, which branches on sign. The
-        // old "You're building at %@" hard-coded "building" even for a
-        // NEGATIVE ramp ("building at -0.5 … building gradually").
+        // verb in rampBand.localizedSentence, which branches on sign. A fixed
+        // "You're building at %@" would say "building" even for a NEGATIVE ramp.
         let pace = String(format: "%+.1f", locale: LanguageManager.appLocale, rampRate)
         return String(format: NSLocalizedString("Ramp: %@ load/day/week. %@", bundle: LanguageManager.appBundle, comment: ""), pace, rampBand.localizedSentence)
     }
