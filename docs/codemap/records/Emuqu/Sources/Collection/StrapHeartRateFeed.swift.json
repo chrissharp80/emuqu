@@ -234,7 +234,7 @@
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a654b82379872083",
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestPpi(_:receivedAt:)": "a0a22730afe99b42",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "77eaf665778929c6",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "eeac6ff5412c9ae3",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "89577feaa93bfd98",
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.ppiReadings(_:)": "9a779e0c0506a4c0"
    }
   },
@@ -251,8 +251,8 @@
   },
   {
    "key": "func StrapHeartRateFeed.drain(_:_:)",
-   "hash": "bafbf4e07b6d80d5",
-   "does": "Runs forward over the stream, recording the sample count and any thrown error in a Pass; never throws.",
+   "hash": "0525d58369688d6a",
+   "does": "Runs forward over an AsyncThrowingStream (the SDK's stream type, concrete so iteration on iOS 17 is allowed on this actor), recording the sample count and any thrown error in a Pass; never throws.",
    "entry": "Also tested directly by EmuquTests/StreamForwardingTests.swift.",
    "calls": [
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.forward(_:counting:_:)"
@@ -273,7 +273,7 @@
   },
   {
    "key": "func StrapHeartRateFeed.forward(_:counting:_:)",
-   "hash": "a20120e06fe6fb68",
+   "hash": "c1f47cf2abe457a2",
    "does": "For each element of the stream, stops if the task is cancelled, otherwise increments the count and calls the handler.",
    "entry": null,
    "calls": [

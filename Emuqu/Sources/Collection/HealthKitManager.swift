@@ -12,7 +12,7 @@ import Foundation
 /// `nonisolated` and hop explicitly.
 @Observable
 @MainActor
-final class HealthKitManager {
+final class HealthKitManager: HealthKitServiceProtocol {
     /// Canonical shared instance used across the app.
     ///
     /// A second `HealthKitManager()` would allocate its own

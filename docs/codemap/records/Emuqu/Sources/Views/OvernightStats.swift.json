@@ -1,9 +1,8 @@
 {
- "file": "Emuqu/Sources/Views/OvernightChartsView+Init.swift",
- "hash": "5e6d7360b38ed00e",
- "role": "OvernightChartsView convenience initialisers (with and without inter-chart content) and the OvernightStats value model with HK-HR backfill helpers.",
+ "file": "Emuqu/Sources/Views/OvernightStats.swift",
+ "hash": "08db3a94e91497e0",
+ "role": "The OvernightStats value model the overnight charts show, with HK-HR backfill helpers.",
  "types": [
-  "OvernightChartsView: extension — init with @ViewBuilder interChartContent; constrained extension (InterChartContent == EmptyView) init without it, the entry point the #Preview and OvernightSnapshotTests use",
   "OvernightStats: struct — computed overnight HR/HRV/sleep/window stats, chart viewport, and peakSearchBandMs (the 30–70% band the peak search used, for the chart markers; nil without known sleep)",
   "OvernightStats.HRSummary: struct — min/max/nadir/nadirTimeMs/avg"
  ],
@@ -13,42 +12,20 @@
  "toplevel": "OvernightStats.empty sets every numeric to 0 / empty, sleepEfficiency and peakSearchBandMs nil, but deepSleepMinutes and awakeningsCount to 0.",
  "units": [
   {
-   "key": "init OvernightChartsView(session:result:healthKitSleep:onReanalyzeAt:isManualWindowMode:manualResult:hideSleepRow:interChartContent:)",
-   "hash": "7b48a0a0b676a832",
-   "does": "Assigns session, result, HK sleep, onReanalyzeAt, manual mode/result, hideSleepRow and evaluates the interChartContent builder.",
-   "entry": "Called by MorningResultsView.overnightChartsSection.",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "init OvernightChartsView(session:result:healthKitSleep:onReanalyzeAt:isManualWindowMode:manualResult:hideSleepRow:)",
-   "hash": "b683c15aac3b61e5",
-   "does": "Same assignments with interChartContent = EmptyView() for callers without inter-chart content.",
-   "entry": "Called by the #Preview in OvernightHRVChartCanvas.swift and OvernightSnapshotTests.",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
    "key": "func OvernightStats.withHealthKitHR(_:sessionStart:chartStartMs:chartEndMs:)",
    "hash": "46c16c1396037ff3",
    "does": "Returns a copy with HK HR samples and new chart bounds, backfilling min/max/nadir/avg (and nadir clock time) from HK when the RR-derived summary is zero; every other field, peakSearchBandMs included, is carried over.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.resolvedHRSummary(from:)",
-    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.resolvedNadirTimeFormatted(_:sessionStart:)"
+    "Emuqu/Sources/Views/OvernightStats.swift::func OvernightStats.resolvedHRSummary(from:)",
+    "Emuqu/Sources/Views/OvernightStats.swift::func OvernightStats.resolvedNadirTimeFormatted(_:sessionStart:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.resolvedHRSummary(from:)": "428061c06f5af783",
-    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.resolvedNadirTimeFormatted(_:sessionStart:)": "09dfa29fa0b9da82"
+    "Emuqu/Sources/Views/OvernightStats.swift::func OvernightStats.resolvedHRSummary(from:)": "428061c06f5af783",
+    "Emuqu/Sources/Views/OvernightStats.swift::func OvernightStats.resolvedNadirTimeFormatted(_:sessionStart:)": "09dfa29fa0b9da82"
    }
   },
   {
@@ -57,7 +34,7 @@
    "does": "If any of min/max/nadir is 0 and HK samples exist, derives min=max sample extremes, nadir=min, nadirTimeMs of the min sample, avg=trimmed mean; else returns the existing values.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.trimmedMean(_:)"
+    "Emuqu/Sources/Views/OvernightStats.swift::func OvernightStats.trimmedMean(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -89,7 +66,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.trimmedMean(_:)": "1c70b1a7aba3322c"
+    "Emuqu/Sources/Views/OvernightStats.swift::func OvernightStats.trimmedMean(_:)": "1c70b1a7aba3322c"
    }
   },
   {

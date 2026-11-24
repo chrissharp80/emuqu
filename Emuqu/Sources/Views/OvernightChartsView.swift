@@ -725,3 +725,50 @@ struct OvernightChartsView<InterChartContent: View>: View {
 
     // MARK: - Compute Stats
 }
+
+// MARK: - Initialisers
+
+// In this file because the initial value of a private @State is visible only here.
+
+extension OvernightChartsView {
+    init(
+        session: HRVSession,
+        result: HRVAnalysisResult,
+        healthKitSleep: SleepData? = nil,
+        onReanalyzeAt: ((Int64) -> Void)? = nil,
+        isManualWindowMode: Bool = false,
+        manualResult: HRVAnalysisResult? = nil,
+        hideSleepRow: Bool = false,
+        @ViewBuilder interChartContent: () -> InterChartContent
+    ) {
+        self.session = session
+        self.result = result
+        self.healthKitSleep = healthKitSleep
+        self.onReanalyzeAt = onReanalyzeAt
+        self.isManualWindowMode = isManualWindowMode
+        self.manualResult = manualResult
+        self.hideSleepRow = hideSleepRow
+        self.interChartContent = interChartContent()
+    }
+}
+
+extension OvernightChartsView where InterChartContent == EmptyView {
+    init(
+        session: HRVSession,
+        result: HRVAnalysisResult,
+        healthKitSleep: SleepData? = nil,
+        onReanalyzeAt: ((Int64) -> Void)? = nil,
+        isManualWindowMode: Bool = false,
+        manualResult: HRVAnalysisResult? = nil,
+        hideSleepRow: Bool = false
+    ) {
+        self.session = session
+        self.result = result
+        self.healthKitSleep = healthKitSleep
+        self.onReanalyzeAt = onReanalyzeAt
+        self.isManualWindowMode = isManualWindowMode
+        self.manualResult = manualResult
+        self.hideSleepRow = hideSleepRow
+        interChartContent = EmptyView()
+    }
+}

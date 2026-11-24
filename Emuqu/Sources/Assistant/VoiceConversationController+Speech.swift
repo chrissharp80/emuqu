@@ -285,7 +285,7 @@ extension VoiceConversationController {
 
 // Every delegate callback is `nonisolated` and hops to the main actor with
 // `Task { @MainActor in }`, so the conformance needs no `@preconcurrency`.
-extension VoiceConversationController: AVSpeechSynthesizerDelegate {
+extension VoiceConversationController {
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
         // TTS audio just started playing — mark the grace-period anchor HERE,
         // not when we optimistically set state=.speaking. Otherwise the grace

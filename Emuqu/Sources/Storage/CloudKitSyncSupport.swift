@@ -470,7 +470,7 @@ final class CloudKitSettingsSync {
         }
         let editedAt = replacingNewer ? Date() : (localEditedAt ?? Date())
         CloudSettingsRecord.write(sealed, to: record, modifiedAt: editedAt)
-        try await privateDB.save(record)
+        _ = try await privateDB.save(record)
         if replacingNewer { UserDefaults.standard.set(editedAt, forKey: Self.localEditedAtKey) }
         return true
     }
@@ -511,7 +511,7 @@ final class CloudKitSettingsSync {
             let json = try CloudSettingsRecord.settingsJSON(from: record)
             let sealed = try CloudPayloadCodec.sealForUpload(CloudSettingsRecord.scrubbed(json, markedBy: local))
             CloudSettingsRecord.write(sealed, to: record, modifiedAt: (record[CloudSettingsRecord.modifiedAtField] as? Date) ?? Date())
-            try await privateDB.save(record)
+            _ = try await privateDB.save(record)
             defaults.set(true, forKey: Self.scrubbedKey)
         } catch let error as CKError where CloudHealthScrubCoordinator.meansNoRecord(error) {
             defaults.set(true, forKey: Self.scrubbedKey)
@@ -553,7 +553,7 @@ final class CloudKitSettingsSync {
         if sessionSync.zoneCreated || sessionSync.lastSyncDate != nil {
             guard try await zoneExists(sessionSync.zoneID) else { throw CKError(.zoneNotFound) }
         }
-        try await privateDB.save(CKRecordZone(zoneID: zoneID))
+        _ = try await privateDB.save(CKRecordZone(zoneID: zoneID))
         UserDefaults.standard.set(true, forKey: Self.zoneCreatedKey)
     }
 

@@ -142,9 +142,9 @@ extension HealthKitServiceProtocol {
     }
 }
 
-// MARK: - HealthKitManager Conformance
+// MARK: - HealthKitManager members the protocol requires
 
-extension HealthKitManager: HealthKitServiceProtocol {
+extension HealthKitManager {
     func calculateTrainingLoad(relativeTo referenceDate: Date) async -> TrainingLoad {
         await calculateTrainingLoad(days: 7, forMorningReading: true, relativeTo: referenceDate)
     }

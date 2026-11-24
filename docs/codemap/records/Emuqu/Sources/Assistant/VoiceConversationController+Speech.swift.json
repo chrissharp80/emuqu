@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift",
- "hash": "2324ce1fbec65dab",
+ "hash": "64357c8c6294661e",
  "role": "VoiceConversationController TTS side: speak() with output scrub, hallucination guard, 'Flo here. <Model>.' preamble and TTS normalization; ensurePermissions (via VoicePermissionGate); buildSystemPrompt (via VoiceCoachPrompt); the AVSpeechSynthesizerDelegate that restores state/re-arms listening after speech; barge-in detection and echo wrappers; ConversationVoicePicker for the TTS voice; file-private perimeterScrubbed. VoicePermissionGate (speech/mic permission checks and their messages) and VoiceCoachPrompt (the interjection system prompt text) are separate enums in this file.",
  "types": [
   "VoiceConversationController: extension — TTS, ensurePermissions, buildSystemPrompt, barge-in",
-  "VoiceConversationController: extension (AVSpeechSynthesizerDelegate) — didStart/didFinish",
+  "VoiceConversationController: extension — the AVSpeechSynthesizerDelegate callbacks didStart/didFinish (the conformance is declared on the class)",
   "ConversationVoicePicker: enum — preferred language and best installed voice (cached)",
   "VoicePermissionGate: enum (@MainActor) — speech-recognition then microphone permission checks, returning the localized refusal",
   "VoiceCoachPrompt: enum — persona + hard-rules system prompt for interjections"
@@ -15,7 +15,7 @@
   "listen-after-drain delay 1.2 s; restart-after-stop delay 100 ms",
   "VoiceCoachPrompt.persona / hardRules (private static prompt text)"
  ],
- "toplevel": "Private static let prompt strings VoiceCoachPrompt.persona/hardRules; AVSpeechSynthesizerDelegate conformance; ConversationVoicePicker.cache initialised empty on first access; file-private perimeterScrubbed.",
+ "toplevel": "Private static let prompt strings VoiceCoachPrompt.persona/hardRules; AVSpeechSynthesizerDelegate callbacks (conformance declared on the class); ConversationVoicePicker.cache initialised empty on first access; file-private perimeterScrubbed.",
  "units": [
   {
    "key": "func VoiceConversationController.speak(_:voice:scripted:)",

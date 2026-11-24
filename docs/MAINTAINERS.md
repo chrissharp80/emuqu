@@ -1491,7 +1491,7 @@ see [`ARCHITECTURE.md` → Strap Link and Reconnection](ARCHITECTURE.md#strap-li
 **What is verified and what is not.** The stream-consumption logic — ordering,
 cancellation, error propagation, not running the completion path after a cancel
 — is covered by `EmuquTests/StreamForwardingTests.swift`, which drives
-`StrapHeartRateFeed.drain` with a synthetic sequence and needs no hardware. What
+`StrapHeartRateFeed.drain` with a synthetic `AsyncThrowingStream` and needs no hardware. What
 those tests do not and cannot establish is that Polar's SDK still talks to the
 radio. Connect, stream, disconnect/reconnect and an overnight need a strap, the
 same as any dependency upgrade.

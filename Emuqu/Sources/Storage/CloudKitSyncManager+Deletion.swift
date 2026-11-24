@@ -269,7 +269,7 @@ extension CloudDeletionCoordinator {
             // stored health data the user had deleted, and every device
             // re-downloaded it with each pull.
             existingRecord["sessionData"] = nil
-            try await manager.privateDB.save(existingRecord)
+            _ = try await manager.privateDB.save(existingRecord)
             return true
         } catch let error as CKError where error.code == .unknownItem {
             try await saveNewTombstone(sessionId, recordID: recordID)
@@ -284,7 +284,7 @@ extension CloudDeletionCoordinator {
         record["sessionId"] = sessionId.uuidString as CKRecordValue
         record["isDeleted"] = 1 as CKRecordValue
         record["startDate"] = Date() as CKRecordValue // Placeholder
-        try await manager.privateDB.save(record)
+        _ = try await manager.privateDB.save(record)
     }
 
     /// Re-check this device's deletions against iCloud: a deletion that never
