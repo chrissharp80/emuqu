@@ -166,7 +166,7 @@ final class SessionReanalysisCoordinator {
         from: Date? = nil, to: Date? = nil, progress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async -> (updated: Int, skipped: Int) {
         await service.reanalyzeAllSessions(
-            sessions: archivedSessionsOffMain(), from: from, to: to,
+            sessions: archivedSessions, from: from, to: to,
             reanalyzeOne: { await self.reanalyzeSession($0) },
             progress: progress
         )
@@ -180,7 +180,7 @@ final class SessionReanalysisCoordinator {
     ///   3. Recalculates the recovery score with the updated sleep data
     /// It never writes sleep to Apple Health.
     func retroApplySleepSettings(progress: @escaping (Int, Int) -> Void = { _, _ in }) async -> Int {
-        await service.retroApplySleepSettings(sessions: archivedSessionsOffMain(), progress: progress)
+        await service.retroApplySleepSettings(sessions: archivedSessions, progress: progress)
     }
 
     /// Recompute training snapshots from HealthKit workout history for all
@@ -189,7 +189,7 @@ final class SessionReanalysisCoordinator {
     func repairTrainingSnapshots(
         progress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async -> ReanalysisService.TrainingRepairResult {
-        await service.repairTrainingSnapshots(sessions: archivedSessionsOffMain(), progress: progress)
+        await service.repairTrainingSnapshots(sessions: archivedSessions, progress: progress)
     }
 
     /// Run the one-shot session-data repairs (`SessionDataMigrations`), each
@@ -204,45 +204,10 @@ final class SessionReanalysisCoordinator {
         ).runAllIfNeeded()
     }
 
-    /// Every archived session, full (beats included), newest first, decoded
-    /// off the main actor: a full-archive decrypt and decode on it held the
-    /// screen.
-    func archivedSessionsOffMain() async -> [HRVSession] {
-        let archive = self.archive
-        return await Task.detached(priority: .userInitiated) {
-            Self.loadAllSessions(from: archive)
-        }.value
-    }
-
-    nonisolated private static func loadAllSessions(from archive: SessionArchive) -> [HRVSession] {
-        let entries = archive.entries  // already sorted newest-first
-        debugLog("[SessionReanalysis] archivedSessions: Loading \(entries.count) entries from archive")
-        var sessions: [HRVSession] = []
-        var errorCount = 0
-        for entry in entries {
-            if let session = retrieveLoggingFailure(entry.sessionId, from: archive) {
-                sessions.append(session)
-            } else {
-                errorCount += 1
-            }
-        }
-        debugLog("[SessionReanalysis] archivedSessions: Loaded \(sessions.count) sessions (\(errorCount) errors)")
-        return sessions
-    }
-
-    /// Nil covers both "not in the archive" and "failed to decode"; both are
-    /// logged and counted as errors by the caller.
-    nonisolated private static func retrieveLoggingFailure(_ sessionId: UUID, from archive: SessionArchive) -> HRVSession? {
-        do {
-            guard let session = try archive.retrieve(sessionId) else {
-                debugLog("[SessionReanalysis] WARNING: Session \(sessionId) not found in archive (nil)")
-                return nil
-            }
-            return session
-        } catch {
-            debugLog("[SessionReanalysis] ERROR: Failed to retrieve session \(sessionId): \(error)")
-            return nil
-        }
+    /// Every archived session, newest first, decoded one at a time as a
+    /// pass reaches it.
+    private var archivedSessions: ArchivedSessions {
+        ArchivedSessions(archive: archive, caller: "SessionReanalysis")
     }
 }
 

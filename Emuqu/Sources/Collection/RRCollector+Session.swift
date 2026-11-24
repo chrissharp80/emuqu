@@ -25,7 +25,7 @@ extension RRCollector {
         isCollecting = false
         isStreamingMode = false
         sessionStartTime = nil
-        sessionState.reviewArchivedSessionId = nil
+        sessionState.forgetReviewedNight()
         recordingPhase = .idle
         baselineDeviation = nil
         isPaused = false

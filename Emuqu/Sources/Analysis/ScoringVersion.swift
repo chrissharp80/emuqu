@@ -34,7 +34,7 @@ enum ScoringVersion {
     /// own `version` is not stored on a score; re-binding
     /// `defaultScoringParameters` is a scoring change, so it bumps this
     /// version, and the stored version then tells which table produced a score.
-    static let current = "v3.3.nov2026"
+    static let current = "v3.4.nov2026"
 
     /// What a score decoded without a version is called.
     ///

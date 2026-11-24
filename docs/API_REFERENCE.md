@@ -1055,7 +1055,7 @@ enum RecoveryScoreCalculator {
         let factors: [ScoreFactor]    // Labels: "HRV", "Sleep", "Vitals"
         let penalties: [String]       // Only SpO2 (-10 if <95%); RR and temperature
                                       // feed the Vitals sub-score instead.
-        var scoringVersion: String    // ScoringVersion.current ("v3.3.nov2026") when built;
+        var scoringVersion: String    // ScoringVersion.current ("v3.4.nov2026") when built;
                                       // "unversioned" when decoded from an older record
         var refreshedFactorShift: Double  // not stored: how far a display-time vitals refresh
                                           // (VitalsScoring.breakdownRefreshingVitalsFactor) moved
@@ -3152,16 +3152,11 @@ extension Notification.Name {
 }
 ```
 
-`SessionArchive.delete(_:)` does **not** post it: a caller that deletes
-must announce the change itself (History's `SessionTrash.move` and the
-recovered-workout discard do, through `ArchiveSignal.notifyChanged()`).
-`SessionTrash.move(_:collector:cloudKit:) async throws` runs the archive
-delete off the main actor and notifies and uploads the deletion only once
-it has succeeded. A session deleted on another
-device and removed here by the CloudKit pull
-(`CloudKitSyncManager+Pull.swift`, `handleDeletedRecord`) only bumps
-`CloudKitSyncManager.pullVersion`; observers of this notification are not
-told until the next archive write.
+`SessionArchive.delete(_:)` and `deleteWithoutTrash(_:)` post it too, when
+they remove a session, so a CloudKit pull that removes a session deleted on
+another device tells every observer. `SessionDeletion.moveToTrash(_:)` runs the
+archive delete off the main actor and queues the iCloud deletion once it has
+succeeded.
 
 ---
 

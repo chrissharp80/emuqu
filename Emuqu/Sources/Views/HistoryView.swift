@@ -8,7 +8,7 @@ struct HistoryView: View {
     @Environment(ArchiveSignal.self) private var archiveSignal
 
     /// Not called: History deletes and saves tags itself
-    /// (`SessionTrash.move`, `saveTags`) so it can tell the user when either
+    /// (`SessionDeletion`, `saveTags`) so it can tell the user when either
     /// fails, which a `Void` closure cannot report. Kept until its call
     /// sites stop passing them.
     let onDelete: (HRVSession) -> Void
@@ -375,7 +375,7 @@ struct HistoryView: View {
     @discardableResult
     private func moveToTrash(_ sessionId: UUID) async -> Bool {
         do {
-            try await SessionTrash.move(sessionId, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
+            try await dependencies.storage.sessionDeletion.moveToTrash(sessionId)
             return true
         } catch {
             debugLog("[HistoryView] Failed to delete session \(sessionId.uuidString.prefix(8)): \(error)")
@@ -686,22 +686,6 @@ extension HistoryView {
                 .contentShape(Rectangle())
         }
         .accessibilityAddTraits(viewModel.selectedTags.isEmpty ? .isSelected : [])
-    }
-}
-
-/// The one way a screen moves a reading to Trash: out of the archive, every
-/// observer told, and the deletion queued for iCloud so the next pull does
-/// not bring it back. Throws when the archive could not move it, so the
-/// caller can tell the user. The move itself (index rewrite and file move,
-/// under the archive's lock) runs off the main actor; the observers and the
-/// iCloud deletion follow it on the main actor, only once it has succeeded.
-@MainActor
-enum SessionTrash {
-    static func move(_ sessionId: UUID, collector: RRCollector, cloudKit: CloudKitSyncManager) async throws {
-        let archive = collector.archive
-        try await Task.detached(priority: .userInitiated) { try archive.delete(sessionId) }.value
-        collector.notifyArchiveChanged()
-        Task { await cloudKit.uploadDeletion(sessionId) }
     }
 }
 

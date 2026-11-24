@@ -44,30 +44,23 @@ extension SessionDataMigrations {
     func runTrainingRecalibrationIfNeeded() async {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.trainingRecalibrationKey) else { return }
-        guard let candidates = recalibrationCandidates(in: await loadArchivedSessions(), defaults: defaults) else { return }
+        let sessions = archivedSessions
+        var candidates = 0
         var touched = 0
-        for session in candidates {
+        for index in 0 ..< sessions.count {
+            guard let session = await sessions.session(at: index), Self.isRecalibrationCandidate(session) else { continue }
+            candidates += 1
             if await recalibrate(session) { touched += 1 }
-            // Yield between sessions so the migration is fully background-
-            // friendly even with hundreds of entries to walk.
-            await Task.yield()
         }
         defaults.set(true, forKey: Self.trainingRecalibrationKey)
-        debugLog("[TrainingRecalibration] Complete. Touched \(touched) of \(candidates.count) candidate sessions.")
+        debugLog("[TrainingRecalibration] Complete. Touched \(touched) of \(candidates) candidate sessions.")
     }
 
     /// Sessions with a frozen snapshot are the only ones that carry
     /// potentially-wrong values; ones without training context skip the
-    /// training term entirely and are correct as-is. Nil means there is nothing
-    /// to do: no candidates, and the migration is marked complete.
-    private func recalibrationCandidates(in sessions: [HRVSession], defaults: UserDefaults) -> [HRVSession]? {
-        let candidates = sessions.filter { $0.trainingSnapshot != nil && Self.carriesRecoveryScore($0) }
-        guard !candidates.isEmpty else {
-            defaults.set(true, forKey: Self.trainingRecalibrationKey)
-            debugLog("[TrainingRecalibration] No candidates — marking migration complete")
-            return nil
-        }
-        return candidates
+    /// training term entirely and are correct as-is.
+    private static func isRecalibrationCandidate(_ session: HRVSession) -> Bool {
+        session.trainingSnapshot != nil && carriesRecoveryScore(session)
     }
 
     /// Recompute the training context using the CURRENT formula, built exactly

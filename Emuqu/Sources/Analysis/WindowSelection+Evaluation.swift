@@ -228,10 +228,14 @@ extension WindowSelector {
         return WindowMetrics(meanHR: meanHR, hrCV: sdnn / meanRR, rmssd: rmssd, sdnn: sdnn)
     }
 
-    /// Calculate mean HR — trimmed mean from sensor if available, otherwise from mean RR.
+    /// Mean HR: a trimmed mean of the sensor's HR when every beat in the
+    /// window carries it, otherwise from the clean beats' mean RR. In a merged
+    /// night only the streamed gap-fill beats carry sensor HR, and averaging
+    /// those few would stand in for the whole window, as
+    /// `TimeDomainAnalyzer`'s window HR also refuses to do.
     private func computeMeanHR(windowPoints: [RRPoint], meanRR: Double) -> Double {
         let hrValues = windowPoints.compactMap(\.hr).map { Double($0) }.sorted()
-        guard !hrValues.isEmpty else { return 60000.0 / meanRR }
+        guard !hrValues.isEmpty, hrValues.count == windowPoints.count else { return 60000.0 / meanRR }
         if hrValues.count >= 10 {
             let lo = Int(Double(hrValues.count) * 0.05)
             let hi = Int(Double(hrValues.count) * 0.95)

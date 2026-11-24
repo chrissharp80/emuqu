@@ -50,7 +50,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
     override func tearDown() async throws {
         cancellables.removeAll()
         if let session = collector.currentSession {
-            try? collector.archive.delete(session.id)
+            _ = try? collector.archive.delete(session.id)
         }
         hostRecordingState?.restore()
         try FileManager.default.removeItem(at: storageDirectory)

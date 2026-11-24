@@ -404,4 +404,28 @@ final class NonlinearAnalysisTests: XCTestCase {
         let alpha1 = try XCTUnwrap(nonlinear(contiguousPoints(rrs), flagged: flagged).dfaAlpha1)
         XCTAssertEqual(alpha1, try XCTUnwrap(DFAAnalyzer.compute(expected)).alpha1, accuracy: 1e-9)
     }
+
+    // MARK: - Entropy on long windows
+
+    /// Sample entropy measures beat-to-beat regularity, so the same rhythm
+    /// read over a longer window has the same entropy. Taking every k-th beat
+    /// of a long window measured a coarser scale, and the value moved with the
+    /// window's length.
+    func testSampleEntropyDoesNotChangeWithWindowLength() throws {
+        let pattern = [800, 860, 780, 900, 820, 760, 840]
+        func entropy(beats: Int) -> Double? {
+            var t: Int64 = 0
+            let points = (0 ..< beats).map { i -> RRPoint in
+                let rr = pattern[i % pattern.count]
+                defer { t += Int64(rr) }
+                return RRPoint(t_ms: t, rr_ms: rr)
+            }
+            let series = RRSeries(points: points, sessionId: UUID(), startDate: Date())
+            let flags = [ArtifactFlags](repeating: .clean, count: beats)
+            return NonlinearAnalyzer.computeNonlinear(series, flags: flags, windowStart: 0, windowEnd: beats)?.sampleEntropy
+        }
+        let short = try XCTUnwrap(entropy(beats: 1_400))
+        let long = try XCTUnwrap(entropy(beats: 3_500))
+        XCTAssertEqual(short, long, accuracy: 0.01)
+    }
 }

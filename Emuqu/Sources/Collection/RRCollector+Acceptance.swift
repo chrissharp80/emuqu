@@ -87,7 +87,7 @@ extension MorningSessionPipeline {
     /// one reset of the review UI: acceptance and rejection run it too.
     func clearAcceptanceState() {
         collector.currentSession = nil
-        collector.sessionState.reviewArchivedSessionId = nil
+        collector.sessionState.forgetReviewedNight()
         collector.needsAcceptance = false
         collector.recordingPhase = .idle
         collector.verificationResult = nil

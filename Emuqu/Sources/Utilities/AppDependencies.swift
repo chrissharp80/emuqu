@@ -823,6 +823,11 @@ struct StorageServices: Sendable {
         if let substitute = overrides.sessionArchive { return substitute }
         return SessionArchive.shared
     }
+    /// Moving a reading to the Trash, from any screen.
+    @MainActor
+    var sessionDeletion: SessionDeletion {
+        SessionDeletion(archive: sessionArchive, cloudKit: cloudKitSyncManager)
+    }
     @MainActor
     var uiStateCache: UIStateCache {
         if let substitute = overrides.uiStateCache { return substitute }

@@ -80,14 +80,7 @@ extension SessionArchive {
     /// When Apple Health has already told us the sleep was one continuous
     /// block, we report one block.
     static func deriveSleepIndexFields(from session: HRVSession) -> (sleepEnd: Date?, sleepSegmentCount: Int?) {
-        (sleepEnd(of: session), sleepSegmentCount(of: session))
-    }
-
-    /// The snapshot's own sleep end, or the stored offset converted to a date.
-    private static func sleepEnd(of session: HRVSession) -> Date? {
-        if let snapshotEnd = session.sleepSnapshot?.sleepEnd { return snapshotEnd }
-        guard let endMs = session.sleepEndMs, endMs > 0 else { return nil }
-        return session.startDate.addingTimeInterval(TimeInterval(endMs) / 1000)
+        (session.sleepEndDate, sleepSegmentCount(of: session))
     }
 
     private static func sleepSegmentCount(of session: HRVSession) -> Int? {

@@ -88,7 +88,7 @@ final class ArchiveIntegrityTests: XCTestCase {
     override func tearDown() {
         // Clean up test sessions
         for id in testSessionIds {
-            try? archive.delete(id)
+            _ = try? archive.delete(id)
         }
         testSessionIds = []
         try? FileManager.default.removeItem(at: archiveDirectory)

@@ -70,17 +70,13 @@ final class SessionDataMigrations {
         }.value
     }
 
-    /// Reads every archived session in full, newest first, off the main actor:
-    /// decrypting and decoding a large archive held the first screen for
-    /// seconds. Read afresh on each call, because later migrations must see
+    /// Every archived session, newest first, decoded in full one at a time off
+    /// the main actor. Taken afresh by each migration, so later migrations see
     /// what earlier ones wrote. Full sessions, not lightweight ones: a
     /// migration writes them back, and a copy without its beats would erase
     /// them.
-    func loadArchivedSessions() async -> [HRVSession] {
-        let archive = self.archive
-        return await Task.detached(priority: .utility) {
-            archive.entries.compactMap { archive.retrieveOrLog($0.sessionId, caller: "SessionDataMigrations") }
-        }.value
+    var archivedSessions: ArchivedSessions {
+        ArchivedSessions(archive: archive, caller: "SessionDataMigrations")
     }
 
     /// Run every deferred repair from background priority, staggered so they do

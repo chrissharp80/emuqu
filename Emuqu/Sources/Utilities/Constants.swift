@@ -118,6 +118,8 @@ enum UserDefaultsKeys {
 /// Canonical physical-unit conversion factors. Single source of truth so the
 /// same conversion cannot drift between call sites.
 enum UnitConstants {
+    /// Metres per international mile (exact).
+    static let metersPerMile: Double = 1609.344
     /// Feet per metre (exact: 1 / 0.3048 = 3.280839895…).
     static let feetPerMeter: Double = 3.280_84
     /// Miles per hour per metre-per-second (exact: 3600 / 1609.344 = 2.236936…).
