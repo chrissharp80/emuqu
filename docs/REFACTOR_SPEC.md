@@ -15,10 +15,8 @@ cleverness that sacrifices clarity.
 >
 > **For "what does the app do today?"** — see [`README.md`](../README.md) and
 > [`USERS_MANUAL.md`](USERS_MANUAL.md). For architecture and subsystem deep dives,
-> [`ARCHITECTURE.md`](ARCHITECTURE.md). For data flow,
-> [`FLOWCHART.md`](FLOWCHART.md). For the AI assistant + fact catalog,
-> [`VOICE_AND_TOOL_USE.md`](VOICE_AND_TOOL_USE.md). For public APIs,
-> [`API_REFERENCE.md`](API_REFERENCE.md).
+> [`ARCHITECTURE.md`](ARCHITECTURE.md). For the AI assistant + fact catalog,
+> [`VOICE_AND_TOOL_USE.md`](VOICE_AND_TOOL_USE.md).
 >
 > This file intentionally has no "as of date" header — the principles below
 > hold across all build phases. Every sweep through the codebase should be
