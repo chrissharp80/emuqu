@@ -62,6 +62,8 @@ final class RawRRBackup: @unchecked Sendable {
     let indexLock = NSLock()
     /// Writes one-shot files sealed or queued, and repairs queued backups.
     let sealer: RawBackupSealer
+    /// The key the backups are sealed with.
+    let encryption: EncryptionManager
     /// The unlock and activation observers (`observeUnlock`).
     private let unlockObservers = NotificationTokens()
     /// Where `observeUnlock` listens: `.default` in the app.
@@ -230,25 +232,16 @@ final class RawRRBackup: @unchecked Sendable {
 
     // MARK: - Initialization
 
-    /// The app's store, in the shared container (`resolveBackupDirectory`).
-    convenience init() {
-        self.init(directory: Self.resolveBackupDirectory())
-    }
-
-    /// A store in `directory`. The app uses the shared container; tests pass
-    /// a folder of their own, so backups other tests left behind are never
-    /// listed in theirs.
-    convenience init(directory: URL) {
-        self.init(directory: directory, notificationCenter: .default)
-    }
-
-    /// A store in `directory` that observes unlock and activation on
-    /// `notificationCenter`.
-    init(directory: URL, notificationCenter: NotificationCenter) {
+    /// A store in `directory`, sealed with `encryption`, that observes unlock
+    /// and activation on `notificationCenter`. The app's store is in the
+    /// shared container (`resolveBackupDirectory`); tests pass a folder of
+    /// their own, so backups other tests left behind are never listed in theirs.
+    init(directory: URL, notificationCenter: NotificationCenter, encryption: EncryptionManager) {
         backupDirectory = directory
         self.notificationCenter = notificationCenter
+        self.encryption = encryption
         indexFile = backupDirectory.appendingPathComponent("backup_index.json")
-        sealer = RawBackupSealer(directory: directory)
+        sealer = RawBackupSealer(directory: directory, encryption: encryption)
 
         createBackupDirectoryIfNeeded()
         loadIndex()
@@ -262,15 +255,9 @@ final class RawRRBackup: @unchecked Sendable {
         unlockObservers.removeAll(from: notificationCenter)
     }
 
-    /// Runs `repairAfterUnlock` when protected data becomes available and
-    /// when the app becomes active (a suspended app can miss the unlock), as
-    /// `ConversationStore` retries a held save.
+    /// Runs `repairAfterUnlock` once the backups may be readable.
     private func observeUnlock() {
-        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
-            unlockObservers.add(notificationCenter.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
-                self?.repairAfterUnlock()
-            })
-        }
+        unlockObservers.observeProtectedDataMayBeAvailable(on: notificationCenter) { [weak self] in self?.repairAfterUnlock() }
     }
 
     /// Queued on `appendQueue`, behind any append in flight, so neither step
@@ -294,7 +281,7 @@ final class RawRRBackup: @unchecked Sendable {
     /// `AppConfig.sharedContainerURL()`'s rule, which logs a fallback. The
     /// running store and the lockless termination forensics both use this, so
     /// they always look in the same place.
-    private static func resolveBackupDirectory() -> URL {
+    static func resolveBackupDirectory() -> URL {
         AppConfig.sharedContainerURL().appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)
     }
 
@@ -356,14 +343,14 @@ final class RawRRBackup: @unchecked Sendable {
     /// on-disk index too when the launch could not read it. A strap fetch made after
     /// a crash is saved under the interrupted night's id, and the strap's copy
     /// can be shorter than what streamed (it started later, or the fetch was
-    /// partial); replacing the streamed file deleted the rest of the night
-    /// for good, since an interrupted night has no archived copy.
+    /// partial); replacing the streamed file would delete the rest of the
+    /// night for good, since an interrupted night has no archived copy.
     ///
     /// `captureDate` is when the recording began. A caller that knows it wins;
     /// otherwise the backup keeps the date it already has rather than the
     /// moment of this write: recovery uses it as the session start, and a
-    /// write-time date moved a recovered night onto the morning it was backed
-    /// up.
+    /// write-time date would move a recovered night onto the morning it was
+    /// backed up.
     ///
     /// On `appendQueue`, like every other change to a backup's files: a
     /// re-seal (`RawBackupSealer.reencrypt`) or an append running alongside
@@ -582,7 +569,7 @@ final class RawRRBackup: @unchecked Sendable {
         // Legacy single-file format
         guard let fileName = indexEntry.fileName else { return nil }
         let entry = try Self.decodeLegacyBackup(
-            at: backupDirectory.appendingPathComponent(fileName)
+            at: backupDirectory.appendingPathComponent(fileName), encryption: encryption
         )
         guard entry.hash == indexEntry.hash else {
             throw BackupError.hashMismatch
@@ -593,11 +580,11 @@ final class RawRRBackup: @unchecked Sendable {
     /// Detect encrypted format via the same
     /// 0x46 0x52 magic prefix Archive.swift uses. Legacy plaintext
     /// backups still decode unchanged.
-    static func decodeLegacyBackup(at filePath: URL) throws -> BackupEntry {
+    static func decodeLegacyBackup(at filePath: URL, encryption: EncryptionManager) throws -> BackupEntry {
         let rawBytes = try Data(contentsOf: filePath)
         let plaintext: Data
         if rawBytes.count >= 2, rawBytes[0] == 0x46, rawBytes[1] == 0x52 {
-            plaintext = try AppDependencies.current.storage.encryptionManager.decrypt(rawBytes)
+            plaintext = try encryption.decrypt(rawBytes)
         } else {
             plaintext = rawBytes
         }
@@ -740,10 +727,10 @@ extension RawRRBackup: SealableBackupStore {
 
     /// Writes `entry` under a file name no earlier write used, then indexes it.
     ///
-    /// Names were once whole-second timestamps, so two backups of a session in
-    /// one second shared a file: when the second's index save threw, the
-    /// rollback put back the old row (same name, old hash) over the new bytes,
-    /// and the backup then failed its hash check and dropped out of every
+    /// A reused name (a whole-second timestamp, say) lets two backups of a
+    /// session share a file: when the second's index save throws, the
+    /// rollback puts back the old row (same name, old hash) over the new bytes,
+    /// and the backup then fails its hash check and drops out of every
     /// listing. A fresh name leaves the restored row and its file intact; the
     /// new file, which nothing indexes, is removed.
     private func writeOneShot(_ entry: BackupEntry, replacing existing: BackupIndex?) throws -> String {
@@ -751,7 +738,7 @@ extension RawRRBackup: SealableBackupStore {
             name == existing?.fileName || fileManager.fileExists(atPath: backupDirectory.appendingPathComponent(name).path)
         }
         let url = backupDirectory.appendingPathComponent(fileName)
-        try RawBackupSealer.writeEntry(entry, to: url, sessionId: entry.id)
+        try sealer.writeEntry(entry, to: url, sessionId: entry.id)
         do {
             try reindex(sessionId: entry.id, entry: entry, fileName: fileName, beatCount: entry.points.count, replacing: existing)
         } catch {

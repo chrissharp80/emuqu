@@ -452,10 +452,8 @@ final class WorkoutPDFReport: Sendable {
 
 // MARK: - File-scope helpers
 //
-// Moved out of WorkoutPDFReport. Each names no member of the
-// type and calls nothing that stayed behind, so none needed to be inside
-// it. `private` at file scope is fileprivate, so every call site in this
-// file resolves exactly as before.
+// Each names no member of `WorkoutPDFReport` and calls nothing on it, so
+// none needs to be inside the type.
 
 /// The 1-minute drop, read against the trained-endurance benchmarks. A zero
 /// or negative drop is a failed capture and is not read at all.

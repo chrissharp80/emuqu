@@ -58,8 +58,8 @@ struct AssistantContext: Codable {
     /// heading / speed whether a workout is recording or not. If location
     /// only reached the prompt inside the `if let live
     /// = liveWorkout` block, non-workout queries ("suggest a route",
-    /// "what's around me") would have no location context and the model had
-    /// to call the `location.current` tool — which itself depended on
+    /// "what's around me") would have no location context and the model would
+    /// have to call the `location.current` tool — which itself depends on
     /// a cache the user might not have warmed yet.
     struct AmbientLocationSnapshot: Codable {
         let road: String?
@@ -100,9 +100,8 @@ extension AssistantContext {
     /// `AIProvider+SystemPromptText`)
     /// — but cloud providers' `contextRendered` is set to `""` to
     /// keep the Anthropic / Gemini prompt-prefix cache stable. Without this
-    /// block the model could never see the location, so "the AI has no
-    /// awareness of my location" was unavoidable on cloud
-    /// providers regardless of how good the geocoder was.
+    /// block a cloud model never sees the location, however good the
+    /// geocoder is.
     ///
     /// This renderer emits ONLY the always-on volatile fields the system
     /// prompt references (location, in the future possibly weather and
@@ -235,7 +234,7 @@ extension AssistantContext {
     /// the compact prompt the AI cannot answer "what street am I on",
     /// "which way am I going", or "how accurate is my fix right now". The model
     /// uses these strings VERBATIM — see the LOCATION RESOLUTION rule in
-    /// `toolOverlay`. No more "based on coordinate 39.78, -89.65".
+    /// `toolOverlay` — never "based on coordinate 39.78, -89.65".
     ///
     /// Speed ships as m/s AND km/h, which saves the model some arithmetic:
     /// m/s is the canonical scientific unit; pace is what runners think in.
@@ -301,9 +300,8 @@ extension AssistantContext {
     /// The live-workout block — the most important context when one is active,
     /// which is why it sits at the top of the prompt.
     ///
-    /// Extracted from `compactRender` verbatim. `CompactRenderParityTests` is
-    /// what makes that claim checkable: the rendered prompt is the contract with
-    /// five LLM providers, so this move has to be byte-inert.
+    /// `CompactRenderParityTests` pins its output: the rendered prompt is the
+    /// contract with five LLM providers, so it must stay byte-identical.
     private func liveWorkoutLines(formatter: ISO8601DateFormatter) -> [String] {
         guard let live = liveWorkout else { return [] }
         var out = ["🟢 LIVE WORKOUT: " + liveWorkoutBits(live).joined(separator: ", ")]
@@ -322,11 +320,11 @@ extension AssistantContext {
     ///
     /// Peak HR is included so the AI can answer "what was my peak HR at
     /// the top of the climb?" without calling a tool; with only current HR
-    /// the typed Coach had to hedge ("I don't know your peak").
+    /// the typed Coach would have to hedge ("I don't know your peak").
     ///
     /// The α1 status line when α1 is nil. Left silent, the AI
-    /// made up explanations like "warming up" when really the strap had been
-    /// silent for 5 minutes; the diagnostic ships so the AI relays the
+    /// makes up explanations like "warming up" when really the strap has been
+    /// silent for minutes; the diagnostic ships so the AI relays the
     /// real reason. Pairs with LiveDFAAnalyzer nulling α1 on
     /// stalled.
     private func liveWorkoutBits(_ live: LiveWorkoutSnapshot) -> [String] {
@@ -714,7 +712,7 @@ extension AssistantContext {
     /// Serializer: one optional-unwrap per workout field. The field count IS
     /// the branch count, so the tables below are data rather than control flow
     /// — the same reasoning already recorded on `WorkoutAIContext.asFactSheet`
-    /// and `AppFactResolver+WorkoutLive`.
+    /// and `WorkoutLiveFacts`.
     private func workoutBits(_ w: WorkoutHistoryEntry, dateFormatter: DateFormatter) -> [String] {
         var bits = [dateFormatter.string(from: w.date), w.sport]
         if let dur = w.durationSec {
@@ -737,7 +735,7 @@ extension AssistantContext {
     }
 
     /// Power, cadence, α1, HRR and the self-rated feeling. Each
-    /// is here because the AI was asked about it and had to say it could not
+    /// is here so the AI can answer about it instead of saying it cannot
     /// see it, and each is gated on its own nil-check so a
     /// walk-with-no-power-meter still renders cleanly; only sessions that
     /// captured these get them spoken aloud in the AI's context dump.
@@ -759,9 +757,8 @@ extension AssistantContext {
     /// Recent workouts in full per-session detail, so the AI can answer about a
     /// specific session rather than only about aggregates.
     ///
-    /// A one-liner sport histogram ("2 run, 1
-    /// bike") is useless for any real question — users complain
-    /// the AI has no awareness of workouts at all. So we emit one line per
+    /// A one-liner sport histogram ("2 run, 1 bike") cannot answer a
+    /// real question about any workout, so this emits one line per
     /// session for the last 14 (≈2 weeks), each with date, sport, duration,
     /// distance, pace, avg/max HR, TRIMP, hrTSS, METs, estimated kcal — every
     /// metric we have. Adds ~14 lines to the prompt at ~80 chars each (~1100
@@ -825,9 +822,9 @@ extension AssistantContext {
     /// pins the output, since every byte of it is the contract with the
     /// providers.
     /// Deliberately no per-render `Generated:` ISO timestamp:
-    /// rebuilt from `Date()` every send, it made every
+    /// rebuilt from `Date()` every send, it would make every
     /// provider's prompt-cache fingerprint change minute-by-minute
-    /// even when nothing else had moved. `nowSnapshot()` in the
+    /// even when nothing else moved. `nowSnapshot()` in the
     /// variable system block already gives the model the current time,
     /// so the line would be redundant AND the single biggest cache-buster
     /// in `compactRender`, since the dump goes to every provider, not

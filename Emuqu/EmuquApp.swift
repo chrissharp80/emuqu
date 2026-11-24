@@ -256,17 +256,17 @@ struct EmuquApp: App {
     /// timeout; nothing in the view tree branches on it.
     private var rootTabView: some View {
         MainTabView(
-            initialSessionCount: collector.archive.entries.count,
+            initialSessionCount: collector.archive.store.entries.count,
             // Cold-start hero-score seed from the synchronously-loaded
             // index, so the ring paints the last score immediately instead
             // of blank until the async session decrypt lands.
             initialSeedScore: DashboardSessionPolicy.latestOvernightScore(
-                inEntries: collector.archive.entries, calendar: .current
+                inEntries: collector.archive.store.entries, calendar: .current
             ),
             // Cold-start seed for the rest of the summary (HRV/Sleep chips,
             // Recent strip) from the same synchronous index.
             initialSeedSummary: DashboardSessionPolicy.dashboardSummarySeed(
-                inEntries: collector.archive.entries, today: Date(), calendar: .current
+                inEntries: collector.archive.store.entries, today: Date(), calendar: .current
             ),
             requestedTab: $requestedTab
         )
@@ -460,12 +460,12 @@ struct EmuquApp: App {
     }
 
     private var isRecordingInProgress: Bool {
-        collector.isCollecting || isWorkoutInProgress
+        collector.sessionState.isCollecting || isWorkoutInProgress
     }
 
     /// A workout is recording or still being saved on the phone.
     private var isWorkoutInProgress: Bool {
-        switch AppDependencies.current.app.recorderBox.recorder?.phase {
+        switch AppDependencies.current.app.recorderBox.recorder?.lifecycle.phase {
         case .recording?, .finalizing?: return true
         default: return false
         }
@@ -503,12 +503,12 @@ struct EmuquApp: App {
     /// the screen, so it holds a background-task assertion until it finishes;
     /// running out of budget suspends the app instead of getting it killed.
     private func autoArchivePendingSession() {
-        guard collector.needsAcceptance else { return }
+        guard collector.sessionState.needsAcceptance else { return }
         let backgroundTask = BackgroundTaskAssertion(name: "EmuquApp.autoArchivePendingSession")
         Task {
             defer { backgroundTask.end() }
             do {
-                try await collector.acceptSession()
+                try await collector.morning.acceptSession()
                 debugLog("[App] Auto-archived pending session on background")
             } catch {
                 debugLog("[App] Failed to auto-archive on background: \(error)")

@@ -80,9 +80,9 @@ final class CloudPullRecordTests: XCTestCase {
         let outcome = await manager.pull.processRemoteRecord(record(of: session.id, isDeleted: 1), forgotten: [])
 
         XCTAssertEqual(outcome.deleted, 1)
-        XCTAssertFalse(archive.exists(session.id))
-        XCTAssertTrue(archive.wasIntentionallyDeleted(session.id))
-        XCTAssertNil(archive.trashedSession(session.id), "a deletion from another device was kept in this device's Trash")
+        XCTAssertFalse(archive.store.exists(session.id))
+        XCTAssertTrue(archive.store.wasIntentionallyDeleted(session.id))
+        XCTAssertNil(archive.store.trashedSession(session.id), "a deletion from another device was kept in this device's Trash")
         XCTAssertFalse(manager.state.uploadedSessionIds.contains(session.id))
         XCTAssertFalse(manager.state.pendingUploadIds.contains(session.id))
         XCTAssertNil(manager.lastPullErrorMessage)
@@ -97,7 +97,7 @@ final class CloudPullRecordTests: XCTestCase {
         let outcome = await manager.pull.processRemoteRecord(record(of: UUID(), isDeleted: 1), forgotten: [])
 
         XCTAssertEqual(outcome.deleted, 0)
-        XCTAssertTrue(archive.exists(kept.id))
+        XCTAssertTrue(archive.store.exists(kept.id))
     }
 
     /// A session restored from the Trash here and not yet uploaded outranks
@@ -112,8 +112,8 @@ final class CloudPullRecordTests: XCTestCase {
         let outcome = await manager.pull.processRemoteRecord(record(of: session.id, isDeleted: 1), forgotten: [])
 
         XCTAssertEqual(outcome.deleted, 0)
-        XCTAssertTrue(archive.exists(session.id), "the pull deleted a session this device had just restored")
-        XCTAssertFalse(archive.wasIntentionallyDeleted(session.id))
+        XCTAssertTrue(archive.store.exists(session.id), "the pull deleted a session this device had just restored")
+        XCTAssertFalse(archive.store.wasIntentionallyDeleted(session.id))
     }
 
     /// A copy with a change of this device's still queued goes to this
@@ -127,8 +127,8 @@ final class CloudPullRecordTests: XCTestCase {
         let outcome = await manager.pull.processRemoteRecord(record(of: session.id, isDeleted: 1), forgotten: [])
 
         XCTAssertEqual(outcome.deleted, 1)
-        XCTAssertFalse(archive.exists(session.id))
-        XCTAssertEqual(archive.trashedSession(session.id)?.id, session.id, "the unsynced change was not kept in the Trash")
+        XCTAssertFalse(archive.store.exists(session.id))
+        XCTAssertEqual(archive.store.trashedSession(session.id)?.id, session.id, "the unsynced change was not kept in the Trash")
         XCTAssertFalse(manager.state.pendingUploadIds.contains(session.id))
     }
 
@@ -148,8 +148,8 @@ final class CloudPullRecordTests: XCTestCase {
         let outcome = await manager.pull.processRemoteRecord(record(of: session.id, isDeleted: 1), forgotten: [])
 
         XCTAssertEqual(outcome.deleted, 0)
-        XCTAssertTrue(archive.exists(session.id), "a session whose deletion failed left the archive")
-        XCTAssertFalse(archive.wasIntentionallyDeleted(session.id))
+        XCTAssertTrue(archive.store.exists(session.id), "a session whose deletion failed left the archive")
+        XCTAssertFalse(archive.store.wasIntentionallyDeleted(session.id))
         XCTAssertTrue(manager.state.uploadedSessionIds.contains(session.id), "the failed deletion dropped the bookkeeping")
         XCTAssertNotNil(manager.lastPullErrorMessage, "the failed deletion was not reported")
     }
@@ -168,7 +168,7 @@ final class CloudPullRecordTests: XCTestCase {
 
         XCTAssertEqual(outcome.new, 0)
         XCTAssertEqual(outcome.deleted, 0)
-        XCTAssertTrue(archive.exists(session.id))
+        XCTAssertTrue(archive.store.exists(session.id))
         XCTAssertTrue(manager.state.uploadedSessionIds.contains(session.id))
     }
 
@@ -188,11 +188,11 @@ final class CloudPullRecordTests: XCTestCase {
 
         XCTAssertEqual(importOutcome.new, 1)
         XCTAssertEqual(importOutcome.backfillId, imported.id)
-        XCTAssertTrue(archive.exists(imported.id))
+        XCTAssertTrue(archive.store.exists(imported.id))
         XCTAssertTrue(manager.state.uploadedSessionIds.contains(imported.id))
         XCTAssertEqual(forgottenOutcome.new, 0)
         XCTAssertNil(forgottenOutcome.backfillId)
-        XCTAssertFalse(archive.exists(forgotten.id))
+        XCTAssertFalse(archive.store.exists(forgotten.id))
         XCTAssertFalse(manager.state.uploadedSessionIds.contains(forgotten.id))
     }
 }

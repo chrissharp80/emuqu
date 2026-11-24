@@ -6,9 +6,6 @@ import Foundation
 
 /// The tier composition and the human-readable detail sentences behind each
 /// score factor: HRV, sleep, resting HR, baseline staleness, α1 and CV.
-///
-/// Split out of `RecoveryScoreCalculator` to keep the calculator under the
-/// 1500-line limit.
 enum ScoreDetailBuilder {
     // MARK: - Tier Composite Helpers
     //

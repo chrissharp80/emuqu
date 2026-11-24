@@ -18,9 +18,9 @@ import UIKit
 // as `SavedRouteStore`.
 struct EmailContact: Codable, Identifiable, Equatable, Hashable {
     let id: UUID
-    /// Free-text name the user knows the contact by ("Chris", "Coach
+    /// Free-text name the user knows the contact by ("Sam", "Coach
     /// John", "Doctor Lee"). Case-insensitive when matched. Need not
-    /// be unique — multiple "Chris" entries are allowed; the resolver
+    /// be unique — multiple "Sam" entries are allowed; the resolver
     /// surfaces an `invalidParameter` error asking the user to
     /// disambiguate when there are duplicates.
     var name: String
@@ -86,7 +86,8 @@ final class EmailContactStore {
     /// Reads the book again once the device is unlocked, when the launch read
     /// was blocked (a background launch before first unlock), as
     /// `SavedRouteStore` does.
-    @ObservationIgnored private var protectedDataObserver: NSObjectProtocol?
+    @ObservationIgnored private let unlockObservers = NotificationTokens()
+    @ObservationIgnored private var observingUnlock = false
 
     /// `storeURL` is injectable so a test can use its own file. Without it,
     /// every `EmailContactStore()` shares one on-disk book: contacts written by
@@ -114,13 +115,11 @@ final class EmailContactStore {
         if loadFailed { installProtectedDataObserver() }
     }
 
+    /// Retries the failed load once the file may be readable.
     private func installProtectedDataObserver() {
-        guard protectedDataObserver == nil else { return }
-        protectedDataObserver = NotificationCenter.default.addObserver(
-            forName: UIApplication.protectedDataDidBecomeAvailableNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
+        guard !observingUnlock else { return }
+        observingUnlock = true
+        unlockObservers.observeProtectedDataMayBeAvailable { [weak self] in
             Task { @MainActor in self?.retryLoadIfBlocked() }
         }
     }
@@ -156,7 +155,7 @@ final class EmailContactStore {
 
     /// Find contacts by case-insensitive name match. Returns ALL matches
     /// — multiple-match handling is the caller's job (the AI resolver
-    /// surfaces an `invalidParameter` to ask the user which "Chris" they
+    /// surfaces an `invalidParameter` to ask the user which "Sam" they
     /// meant).
     ///
     /// A book that could not be read at launch is read again first, so a
@@ -282,8 +281,8 @@ final class EmailContactStore {
         guard !loadFailed else { return }
         let known = Set(contacts.map(\.id))
         contacts.append(contentsOf: addedWhileBlocked.filter { !known.contains($0.id) })
-        if let protectedDataObserver { NotificationCenter.default.removeObserver(protectedDataObserver) }
-        protectedDataObserver = nil
+        unlockObservers.removeAll()
+        observingUnlock = false
     }
 
     private func save() {

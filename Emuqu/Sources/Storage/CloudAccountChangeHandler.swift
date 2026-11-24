@@ -4,9 +4,8 @@ import Foundation
 /// What `.CKAccountChanged` does to sync: re-check the CloudKit account
 /// status and reflect it in the sync state Settings reads.
 ///
-/// Split out of `CloudKitSyncManager` like `CloudDeletionCoordinator` and
-/// `CloudAccountGuard`: reacting to the account status is its own job, and
-/// the manager is held under the aggregate type-size budget. Built on each
+/// Reacting to the account status is its own job, like `CloudDeletionCoordinator`
+/// and `CloudAccountGuard`. Built on each
 /// access (`CloudKitSyncManager.accountChange`); it holds no state of its
 /// own and reaches the manager through one explicit reference.
 @MainActor

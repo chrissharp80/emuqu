@@ -19,7 +19,8 @@ final class FactNumericArgumentTests: XCTestCase {
         addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
         return AppFactResolverFactory.build(
             archive: SessionArchive(directory: directory),
-            settings: { UserSettings() }
+            settings: { UserSettings() },
+            services: FactServices(.current)
         )
     }
 
@@ -142,13 +143,14 @@ final class FactNumericArgumentTests: XCTestCase {
     /// A hospital route is never an emergency service: the result tells the
     /// model to give the local emergency number first, on success or failure.
     func testHospitalDestinationCarriesTheEmergencyNumberFirst() {
-        guard let notice = WorkoutLiveCoachingNamespace.medicalSafetyNotice(for: .poi(query: "hospital")) else {
+        let coaching = WorkoutLiveCoachingNamespace(services: FactServices(.current))
+        guard let notice = coaching.medicalSafetyNotice(for: .poi(query: "hospital")) else {
             return XCTFail("a hospital destination must carry a safety notice")
         }
         XCTAssertTrue(notice.contains(GetMeBackView.emergencyNumbersShown(dialling: GetMeBackView.emergencyNumber(currentCountry: nil))))
         XCTAssertTrue(notice.contains("emergency number"))
-        XCTAssertNil(WorkoutLiveCoachingNamespace.medicalSafetyNotice(for: .poi(query: "parking lot")))
-        XCTAssertNil(WorkoutLiveCoachingNamespace.medicalSafetyNotice(for: .origin))
+        XCTAssertNil(coaching.medicalSafetyNotice(for: .poi(query: "parking lot")))
+        XCTAssertNil(coaching.medicalSafetyNotice(for: .origin))
 
         let routed = WorkoutLiveCoachingNamespace.withSafetyNotice(.record(["mode": .string("walking")]), notice)
         guard case let .record(fields) = routed, case let .string(first)? = fields["safety_first"] else {

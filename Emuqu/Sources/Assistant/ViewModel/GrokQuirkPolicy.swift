@@ -1,10 +1,9 @@
 import Foundation
 
-// `GrokQuirkPolicy` and the `ChatTurn` helpers it uses, split out of
-// `AssistantViewModel+Tools.swift`. The policy encodes provider-
-// specific workarounds and is independent of the tool-dispatch extension;
-// `private` at file scope would be invisible to the call
-// site, which lives in a different file.
+// `GrokQuirkPolicy` and the `ChatTurn` helpers it uses. The policy encodes
+// provider-specific workarounds and is independent of the tool-dispatch
+// extension; `private` at file scope would be invisible to the call
+// site, which lives in `AssistantViewModel+Tools.swift`.
 
 // MARK: - Grok quirk policy
 
@@ -23,15 +22,14 @@ struct GrokQuirkPolicy {
     /// wrong turn.
     private let turnID: UUID
 
-    // "Calling X" loop guard. Some providers (observed
-    // with grok-4-1-fast-reasoning on a walk session) emit complete
+    // "Calling X" loop guard. Grok can emit complete
     // text responses that announce a tool call ("Calling
     // get_workout_live snapshot for current HR now.") without
     // actually emitting a tool_use block. The stream completes,
     // `thisRound.isEmpty` is true, and the loop returns. The user
-    // sees the announcement, asks again, the model produces the
-    // same announcement again — six round-trips before it broke
-    // out. Detection-and-retry below: if the round ends text-only
+    // sees the announcement, asks again, and the model can repeat the
+    // same announcement for several round-trips. Detection-and-retry
+    // below: if the round ends text-only
     // AND the text matches an announce-but-don't-do pattern AND
     // the user's preceding turn asked for live data, inject a
     // nudge user-turn and re-run. Capped at 2 retries.
@@ -52,8 +50,7 @@ struct GrokQuirkPolicy {
     /// The retry/rewind is gated to Grok only. Other providers
     /// (Anthropic / OpenAI / Apple / Gemini) don't show the
     /// announce-but-don't-do pattern; running the rewind on them risks
-    /// emptying perfectly-good text. Per user instruction: the quirk was
-    /// Grok's, so leave every other provider path alone.
+    /// emptying perfectly-good text.
     ///
     /// Resolves the live turn by id.
     mutating func announceWithoutCallNudge(
@@ -90,11 +87,11 @@ struct GrokQuirkPolicy {
     //     get_workout_live snapshot for current HR now") and the
     //     retry/rewind above couldn't coerce it into compliance,
     //     leaving the bogus announce text as the visible turn.
-    // Both were observed in a real chat session. For Grok specifically, substitute
+    // For Grok specifically, substitute
     // a useful fallback when the turn ends in one of these
     // states. Gated by provider.id so we don't touch Anthropic /
     // OpenAI / Apple / Gemini paths where the pattern doesn't
-    // happen — per the user's leave-other-paths-alone rule.
+    // happen.
     func substituteFallbackIfTurnEndedBlankOrAnnounced() {
         // Resolve the live turn by id so the
         // substitution can't overwrite a different turn after the array

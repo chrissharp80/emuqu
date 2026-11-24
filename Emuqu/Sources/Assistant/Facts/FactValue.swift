@@ -64,8 +64,7 @@ enum MissingReason: String, Codable, Sendable {
 ///
 /// The closure MUST be synchronous and metadata-only — no HealthKit
 /// queries, no file I/O, no network. It's called during schema build,
-/// which happens once per registry construction (per send today;
-/// per-launch + on-data-change in a future iteration).
+/// which happens once per registry construction (per send).
 struct Availability: Sendable {
     let hasData: Bool
     /// Inclusive range for date-parameterized facts. Nil for literal
@@ -82,7 +81,7 @@ struct Availability: Sendable {
     /// archive holds a single workout, otherwise valid across the span of
     /// archived workout dates. Shared by the `walks.*` and `hrr.*` namespaces.
     static func workouts(in archive: SessionArchive) -> Availability {
-        let dates = archive.entries.filter { $0.sessionType == .workout }.map(\.date)
+        let dates = archive.store.entries.filter { $0.sessionType == .workout }.map(\.date)
         guard let earliest = dates.min(), let latest = dates.max() else { return .unavailable }
         return Availability(hasData: true, validRange: earliest ... latest, lastUpdated: latest)
     }

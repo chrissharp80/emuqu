@@ -74,7 +74,7 @@ enum UITestLaunchArguments {
             // Background-refinement mode: the sleep-boundary poll makes one
             // HealthKit attempt instead of fifteen, since no Watch will ever
             // deliver data to a test simulator, and no status is shown.
-            let session = await collector.processOvernightData(
+            let session = await collector.morning.processOvernightData(
                 points: points, baseSession: baseSession(ending: Date(), points: points),
                 dataSource: "streaming", reconnectCount: 0, streamingBeats: points.count,
                 isBackgroundRefinement: true

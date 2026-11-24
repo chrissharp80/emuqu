@@ -5,14 +5,10 @@ import Foundation
 
 /// BLE scanning and the connect / disconnect lifecycle.
 ///
-/// Its own type because `PolarManager` is over the aggregate type-size
-/// threshold. It holds the manager strongly and is built on demand by it —
-/// the shape `check_no_unowned.sh` requires, and the reason it requires it:
-/// an `unowned` back-reference read inside a resumed continuation traps when
-/// the owner has gone, which took four `RRCollector` tests down with
-/// `signal abrt`. This type stores nothing, so it can neither outlive the
-/// manager nor retain it, and the search task below crosses `await`
-/// boundaries where that distinction is the whole difference.
+/// It holds the manager strongly and is built on demand by it (ADR 005). It
+/// stores nothing, so it can neither outlive the manager nor retain it; the
+/// search task below crosses `await` boundaries, where an `unowned` reference
+/// to a manager that has gone would trap.
 @MainActor
 struct StrapDiscoveryCoordinator {
     let manager: PolarManager

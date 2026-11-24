@@ -22,10 +22,9 @@ import Foundation
 /// `Tools/science_register/register.json` records which heuristics each
 /// version contains and their validation status.
 enum ScoringVersion {
-    /// The version this build computes. Referenced rather than retyped —
-    /// before this existed the version string was duplicated across the
-    /// assistant context, the knowledge base and the fact resolver, with
-    /// nothing keeping them in step.
+    /// The version this build computes. The assistant context, the knowledge
+    /// base and the fact resolver reference it rather than retype it, so they
+    /// cannot fall out of step.
     ///
     /// A scoring version names the whole algorithm, the z-score band table
     /// included: this version scores with
@@ -34,12 +33,12 @@ enum ScoringVersion {
     /// own `version` is not stored on a score; re-binding
     /// `defaultScoringParameters` is a scoring change, so it bumps this
     /// version, and the stored version then tells which table produced a score.
-    static let current = "v3.3.nov2026"
+    static let current = "v3.4.nov2026"
 
     /// What a score decoded without a version is called.
     ///
-    /// Deliberately not `current`. Scores stored before this build carry no
-    /// version, and the archive genuinely cannot tell whether they came from
+    /// Deliberately not `current`. Scores stored without a version
+    /// carry none, and the archive genuinely cannot tell whether they came from
     /// v1 or v2 — the app has a v1→v2 history recompute the user may or may
     /// not have run. Defaulting them to `current` would assert something
     /// unknown; `unversioned` says what is true.

@@ -4,8 +4,7 @@ import SwiftUI
 
 // App-level background work: the Watch workout-control listeners, deferred
 // boot, launch tasks, migrations and the chunked temp-asymmetry rescore.
-// `EmuquApp.swift` holds the `App` conformance and its `body`, the declaration
-// of the app rather than the work it kicks off at launch.
+// `EmuquApp.swift` holds the `App` conformance and its `body`.
 
 /// The services the launch work below uses, handed to `EmuquApp` by the
 /// composition root (`AppDependencies.launchServices`). Each is a resolver,
@@ -66,7 +65,7 @@ extension EmuquApp {
             recorderBox.bind(core: collector, conversation: voiceChat)
         }
         guard let recorder = recorderBox.recorder else { return }
-        switch recorder.phase {
+        switch recorder.lifecycle.phase {
         case .idle, .finished, .failed: break
         case .recording, .finalizing: return
         }
@@ -90,7 +89,7 @@ extension EmuquApp {
     /// A Watch stop only applies mid-workout; every other phase ignores it.
     @MainActor
     private static func isRecording(_ recorder: WorkoutRecorder) -> Bool {
-        if case .recording = recorder.phase { return true }
+        if case .recording = recorder.lifecycle.phase { return true }
         return false
     }
 
@@ -99,7 +98,7 @@ extension EmuquApp {
         let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutPause)
         for await _ in stream {
             guard let recorder = launchServices.recorderBox().recorder else { continue }
-            if case .recording = recorder.phase {
+            if case .recording = recorder.lifecycle.phase {
                 recorder.pause(isAuto: false)
             }
         }
@@ -110,8 +109,8 @@ extension EmuquApp {
         let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutResume)
         for await _ in stream {
             guard let recorder = launchServices.recorderBox().recorder else { continue }
-            if case .recording = recorder.phase {
-                recorder.resume()
+            if case .recording = recorder.lifecycle.phase {
+                recorder.session.resume()
             }
         }
     }
@@ -181,7 +180,7 @@ extension EmuquApp {
         #endif
     }
 
-    /// Body for the root `.task` modifier. Extracted so the `body` Scene
+    /// Body for the root `.task` modifier. A function of its own so the `body` Scene
     /// expression stays simple enough for the type-checker (SwiftUI body
     /// expressions get expensive to type-check fast as they grow).
     ///
@@ -243,12 +242,12 @@ extension EmuquApp {
     /// `OnboardingView` fires its own `requestAuthorization` in `.task`, and
     /// firing both within milliseconds races the system permission prompt: iOS
     /// times it out and the user can grant nothing at all on first install. The
-    /// belt-and-suspenders guard in `HealthKitManager` exists too, but not
-    /// double-firing is the actual fix.
+    /// guard in `HealthKitManager` is a backstop; not double-firing is what
+    /// prevents the race.
     ///
-    /// A long settle delay does not help: on an iPhone 11 doing CloudKit
+    /// A long settle delay does not help: on older hardware doing CloudKit
     /// sync-state load, archive migrations and sleep queries at once, the
-    /// prompt arrived after iOS had already deprioritized it. So: a short
+    /// prompt arrives after iOS has already deprioritized it. So: a short
     /// 200 ms delay — enough for the splash and first frame to commit — plus
     /// one retry on "Authorization session timed out" after 1.5 s.
     /// The retry is the part that matters: the first attempt almost always
@@ -302,8 +301,8 @@ extension EmuquApp {
     /// Skipped when we already have a recent fix.
     /// The geocoding service's `current` survives across foregrounds; if
     /// it was populated less than 15 min ago we don't need a fresh
-    /// CoreLocation cold-start (which takes 8–25 s on a stale GPS daemon —
-    /// a field launch log showed 12.1 s). The on-demand `refreshIfNeeded`
+    /// CoreLocation cold-start (which takes 8–25 s on a stale GPS daemon).
+    /// The on-demand `refreshIfNeeded`
     /// path picks up a fresher fix when the user actually does something that
     /// needs it.
     private func shouldPrewarmRoadContext() async -> Bool {
@@ -368,9 +367,9 @@ extension EmuquApp {
 
     /// Pre-warm the Taptic Engine. `UINotificationFeedbackGenerator` and
     /// `UIImpactFeedbackGenerator` need a `.prepare()` call to spin up the
-    /// haptic hardware; cold-fire on the start path has been measured at
-    /// 100–400 ms even on fast devices and has been seen in the wild at
-    /// multi-second on iPhone 11 / Low Power Mode. The generators are statics
+    /// haptic hardware; cold-fire on the start path costs 100–400 ms even on
+    /// fast devices and can take seconds on older hardware in Low Power
+    /// Mode. The generators are statics
     /// on `WorkoutStartCue`, so the same warmed instances are reused at
     /// workout-start time.
     private static func prepareHaptics() async {
@@ -424,8 +423,8 @@ extension EmuquApp {
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {
             NSLog("[App][bg] archive migrations — start")
             archiveRef.upgradeExistingFileProtection()
-            archiveRef.runDeferredMigrations()
-            await collectorJob.permanentlyDelete(archiveRef.expiredDeletionIds())
+            archiveRef.migrations.runDeferredMigrations()
+            await collectorJob.recovery.permanentlyDelete(archiveRef.store.expiredDeletionIds())
             NSLog("[App][bg] archive migrations — done")
         }
         let reanalysisJob = reanalysis
@@ -445,8 +444,7 @@ extension EmuquApp {
     /// the archive another way — a CloudKit pull, a launch recovery, a merge
     /// under a different session id. Those entries stay flagged forever, and
     /// the Data settings page renders them as a red "Unarchived recordings"
-    /// count for a user whose data is safely archived. A field log shows the
-    /// same fifteen at every launch across five days.
+    /// count for a user whose data is safely archived.
     ///
     /// Housekeeping, not launch-critical: the count is a diagnostic, and being
     /// right one second later costs nothing.
@@ -454,7 +452,7 @@ extension EmuquApp {
         coord: LaunchCoordinator, archive: SessionArchive, backup: RawRRBackup, lowPower: Bool
     ) {
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {
-            let archived = Set(archive.entries.map(\.sessionId))
+            let archived = Set(archive.store.entries.map(\.sessionId))
             let corrected = backup.reconcileArchived(against: archived)
             guard corrected > 0 else { return }
             NSLog("[App][bg] backup reconcile — %d backup(s) were already archived", corrected)
@@ -482,10 +480,9 @@ extension EmuquApp {
         }
     }
 
-    /// Retroactive route-history TRIMP backfill, LPM-gated by its caller: on
-    /// an iPhone 11 in Low Power Mode the archive scan + FTP estimate
-    /// contributed to a multi-second launch stall on older
-    /// hardware. Both are one-shot, self-throttled tasks — they
+    /// Retroactive route-history TRIMP backfill, LPM-gated by its caller: in
+    /// Low Power Mode on older hardware the archive scan + FTP estimate
+    /// add a multi-second launch stall. Both are one-shot, self-throttled tasks — they
     /// can wait for a launch when the user isn't actively
     /// conserving battery.
     ///
@@ -514,7 +511,7 @@ extension EmuquApp {
     }
 
     /// Temp-asymmetry score-rescore migration; nil once it has completed.
-    /// Two design points, both from an iPhone-11/LPM field log:
+    /// Two design points:
     ///   1. LPM gate (applied by the caller). Reanalyzing every session at
     ///      launch is the single biggest perf hit on older hardware; skip it
     ///      entirely when the user is conserving battery.
@@ -638,7 +635,7 @@ extension EmuquApp {
         let gateNow = Date()
         storeKitManager.migrateLegacyTestFlightFlag(now: gateNow)
         let archive = collector.archive
-        let hasHistory: Bool? = archive.hasCompleteIndex ? !archive.entries.isEmpty : nil
+        let hasHistory: Bool? = archive.hasCompleteIndex ? !archive.store.entries.isEmpty : nil
         storeKitManager.grandfatherExistingUserIfNeeded(hasHistory: hasHistory, now: gateNow)
         NSLog("[App][launch] access check: paywallEnabled=\(StoreKitManager.paywallEnabled) isPurchased=\(storeKitManager.isPurchased) trialDaysRemaining=\(settingsManager.trialDaysRemaining)")
     }
@@ -713,8 +710,8 @@ extension EmuquApp {
     /// The sleep observer starts at launch, not only
     /// during an active overnight recording. Without this, an Apple
     /// Watch sync while the app is open (but no recording running)
-    /// never bumped `sleepDataVersion`, so the morning sleep didn't
-    /// auto-update — the user had to open the Sleep section and tap
+    /// never bumps `sleepDataVersion`, so the morning sleep does not
+    /// auto-update until the user opens the Sleep section and taps
     /// "Refresh". Combined with the scenePhase-active re-pull in
     /// MainTabView, the morning sleep self-corrects. The vitals observer
     /// starts with it, for the same reason: the Watch writes a night's
@@ -728,8 +725,8 @@ extension EmuquApp {
     /// types, and the restart after a successful request picks up anything the
     /// sheet grants.
     func requestHealthKitAuthorizationWithRetry(collector: RRCollector) async {
-        collector.healthKit.startObservingSleepData()
-        collector.healthKit.startObservingVitalsData()
+        collector.healthKit.writes.startObservingSleepData()
+        collector.healthKit.vitals.startObservingVitalsData()
         for attempt in 1 ... 2 {
             if await authorizeHealthKitOnce(collector: collector, attempt: attempt) { return }
             await sleepQuietly(1_500_000_000, context: "requestHealthKitAuthorizationWithRetry")
@@ -743,8 +740,8 @@ extension EmuquApp {
         do {
             try await collector.healthKit.requestAuthorization()
             NSLog("[App][hk] authorization request returned (attempt \(attempt))")
-            collector.healthKit.startObservingSleepData()
-            collector.healthKit.startObservingVitalsData()
+            collector.healthKit.writes.startObservingSleepData()
+            collector.healthKit.vitals.startObservingVitalsData()
             return true
         } catch {
             return !Self.isRetryableAuthTimeout(error, attempt: attempt)
@@ -827,7 +824,7 @@ extension EmuquApp {
         // Iterating newest-first means the dashboard-visible session
         // gets rescored FIRST, so even if the run is cut short,
         // the user's currently-displayed score is the corrected one.
-        let allEntries = await MainActor.run { reanalysis.archive.entries }
+        let allEntries = await MainActor.run { reanalysis.archive.store.entries }
         let unprocessed = allEntries.filter { !processed.contains($0.sessionId) }
         guard !unprocessed.isEmpty else {
             return RescoreChunk(processed: 0, totalDone: processed.count, total: allEntries.count, complete: true)

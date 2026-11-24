@@ -126,7 +126,7 @@ extension RawRRBackup {
     /// `RawBackupSealer.reencrypt` seals them later. Both kinds read back
     /// (`decodePointLine`).
     func encodedLines(_ points: ArraySlice<RRPoint>, sessionId: UUID) throws -> Data {
-        let encoded = try SealedJSONLines.encode(points, with: lineEncoder, manager: SealedJSONLines.availableManager())
+        let encoded = try SealedJSONLines.encode(points, with: lineEncoder, manager: SealedJSONLines.availableManager(encryption))
         if !encoded.allSealed {
             debugLog("[RawRRBackup] \(points.count) streamed beats of \(sessionId.uuidString.prefix(8)) appended WITHOUT app-layer encryption", level: .error)
             PendingEncryptionLedger.record(sessionId, in: .rawBackup)
@@ -136,7 +136,7 @@ extension RawRRBackup {
 
     /// One point from a line of the points file, sealed or plain.
     func decodePointLine(_ line: Substring, decoder: JSONDecoder) throws -> RRPoint {
-        try decoder.decode(RRPoint.self, from: SealedJSONLines.open(line, with: AppDependencies.current.storage.encryptionManager))
+        try decoder.decode(RRPoint.self, from: SealedJSONLines.open(line, with: encryption))
     }
 
     /// Append to the points file through `JSONLinesFile.append`, which cuts
@@ -547,10 +547,9 @@ enum SealedJSONLines {
     private static let newline = UInt8(ascii: "\n")
     private static let jsonLeadBytes = Set("{[\"-0123456789tfn".utf8)
 
-    /// The stored manager when its key can be reached, else nil.
-    static func availableManager() -> EncryptionManager? {
-        let manager = AppDependencies.current.storage.encryptionManager
-        return manager.isAvailable ? manager : nil
+    /// `manager` when its key can be reached, else nil.
+    static func availableManager(_ manager: EncryptionManager) -> EncryptionManager? {
+        manager.isAvailable ? manager : nil
     }
 
     /// One newline-terminated line per item. Lines are sealed while

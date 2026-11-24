@@ -49,8 +49,8 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
     override func tearDown() async throws {
         cancellables.removeAll()
-        if let session = collector.currentSession {
-            try? collector.archive.delete(session.id)
+        if let session = collector.sessionState.currentSession {
+            _ = try? collector.archive.delete(session.id)
         }
         hostRecordingState?.restore()
         try FileManager.default.removeItem(at: storageDirectory)
@@ -197,25 +197,25 @@ final class RRCollectorObservableStateTests: XCTestCase {
     // MARK: - DeviceStatus back-compat forwarding
 
     func testDeviceStatusProxiesMatchCollectorGetters() {
-        XCTAssertEqual(collector.isDeviceConnected, collector.deviceStatus.isDeviceConnected)
-        XCTAssertEqual(collector.isStreaming, collector.deviceStatus.isStreaming)
-        XCTAssertEqual(collector.hasStoredExercise, collector.deviceStatus.hasStoredExercise)
-        XCTAssertEqual(collector.batteryLevel, collector.deviceStatus.batteryLevel)
-        XCTAssertEqual(collector.isRecordingOnDevice, collector.deviceStatus.isRecordingOnDevice)
-        XCTAssertEqual(collector.connectedDeviceType, collector.deviceStatus.connectedDeviceType)
-        XCTAssertEqual(collector.recordingState, collector.deviceStatus.recordingState)
-        XCTAssertEqual(collector.connectionState, collector.deviceStatus.connectionState)
+        XCTAssertEqual(collector.deviceStatus.isDeviceConnected, collector.deviceStatus.isDeviceConnected)
+        XCTAssertEqual(collector.deviceStatus.isStreaming, collector.deviceStatus.isStreaming)
+        XCTAssertEqual(collector.deviceStatus.hasStoredExercise, collector.deviceStatus.hasStoredExercise)
+        XCTAssertEqual(collector.deviceStatus.batteryLevel, collector.deviceStatus.batteryLevel)
+        XCTAssertEqual(collector.deviceStatus.isRecordingOnDevice, collector.deviceStatus.isRecordingOnDevice)
+        XCTAssertEqual(collector.deviceStatus.connectedDeviceType, collector.deviceStatus.connectedDeviceType)
+        XCTAssertEqual(collector.deviceStatus.recordingState, collector.deviceStatus.recordingState)
+        XCTAssertEqual(collector.deviceStatus.connectionState, collector.deviceStatus.connectionState)
         // fetchProgress is a struct — just check both resolve to the same optional state.
-        XCTAssertEqual(collector.fetchProgress == nil, collector.deviceStatus.fetchProgress == nil)
+        XCTAssertEqual(collector.deviceStatus.fetchProgress == nil, collector.deviceStatus.fetchProgress == nil)
     }
 
     func testDeviceStatusWriteReflectsInCollectorGetter() {
         collector.deviceStatus.isDeviceConnected = true
         collector.deviceStatus.batteryLevel = 75
         collector.deviceStatus.connectionState = .connected
-        XCTAssertTrue(collector.isDeviceConnected)
-        XCTAssertEqual(collector.batteryLevel, 75)
-        XCTAssertEqual(collector.connectionState, .connected)
+        XCTAssertTrue(collector.deviceStatus.isDeviceConnected)
+        XCTAssertEqual(collector.deviceStatus.batteryLevel, 75)
+        XCTAssertEqual(collector.deviceStatus.connectionState, .connected)
     }
 
     func testDeviceStatusIsInjectable() {
@@ -227,8 +227,8 @@ final class RRCollectorObservableStateTests: XCTestCase {
             healthKit: HealthKitManager(),
             deviceStatus: customStatus
         )
-        XCTAssertEqual(injected.batteryLevel, 42)
-        XCTAssertTrue(injected.isDeviceConnected)
+        XCTAssertEqual(injected.deviceStatus.batteryLevel, 42)
+        XCTAssertTrue(injected.deviceStatus.isDeviceConnected)
         XCTAssertTrue(injected.deviceStatus === customStatus)
     }
 
@@ -292,17 +292,17 @@ final class RRCollectorObservableStateTests: XCTestCase {
         collector.streamingLifecycle.isPaused = true
         collector.streamingLifecycle.pausedBeatCount = 1024
 
-        XCTAssertTrue(collector.isStreamingMode)
-        XCTAssertEqual(collector.streamingTargetSeconds, 300)
-        XCTAssertEqual(collector.streamingElapsedSeconds, 42)
-        XCTAssertTrue(collector.isOvernightStreaming)
-        XCTAssertTrue(collector.isPaused)
-        XCTAssertEqual(collector.pausedBeatCount, 1024)
+        XCTAssertTrue(collector.streamingLifecycle.isStreamingMode)
+        XCTAssertEqual(collector.streamingLifecycle.streamingTargetSeconds, 300)
+        XCTAssertEqual(collector.streamingLifecycle.streamingElapsedSeconds, 42)
+        XCTAssertTrue(collector.streamingLifecycle.isOvernightStreaming)
+        XCTAssertTrue(collector.streamingLifecycle.isPaused)
+        XCTAssertEqual(collector.streamingLifecycle.pausedBeatCount, 1024)
     }
 
     func testStreamingLifecycleWritesFromCollectorSetter() {
-        collector.isStreamingMode = true
-        collector.streamingTargetSeconds = 240
+        collector.streamingLifecycle.isStreamingMode = true
+        collector.streamingLifecycle.streamingTargetSeconds = 240
         XCTAssertTrue(collector.streamingLifecycle.isStreamingMode)
         XCTAssertEqual(collector.streamingLifecycle.streamingTargetSeconds, 240)
     }
@@ -315,7 +315,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
             healthKit: HealthKitManager(),
             streamingLifecycle: custom
         )
-        XCTAssertEqual(injected.streamingTargetSeconds, 999)
+        XCTAssertEqual(injected.streamingLifecycle.streamingTargetSeconds, 999)
         XCTAssertTrue(injected.streamingLifecycle === custom)
     }
 
@@ -331,8 +331,8 @@ final class RRCollectorObservableStateTests: XCTestCase {
         collector.morningCoordination.morningStatus = .saving(beats: 500)
         collector.morningCoordination.sleepDataVersion = 7
 
-        XCTAssertEqual(collector.morningStatus, .saving(beats: 500))
-        XCTAssertEqual(collector.sleepDataVersion, 7)
+        XCTAssertEqual(collector.morningCoordination.morningStatus, .saving(beats: 500))
+        XCTAssertEqual(collector.morningCoordination.sleepDataVersion, 7)
     }
 
     func testMorningCoordinationInjectable() {
@@ -343,7 +343,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
             healthKit: HealthKitManager(),
             morningCoordination: custom
         )
-        XCTAssertEqual(injected.sleepDataVersion, 42)
+        XCTAssertEqual(injected.morningCoordination.sleepDataVersion, 42)
         XCTAssertTrue(injected.morningCoordination === custom)
     }
 
@@ -369,15 +369,15 @@ final class RRCollectorObservableStateTests: XCTestCase {
         collector.sessionState.needsAcceptance = true
         collector.sessionState.recordingPhase = .overnightStreaming
 
-        XCTAssertEqual(collector.currentSession?.id, session.id)
-        XCTAssertTrue(collector.needsAcceptance)
-        XCTAssertEqual(collector.recordingPhase, .overnightStreaming)
+        XCTAssertEqual(collector.sessionState.currentSession?.id, session.id)
+        XCTAssertTrue(collector.sessionState.needsAcceptance)
+        XCTAssertEqual(collector.sessionState.recordingPhase, .overnightStreaming)
     }
 
     func testSessionStateWritesFromCollectorSetter() {
         let session = HRVSession(sessionType: .quick)
-        collector.currentSession = session
-        collector.needsAcceptance = true
+        collector.sessionState.currentSession = session
+        collector.sessionState.needsAcceptance = true
         XCTAssertEqual(collector.sessionState.currentSession?.id, session.id)
         XCTAssertTrue(collector.sessionState.needsAcceptance)
     }
@@ -390,7 +390,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
             healthKit: HealthKitManager(),
             sessionState: custom
         )
-        XCTAssertEqual(injected.recordingPhase, .analyzing)
+        XCTAssertEqual(injected.sessionState.recordingPhase, .analyzing)
         XCTAssertTrue(injected.sessionState === custom)
     }
 
@@ -398,22 +398,22 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
     func testResetSessionClearsSessionAndAcceptanceState() {
         let session = HRVSession(sessionType: .overnight)
-        collector.currentSession = session
-        collector.collectedPoints = [RRPoint(t_ms: 0, rr_ms: 800)]
-        collector.needsAcceptance = true
-        collector.isPaused = true
+        collector.sessionState.currentSession = session
+        collector.sessionState.collectedPoints = [RRPoint(t_ms: 0, rr_ms: 800)]
+        collector.sessionState.needsAcceptance = true
+        collector.streamingLifecycle.isPaused = true
 
         collector.resetSession()
 
-        XCTAssertNil(collector.currentSession)
-        XCTAssertTrue(collector.collectedPoints.isEmpty)
-        XCTAssertFalse(collector.needsAcceptance)
-        XCTAssertFalse(collector.isPaused)
-        XCTAssertNil(collector.pausedSession)
-        XCTAssertNil(collector.verificationResult)
-        XCTAssertNil(collector.recoveryWindow)
-        XCTAssertNil(collector.baselineDeviation)
-        XCTAssertEqual(collector.recordingPhase, .idle)
+        XCTAssertNil(collector.sessionState.currentSession)
+        XCTAssertTrue(collector.sessionState.collectedPoints.isEmpty)
+        XCTAssertFalse(collector.sessionState.needsAcceptance)
+        XCTAssertFalse(collector.streamingLifecycle.isPaused)
+        XCTAssertNil(collector.streamingLifecycle.pausedSession)
+        XCTAssertNil(collector.sessionState.verificationResult)
+        XCTAssertNil(collector.sessionState.recoveryWindow)
+        XCTAssertNil(collector.sessionState.baselineDeviation)
+        XCTAssertEqual(collector.sessionState.recordingPhase, .idle)
     }
 
     // MARK: - MorningProcessingStatus Equatable
@@ -453,7 +453,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
     // MARK: - createTrainingContext
 
     func testCreateTrainingContextReturnsNilWithoutCachedLoad() {
-        collector.cachedTrainingLoad = nil
+        collector.scoring.cachedTrainingLoad = nil
         XCTAssertNil(collector.createTrainingContext(relativeTo: Date()))
     }
 
@@ -470,7 +470,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
         collector.settingsManager.settings.vo2MaxOverride = 52.0
         collector.settingsManager.settings.useHealthKitVO2Max = true  // override must still win
 
-        let config = collector.currentANSConfig
+        let config = collector.scoring.currentANSConfig
         XCTAssertEqual(config.vo2Max, 52.0)
     }
 
@@ -484,9 +484,9 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
         collector.settingsManager.settings.vo2MaxOverride = nil
         collector.settingsManager.settings.useHealthKitVO2Max = false
-        collector.cachedTrainingLoad = nil
+        collector.scoring.cachedTrainingLoad = nil
 
-        let config = collector.currentANSConfig
+        let config = collector.scoring.currentANSConfig
         XCTAssertNil(config.vo2Max)
     }
 
@@ -496,14 +496,14 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
         collector.settingsManager.settings.enableTrainingLoadIntegration = false
 
-        let config = collector.currentANSConfig
+        let config = collector.scoring.currentANSConfig
         XCTAssertEqual(config.trainingLoadAdjustment, 0)
     }
 
     // MARK: - findRecentPausedSessionOffMain (pure static)
 
     func testFindRecentPausedSessionReturnsNilWhenMaxGapIsZero() {
-        let result = RRCollector.findRecentPausedSessionOffMain(
+        let result = CollectorSessionControl.findRecentPausedSessionOffMain(
             archive: collector.archive,
             maxGap: 0
         )
@@ -511,7 +511,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
     }
 
     func testFindRecentPausedSessionReturnsNilWhenMaxGapIsNegative() {
-        let result = RRCollector.findRecentPausedSessionOffMain(
+        let result = CollectorSessionControl.findRecentPausedSessionOffMain(
             archive: collector.archive,
             maxGap: -1
         )
@@ -522,24 +522,24 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
     func testInitialPublishedStateIsQuiescent() {
         XCTAssertEqual(collector.archiveVersion, 0)
-        XCTAssertEqual(collector.sleepDataVersion, 0)
-        XCTAssertEqual(collector.streamingElapsedSeconds, 0)
-        XCTAssertEqual(collector.pausedBeatCount, 0)
-        XCTAssertNil(collector.morningStatus)
-        XCTAssertFalse(collector.isDeviceConnected)
-        XCTAssertFalse(collector.isStreaming)
-        XCTAssertFalse(collector.hasStoredExercise)
-        XCTAssertNil(collector.batteryLevel)
-        XCTAssertFalse(collector.isRecordingOnDevice)
-        XCTAssertNil(collector.connectedDeviceType)
-        XCTAssertEqual(collector.connectionState, .disconnected)
-        XCTAssertEqual(collector.recordingState, .idle)
-        XCTAssertNil(collector.recentPausedSession)
-        XCTAssertNil(collector.fetchProgress)
-        XCTAssertNil(collector.lastError)
-        XCTAssertNil(collector.verificationResult)
-        XCTAssertNil(collector.recoveryWindow)
-        XCTAssertNil(collector.baselineDeviation)
+        XCTAssertEqual(collector.morningCoordination.sleepDataVersion, 0)
+        XCTAssertEqual(collector.streamingLifecycle.streamingElapsedSeconds, 0)
+        XCTAssertEqual(collector.streamingLifecycle.pausedBeatCount, 0)
+        XCTAssertNil(collector.morningCoordination.morningStatus)
+        XCTAssertFalse(collector.deviceStatus.isDeviceConnected)
+        XCTAssertFalse(collector.deviceStatus.isStreaming)
+        XCTAssertFalse(collector.deviceStatus.hasStoredExercise)
+        XCTAssertNil(collector.deviceStatus.batteryLevel)
+        XCTAssertFalse(collector.deviceStatus.isRecordingOnDevice)
+        XCTAssertNil(collector.deviceStatus.connectedDeviceType)
+        XCTAssertEqual(collector.deviceStatus.connectionState, .disconnected)
+        XCTAssertEqual(collector.deviceStatus.recordingState, .idle)
+        XCTAssertNil(collector.sessionState.recentPausedSession)
+        XCTAssertNil(collector.deviceStatus.fetchProgress)
+        XCTAssertNil(collector.sessionState.lastError)
+        XCTAssertNil(collector.sessionState.verificationResult)
+        XCTAssertNil(collector.sessionState.recoveryWindow)
+        XCTAssertNil(collector.sessionState.baselineDeviation)
     }
 
     func testDeviceFetchPolicyDefaultsToAutomatic() {
@@ -551,6 +551,6 @@ final class RRCollectorObservableStateTests: XCTestCase {
     }
 
     func testUseDeviceInternalBackupForOvernightStreamingDefaultsTrue() {
-        XCTAssertTrue(collector.useDeviceBackupForOvernight)
+        XCTAssertTrue(collector.overnightRun.usesDeviceBackup)
     }
 }

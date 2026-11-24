@@ -7,13 +7,11 @@ import Foundation
 
     /// Everything the app asks the strap's radio to do.
     ///
-    /// ## Why this exists
-    ///
     /// The Polar SDK is the one part of the recording path that cannot run in a
-    /// test: it needs a strap on a chest and a radio. That left the paths this
-    /// product exists for — arming the H10's overnight recording, fetching it
-    /// in the morning, a Verity Sense night — provable only by wearing the
-    /// strap overnight and looking at the result the next day. A night is a
+    /// test: it needs a strap on a chest and a radio. Without a seam, the paths
+    /// this product exists for — arming the H10's overnight recording, fetching
+    /// it in the morning, a Verity Sense night — are provable only by wearing
+    /// the strap overnight and looking at the result the next day. A night is a
     /// slow unit test, and a wrong answer costs the user the night.
     ///
     /// Seventeen calls is the app's entire surface on the strap. Behind this

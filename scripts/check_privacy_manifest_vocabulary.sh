@@ -55,13 +55,11 @@ VALID_PURPOSES=(
 )
 
 manifests=()
-# Source manifests only. Build output contains copies from previous builds,
+# Tracked manifests only. Build output and nested checkouts hold copies,
 # which would report a value that is already fixed in the tree. Read through
 # a here-string rather than process substitution so a sandbox without
 # /dev/fd cannot turn an unread list into a clean result.
-found="$(find . -name 'PrivacyInfo.xcprivacy' \
-    -not -path './DerivedData/*' \
-    -not -path './build/*' -not -path './.build/*' | sort)"
+found="$(git ls-files -- '*PrivacyInfo.xcprivacy' | sed 's#^#./#' | sort)"
 if [[ -n "$found" ]]; then
     while IFS= read -r line; do manifests+=("$line"); done <<< "$found"
 fi

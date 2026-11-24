@@ -109,10 +109,10 @@ extension ArchiveMigrations {
     /// is `applyIndexPatches`. Returns how many entries were patched.
     ///
     /// The done flag is set once a pass has read every session, patched or
-    /// not. Setting it only when the work list came back empty never
-    /// happened: an entry with nothing to patch (a workout has no sleep
-    /// fields) stays in the list for good, and every launch re-read and
-    /// decrypted all of them. A session that fails to load keeps the flag off
+    /// not. Setting it only when the work list comes back empty would never
+    /// happen: an entry with nothing to patch (a workout has no sleep
+    /// fields) stays in the list for good, and every launch would re-read and
+    /// decrypt all of them. A session that fails to load keeps the flag off
     /// so the next launch tries it again.
     @discardableResult
     private func runIndexMigration(
@@ -127,7 +127,7 @@ extension ArchiveMigrations {
         var patches: [(UUID, SessionArchiveEntry)] = []
         var loadedAll = true
         for (entry, fileURL) in workItems {
-            guard let session = Self.loadForMigration(at: fileURL, entry: entry, label: label) else { loadedAll = false; continue }
+            guard let session = Self.loadForMigration(at: fileURL, entry: entry, label: label, encryption: archive.encryption) else { loadedAll = false; continue }
             if let patched = patch(entry, session) { patches.append((entry.sessionId, patched)) }
         }
         applyIndexPatches(patches, label: label)
@@ -136,14 +136,14 @@ extension ArchiveMigrations {
     }
 
     /// Not a bare `decoder.decode(HRVSession.self, from: Data(contentsOf:))`:
-    /// that fails on encrypted files ("Unexpected character 'F'" in the launch
-    /// log). Route through the shared dual-format reader so
+    /// that fails on encrypted files ("Unexpected character 'F'"). Route
+    /// through the shared dual-format reader so
     /// encrypted + legacy plaintext both decode.
     private static func loadForMigration(
-        at fileURL: URL, entry: SessionArchiveEntry, label: String
+        at fileURL: URL, entry: SessionArchiveEntry, label: String, encryption: EncryptionManager
     ) -> HRVSession? {
         do {
-            return try SessionArchive.loadAndDecodeSessionFile(at: fileURL, decoder: SessionArchive.lightweightSessionDecoder)
+            return try ArchiveStore.loadAndDecodeSessionFile(at: fileURL, decoder: SessionArchive.lightweightSessionDecoder, encryption: encryption)
         } catch {
             debugLog("[Archive] \(label): failed to load session \(entry.sessionId.uuidString.prefix(8)): \(error)", level: .warning)
             return nil
@@ -313,7 +313,7 @@ extension ArchiveMigrations {
     /// all but the best entry per night. Sessions involved in link relationships
     /// (split-sleep segments) are protected.
     ///
-    /// Guarantees (a split night once lost a segment here):
+    /// Guarantees:
     /// 1. NOTHING is permanently deleted. Retired files are MOVED
     ///    to a clearly-labeled `QuarantinedDuplicates/` folder inside the
     ///    archive directory (with a README.txt explaining recovery), so a
@@ -339,7 +339,7 @@ extension ArchiveMigrations {
     ///    feeling, perceived readiness) is carried into the keeper first
     ///    (`carryUserContent`); a copy that cannot be read for it is not
     ///    retired this pass. The tombstone deletes the copy on every device,
-    ///    so content left on it was lost everywhere.
+    ///    so content left on it is lost everywhere.
     func removeDuplicates() {
         guard archive.sessionMergeModeProvider() != .off else { return }
         let quarantineWork = duplicateQuarantineWork()
@@ -475,14 +475,14 @@ extension ArchiveMigrations {
     /// `archiveLock`.
     private func carryUserContent(of loserIds: [UUID], intoKeeper keeperId: UUID) -> Bool? {
         do {
-            guard var keeper = try archive._retrieve(keeperId) else { return false }
+            guard var keeper = try archive.store._retrieve(keeperId) else { return false }
             var changed = false
-            for loser in try loserIds.compactMap({ try archive._retrieve($0) }) {
+            for loser in try loserIds.compactMap({ try archive.store._retrieve($0) }) {
                 changed = Self.carryUserContent(from: loser, into: &keeper) || changed
             }
             guard changed else { return false }
             keeper.modifiedAt = CloudKitSessionFreshness.stamp()
-            _ = try archive._archive(keeper, skipSameNightMerge: true)
+            _ = try archive.store._archive(keeper, skipSameNightMerge: true)
             return true
         } catch {
             debugLog("[Archive] dedupe: could not carry the content of \(loserIds.count) duplicate(s) into \(keeperId.uuidString.prefix(8)) — kept this pass: \(error)", level: .warning)
@@ -817,8 +817,8 @@ extension ArchiveMigrations {
     /// The index is saved with each night, under the same lock as the file
     /// write: saved once at the end, the cached lookups would keep the old
     /// file hash until then (a read in between would fail its integrity
-    /// check), and a crash in between would leave files the stored index no
-    /// longer matched.
+    /// check), and a crash in between would leave files the stored index
+    /// does not match.
     ///
     /// A failed index save puts the parent's previous file and entry back
     /// (`ArchiveStore.rollBackWrite`): the stored index would otherwise keep
@@ -877,8 +877,8 @@ extension ArchiveMigrations {
     private func loadForRelink(_ work: RelinkWork) -> HRVSession? {
         do {
             // Encrypted-file dual-format reader.
-            return try SessionArchive.loadAndDecodeSessionFile(
-                at: work.fileURL, decoder: SessionArchive.sessionDecoder
+            return try ArchiveStore.loadAndDecodeSessionFile(
+                at: work.fileURL, decoder: SessionArchive.sessionDecoder, encryption: archive.encryption
             )
         } catch {
             debugLog("[Archive] relinkSameNightSessions: failed to load session \(work.parentEntry.sessionId.uuidString.prefix(8)): \(error)", level: .warning)
@@ -893,7 +893,7 @@ extension ArchiveMigrations {
             // Shared codec path. A relink under a locked Keychain falls back
             // to plaintext; `writeArchiveBytes` picks protection per the
             // format actually written and keeps the ledger in step with disk.
-            let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: Self.relinkEncoder)
+            let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: Self.relinkEncoder, encryption: archive.encryption)
             try writeArchiveBytes(result.bytes, to: fileURL, format: result.format, sessionID: session.id)
             return result.hash
         } catch {
@@ -923,7 +923,7 @@ extension ArchiveMigrations {
     /// (`writeArchiveBytes`). The write also carries an explicit
     /// protection class, matching every other archive write site: `.atomic`
     /// alone replaces the file and drops the directory-inherited protection
-    /// class (the EPERM-storm root cause, see the note in
+    /// class (which makes reads fail with EPERM, see the note in
     /// `_archive`), and a relinked file written without it can become
     /// unreadable while the device is locked.
     private static let relinkEncoder: JSONEncoder = {

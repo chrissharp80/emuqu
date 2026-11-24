@@ -3,10 +3,9 @@ import SwiftUI
 /// The read-only half of the morning results preview: the date header, the
 /// three metric cards, and the card's own background.
 ///
-/// Split off `RecordView` because none of it reads record-screen state — it is
-/// a function of the session and its analysis — and `RecordView` is over the
-/// aggregate type-size threshold. The buttons and the fetch indicator stay
-/// behind, because those act on state this has no business holding.
+/// None of it reads record-screen state: it is a function of the session and
+/// its analysis. The buttons and the fetch indicator stay on `RecordView`,
+/// because they act on its state.
 @MainActor
 enum MorningPreviewCards {
     static func header(_ session: HRVSession) -> some View {

@@ -12,7 +12,7 @@ import MapKit
 // recorded path, not whatever Apple's walking router would compute
 // to the same endpoint.
 //
-// **Why this exists.** SavedRoute is a polyline of trackpoints
+// **Why detect turns here.** SavedRoute is a polyline of trackpoints
 // from a previously-walked path; it has no turn-by-turn
 // instructions baked in. MKDirections won't help — even if we
 // asked it for a route to the same endpoint, it'd pick its own
@@ -118,13 +118,13 @@ enum SavedRouteStepBuilder {
             CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
         }
         guard originalCoords.count >= 2 else {
-            debugLog("[SavedRouteStepBuilder] route '\(savedRoute.name)' has <2 trackpoints — abort", level: .info)
+            debugLog("[SavedRouteStepBuilder] route \(savedRoute.id.uuidString.prefix(8)) has <2 trackpoints — abort", level: .info)
             return nil
         }
         let direction = inferDirection(from: originalCoords, currentLocation: currentLocation)
         let coords = direction == .forward ? originalCoords : Array(originalCoords.reversed())
         let turnIndices = detectTurns(in: coords)
-        debugLog("[SavedRouteStepBuilder] '\(savedRoute.name)' \(direction.rawValue) — \(coords.count) trackpoints, \(turnIndices.count) turns detected", level: .info)
+        debugLog("[SavedRouteStepBuilder] route \(savedRoute.id.uuidString.prefix(8)) \(direction.rawValue) — \(coords.count) trackpoints, \(turnIndices.count) turns detected", level: .info)
         return await result(
             coords: coords, turnIndices: turnIndices, direction: direction, routeName: savedRoute.name
         )
@@ -482,7 +482,7 @@ enum SavedRouteStepBuilder {
     private static func displayMeasurement(_ meters: Double) -> Measurement<UnitLength> {
         if UnitsPreferenceStore.current.resolved == .imperial {
             guard meters >= 161 else { return Measurement(value: (meters * UnitConstants.feetPerMeter).rounded(), unit: .feet) }
-            return Measurement(value: meters / 1_609.344, unit: .miles)
+            return Measurement(value: meters / UnitConstants.metersPerMile, unit: .miles)
         }
         guard meters >= 1_000 else { return Measurement(value: meters.rounded(), unit: .meters) }
         return Measurement(value: meters / 1_000, unit: .kilometers)

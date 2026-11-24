@@ -67,14 +67,14 @@ final class BeatConsistencyPriorsCache {
     /// (a night's RR / sleep / flags are written once at acceptance), so once
     /// computed they NEVER need recomputing. With an in-memory-only cache,
     /// the ~21 s cold walk of up-to-28 sessions' rrSeries
-    /// (decrypt + multi-MB JSON decode each — a user's exported log timed
-    /// it at 21.7 s) re-runs on EVERY launch, and a wholesale invalidation
-    /// re-runs it on every archive change too; the Beat Consistency card is
-    /// effectively never ready. Persisting to disk means that walk happens AT
-    /// MOST ONCE EVER per session; every later open (this launch or a future
-    /// one) loads tiny precomputed features and the baseline is instant.
+    /// (decrypt + multi-MB JSON decode each) would re-run on EVERY launch,
+    /// and a wholesale invalidation on every archive change too; the Beat
+    /// Consistency card would effectively never be ready. Persisting to disk
+    /// means that walk happens AT MOST ONCE EVER per session; every later open
+    /// (this launch or a future one) loads tiny precomputed features and the
+    /// baseline is instant.
     ///
-    /// `_v2`: features are now computed on the beats' clock with successive
+    /// `_v2`: features are computed on the beats' clock with successive
     /// differences only between neighbouring beats, so features cached by
     /// earlier builds are not comparable and are not read (`removeLegacyFiles`).
     private let diskURL: URL = {
@@ -89,8 +89,8 @@ final class BeatConsistencyPriorsCache {
         diskURL.deletingLastPathComponent().appendingPathComponent("beat_consistency_priors_v2_featureless.json")
     }
 
-    /// The files of builds that computed the features the earlier way. They
-    /// are removed rather than read, so a baseline never mixes features of
+    /// The files of features computed by the v1 method. They are removed
+    /// rather than read, so a baseline never mixes features of
     /// two methods; the walk recomputes each night once.
     private static let legacyFileNames = ["beat_consistency_priors.json", "beat_consistency_priors_featureless.json"]
 
@@ -100,7 +100,7 @@ final class BeatConsistencyPriorsCache {
         loadFeaturelessFromDisk()
     }
 
-    /// Deletes the earlier builds' feature files (`legacyFileNames`); a
+    /// Deletes the v1 feature files (`legacyFileNames`); a
     /// failure is logged and leaves them, unread.
     private func removeLegacyFiles() {
         let dir = diskURL.deletingLastPathComponent()
@@ -196,7 +196,7 @@ final class BeatConsistencyPriorsCache {
     /// touched because per-session features are immutable.
     private func reconcileAgainstBoundArchive() {
         guard let archive = boundArchive else { return }
-        let liveIds = Set(archive.entries.map(\.sessionId))
+        let liveIds = Set(archive.store.entries.map(\.sessionId))
         let stale = entries.keys.filter { !liveIds.contains($0) }
         let staleFeatureless = featureless.subtracting(liveIds)
         guard !stale.isEmpty || !staleFeatureless.isEmpty else { return }
@@ -244,12 +244,10 @@ final class BeatConsistencyPriorsCache {
     /// The single in-flight walk, if any. Owned by the cache (a process-
     /// lifetime singleton), NOT by a view — so it runs to completion and
     /// persists every night even if the view that requested it is torn down
-    /// mid-walk. Running the walk inside the view's
-    /// `.task` wrapped in `withTaskCancellationHandler` means each teardown
-    /// KILLS the walk before it can store — a user's log showed
-    /// `cancelled=true accepted=1` on repeat with `cache hits=0` forever
-    /// (the dashboard recreates the detail view constantly during a 60 s
-    /// CloudKit full sync). Owning the walk here + persisting each night
+    /// mid-walk. Run inside the view's `.task`, each teardown would KILL the
+    /// walk before it could store, and the dashboard recreates the detail
+    /// view constantly during a 60 s CloudKit full sync, so the cache would
+    /// never fill. Owning the walk here + persisting each night
     /// incrementally makes progress monotonic and unkillable.
     private var walkTask: Task<Void, Never>?
 
@@ -308,7 +306,7 @@ final class BeatConsistencyPriorsCache {
             guard let prior = try? archive.retrieve(id) else { return .unavailable }
             return Self.baselineFeatures(from: prior).map(WarmOutcome.features) ?? WarmOutcome.featureless
         }.value
-        guard archive.exists(id) else { return }
+        guard archive.store.exists(id) else { return }
         switch outcome {
         case let .features(features): store(features, for: id)
         case .featureless: markFeatureless(id)

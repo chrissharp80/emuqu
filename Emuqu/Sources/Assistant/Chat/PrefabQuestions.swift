@@ -2,7 +2,7 @@ import Foundation
 
 /// The fixed set of questions surfaced as suggestion chips above the chat input.
 ///
-/// Backed by the existing analysis layer. Selecting a chip just sends the
+/// Backed by the analysis layer. Selecting a chip just sends the
 /// `prompt` text as a regular user message — there's no special routing.
 /// The model's answer quality comes from the structured `AssistantContext`
 /// it receives alongside, not from any per-question logic.

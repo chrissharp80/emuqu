@@ -4,21 +4,14 @@ import Foundation
 /// recording may start, what a status reading means, and whether one needs
 /// stopping at session end.
 ///
-/// ## Why this exists
-///
 /// These guards protect the single most expensive failure this app has — a lost
 /// night. Starting a second recording while one is running abandons the first;
 /// the H10 keeps one file and the new one replaces it. Skipping the stop leaves
 /// the strap recording flat into the next day and the battery dead by evening.
 ///
-/// As inline `guard` chains inside async SDK plumbing in
-/// `PolarManager+Recording.swift` they sat at **0% coverage**:
-/// nothing in the suite could reach them, because reaching them required a
-/// connected Polar strap.
-///
 /// Every input here is already an app-owned type — `PolarDeviceType`,
 /// `ConnectionState`, `RecordingState` — so the decisions are separable
-/// from the SDK.
+/// from the SDK and testable without a connected strap.
 enum StrapRecordingPolicy {
     /// What `startRecording` should do, given the connection and recording state.
     enum StartDecision: Equatable {
@@ -128,7 +121,7 @@ enum StrapRecordingPolicy {
     // MARK: - Transfers
 
     /// How long taking a recording off the strap may take, phase by phase.
-    /// Every phase runs under `StrapDeadline`, so a stale link that never
+    /// Every phase runs under `Deadline`, so a stale link that never
     /// answers ends in an error at the deadline instead of an endless spinner.
     struct TransferBudget: Equatable, Sendable {
         /// Status read, stop and the wait for the file to finalize. A
@@ -231,9 +224,9 @@ enum StrapRecordingPolicy {
     /// record) AND be on this device: an archived session or a rescue backup
     /// near its start (`heldOnDisk`). A download alone is not enough: the
     /// record is written when the beats arrive, before anything stores them,
-    /// so a backup that failed or an app killed before the night was saved
-    /// left a recording marked downloaded that only the strap held, and the
-    /// next start cleared it. A recording read twice files a second rescue
+    /// so a backup that fails or an app killed before the night is saved
+    /// would leave a recording marked downloaded that only the strap holds,
+    /// and the next start would clear it. A recording read twice files a second rescue
     /// backup; that is the cost of never clearing one the app lacks.
     static func recordingIsSaved(
         alreadyDownloaded: Bool, predatesDownloadRecord: Bool, heldOnDisk: Bool

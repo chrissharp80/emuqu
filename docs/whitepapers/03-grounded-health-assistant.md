@@ -6,7 +6,7 @@ Technical White Paper • v1.4 • 22 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 6b195c6 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 44a11ce (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
 
 Cite as: Sharp C. Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Perimeter. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/03-grounded-health-assistant.md.
 
@@ -110,7 +110,7 @@ A fact is a value of `FactEntry`, a type with exactly four cases (Table 3.1).
 
 Each entry also carries an `availability` closure (Section 3.1.4), which defaults to "always available" so a declaration is one expression. A namespace resolver exposes only `namespace: String` and `entries: [FactEntry]`. The registry derives the model-facing schema from `entries`, and the default resolve walks the same array to dispatch a key.
 
-At 6b195c6, 26 namespace resolvers are registered: 16 for health data, 9 for app and device state and actions, and a composites namespace registered last. Five share the head `app`, three share `workout` and two share `hrv`. They declare **239 entries**: 146 `fixed` synchronous, 11 `fixed` awaitable, 56 `parameterized`, 6 `composite` and 20 `action`.
+At 44a11ce, 26 namespace resolvers are registered: 16 for health data, 9 for app and device state and actions, and a composites namespace registered last. Five share the head `app`, three share `workout` and two share `hrv`. They declare **239 entries**: 146 `fixed` synchronous, 11 `fixed` awaitable, 56 `parameterized`, 6 `composite` and 20 `action`.
 
 **Why it works.** Because the resolver closure is a field of the declared entry, there is no second table to drift: a fact that can be resolved is a fact declared in the catalog, and the reverse. Adding a metric is one reviewed declaration that every provider sees on the next schema build.
 
@@ -361,7 +361,7 @@ Eight concepts are **input-only**:
 - Danger judgement, because its bare adjectives (`dangerous`, `gefährlich`) appear in the app's own negating educational copy ("not because the number is dangerous in itself"). Assertion-shaped danger framing is covered on output by risk-zone framing.
 - Acute cardiac event, a strict subset of the already-scrubbed named cardiac condition. It exists so the input guard can refuse "am I having a heart attack?" without refusing "is my resting HR bradycardia?", an ordinary endurance-athlete question.
 
-Every concept is in the input group, the output group, or both (rhythm and neurovascular event). `neverInStaticCopy` excludes concepts the app's copy uses on purpose: its own safety replies say "talk to your doctor", which matches `medicalReferral`, and it names its own Diagnostics feature, a form of the `diagnosis` concept. The 12 selected concepts appear in no locale's copy outside the allow-listed disclaimers (the linter runs clean at 6b195c6), so the group can act as a hard gate.
+Every concept is in the input group, the output group, or both (rhythm and neurovascular event). `neverInStaticCopy` excludes concepts the app's copy uses on purpose: its own safety replies say "talk to your doctor", which matches `medicalReferral`, and it names its own Diagnostics feature, a form of the `diagnosis` concept. The 12 selected concepts appear in no locale's copy outside the allow-listed disclaimers (the linter runs clean at 44a11ce), so the group can act as a hard gate.
 
 **Why it works.** One vocabulary consumed at three points means a term forbidden in shipped copy is also handled at input and in model output, in every language, and one edit reaches all three. Splitting by script gives each language the boundary rule that fits it, and matching on the original text keeps replacement ranges exact. Per-language exclusions at the qualifier's natural position let normal physiology, software terms and sports vocabulary through. Per-concept group membership lets each enforcement point act without rewriting the app's own safety language.
 
@@ -467,12 +467,12 @@ Each of the following exits with code 2: a missing scan path, an unreadable file
 The CI gate checks that the runtime lexicon recognizes every spelling of every build-time pattern:
 
 1. Extract every literal from every `latin:`/`unbounded:` array in all lexicon files (a glob, so a file split hides nothing). Bracket matching skips string literals, so a `]` inside a character class does not close the array. Compile each, word-bounding `latin` alternatives.
-2. **Fail (exit 2)** if any alternative does not compile, matches the empty string, or fewer than 100 were extracted; any of these means the parser or the lexicon is broken. At 6b195c6 there are 989.
+2. **Fail (exit 2)** if any alternative does not compile, matches the empty string, or fewer than 100 were extracted; any of these means the parser or the lexicon is broken. At 44a11ce there are 989.
 3. For each build-time pattern, **expand every spelling** it matches: each alternation branch, each optional part present and absent, each character-class member; `*` and `{m,n}` take their minimum, `+` one repetition, `\s` a space, `\w` a placeholder word, `\d` a digit; `(?i)`, `\b` and lookarounds are dropped, and doubled or edge spaces are collapsed.
 4. **Fail (exit 2)** if a pattern cannot be expanded, expands to more than 5,000 spellings or to none, or if a spelling does not match its own pattern.
 5. **Fail (exit 1)** if no lexicon alternative matches a spelling, listing each gap.
 
-At 6b195c6 the 62 build-time patterns expand to 590 spellings, all matched.
+At 44a11ce the 62 build-time patterns expand to 590 spellings, all matched.
 
 **Why it works.** Two hand-kept vocabularies drift. Expanding each build-time pattern into the spellings it matches turns it into concrete examples the runtime lexicon must recognize, so a term added to only one list fails CI. One example per pattern was not enough: reducing `(a|b)` to `a` checked one spelling per pattern, and forms such as *undiagnosed*, *curing*, *curative*, *pathological* and *ischaemic* went unmatched while the gate printed clean. The self-check and the vacuity guards ensure the gate cannot pass because its own parser broke.
 
@@ -508,7 +508,7 @@ Product and library facts are limited to their public documentation, code or fil
 
 ## 5. What Is New
 
-Each statement gives only the part not found in a prior-art search made on 2026-10-08 (agent-framework code and documentation, patent databases, arXiv, vendor documentation, public code hosting). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 9d89933) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
+Each statement gives only the part not found in a prior-art search made on 2026-10-08 (agent-framework code and documentation, patent databases, arXiv, vendor documentation, public code hosting). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 01e2bae) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
 
 **N1 (Section 3.1.1). A fact catalog keyed by literal dotted keys or patterns with exactly one `$param`, parsed by one depth-aware grammar that keeps dots inside parentheses.** The same parse yields the tool name (dots → underscores; `($param)` → required string property), a leading-token match that passes remaining tokens as a sub-key, and dispatch (head-token namespaces first, in registration order, then all others), so a per-entry tool and a raw-key `lookup_fact` reach the same resolver.
 
@@ -532,13 +532,13 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* per-tool timeouts returned as results (OpenAI Agents SDK [23]) and the OpenHands stuck detector, which halts after four repeated action–observation pairs or three repeated erroring actions [24]; adds miss-only, per-signature steering through an absence, with size and range rails in the same envelope.
 
-*Earliest dated record:* flow-recovery c63d56c, 2026-04-23 (first form, miss counter and 80,000-byte cap); emuqu c1d875e, 2026-10-05 (current form, range-checked arguments).
+*Earliest dated record:* flow-recovery c63d56c, 2026-04-23 (first form, miss counter and 80,000-byte cap); emuqu 4d8c883, 2026-10-05 (current form, range-checked arguments).
 
 **N5 (Section 3.1.5). Composite facts that declare atomic dependencies, awaited into a registry-held prefetch map that a synchronous body reads and that is restored before anything can suspend.** The composite returns a `{present, missing}` record with per-child absence reasons and `status: "partialData"` when any child is missing.
 
 *Builds on:* dependency-declared computation in general; no specific public prior art was found. Adds scoped prefetch for a synchronous body and per-child attribution returned to the model.
 
-*Earliest dated record:* flow-recovery c63d56c, 2026-04-23 (first form, present/missing records); emuqu 554540f, 2026-10-03 (current form, scoped prefetch).
+*Earliest dated record:* flow-recovery c63d56c, 2026-04-23 (first form, present/missing records); emuqu 8abc6d7, 2026-10-03 (current form, scoped prefetch).
 
 **N6 (Section 3.2). A two-tier tool surface: 21 fixed polymorphic read tools plus 19 allow-listed actions taken from the availability-filtered catalog under their original names.** The list is deduplicated by name (first wins) and sorted for byte stability, and a system-prompt capability index is generated from the same read-tool list (first sentence, capped at 170 characters).
 
@@ -550,13 +550,13 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* Proof-Carrying Numbers [9] (claim-bound tokens verified under a tolerance policy, fail-closed); US Patent 12,670,149 [10] (detecting and correcting inaccurate numeric comparisons); PHIA [25] (code-computed answers from wearable data). Adds spelled-number parsing in free speech, present-value scoping by sentence markers and span-only replacement before speech.
 
-*Earliest dated record:* flow-recovery 1b5ad2a, 2026-05-02 (first form, "hallucination guard": live voice chunks, tolerances, span replacement); emuqu 946c8b2, 2026-10-11 (current form: clause-scoped markers, numbers to 999 and spelled live claims). Intermediate: app-state claims flow-recovery 10fc926, 2026-05-17; spelled numbers flow-recovery e8ca54a, 2026-06-02; time and target markers emuqu 554540f, 2026-10-03.
+*Earliest dated record:* flow-recovery 1b5ad2a, 2026-05-02 (first form, "hallucination guard": live voice chunks, tolerances, span replacement); emuqu 896c1da, 2026-10-11 (current form: clause-scoped markers, numbers to 999 and spelled live claims). Intermediate: app-state claims flow-recovery 10fc926, 2026-05-17; spelled numbers flow-recovery e8ca54a, 2026-06-02; time and target markers emuqu 8abc6d7, 2026-10-03.
 
 **N8 (Section 3.3.4). A correction loop that feeds discrepancies into the next turn's prompt.** Discrepancies are deduplicated by `(metric, claimed, actual)`, capped at four, and carried in a variable section of each prompt composed after them, outside the cached prefix, until a reply to one of those prompts has been verified, telling the model the user may have seen the wrong number and to call the named tool; the reply is not regenerated.
 
 *Builds on:* US Patent 12,670,149, which re-prompts to fix a detected numeric error [10]; adds deduplicated next-turn feedback outside the cache, retired once answered.
 
-*Earliest dated record:* flow-recovery 68f32e5, 2026-05-08 (first form, "hallucination feedback": cap 4, consume once); emuqu 946c8b2, 2026-10-11 (current form, retired when a reply has been verified). Intermediate: deduplication emuqu 5c4a23d, 2026-10-04. Later: cleared with the conversation, emuqu 1d6460b, 2026-11-21.
+*Earliest dated record:* flow-recovery 68f32e5, 2026-05-08 (first form, "hallucination feedback": cap 4, consume once); emuqu 896c1da, 2026-10-11 (current form, retired when a reply has been verified). Intermediate: deduplication emuqu c0dff5b, 2026-10-04. Later: cleared with the conversation, emuqu c6a0168, 2026-11-21.
 
 **N9 (Section 3.4). Structural resolution of user-versus-cache conflicts by prompt construction.** Statements (not questions) in the user turns among the last six turns, excluding local-only turns, that assert metric values inject a user-stated block. Statements that contradict the cache or request an override also remove the cached training-load block, instead of instructing the model to prefer the user.
 
@@ -574,13 +574,13 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* Myra's crisis protocol, which screens every message before the AI with a phrase list and classifier and replies with a fixed message and region-localized crisis lines [26], and a public Hugging Face Space with a keyword crisis reply [27]. Adds ordered multi-class refusal, local-only persistence across history and tested prompt parity.
 
-*Earliest dated record:* flow-recovery 69ee32d, 2026-04-26 (first form, English, nothing sent); emuqu c1d875e, 2026-10-05 (current form, injury class). Intermediate: `localOnly` flow-recovery 9645baa, 2026-05-01; ordered classes emuqu-dev 8c3999d, 2026-08-26; self-harm class emuqu 3585687, 2026-09-30.
+*Earliest dated record:* flow-recovery 69ee32d, 2026-04-26 (first form, English, nothing sent); emuqu 4d8c883, 2026-10-05 (current form, injury class). Intermediate: `localOnly` flow-recovery 9645baa, 2026-05-01; ordered classes emuqu-dev 8c3999d, 2026-08-26; self-harm class emuqu 3585687, 2026-09-30.
 
 **N12 (Section 3.7). An on-device, negation-neutral output guard that replaces whole sentences with deflections true in both readings.** It retries on markdown-stripped text; collapses a sentence-straddling match into one deflection, or deflects the whole message if that still matches; and runs on complete sentences before display (holding back tails with a decimal-aware split), on every spoken utterance, and in a final pass.
 
 *Builds on:* NeMo Guardrails streaming output rails, server-side [17], and NegEx [18]. Adds negation-neutral sentence deflection on the device before display and speech.
 
-*Earliest dated record:* flow-recovery 0a3972d, 2026-05-03 (first form, English sentence deflection); emuqu 5c4a23d, 2026-10-04 (current form, decimal-aware split). Intermediate: negation-neutral multilingual form emuqu-dev 8c3999d, 2026-08-26. Later: soft-terminator hold-back emuqu 946c8b2, 2026-10-11; the app's canned safety replies passed unchanged, in order (Section 3.7), emuqu 419b34f, 2026-11-21. The canned-reply exception is described in Section 3.7 and not presented as new.
+*Earliest dated record:* flow-recovery 0a3972d, 2026-05-03 (first form, English sentence deflection); emuqu c0dff5b, 2026-10-04 (current form, decimal-aware split). Intermediate: negation-neutral multilingual form emuqu-dev 8c3999d, 2026-08-26. Later: soft-terminator hold-back emuqu 896c1da, 2026-10-11; the app's canned safety replies passed unchanged, in order (Section 3.7), emuqu e597a55, 2026-11-21. The canned-reply exception is described in Section 3.7 and not presented as new.
 
 **N13 (Section 3.8). A build-time copy linter with a Swift lexical scanner (nested comments, multi-line and raw literals, blanked interpolations).** It evaluates a prohibition exemption on comment-stripped source within the prohibiting sentence only, allow-lists at the key level so translations are covered, applies multilingual patterns parsed from the runtime lexicon source to every locale, and fails closed on bad input.
 
@@ -592,7 +592,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* regex string generation (exrex [28]; Hypothesis `from_regex` [29]); adds its use to check that one vocabulary covers another, with self-check and vacuity guards.
 
-*Earliest dated record:* emuqu-dev 8c3999d, 2026-08-26 (first form, one witness per pattern); emuqu 946c8b2, 2026-10-11 (current form, every spelling).
+*Earliest dated record:* emuqu-dev 8c3999d, 2026-08-26 (first form, one witness per pattern); emuqu 896c1da, 2026-10-11 (current form, every spelling).
 
 **Prior work used, not presented as new.**
 
@@ -619,7 +619,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 These methods are software controls, not physiological measurements. The science register (`Tools/science_register/register.json`, scoring version v3.3.nov2026) classifies the app's physiological heuristics; none of its entries covers a method in this paper. Test results for the physiological methods of Paper 1, *Overnight Recovery Measurement from Raw Beat Intervals* ([link](01-overnight-recovery-measurement.md)), and Paper 2, *Real-Time DFA α1 and Dropout-Robust Training Load* ([link](02-exercise-hrv-and-training-load.md)), come from the cross-implementation scripts in `Tools/validation/`. Verifier tolerances are set from dashboard rounding and metric noise; detection rates on real model output are not claimed.
 
-Behavior is fixed by unit tests in `EmuquTests` (Table 6.1; test-function counts at 6b195c6) and by CI gates.
+Behavior is fixed by unit tests in `EmuquTests` (Table 6.1; test-function counts at 44a11ce) and by CI gates.
 
 **Table 6.1.** Unit-test suites.
 
@@ -636,7 +636,7 @@ Behavior is fixed by unit tests in `EmuquTests` (Table 6.1; test-function counts
 | `EmuquTests/FactNumericArgumentTests.swift` | 9 | Hostile numeric values and field counts rejected with the range named, without trapping |
 | `EmuquTests/AssistantActionConfirmationTests.swift` | 22 | Destructive actions wait for an explicit yes in the user's next message; other replies, a later turn or expiry cancel; a fact or contact the user did not state waits for the same yes; affirmations in several languages |
 
-`Tools/copy_linter/lint.py` and `scripts/check_perimeter_sync.sh` run in CI. `scripts/verify_gates_fail.sh` plants a violation for each and requires failure: a localized "This can diagnose your arrhythmia." and a malformed catalog for the linter, and a term added to only one list for the coverage gate. At 6b195c6 the coverage gate probes 590 spellings of 62 patterns against 989 alternatives, with no gaps.
+`Tools/copy_linter/lint.py` and `scripts/check_perimeter_sync.sh` run in CI. `scripts/verify_gates_fail.sh` plants a violation for each and requires failure: a localized "This can diagnose your arrhythmia." and a malformed catalog for the linter, and a term added to only one list for the coverage gate. At 44a11ce the coverage gate probes 590 spellings of 62 patterns against 989 alternatives, with no gaps.
 
 ---
 
@@ -675,7 +675,7 @@ The project began as a general fitness app. Repository AI-Fitness-Coach (2025-02
 | chrissharp80/flow-recovery-dev | Flow Recovery | c48eeb9, 2026-03-01 | Squashed import; to 2026-03-15 | Private |
 | chrissharp80/flow-recovery | Flow Recovery | 39bfcd4, 2026-03-15 | 196 commits to 2026-08-12 | Private |
 | chrissharp80/emuqu-dev | Emuqu | d4e5cf8, 2026-08-16 | Squashed import; to 2026-09-04 | Private |
-| chrissharp80/emuqu | Emuqu | 9d89933, 2026-09-08 | Squashed import; current | Public (PolyForm Strict 1.0.0) |
+| chrissharp80/emuqu | Emuqu | 01e2bae, 2026-09-08 | Squashed import; current | Public (PolyForm Strict 1.0.0) |
 
 History has gaps from 2026-01-26 to 2026-03-01, 2026-08-12 to 2026-08-16 and 2026-09-04 to 2026-09-08, where each new repository began with a squashed import; a date at a squashed import is an upper bound for anything it contains. The pre-code design (v1 to v9.2 FINAL, completed 2026-01-08 21:06 CST) is described in Paper 5, Section 4: versions v1 and v3.0 have not been recovered; v2–v2.2 and v4.0–v9.1 survive in the author's Claude conversation record; v9.2 FINAL survives as a Google Drive document.
 
@@ -697,7 +697,7 @@ These agree with the commit dates in Section 5.
 - 2026-01-27: TestFlight beta opened (over 1,500 sessions by 2026-03-06; 45 testers and over 6,500 sessions by August 2026). A public TestFlight join link appeared in the project README by May 2026.
 - 2026-05-19: Substack article "A Powerfully Lazy Man's Way to Better Health" (Paper 1 lists what it disclosed).
 - 2026-08-10: Substack article "How I Build Production Software by Directing AI" (Paper 5 lists what it disclosed).
-- 2026-09-08: public repository github.com/chrissharp80/emuqu (first commit 9d89933).
+- 2026-09-08: public repository github.com/chrissharp80/emuqu (first commit 01e2bae).
 - 2026-10-08: these white papers.
 
 Neither Substack article disclosed any method in this paper.
@@ -708,9 +708,9 @@ Chris Sharp is the sole author of these papers and of the design, and the only p
 
 ### 8.6 Document history
 
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims) and described source revision e028039 (2026-10-07).
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims) and described source revision b87eb64 (2026-10-07).
 
-v1.4, published 2026-11-22, brings the paper to source revision 6b195c6 (2026-11-21) and scoring version v3.3.nov2026. Changed: catalog counts (239 entries, 20 actions; a third `workout` and a second `hrv` namespace head) and the trailing-dot and no-tail composite rules (Section 3.1); the time budget, which now only logs (Section 3.1.6, Appendix A, B.1); 19 allow-listed actions, the allow-list as a dispatch gate, and confirmation of destructive and model-supplied writes (Section 3.2); claim shapes with connectors and optional live units, the 0–999 normalizer applied to live claims too, clause-scoped markers, today's overnight as the RMSSD and recovery source, paused training load and the dashboard's integer recovery score (Section 3.3, B.3); corrections retired once a reply has been verified (Section 3.3.4); unit-like names and min:sec pace in the user-assertion detector (Section 3.4); the neverInStaticCopy rationale (Section 3.5); the apostrophe fold and the provider check before the turn is sent (Section 3.6, Table 2.1); the canned-safety-copy exception, soft-terminator hold-back and tidying of rewritten sentences only (Section 3.7, B.6); every-spelling expansion in the coverage gate (Section 3.9, B.7); N6, N7, N8, N12 and N14 and their records (Section 5); test counts and the confirmation suite (Section 6); four tradeoffs (Section 7); routing-mode limits on fallback (Appendix A).
+v1.4, published 2026-11-22, brings the paper to source revision 44a11ce (2026-11-21) and scoring version v3.3.nov2026. Changed: catalog counts (239 entries, 20 actions; a third `workout` and a second `hrv` namespace head) and the trailing-dot and no-tail composite rules (Section 3.1); the time budget, which now only logs (Section 3.1.6, Appendix A, B.1); 19 allow-listed actions, the allow-list as a dispatch gate, and confirmation of destructive and model-supplied writes (Section 3.2); claim shapes with connectors and optional live units, the 0–999 normalizer applied to live claims too, clause-scoped markers, today's overnight as the RMSSD and recovery source, paused training load and the dashboard's integer recovery score (Section 3.3, B.3); corrections retired once a reply has been verified (Section 3.3.4); unit-like names and min:sec pace in the user-assertion detector (Section 3.4); the neverInStaticCopy rationale (Section 3.5); the apostrophe fold and the provider check before the turn is sent (Section 3.6, Table 2.1); the canned-safety-copy exception, soft-terminator hold-back and tidying of rewritten sentences only (Section 3.7, B.6); every-spelling expansion in the coverage gate (Section 3.9, B.7); N6, N7, N8, N12 and N14 and their records (Section 5); test counts and the confirmation suite (Section 6); four tradeoffs (Section 7); routing-mode limits on fallback (Appendix A).
 
 ---
 
@@ -757,7 +757,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 
 ## Appendix A: Parameters
 
-**Table A.1.** Parameters at 6b195c6.
+**Table A.1.** Parameters at 44a11ce.
 
 | Name | Value | Unit | Role |
 |---|---|---|---|
@@ -813,8 +813,8 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | Linter prohibition window | 3 lines (match line and 2 above) | lines | Exemption |
 | Linter snippet fragment | first 40 characters, at least 3 | characters | Exemption |
 | Build-time English patterns | 62 | count | `user_facing_prohibited` |
-| Coverage-gate minimum alternatives | 100 (989 at 6b195c6) | count | Vacuity guard |
-| Coverage-gate spelling limit | 5,000 per pattern (590 in all at 6b195c6) | count | Expansion guard |
+| Coverage-gate minimum alternatives | 100 (989 at 44a11ce) | count | Vacuity guard |
+| Coverage-gate spelling limit | 5,000 per pattern (590 in all at 44a11ce) | count | Expansion guard |
 | Consent schema version | 8 | — | Per-provider consent |
 | Request audit size | 10 | entries | In-memory first-in-first-out (FIFO) log |
 
@@ -959,15 +959,15 @@ fail(1) if gaps else pass
 | Key grammar | `Emuqu/Sources/Assistant/Facts/FactKey.swift` |
 | Value union, absence taxonomy, availability, envelope | `Emuqu/Sources/Assistant/Facts/FactValue.swift` |
 | Registry, rails, schema, hash, composites, time budget | `Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift` |
-| Numeric argument ranges | `Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift` |
-| Namespace registration; entries | `Emuqu/Sources/Assistant/Facts/AppFactResolver.swift` and the `AppFactResolver+` extensions beside it |
-| Provenance fields (`data_source`, `comparison_safe`) | `Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift`, `Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift`, `Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift` |
+| Numeric argument ranges | `Emuqu/Sources/Assistant/Facts/FactNumericArguments.swift` |
+| Namespace registration; entries | `Emuqu/Sources/Assistant/Facts/AppFactResolver.swift` and the `*Facts.swift` namespace files beside it |
+| Provenance fields (`data_source`, `comparison_safe`) | `Emuqu/Sources/Assistant/Facts/TrainingProjectionFacts.swift`, `Emuqu/Sources/Assistant/Facts/WorkoutLiveDerivedFacts.swift`, `Emuqu/Sources/Assistant/Facts/SleepFacts.swift` |
 | Compact tools, allow-list, capability index | `Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift`, `Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift` |
 | BM25 ranking | `Emuqu/Sources/Assistant/Facts/ToolRetriever.swift` |
 | xAI Grok schema cap | `Emuqu/Sources/Assistant/Providers/GrokProvider.swift` |
 | Tool loop, call budget, chat verification, fallback, mutating-tool rule | `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift`; routing-mode fallback limits `Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift` |
 | Provider check (available and switched on) | `Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift` |
-| Action confirmation | `Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift`, `Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift` |
+| Action confirmation | `Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift`, `Emuqu/Sources/Assistant/Facts/AssistantConfirmationFacts.swift` |
 | On-device dispatcher | `Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift` |
 | Number verifier, correction buffer | `Emuqu/Sources/Assistant/MetricsVerifier.swift` |
 | Voice verification and scrub order | `Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift` |

@@ -111,7 +111,7 @@ enum GPXExporter {
 
     static func distanceLabel(_ distMeters: Double, imperial: Bool) -> String {
         imperial
-            ? String(format: "%.2f mi", distMeters / 1_609.344)
+            ? String(format: "%.2f mi", distMeters / UnitConstants.metersPerMile)
             : String(format: "%.2f km", distMeters / 1_000.0)
     }
 

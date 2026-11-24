@@ -85,10 +85,9 @@ struct ArchiveDiagnosticsView: View {
         SampleDataSection()
     }
 
-    /// No wipe here. This page once had a local-only "Clear All Archive
-    /// Data" that removed the whole archive directory, Trash and deletion
-    /// list included, after one alert, with no recording guard and no lock:
-    /// unsynced nights were lost for good. Deleting data goes through Delete
+    /// No wipe here. A local-only wipe of the archive directory takes Trash
+    /// and the deletion list with it and, with no recording guard and no lock,
+    /// loses unsynced nights for good. Deleting data goes through Delete
     /// All My Data, which has the typed-phrase gate and the recording guard.
     private var actionsSection2: some View {
         Section {
@@ -139,7 +138,7 @@ struct ArchiveDiagnosticsView: View {
     /// on a userInitiated detached task; UI displays whatever was last shown
     /// until the walk finishes, then updates atomically.
     private func refreshDiagnostics() async {
-        let entries = collector.archive.entries
+        let entries = collector.archive.store.entries
         diagnosticInfo = await Task.detached(priority: .userInitiated) {
             Self.indexReport(entries: entries)
         }.value
@@ -173,7 +172,7 @@ struct ArchiveDiagnosticsView: View {
     /// every button tap. Off-loaded to a userInitiated detached task; result
     /// assigned back on MainActor.
     private func scanFileSystem() async {
-        let indexedFileNames = Set(collector.archive.entries.map { URL(fileURLWithPath: $0.filePath).lastPathComponent })
+        let indexedFileNames = Set(collector.archive.store.entries.map { URL(fileURLWithPath: $0.filePath).lastPathComponent })
         diagnosticInfo = await Task.detached(priority: .userInitiated) {
             Self.fileSystemReport(indexedFileNames: indexedFileNames)
         }.value
@@ -246,7 +245,7 @@ struct ArchiveDiagnosticsView: View {
     private func performRepair() {
         isRepairing = true
         let archive = collector.archive
-        let indexedBefore = archive.entries.count
+        let indexedBefore = archive.store.entries.count
         Task {
             let outcome = await Task.detached(priority: .userInitiated) { Self.repair(archive) }.value
             isRepairing = false

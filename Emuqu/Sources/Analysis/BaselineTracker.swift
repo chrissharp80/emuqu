@@ -833,15 +833,8 @@ final class BaselineTracker: @unchecked Sendable {
     private func observeUnlock() {
         guard !observingUnlock else { return }
         observingUnlock = true
-        let names = [
-            UIApplication.protectedDataDidBecomeAvailableNotification,
-            UIApplication.didBecomeActiveNotification,
-            UIApplication.didEnterBackgroundNotification
-        ]
-        for name in names {
-            unlockObservers.add(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
-                self?.retryAfterUnlock()
-            })
+        unlockObservers.observeProtectedDataMayBeAvailable(also: [UIApplication.didEnterBackgroundNotification]) { [weak self] in
+            self?.retryAfterUnlock()
         }
     }
 

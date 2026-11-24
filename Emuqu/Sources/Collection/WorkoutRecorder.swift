@@ -37,10 +37,6 @@ final class WorkoutRecorder {
     /// to that alone. Forwarding keeps `recorder.phase`,
     /// `recorder.currentSession`, etc. readable.
     let lifecycle = WorkoutLifecycle()
-    var phase: Phase { lifecycle.phase }
-    var currentSession: HRVSession? { lifecycle.currentSession }
-    var finishedSession: HRVSession? { lifecycle.finishedSession }
-    var elapsedSeconds: Int { lifecycle.elapsedSeconds }
     /// HR metrics (currentHR, peakHR, beatCount) live in a dedicated
     /// sub-observable so HR-only displays aren't invalidated by motion or
     /// lifecycle updates. Getters forward
@@ -48,9 +44,6 @@ final class WorkoutRecorder {
     /// Named `workoutHR` (not `hr`) to avoid shadowing local `hr` vars in
     /// tick code.
     let workoutHR = WorkoutHR()
-    var currentHR: Int? { workoutHR.currentHR }
-    var peakHR: Int { workoutHR.peakHR }
-    var beatCount: Int { workoutHR.beatCount }
     /// Motion metrics (GPS + pedometer + foot pod) live in a
     /// dedicated sub-observable so the live-map view and the stat-chip
     /// view can subscribe to only the signal they actually use: the 1 Hz
@@ -60,13 +53,6 @@ final class WorkoutRecorder {
     /// Getters below forward `recorder.distanceMeters` etc.
     /// reads through to `motion`.
     let motion = WorkoutMotion()
-    var distanceMeters: Double { motion.distanceMeters }
-    var elevationGainMeters: Double { motion.elevationGainMeters }
-    var liveTrack: [CLLocation] { motion.liveTrack }
-    var stepCount: Int { motion.stepCount }
-    var cadenceStepsPerMin: Double? { motion.cadenceStepsPerMin }
-    var powerWatts: Int? { motion.powerWatts }
-    var footPodActive: Bool { motion.footPodActive }
     /// Live DFA α1 + band. Owns its own rolling window.
     let dfa = LiveDFAAnalyzer()
     /// Structured-interval controller. Nil unless the user picked an interval
@@ -79,8 +65,6 @@ final class WorkoutRecorder {
         get { lifecycle.targetZone }
         set { lifecycle.targetZone = newValue }
     }
-    /// Which HR source is live for this workout. Read through to `lifecycle`.
-    var activeHRSource: HRSource { lifecycle.activeHRSource }
 
     // MARK: Dependencies
 
@@ -92,9 +76,7 @@ final class WorkoutRecorder {
     // tab), but the user often hasn't tapped the in-app Start button
     // for many seconds — they're picking sport / target / strap.
     // Eagerly building the location stack adds 1–3 s of main-thread
-    // work to the tab swap; a user-reported freeze when going
-    // (strap pair) → (voice chat) → (Fitness tab + Start) bottomed
-    // out here. So it is lazy: constructed on first access (start() for a
+    // work to the tab swap, so it is lazy: constructed on first access (start() for a
     // GPS sport, or any view that reads `locationManager`). By that
     // point the user has explicitly committed to a workout.
     var _injectedLocation: WorkoutLocationManager?
@@ -119,41 +101,13 @@ final class WorkoutRecorder {
     }
 
     func pause(isAuto: Bool = false) { session.pause(isAuto: isAuto) }
-    func resume() { session.resume() }
-    func archive(session archived: HRVSession) async { await session.archive(session: archived) }
 
-    func buildAiContextSnapshot(
-        _ snap: AssistantContext.LiveWorkoutSnapshot, sport: Sport, stopDate: Date
-    ) -> [String: String] {
-        session.buildAiContextSnapshot(snap, sport: sport, stopDate: stopDate)
-    }
-
-    /// Pure computations — no recorder state — so they forward to the type.
-    static func computeNormalizedPower(samples: [WorkoutSample]) -> Double? {
-        WorkoutSessionLifecycle.computeNormalizedPower(samples: samples)
-    }
-
-    nonisolated static func estimateMETs(
-        sport: Sport, paceSecPerKm: Double?, heartRate: Int?, userMaxHR: Int
-    ) -> Double? {
-        WorkoutSessionLifecycle.estimateMETs(
-            sport: sport, paceSecPerKm: paceSecPerKm, heartRate: heartRate, userMaxHR: userMaxHR
-        )
-    }
-
-    /// Two overloads rather than a defaulted parameter: repeating the default
-    /// here would be a second `AppDependencies.current.app.settingsManager` reference for a value the
-    /// moved function already supplies.
-    /// Both return the render task; its value says whether the PDF was
-    /// attached.
+    /// Returns the render task; its value says whether the PDF was attached.
     @discardableResult
-    static func scheduleCoachReportEmail(for session: HRVSession) -> Task<Bool, Never> {
-        WorkoutSessionLifecycle.scheduleCoachReportEmail(for: session)
-    }
-
-    @discardableResult
-    static func scheduleCoachReportEmail(for session: HRVSession, settings: UserSettings) -> Task<Bool, Never> {
-        WorkoutSessionLifecycle.scheduleCoachReportEmail(for: session, settings: settings)
+    static func scheduleCoachReportEmail(
+        for session: HRVSession, settings: UserSettings, services: WorkoutServices
+    ) -> Task<Bool, Never> {
+        WorkoutSessionLifecycle.scheduleCoachReportEmail(for: session, settings: settings, services: services)
     }
 
     typealias HRSource = WorkoutSessionLifecycle.HRSource
@@ -417,38 +371,38 @@ final class WorkoutRecorder {
 
     // MARK: Init
 
-    /// Reads user settings. Defaults to the shared store so behaviour is
-    /// unchanged; injecting lets a test drive this class without mutating
-    /// global state. Same shape `HealthKitManager` uses. Used instead of direct
-    /// `AppDependencies.current.app.settingsManager.settings` reads.
+    /// Reads user settings: the settings store in `services` unless a test
+    /// hands in its own, so a test can drive this class without mutating
+    /// global state.
     let settingsProvider: @MainActor () -> UserSettings
+
+    /// Everything a workout reads beyond its constructor arguments.
+    let services: WorkoutServices
 
     /// `location` keeps the test-injection seam but defers the
     /// production allocation. When the test passes a manager we honour it;
     /// otherwise the lazy getter constructs one on first access (typically
     /// inside `start()`).
     ///
-    /// `AppDependencies.current.collection.footPodManager` is main-actor-isolated, so resolving the default
-    /// inside the body (where the init is also MainActor) avoids Swift 6's
-    /// "default-arg evaluates in nonisolated context" error that would fire if
-    /// we wrote `= AppDependencies.current.collection.footPodManager` directly in the parameter list.
-    ///
-    /// `AppDependencies.current.services.watchConnectivityBridge` is a shared singleton: WCSession has
-    /// one process-wide delegate, so we must not construct a fresh bridge here
-    /// — that would replace the delegate installed at app boot (and kill the
-    /// Watch → phone Talk trigger for any subsequent chat).
+    /// The foot-pod manager and the Watch bridge come from `services`. The
+    /// bridge must be the shared one: WCSession has one process-wide delegate,
+    /// so a fresh bridge here would replace the delegate installed at launch
+    /// and cut the Watch's Talk trigger for every later chat.
     init(
         core: RecordingCore,
         conversation: VoiceConversationController,
+        services: WorkoutServices,
         location: WorkoutLocationManager? = nil,
         footPod: FootPodManager? = nil,
-        settingsProvider: @escaping @MainActor () -> UserSettings = { AppDependencies.current.app.settingsManager.settings }
+        settingsProvider: (@MainActor () -> UserSettings)? = nil
     ) {
-        self.settingsProvider = settingsProvider
+        self.services = services
+        let settingsManager = services.settingsManager
+        self.settingsProvider = settingsProvider ?? { settingsManager.settings }
         self.core = core
         self._injectedLocation = location
-        self.footPod = footPod ?? AppDependencies.current.collection.footPodManager
-        let bridge = AppDependencies.current.services.watchConnectivityBridge
+        self.footPod = footPod ?? services.footPodManager
+        let bridge = services.watchConnectivityBridge
         self.watchBridge = bridge
         let coach = WorkoutVoiceCoach(watchBridge: bridge)
         self.voiceCoach = coach

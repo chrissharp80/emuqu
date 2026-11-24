@@ -3,8 +3,7 @@ import Foundation
 import Speech
 import UIKit
 
-// The public control surface, split out of
-// `VoiceConversationController.swift`: start / stop, interrupt, trigger
+// The public control surface: start / stop, interrupt, trigger
 // handling and its queue. The state machine and settings stay in the main
 // file; voice-activity detection lives in `+Pipeline.swift` and barge-in in
 // `+Speech.swift`.
@@ -33,7 +32,7 @@ extension VoiceConversationController {
     /// (permissions, audio activation). A second toggle while the first
     /// start() is suspended would interleave audio-engine setup —
     /// installTap on a half-configured engine throws an uncatchable
-    /// Obj-C exception (seen in a crash log). State must be .idle
+    /// Obj-C exception. State must be .idle
     /// for a fresh start; otherwise stop() and re-tap is the user path.
     ///
     /// It flips to `.starting` immediately so the UI shows "Connecting…"
@@ -75,11 +74,11 @@ extension VoiceConversationController {
     /// bridge is idempotent — safe to call repeatedly.
     @MainActor
     private func pinSTTProviderForSession() {
-        let preferred = AppDependencies.current.app.settingsManager.settings.preferredSTTProvider
+        let preferred = services.settingsManager.settings.preferredSTTProvider
         useWhisperKitForCurrentSession = STTProviderKind.effective(preferred: preferred) == .whisperKit
         guard useWhisperKitForCurrentSession else { return }
-        AppDependencies.current.providers.whisperKitSTTBridge.prepareModelIfNeeded()
-        AppDependencies.current.providers.whisperKitSTTBridge.reset()
+        services.whisperKitSTTBridge.prepareModelIfNeeded()
+        services.whisperKitSTTBridge.reset()
         debugLog("[VoiceConv] WhisperKit selected; preparing model")
     }
 
@@ -116,7 +115,7 @@ extension VoiceConversationController {
             debugLog("[VoiceConv] started OK, opening the mic")
         } catch {
             debugLog("[VoiceConv] start failed: \(error.localizedDescription)", level: .error)
-            AppDependencies.current.services.audioSessionCoordinator.release(.voice)
+            services.audioSessionCoordinator.release(.voice)
             permissionError = String(localized: "Couldn't start the mic: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
             returnToIdleAfterFailedStart()
         }
@@ -194,7 +193,7 @@ extension VoiceConversationController {
     /// current preference.
     @MainActor
     private func releaseSTT() {
-        if useWhisperKitForCurrentSession { AppDependencies.current.providers.whisperKitSTTBridge.reset() }
+        if useWhisperKitForCurrentSession { services.whisperKitSTTBridge.reset() }
         useWhisperKitForCurrentSession = false
     }
 
@@ -312,8 +311,10 @@ extension VoiceConversationController {
     @MainActor
     func startAIInterjectionStream(prompt: String, fallback: String?) {
         coachCue.fallback = fallback
-        let provider = AppDependencies.current.providers.providerRegistry.activeProvider
-        guard InterjectionGate.maySend(to: provider.id, disclaimerAccepted: assistantViewModel.hasAcceptedDisclaimer) else {
+        let provider = services.providerRegistry.activeProvider
+        guard InterjectionGate.maySend(
+            to: provider.id, disclaimerAccepted: assistantViewModel.hasAcceptedDisclaimer, services: services
+        ) else {
             finishInterjectionAfterError()
             return
         }
@@ -321,7 +322,7 @@ extension VoiceConversationController {
         // This is intentional — interjections shouldn't leak into the main chat.
         let stream = provider.send(
             messages: [ChatTurn(role: .user, text: prompt)],
-            model: AppDependencies.current.providers.providerRegistry.activeModel,
+            model: services.providerRegistry.activeModel,
             contextRendered: contextSnapshotProvider?() ?? "",
             systemPrompt: buildSystemPrompt()
         )
@@ -415,15 +416,12 @@ extension VoiceConversationController {
     /// busy, enqueue and play after the current response completes.
     /// Only fire immediately when the AI is idle.
     ///
-    /// Urgency split. Per the user spec ("if my heart
-    /// is exploding then interrupt me. even then, save my words to
-    /// the clipboard"):
+    /// Urgency split:
     ///   • routine triggers (mile markers, drift cues, terrain
-    ///     calls) — queue while the user is mid-utterance / the AI
-    ///     is mid-response. Existing behaviour, plus the
-    ///     mid-utterance guard added in `isBusyWithUserResponse()`.
+    ///     calls) — queue while the user is mid-utterance
+    ///     (`isBusyWithUserResponse()`) or the AI is mid-response.
     ///   • urgent triggers (HR-spike alerts, threshold breaches,
-    ///     strap-drop, future SOS) — preempt regardless. Before
+    ///     strap-drop) — preempt regardless. Before
     ///     preempting, copy the in-progress `partialTranscript` to
     ///     the system clipboard with a 60 s expiration so the user
     ///     can paste their lost words back in once the alert is
@@ -458,12 +456,11 @@ extension VoiceConversationController {
         let words = partialTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !words.isEmpty else { return }
         // Honor `preserveClipboardForPaste` (default
-        // true). User feedback: an interrupting alert makes it easy to lose
-        // the thread, so losing dictated ideas to a 60 s expiration was
-        // actively hostile.
+        // true): an interrupting alert makes it easy to lose the thread, and a
+        // 60 s expiration would throw away the dictated words.
         // When the toggle is on, the urgent-alert clipboard save
         // sticks until the user pastes it or copies something else;
-        // when off, the original 60 s security cap applies.
+        // when off, the 60 s security cap applies.
         // Routed through `PasteboardWriter`, which owns the `.localOnly` +
         // opt-out-expiry policy, so there is one copy of the rule across the
         // app's write sites.
@@ -566,12 +563,14 @@ extension VoiceConversationController {
 /// data-sharing consent. The skip is logged with its reason.
 enum InterjectionGate {
     @MainActor
-    static func maySend(to provider: ProviderID, disclaimerAccepted: Bool) -> Bool {
-        guard AssistantViewModel.aiIsAllowed(disclaimerAccepted: disclaimerAccepted) else {
+    static func maySend(to provider: ProviderID, disclaimerAccepted: Bool, services: VoiceServices) -> Bool {
+        guard AssistantViewModel.aiIsAllowed(
+            disclaimerAccepted: disclaimerAccepted, settings: services.settingsManager.settings
+        ) else {
             debugLog("[VoiceConv] interjection skipped — Flo is off or its notice isn't accepted", level: .info)
             return false
         }
-        guard !AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider) else {
+        guard !services.providerConsentTracker.requiresConsent(provider) else {
             debugLog("[VoiceConv] interjection skipped — \(provider.rawValue) has no data-sharing consent", level: .warning)
             return false
         }

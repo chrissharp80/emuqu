@@ -4,8 +4,9 @@ Every pull request and every push to `main` runs two workflows:
 
 - `gates.yml`: the script gates that need only bash and python (copy perimeter,
   science register, scoring governance, localization, documentation, SBOM,
-  source-hygiene guards, the code map, the tech-debt budgets and refactor-spec
-  conformance) on an **ubuntu** runner in about a minute.
+  source-hygiene guards, the tech-debt budgets, refactor-spec conformance,
+  and the Python ports of the analysis code against the Swift tests'
+  expectations) on an **ubuntu** runner in a minute or two.
 - `ci.yml` at scope `unit`: SwiftLint and the budgets, strict concurrency, the
   macOS build, the unit suite with the Views coverage floor, and the unit suite
   under Thread Sanitizer, on GitHub's standard macOS runner. The jobs run in
@@ -68,15 +69,14 @@ baseline differs between them (below).
 
 | Area | Gates |
 | --- | --- |
-| **Style & debt** | SwiftLint budget, tech-debt budgets (the Watch target against its own combined ceiling; every debt ceiling a whole number), budget monotonicity, refactor-spec conformance, aggregate type size, fixed-point font budget, test-skip budget |
+| **Style & debt** | SwiftLint budget, tech-debt budgets (the Watch target against its own combined ceiling; every debt ceiling a whole number), budget monotonicity, refactor-spec conformance, the SwiftLint custom rules (no `unowned`, no dated or licence comments, no raw date-to-milliseconds conversion), fixed-point font budget, test-skip budget |
 | **Correctness traps** | Empty-range loops (`1 ..< count` on a possibly-empty collection), unchecked `Sendable`, strict-concurrency enablement, orphaned Swift files |
 | **Privacy & safety** | No health data in CloudKit, log redaction, no developer endpoint, privacy-manifest vocabulary, Info.plist key drift, FDA copy perimeter + runtime-guard sync |
 | **Localization** | Coverage across every locale, bundle reachability, literal resolution, orphaned catalogue keys, locale-aware decimal formatting |
 | **Supply chain** | SBOM currency, SBOM drift against `Package.resolved` and the in-app acknowledgements, every `xcodebuild` run pinned to `Package.resolved` |
-| **Documentation** | Link and constant integrity, comment `file:line` citations resolve, documented file counts match the tree |
-| **Change tracking** | Code map: every function, script, workflow step and doc section has a record written after its code last changed, and records whose callees changed since are listed for re-check |
+| **Documentation** | Link and constant integrity |
 | **Tests about the tests** | Snapshot references committed, UI-test fresh-install reset, coverage floors (overall / logic / views) |
-| **The gates themselves** | `verify_gates_fail.sh` plants a violation per gate and requires each to go red; `check_gate_preflight.sh` requires each to fail closed on a missing input; `check_gates_wired.sh` requires each to actually run in `ci.yml` |
+| **The gates themselves** | `verify_gates_fail.sh` plants a violation per gate and requires each to go red; `check_gates_wired.sh` requires each to actually run in `ci.yml` |
 
 The last row is the one that matters most. A gate that passes because it is
 measuring nothing is worse than no gate, because it is documented as protection.
@@ -111,7 +111,7 @@ A gate is worth its runtime only if all three have an answer:
 | Question | Answered by |
 |---|---|
 | Does it go red on a real violation? | `verify_gates_fail.sh` — a planted violation per gate |
-| Does it fail closed when its input is missing? | `check_gate_preflight.sh` |
+| Does it fail closed when its input is missing? | `scripts/lib/preflight.sh`, which every gate sources |
 | Does CI actually run it? | `check_gates_wired.sh` |
 
 ### Two things must not read the tree at the same time

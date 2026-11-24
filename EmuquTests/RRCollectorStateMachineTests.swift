@@ -69,8 +69,8 @@ final class RRCollectorStateMachineTests: XCTestCase {
 
     override func tearDown() async throws {
         // Clean up any sessions created
-        if let session = collector.currentSession {
-            try? collector.archive.delete(session.id)
+        if let session = collector.sessionState.currentSession {
+            _ = try? collector.archive.delete(session.id)
         }
         // Clear persisted state. `PersistedRecordingState.clear()`, not the
         // three legacy keys by hand — those are only half the story, and the
@@ -93,23 +93,23 @@ final class RRCollectorStateMachineTests: XCTestCase {
 
     /// Test collector starts in idle state
     func testInitialState() {
-        XCTAssertNil(collector.currentSession, "No session should exist initially")
-        XCTAssertFalse(collector.isOvernightStreaming, "Should not be streaming initially")
-        XCTAssertFalse(collector.isStreamingMode, "Should not be in streaming mode initially")
-        XCTAssertFalse(collector.isCollecting, "Should not be collecting initially")
-        XCTAssertFalse(collector.needsAcceptance, "Should not need acceptance initially")
-        XCTAssertEqual(collector.collectedPoints.count, 0, "Should have no points initially")
+        XCTAssertNil(collector.sessionState.currentSession, "No session should exist initially")
+        XCTAssertFalse(collector.streamingLifecycle.isOvernightStreaming, "Should not be streaming initially")
+        XCTAssertFalse(collector.streamingLifecycle.isStreamingMode, "Should not be in streaming mode initially")
+        XCTAssertFalse(collector.sessionState.isCollecting, "Should not be collecting initially")
+        XCTAssertFalse(collector.sessionState.needsAcceptance, "Should not need acceptance initially")
+        XCTAssertEqual(collector.sessionState.collectedPoints.count, 0, "Should have no points initially")
     }
 
     // MARK: - Invalid State Transition Tests
 
     /// Test that acceptSession throws when no session exists
     func testAcceptSessionThrowsWithoutSession() async {
-        XCTAssertNil(collector.currentSession)
-        XCTAssertFalse(collector.needsAcceptance)
+        XCTAssertNil(collector.sessionState.currentSession)
+        XCTAssertFalse(collector.sessionState.needsAcceptance)
 
         do {
-            try await collector.acceptSession()
+            try await collector.morning.acceptSession()
             XCTFail("acceptSession should throw when no session exists")
         } catch {
             XCTAssertTrue(
@@ -122,7 +122,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
     /// Test that startSession throws when not connected
     func testStartSessionThrowsWhenNotConnected() async {
         do {
-            try await collector.startSession()
+            try await collector.deviceRecording.startSession()
             XCTFail("startSession should throw when not connected")
         } catch {
             XCTAssertTrue(
@@ -148,7 +148,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
     /// Test that startOvernightStreaming throws when not connected
     func testStartOvernightStreamingThrowsWhenNotConnected() {
         do {
-            try collector.startOvernightStreaming()
+            try collector.overnightStreaming.startOvernightStreaming()
             XCTFail("startOvernightStreaming should throw when not connected")
         } catch {
             XCTAssertTrue(
@@ -156,22 +156,22 @@ final class RRCollectorStateMachineTests: XCTestCase {
                 "Should throw CollectorError, got: \(error)"
             )
         }
-        XCTAssertFalse(collector.isOvernightStreaming, "A refused start must not change state")
-        XCTAssertNil(collector.currentSession, "A refused start must not create a session")
+        XCTAssertFalse(collector.streamingLifecycle.isOvernightStreaming, "A refused start must not change state")
+        XCTAssertNil(collector.sessionState.currentSession, "A refused start must not create a session")
     }
 
     /// Test state remains idle after all failed transitions
     func testStateRemainsIdleAfterFailedTransitions() async {
         // Try all transitions — all should fail
-        try? await collector.startSession()
+        try? await collector.deviceRecording.startSession()
         try? collector.startStreamingSession()
-        try? collector.startOvernightStreaming()
-        try? await collector.acceptSession()
+        try? collector.overnightStreaming.startOvernightStreaming()
+        try? await collector.morning.acceptSession()
 
         // State should still be idle
-        XCTAssertNil(collector.currentSession, "Session should remain nil after failed transitions")
-        XCTAssertFalse(collector.isCollecting, "Should not be collecting after failed transitions")
-        XCTAssertFalse(collector.isOvernightStreaming, "Should not be streaming after failed transitions")
+        XCTAssertNil(collector.sessionState.currentSession, "Session should remain nil after failed transitions")
+        XCTAssertFalse(collector.sessionState.isCollecting, "Should not be collecting after failed transitions")
+        XCTAssertFalse(collector.streamingLifecycle.isOvernightStreaming, "Should not be streaming after failed transitions")
     }
 
     // MARK: - Session Creation Tests
@@ -347,7 +347,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
         try testArchive.archive(session)
 
         // Verify it exists
-        XCTAssertTrue(testArchive.exists(session.id))
+        XCTAssertTrue(testArchive.store.exists(session.id))
 
         // Retrieve
         let retrieved = try testArchive.retrieve(session.id)
@@ -454,7 +454,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
         XCTAssertFalse(audioManager.wasInterrupted, "Should not be interrupted initially")
 
         // Verify collector isn't streaming initially
-        XCTAssertFalse(collector.isOvernightStreaming)
+        XCTAssertFalse(collector.streamingLifecycle.isOvernightStreaming)
 
         // Stop on non-running manager should be safe (idempotent)
         audioManager.stopBackgroundAudio()
@@ -466,7 +466,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
     /// Test retryFetchRecording throws when disconnected
     func testRetryFetchRecordingThrowsWhenDisconnected() async {
         do {
-            _ = try await collector.retryFetchRecording()
+            _ = try await collector.recovery.retryFetchRecording()
             XCTFail("retryFetchRecording should throw when not connected")
         } catch {
             XCTAssertTrue(error is RRCollector.CollectorError, "Should throw CollectorError")

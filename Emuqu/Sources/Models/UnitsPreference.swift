@@ -36,7 +36,7 @@ enum UnitsPreference: String, Codable, CaseIterable, Identifiable {
     func formatDistance(meters: Double) -> String {
         switch resolved {
         case .imperial:
-            return Self.measurement(meters / 1_609.344, .miles, fractionDigits: 2)
+            return Self.measurement(meters / UnitConstants.metersPerMile, .miles, fractionDigits: 2)
         case .metric, .auto:
             return Self.measurement(meters / 1_000, .kilometers, fractionDigits: 2)
         }
@@ -56,7 +56,7 @@ enum UnitsPreference: String, Codable, CaseIterable, Identifiable {
         guard let s = secondsPerMeter, s.isFinite, s > 0 else { return nil }
         switch resolved {
         case .imperial:
-            let time = Self.minutesSeconds(s * 1_609.344)
+            let time = Self.minutesSeconds(s * UnitConstants.metersPerMile)
             return String(localized: "\(time) /mi", bundle: LanguageManager.appBundle)
         case .metric, .auto:
             let time = Self.minutesSeconds(s * 1_000)

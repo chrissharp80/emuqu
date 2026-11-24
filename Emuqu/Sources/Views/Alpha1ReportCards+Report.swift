@@ -213,9 +213,7 @@ private var thresholdRules: some ChartContent {
     /// Philosophy: don't hide these dips — they really happened to your
     /// RR stream. Label them so the user understands the chart; also
     /// exclude them from AVG / MAX / MIN / band stats so numeric claims
-    /// describe real physiology, not single-beat artifacts (a
-    /// user report: "MIN 0.75 is a fabrication — it came from an ectopic,
-    /// not my actual α1 low").
+    /// describe real physiology, not single-beat artifacts.
     ///
     /// If the session ended while still in a dip, we don't know whether
     /// it was ectopic or a real sustained effort that wasn't given time
@@ -303,10 +301,9 @@ private var thresholdRules: some ChartContent {
         /// because α1 doesn't snap back until the ectopic exits the window
         /// entirely.
         ///
-        /// User report trail:
-        ///   • 30 s pad → reported "LT1 121 at 4:00" (fake cross)
-        ///   • 60 s pad → MIN=0.87 (recovery-shoulder)
-        ///   • 120 s pad → first sample whose window is genuinely ectopic-free.
+        /// Shorter pads leave artifact in the stats: a 30 s pad yields a false
+        /// LT1 crossing, a 60 s pad leaves recovery-shoulder values (MIN 0.87).
+        /// 120 s is the first sample whose window is genuinely ectopic-free.
         func shadow(recoveredAt endSec: Int) -> EctopicShadow? {
             let span = endSec - startSec
             guard span > 0, span <= Self.windowSec else { return nil }
@@ -356,18 +353,17 @@ private var thresholdRules: some ChartContent {
     /// ectopic-induced dip (which contaminates the window for exactly
     /// one window-length) from ever satisfying the sustain check. 180 s
     /// also matches the ≥ 3-min ramp-phase length Rogers & Gronwald's
-    /// validation protocol uses to identify LT1. A shorter sustain (30 s
-    /// in an earlier fix) still let single-ectopic shadows through.
+    /// validation protocol uses to identify LT1. A 30 s sustain lets
+    /// single-ectopic shadows through.
     ///
     /// Memoized. SwiftUI body re-renders run this from
-    /// `alpha1ReportCard`, which a user's debug log shows firing
-    /// 50+ times per second on the post-summary screen — same input, same
-    /// output every time. Without a cache the export log was 2700+ duplicate
-    /// `[α1Stats]` lines and the screen visibly stuttered when other views
-    /// were composing alongside.
+    /// `alpha1ReportCard` 50+ times per second on the post-summary screen —
+    /// same input, same output every time. Without a cache the export log
+    /// fills with duplicate `[α1Stats]` lines and the screen stutters when
+    /// other views compose alongside.
     private func alpha1Stats(samples: [WorkoutSample]) -> Alpha1Stats {
         let cacheKey = alpha1CacheKey(sessionId: session.id, samples: samples)
-        if let cached = AppDependencies.current.app.alpha1StatsCache.lookup(key: cacheKey) {
+        if let cached = statsCache.lookup(key: cacheKey) {
             return cached
         }
         let shadows = Self.ectopicShadows(in: samples)
@@ -384,7 +380,7 @@ private var thresholdRules: some ChartContent {
             secondsAboveAT2: bands.aboveAT2,
             firstAT1Crossing: bands.firstCrossing
         )
-        AppDependencies.current.app.alpha1StatsCache.store(key: cacheKey, value: result)
+        statsCache.store(key: cacheKey, value: result)
         return result
     }
 
@@ -698,8 +694,7 @@ private var thresholdRules: some ChartContent {
 /// black: easy #009E73 at 6.1:1, threshold #E69F00 at 9.2:1, hard #D55E00 at
 /// 5.5:1; the grey of a stretch with no reading yet is 11:1. The black casing
 /// is far above 3:1 on the light map, and the bands themselves are bright on
-/// the dark one. (Yellow on the light map, the colour this replaced, was
-/// barely visible.)
+/// the dark one.
 private enum Alpha1RouteColors {
     static let easy = AppTheme.wongOptimal
     static let threshold = AppTheme.wongCaution
@@ -717,7 +712,7 @@ private enum Alpha1RouteColors {
 
 /// Don't hide the first ~2 minutes of α1
 /// even though the rolling DFA buffer is still filling — it's real
-/// data, the user lived through it, hiding it was dishonest. Instead
+    /// data, the user lived through it, hiding it would be dishonest. Instead
 /// we LABEL the short-lived dips as beat-artifact events (a neutral
 /// "beat artifact" tag on the chart,
 /// plus a one-line footer explaining what that means). The
@@ -844,10 +839,10 @@ private func collectCleanAlpha1Values(
 
 /// MIN/MAX/AVG of the shadow-cleaned values. No further outlier pass: the
 /// artifact dips are already gone (`ectopicShadows(in:)`), and a two-sided
-/// median-distance filter threw away real hard efforts — in an interval
-/// session with most of the time easy, every interval sample sat "far" from
-/// the median and MIN read about 0.85 while the band line reported minutes
-/// above AT2.
+/// median-distance filter discards real hard efforts — in an interval
+/// session with most of the time easy, every interval sample sits "far" from
+/// the median and MIN would read about 0.85 while the band line reports
+/// minutes above AT2.
 private func cleanMinMaxAvg(values: [Double]) -> (min: Double?, max: Double?, avg: Double?) {
     guard !values.isEmpty else { return (nil, nil, nil) }
     return (values.min(), values.max(), values.reduce(0, +) / Double(values.count))

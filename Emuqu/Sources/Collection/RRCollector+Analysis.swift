@@ -61,7 +61,7 @@ extension MorningSessionPipeline {
                 baselineStats: baselineStats, sleepData: sleep,
                 vitals: vitals, typicalSleepHours: collector.settingsManager.settings.typicalSleepHours
             ),
-            trainingContext: training, config: collector.currentScoringConfig,
+            trainingContext: training, config: collector.scoring.currentScoringConfig,
             useBaselineHRV: quality.useBaselineHRV, perceivedReadiness: session.perceivedReadiness,
             ansBalance: ReanalysisService.ansBalance(of: result), referenceDate: sessionEnd
         )
@@ -125,11 +125,9 @@ extension MorningSessionPipeline {
 /// The values a recovery-score computation yields: the score, its breakdown,
 /// and the sleep, vitals and training context it was scored with.
 ///
-/// Was a 4-tuple, which tripped `large_tuple` at every declaration site the
-/// closure travelled through (SessionRecoveryService takes it as a parameter
-/// in two places). Naming it keeps those signatures readable and the field
-/// names identical, so every `.score` / `.breakdown` / `.sleepSnapshot` /
-/// `.vitalsSnapshot` read at the call sites is unchanged.
+/// A struct rather than a tuple, so the signatures it travels through
+/// (SessionRecoveryService takes it as a parameter in two places) stay
+/// readable and every field is named.
 struct RecoveryScoreOutcome {
     let score: Double
     let breakdown: RecoveryScoreCalculator.ScoreBreakdown

@@ -38,7 +38,8 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     // Same justification as `RawRRBackup`. Lets us call from a background
     // detached task off the main-actor recorder tick.
 
-    static let shared = WorkoutTrackBackup()
+    /// The key the streams are sealed with.
+    let encryption: EncryptionManager
 
     // MARK: - Public types
 
@@ -130,11 +131,11 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// from `Task.detached` on every 1 Hz tick, and detached tasks are
     /// unordered relative to each other, so two overlapping calls interleave.
     ///
-    /// `retrieve` took no lock at all, so a recovery read concurrent with an
-    /// append could observe a half-written JSONL line — which is exactly the
-    /// moment this file exists to be readable.
+    /// An unlocked `retrieve` concurrent with an append could observe a
+    /// half-written JSONL line — which is exactly the moment this file exists
+    /// to be readable.
     ///
-    /// Both now run on this queue, which makes append atomic against append
+    /// Both run on this queue, which makes append atomic against append
     /// AND against read. Same shape as `RawRRBackup.appendQueue`.
     private let appendQueue = DispatchQueue(label: "com.emuqu.workouttrackbackup.append", qos: .utility)
     /// Running cursors: number of items already flushed for each stream
@@ -184,21 +185,18 @@ final class WorkoutTrackBackup: @unchecked Sendable {
 
     // MARK: - Initialization
 
-    convenience init() {
-        self.init(directory: AppConfig.sharedContainerURL().appendingPathComponent("WorkoutBackup", isDirectory: true))
+    /// The app's backup directory, in the shared container.
+    static var appDirectory: URL {
+        AppConfig.sharedContainerURL().appendingPathComponent("WorkoutBackup", isDirectory: true)
     }
 
-    /// A backup kept in `directory`; the app's lives in the shared container
-    /// (`init()`), tests use their own.
-    convenience init(directory: URL) {
-        self.init(directory: directory, notificationCenter: .default)
-    }
-
-    /// A backup kept in `directory` that observes unlock and activation on
-    /// `notificationCenter`.
-    init(directory: URL, notificationCenter: NotificationCenter) {
+    /// A backup kept in `directory`, sealed with `encryption`, that observes
+    /// unlock and activation on `notificationCenter`. The app's is
+    /// `WorkoutTrackBackup.shared`; tests use a directory of their own.
+    init(directory: URL, notificationCenter: NotificationCenter, encryption: EncryptionManager) {
         self.directory = directory
         self.notificationCenter = notificationCenter
+        self.encryption = encryption
         createDirectoryIfNeeded()
         reencryptPendingTracks()
         observeUnlock()
@@ -208,15 +206,9 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         unlockObservers.removeAll(from: notificationCenter)
     }
 
-    /// Runs `reencryptPendingTracks` when protected data becomes available
-    /// and when the app becomes active (a suspended app can miss the
-    /// unlock), as `ConversationStore` retries a held save.
+    /// Runs `reencryptPendingTracks` once the tracks may be readable.
     private func observeUnlock() {
-        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
-            unlockObservers.add(notificationCenter.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
-                self?.reencryptPendingTracks()
-            })
-        }
+        unlockObservers.observeProtectedDataMayBeAvailable(on: notificationCenter) { [weak self] in self?.reencryptPendingTracks() }
     }
 
     /// Created with the class that lets a workout keep writing while the
@@ -508,7 +500,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// workout in `PendingEncryptionLedger` before it is written.
     private func encodeLines(_ items: [some Encodable], sessionId: UUID, streamName: String) -> Data? {
         do {
-            let encoded = try SealedJSONLines.encode(items, with: encoder, manager: SealedJSONLines.availableManager())
+            let encoded = try SealedJSONLines.encode(items, with: encoder, manager: SealedJSONLines.availableManager(encryption))
             if !encoded.allSealed {
                 debugLog("[WorkoutTrackBackup] \(streamName) of \(sessionId.uuidString.prefix(8)) written WITHOUT app-layer encryption", level: .error)
                 PendingEncryptionLedger.record(sessionId, in: .workoutTrack)
@@ -620,7 +612,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     private func decodeJSONLFile<T: Decodable>(url: URL, as: T.Type) -> [T] {
         guard fileManager.fileExists(atPath: url.path),
               let raw = attempt("WorkoutTrackBackup.readStream", { try String(contentsOf: url, encoding: .utf8) }) else { return [] }
-        let manager = AppDependencies.current.storage.encryptionManager
+        let manager = encryption
         var out: [T] = []
         var skipped = 0
         for line in raw.split(separator: "\n", omittingEmptySubsequences: true) {
@@ -656,7 +648,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         guard resealQueued.setIfClear() else { return }
         appendQueue.async { [self] in
             resealQueued.withLock { $0 = false }
-            guard let manager = SealedJSONLines.availableManager() else { return }
+            guard let manager = SealedJSONLines.availableManager(encryption) else { return }
             PendingEncryptionLedger.pending(in: .workoutTrack).forEach { resealStreams(of: $0, with: manager) }
         }
     }
@@ -728,7 +720,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// nothing left to list: every cursor and header flag is cleared anyway,
     /// or the next workout of a session seen this launch would append past a
     /// count no file holds, and the folder is made again, or every later write
-    /// failed until relaunch. On `appendQueue`, like `discard`; a workout
+    /// fails until relaunch. On `appendQueue`, like `discard`; a workout
     /// whose files will not all go is logged.
     func purgeAll() {
         appendQueue.sync {

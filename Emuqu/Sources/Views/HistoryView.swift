@@ -8,9 +8,8 @@ struct HistoryView: View {
     @Environment(ArchiveSignal.self) private var archiveSignal
 
     /// Not called: History deletes and saves tags itself
-    /// (`SessionTrash.move`, `saveTags`) so it can tell the user when either
-    /// fails, which a `Void` closure cannot report. Kept until its call
-    /// sites stop passing them.
+    /// (`SessionDeletion`, `saveTags`) so it can tell the user when either
+    /// fails, which a `Void` closure cannot report.
     let onDelete: (HRVSession) -> Void
     let onUpdateTags: (HRVSession, [ReadingTag], String?) -> Void
     var onReanalyze: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)?
@@ -140,8 +139,8 @@ struct HistoryView: View {
     }
 
     /// An explicit field rather than `.searchable`: this screen is pushed from
-    /// the Dashboard's stack, and the system placement never rendered a field
-    /// there, so users had no way to search. A plain field in the header is
+    /// the Dashboard's stack, and the system placement renders no field
+    /// there, which would leave no way to search. A plain field in the header is
     /// visible on every iOS version and reachable by the UI suite.
     private var searchBar: some View {
         HStack(spacing: 8) {
@@ -375,7 +374,7 @@ struct HistoryView: View {
     @discardableResult
     private func moveToTrash(_ sessionId: UUID) async -> Bool {
         do {
-            try await SessionTrash.move(sessionId, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
+            try await dependencies.storage.sessionDeletion.moveToTrash(sessionId)
             return true
         } catch {
             debugLog("[HistoryView] Failed to delete session \(sessionId.uuidString.prefix(8)): \(error)")
@@ -591,7 +590,7 @@ struct HistoryView: View {
 
     @ViewBuilder
     private var noReadingsYetSection: some View {
-        if collector.archive.entries.isEmpty {
+        if collector.archive.store.entries.isEmpty {
             Text(String(localized: "No Readings Yet", bundle: LanguageManager.appBundle))
                 .font(.headline)
             Text(String(localized: "Your HRV readings will appear here", bundle: LanguageManager.appBundle))
@@ -686,22 +685,6 @@ extension HistoryView {
                 .contentShape(Rectangle())
         }
         .accessibilityAddTraits(viewModel.selectedTags.isEmpty ? .isSelected : [])
-    }
-}
-
-/// The one way a screen moves a reading to Trash: out of the archive, every
-/// observer told, and the deletion queued for iCloud so the next pull does
-/// not bring it back. Throws when the archive could not move it, so the
-/// caller can tell the user. The move itself (index rewrite and file move,
-/// under the archive's lock) runs off the main actor; the observers and the
-/// iCloud deletion follow it on the main actor, only once it has succeeded.
-@MainActor
-enum SessionTrash {
-    static func move(_ sessionId: UUID, collector: RRCollector, cloudKit: CloudKitSyncManager) async throws {
-        let archive = collector.archive
-        try await Task.detached(priority: .userInitiated) { try archive.delete(sessionId) }.value
-        collector.notifyArchiveChanged()
-        Task { await cloudKit.uploadDeletion(sessionId) }
     }
 }
 

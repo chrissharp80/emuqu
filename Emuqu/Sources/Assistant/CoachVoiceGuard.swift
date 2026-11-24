@@ -126,8 +126,8 @@ enum CoachVoiceGuard {
     /// Internal rather than private so
     /// `CoachVoiceGuardTests.testDeflectionsCoverExactlyTheScrubbedConcepts`
     /// can assert the mapping in BOTH directions. Checking only that every
-    /// scrubbed concept has a deflection left the other direction — a
-    /// deflection for a concept nothing scrubs — invisible, and there was one.
+    /// scrubbed concept has a deflection would leave the other direction — a
+    /// deflection for a concept nothing scrubs — invisible.
     /// Rebuilt on each read so the strings follow the in-app language; it is
     /// only read when a rule has matched.
     static var deflections: [String: String] {
@@ -273,15 +273,12 @@ enum CoachVoiceGuard {
     /// are returned byte-identical, whitespace included; only a rewritten
     /// sentence is tidied.
     ///
-    /// Not a per-rule "find first match, rewrite, re-scan the whole string"
-    /// loop bounded by an iteration cap. Such a cap reads as a safety net
-    /// against a self-matching deflection, but it is also a quota on the
-    /// perimeter: a reply tripping one rule in more sentences than the cap
-    /// has the rest DELIVERED VERBATIM (measured with a 32-cap on a
-    /// 200-prohibited-sentence input: 64 rewritten, 136 passed through
-    /// untouched, with only a debug log to show for it). Mapping over a
-    /// fixed sentence list terminates by construction, so there is nothing
-    /// to cap; it is also linear in the input rather than quadratic.
+    /// Mapping over a fixed sentence list terminates by construction, so there
+    /// is no iteration cap. A cap on a per-rule "find first match, rewrite,
+    /// re-scan the whole string" loop would also be a quota on the perimeter:
+    /// a reply tripping one rule in more sentences than the cap would have the
+    /// rest DELIVERED VERBATIM. The mapping is also linear in the input rather
+    /// than quadratic.
     ///
     /// The app's own safety replies are never rewritten, but only where they
     /// appear as the reply: a sentence of `MedicalQueryGuard`'s canned copy
@@ -289,7 +286,7 @@ enum CoachVoiceGuard {
     /// next sentence of a canned reply whose earlier sentences came straight
     /// before it, in order (`continuesSafetyCopy`). The rules run on the text
     /// between such runs. Rule B of the system prompt tells the model to give
-    /// the same reply, so without this the scrub turned "Talk to your doctor
+    /// the same reply, so without this the scrub would turn "Talk to your doctor
     /// about that." — the emergency answer to chest pain — into a line saying
     /// the app can't tell whether the user needs a professional, in both the
     /// spoken reply and the streamed one. The same sentence after the model's
@@ -524,8 +521,7 @@ enum CoachVoiceGuard {
     ///
     /// The segment is treated as `[leading whitespace][core][trailing
     /// whitespace]` and only the core is replaced, so the spacing that joined
-    /// this sentence to its neighbours survives — the same thing the old
-    /// `expandToSentence` achieved by skipping whitespace before replacing.
+    /// this sentence to its neighbours survives.
     private static func rewrite(
         _ segment: Substring,
         among active: [Entry],
@@ -625,7 +621,7 @@ enum CoachVoiceGuard {
     /// would be shown and spoken before `doctor` arrived, and neither half
     /// matches a rule. Once the next sentence completes, the scrub sees both
     /// lines together and deflects the straddling phrase. A hard terminator
-    /// (`.`, `!`, `?`, ...) in the run ends the sentence as before.
+    /// (`.`, `!`, `?`, ...) in the run ends the sentence.
     private static func lastSafeCut(in text: String) -> String.Index? {
         guard let last = text.indices.last(where: { isSentenceTerminator(in: text, at: $0) }) else { return nil }
         guard softTerminators.contains(text[last]) else { return text.index(after: last) }

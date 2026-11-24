@@ -56,7 +56,7 @@ enum WorkoutRecoveryService {
             userRestingHR: settings.effectiveRestingHR,
             userLTHR: settings.effectiveLTHR,
             sex: banisterSex,
-            splitDistanceMeters: unitsPreference == .imperial ? 1609.344 : 1000.0
+            splitDistanceMeters: unitsPreference == .imperial ? UnitConstants.metersPerMile : 1000.0
         )
     }
 
@@ -326,7 +326,7 @@ enum WorkoutRecoveryService {
     /// (`carryForward`) and the next backfill is told to look again, so the
     /// rebuild replaces the copy there.
     private static func carryArchived(into session: inout HRVSession, recovered: RecoveredWorkout, deps: Dependencies) {
-        guard deps.archive.exists(session.id), let archived = deps.archive.retrieveOrLog(session.id) else { return }
+        guard deps.archive.store.exists(session.id), let archived = deps.archive.retrieveOrLog(session.id) else { return }
         Self.carryForward(from: archived, into: &session)
         if Self.wasExportedByEmuqu(archived) { HealthKitManager.requestBackfillRescan() }
         guard var metadata = session.workoutMetadata else { return }
@@ -477,7 +477,7 @@ enum WorkoutRecoveryService {
 
     /// Assemble `WorkoutMetadata` from the analyzer output.
     ///
-    /// Extracted from `recover`. Pure apart from `Date()` for the
+    /// Pure apart from `Date()` for the
     /// recovery stamp, so the mapping from analyzer result to stored metadata
     /// can be checked directly.
     ///
@@ -560,10 +560,9 @@ enum WorkoutRecoveryService {
 
     // MARK: - Pure resolution steps
     //
-    // Extracted from `recover`, where each was an inline closure inside a
-    // 155-line, complexity-26 function; each is a pure function of its inputs
-    // with no I/O, so pulling them out makes the recovery decisions testable
-    // without a simulator, a strap, or a disk backup. `recover` keeps the
+    // Each is a pure function of its inputs with no I/O, so the recovery
+    // decisions are testable without a simulator, a strap, or a disk
+    // backup. `recover` keeps the
     // orchestration; these hold the rules.
 
     static func resolveRRPoints(

@@ -67,7 +67,7 @@ final class HistoryViewModel {
         displayLimit += pageSize
     }
 
-    // MARK: - Core Logic (moved from HistoryView.filteredEntries)
+    // MARK: - Core Logic
     //
     // The BFS chain dedup + same-night collapse +
     // filter passes must not run synchronously on @MainActor when the
@@ -84,7 +84,7 @@ final class HistoryViewModel {
     /// queue up multiple recomputes that all race to assign filteredEntries.
     private func recomputeFilteredEntries() {
         recomputeTask?.cancel()
-        let entries = archive.entries
+        let entries = archive.store.entries
         let typeFilter = selectedSessionType
         let tagFilter = selectedTags
         let search = searchText
@@ -270,7 +270,7 @@ final class HistoryViewModel {
         guard currentEnd > entry.date else { return 1 }
         let linkedRanges = linkedSegmentInfos(linked, entryById: entryById)
         guard !linkedRanges.isEmpty else { return 1 }
-        let normalized = SessionArchive.normalizedSplitNightSegments(
+        let normalized = ArchiveStore.normalizedSplitNightSegments(
             currentSessionId: entry.sessionId,
             currentStartDate: entry.date,
             currentEndDate: currentEnd,

@@ -68,8 +68,8 @@ struct ContributorChip: View {
     var state: DisplayState = .default
     /// Use compact (72pt tall) for the 4-up row, standard (86pt) for 3-up.
     /// Width is flexible: the row shares the screen between its chips.
-    /// Fixed 88pt chips needed 412pt for four, wider than a 375, 393 or
-    /// 402pt iPhone, and the row ran off the screen edge.
+    /// Fixed 88pt chips would need 412pt for four, wider than a 375, 393 or
+    /// 402pt iPhone, and the row would run off the screen edge.
     var compact: Bool = true
     /// How long ago the shown reading was recorded ("yesterday", "3 days
     /// ago"), when it is not this morning's. Replaces the subline in the

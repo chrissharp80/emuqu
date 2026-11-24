@@ -132,9 +132,9 @@ enum DeterministicIntent {
                 guard let entry = recent, let score = entry.recoveryScore else { return nil }
                 // `recoveryScore` is stored 0–10; the user-facing score and
                 // `ScoreVerdict` are both 0–100 (see DashboardSessionPolicy).
-                // Without the ×10 every voice answer read "8 — Very low".
-                // The verdict of the number spoken, as the dashboard does: 74.8
-                // was said "75 — Fair" while the ring showed 75 Good.
+                // Without the ×10 every voice answer would read "8 — Very low".
+                // The verdict is of the number spoken, as the dashboard does: judging
+                // 74.8 would say "75 — Fair" while the ring shows 75 Good.
                 let score100 = RecoveryScoreCalculator.displayScore(score * 10)
                 let verdict = ScoreVerdict(score: Double(score100)).localizedWord
                 return String(localized: "Your recovery is \(score100) — \(verdict).", bundle: LanguageManager.appBundle)
@@ -207,7 +207,7 @@ enum DeterministicIntent {
                 #"^\s*how\s+(?:was|did)\s+(?:my\s+)?last\s+workout(?:\s+go)?\??\s*$"#
             ],
             handler: { _, ctx in
-                guard let last = ctx.archive.entries
+                guard let last = ctx.archive.store.entries
                     .first(where: { $0.sessionType == .workout })
                 else { return nil }
                 let durationMin = activeMinutes(last, archive: ctx.archive)
@@ -232,7 +232,7 @@ enum DeterministicIntent {
                 let target = dayStart(isYesterday: isYesterday, now: ctx.now)
                 // Every workout that day counts: two sessions are one
                 // answer of their combined time, not the newest one's.
-                let sameDay = ctx.archive.entries.filter {
+                let sameDay = ctx.archive.store.entries.filter {
                     $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: target)
                 }
                 if !sameDay.isEmpty {
@@ -398,9 +398,9 @@ enum DeterministicIntent {
                 #"^\s*(?:total\s+)?session\s+count\??\s*$"#
             ],
             handler: { _, ctx in
-                let total = ctx.archive.entries.count
-                let workouts = ctx.archive.entries.filter { $0.sessionType == .workout }.count
-                let overnight = ctx.archive.entries.filter { $0.sessionType == .overnight }.count
+                let total = ctx.archive.store.entries.count
+                let workouts = ctx.archive.store.entries.filter { $0.sessionType == .workout }.count
+                let overnight = ctx.archive.store.entries.filter { $0.sessionType == .overnight }.count
                 return String(
                     localized: "Total sessions: \(total). Overnight: \(overnight). Workouts: \(workouts).",
                     bundle: LanguageManager.appBundle
@@ -496,7 +496,7 @@ enum DeterministicIntent {
         // must not answer from an `.insufficient`/`.preSleep` partial; the index
         // mirrors the quality flag. Falls through to the LLM if today's only
         // overnight is untrustworthy — correct, rather than voicing a bogus number.
-        return archive.entries
+        return archive.store.entries
             .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
             .sorted { $0.date > $1.date }
             .first { entry in

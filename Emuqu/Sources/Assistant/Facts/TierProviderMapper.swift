@@ -3,7 +3,7 @@ import Foundation
 /// Maps abstract tiers (Quick / Auto / Deep) to whatever
 /// concrete (provider, model) pairs the user has actually configured.
 ///
-/// **The "work with what's there" requirement** from the user spec.
+/// **Work with what's there.**
 /// Not everyone has every AI; some users will have only Apple
 /// Intelligence, some will have Apple + Grok, some will have all six.
 /// The mapper picks a backend for each tier from the available pool,
@@ -39,7 +39,7 @@ enum TierProviderMapper {
     /// nothing else is configured (so the AI is never broken just
     /// because no cloud key is set).
     ///
-    /// Design per user spec.
+    /// Design:
     ///   Quick (simple facts) → Apple Intelligence
     ///   Auto/Mid (middle questions) → Grok or DeepSeek if available;
     ///     otherwise the user's chosen primary
@@ -74,8 +74,8 @@ enum TierProviderMapper {
         return chosenOrApple(registry)
     }
 
-    /// Mid tier: prefer Grok, then DeepSeek (the cheap-but-capable mid-range
-    /// models the spec calls out by name), then fall through to the user's
+    /// Mid tier: prefer Grok, then DeepSeek (cheap-but-capable mid-range
+    /// models), then fall through to the user's
     /// primary if neither is configured. We deliberately do NOT use
     /// cheapest-cloud here — picking Gemini-Flash-Lite over the user's chosen
     /// Claude would surprise them.
@@ -154,12 +154,11 @@ enum TierProviderMapper {
     /// the caller fall through cleanly.
     private static func userChosenMapping(_ registry: ProviderRegistry) -> (AIProvider, ModelOption)? {
         let provider = registry.activeProvider
-        guard provider.id != .apple, provider.isAvailable, ProviderRegistry.isEnabled(provider.id) else { return nil }
+        guard provider.id != .apple, provider.isAvailable, registry.isEnabled(provider.id) else { return nil }
         return (provider, registry.activeModel)
     }
 
-    /// Middle-tier mapping per user spec: prefer Grok,
-    /// then DeepSeek. The user explicitly named these as the mid-
+    /// Middle-tier mapping: prefer Grok, then DeepSeek, the mid-
     /// complexity providers. Picks the provider's default model so
     /// "mid" doesn't accidentally land on a heavyweight variant.
     ///
@@ -183,7 +182,7 @@ enum TierProviderMapper {
         _ id: ProviderID,
         in registry: ProviderRegistry
     ) -> (provider: AIProvider, model: ModelOption)? {
-        guard ProviderRegistry.isEnabled(id),
+        guard registry.isEnabled(id),
               !AppDependencies.current.providers.providerConsentTracker.requiresConsent(id),
               let provider = registry.allProviders.first(where: { $0.id == id && $0.isAvailable }),
               let model = provider.availableModels.first(where: { $0.isDefault })

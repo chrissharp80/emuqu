@@ -1,8 +1,7 @@
 import SwiftUI
 
-// The filter card — activity, radius, length, ascent, difficulty — split out
-// of `DiscoverTrailsView.swift` to keep that type's body under the
-// 500-line limit. The members stay private to
+// The filter card — activity, radius, length, ascent, difficulty — of
+// `DiscoverTrailsView`. The members stay private to
 // the type via this extension.
 
 extension DiscoverTrailsView {
@@ -137,7 +136,7 @@ extension DiscoverTrailsView {
         }
     }
     /// Length range — applies to both tabs. Stepper-driven for
-    /// precision (slider was finicky for users wanting "8 to 12 km"). The max
+    /// precision (a slider is finicky for "8 to 12 km"). The max
     /// stepper's top (`lengthStepperMaxKm`, the default) means "no max".
     var lengthRangeFilter: some View {
         lengthRangeStack

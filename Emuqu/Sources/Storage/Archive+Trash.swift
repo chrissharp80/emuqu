@@ -66,7 +66,7 @@ extension ArchiveStore {
         let url = trashURL(for: id)
         guard archive.fileManager.fileExists(atPath: url.path) else { return nil }
         do {
-            let plaintext = try Self.plaintextBytes(Data(contentsOf: url), id: id)
+            let plaintext = try Self.plaintextBytes(Data(contentsOf: url), id: id, encryption: archive.encryption)
             return try SessionArchive.sessionDecoder.decode(HRVSession.self, from: plaintext)
         } catch {
             debugLog("[Archive] ⚠️ Trashed session \(id.uuidString.prefix(8)) could not be read: \(error)", level: .warning)

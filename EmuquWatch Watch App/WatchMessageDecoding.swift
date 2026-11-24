@@ -37,8 +37,7 @@ import Foundation
 /// static methods on the main actor — and they would then be unusable from the
 /// `WCSession` delegate callbacks that are their only real caller, which arrive
 /// off the main actor. Nothing here touches shared state, so main-actor
-/// isolation would buy nothing and cost a hop (or a warning, which is how this
-/// was noticed).
+/// isolation would buy nothing and cost a hop (or a warning).
 nonisolated enum WatchMessageDecoding {}
 
 // MARK: - Field updates
@@ -268,8 +267,8 @@ extension WatchMessageDecoding {
     /// What a change in `isRecording` requires the Watch to do.
     ///
     /// The Watch must own a running `HKWorkoutSession` for the whole workout or
-    /// watchOS suspends the app when the screen darkens — the reported "it went
-    /// dark, dropped the session, and offered a NEW workout on reopen" bug. So
+    /// watchOS suspends the app when the screen darkens, dropping the session
+    /// and offering a NEW workout on reopen. So
     /// this is driven off `isRecording` rather than the mode-gated
     /// `startWorkout` message, which also makes it re-arm after an app relaunch
     /// mid-workout when the `requestCurrentState` reply carries

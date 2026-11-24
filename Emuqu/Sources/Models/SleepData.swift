@@ -375,7 +375,7 @@ struct SleepData: Codable, Sendable {
     /// the two spans. Using the shorter span as the denominator is what makes
     /// this both safe and effective across every real shape:
     ///   - the 12-min clip + following night's 419-min block barely overlap →
-    ///     overlap ≈ 0 of a 12-min minimum → REJECT (the bug);
+    ///     overlap ≈ 0 of a 12-min minimum → REJECT;
     ///   - a normal overnight whose recording spans the sleep → overlap = the
     ///     whole sleep → ACCEPT;
     ///   - the strap left running for hours PAST wake (recording ≫ sleep) →

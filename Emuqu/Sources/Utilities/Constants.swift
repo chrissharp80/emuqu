@@ -118,6 +118,8 @@ enum UserDefaultsKeys {
 /// Canonical physical-unit conversion factors. Single source of truth so the
 /// same conversion cannot drift between call sites.
 enum UnitConstants {
+    /// Metres per international mile (exact).
+    static let metersPerMile: Double = 1609.344
     /// Feet per metre (exact: 1 / 0.3048 = 3.280839895…).
     static let feetPerMeter: Double = 3.280_84
     /// Miles per hour per metre-per-second (exact: 3600 / 1609.344 = 2.236936…).
@@ -139,12 +141,8 @@ enum SessionConstants {
 enum HRVConstants {
     /// Minimum/maximum physiologically valid RR intervals (ms)
     enum RRInterval {
-        // Physiological RR floor = 300 ms (~200 bpm): a shorter interval is a
-        // technical artifact, not a real beat. 300 ms (not 200) is the literature
-        // floor — Kubios artifact handling; Lipponen &
-        // Tarvainen, J Med Eng Technol 2019;43:173-181.
-        static let minimum: Int = 300 // ~200 bpm
-        static let maximum: Int = 2000 // ~30 bpm
+        static let minimum: Int = HRVThresholds.minimumRRIntervalMs
+        static let maximum: Int = HRVThresholds.maximumRRIntervalMs
 
         static let range: ClosedRange<Int> = minimum ... maximum
 
@@ -224,11 +222,11 @@ enum HRVConstants {
     /// • Watch RR synthesis gate (300–2500 ms, exclusive): wider ceiling only —
     ///   Watch RR is synthesized from averaged HR payloads, so a 2000 ms ceiling
     ///   would clip legitimately long reconstructed intervals and bias the
-    ///   series. The floor is now unified with the strap gate; the ceiling is
-    ///   the sole remaining, deliberate difference.
+    ///   series. The floor matches the strap gate; the ceiling is the one
+    ///   deliberate difference.
     enum RRValidity {
-        static let polarStreamRange: ClosedRange<Int> = 300 ... 2000
-        static let watchSynthesisMinExclusive: Int = 300
+        static let polarStreamRange: ClosedRange<Int> = HRVConstants.RRInterval.range
+        static let watchSynthesisMinExclusive: Int = HRVThresholds.minimumRRIntervalMs
         static let watchSynthesisMaxExclusive: Int = 2500
     }
 }
@@ -236,7 +234,7 @@ enum HRVConstants {
 // MARK: - Sleep Analysis
 
 enum SleepConstants {
-    /// Default split gap (minutes). Now configurable via UserSettings.sleepSplitGapMinutes.
+    /// Default split gap (minutes). Configurable via UserSettings.sleepSplitGapMinutes.
     /// Gaps >= this in sleep data are treated as separate sessions.
     /// ENGINEERING BOUND (no sleep-science basis): gap that splits a sleep
     /// record into separate sessions.
@@ -259,9 +257,10 @@ enum SleepConstants {
     ///
     /// A detection past the ceiling is not moved to it. Every detector already
     /// returns its FIRST qualifying onset, so there is no earlier candidate to
-    /// fall back on, and minute 20 was a fabricated value reported as if
-    /// detected (a genuine hour awake read as 20 min; the awake windows after
-    /// minute 20 were staged as sleep). Such a detection is evidence the
+    /// fall back on, and minute 20 would be a fabricated value reported as if
+    /// detected (a genuine hour awake would read as 20 min, and the awake
+    /// windows after minute 20 would be staged as sleep). Such a detection is
+    /// evidence the
     /// detector misfired, so onset is undetermined: the caller falls back to
     /// the recording (in-bed) start, where `SleepData.sleepLatencyMinutes`
     /// reads nil — latency unknown, not 0 and not 20.
@@ -356,7 +355,7 @@ enum TrainingConstants {
 /// The range every user-facing 0-100 score is clamped to, and the value a
 /// non-finite input degrades to.
 ///
-/// Extracted so the two composite paths
+/// One definition so the two composite paths
 /// (`computeBreakdown` and `blendingPerceivedReadiness`) cannot disagree about
 /// what "clamped" means, and so a NaN can never map to a *maximum* score by
 /// falling through a band table.
@@ -396,10 +395,7 @@ enum ScoringBounds {
 /// `RecoveryMethodologyView.validationSection`.
 ///
 /// `validationSection` is what makes that claim true — the page must keep
-/// saying the weights are unvalidated. Cited by SYMBOL, not line number, per
-/// `scripts/check_comment_citations.sh` — this repo splits files to meet
-/// budgets and a line-numbered citation is on a timer from the day it is
-/// written. A symbol survives a split.
+/// saying the weights are unvalidated.
 enum ScoringWeights {
     /// Tier 3 weights: HRV + Sleep + Vitals all available (full-signal day).
     /// Replaces the pre-ACWR-removal Tier3 (HRV/Sleep/Training 0.50/0.20/0.30).
@@ -465,10 +461,9 @@ enum ScoringWeights {
     /// This enum deliberately declares no per-vital weights
     /// (`restingHeartRate` / `respiratoryRate` / `wristTemperature`). Such
     /// constants would be dead config describing a weighted-sum mechanism the
-    /// scorer does not use, and the Help Center once drifted off them
-    /// independently to a 40/35/25 split that matched neither. The
-    /// mean IS the weighting, and one statement of it cannot disagree with
-    /// itself.
+    /// scorer does not use, and copy written from them drifts from the
+    /// scorer. The mean IS the weighting, and one statement of it cannot
+    /// disagree with itself.
     enum Vitals {
         // Sub-score scoring rules. Defined here so the algorithm code can
         // reference them rather than embed magic numbers.

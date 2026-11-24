@@ -60,9 +60,9 @@ struct MoreMenuView: View {
     /// The purchase, one tap from the More tab for anyone who has not bought
     /// the app: a new install, a trial user, a sandbox (TestFlight or App
     /// Review) install, and a grandfathered beta tester or developer install,
-    /// whose free access is not a purchase. Earlier sandbox builds anchored
-    /// every sandbox Apple ID as a beta tester, App Review's included, so
-    /// hiding the row from testers could hide the purchase from a reviewer.
+    /// whose free access is not a purchase. A sandbox Apple ID, App Review's
+    /// included, can carry a beta-tester anchor, so hiding the row from
+    /// testers could hide the purchase from a reviewer.
     /// Keyed like Settings → Purchase (`PurchaseStatusView`); a buyer has
     /// nothing to buy, and Restore Purchases stays in Settings.
     @ViewBuilder

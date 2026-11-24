@@ -225,7 +225,7 @@ enum MetricsVerifier {
 
     /// Training load — ATL / CTL / TSB / ACWR.
     ///
-    /// Source of truth is `TrainingLoadRegistry.live()`,
+    /// Source of truth is `TrainingLoadRegistry.live(from:)`,
     /// the same accessor the Dashboard, AI live block, and AI tools
     /// (`training.load.*`, `workout.live.today_readiness`) use. Reading
     /// `cache.sampleOn(today)` directly can lag
@@ -248,7 +248,7 @@ enum MetricsVerifier {
     @MainActor
     private static func trainingLoadDiscrepancies(in text: String) -> [Discrepancy] {
         guard !TrainingLoadVisibility.isPaused(AppDependencies.current.app.settingsManager.settings),
-              let load = TrainingLoadRegistry.live() else { return [] }
+              let load = TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache) else { return [] }
         var found = claimsMatching(
             in: text,
             pattern: #"\bTSB(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?:negative\s+)?(?<value>-?\d+(?:\.\d+)?))(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,
@@ -629,11 +629,9 @@ enum MetricsVerifier {
 
     // MARK: - Pending corrections (cross-turn feedback)
     //
-    // From a real user log: the hallucination guard caught two HR
-    // fabrications on consecutive turns ("claimed:72 actual:91",
-    // "claimed:71 actual:88"). The guard substituted the correct
-    // number into the spoken output but the MODEL kept doing it
-    // because nothing told it not to. This buffer carries
+    // The hallucination guard substitutes the correct number into the
+    // spoken output, but nothing in that tells the MODEL it fabricated, so
+    // it repeats the fabrication on the next turn. This buffer carries
     // corrections forward so the next turn's system prompt can
     // include "you fabricated HR=72 last turn — actual was 91; call
     // get_workout_live for HR, don't guess."

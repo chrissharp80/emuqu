@@ -208,8 +208,8 @@ final class EncryptionManager: Sendable {
     /// call re-tries the keychain. We must never silently create a new key
     /// when the old one is just temporarily inaccessible.
     /// Decryption only ever reads keys. Creating one for whatever version
-    /// byte a blob carries stored a new random key for every corrupt or bare
-    /// legacy file, and that key could never open it.
+    /// byte a blob carries would store a new random key for every corrupt or
+    /// bare legacy file, and that key could never open it.
     ///
     /// The Keychain round-trips run outside the lock, so a thread decrypting
     /// with a cached key (the main thread, on a cold dashboard) never waits
@@ -371,12 +371,6 @@ struct JSONFileSeal: Sendable {
     /// The JSON in stored bytes: sealed bytes opened, plain JSON written by a
     /// build that did not seal the file passed through as it is.
     let open: @Sendable (Data) throws -> Data
-
-    /// The app's key, through `AppDependencies.current`.
-    static let app = JSONFileSeal(
-        seal: { try AppDependencies.current.storage.encryptionManager.encrypt($0) },
-        open: { try AppDependencies.current.storage.encryptionManager.openStoredJSON($0) }
-    )
 
     /// `value` encoded with `encoder`, then sealed.
     func sealJSON(_ value: some Encodable, with encoder: JSONEncoder) throws -> Data {

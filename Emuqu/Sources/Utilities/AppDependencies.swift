@@ -8,8 +8,10 @@ import SwiftUI
 /// the middle of the app impossible to test with a substitute and impossible
 /// to read for who depends on what. So:
 ///
-/// - This file is the composition root: `Type.shared` is read here and
-///   nowhere else (`scripts/check_no_shared_outside_root.sh` enforces it).
+/// - This file is the composition root: `Type.shared` is read here and in
+///   `AppDependencies+Instances.swift`, which builds the services whose
+///   construction names other services, and nowhere else
+///   (`scripts/check_no_shared_outside_root.sh` enforces it).
 /// - Every accessor resolves lazily, so nothing is constructed until it is
 ///   asked for and no service's initialiser can recurse into the container.
 /// - Views read `@Environment(\.dependencies)`, which defaults to
@@ -822,6 +824,11 @@ struct StorageServices: Sendable {
     var sessionArchive: SessionArchive {
         if let substitute = overrides.sessionArchive { return substitute }
         return SessionArchive.shared
+    }
+    /// Moving a reading to the Trash, from any screen.
+    @MainActor
+    var sessionDeletion: SessionDeletion {
+        SessionDeletion(archive: sessionArchive, cloudKit: cloudKitSyncManager)
     }
     @MainActor
     var uiStateCache: UIStateCache {

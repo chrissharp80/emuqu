@@ -4,11 +4,8 @@ import SwiftUI
 /// beat count, the analysis window when one was selected, and any errors or
 /// warnings the verifier raised.
 ///
-/// Its own type rather than an extension on `RecordView` because it is a pure
-/// function of a `Verification.Result` — it reads no record-screen state and
-/// changes none — and `RecordView` is over the aggregate type-size threshold.
-/// Splitting a view that already takes all its input as parameters costs
-/// nothing and removes it from a type that has to shrink.
+/// A pure function of a `Verification.Result`: it reads no record-screen state
+/// and changes none.
 struct RecordVerificationSection: View {
     let verification: Verification.Result
     /// The window the analyser settled on, when one was selected. Nil for a

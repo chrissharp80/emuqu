@@ -3,8 +3,7 @@
 //  Emuqu
 //
 //  The pipeline's computation half: the four metric families, the overnight HR
-//  summary, and the small pure helpers they share. Split out of
-//  HRVAnalysisPipeline to keep that class body under 500 lines.
+//  summary, and the small pure helpers they share.
 //
 
 import Foundation

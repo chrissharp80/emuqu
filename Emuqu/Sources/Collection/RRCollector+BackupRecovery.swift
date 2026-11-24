@@ -12,8 +12,8 @@ extension SessionRecoveryCoordinator {
     // MARK: - Backup Recovery (delegates to SessionRecoveryService)
 
     /// Without the live recordings: a night still streaming has a backup and no
-    /// archive entry yet, so it looked lost, and deleting it there tombstoned
-    /// the night the morning archive was about to save. A night being ended
+    /// archive entry yet, so it would look lost, and deleting it there would
+    /// tombstone the night the morning archive is about to save. A night being ended
     /// (stopped, paused or discarded) stays live until it is saved or has
     /// failed, although it no longer collects. A recording that died with the
     /// app is not live, and still shows.
@@ -25,23 +25,15 @@ extension SessionRecoveryCoordinator {
     /// not lost.
     func liveRecordingIds() -> Set<UUID> {
         var ids = Set<UUID>()
-        if collector.isCollecting || collector.streamingLifecycle.isEndingOvernight,
-           let id = collector.currentSession?.id { ids.insert(id) }
-        if let id = collector.pausedSession?.id { ids.insert(id) }
-        if let recorder = AppDependencies.current.app.recorderBox.recorder,
-           recorder.phase == .recording || recorder.phase == .finalizing,
-           let id = recorder.currentSession?.id {
+        if collector.sessionState.isCollecting || collector.streamingLifecycle.isEndingOvernight,
+           let id = collector.sessionState.currentSession?.id { ids.insert(id) }
+        if let id = collector.streamingLifecycle.pausedSession?.id { ids.insert(id) }
+        if let recorder = collector.services.recorderBox.recorder,
+           recorder.lifecycle.phase == .recording || recorder.lifecycle.phase == .finalizing,
+           let id = recorder.lifecycle.currentSession?.id {
             ids.insert(id)
         }
         return ids
-    }
-
-    func pullCloudBackupsToLocal() async {
-        await recoveryService.pullCloudBackupsToLocal()
-    }
-
-    func checkForDeletedSessions() -> [(id: UUID, date: Date, beatCount: Int)] {
-        recoveryService.checkForDeletedSessions()
     }
 
     /// A session the archive still holds as deleted cannot be put back (the
@@ -49,7 +41,7 @@ extension SessionRecoveryCoordinator {
     /// rather than rebuilding it only to have the write refused.
     func restoreFromTrash(_ sessionId: UUID) async -> HRVSession? {
         recoveryService.restoreFromTrash(sessionId)
-        guard !collector.archive.deletedIds.contains(sessionId) else {
+        guard !collector.archive.store.deletedIds.contains(sessionId) else {
             debugLog("[Recovery] Could not restore \(sessionId.uuidString.prefix(8)): it is still marked deleted", level: .error)
             recoveryService.restoreFromTrashFailed(sessionId)
             return nil
@@ -66,15 +58,15 @@ extension SessionRecoveryCoordinator {
     /// as the raw-backup restore does, so the night isn't counted twice.
     private func restoreKeptSession(_ sessionId: UUID) -> HRVSession? {
         let archive = collector.archive
-        guard var session = archive.trashedSession(sessionId) else { return nil }
-        collector.supersedeSameNightSession(newSession: &session)
+        guard var session = archive.store.trashedSession(sessionId) else { return nil }
+        collector.morning.supersedeSameNightSession(newSession: &session)
         do {
             try archive.archive(session, skipSameNightMerge: true)
         } catch {
             debugLog("[Recovery] Could not put back trashed session \(sessionId.uuidString.prefix(8)): \(error)", level: .error)
             return nil
         }
-        archive.discardTrashed(sessionId)
+        archive.store.discardTrashed(sessionId)
         collector.rawBackup.markAsArchived(sessionId)
         Task { await collector.cloudSyncManager.forceReuploadSession(session) }
         Task { @MainActor in collector.archiveSignal.notifyChanged() }
@@ -105,9 +97,6 @@ extension SessionRecoveryCoordinator {
 
     /// The ids whose deletion mark was stored.
     @discardableResult
-    func deleteLostSessions(_ sessionIds: [UUID]) -> Set<UUID> {
-        recoveryService.deleteLostSessions(sessionIds)
-    }
 
     /// Workout backups carry a WorkoutTrackBackup header and must
     /// rebuild via WorkoutRecoveryService (GPS / distance / TRIMP), NOT the HRV
@@ -119,7 +108,7 @@ extension SessionRecoveryCoordinator {
     /// (the launch alert's persisted state); see
     /// `SessionRecoveryService.recoveredSessionType`.
     func recoverFromBackup(_ sessionId: UUID, recordedType: SessionType? = nil) async -> HRVSession? {
-        if AppDependencies.current.storage.workoutTrackBackup.retrieve(sessionId) != nil {
+        if collector.services.workoutTrackBackup.retrieve(sessionId) != nil {
             return await recoverWorkoutFromBackup(sessionId)
         }
         let session = await recoverHRVFromBackup(sessionId, recordedType: recordedType)
@@ -134,13 +123,13 @@ extension SessionRecoveryCoordinator {
             sessionId,
             recordedType: recordedType,
             analyze: { [self] session, window, flags, capacity in
-                await collector.analyze(session, window: window, flags: flags, peakCapacity: capacity)
+                await collector.morning.analyze(session, window: window, flags: flags, peakCapacity: capacity)
             },
             analyzeWithCapacity: { [self] session, capacity in
-                await collector.analyze(session, peakCapacity: capacity)
+                await collector.morning.analyze(session, peakCapacity: capacity)
             },
             supersedeSameNight: { [self] session in
-                collector.supersedeSameNightSession(newSession: &session)
+                collector.morning.supersedeSameNightSession(newSession: &session)
             },
             computeRecoveryScore: { [self] session, analysisResult in
                 await enrichedRecoveryScore(session: session, analysisResult: analysisResult)
@@ -159,7 +148,7 @@ extension SessionRecoveryCoordinator {
            let fresh = await collector.createTrainingContextEnsuringFresh(relativeTo: session.endDate ?? session.startDate) {
             enriched?.trainingContext = fresh
         }
-        return await collector.computeRecoveryScore(for: session, from: enriched)
+        return await collector.morning.computeRecoveryScore(for: session, from: enriched)
     }
 
     /// Rebuild a crashed/interrupted WORKOUT from its on-disk backups,
@@ -198,12 +187,12 @@ extension SessionRecoveryCoordinator {
     /// recovery service falls back to the streamed disk backup it reads on
     /// its own.
     private func strapRecordingForWorkoutRecovery(sessionId: UUID) async -> [RRPoint]? {
-        guard let workoutStart = AppDependencies.current.storage.workoutTrackBackup.retrieve(sessionId)?.header.startDate,
+        guard let workoutStart = collector.services.workoutTrackBackup.retrieve(sessionId)?.header.startDate,
               !strapRecordingBelongsToLiveSession else { return nil }
         let manager = collector.polarManager
-        manager.beginTransfer()
-        guard await manager.reconnectForTransfer(), manager.isRecordingOnDevice || manager.hasStoredExercise,
-              let recording = await manager.fetchRecordingIfAvailable(recordedSince: workoutStart),
+        manager.recording.beginTransfer()
+        guard await manager.recording.reconnectForTransfer(), manager.isRecordingOnDevice || manager.hasStoredExercise,
+              let recording = await manager.recording.fetchRecordingIfAvailable(recordedSince: workoutStart),
               !recording.points.isEmpty else {
             debugLog("[Recovery] Workout strap recovery: no usable H10 recording — using disk backup")
             return nil
@@ -305,12 +294,12 @@ extension SessionRecoveryCoordinator {
         guard let session = collector.archive.retrieveOrLog(sessionId), let series = session.rrSeries else { return .failed }
         let start = session.startDate
         let end = session.endDate ?? start
-        if let route = await collector.healthKit.fetchWorkoutRoute(from: start, to: end), route.count >= 2 {
+        if let route = await collector.healthKit.training.fetchWorkoutRoute(from: start, to: end), route.count >= 2 {
             guard let rebuilt = await recoverWorkout(sessionId: sessionId, points: series.points, track: route) else { return .failed }
             await MainActor.run { collector.archiveSignal.notifyChanged() }
             return .recovered(distanceMeters: rebuilt.workoutMetadata?.distanceMeters ?? 0)
         }
-        let hkDistance = await collector.healthKit.fetchPassiveDistanceMeters(from: start, to: end)
+        let hkDistance = await collector.healthKit.training.fetchPassiveDistanceMeters(from: start, to: end)
         // Only worth rewriting when HealthKit meaningfully beats what we recorded.
         guard hkDistance > (session.workoutMetadata?.distanceMeters ?? 0) + 50 else { return .noRoute }
         guard let rebuilt = await recoverWorkout(sessionId: sessionId, points: series.points, distanceMeters: hkDistance)
@@ -359,7 +348,7 @@ extension SessionRecoveryCoordinator {
     func augmentWorkoutFromStrap(sessionId: UUID) async -> StrapAugmentResult {
         guard collector.polarManager.connectionState == .connected else { return .notConnected }
         guard let session = collector.archive.retrieveOrLog(sessionId) else { return .failed }
-        collector.polarManager.beginTransfer()
+        collector.polarManager.recording.beginTransfer()
         let strapRR = await pullStrapRecording(for: session)
         guard !strapRR.isEmpty else { return .noStrapData }
         let merged = SessionRecoveryMath.mergedWorkoutPoints(
@@ -447,8 +436,8 @@ extension SessionRecoveryCoordinator {
     /// Reconnect so the strap's stored recording is reachable (BLE likely
     /// dropped overnight).
     private func reconnectStrapForAugment() async -> Bool {
-        collector.polarManager.beginTransfer()
-        return await collector.polarManager.reconnectForTransfer()
+        collector.polarManager.recording.beginTransfer()
+        return await collector.polarManager.recording.reconnectForTransfer()
     }
 
     /// The strap's recording of `session`, on the session's clock: one that
@@ -469,7 +458,7 @@ extension SessionRecoveryCoordinator {
             debugLog("[RRCollector] Strap's recording is not from this session — not merging it")
             return []
         }
-        guard let recording = await manager.fetchRecordingIfAvailable(recordedSince: session.startDate) else { return [] }
+        guard let recording = await manager.recording.fetchRecordingIfAvailable(recordedSince: session.startDate) else { return [] }
         guard let recordedStart = recording.startedAt, recordedStart <= end else {
             let keptAside = manager.rescueToBackup(recording)
             debugLog("[RRCollector] Downloaded recording is not from this session — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed; the strap keeps it")")
@@ -524,7 +513,7 @@ extension SessionRecoveryCoordinator {
         guard collector.morningCoordination.recoveredWorkoutReview == nil else { return }
         let reviewed = Set(UserDefaults.standard.stringArray(forKey: Self.reviewedRecoveredKey) ?? [])
         let cutoff = Date().addingTimeInterval(-48 * 60 * 60)
-        let candidates = collector.archive.entries
+        let candidates = collector.archive.store.entries
             .filter { $0.sessionType == .workout && $0.date >= cutoff }
             .sorted { $0.date > $1.date }
         for entry in candidates {
@@ -548,14 +537,14 @@ extension SessionRecoveryCoordinator {
         let live = liveRecordingIds()
         if let flagged = flaggedInterruptedWorkoutId(live: live) { return flagged }
         let archive = collector.archive
-        let rawBackup = collector.rawBackup
+        let (rawBackup, tracks) = (collector.rawBackup, collector.services.workoutTrackBackup)
         return await Task.detached(priority: .userInitiated) {
             // Only the last 24h: a genuine crash recovery is for something
             // that just happened, not a stale or corrupt old backup.
             let cutoff = Date().addingTimeInterval(-24 * 60 * 60)
             let candidates = unrecoveredBackupIds(since: cutoff, archive: archive, rawBackup: rawBackup)
                 .filter { !live.contains($0) }
-            return newestWorkoutBackup(among: candidates, in: rawBackup, capturedSince: cutoff)
+            return newestWorkoutBackup(among: candidates, in: rawBackup, tracks: tracks, capturedSince: cutoff)
         }.value
     }
 
@@ -565,7 +554,7 @@ extension SessionRecoveryCoordinator {
         guard let state = collector.getPersistedRecordingState(),
               state.sessionType == .workout,
               !live.contains(state.sessionId),
-              !collector.archive.exists(state.sessionId) else { return nil }
+              !collector.archive.store.exists(state.sessionId) else { return nil }
         return state.sessionId
     }
 
@@ -660,8 +649,8 @@ extension SessionRecoveryCoordinator {
     /// read whether it still records.
     private func strapReadyForAutoRecovery() async -> Bool {
         let manager = collector.polarManager
-        manager.beginTransfer()
-        guard await manager.reconnectForTransfer() else { return false }
+        manager.recording.beginTransfer()
+        guard await manager.recording.reconnectForTransfer() else { return false }
         await manager.recording.refreshRecordingState(
             until: Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds)
         )
@@ -673,45 +662,44 @@ extension SessionRecoveryCoordinator {
             sessionId,
             sessionType: sessionType,
             analyze: { [self] session, window, flags, capacity in
-                await collector.analyze(session, window: window, flags: flags, peakCapacity: capacity)
+                await collector.morning.analyze(session, window: window, flags: flags, peakCapacity: capacity)
             },
             analyzeWithCapacity: { [self] session, capacity in
-                await collector.analyze(session, peakCapacity: capacity)
+                await collector.morning.analyze(session, peakCapacity: capacity)
             }
         ) else {
             return false
         }
         await MainActor.run { enterPausedState(session) }
         // Resume arms the strap by the night's own capture choice, not the default.
-        if let usesDeviceBackup = collector.getPersistedCaptureMode() { collector.useDeviceBackupForOvernight = usesDeviceBackup }
-        collector.persistPausedSessionState(sessionId: session.id)
+        if let usesDeviceBackup = collector.getPersistedCaptureMode() { collector.overnightRun.usesDeviceBackup = usesDeviceBackup }
+        collector.control.persistPausedSessionState(sessionId: session.id)
         collector.clearPersistedRecordingState()
         return true
     }
 
     @MainActor
     private func enterPausedState(_ session: HRVSession) {
-        collector.currentSession = session
-        collector.pausedSession = session
-        collector.pausedBeatCount = session.rrSeries?.points.count ?? 0
-        collector.isPaused = true
-        collector.recordingPhase = .paused(sessionId: session.id)
-        collector.needsAcceptance = false
+        collector.sessionState.currentSession = session
+        collector.streamingLifecycle.pausedSession = session
+        collector.streamingLifecycle.pausedBeatCount = session.rrSeries?.points.count ?? 0
+        collector.streamingLifecycle.isPaused = true
+        collector.sessionState.recordingPhase = .paused(sessionId: session.id)
+        collector.sessionState.needsAcceptance = false
         collector.archiveSignal.notifyChanged()
     }
 }
 
 // MARK: - File-scope helpers
 //
-// Kept out of RRCollector: each names no member of the type and calls
-// nothing inside it, so none needs to be a member. `private` at file scope
-// is fileprivate, so every call site in this file resolves the same way.
+// Each names no member of `RRCollector` and calls nothing on it, so none needs
+// to be inside the type.
 
 /// Backups indexed since `cutoff` that no session holds. A workout the user
 /// deleted or rejected keeps its backup, and a backup already folded into a
 /// session is marked archived; neither is an interrupted workout.
 private func unrecoveredBackupIds(since cutoff: Date, archive: SessionArchive, rawBackup: RawRRBackup) -> [UUID] {
-    let excluded = Set(archive.entries.map(\.sessionId)).union(archive.deletedIds)
+    let excluded = Set(archive.store.entries.map(\.sessionId)).union(archive.store.deletedIds)
     let unarchived = Set(rawBackup.unarchivedSessionIds)
     return rawBackup.sessionIds(indexedSince: cutoff).filter { !excluded.contains($0) && unarchived.contains($0) }
 }
@@ -719,8 +707,9 @@ private func unrecoveredBackupIds(since cutoff: Date, archive: SessionArchive, r
 /// The newest of `candidates` that decodes, is dated inside the window by its
 /// own header, and carries a workout track — the checks the index cannot
 /// answer. Only the day's candidates reach here, so only their files are read.
-private func newestWorkoutBackup(among candidates: [UUID], in rawBackup: RawRRBackup, capturedSince cutoff: Date) -> UUID? {
-    let workoutTracks = AppDependencies.current.storage.workoutTrackBackup
+private func newestWorkoutBackup(
+    among candidates: [UUID], in rawBackup: RawRRBackup, tracks workoutTracks: WorkoutTrackBackup, capturedSince cutoff: Date
+) -> UUID? {
     return candidates
         .compactMap { rawBackup.readableBackup($0) }
         .filter { $0.captureDate >= cutoff && workoutTracks.retrieve($0.id) != nil }

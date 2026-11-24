@@ -4,7 +4,7 @@ import os
 /// Sessions written to disk without application-layer encryption, awaiting
 /// re-encryption once the key is reachable again.
 ///
-/// ## Why this exists
+/// ## Why a ledger
 ///
 /// Without this ledger, `Archive`, `RawRRBackup` and `WorkoutTrackBackup`
 /// would fall back to writing plaintext JSON whenever `EncryptionManager` is

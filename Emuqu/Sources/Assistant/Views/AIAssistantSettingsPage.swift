@@ -114,8 +114,7 @@ struct APIKeyEditorView: View {
     /// already publishes exactly that.
     private var consent: ProviderConsentTracker { dependencies.providers.providerConsentTracker }
     /// Bound once rather than located at each call site below, so the
-    /// dependency is visible in one place (the refactor spec's
-    /// explicit-wiring rule).
+    /// dependency is visible in one place.
     var keys: APIKeyStore { dependencies.providers.apiKeyStore }
     enum SaveStatus { case idle, saved, removed, failed }
 
@@ -143,10 +142,9 @@ struct APIKeyEditorView: View {
 
     /// Consent status and the withdrawal control.
     ///
-    /// Before this existed, `ProviderConsentTracker.revoke(_:)` had no
-    /// production caller: the user could agree to hosted processing and had no
-    /// way to take it back short of deleting the app. Apple requires consent to
-    /// be withdrawable somewhere the user can actually reach.
+    /// `ProviderConsentTracker.revoke(_:)` needs a control the user can reach:
+    /// Apple requires consent to be withdrawable, and without one a user who
+    /// agreed to hosted processing could take it back only by deleting the app.
     @ViewBuilder
     private var dataSharingSection: some View {
         if ProviderConsentTracker.providersRequiringConsent.contains(provider.id) {

@@ -53,6 +53,11 @@ final class GeminiProvider: KeyedCloudProvider, Sendable {
     ]
 
     let id: ProviderID = .gemini
+    let services: AIProviderServices
+
+    init(services: AIProviderServices) {
+        self.services = services
+    }
 
     func send(
         messages: [ChatTurn],
@@ -132,8 +137,8 @@ final class GeminiProvider: KeyedCloudProvider, Sendable {
             let description: String
             /// Gemini rejects a `parameters` object of `type:"object"` with an
             /// empty `properties` map — HTTP 400 "should be non-empty for OBJECT
-            /// type". OpenAI/Anthropic tolerate it, which is why only Gemini
-            /// broke. The ~15 no-argument `.fixed` fact tools carry exactly that
+            /// type". OpenAI/Anthropic tolerate it. The ~15 no-argument `.fixed` fact
+            /// tools carry exactly that
             /// empty schema, so we OMIT `parameters` entirely for them. A nil
             /// here means "no-arg tool"; a present value always has properties.
             let parameters: ToolSpec.InputSchema?
@@ -249,7 +254,7 @@ final class GeminiProvider: KeyedCloudProvider, Sendable {
         toolRounds: [[ToolExchange]],
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws {
-        guard let apiKey = AppDependencies.current.providers.apiKeyStore.key(for: .gemini) else { throw AIProviderError.missingKey(.gemini) }
+        guard let apiKey = services.apiKeyStore.key(for: .gemini) else { throw AIProviderError.missingKey(.gemini) }
         let split = ProviderHTTP.splitOnCacheMarker(systemPrompt)
         let body = RequestBody(
             systemInstruction: .init(parts: [.init(text: split.stable)]),

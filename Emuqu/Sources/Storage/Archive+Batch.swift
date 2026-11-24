@@ -109,7 +109,7 @@ extension ArchiveStore {
             }
             // Update with any new/better data from import: an edit made here,
             // stamped and queued to upload again (`postBatchChangeNotifications`).
-            guard archive.mergeSessionData(from: session, into: &existingSession) else { return }
+            guard SessionMerger.mergeSessionData(from: session, into: &existingSession) else { return }
             existingSession.modifiedAt = CloudKitSessionFreshness.stamp()
             try _archive(existingSession)
             outcome.updatedIds.append(existingSession.id)
@@ -139,7 +139,7 @@ extension ArchiveStore {
     private func writeBatchSession(_ session: HRVSession) throws -> SessionArchiveEntry {
         let fileName = "\(session.id.uuidString).json"
         let filePath = archive.archiveDirectory.appendingPathComponent(fileName)
-        let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.indexEncoder)
+        let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.indexEncoder, encryption: archive.encryption)
         try writeArchiveBytes(result.bytes, to: filePath, format: result.format, sessionID: session.id)
         return SessionArchiveEntry.make(from: session, hash: result.hash, filePath: fileName)
     }

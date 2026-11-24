@@ -43,7 +43,7 @@ extension MainTabView {
     /// The baseline nights are re-read from the whole archive: up to 60
     /// overnights strictly before the reported night (`ReportBaselineNights`),
     /// as Reports → Browse builds them, not the reliable overnights of the
-    /// dashboard's 35-session slice, which included the reported night itself.
+    /// dashboard's 35-session slice, which includes the reported night itself.
     nonisolated static func withFullSessions(_ inputs: SendReportInputs, kind: SendReportKind) -> SendReportInputs {
         let archive = AppDependencies.current.storage.sessionArchive
         let full: (HRVSession) -> HRVSession = { archive.retrieveOrLog($0.id) ?? $0 }
@@ -120,7 +120,7 @@ enum ReportBaselineNights {
     static let count = BaselineTracker.recoveryWindowNights
 
     static func before(_ night: Date, archive: SessionArchive, sleepSchedule: SleepSchedule) -> [HRVSession] {
-        let entries = archive.entries
+        let entries = archive.store.entries
             .filter { $0.sessionType == .overnight && $0.date < night }
             .sorted { $0.date > $1.date }
         let reportedNight = sleepSchedule.nightKey(for: night)

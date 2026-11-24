@@ -5,10 +5,9 @@ import Foundation
 /// whose word wins, a deletion or a later restore. The push, pull and deletion
 /// paths all ask it.
 ///
-/// Split out of `CloudKitSyncManager` the same way as `CloudPullCoordinator`
-/// and `CloudDeletionCoordinator`: a distinct job, reached through one
-/// explicit `manager` reference, with its own persisted record of pending
-/// restores.
+/// Like `CloudPullCoordinator` and `CloudDeletionCoordinator`: a distinct
+/// job, reached through one explicit `manager` reference, with its own
+/// persisted record of pending restores.
 @MainActor
 struct TrashRestoreCoordinator {
     let manager: CloudKitSyncManager
@@ -78,8 +77,8 @@ struct TrashRestoreCoordinator {
     /// empty this device's Trash copy, which nothing lists any more.
     func adoptFromAnotherDevice(_ sessionId: UUID) {
         do {
-            try manager.archive.unmarkAsDeleted(sessionId)
-            manager.archive.discardTrashed(sessionId)
+            try manager.archive.store.unmarkAsDeleted(sessionId)
+            manager.archive.store.discardTrashed(sessionId)
             debugLog("[CloudKit] \(sessionId.uuidString.prefix(8)) was restored on another device — dropping this device's deletion", level: .info)
         } catch {
             debugLog("[CloudKit] Could not adopt the restore of \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)

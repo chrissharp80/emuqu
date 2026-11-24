@@ -56,18 +56,13 @@ enum RouteLibrary {
     /// Search the user's saved-route library for a match. Returns nil when
     /// the live track hasn't covered enough ground yet, or when nothing
     /// in the library is close enough.
-    /// `@MainActor` because we resolve the default `AppDependencies.current.location.savedRouteStore`
-    /// inside the body — `.shared` is itself MainActor-isolated, and
-    /// Swift 6 evaluates default-parameter expressions in a separate
-    /// nonisolated context regardless of the function's annotation.
-    /// Pattern: nil default + resolve-inside.
+    /// On the main actor, as the saved-route store is.
     @MainActor
     static func findMatch(
         currentTrack: [CLLocation],
         sport: Sport,
-        store: SavedRouteStore? = nil
+        store: SavedRouteStore
     ) -> Match? {
-        let store = store ?? AppDependencies.current.location.savedRouteStore
         guard supportedSports.contains(sport), currentTrack.count >= 2 else { return nil }
         let traveled = totalDistanceMeters(of: currentTrack)
         guard traveled >= detectionTriggerMeters else { return nil }
@@ -164,7 +159,7 @@ enum RouteLibrary {
     /// Live points scored per comparison. The fit is a MEAN over the live
     /// track, so an even subsample estimates it without bias while capping the
     /// O(|live| × |saved|) cost: a full-resolution hour-long run against a
-    /// long route was millions of distance calls, once per prior on every
+    /// long route is millions of distance calls, once per prior on every
     /// finalize and backfill.
     static let maxScoredPoints = 300
 

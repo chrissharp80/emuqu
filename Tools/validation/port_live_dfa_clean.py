@@ -2,7 +2,7 @@
 correction with in-place linear interpolation) and its two thresholds.
 
 Ported line by line from Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift at
-commit e028039 (cleanRRForDFA, artifactMask, isArtifactBeat,
+commit b87eb64 (cleanRRForDFA, artifactMask, isArtifactBeat,
 interpolatingArtifacts, lowConfidenceCorrectedFraction = 0.03,
 maxCorrectedFraction = 0.06).
 

@@ -1,13 +1,10 @@
 import Foundation
 
-/// The decision layer behind automatic sleep refresh, lifted out of
-/// `RRCollector`.
+/// The decision layer behind automatic sleep refresh.
 ///
 /// Every function here is pure — a session and a `SleepData` in, a verdict or
-/// a mutated copy out — and lives here rather than as `private static`
-/// members of the collector so tests can reach them. They encode the
-/// answers to three questions that have each been the subject of a production
-/// bug:
+/// a mutated copy out — so tests can reach each one. They answer three
+/// questions:
 ///
 ///  * may this session's sleep be refreshed at all (user edits);
 ///  * is the fresh HealthKit data actually an improvement, and does it move
@@ -16,16 +13,16 @@ import Foundation
 ///  * when applying it, what has to change besides the display snapshot
 ///    (the ms boundaries WindowSelection actually scores from).
 enum SleepRefreshPolicy {
-    /// Honor user timeline edits (FLOWCHART §13.2/§14:
+    /// Honor user timeline edits (ADR 009:
     /// user edits are the source of truth). Every other automatic
     /// sleep path has this guard (`ReanalysisService.reanalyzeSession`
     /// and the `updateSessionSleepBoundaries` non-user branch);
     /// without it here, the next HK sleep sample arrival after
     /// a manual edit silently rewrites the snapshot — the user's corrected
     /// boundary reverts to the bogus 8 PM iPhone-guess start same-day,
-    /// every day. Worse, when the edit had saved a smaller total than
+    /// every day. Worse, when the edit saved a smaller total than
     /// HK's interpretation, the `newMinutes > priorMinutes` improvement
-    /// gate was trivially satisfied, making the overwrite guaranteed.
+    /// gate is trivially satisfied, making the overwrite guaranteed.
     ///
     /// The `sleepSnapshot != nil` clause: CloudKit uploads strip
     /// HK-derived snapshots (Guideline 5.1.3), so a user-adjusted
@@ -57,21 +54,21 @@ enum SleepRefreshPolicy {
         let sourceUpgradedToWatch: Bool
     }
 
-    /// ONSET-MOVE + SOURCE-UPGRADE gating (per Chris: once Apple
-    /// Watch sleep syncs it should always win). Gates keyed ONLY on
-    /// total sleep MINUTES (delta ≥ 20) and a later end are not enough: an HR-estimated
+    /// ONSET-MOVE + SOURCE-UPGRADE gating (once Apple Watch sleep syncs it
+    /// always wins). Gates keyed ONLY on total sleep MINUTES (delta ≥ 20) and a
+    /// later end are not enough: an HR-estimated
     /// onset is systematically MIS-TIMED — HR reaches its nadir ~an hour after
     /// true sleep onset, so an HR-drop threshold fires late — and Apple's data
     /// often lands with a similar TOTAL but a very different ONSET (e.g. HR
-    /// guessed onset 117 min in; Apple: 5 min). Same total → both the update
-    /// gate and the rescore gate skipped, so the recovery SCORE stayed computed
-    /// from the bogus HR window even after the sleep card corrected. Since
-    /// WindowSelection places the 30–70% HRV band inside [sleepStart, sleepEnd],
-    /// a moved onset changes the score. So we also act on a material onset move,
-    /// and ALWAYS act when the boundary source upgrades from an HR estimate to
-    /// an Apple/HealthKit-based source.
+    /// guessed onset 117 min in; Apple: 5 min). With the same total, both the
+    /// update gate and the rescore gate would skip, and the recovery SCORE would
+    /// stay computed from the bogus HR window even after the sleep card
+    /// corrects. Since WindowSelection places the 30–70% HRV band inside
+    /// [sleepStart, sleepEnd], a moved onset changes the score. So we also act
+    /// on a material onset move, and ALWAYS act when the boundary source
+    /// upgrades from an HR estimate to an Apple/HealthKit-based source.
     ///
-    /// The improvement gate (inherited from the dashboard's old sleep-refresh) passes
+    /// The improvement gate passes
     /// on a material onset move or a source upgrade too, not just more/later
     /// sleep, so Apple's corrected window isn't discarded when the total matches.
     /// Rescore fires when the scoring WINDOW moved enough to change the score:
@@ -146,9 +143,7 @@ enum SleepRefreshPolicy {
     /// reads to pick the 30-70% HRV band and score the night; the snapshot is
     /// display-only. Updating just the snapshot leaves the
     /// rescore scoring against the STALE HR-estimated window while the sleep
-    /// card shows the corrected Apple data — when Apple Watch sleep synced
-    /// ~90s LATE and this auto-rescore fired, the display corrected to 343 min
-    /// but the score was still computed from a bogus "117 min awake" onset.
+    /// card shows the corrected Apple data.
     /// Mirrors `ReanalysisService.updateSessionSleepBoundaries`. Both
     /// boundaries are clamped at 0: a sleep end before the session began must
     /// not become a negative offset, any more than a start may. Each

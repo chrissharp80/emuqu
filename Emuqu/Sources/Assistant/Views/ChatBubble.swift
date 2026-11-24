@@ -63,7 +63,7 @@ private extension ChatTurn {
 struct ChatBubble: View, Equatable {
     @Environment(\.dependencies) var dependencies
     let turn: ChatTurn
-    /// The report's mail link had nothing to open it.
+    /// True when the report's mail link has nothing to open it.
     @State private var reportMailUnavailable = false
     var onRemember: (() -> Void)?
     var onCopy: (() -> Void)?
@@ -307,8 +307,7 @@ struct ChatBubble: View, Equatable {
     }
 
     /// Tier indicator: a small coloured disc plus the tier's name, telling
-    /// the user which routing tier classified the turn. Per the spec's
-    /// "ambient indicator" requirement.
+    /// the user which routing tier classified the turn.
     @ViewBuilder
     private var tierIndicatorDot: some View {
         if let tier = turn.routedTier {

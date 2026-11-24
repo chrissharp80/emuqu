@@ -3,14 +3,9 @@ import HealthKit
 
 // The data types HealthKit reads and writes flow through.
 //
-// They were nested inside `HealthKitManager` — 435 lines of `struct` and `enum`
-// declarations on a 2,925-line type that the aggregate type-size gate counts in
-// full. They are data, not behaviour: nothing here touches the store, the
-// authorization state or a query.
-//
-// Top-level types, with typealiases left behind so the existing
-// `HealthKitManager.WorkoutSummary`-style references keep working
-// unchanged.
+// They are data, not behaviour: nothing here touches the store, the
+// authorization state or a query, so they are top-level types.
+// `HealthKitManager.WorkoutSummary`-style typealiases still name them.
 
 struct HealthWorkoutSummary: Codable {
     let date: Date
@@ -27,7 +22,7 @@ struct HealthWorkoutSummary: Codable {
     /// is what lets the daily TRIMP buildup — and therefore ATL,
     /// CTL, and TSB — anchor on powerTSS for power-equipped users
     /// rather than on HR alone. HealthKit-sourced summaries leave
-    /// this `nil`, falling back to HR TRIMP as before.
+    /// this `nil`, falling back to HR TRIMP.
     let precomputedLoad: Double?
     /// Source tag for the precomputed load (display + debugging).
     let precomputedLoadSource: String?
@@ -156,7 +151,7 @@ struct HealthWorkoutSummary: Codable {
     /// load math sees BOTH the user's Apple Health workouts AND
     /// the workouts they recorded in Emuqu — even when
     /// the fire-and-forget HealthKit-export step at WorkoutRecorder
-    /// silently failed.
+    /// silently fails.
     ///
     /// Sport mapping is best-effort; the TRIMP calculation only
     /// reads `durationMinutes` + `averageHR`, so the activityType
@@ -165,33 +160,17 @@ struct HealthWorkoutSummary: Codable {
     /// `ContextBuilder.buildWorkoutHistory` uses when
     /// `analysisResult.timeDomain.meanHR` is nil — workout sessions
     /// skip the HRV-analysis pipeline that populates that field).
+    ///
     /// Not `@MainActor`, and the inner read is `archive.retrieveLightweight`
-    /// rather than `archive.retrieve`.
-    ///
-    /// Two beta-user reports converged here:
-    ///   • "App hangs ~20 s when I tap Start Workout."
-    ///   • The dashboard's training-load card sometimes lags at
-    ///     foreground for a similar duration.
-    ///
-    /// Root cause was this function. It iterates 100+ workout
-    /// sessions on the **main actor**, calling the full-decode
-    /// `archive.retrieve` for each. Full decode runs an AES-GCM
-    /// pass + a JSONDecoder over `rrSeries` (typically thousands of
-    /// RR points per session). 50–200 ms per session × 100 = a
-    /// 5–20 s MainActor stall. A user tapping "Start Workout" mid-
-    /// stall is queued behind it.
-    ///
-    /// Two fixes, layered:
-    ///   1. `retrieveLightweight` skips the `rrSeries` decode (the
-    ///      heavy 99 %). All fields this function reads
-    ///      (`workoutMetadata.samples`, `meanHR`, `endDate`) are
-    ///      preserved.
-    ///   2. `SessionArchive` synchronizes via its own NSLock and is
-    ///      safe to call from any thread, so the `@MainActor`
-    ///      annotation was forcing main-thread work that didn't
-    ///      need it. Calculation paths (cache refresh,
-    ///      `buildDailySeries`) now await this from a detached task
-    ///      and the main thread is free to handle taps.
+    /// rather than `archive.retrieve`. This iterates 100+ workout sessions,
+    /// and a full decode runs an AES-GCM pass + a JSONDecoder over `rrSeries`
+    /// (thousands of RR points per session): 50–200 ms each, a 5–20 s stall
+    /// on the main actor that queues a "Start Workout" tap behind it.
+    /// `retrieveLightweight` skips the `rrSeries` decode (the heavy 99 %) and
+    /// keeps every field read here (`workoutMetadata.samples`, `meanHR`,
+    /// `endDate`). `SessionArchive` synchronizes via its own NSLock and is
+    /// safe to call from any thread, so the calculation paths (cache refresh,
+    /// `buildDailySeries`) await this from a detached task.
     static func fromAppArchive(
         archive: SessionArchive,
         days: Int,
@@ -202,7 +181,7 @@ struct HealthWorkoutSummary: Codable {
         guard let startDate = calendar.date(byAdding: .day, value: -days, to: calendar.startOfDay(for: endDate)) else {
             return []
         }
-        let entries = archive.entries(from: startDate, to: endDate)
+        let entries = archive.store.entries(from: startDate, to: endDate)
             .filter { $0.sessionType == .workout }
         return entries.compactMap { summary(from: $0, archive: archive) }
     }
@@ -325,8 +304,7 @@ struct HealthWorkoutSummary: Codable {
     /// (intervals.icu, GoldenCheetah, TrainingPeaks), NO method DISCARDS a
     /// session for being "too long" or "too easy" — that deletes legitimate
     /// ultra-endurance (a 15–24 h event is real, high load) and Zone-1 /
-    /// recovery training (which TRIMP/TSS exist to capture). Those guards
-    /// were silently cratering load ("way too low"). Corrupt data (a
+    /// recovery training (which TRIMP/TSS exist to capture). Corrupt data (a
     /// never-stopped recording) is handled the correct way: by validating
     /// the recorded span — app-recorded workouts already clamp duration to
     /// min(sample-span, recording-span) in `fromAppArchive` — and by capping

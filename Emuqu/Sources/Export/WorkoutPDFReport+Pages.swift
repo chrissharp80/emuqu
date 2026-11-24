@@ -6,8 +6,7 @@ import PDFKit
 import UIKit
 
 // The splits page, the "What this means" page and their helpers, plus the
-// shared drawing primitives the other workout-report pages call. Split out
-// from WorkoutPDFReport.swift to keep that file under its line budget.
+// shared drawing primitives the other workout-report pages call.
 // Members are internal rather than `private` so the other extensions can
 // call them.
 
@@ -315,7 +314,7 @@ extension WorkoutPDFRenderer {
         let recomputed = Self.splitsFromSamples(
             report.session.workoutMetadata?.samples ?? [],
             startDate: report.session.startDate,
-            splitDistanceMeters: wantsMile ? 1609.344 : 1000.0
+            splitDistanceMeters: wantsMile ? UnitConstants.metersPerMile : 1000.0
         )
         return recomputed.isEmpty ? stored : recomputed
     }
@@ -446,7 +445,7 @@ extension WorkoutPDFRenderer {
     ///
     /// A downward crossing needs α1 to have been at or above 0.75 after the
     /// warm-up first; a session already below it at 2:00 never crossed, and
-    /// reported its 2:00 heart rate as the LT1 estimate.
+    /// must not report its 2:00 heart rate as the LT1 estimate.
     func firstDownwardAT1Crossing() -> (offsetSec: Int, hr: Int?)? {
         let samples = report.session.workoutMetadata?.samples ?? []
         let shadows = Alpha1ReportCards.ectopicShadows(in: samples)
@@ -829,10 +828,8 @@ extension WorkoutPDFRenderer {
 
 // MARK: - File-scope helpers
 //
-// Kept out of WorkoutPDFReport. Each names no member of the
-// type and calls nothing inside it, so none needs to be a member.
-// `private` at file scope is fileprivate, so every call site in this
-// file resolves the same way.
+// Each names no member of `WorkoutPDFReport` and calls nothing on it, so none needs
+// to be inside the type.
 
 /// Rounded tinted card with a solid accent bar down its left edge. Shared by
 /// the hero verdict and the "What This Means" primary assessment, which drew

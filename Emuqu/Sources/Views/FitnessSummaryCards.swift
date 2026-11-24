@@ -4,9 +4,6 @@ import SwiftUI
 /// The post-workout summary cards and share surfaces: exports, the recap
 /// image, route saving, reanalysis, elevation re-smoothing, and the PDF report.
 ///
-/// Split out of `FitnessPostSummaryView` — roughly half of that view — in
-/// the same way as [MorningDetailCards], [MorningReanalysisControls],
-/// [RecoveryScoreCharts] and [FitnessStrapSection].
 ///
 /// Wide initialiser, honestly: these surfaces drive two dozen pieces of view
 /// state between them — the refreshed session, the in-memory exports and
@@ -15,9 +12,9 @@ import SwiftUI
 /// file, sheets and errors. Every one travels back through a binding rather
 /// than being duplicated here.
 ///
-/// Deliberately NOT a `View`. It returns the same view trees from the same
-/// positions, so SwiftUI identity, animation and `@State` behaviour are
-/// unchanged; the snapshot suite pins that.
+/// Deliberately NOT a `View`: it returns view trees into the host view's
+/// body, so SwiftUI identity, animation and `@State` stay the host's; the
+/// snapshot suite pins that.
 @MainActor
 struct FitnessSummaryCards {
     let session: HRVSession
@@ -25,6 +22,9 @@ struct FitnessSummaryCards {
     let units: UnitsPreference
     let collector: RRCollector
     let savedRouteStore: SavedRouteStore
+    let roadGeocoder: RoadGeocodingService
+    let archive: SessionArchive
+    let alpha1StatsCache: Alpha1StatsCache
 
     let settingsManager: SettingsManager
 

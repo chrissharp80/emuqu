@@ -6,22 +6,16 @@ import os
 /// writes to Apple Health, and the predicates that decide which of those
 /// samples a re-export deletes first.
 ///
-/// Lifted into one place. The scheme was spelled out as string
-/// interpolation at seven call sites across three files, and the relationship
-/// between its two shapes existed only as a comment:
+/// A summary sample is matched exactly ("-hr" must NOT swallow the "-hr-<n>"
+/// minute series); a series is matched by prefix; and no metric's predicate
+/// may match another metric's samples. That is the whole safety argument for
+/// a delete against the user's permanent Health record, so the scheme lives
+/// in one place where a test can hold the app to it.
 ///
-///     // Exact match: "-hr" must NOT swallow the "-hr-<n>" minute series.
-///
-/// That comment is the whole safety argument for a delete against the user's
-/// permanent Health record. A summary sample is matched exactly; a series is
-/// matched by prefix; and no metric's predicate may match another metric's
-/// samples. Stated here, those are properties a test can hold the app to
-/// instead of a warning the next reader has to notice.
-///
-/// One older shape survives only as something to delete: earlier builds
-/// wrote the single summary SDNN under the bare session UUID. It is written
-/// as `summary(sessionId:metric: .sdnn)` now, and the HRV cleanup
-/// (`HealthWriteAndObserve.isOurHRVExport`) still removes the bare form.
+/// Health data written by earlier builds may carry the single summary SDNN
+/// under the bare session UUID. It is written as
+/// `summary(sessionId:metric: .sdnn)`, and the HRV cleanup
+/// (`HealthWriteAndObserve.isOurHRVExport`) also removes the bare form.
 enum HealthExportIdentity {
     /// Metrics the app writes. Adding a case is what makes the collision test
     /// cover it — the test enumerates this list rather than a hand-written one.

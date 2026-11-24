@@ -10,7 +10,6 @@
 # only that subshell, so without the guard the caller sails on with an empty
 # path and reports clean anyway. That is the identical failure this helper
 # exists to prevent.
-# `check_gate_preflight.sh` fails the build if a call site omits the guard.
 #
 # ## Why this exists
 #

@@ -618,30 +618,25 @@ struct WorkoutMetadata: Codable, Equatable {
         return load > 0.5 ? load : nil
     }
 
-    /// Derive powerTSS at read time from stored NP +
-    /// the current effective FTP (which includes the auto-
-    /// estimate via `FTPAutoEstimator`). This fills in powerTSS
-    /// for HISTORICAL workouts that finalized before an FTP was
-    /// known — no re-archive needed, the number appears as soon
-    /// as the auto-estimate runs at launch.
+    /// Power TSS: the stored figure when there is one, otherwise derived at
+    /// read time from the stored NP and `ftp` (the user's effective FTP,
+    /// `FTPAnchors.current`), so a workout finalized before an FTP was known
+    /// gains one without a re-archive.
     ///
     /// Coggan formula: `IF² × moving hours × 100`, where
     /// `IF = NP / FTP`, computed by `TrainingLoadPrecedence.readTimePowerTSS`
-    /// so this figure and the one ATL/CTL count are the same. The stored
-    /// power TSS wins when there is one. Nil when NP or FTP is missing.
-    @MainActor
-    var computedPowerTSS: Double? {
-        if let stored = storedPowerTSS { return stored }
-        let ftp = TrainingLoadPrecedence.FTPAnchors.current(AppDependencies.current.app.settingsManager.settings)
-        return TrainingLoadPrecedence.readTimePowerTSS(self, ftp: ftp)
+    /// so this figure and the one ATL/CTL count are the same. Nil when NP or
+    /// FTP is missing.
+    func powerTSS(ftp: TrainingLoadPrecedence.FTPAnchors) -> Double? {
+        storedPowerTSS ?? TrainingLoadPrecedence.readTimePowerTSS(self, ftp: ftp)
     }
 
     /// The power TSS frozen at finalize, re-derived over MOVING time.
     ///
     /// TSS is IF² × hours of effort × 100, and NP is computed over the moving
-    /// samples only, so the hours must be moving hours too. Finalize used
-    /// start-to-stop wall-clock time, so a 60-minute ride with a 30-minute
-    /// café stop at IF 0.8 was stored as 96 TSS instead of 64. When the frozen
+    /// samples only, so the hours must be moving hours too. A stored value can
+    /// cover start-to-stop wall-clock time, so a 60-minute ride with a 30-minute
+    /// café stop at IF 0.8 stores 96 TSS instead of 64. When the frozen
     /// IF (which carries the FTP of that day) and the per-second samples are
     /// both present, the moving-time figure is returned; otherwise the stored
     /// value. Stored fields only, so it is safe off the main actor.

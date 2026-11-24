@@ -3,13 +3,11 @@ import Foundation
 /// Which heart-rate source a workout will actually use, given what is really
 /// attached at the moment Start is pressed.
 ///
-/// ## Why this exists
-///
 /// The user picks a source on the ready screen. Between that tap and `start()`
 /// running, the strap can drop out — BLE disconnect, the app backgrounded for a
 /// moment, the strap knocked loose. Failing the start with "Not connected"
-/// after they *just* saw "ready to start with strap connected" is the confusion
-/// they reported, so the cascade downgrades instead.
+/// after they *just* saw "ready to start with strap connected" is
+/// confusing, so the cascade downgrades instead.
 ///
 /// Three outcomes matter, and each has a cost:
 ///
@@ -21,10 +19,6 @@ import Foundation
 ///    reconstructed afterwards.
 ///  * **Not downgrading enough.** Recording `.strap` provenance for a workout
 ///    that captured no RR makes the analyzer expect data that was never there.
-///
-/// This lived inside `WorkoutRecorder+Start.swift`, 616 lines at **0% coverage**
-/// — every branch reachable only with a physical strap in a
-/// particular radio state.
 enum WorkoutHRSourceResolver {
     /// What the caller should do. The resolver decides; the side effects —
     /// tearing down a stale stream, firing a reconnect, logging — stay with it.

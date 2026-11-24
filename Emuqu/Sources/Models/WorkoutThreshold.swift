@@ -244,7 +244,7 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
     /// one-off the user did not ask for.
     private static func parseDistance(_ text: CueText) -> WorkoutThreshold? {
         guard !text.mentions(.every) else { return nil }
-        let units = [(text.words(.miles), 1609.344), (text.words(.kilometers), 1_000.0), (text.words(.meters), 1.0)]
+        let units = [(text.words(.miles), UnitConstants.metersPerMile), (text.words(.kilometers), 1_000.0), (text.words(.meters), 1.0)]
         let parts = captures(number + #"\s*("# + units.map(\.0).joined(separator: "|") + ")", in: text.raw)
         guard parts.count >= 3, let n = value(parts[1]) else { return nil }
         let scale = units.first { !captures("^" + $0.0 + "$", in: parts[2]).isEmpty }?.1 ?? 1
@@ -488,7 +488,7 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
 
     /// The distance in miles, to one decimal place unless it is whole.
     private func imperialDistanceCue() -> String {
-        let miles = value / 1_609.344
+        let miles = value / UnitConstants.metersPerMile
         let rounded = (miles * 10).rounded() / 10
         let digits = rounded == rounded.rounded() ? 0 : 1
         let amount = rounded.formatted(.number.precision(.fractionLength(digits)).locale(LanguageManager.appLocale))

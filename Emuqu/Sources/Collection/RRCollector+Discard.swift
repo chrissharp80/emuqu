@@ -34,17 +34,17 @@ extension CollectorSessionControl {
     /// is left to remove.
     func discardOvernightRecording() async -> DiscardOutcome? {
         guard let claim = collector.streamingLifecycle.claimOvernightEnding() else { return nil }
-        let session = collector.currentSession
+        let session = collector.sessionState.currentSession
         debugLog("[RRCollector] 🗑 Discarding recording \(session?.id.uuidString.prefix(8) ?? "-")")
         await collector.overnightStreaming.endDeviceRecordingArming()
-        let strapArmed = collector.overnightDeviceBackupActive
+        let strapArmed = collector.overnightRun.deviceBackupActive
         stopStreamingWithoutKeeping()
         let strapCopyKept = strapArmed ? await clearStrapCopy() : false
         if let session { await removeKeptCopies(of: session.id) }
         collector.clearPersistedRecordingState()
         collector.streamingLifecycle.releaseOvernightEnding(claim)
         returnToParentPauseOrIdle(parentId: session?.linkedSessionIds?.first)
-        if strapCopyKept { collector.lastError = PolarManager.PolarError.fetchFailed(Self.strapCopyKeptReason) }
+        if strapCopyKept { collector.sessionState.lastError = PolarManager.PolarError.fetchFailed(Self.strapCopyKeptReason) }
         collector.notifyArchiveChanged()
         return DiscardOutcome(strapCopyKept: strapCopyKept)
     }
@@ -60,7 +60,7 @@ extension CollectorSessionControl {
     /// pause stays as it was, otherwise the recorder returns to the pause of
     /// the segment that is left, so Discard can be tapped again.
     func discardPausedRecording() async {
-        guard let paused = collector.pausedSession, paused.state == .paused else { return }
+        guard let paused = collector.streamingLifecycle.pausedSession, paused.state == .paused else { return }
         debugLog("[RRCollector] 🗑 Discarding paused night \(paused.id.uuidString.prefix(8))")
         for id in pausedChain(from: paused) {
             do {
@@ -84,7 +84,7 @@ extension CollectorSessionControl {
             returnToParentPauseOrIdle(parentId: id)
             collector.notifyArchiveChanged()
         }
-        collector.lastError = error
+        collector.sessionState.lastError = error
     }
 
     /// Discards a strap-only recording: stops the strap and clears its copy,
@@ -96,13 +96,13 @@ extension CollectorSessionControl {
     /// live workout's backup recording, with `alreadyRecording` shown.
     func discardDeviceRecording() async -> Bool {
         guard !collector.strapRecordingIsHeldElsewhere("discarding") else { return false }
-        let session = collector.currentSession
+        let session = collector.sessionState.currentSession
         debugLog("[RRCollector] 🗑 Discarding strap recording \(session?.id.uuidString.prefix(8) ?? "-")")
         do {
-            try await collector.polarManager.discardStoredExercises()
+            try await collector.polarManager.recording.discardStoredExercises()
         } catch {
             debugLog("[RRCollector] ⚠️ Could not discard the strap recording: \(error)", level: .warning)
-            collector.lastError = error
+            collector.sessionState.lastError = error
             return false
         }
         if let session { await removeKeptCopies(of: session.id) }
@@ -120,25 +120,25 @@ extension CollectorSessionControl {
     /// the beats: no gather, no "saving" status, no analysis.
     private func stopStreamingWithoutKeeping() {
         let elapsedHours = collector.streamingHoursForBattery
-        collector.stopStreamingTimer()
-        AppDependencies.current.app.systemDiagnosticsManager.stopSamplingAfterRecording()
-        collector.isStreamingMode = false
+        collector.control.stopStreamingTimer()
+        collector.services.systemDiagnosticsManager.stopSamplingAfterRecording()
+        collector.streamingLifecycle.isStreamingMode = false
         _ = collector.polarManager.stopStreaming()
-        collector.polarManager.recordRecordingHours(elapsedHours)
-        collector.isOvernightStreaming = false
-        collector.overnightDeviceBackupActive = false
+        collector.polarManager.battery.recordRecordingHours(elapsedHours)
+        collector.streamingLifecycle.isOvernightStreaming = false
+        collector.overnightRun.deviceBackupActive = false
         collector.deviceStatus.isStreaming = false
-        collector.isCollecting = false
-        collector.collectedPoints = []
-        collector.streamingElapsedSeconds = 0
-        collector.morningStatus = nil
+        collector.sessionState.isCollecting = false
+        collector.sessionState.collectedPoints = []
+        collector.streamingLifecycle.streamingElapsedSeconds = 0
+        collector.morningCoordination.morningStatus = nil
     }
 
     /// Stops and clears the strap's internal recording. Returns true when the
     /// strap still holds it.
     private func clearStrapCopy() async -> Bool {
         do {
-            try await collector.polarManager.discardStoredExercises()
+            try await collector.polarManager.recording.discardStoredExercises()
             return false
         } catch {
             debugLog("[RRCollector] ⚠️ Could not clear the strap's copy of the discarded recording: \(error)", level: .warning)
@@ -158,11 +158,11 @@ extension CollectorSessionControl {
         if let parentId, let parent = collector.archive.retrieveOrLog(parentId), parent.state == .paused {
             collector.resetSession()
             persistPausedSessionState(sessionId: parentId)
-            collector.pausedSession = parent
-            collector.currentSession = parent
-            collector.isPaused = true
-            collector.pausedBeatCount = parent.rrSeries?.points.count ?? 0
-            collector.recordingPhase = .paused(sessionId: parentId)
+            collector.streamingLifecycle.pausedSession = parent
+            collector.sessionState.currentSession = parent
+            collector.streamingLifecycle.isPaused = true
+            collector.streamingLifecycle.pausedBeatCount = parent.rrSeries?.points.count ?? 0
+            collector.sessionState.recordingPhase = .paused(sessionId: parentId)
             return
         }
         collector.resetSession()

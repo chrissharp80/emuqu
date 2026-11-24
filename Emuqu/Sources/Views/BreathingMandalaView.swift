@@ -200,7 +200,7 @@ struct BreathingMandalaView: View {
         rotation = (rotation + Self.rotationDegreesPerSecond * elapsed).truncatingRemainder(dividingBy: 360)
     }
 
-    /// 0.02° per 16 ms tick, the pace the rotation had at a full frame rate.
+    /// 0.02° per 16 ms tick at a full frame rate.
     private static let rotationDegreesPerSecond = 1.25
 }
 

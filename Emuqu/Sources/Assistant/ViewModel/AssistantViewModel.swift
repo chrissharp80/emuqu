@@ -35,7 +35,6 @@ final class ComposerState {
 @Observable
 @MainActor
 final class AssistantViewModel {
-    static let shared = AssistantViewModel()
 
     // MARK: - Published state
 
@@ -117,6 +116,8 @@ final class AssistantViewModel {
 
     // MARK: - Dependencies
 
+    /// Every service the view model, its router and its tool runner read.
+    let services: ChatServices
     let registry: ProviderRegistry
 
     /// Exposed for the
@@ -149,20 +150,15 @@ final class AssistantViewModel {
     /// touching shared state. Without this guard, an OLD stream's
     /// `finishStream` (running after a user-cancel + immediate new send)
     /// would trample the NEW stream's `streamTask` / `isStreaming` and
-    /// break the UI's send button. Race observed in practice when voice
-    /// mode chains turns rapidly.
+    /// break the UI's send button. Voice mode chains turns rapidly
+    /// enough to hit this.
     var streamGeneration: Int = 0
 
-    /// Cached because building the fact registry from
-    /// scratch on every `dispatch()` (every send) is expensive — `AppFactResolverFactory.build`
-    /// allocates ~25 namespace resolvers and their entries, all on the
-    /// main thread. The output is a stateless lookup table (entries close
-    /// over their data sources); rebuilding per-send is pure waste. Cache
-    /// it on the view-model and invalidate via `invalidateFactRegistry()`
-    /// only when the schema would actually change (none of the current
-    /// inputs do — entries close over capturing closures that re-resolve
-    /// `AppDependencies.current.app.settingsManager` on every read). The companion `cachedTools`
-    /// avoids re-walking the schema for the LLM payload.
+    /// The fact registry and its tool schema, built once. Building them
+    /// allocates every namespace and its entries on the main actor, and
+    /// neither changes between sends: entries read the settings and services
+    /// they were handed each time they resolve. `invalidateFactRegistry()`
+    /// drops both.
     var cachedFactRegistry: FactResolverRegistry?
     var cachedFactTools: [ToolSpec]?
 
@@ -171,8 +167,9 @@ final class AssistantViewModel {
             return (registry, tools)
         }
         let registry = AppFactResolverFactory.build(
-            archive: AppDependencies.current.storage.sessionArchive,
-            settings: { AppDependencies.current.app.settingsManager.settingsSnapshot }
+            archive: services.sessionArchive,
+            settings: { [services] in services.settingsManager.settingsSnapshot },
+            services: services.facts
         )
         // CompactToolRouter exposes 21 read tools + up to 18 action
         // tools instead of one tool per fact-catalog entry (~212).
@@ -207,31 +204,34 @@ final class AssistantViewModel {
 
     /// AFM prewarm is DEFERRED to first send, deliberately absent here.
     ///
-    /// Prewarming in init, the moment the user opens the chat tab, produced
-    /// an 18-second gap in traces between first-tap-on-input and
-    /// `keyboard.willShow` — strong candidate is iOS 26's keyboard wanting the
-    /// same Apple Intelligence model that this prewarm is loading. Even at
-    /// .utility priority, holding a `LanguageModelSession` contends with the
-    /// keyboard's inline-prediction subsystem.
+    /// Prewarming in init, the moment the user opens the chat tab, contends
+    /// with iOS 26's keyboard, which most likely wants the same Apple
+    /// Intelligence model: even at .utility priority, holding a
+    /// `LanguageModelSession` competes with the keyboard's inline-prediction
+    /// subsystem, and the first tap on the input can wait as long as 18 s for
+    /// `keyboard.willShow`.
     ///
-    /// The original spec ("Performance: AFM prewarm") wanted first AI message
-    /// to be snappy. Moving the prewarm to right before the first send still
-    /// achieves that — the user types their question, hits Send, prewarm has
-    /// had ~5-30 s while they typed to load the KV-cache. The tradeoff is: if
-    /// the user types VERY fast (sub-second to first send), they pay the
-    /// prewarm cost on first message. That's strictly better than every user
+    /// Prewarming right before the first send still makes the first AI
+    /// message snappy: the prewarm has the ~5-30 s the user spends typing to
+    /// load the KV-cache. A user who sends within a second pays the prewarm
+    /// cost on that first message, which is strictly better than every user
     /// paying it on first focus, every session.
+    ///
+    /// The stores default to the ones in `services`; a test hands in its own.
     init(
+        services: ChatServices,
         registry: ProviderRegistry? = nil,
-        store: ConversationStore = AppDependencies.current.assistant.conversationStore,
-        contextSource: AssistantContextSource = AppDependencies.current.assistant.assistantContextSource,
-        factsStore: UserFactsStore = AppDependencies.current.assistant.userFactsStore
+        store: ConversationStore? = nil,
+        contextSource: AssistantContextSource? = nil,
+        factsStore: UserFactsStore? = nil
     ) {
-        let resolvedRegistry = registry ?? AppDependencies.current.providers.providerRegistry
+        self.services = services
+        let resolvedRegistry = registry ?? services.providerRegistry
         self.registry = resolvedRegistry
+        let store = store ?? services.conversationStore
         self.store = store
-        self.contextSource = contextSource
-        self.factsStore = factsStore
+        self.contextSource = contextSource ?? services.assistantContextSource
+        self.factsStore = factsStore ?? services.userFactsStore
         turns = store.load()
         hasAcceptedDisclaimer = UserDefaults.standard.bool(forKey: Self.disclaimerKey)
         priorSummary = store.loadSummary(migratingFrom: UserDefaults.standard, key: Self.summaryKey)
@@ -247,14 +247,8 @@ final class AssistantViewModel {
     /// all started empty; the stores hold their writes until they can merge,
     /// and this puts the full history and the summary back the moment the
     /// phone is unlocked.
-    /// Becoming active is watched too: a suspended app can miss the unlock
-    /// notification itself.
     private func wireProtectedDataRecovery() {
-        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
-            NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
-                self?.scheduleRecoveryAfterUnlock()
-            }
-        }
+        unlockObservers.observeProtectedDataMayBeAvailable { [weak self] in self?.scheduleRecoveryAfterUnlock() }
     }
 
     /// Notification callbacks arrive off the main actor; the recovery runs on it.
@@ -315,12 +309,16 @@ final class AssistantViewModel {
     }
 
     // Cancel any in-flight stream when this VM is torn
-    // down (TestFlight/process tear-down or hot-reload). `Task.cancel()` is
+    // down (process tear-down or hot-reload). `Task.cancel()` is
     // nonisolated and Sendable so it's safe to call from deinit. Without this,
     // an orphan stream task could keep referencing `self` after release.
     deinit {
         streamTask?.cancel()
+        unlockObservers.removeAll()
     }
+
+    /// The protected-data observers `wireProtectedDataRecovery` installs.
+    @ObservationIgnored private let unlockObservers = NotificationTokens()
 
     // MARK: - Public API
 
@@ -329,8 +327,8 @@ final class AssistantViewModel {
     /// the notice first; the workout screen's voice bar and the coach's
     /// automatic check-ins reach the model without a screen of their own, so
     /// the check sits on the way out.
-    static func aiIsAllowed(disclaimerAccepted: Bool) -> Bool {
-        disclaimerAccepted && AppDependencies.current.app.settingsManager.settings.enableAIAssistant
+    static func aiIsAllowed(disclaimerAccepted: Bool, settings: UserSettings) -> Bool {
+        disclaimerAccepted && settings.enableAIAssistant
     }
 
     /// Outcome of a `send(text:)` call. Lets callers (the voice controller
@@ -387,18 +385,18 @@ final class AssistantViewModel {
     /// that shortcut runs before the consent check.
     @discardableResult
     func send(text: String, fromVoice: Bool = false) -> SendOutcome {
-        AppDependencies.current.app.keyboardPerfSignpost.event("AssistantViewModel.send.entry")
+        services.keyboardPerfSignpost.event("AssistantViewModel.send.entry")
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return .rejectedEmpty }
         if refusedWhileFloIsOff() { return .rejectedNoProvider }
         if medicalGuardRefused(trimmed) { return .dispatched }
-        guard ProviderRegistry.canSend(to: registry.activeProvider) else {
-            errorMessage = Self.unavailableMessage(for: registry.activeProvider.id)
+        guard registry.canSend(to: registry.activeProvider) else {
+            errorMessage = Self.unavailableMessage(for: registry.activeProvider.id, in: registry)
             return .rejectedNoProvider
         }
         if fromVoice, !isStreaming, servedDeterministically(trimmed) { return .dispatched }
         let activeProvider = registry.activeProvider.id
-        if AppDependencies.current.providers.providerConsentTracker.requiresConsent(activeProvider) {
+        if services.providerConsentTracker.requiresConsent(activeProvider) {
             pendingConsentRequest = PendingConsentRequest(provider: activeProvider, text: trimmed, fromVoice: fromVoice, regenerate: false)
             return .requiresConsent(activeProvider)
         }
@@ -411,12 +409,12 @@ final class AssistantViewModel {
     /// Settings or without a key, or Apple Intelligence, which has no key and
     /// is unavailable on this device (unsupported, turned off, or its model
     /// not downloaded yet).
-    static func unavailableMessage(for id: ProviderID) -> String {
+    static func unavailableMessage(for id: ProviderID, in registry: ProviderRegistry) -> String {
         let bundle = LanguageManager.appBundle
         if id == .apple {
             return String(localized: "Apple Intelligence isn't available on this device right now. Choose another model in Settings → Flo.", bundle: bundle)
         }
-        if !ProviderRegistry.isEnabled(id) {
+        if !registry.isEnabled(id) {
             return String(localized: "\(id.displayName) is switched off. Turn it on or choose another model in Settings → Flo.", bundle: bundle)
         }
         return String(localized: "\(id.displayName) has no API key configured. Add one in Settings → Flo.", bundle: bundle)
@@ -436,7 +434,7 @@ final class AssistantViewModel {
     /// case justifies a person in crisis getting a model's answer instead of
     /// a crisis line.
     private func medicalGuardRefused(_ trimmed: String) -> Bool {
-        let guardEnabled = AppDependencies.current.app.featureFlags.value(for: .medicalGuardEnabled)
+        let guardEnabled = services.featureFlags.value(for: .medicalGuardEnabled)
         guard guardEnabled || MedicalQueryGuard.classify(trimmed) == .selfHarm,
               case .refuse(let reply) = MedicalQueryGuard.evaluate(trimmed) else { return false }
         appendExchange(user: trimmed, assistant: reply, localOnly: true)
@@ -445,9 +443,9 @@ final class AssistantViewModel {
     }
 
     /// If a stream is in flight, queue the send rather than drop it. The
-    /// user (or voice controller) gave us a real message; losing it because
-    /// the previous turn hadn't quite finished is the symptom we keep
-    /// hearing about. `finishStream()` drains the queue. Latest-wins:
+    /// user (or voice controller) gave us a real message, and it must not be
+    /// lost just because the previous turn hasn't quite finished.
+    /// `finishStream()` drains the queue. Latest-wins:
     /// multiple rapid sends collapse to the most recent — voice users
     /// don't want answers to questions they asked 30 seconds ago.
     private func queueBehindStream(_ trimmed: String, fromVoice: Bool) -> SendOutcome {
@@ -475,8 +473,8 @@ final class AssistantViewModel {
     private func servedDeterministically(_ trimmed: String) -> Bool {
         let context = DeterministicIntent.MatchContext(
             now: Date(),
-            archive: AppDependencies.current.storage.sessionArchive,
-            userSettings: AppDependencies.current.app.settingsManager.settings
+            archive: services.sessionArchive,
+            userSettings: services.settingsManager.settings
         )
         guard let answer = DeterministicIntent.tryMatch(trimmed, in: context) else { return false }
         appendExchange(user: trimmed, assistant: answer)
@@ -507,18 +505,18 @@ final class AssistantViewModel {
         turns.append(ChatTurn(role: .user, text: trimmed))
         store.save(turns)
         nextSendIsVoice = fromVoice
-        let mode = AppDependencies.current.app.settingsManager.settings.routingMode
+        let mode = services.settingsManager.settings.routingMode
         if registry.activeProvider.id == .apple, mode != .deep {
             AppleFoundationProvider.prewarm()
         }
-        AppDependencies.current.app.keyboardPerfSignpost.event("AssistantViewModel.send.beforeDispatch")
-        dispatch()
+        services.keyboardPerfSignpost.event("AssistantViewModel.send.beforeDispatch")
+        router.dispatch()
     }
 
     /// True, with the reason shown, when Flo is switched off or its notice
     /// hasn't been accepted (see `aiIsAllowed`).
     private func refusedWhileFloIsOff() -> Bool {
-        guard !Self.aiIsAllowed(disclaimerAccepted: hasAcceptedDisclaimer) else { return false }
+        guard !Self.aiIsAllowed(disclaimerAccepted: hasAcceptedDisclaimer, settings: services.settingsManager.settings) else { return false }
         errorMessage = String(localized: "Flo is off, or its notice hasn't been accepted yet. Open the Flo tab to turn it on.", bundle: LanguageManager.appBundle)
         return true
     }
@@ -534,7 +532,7 @@ final class AssistantViewModel {
     @discardableResult
     func acknowledgeConsentAndContinue() -> SendOutcome {
         guard let pending = pendingConsentRequest else { return .rejectedEmpty }
-        AppDependencies.current.providers.providerConsentTracker.acknowledge(pending.provider)
+        services.providerConsentTracker.acknowledge(pending.provider)
         pendingConsentRequest = nil
         guard !pending.regenerate else {
             regenerateLast()
@@ -611,8 +609,8 @@ final class AssistantViewModel {
         // Drop the Apple dispatcher's strong ref
         // immediately on cancel so a stop-button tap during an Apple
         // turn doesn't leave the registry retained until the next send.
-        AppDependencies.current.providers.appleToolDispatcher.setRegistry(nil)
-        AppDependencies.current.assistant.voiceConversationController.stopAnyOngoingSpeech()
+        services.appleToolDispatcher.setRegistry(nil)
+        services.voiceConversationController.stopAnyOngoingSpeech()
     }
 
     /// Chat-bar dismiss for the error banner. Lets
@@ -639,7 +637,7 @@ final class AssistantViewModel {
             return
         }
         resetConversationState()
-        AppDependencies.current.providers.llmRequestAudit.clear()
+        services.llmRequestAudit.clear()
         // The summary file went with the history (`ConversationStore.clear`);
         // this is the plain copy an older build left, if it was never moved.
         // UserDefaults writes block on synchronous disk sync — push off main.
@@ -767,7 +765,7 @@ final class AssistantViewModel {
         // Must have a user turn before it to regenerate from.
         guard lastAssistantIndex > 0, turns[lastAssistantIndex - 1].role == .user else { return }
         guard !holdRegenerationForConsent(userText: turns[lastAssistantIndex - 1].text) else { return }
-        dispatch(regenerating: turns[lastAssistantIndex].id)
+        router.dispatch(regenerating: turns[lastAssistantIndex].id)
     }
 
     /// True, with the consent sheet requested, when the selected provider has
@@ -775,7 +773,7 @@ final class AssistantViewModel {
     /// provider, so the selected one is the only one that can need it.
     private func holdRegenerationForConsent(userText: String) -> Bool {
         let active = registry.activeProvider.id
-        guard AppDependencies.current.providers.providerConsentTracker.requiresConsent(active) else { return false }
+        guard services.providerConsentTracker.requiresConsent(active) else { return false }
         pendingConsentRequest = PendingConsentRequest(provider: active, text: userText, fromVoice: false, regenerate: true)
         return true
     }
@@ -790,7 +788,7 @@ final class AssistantViewModel {
     /// cached fact registry, then builds a context in the background so the
     /// summaries are regenerated before the user's next question.
     func invalidateContext() {
-        AppDependencies.current.assistant.analysisSummaryCache.clear()
+        services.analysisSummaryCache.clear()
         // Also drop the cached fact registry so the next
         // send rebuilds it fresh. The "Refresh data context" menu entry
         // is the user's gesture for "I want the AI to see the new data";

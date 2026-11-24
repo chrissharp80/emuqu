@@ -5,7 +5,7 @@ import Security
 
 /// The single envelope format for everything written to iCloud.
 ///
-/// ## Why this exists
+/// ## Why one codec
 ///
 /// When the writer and the reader each decide independently how a payload is
 /// framed, they disagree:
@@ -71,7 +71,7 @@ enum CloudPayloadCodec {
     private static let keychainService = "com.chrissharp.flowrecovery.cloud"
     /// The original single shared account, still read and preferred.
     static let legacyAccount = "cloud-payload-key-v1"
-    /// Keys created from now on: this prefix plus a UUID, one account per key.
+    /// New keys: this prefix plus a UUID, one account per key.
     static let accountPrefix = "cloud-payload-key-id-"
 
     enum CodecError: LocalizedError {
@@ -175,9 +175,9 @@ enum CloudPayloadCodec {
     ///
     /// A damaged payload in a RECOGNISED format throws. It is never
     /// reclassified as legacy: "this is old data" and "this failed to decrypt"
-    /// are different answers, and conflating them is what turned a decryption
-    /// failure into silent corruption.
-    static func decode(_ raw: Data) throws -> Data {
+    /// are different answers, and conflating them turns a decryption failure
+    /// into silent corruption.
+    static func decode(_ raw: Data, archiveKey: EncryptionManager) throws -> Data {
         if raw.count > magic.count, raw.prefix(magic.count) == magic {
             return try openCurrent(raw)
         }
@@ -186,8 +186,7 @@ enum CloudPayloadCodec {
             // Whole payload, framing included — EncryptionManager parses its own.
             // The archive key, not the cloud key — FR payloads were sealed by
             // EncryptionManager and only it can open them.
-            let archive = AppDependencies.current.storage.encryptionManager
-            return try archive.decrypt(raw)
+            return try archiveKey.decrypt(raw)
         }
         return raw
     }

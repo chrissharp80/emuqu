@@ -427,10 +427,8 @@ struct DashboardV2View: View {
     /// newest analysed session would push the most-recent capture of
     /// any type — including a 3 ms mid-workout `.workout`
     /// session — making the chip and the detail tell different
-    /// stories about "today's HRV." That violated the rule that the morning
-    /// hero and its detail agree, and produced the user-reported divergence
-    /// (chip says 85 ms, detail shows 3 ms from the afternoon
-    /// workout).
+    /// stories about "today's HRV" (chip 85 ms, detail 3 ms from an
+    /// afternoon workout). The morning hero and its detail must agree.
     @ViewBuilder
     private var hrvDestination: some View {
         if let session = latestOvernightComplete, let result = session.analysisResult {

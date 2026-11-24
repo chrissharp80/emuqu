@@ -104,7 +104,7 @@ struct LiveReadiness {
         recentLoads: [RecoveryScoreCalculator.WorkoutLoad]?,
         now: Date
     ) -> LiveReadiness {
-        let score = RecoveryScoreCalculator.calculateReadiness(
+        let score = ReadinessScoring.calculateReadiness(
             recoveryScore: recoveryScore, todayTrimp: live.todayTrimp,
             ctl: interpolated.ctl, atl: interpolated.atl,
             morningATL: interpolated.morningATLForReadiness,
@@ -161,7 +161,7 @@ struct LiveReadiness {
     private static func morningReadiness(recoveryScore: Double, interpolated: InterpolatedLoad) -> Double {
         let atl = interpolated.morningATL
         let ctl = interpolated.morningCTL
-        return RecoveryScoreCalculator.calculateReadiness(
+        return ReadinessScoring.calculateReadiness(
             recoveryScore: recoveryScore, todayTrimp: 0, ctl: ctl, atl: atl,
             morningATL: atl, acuteChronicRatio: ctl > 0 ? atl / ctl : nil
         )

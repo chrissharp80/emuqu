@@ -76,7 +76,7 @@ enum OvernightChartDrawing {
     /// agree on a streamed night whose `t_ms` drifted.
     ///
     /// Reuses the cached formatter — these run per scrub frame,
-    /// and allocating a DateFormatter each time was tooltip jank.
+    /// and allocating a DateFormatter each time causes tooltip jank.
     static func clockTimeLabels(session: HRVSession, stats: OvernightStats, width: CGFloat) -> [(text: String, x: CGFloat)] {
         guard let series = session.rrSeries, !series.points.isEmpty else { return [] }
         let chartDurationMs = stats.chartEndMs - stats.chartStartMs
@@ -178,6 +178,7 @@ struct OvernightRecordingClock: Equatable {
 /// Overnight visualization showing full-night HR and HRV with nadir marked
 /// Welltory-style overnight graphs
 struct OvernightChartsView<InterChartContent: View>: View {
+    @Environment(\.dependencies) var dependencies
     let session: HRVSession
     let result: HRVAnalysisResult
     var healthKitSleep: SleepData?
@@ -330,7 +331,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
             return MillisecondOffset.between(e, and: s, fallback: 0)
         }()
         let recordingCoversLessThanHalfOfSleep = sleepDurationMs > 0 && recordingDurationMs < sleepDurationMs / 2
-        let typicalSleepMs: Int64 = Int64(AppDependencies.current.app.settingsManager.settings.typicalSleepHours * 3600 * 1000)
+        let typicalSleepMs: Int64 = Int64(dependencies.app.settingsManager.settings.typicalSleepHours * 3600 * 1000)
         let recordingCoversLessThanHalfOfTarget = recordingDurationMs < typicalSleepMs / 2
 
         debugLog("[ChartGate] recDuration=\(recordingDurationMs / 60000)min sleepDuration=\(sleepDurationMs / 60000)min typicalSleep=\(typicalSleepMs / 60000)min hkSleep=\(healthKitSleep != nil ? "yes" : "nil") segments=\(stats.sleepSegmentRanges.count) coversLessThanHalfOfSleep=\(recordingCoversLessThanHalfOfSleep) coversLessThanHalfOfTarget=\(recordingCoversLessThanHalfOfTarget)")
@@ -724,4 +725,51 @@ struct OvernightChartsView<InterChartContent: View>: View {
     }
 
     // MARK: - Compute Stats
+}
+
+// MARK: - Initialisers
+
+// In this file because the initial value of a private @State is visible only here.
+
+extension OvernightChartsView {
+    init(
+        session: HRVSession,
+        result: HRVAnalysisResult,
+        healthKitSleep: SleepData? = nil,
+        onReanalyzeAt: ((Int64) -> Void)? = nil,
+        isManualWindowMode: Bool = false,
+        manualResult: HRVAnalysisResult? = nil,
+        hideSleepRow: Bool = false,
+        @ViewBuilder interChartContent: () -> InterChartContent
+    ) {
+        self.session = session
+        self.result = result
+        self.healthKitSleep = healthKitSleep
+        self.onReanalyzeAt = onReanalyzeAt
+        self.isManualWindowMode = isManualWindowMode
+        self.manualResult = manualResult
+        self.hideSleepRow = hideSleepRow
+        self.interChartContent = interChartContent()
+    }
+}
+
+extension OvernightChartsView where InterChartContent == EmptyView {
+    init(
+        session: HRVSession,
+        result: HRVAnalysisResult,
+        healthKitSleep: SleepData? = nil,
+        onReanalyzeAt: ((Int64) -> Void)? = nil,
+        isManualWindowMode: Bool = false,
+        manualResult: HRVAnalysisResult? = nil,
+        hideSleepRow: Bool = false
+    ) {
+        self.session = session
+        self.result = result
+        self.healthKitSleep = healthKitSleep
+        self.onReanalyzeAt = onReanalyzeAt
+        self.isManualWindowMode = isManualWindowMode
+        self.manualResult = manualResult
+        self.hideSleepRow = hideSleepRow
+        interChartContent = EmptyView()
+    }
 }

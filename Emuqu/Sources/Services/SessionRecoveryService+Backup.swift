@@ -1,9 +1,8 @@
 import Foundation
 
-// Backup recovery and corrupted-session repair, split out of
-// `SessionRecoveryService.swift` to keep that type under the
-// 500-line body ceiling. Everything here reconstructs a session from the raw
-// RR backup (local or pulled from iCloud) after the live path failed.
+// Backup recovery and corrupted-session repair. Everything here reconstructs
+// a session from the raw RR backup (local or pulled from iCloud) after the
+// live path failed.
 
 extension SessionRecoveryService {
     // MARK: - Backup Recovery
@@ -143,9 +142,7 @@ extension SessionRecoveryService {
     /// Persist sleep/vitals snapshots alongside the score. The
     /// scorer fetched them live to produce the breakdown; without stamping
     /// them the dashboard's live-recompute path reads nil and renders a tier-1
-    /// breakdown that contradicts the frozen score (seen in the field:
-    /// frozenScore 9.75 archived, tier-1 recompute 16 s later,
-    /// contradictory factor scores on screen).
+    /// breakdown that contradicts the frozen score.
     ///
     /// Overnight only. Short backups are deliberately recovered
     /// as `.quick` so they do not displace a real overnight, and stamping last

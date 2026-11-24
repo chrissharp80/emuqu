@@ -1,10 +1,6 @@
 import Foundation
 
 // MARK: - Device Internal Recording (H10 / Verity Sense)
-//
-// Kept off `RRCollector` to keep that type's size in check. Same
-// coordinator split as the overnight-streaming and recovery
-// extractions — the collector reads are `collector.` and countable.
 
 extension DeviceRecordingSession {
     /// Context about sleep boundaries from HealthKit
@@ -48,7 +44,7 @@ extension DeviceRecordingSession {
         guard !collector.reconciliation.sessionExists(session.id) else {
             throw RRCollector.CollectorError.sessionExists
         }
-        try await collector.polarManager.startRecording()
+        try await collector.polarManager.recording.startRecording()
         await publishDeviceRecordingStarted(session: session, startTime: startTime)
         // Persisted at once, with the phase just set: survives app crashes,
         // phone reboots, etc.
@@ -65,17 +61,17 @@ extension DeviceRecordingSession {
         )
     }
 
-    /// Mark the session active in-app. Without `collector.isCollecting`, RecordView's
+    /// Mark the session active in-app. Without `collector.sessionState.isCollecting`, RecordView's
     /// isSessionActive check stays false (isOvernightStreaming and
     /// isCollecting both default false on this path), so the "Choose
     /// Session" picker keeps drawing on top of an already-running
     /// device recording — making it look like the start button did nothing.
     private func publishDeviceRecordingStarted(session: HRVSession, startTime: Date) async {
-        collector.currentSession = session
-        collector.collectedPoints = []
+        collector.sessionState.currentSession = session
+        collector.sessionState.collectedPoints = []
         collector.sessionStartTime = startTime
-        collector.isCollecting = true
-        collector.recordingPhase = .deviceRecording
+        collector.sessionState.isCollecting = true
+        collector.sessionState.recordingPhase = .deviceRecording
     }
 
     /// Stop the device recording, download it and score it. The Retry card
@@ -100,10 +96,10 @@ extension DeviceRecordingSession {
         let bgTask = BackgroundTaskAssertion.forRecordingStop(named: "DeviceRecordingStop")
         defer { bgTask.end() }
         let base = resolveBaseSession()
-        collector.polarManager.beginTransfer()
+        collector.polarManager.recording.beginTransfer()
         let recording: StrapRecording
         do {
-            recording = try await collector.polarManager.fetchRecording(recordedSince: base?.startDate, budget: .attended)
+            recording = try await collector.polarManager.recording.fetchRecording(recordedSince: base?.startDate, budget: .attended)
         } catch {
             return await makeFailedSession(from: base ?? HRVSession(), error: error)
         }
@@ -122,7 +118,7 @@ extension DeviceRecordingSession {
                 deviceProvenance: deviceRecordingProvenance(), existing: nil
             )
         }
-        let archived = collector.archive.exists(base.id) ? collector.archive.retrieveOrLog(base.id) : nil
+        let archived = collector.archive.store.exists(base.id) ? collector.archive.retrieveOrLog(base.id) : nil
         return DownloadPlacement(
             sessionId: base.id, sessionType: base.sessionType, startDate: base.startDate,
             deviceProvenance: base.deviceProvenance ?? deviceRecordingProvenance(), existing: archived
@@ -148,7 +144,7 @@ extension DeviceRecordingSession {
         let session = await analyzeAndAssemble(placement: placement, series: series, summary: merged.summary)
         // A night already in the archive is replaced only on Accept, so
         // Discard leaves it exactly as it was.
-        if !collector.archive.exists(session.id) { collector.morning.archiveForReview(session) }
+        if !collector.archive.store.exists(session.id) { collector.morning.archiveForReview(session) }
         return session
     }
 
@@ -228,7 +224,7 @@ extension DeviceRecordingSession {
             artifactFlags: nil,
             deviceProvenance: placement.deviceProvenance
         )
-        collector.currentSession = analyzingSession
+        collector.sessionState.currentSession = analyzingSession
         return analyzingSession
     }
 
@@ -261,7 +257,7 @@ extension DeviceRecordingSession {
     /// stays in the archive with 0 RR points and a default score — causing the
     /// dashboard to pick the wrong one.
     func resolveBaseSession() -> HRVSession? {
-        if let current = collector.currentSession, current.deviceProvenance?.recordingMode == .deviceInternal { return current }
+        if let current = collector.sessionState.currentSession, current.deviceProvenance?.recordingMode == .deviceInternal { return current }
         if let persisted = collector.getPersistedRecordingState() {
             debugLog("[RRCollector] Using persisted recording state for session start time: \(persisted.startTime)")
             return Self.collectingSession(from: persisted)
@@ -305,7 +301,7 @@ extension DeviceRecordingSession {
     /// its own start instead.
     private func findRecoverableArchivedSession() -> HRVSession? {
         let cutoff = Date().addingTimeInterval(-24 * 3600)
-        let candidates = collector.archive.entries
+        let candidates = collector.archive.store.entries
             .filter { Self.looksLikeUnresolvedOvernight($0, cutoff: cutoff) }
             .sorted { $0.date > $1.date }
         guard let best = candidates.first else { return nil }
@@ -364,8 +360,8 @@ extension DeviceRecordingSession {
             artifactFlags: nil,
             deviceProvenance: base.deviceProvenance
         )
-        collector.currentSession = failedSession
-        collector.lastError = error
+        collector.sessionState.currentSession = failedSession
+        collector.sessionState.lastError = error
         return failedSession
     }
 
@@ -424,8 +420,8 @@ extension DeviceRecordingSession {
         // activity today. The dashboard uses forMorningReading: false (live, includes
         // today) so ATL visibly updates throughout the day as workouts sync.
         // History keeps the frozen morning value permanently.
-        collector.cachedTrainingLoad = await collector.healthKit.calculateTrainingLoad(forMorningReading: true)
-        if let load = collector.cachedTrainingLoad {
+        collector.scoring.cachedTrainingLoad = await collector.healthKit.training.calculateTrainingLoad(forMorningReading: true)
+        if let load = collector.scoring.cachedTrainingLoad {
             debugLog("[RRCollector] Training load: weeklyScore=\(String(format: "%.1f", load.weeklyLoadScore)), daysSinceHard=\(load.daysSinceHardWorkout ?? -1)")
         }
     }
@@ -437,13 +433,13 @@ extension DeviceRecordingSession {
         flags: [ArtifactFlags]
     ) async -> HRVAnalysisResult? {
         if let windowResult, let recoveryWindow = windowResult.recoveryWindow {
-            return await collector.analyze(session, window: recoveryWindow, flags: flags, peakCapacity: windowResult.peakCapacity)
+            return await collector.morning.analyze(session, window: recoveryWindow, flags: flags, peakCapacity: windowResult.peakCapacity)
         } else if let windowResult {
             debugLog("[RRCollector] No recovery window (even after fallback) - analyzing full session with peak capacity")
-            return await collector.analyze(session, peakCapacity: windowResult.peakCapacity)
+            return await collector.morning.analyze(session, peakCapacity: windowResult.peakCapacity)
         } else {
             debugLog("[RRCollector] No valid windows at all - analyzing full session")
-            return await collector.analyze(session)
+            return await collector.morning.analyze(session)
         }
     }
 
@@ -525,7 +521,7 @@ extension DeviceRecordingSession {
     /// overnight session. Same gate the streaming path has
     /// (RRCollector+Streaming.swift).
     private func applyRecoveryScore(to finalSession: inout HRVSession, analysisResult: HRVAnalysisResult?) async {
-        guard let result = await collector.computeRecoveryScore(for: finalSession, from: analysisResult) else { return }
+        guard let result = await collector.morning.computeRecoveryScore(for: finalSession, from: analysisResult) else { return }
         finalSession.recoveryScore = result.score
         finalSession.scoreBreakdown = result.breakdown
         guard finalSession.sessionType == .overnight else { return }
@@ -539,14 +535,14 @@ extension DeviceRecordingSession {
         windowResult: WindowSelector.WindowSelectionResult?
     ) async {
         let deviation = collector.baselineTracker.deviation(for: finalSession)
-        collector.currentSession = finalSession
-        collector.verificationResult = verifyResult
-        collector.recoveryWindow = windowResult?.recoveryWindow
-        collector.needsAcceptance = finalSession.state == .complete
+        collector.sessionState.currentSession = finalSession
+        collector.sessionState.verificationResult = verifyResult
+        collector.sessionState.recoveryWindow = windowResult?.recoveryWindow
+        collector.sessionState.needsAcceptance = finalSession.state == .complete
         if finalSession.state == .complete {
-            collector.recordingPhase = .awaitingAcceptance
+            collector.sessionState.recordingPhase = .awaitingAcceptance
         }
-        collector.baselineDeviation = deviation
+        collector.sessionState.baselineDeviation = deviation
         collector.sessionStartTime = nil
         collector.archiveSignal.notifyChanged()
     }
@@ -565,9 +561,8 @@ extension DeviceRecordingSession.DownloadPlacement {
 
 // MARK: - File-scope helpers
 //
-// Each names no member of RRCollector and calls nothing inside it, so
-// none needs to be a member. `private` at file scope is fileprivate, so
-// every call site in this file resolves.
+// Each names no member of `RRCollector` and calls nothing on it, so none
+// needs to be inside the type.
 
 @MainActor
 private func logAmbiguousRecoveryCandidates(_ candidates: [SessionArchiveEntry]) {

@@ -7,21 +7,15 @@ import os
     import PolarBleSdk
 #endif
 
-// RxSwift is gone as of Polar BLE SDK 8.2.0.
+// The Polar BLE SDK (8.x) has no RxSwift dependency: the streaming APIs this
+// app uses return `AsyncThrowingStream` directly, so `for try await` iterates
+// them natively with no Observable bridge.
 //
-// The SDK dropped its RxSwift dependency, and the streaming APIs this app uses
-// return `AsyncThrowingStream` directly. No `ObservableType.values` bridge
-// (wrapping an Observable subscription in a continuation) is needed: the
-// streams are already async sequences, and `for try await` iterates them
-// natively.
-//
-// The upgrade was forced rather than opportunistic. RxSwift 6.5.0, which Polar
-// 6.13.0 pinned exactly, ships no privacy manifest, and Apple requires one for
-// RxSwift as a listed SDK. No version satisfies both constraints: 7.0/7.1 pin
-// RxSwift 6.8.0 (which does have the manifest) but declare `path: "Sources"`
-// while their repository keeps `Tests/` inside it, so SPM compiles their test
-// files into the library and the package does not build for any consumer.
-// 8.x narrowed that path and removed RxSwift altogether.
+// Polar 8.x is the minimum: 6.13.0 pins RxSwift 6.5.0, which ships no privacy
+// manifest (Apple requires one for RxSwift as a listed SDK), and 7.0/7.1 pin
+// RxSwift 6.8.0 but declare `path: "Sources"` while their repository keeps
+// `Tests/` inside it, so SPM compiles their test files into the library and
+// the package does not build for any consumer.
 
 // MARK: - Device Type Detection
 
@@ -109,30 +103,6 @@ final class PolarManager: NSObject {
         StrapRecordingCoordinator(manager: self)
     }
 
-    // Forwarders for the call sites that reach recording through the manager.
-    // The behaviour lives one reference away in `StrapRecordingCoordinator`.
-
-    func startRecording() async throws { try await recording.startRecording() }
-    func stopDeviceRecordingIfNeeded(streamHoldsIt: Bool) async {
-        await recording.stopDeviceRecordingIfNeeded(streamHoldsIt: streamHoldsIt)
-    }
-    func fetchRecording(
-        recordedSince: Date?, budget: StrapRecordingPolicy.TransferBudget
-    ) async throws -> StrapRecording {
-        try await recording.fetchRecording(recordedSince: recordedSince, budget: budget)
-    }
-    func fetchRecordingIfAvailable(recordedSince: Date?) async -> StrapRecording? {
-        await recording.fetchRecordingIfAvailable(recordedSince: recordedSince)
-    }
-    func reconnectForTransfer() async -> Bool { await recording.reconnectForTransfer() }
-    func beginTransfer() { recording.beginTransfer() }
-    func checkRecordingStatus(deviceId: String? = nil) async throws -> Bool {
-        try await recording.checkRecordingStatus(deviceId: deviceId)
-    }
-    func checkForStoredExercises(deviceId: String? = nil) async {
-        await recording.checkForStoredExercises(deviceId: deviceId)
-    }
-    func discardStoredExercises() async throws { try await recording.discardStoredExercises() }
     var hasStoredExercise: Bool = false // True if H10 has stored data that can be recovered
     var storedExerciseDate: Date? // Date of stored exercise on H10 (for archive comparison)
     var firmwareVersion: String? // User-visible revision (prefers DIS software revision, falls back to firmware revision)
@@ -185,18 +155,14 @@ final class PolarManager: NSObject {
     // MARK: - Battery Usage Tracking
     //
     // The counters, their persistence, and the staleness rule live on
-    // `StrapBatteryUsageTracker`. These forwarders keep every existing call
-    // site working.
+    // `StrapBatteryUsageTracker`; the members below forward to it.
 
     /// The battery value the device most recently reported, tracked separately
     /// from `batteryLevel` so a callback repeating the SAME value (which Polar
     /// emits on connect) is told apart from one carrying a NEW one.
     /// These three are written by `StrapBatteryUsageTracker` and by nothing
-    /// else. They were `private(set)` while the logic lived here; a
-    /// `private(set)` setter is private to the DECLARING FILE, so keeping it
-    /// would have meant either moving the logic back or adding a setter
-    /// forwarder per property. Named as a group here so the ownership is
-    /// still legible without the access modifier saying it.
+    /// else. They cannot be `private(set)`: that setter is private to the
+    /// declaring file, and the tracker lives in another one.
     var batteryLastReportedValue: Int?
     /// When the device last reported a CHANGED value — not merely a callback.
     var batteryLastChangedAt: Date?
@@ -209,7 +175,6 @@ final class PolarManager: NSObject {
     var battery: StrapBatteryUsageTracker { StrapBatteryUsageTracker(manager: self) }
 
     func loadBatteryUsageStateIfNeeded(for deviceId: String) { battery.loadState(for: deviceId) }
-    func recordRecordingHours(_ hours: Double) { battery.recordRecordingHours(hours) }
     func checkBatteryStaleness() { battery.recomputeStaleness() }
 
     func applyBatteryLevelUpdate(from identifier: String, batteryLevel: UInt) {
@@ -397,7 +362,7 @@ final class PolarManager: NSObject {
     //
     // Pairings and the last-connected timestamp live in
     // `StrapPairingStore`, which owns their App Group location and the
-    // migration from the two older ones. These forwarders keep the call sites.
+    // migration from the two older ones; the members below forward to it.
 
     /// The most recently connected device ID (first in knownDevices list)
     var lastConnectedDeviceId: String? { knownDevices.first?.id }
@@ -466,15 +431,14 @@ final class PolarManager: NSObject {
     /// Dedicated dispatch queue for the Polar BLE SDK.
     ///
     /// **Why not `DispatchQueue.main`:** initialising the SDK with the main
-    /// queue means every CoreBluetooth callback,
-    /// GATT notify, PS-FTP query, and the SDK's own internal sync waits
-    /// (`waitPacketsWritten` has a 90 s timeout) ran on the main thread.
-    /// On a cold launch the H10's exercise-listing handshake alone
-    /// consumed the main thread for 20–30 s — user-visible as the
-    /// workout-start hang, keyboard typing lagging, the recording timer
-    /// stuck on `0:01`. The Console showed the smoking-gun warning
-    /// "Potential Structural Swift Concurrency Issue: unsafeForcedSync
-    /// called from Swift Concurrent context" during this BLE work.
+    /// queue would put every CoreBluetooth callback, GATT notify, PS-FTP
+    /// query, and the SDK's own internal sync waits (`waitPacketsWritten` has
+    /// a 90 s timeout) on the main thread. On a cold launch the H10's
+    /// exercise-listing handshake alone can hold the main thread for 20–30 s
+    /// — a workout-start hang, lagging keyboard, the recording timer stuck on
+    /// `0:01` — and the BLE work trips the "Potential Structural Swift
+    /// Concurrency Issue: unsafeForcedSync called from Swift Concurrent
+    /// context" warning.
     ///
     /// **Why this is safe:** the `PolarBleApi*Observer` conformances in
     /// `+Observers.swift` touch no state. Each forwards its callback into

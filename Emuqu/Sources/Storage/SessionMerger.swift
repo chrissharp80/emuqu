@@ -2,21 +2,19 @@ import Foundation
 
 // MARK: - Session Merging
 //
-// Structured per the refactor spec's "pure functions first"
-// principle: every merge DECISION (which RR series wins, whose analysis is
+// Every merge DECISION (which RR series wins, whose analysis is
 // adopted, which metadata fills in) is computed up front as a pure
 // `MergeOutcome` value from immutable snapshots of both sessions, and a
 // separate apply step performs the mutations. Decisions and effects cannot
-// interleave — which is exactly the bug class this file shipped
-// twice (a score clobber, then a post-merge count read; see
-// the notes inside `rrOutcome`).
+// interleave: a decision that reads a field an earlier mutation already
+// changed clobbers a score or compares post-merge counts (see the notes
+// inside `rrOutcome`).
 
 /// The session-merge decision and its application: how an imported session is
 /// folded into one already in the archive.
 ///
-/// Split out of `SessionArchive`. It needs nothing from the
-/// archive at all, because the decision core is pure: it
-/// takes two immutable session snapshots and returns what to change.
+/// It needs nothing from the archive at all, because the decision core is
+/// pure: it takes two immutable session snapshots and returns what to change.
 enum SessionMerger {
     /// Pure description of everything a merge would change on the existing
     /// session. Computed before any mutation so the decision logic is
@@ -136,7 +134,7 @@ enum SessionMerger {
         return outcome
     }
 
-    /// RR-data decision (historically `mergeRRData` + `mergeOverlappingRRData`).
+    /// RR-data decision.
     private static func rrOutcome(imported: HRVSession, existing: HRVSession) -> MergeOutcome {
         guard let importedPoints = imported.rrSeries?.points, !importedPoints.isEmpty,
               let existingPoints = existing.rrSeries?.points, !existingPoints.isEmpty else {

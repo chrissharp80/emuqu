@@ -21,12 +21,6 @@ import Foundation
 //
 // A clean run logs three sub-100 ms gaps. A bad run shows one of the gaps
 // in seconds, and the next investigation can target that span.
-//
-// Its own file rather than inline in WorkoutRecorder.swift, which sits
-// against SwiftLint's `file_length` ERROR threshold of 2000 — that fails the
-// `swiftlint lint` CI step, not just the warning budget. The type is fully
-// self-contained (no reference to WorkoutRecorder in either direction);
-// `scripts/add_swift_file.py` handles the pbxproj membership.
 @MainActor
 final class WorkoutStartLatencyTracker {
     static let shared = WorkoutStartLatencyTracker()
@@ -78,8 +72,8 @@ final class WorkoutStartLatencyTracker {
     /// Stamps when `start()` finishes its synchronous body. Instrumentation
     /// that stops at `announce.fire` leaves gaps to be inferred
     /// from per-step log spacing. This gives a single explicit number for
-    /// "tap → start() returned" — anything over a few hundred ms is a
-    /// regression and the per-step logs after this line tell us where it lives.
+    /// "tap → start() returned" — anything over a few hundred ms is too slow,
+    /// and the per-step logs after this line tell us where the time went.
     func recordStartReturned() {
         guard let tapAt else { return }
         let totalMs = Int(Date().timeIntervalSince(tapAt) * 1000)

@@ -35,8 +35,7 @@ import os
 // closures are `@MainActor` and SUSPEND the actor on
 // `FactResolveTimeout.withTimeout(seconds:)` races — budgets and
 // timeout fallbacks without a DispatchSemaphore main-thread park,
-// which produces the App Watchdog kill signature (a workout
-// terminated mid-session in the field).
+// which gets the app killed by the App Watchdog, mid-workout included.
 //
 // The synchronous `resolve(_:)` walk still exists for composite bodies,
 // which read their children through it. On the async tool path a
@@ -60,11 +59,9 @@ import os
 // raw beat-stream. A "what were my last 10 workouts" query drops
 // from 50ms+ resolve time to <1ms.
 /// Shared period vocabulary for every namespace that takes a `$period`
-/// parameter. The previous implementation had six separate copies that
-/// each accepted a different subset of tokens — so a tool description
-/// promising "7d / 30d / this_week" silently returned an empty list
-/// when the model used those tokens against a parser that only knew
-/// `last_7d`. Funneling all callers here closes that gap.
+/// parameter. Every caller parses here, so a tool description promising
+/// "7d / 30d / this_week" holds for every namespace rather than one
+/// parser silently returning an empty list for a token it doesn't know.
 ///
 /// Accepted vocabulary (case-insensitive, leading "last_" optional):
 ///   • numeric: 7d, 14d, 30d, 60d, 90d, 180d, 365d
@@ -174,10 +171,9 @@ enum PeriodParser {
 }
 
 enum AppFactResolverFactory {
-    /// Build a fully-populated registry. The caller hands in the
-    /// singletons / repositories it already uses elsewhere (no service
-    /// location inside fact code — per refactor spec's explicit
-    /// dependency wiring rule).
+    /// Build a fully-populated registry from the archive, the settings and the
+    /// services the caller hands in. Fact code reads those and never the
+    /// container.
     ///
     /// Composites go LAST so their dependencies (every atomic namespace) are
     /// already registered. Composite resolvers call back into the registry to
@@ -186,11 +182,12 @@ enum AppFactResolverFactory {
     /// `resolve()` runs.
     static func build(
         archive: SessionArchive,
-        settings: @escaping @Sendable () -> UserSettings
+        settings: @escaping @Sendable () -> UserSettings,
+        services: FactServices
     ) -> FactResolverRegistry {
         let registry = FactResolverRegistry()
-        registerHealthNamespaces(on: registry, archive: archive, settings: settings)
-        registerAppNamespaces(on: registry, archive: archive, settings: settings)
+        registerHealthNamespaces(on: registry, archive: archive, settings: settings, services: services)
+        registerAppNamespaces(on: registry, archive: archive, settings: settings, services: services)
         registry.register(CompositesNamespace())
         return registry
     }
@@ -199,22 +196,23 @@ enum AppFactResolverFactory {
     private static func registerHealthNamespaces(
         on registry: FactResolverRegistry,
         archive: SessionArchive,
-        settings: @escaping @Sendable () -> UserSettings
+        settings: @escaping @Sendable () -> UserSettings,
+        services: FactServices
     ) {
-        registry.register(UserProfileNamespace(settings: settings))
+        registry.register(UserProfileNamespace(services: services, settings: settings))
         registry.register(SessionNamespace(archive: archive, settings: settings))
         registry.register(WalksNamespace(archive: archive))
-        registry.register(TrainingLoadNamespace(archive: archive, settings: settings))
-        registry.register(HeatAcclimationNamespace())
-        registry.register(SleepNamespace(archive: archive, settings: settings))
+        registry.register(TrainingLoadNamespace(services: services, archive: archive, settings: settings))
+        registry.register(HeatAcclimationNamespace(services: services))
+        registry.register(SleepNamespace(services: services, archive: archive, settings: settings))
         registry.register(HRVNamespace(archive: archive))
-        registry.register(VitalsNamespace(archive: archive))
+        registry.register(VitalsNamespace(services: services, archive: archive))
         registry.register(RecoveryNamespace(archive: archive))
-        registry.register(BaselineNamespace(archive: archive))
-        registry.register(WorkoutNamespace(archive: archive))
-        registry.register(WorkoutLiveNamespace(archive: archive))
-        registry.register(WorkoutLiveCoachingNamespace())
-        registry.register(HRVLiveNamespace())
+        registry.register(BaselineNamespace(services: services, archive: archive))
+        registry.register(WorkoutNamespace(services: services, archive: archive))
+        registry.register(WorkoutLiveNamespace(services: services, archive: archive))
+        registry.register(WorkoutLiveCoachingNamespace(services: services))
+        registry.register(HRVLiveNamespace(services: services))
         registry.register(HRRNamespace(archive: archive))
         registry.register(TagsNamespace(archive: archive))
     }
@@ -223,17 +221,18 @@ enum AppFactResolverFactory {
     private static func registerAppNamespaces(
         on registry: FactResolverRegistry,
         archive: SessionArchive,
-        settings: @escaping @Sendable () -> UserSettings
+        settings: @escaping @Sendable () -> UserSettings,
+        services: FactServices
     ) {
         registry.register(AppCapabilitiesNamespace())
-        registry.register(RoutesLibraryNamespace(archive: archive))
+        registry.register(RoutesLibraryNamespace(services: services, archive: archive))
         registry.register(AppNowNamespace())
-        registry.register(AppDevicesNamespace())
+        registry.register(AppDevicesNamespace(services: services))
         registry.register(AppSettingsNamespace(settings: settings))
-        registry.register(AppHealthKitNamespace())
-        registry.register(AssistantMemoryNamespace())
-        registry.register(WebSearchNamespace())
-        registry.register(BreadcrumbNamespace())
+        registry.register(AppHealthKitNamespace(services: services))
+        registry.register(AssistantMemoryNamespace(services: services))
+        registry.register(WebSearchNamespace(services: services))
+        registry.register(BreadcrumbNamespace(services: services))
     }
 }
 
@@ -247,13 +246,13 @@ enum AppFactResolverFactory {
 private enum RecentBiometricProfile {
     private static var recent: (startedAt: Date, fetch: Task<HealthBiometricProfile?, Never>)?
 
-    static func fetch() async -> HealthBiometricProfile? {
+    static func fetch(from healthKit: HealthKitManager) async -> HealthBiometricProfile? {
         if let recent, Date().timeIntervalSince(recent.startedAt) < 10 {
             return await recent.fetch.value
         }
         let fetch = Task {
             await FactResolveTimeout.withTimeout(seconds: 3) {
-                await AppDependencies.current.collection.healthKitManager.fetchBiometricProfile()
+                await healthKit.fetchBiometricProfile()
             }
         }
         recent = (Date(), fetch)
@@ -265,6 +264,7 @@ private enum RecentBiometricProfile {
 
 struct UserProfileNamespace: FactNamespaceResolver {
     let namespace = "user"
+    let services: FactServices
     let settings: @Sendable () -> UserSettings
 
     var entries: [FactEntry] {
@@ -350,8 +350,8 @@ struct UserProfileNamespace: FactNamespaceResolver {
         (estimates such as calories fall back to a 75 kg default, which is not the user's weight).
         """, valueType: "Double") {
             if let override = self.settings().bodyWeightKg { return .double(override) }
-            if AppDependencies.current.collection.healthKitManager.isHealthKitAvailable,
-               let profile = await RecentBiometricProfile.fetch(),
+            if services.healthKitManager.isHealthKitAvailable,
+               let profile = await RecentBiometricProfile.fetch(from: services.healthKitManager),
                let kg = profile.bodyWeightKg {
                 return .double(kg)
             }
@@ -362,8 +362,8 @@ struct UserProfileNamespace: FactNamespaceResolver {
     private var userProfileBiologicalSexEntry: FactEntry {
         .fixedAsync(key: "user.profile.biological_sex", description: "Biological sex used for sex-dependent physiology (Banister TRIMP k-coefficient). From Settings if set, else Apple Health. Returns notRecorded when neither has it.", valueType: "String") {
             if let raw = self.settings().biologicalSex?.rawValue { return .string(raw) }
-            if AppDependencies.current.collection.healthKitManager.isHealthKitAvailable,
-               let profile = await RecentBiometricProfile.fetch(),
+            if services.healthKitManager.isHealthKitAvailable,
+               let profile = await RecentBiometricProfile.fetch(from: services.healthKitManager),
                let sex = profile.appBiologicalSex {
                 return .string(sex.rawValue)
             }
@@ -376,8 +376,8 @@ struct UserProfileNamespace: FactNamespaceResolver {
             if let b = self.settings().birthday {
                 return .from(Calendar.current.dateComponents([.year], from: b, to: Date()).year)
             }
-            if AppDependencies.current.collection.healthKitManager.isHealthKitAvailable,
-               let profile = await RecentBiometricProfile.fetch(),
+            if services.healthKitManager.isHealthKitAvailable,
+               let profile = await RecentBiometricProfile.fetch(from: services.healthKitManager),
                let dob = profile.dateOfBirth {
                 return .from(Calendar.current.dateComponents([.year], from: dob, to: Date()).year)
             }
@@ -460,7 +460,7 @@ struct UserProfileNamespace: FactNamespaceResolver {
                 return .from(override)
             }
             if self.settings().useHealthKitVO2Max,
-               let hk = MainActor.assumeIsolated({ AppDependencies.current.analysis.trainingMetricsCache.snapshot() })?.vo2MaxLatest {
+               let hk = MainActor.assumeIsolated({ services.trainingMetricsCache.snapshot() })?.vo2MaxLatest {
                 return .from(hk)
             }
             return .missing(reason: .notRecorded, detail: "no VO2max override and HealthKit estimate unavailable")
@@ -495,7 +495,7 @@ struct UserProfileNamespace: FactNamespaceResolver {
     }
 
     private func resolveUserProfileVo2MaxTrend() -> FactValue {
-        guard let metrics = MainActor.assumeIsolated({ AppDependencies.current.analysis.trainingMetricsCache.snapshot() }),
+        guard let metrics = MainActor.assumeIsolated({ services.trainingMetricsCache.snapshot() }),
               let latest = metrics.vo2MaxLatest
         else {
             return .missing(reason: .notRecorded, detail: "no HealthKit VO2max samples")

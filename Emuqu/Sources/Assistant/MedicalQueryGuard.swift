@@ -78,8 +78,8 @@ enum MedicalQueryGuard {
     private static let generalConcernPatterns: [NSRegularExpression] =
         MedicalTermLexicon.refuseAsGeneralConcern.compactMap(MedicalTermLexicon.regex(for:))
 
-    /// Checked before everything else. Someone saying they are suicidal was
-    /// matched as an emergency and got the symptom reply — "talk to your
+    /// Checked before everything else: a suicidal message would otherwise
+    /// match as an emergency and get the symptom reply — "talk to your
     /// doctor", with no crisis line — which is the wrong answer to the most
     /// serious thing a user can type.
     private static let selfHarmPatterns: [NSRegularExpression] =
@@ -167,7 +167,7 @@ enum MedicalQueryGuard {
         }
     }
 
-    /// The trigger family, or nil when the text is safe to send. Split out from
+    /// The trigger family, or nil when the text is safe to send. Separate from
     /// `evaluate` so callers can log the category without holding the reply.
     /// Typographic apostrophes are folded to ASCII first: iOS Smart Punctuation
     /// types "can’t", and a pattern written with `'` must still match it.

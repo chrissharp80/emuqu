@@ -12,9 +12,8 @@ import Foundation
 /// reason and the previous route, so "AirPods → strap drop" can be confirmed
 /// from a field log rather than guessed at.
 ///
-/// Its own type because `PolarManager` is over the aggregate type-size
-/// threshold and none of this is about Polar: it is an audio-session
-/// observation that happens to be interesting while a strap is connected.
+/// None of this is about Polar: it is an audio-session observation that
+/// matters while a strap is connected.
 enum StrapAudioRouteWatch {
     @MainActor
     static func observe(on manager: PolarManager, into observers: NotificationTokens) {

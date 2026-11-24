@@ -8,7 +8,14 @@
 # does not show. The files listed below are handed exactly the services they
 # use by the composition root (`AppDependencies.launchServices`,
 # `AppDependencies.purgeStores`, and `AppDependencies.makeSessionReanalysis`
-# for the reanalysis service, its coordinator and the scoring context), and
+# for the reanalysis service, its coordinator and the scoring context; fact
+# namespaces get a `FactServices` from `AppFactResolverFactory.build`, and the
+# workout recorder and its parts a `WorkoutServices` from `RecorderBox`, and
+# the chat view model, its router and tool runner a `ChatServices`, and the
+# assistant's context source and builder a `ContextServices`, and the voice
+# conversation and its audio pipeline a `VoiceServices`, and the AI providers
+# an `AIProviderServices` from the registry, and the recording collector's
+# parts the `CollectorServices` the collector holds), and
 # their tests construct them with substitutes. One new
 # `AppDependencies.current` read in them hides an edge again and puts the
 # tests back on the live services.
@@ -19,7 +26,8 @@
 # app target is a container swapped under running code.
 #
 # Rules, comment lines excepted:
-#   1. no `AppDependencies.current` in an EXPLICIT file;
+#   1. no `AppDependencies.current`, and no service list built from it
+#      (`XServices(.current)`), in an EXPLICIT file;
 #   2. no `AppDependencies.install(` in `Emuqu/` or the Watch target.
 # See docs/adr/007-single-target-composition-root.md.
 set -uo pipefail
@@ -35,6 +43,30 @@ EXPLICIT_PATTERNS=(
     "Emuqu/Sources/Services/ReanalysisService*.swift"
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator*.swift"
     "Emuqu/Sources/Collection/SessionScoringContext.swift"
+    "Emuqu/Sources/Models/*.swift"
+    "Emuqu/Sources/Storage/*.swift"
+    "Emuqu/Sources/Analysis/*.swift"
+    "Emuqu/Sources/Analysis/*/*.swift"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift"
+    "Emuqu/Sources/Assistant/Facts/*Facts.swift"
+    "Emuqu/Sources/Assistant/Facts/FactNumericArguments.swift"
+    "Emuqu/Sources/Assistant/Facts/FactServices.swift"
+    "Emuqu/Sources/Collection/WorkoutRecorder*.swift"
+    "Emuqu/Sources/Collection/WorkoutTicker.swift"
+    "Emuqu/Sources/Collection/WorkoutSessionLifecycle.swift"
+    "Emuqu/Sources/Collection/WorkoutFinalizer.swift"
+    "Emuqu/Sources/Collection/WorkoutAIContextBuilder.swift"
+    "Emuqu/Sources/Collection/WorkoutServices.swift"
+    "Emuqu/Sources/Assistant/ViewModel/*.swift"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder*.swift"
+    "Emuqu/Sources/Assistant/Context/ContextServices.swift"
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift"
+    "Emuqu/Sources/Assistant/VoiceConversationController*.swift"
+    "Emuqu/Sources/Assistant/VoiceAudioPipeline*.swift"
+    "Emuqu/Sources/Assistant/VoiceServices.swift"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift"
+    "Emuqu/Sources/Assistant/Providers/*.swift"
+    "Emuqu/Sources/Collection/RRCollector+*.swift"
 )
 APP_DIRS=("Emuqu" "EmuquWatch Watch App")
 
@@ -60,7 +92,9 @@ code_hits() {
     grep -nHE "$pattern" "$@" 2>/dev/null | grep -vE '^[^:]+:[0-9]+:\s*(///|//|\*)' || true
 }
 
-lookups="$(code_hits 'AppDependencies\.current\b' "${explicit[@]}")"
+# `XServices(.current)` builds a service list from the container in force, so
+# it is the same lookup spelled shorter.
+lookups="$(code_hits 'AppDependencies\.current\b|Services\(\.current\)' "${explicit[@]}")"
 if [[ -n "$lookups" ]]; then
     echo "$lookups"
     echo "check_explicit_dependencies: \`AppDependencies.current\` is read in a file handed its dependencies (above)." >&2

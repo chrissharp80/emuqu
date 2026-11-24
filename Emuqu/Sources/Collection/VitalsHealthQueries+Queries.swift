@@ -35,7 +35,7 @@ extension VitalsHealthQueries {
         guard manager.isHealthKitAvailable, let respType = HKTypes.quantity(.respiratoryRate) else { return nil }
         let predicate = Self.vitalsWindow(hours: 24, relativeTo: referenceDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: respType,
                 predicate: predicate,
@@ -111,7 +111,7 @@ extension VitalsHealthQueries {
             return Self.cachedBaselineIfToday(RespiratoryBaselineCache.read()?.value, relativeTo: referenceDate)
         }
         let predicate = Self.priorNightsWindow(days: 7, relativeTo: referenceDate)
-        let liveValue: Double? = await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
+        let liveValue: Double? = await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: respType,
                 quantitySamplePredicate: predicate,
@@ -143,7 +143,7 @@ extension VitalsHealthQueries {
     private func fetchOxygenSaturation(relativeTo referenceDate: Date = Date()) async -> Double? {
         guard manager.isHealthKitAvailable, let spo2Type = HKTypes.quantity(.oxygenSaturation) else { return nil }
         let predicate = Self.vitalsWindow(hours: 24, relativeTo: referenceDate)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: spo2Type,
                 quantitySamplePredicate: predicate,
@@ -158,7 +158,7 @@ extension VitalsHealthQueries {
     private func fetchOxygenSaturationMin(relativeTo referenceDate: Date = Date()) async -> Double? {
         guard manager.isHealthKitAvailable, let spo2Type = HKTypes.quantity(.oxygenSaturation) else { return nil }
         let predicate = Self.vitalsWindow(hours: 24, relativeTo: referenceDate)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: spo2Type,
                 quantitySamplePredicate: predicate,
@@ -201,7 +201,7 @@ extension VitalsHealthQueries {
         else { return nil }
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         let predicate = Self.vitalsWindow(hours: 24, relativeTo: referenceDate)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: tempType,
                 predicate: predicate,
@@ -260,7 +260,7 @@ extension VitalsHealthQueries {
         else { return Self.cachedBaselineIfToday(WristTemperatureBaselineCache.read()?.value, relativeTo: referenceDate) }
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         let predicate = Self.priorNightsWindow(days: 7, relativeTo: referenceDate)
-        let liveValue: Double? = await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
+        let liveValue: Double? = await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: tempType,
                 predicate: predicate,
@@ -330,7 +330,7 @@ extension VitalsHealthQueries {
     /// off a re-fetch.
     ///
     /// No background delivery: all a fire does is bump a version the open
-    /// screens watch, so waking the app in the background for it spent
+    /// screens watch, so waking the app in the background for it would spend
     /// battery for nothing. Delivery enabled by earlier builds is turned off;
     /// samples that arrive meanwhile are read on the next launch.
     private func observeVitalsType(_ type: HKQuantityType) {
@@ -366,10 +366,7 @@ extension VitalsHealthQueries {
     /// Falls back to the minimum `.heartRate` sample over the same 36h window
     /// only when no RHR sample exists (older devices, users without an Apple
     /// Watch): the lowest instantaneous reading, a stand-in that reads at or
-    /// below a true resting HR, used because nothing better exists then. The
-    /// previous implementation always took the 24h `.heartRate` minimum, which
-    /// conflated "lowest instantaneous beat" with "resting HR" and missed the
-    /// authoritative Watch value entirely.
+    /// below a true resting HR, used because nothing better exists then.
     ///
     /// Excludes our own RHR/HR writes. The app
     /// exports a daily `.restingHeartRate` sample and minute-level `.heartRate`
@@ -383,7 +380,7 @@ extension VitalsHealthQueries {
         let windowEnd = min(referenceDate, Date())
         let windowStart = calendar.date(byAdding: .hour, value: -36, to: windowEnd) ?? windowEnd  // no force-unwrap
         let datePredicate = HKQuery.predicateForSamples(withStart: windowStart, end: windowEnd, options: .strictStartDate)
-        let predicate = manager.hrReadExcludingOwnWrites(dateRange: datePredicate)
+        let predicate = manager.heartRate.hrReadExcludingOwnWrites(dateRange: datePredicate)
         if let rhr = await watchRestingHeartRate(predicate: predicate) { return rhr }
         debugLog("[HealthKitManager] No .restingHeartRate sample found — falling back to the 36h heart-rate minimum")
         return await minimumHeartRate(predicate: predicate)
@@ -396,7 +393,7 @@ extension VitalsHealthQueries {
         guard let rhrType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else { return nil }
         let bpm = HKUnit.count().unitDivided(by: .minute())
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: rhrType,
                 predicate: predicate,
@@ -422,7 +419,7 @@ extension VitalsHealthQueries {
     private func minimumHeartRate(predicate: NSPredicate) async -> Double? {
         guard let hrType = HKTypes.quantity(.heartRate) else { return nil }
         let bpm = HKUnit.count().unitDivided(by: .minute())
-        return await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: hrType,
                 quantitySamplePredicate: predicate,
@@ -513,7 +510,7 @@ extension VitalsHealthQueries {
     ) async -> Double? {
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
         let typeName = type.identifier
-        let sum: Double? = await manager.runBoundedQuery(timeout: HealthKitManager.vitalsQueryTimeoutSec) { resolve in
+        let sum: Double? = await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: type,
                 quantitySamplePredicate: predicate,
@@ -540,9 +537,9 @@ extension VitalsHealthQueries {
     }
 }
 
-// `DailyActivity` stays nested on the manager: it is the return type of the
-// `fetchDailyActivity` forwarder and is named `HealthKitManager.DailyActivity`
-// at every call site.
+// `DailyActivity` is nested on the manager, the type every caller names it
+// through (`HealthKitManager.DailyActivity`); `fetchDailyActivity` above
+// returns it.
 extension HealthKitManager {
     struct DailyActivity: Identifiable, Equatable, Sendable {
         let date: Date

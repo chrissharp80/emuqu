@@ -506,7 +506,7 @@ The project began as a general fitness app. Repository AI-Fitness-Coach (2025-02
 | chrissharp80/flow-recovery-dev | Flow Recovery | c48eeb9, 2026-03-01 | Squashed import; to 2026-03-15 | Private |
 | chrissharp80/flow-recovery | Flow Recovery | 39bfcd4, 2026-03-15 | 196 commits to 2026-08-12 | Private |
 | chrissharp80/emuqu-dev | Emuqu | d4e5cf8, 2026-08-16 | Squashed import; to 2026-09-04 | Private |
-| chrissharp80/emuqu | Emuqu | 9d89933, 2026-09-08 | Squashed import; current | Public (PolyForm Strict 1.0.0) |
+| chrissharp80/emuqu | Emuqu | 01e2bae, 2026-09-08 | Squashed import; current | Public (PolyForm Strict 1.0.0) |
 
 History has gaps from 2026-01-26 to 2026-03-01, 2026-08-12 to 2026-08-16 and 2026-09-04 to 2026-09-08, where each new repository began with a squashed import; a date at a squashed import is an upper bound for anything it contains. The pre-code design (v1 to v9.2 FINAL, completed 2026-01-08 21:06 CST) is described in Section 4: versions v1 and v3.0 have not been recovered; v2–v2.2 and v4.0–v9.1 survive in the author's Claude conversation record; v9.2 FINAL survives as a Google Drive document. DesignHub is in a separate private repository, design-hub (afd17d8, 2026-01-21).
 
@@ -550,7 +550,7 @@ ChatGPT transcript exports with per-message timestamps, covering conversations t
 | 2026-08-27 17:39:16 UTC (12:39 CDT) | Reviewer-facing exclusions in `docs/CI_POSTURE.md`, emuqu-dev 06de1cd (public from 2026-09-08) | git | A |
 | 2026-09-01 | Audit specification removed and `docs/REFACTOR_SPEC.md` added, emuqu-dev 44a55b8 | git | A |
 | 2026-09-05 21:31–21:40 UTC (16:31–16:40 CDT) | Separate blind convergence judge and exclusion-list adjudicator; final cross-family audit | ChatGPT conversation history [14] | P+Q |
-| 2026-09-08 | Public Emuqu repository, emuqu 9d89933, including the refactor specification and CI posture | git (public) | A |
+| 2026-09-08 | Public Emuqu repository, emuqu 01e2bae, including the refactor specification and CI posture | git (public) | A |
 | 2026-10-08 | This paper | — | — |
 
 ### 9.4 Counts and their status
@@ -576,7 +576,7 @@ Quotations from the 2026-08-10 post are taken from the author's Drive copy of hi
 - 2026-01-27: TestFlight beta opened (over 1,500 sessions by 2026-03-06; 45 testers and over 6,500 sessions by August 2026). A public TestFlight join link appeared in the project README by May 2026.
 - 2026-05-19: Substack article "A Powerfully Lazy Man's Way to Better Health" (Paper 1, *Overnight Recovery Measurement from Raw Beat Intervals* ([01-overnight-recovery-measurement.md](01-overnight-recovery-measurement.md)), lists what it disclosed). It said only that AI was used with careful planning; it did not describe the audit method.
 - 2026-08-10: Substack article "How I Build Production Software by Directing AI" [10]. It disclosed memory-off blind auditors from several model families; adjudication against the mission statement with a do-not-ding list; removal of version numbers; 40 to 50 rounds of four auditors; convergence judged by findings such as font size and improbable security scenarios; the stack chosen after design; the refactor and audit specifications; the 18-pass P0–P3 code audit; and verification by use. It did not disclose the AUDIT INSTRUCTIONS section, DesignHub or its prompts, the separate convergence judge and exclusion-list adjudicator, or the final cross-family audit as a fixed step.
-- 2026-09-08: public repository github.com/chrissharp80/emuqu (first commit 9d89933), including `docs/REFACTOR_SPEC.md` and `docs/CI_POSTURE.md`.
+- 2026-09-08: public repository github.com/chrissharp80/emuqu (first commit 01e2bae), including `docs/REFACTOR_SPEC.md` and `docs/CI_POSTURE.md`.
 - 2026-10-08: these white papers.
 
 ### 9.7 Authorship
@@ -605,7 +605,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 10. Sharp C. How I build production software by directing AI [Internet]. Substack; 2026 Aug 10. https://chrissharp80.substack.com (accessed 2026-10-08). Quoted from the author's Drive copy; see Section 9.5.
 11. Martin RC. Clean code: a handbook of agile software craftsmanship. Upper Saddle River (NJ): Prentice Hall; 2008.
 12. Simpson K. Functional-light JavaScript [Internet]. 2017. https://github.com/getify/Functional-Light-JS (accessed 2026-10-08).
-13. Sharp C. Emuqu [Internet]. 2026. https://github.com/chrissharp80/emuqu (accessed 2026-10-08). First commit 9d89933, 2026-09-08.
+13. Sharp C. Emuqu [Internet]. 2026. https://github.com/chrissharp80/emuqu (accessed 2026-10-08). First commit 01e2bae, 2026-09-08.
 14. Sharp C. ChatGPT conversation-history dossier, compiled 2026-10-08 from timestamped retrieval excerpts. Private.
 15. Tversky A, Kahneman D. Judgment under uncertainty: heuristics and biases. Science. 1974;185(4157):1124–1131.
 16. Arkes HR, Blumer C. The psychology of sunk cost. Organ Behav Hum Decis Process. 1985;35(1):124–140.

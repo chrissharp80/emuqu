@@ -1,24 +1,21 @@
 import Foundation
 
 // The purge's preferences sweep: which `UserDefaults` keys a full wipe
-// removes from the app's suites and which it keeps. Split out of
-// `DataPurgeService.swift`.
+// removes from the app's suites and which it keeps.
 
 extension DataPurgeService {
     // MARK: - Preferences sweep
 
     /// `UserDefaults` keys a full wipe must leave alone.
     ///
-    /// ## Why this exists
+    /// ## Why a keep list
     ///
-    /// The container sweep (`sweepAllContainers`) inverted the file purge
-    /// from "list what to delete" to "delete what is not kept", and the doc
-    /// comment for it says a future store is covered on the day it is written. That was true of
-    /// files and false of preferences: the named steps removed nine specific
-    /// `UserDefaults` keys and nothing swept the rest. 105 distinct keys are
-    /// written across the app target. Surviving a "delete all my data" were,
-    /// among others, `hasAcceptedHealthDisclaimer`, the CloudKit change token
-    /// and last-sync date, `reviewedRecoveredWorkoutIds`,
+    /// The container sweep (`sweepAllContainers`) deletes every file that is
+    /// not kept, so a future store is covered on the day it is written.
+    /// Preferences need the same rule: the app target writes over a hundred
+    /// distinct `UserDefaults` keys, and a list of keys to remove misses the
+    /// rest — among others `hasAcceptedHealthDisclaimer`, the CloudKit change
+    /// token and last-sync date, `reviewedRecoveredWorkoutIds`,
     /// `hkBackfillExportedWatermark`, and every cached baseline
     /// (`RespiratoryBaselineCache`, `WristTemperatureBaselineCache`,
     /// `SleepDataCache`) — derived physiology, which is health data however it
@@ -43,12 +40,12 @@ extension DataPurgeService {
     ///     someone's data is not a refund; the anchor is deliberately
     ///     device-transferable, which is why it also lives in the iCloud
     ///     Keychain. `entitlement.anchor.account` names this install's own
-    ///     item in that Keychain; sweeping it made the next launch write a new
-    ///     synchronizable item after every purge, and they piled up in the
+    ///     item in that Keychain; sweeping it would make the next launch write
+    ///     a new synchronizable item after every purge, piling them up in the
     ///     user's iCloud Keychain.
-    ///   * The migration flags are bookkeeping, not user data. The purge has
-    ///     never cleared them, and clearing them now would re-run four
-    ///     migrations against a freshly emptied archive for no benefit.
+    ///   * The migration flags are bookkeeping, not user data. Clearing them
+    ///     would re-run four migrations against a freshly emptied archive for
+    ///     no benefit.
     ///
     /// Deliberately NOT kept: `FeatureFlags`, which lives in the App Group
     /// suite. Every flag defaults to `true` — medical guard on, every provider

@@ -4,7 +4,7 @@ import UIKit
 
 /// Persists the assistant's chat thread to a file in the App Group container.
 ///
-/// MVP: a single rolling thread, cleared via the chat UI's "Clear" action.
+/// A single rolling thread, cleared via the chat UI's "Clear" action.
 /// Multi-thread history can layer on later without changing this file's shape.
 ///
 /// The thread can quote HRV, heart rate, sleep and location, so the JSON is
@@ -152,14 +152,10 @@ final class ConversationStore: @unchecked Sendable {
         }
     }
 
-    /// Observes unlock (and becoming active, since a suspended app can miss
-    /// the unlock notification) for the lifetime of the shared store.
+    /// Retries a held save once the history may be readable, for the
+    /// lifetime of the shared store.
     private func wireRetryOnUnlock() {
-        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
-            unlockObservers.add(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
-                self?.retryHeldSave()
-            })
-        }
+        unlockObservers.observeProtectedDataMayBeAvailable { [weak self] in self?.retryHeldSave() }
     }
 
     private let unlockObservers = NotificationTokens()

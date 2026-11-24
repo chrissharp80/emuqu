@@ -3,9 +3,8 @@ import Foundation
 /// Where Polar pairings and the last-connected timestamp live, and how they got
 /// there.
 ///
-/// Its own type because `PolarManager` is over the aggregate type-size
-/// threshold and none of this needs the manager: it is a `UserDefaults`
-/// location, a codable list, and two forward migrations.
+/// None of this needs the manager: it is a `UserDefaults` location, a codable
+/// list, and two forward migrations.
 ///
 /// The location matters. Pairings sit in the App Group suite, shared with the
 /// app's extensions (deleting the app removes it, so a reinstall pairs

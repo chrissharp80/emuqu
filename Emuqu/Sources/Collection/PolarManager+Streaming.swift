@@ -139,7 +139,7 @@ extension PolarManager {
     /// False once the safety cap is hit, so the caller stops feeding batches.
     ///
     /// A zero interval is skipped: the Heart Rate Measurement format can carry
-    /// one, it is not a beat, and it reached the live screen as 60000 / 0. The
+    /// one, it is not a beat, and it would reach the live screen as 60000 / 0. The
     /// PPI path already drops it through `StrapPPIFilter`.
     private func appendStreamedBeats(_ rrsMs: [Int], wallClockMs: Int64, hr: Int?) -> Bool {
         for rr in rrsMs where rr > 0 {

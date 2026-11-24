@@ -3,10 +3,6 @@ import os
 
 // Provider routing and stream dispatch: choosing which model answers a turn,
 // then driving the stream and its stages.
-//
-// Lives on `AssistantTurnRouter` rather than `AssistantViewModel`: the
-// aggregate type-size gate counts a type across all its files, so keeping
-// these ~750 lines on the view-model would leave it just as large.
 
 extension AssistantTurnRouter {
     // MARK: - Smart-route provider selection
@@ -22,8 +18,8 @@ extension AssistantTurnRouter {
     ///     (`SmartProviderRouter.route`); its mid and deep tiers reach the
     ///     same consented Grok or DeepSeek
     ///
-    /// Tiers with no provider of their own collapse to Apple — the
-    /// spec's "work with what's there." `Mapping.collapsed` is only
+    /// Tiers with no provider of their own collapse to Apple, so routing
+    /// works with whatever is configured. `Mapping.collapsed` is only
     /// logged. The Tier-3 spend cap counts Deep turns that resolve to a
     /// cloud model; a Deep turn that stays on Apple costs nothing and is
     /// not counted.
@@ -54,17 +50,17 @@ extension AssistantTurnRouter {
         var providerStates: [ProviderID: TurnRouter.ProviderState] = [:]
         for provider in owner.registry.allProviders {
             providerStates[provider.id] = TurnRouter.ProviderState(
-                isAvailable: provider.isAvailable && ProviderRegistry.isEnabled(provider.id),
-                isConsented: !AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id),
+                isAvailable: provider.isAvailable && owner.registry.isEnabled(provider.id),
+                isConsented: !owner.services.providerConsentTracker.requiresConsent(provider.id),
                 supportsTools: Self.providerSupportsTools(provider),
                 defaultOrFirstModel: provider.availableModels.first(where: { $0.isDefault })
                     ?? provider.availableModels.first
             )
         }
         return TurnRouter.Inputs(
-            routingMode: AppDependencies.current.app.settingsManager.settings.routingMode,
+            routingMode: owner.services.settingsManager.settings.routingMode,
             selectedProviderID: owner.registry.activeProvider.id,
-            selectedProviderIsAvailable: ProviderRegistry.canSend(to: owner.registry.activeProvider),
+            selectedProviderIsAvailable: owner.registry.canSend(to: owner.registry.activeProvider),
             selectedModel: owner.registry.activeModel,
             isVoiceTurn: owner.nextSendIsVoice,
             providerOrder: owner.registry.allProviders.map(\.id),
@@ -90,7 +86,7 @@ extension AssistantTurnRouter {
         let mappings = mappingSnapshots(for: proposedTier)
         let tier3CapReached = proposedTier == .deep
             && mappings[.deep].map { $0.providerID != .apple } == true
-            && !AppDependencies.current.providers.smartProviderRouter.recordTier3UsageAndCheck()
+            && !owner.services.smartProviderRouter.recordTier3UsageAndCheck()
         let latestUserMessage = owner.turns.reversed().first(where: { $0.role == .user })?.text
         return TurnRouter.TierStage(
             proposedTier: proposedTier,
@@ -101,8 +97,7 @@ extension AssistantTurnRouter {
     }
 
     /// The tier this turn proposes, or nil for Manual mode — which is
-    /// unreachable here (`needsTierProposal` is false for it), and preserves
-    /// the original switch's "unreachable, exhausted above" arm: no tier stage
+    /// unreachable here (`needsTierProposal` is false for it): no tier stage
     /// means `TurnRouter` returns the user's pick.
     private func proposeTier(mode: RoutingMode) -> SmartProviderRouter.Tier? {
         switch mode {
@@ -118,7 +113,7 @@ extension AssistantTurnRouter {
                 return owner.sessionState.currentTier
             }
             owner.sessionState.turnCount += 1
-            let routed = AppDependencies.current.providers.smartProviderRouter.route(message: message, in: owner.sessionState)
+            let routed = owner.services.smartProviderRouter.route(message: message, in: owner.sessionState)
             owner.sessionState.currentTier = routed
             return routed
         case .manual:
@@ -146,7 +141,7 @@ extension AssistantTurnRouter {
 
     private func enabledMappingSnapshot(_ mapping: TierProviderMapper.Mapping) -> TurnRouter.MappingSnapshot {
         let apple = owner.registry.apple
-        guard !ProviderRegistry.isEnabled(mapping.provider.id), apple.isAvailable,
+        guard !owner.registry.isEnabled(mapping.provider.id), apple.isAvailable,
               let appleModel = apple.availableModels.first(where: { $0.isDefault }) ?? apple.availableModels.first
         else {
             return TurnRouter.MappingSnapshot(
@@ -158,10 +153,9 @@ extension AssistantTurnRouter {
 
     /// Translate a pure `TurnRouter.Decision` provider ID back to the
     /// live `AIProvider` instance. Prefers the active provider on an
-    /// ID match so branches that historically returned
-    /// `owner.registry.activeProvider` keep returning the same instance;
-    /// provider classes are stateless (Apple's session cache is a
-    /// static), so this is parity hygiene, not behavior.
+    /// ID match so callers get the same instance as
+    /// `owner.registry.activeProvider`; provider classes are stateless
+    /// (Apple's session cache is a static), so this does not change behaviour.
     func liveProvider(for id: ProviderID) -> AIProvider {
         if owner.registry.activeProvider.id == id { return owner.registry.activeProvider }
         return owner.registry.allProviders.first(where: { $0.id == id }) ?? owner.registry.activeProvider
@@ -249,8 +243,8 @@ extension AssistantTurnRouter {
     func dispatch(regenerating replyID: UUID? = nil) {
         let routed = routeTurnAndLogOverride()
         let (provider, voiceMode) = (routed.provider, routed.voiceMode)
-        guard ProviderRegistry.canSend(to: provider) else {
-            owner.errorMessage = AssistantViewModel.unavailableMessage(for: provider.id)
+        guard owner.registry.canSend(to: provider) else {
+            owner.errorMessage = AssistantViewModel.unavailableMessage(for: provider.id, in: owner.registry)
             if replyID == nil, let unsent = withdrawTrailingUserTurn(), !voiceMode {
                 owner.composerState.returnedDraft = unsent
             }
@@ -349,7 +343,7 @@ extension AssistantTurnRouter {
     /// effects. `completed` is whether the reply completed normally
     /// (`runStreamWithErrorPolicy`).
     private func finishCurrentTurn(provider: AIProvider, turnID: UUID, completed: Bool) {
-        if provider.id == .apple { AppDependencies.current.providers.appleToolDispatcher.setRegistry(nil) }
+        if provider.id == .apple { owner.services.appleToolDispatcher.setRegistry(nil) }
         applyPostStreamEffects(turnID: turnID, completed: completed)
     }
 
@@ -410,7 +404,7 @@ extension AssistantTurnRouter {
         let routed = resolveProviderForThisTurn()
         let voiceMode = owner.nextSendIsVoice
         owner.nextSendIsVoice = false
-        let saved = AppDependencies.current.providers.providerRegistry.activeProvider
+        let saved = owner.services.providerRegistry.activeProvider
         if routed.provider.id != saved.id {
             let tierLabel = routed.tier.map { String($0.rawValue) } ?? "n/a"
             debugLog(
@@ -448,7 +442,7 @@ extension AssistantTurnRouter {
     /// would replace is still in place, and the request is held as a
     /// regeneration of the question before it.
     func consentGateAllowsDispatch(provider: AIProvider, voiceMode: Bool, regenerating replyID: UUID? = nil) -> Bool {
-        guard AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id) else { return true }
+        guard owner.services.providerConsentTracker.requiresConsent(provider.id) else { return true }
         if replyID != nil, let question = owner.turns.last(where: { $0.role == .user }) {
             owner.pendingConsentRequest = AssistantViewModel.PendingConsentRequest(
                 provider: provider.id, text: question.text, fromVoice: false, regenerate: true
@@ -536,7 +530,7 @@ extension AssistantTurnRouter {
     /// hold the first network call for that one tool; the detached build
     /// continues in the background and the next send hits warm cache.
     func refreshPreFlightMetrics() async {
-        await AppDependencies.current.analysis.trainingMetricsCache.refresh()
+        await owner.services.trainingMetricsCache.refresh()
     }
 
     /// Context + tools assembly stage of
@@ -657,7 +651,7 @@ extension AssistantTurnRouter {
     /// `CompactToolRouter` at the AssistantViewModel layer.
     private func publishAppleDispatcher(provider: AIProvider, factRegistry: FactResolverRegistry) {
         guard provider.id == .apple else { return }
-        AppDependencies.current.providers.appleToolDispatcher.setRegistry(factRegistry)
+        owner.services.appleToolDispatcher.setRegistry(factRegistry)
     }
 
     /// Prompt-composition stage of `dispatch()`, also used by every fallback
@@ -680,6 +674,7 @@ extension AssistantTurnRouter {
             .filter { $0.role == .user && !$0.localOnly }
             .map(\.text)
         let systemPrompt = await AssistantSystemPrompt.compose(
+            services: owner.services.prompt,
             userFacts: snapshotUserFacts(),
             priorSummary: owner.priorSummary,
             contextRendered: rendered,
@@ -751,9 +746,8 @@ extension AssistantTurnRouter {
         }
     }
 
-    /// Generic provider-failure fallback per
-    /// user spec: "if I don't have an API key or credit
-    /// then it should move to the next one." Auth failures,
+    /// Generic provider-failure fallback: a missing API key or credit
+    /// moves the turn to the next provider. Auth failures,
     /// rate limits, network errors, and "model unavailable"
     /// all qualify. Walk the configured providers in
     /// preference order (user's chosen first — already
@@ -780,7 +774,7 @@ extension AssistantTurnRouter {
         let chain = TurnRouter.allowedFallbacks(
             owner.tools.orderedFallbackProviders(after: attempt.provider),
             under: TurnRouter.failureFallback(
-                mode: AppDependencies.current.app.settingsManager.settings.routingMode,
+                mode: owner.services.settingsManager.settings.routingMode,
                 selectedProviderID: owner.registry.activeProvider.id
             )
         )
@@ -848,7 +842,7 @@ extension AssistantTurnRouter {
     ///
     /// The reason is `%{public}` because it names a rule, never user text; the
     /// matched sentence stays out of the log entirely because it carries the
-    /// user's physiological context. Same contract the previous inline call had.
+    /// user's physiological context.
     func recordCoachVoiceInterception(reason: String) {
         os_log(
             "CoachVoiceGuard intercepted: %{public}@",

@@ -1,11 +1,8 @@
 import SwiftUI
 
-// The three recovered-workout controls, split out of
-// `FitnessPostSummaryView.swift`: trimming a recovered workout,
-// pulling a session back off the strap, and importing a route the Watch
-// recorded. Each is an independent view the summary happens to host.
-
-// (ShareURL wrapper removed — ShareLink works directly with URL.)
+// The three recovered-workout controls the summary hosts: trimming a
+// recovered workout, pulling a session back off the strap, and importing a
+// route the Watch recorded. Each is an independent view.
 
 /// Inline trim control for a workout whose duration is too long (typically
 /// a crash recovery where the strap kept recording after the workout ended).
@@ -150,7 +147,7 @@ fileprivate extension RecoverSessionFromStrapButton {
         working = true
         message = nil
         Task {
-            let result = await collector.augmentWorkoutFromStrap(sessionId: session.id)
+            let result = await collector.recovery.augmentWorkoutFromStrap(sessionId: session.id)
             working = false
             message = Self.strapMergeMessage(result)
         }
@@ -262,7 +259,7 @@ fileprivate extension RecoveredRouteFromWatchButton {
         working = true
         message = nil
         Task {
-            let result = await collector.recoverRouteFromAppleWatch(sessionId: session.id)
+            let result = await collector.recovery.recoverRouteFromAppleWatch(sessionId: session.id)
             working = false
             message = Self.routeRecoveryMessage(result)
         }

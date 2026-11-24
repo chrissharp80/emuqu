@@ -2,9 +2,8 @@ import CoreLocation
 import MapKit
 import SwiftUI
 
-// The metric tiles and inline physiology block, split out of
-// `FitnessRecordingView.swift`. The header and HR hero — the parts
-// the user watches — stay behind.
+// The metric tiles and inline physiology block. The header and HR hero —
+// the parts the user watches — are in `FitnessRecordingView.swift`.
 
 extension FitnessRecordingView {
     // MARK: - Metric tiles (2×2)
@@ -19,9 +18,8 @@ extension FitnessRecordingView {
         }
     }
 
-    /// Bug #13: "Elapsed time not live — snapshot-based, not
-    /// tight enough." The recorder publishes `elapsedSeconds` (Int) once per
-    /// tick (1 Hz), and on a busy main thread the tick can slip — display
+    /// The recorder publishes `elapsedSeconds` (Int) once per
+    /// tick (1 Hz), and on a busy main thread the tick can slip — the display
     /// freezes for 2-3s and the user feels lag. TimelineView pulls its OWN
     /// clock at 0.5s cadence; while recording and not paused, elapsed is the
     /// time since `currentSession.startDate` minus every finished pause. A
@@ -38,12 +36,12 @@ extension FitnessRecordingView {
 
     private func elapsedInterval(at now: Date) -> TimeInterval {
         let lifecycle = recorder.lifecycle
-        if case .recording = recorder.phase, !lifecycle.isPaused,
-           let start = recorder.currentSession?.startDate {
+        if case .recording = recorder.lifecycle.phase, !lifecycle.isPaused,
+           let start = recorder.lifecycle.currentSession?.startDate {
             let paused = lifecycle.pauseTimeline.spans.reduce(0) { $0 + $1.seconds }
             return max(0, now.timeIntervalSince(start) - paused)
         }
-        return TimeInterval(recorder.elapsedSeconds)
+        return TimeInterval(recorder.lifecycle.elapsedSeconds)
     }
 
     @ViewBuilder
@@ -73,7 +71,7 @@ extension FitnessRecordingView {
         metricTile(
             icon: "shoe.2",
             label: labels.steps,
-            value: recorder.stepCount > 0 ? "\(recorder.stepCount)" : "—",
+            value: recorder.motion.stepCount > 0 ? "\(recorder.motion.stepCount)" : "—",
             caption: cadenceCaption
         )
         metricTile(icon: "mountain.2", label: labels.elevation, value: elevationLabel)
@@ -84,7 +82,7 @@ extension FitnessRecordingView {
     @ViewBuilder
     private var conditionalMetricTiles: some View {
         // Conditional tiles — only render when their source has data, so
-        if recorder.footPodActive, let w = recorder.powerWatts {
+        if recorder.motion.footPodActive, let w = recorder.motion.powerWatts {
             metricTile(
                 icon: "bolt.fill",
                 label: labels.power,
@@ -102,8 +100,8 @@ extension FitnessRecordingView {
         }
     }
 
-    /// Live trend tiles (round-2/4 metrics visible on the
-    /// recording screen too, not just to the AI). HR drift = how much HR has
+    /// Live trend tiles, so the drift metrics the assistant reads are on the
+    /// recording screen too. HR drift = how much HR has
     /// crept up vs the first quartile; decoupling = first-half vs second-half
     /// pace/HR efficiency. Both stay hidden until enough samples accumulate so
     /// they do not show "—" all session.
@@ -315,19 +313,16 @@ extension FitnessRecordingView {
 
     // MARK: - Map (inline, smaller)
     //
-    // Single persistent Map instance. The previous implementation branched
-    // between three layouts (no coords / 1 coord / many coords) and each
-    // branch instantiated a new Map — every GPS-fix-count transition tore
-    // one down and created another, which SwiftUI's Map renders as a full
-    // flash + recenter. That's the 2026-04 user report: "the screen was
-    // shifting the whole time between having a map and showing something
-    // else" + elevated battery drain. One Map, three *overlay* states,
-    // stable camera position — no recreate, no recenter.
+    // Single persistent Map instance. Branching between three layouts (no
+    // coords / 1 coord / many coords) with a Map in each would tear one down
+    // and create another on every GPS-fix-count transition, which SwiftUI's
+    // Map renders as a full flash + recenter, and drain the battery. One Map,
+    // three *overlay* states, stable camera position — no recreate, no recenter.
     /// Hands the track array itself to the card (no per-tick copy into
     /// coordinates); the card maps it only when it draws.
     var mapCard: some View {
         StableMapCard(
-            track: recorder.liveTrack,
+            track: recorder.motion.liveTrack,
             accuracy: recorder.locationManager.lastHorizontalAccuracy
         )
     }
@@ -335,15 +330,15 @@ extension FitnessRecordingView {
     // MARK: - Derived labels
 
     var distanceLabel: String {
-        units.formatDistance(meters: recorder.distanceMeters)
+        units.formatDistance(meters: recorder.motion.distanceMeters)
     }
 
     var elevationLabel: String {
-        units.formatElevation(meters: recorder.elevationGainMeters)
+        units.formatElevation(meters: recorder.motion.elevationGainMeters)
     }
 
     var cadenceCaption: String? {
-        guard let c = recorder.cadenceStepsPerMin, c > 0 else { return nil }
+        guard let c = recorder.motion.cadenceStepsPerMin, c > 0 else { return nil }
         return String(localized: "\(Int(c.rounded())) spm", bundle: LanguageManager.appBundle)
     }
 
@@ -364,10 +359,10 @@ extension FitnessRecordingView {
     /// the "Pace" tile tells you both "right now" (big) and "for the whole
     /// workout so far" (small).
     var avgPaceCaption: String? {
-        guard recorder.distanceMeters > 50, recorder.elapsedSeconds > 10 else { return nil }
+        guard recorder.motion.distanceMeters > 50, recorder.lifecycle.elapsedSeconds > 10 else { return nil }
         return units.formatPace(
-            elapsedSec: recorder.elapsedSeconds,
-            distanceMeters: recorder.distanceMeters
+            elapsedSec: recorder.lifecycle.elapsedSeconds,
+            distanceMeters: recorder.motion.distanceMeters
         ).map { String(localized: "avg \($0)", bundle: LanguageManager.appBundle) }
     }
 
@@ -383,12 +378,12 @@ extension FitnessRecordingView {
     /// rescan every sample. Reading the buffer here keeps the tiles observing
     /// it as before.
     var liveTally: WorkoutLiveTrends.Tally {
-        recorder.syncedLiveTrends()
+        recorder.ticker.syncedLiveTrends()
     }
 
     var peakHRCaption: String? {
-        guard recorder.peakHR > 0 else { return nil }
-        return String(localized: "peak \(recorder.peakHR)", bundle: LanguageManager.appBundle)
+        guard recorder.workoutHR.peakHR > 0 else { return nil }
+        return String(localized: "peak \(recorder.workoutHR.peakHR)", bundle: LanguageManager.appBundle)
     }
 
     var currentMETs: Double? {
@@ -403,15 +398,15 @@ extension FitnessRecordingView {
     /// Strap-less workouts have no RR feed, so DFA stays at
     /// warmup-0% forever and the caption would read "warming up — 0 % of
     /// 2-min window" indefinitely, misleading users into thinking they just
-    /// had to wait. Short-circuit when there is no strap source and explain the
-    /// requirement directly. Pairs with the LiveDFAAnalyzer fix that nulls α1
+    /// have to wait. Short-circuit when there is no strap source and explain the
+    /// requirement directly. Pairs with LiveDFAAnalyzer nulling α1
     /// when the strap goes silent.
     ///
     /// Everything else routes by the analyzer's own status, so the caption can
     /// never silently say "warming up" after 10 min of a silent strap — the
     /// user (and the AI coach) can see WHY the number is not there.
     var alpha1Caption: String? {
-        if recorder.activeHRSource != .strap {
+        if recorder.lifecycle.activeHRSource != .strap {
             return String(localized: "Connect a chest strap to enable α1", bundle: LanguageManager.appBundle)
         }
         switch recorder.dfa.status {
@@ -453,7 +448,7 @@ extension FitnessRecordingView {
     /// moment stop() is called; the button no-ops further holds
     /// while in this state.
     var isFinalizing: Bool {
-        switch recorder.phase {
+        switch recorder.lifecycle.phase {
         case .recording, .idle, .failed: return false
         case .finalizing, .finished: return true
         }

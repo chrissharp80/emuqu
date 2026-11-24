@@ -452,7 +452,7 @@ enum SleepScienceAnalyzer {
         /// Nominal sleep-cycle length (hours) for the expected-cycle count.
         static let cycleLengthHours = 1.5
         static let minimumExpectedCycles = 3
-        /// #15 — duration-debt ceiling. Below this raw duration ratio
+        /// Duration-debt ceiling. Below this raw duration ratio
         /// (actual/target) the enhanced score is capped so strong efficiency
         /// can't hide a short night. At the threshold the cap is
         /// `durationDebtCeilingAtThreshold`, falling linearly to
@@ -580,7 +580,7 @@ enum SleepScienceAnalyzer {
         return max(0, Wts.stageHalfPoints - belowRange * Wts.deviationPenaltySlope)
     }
 
-    /// #15 — duration-debt ceiling. Duration is only 25% of the score, so a
+    /// Duration-debt ceiling. Duration is only 25% of the score, so a
     /// night well short of target (e.g. 5h vs 8h, ratio ~0.63) can still reach
     /// ~90 on strong efficiency/deep/architecture — contradicting the "recovery
     /// will be impaired" duration narrative. Below the threshold, cap the score

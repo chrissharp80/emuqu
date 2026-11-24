@@ -53,18 +53,18 @@ extension WorkoutSessionLifecycle {
 
     // MARK: - METs estimation
     //
-    /// Rough energy-expenditure proxy. REQUIRES confirmed movement. Earlier
-    /// versions had an HR-only fallback: when no speed was available we
-    /// estimated METs from %-of-max HR. That badly overclaimed when the user
-    /// was sitting still — HR of 100 bpm at rest (caffeine, stress, digestion,
-    /// normal variability) reads as ~3.5 METs by %HR, which is wrong. METs is
-    /// mechanical work, not sympathetic tone. If we don't have motion, we
-    /// return nil and the charts/exports drop the value rather than lie.
+    /// Rough energy-expenditure proxy. REQUIRES confirmed movement. There is
+    /// no HR-only fallback: METs estimated from %-of-max HR badly overclaim
+    /// when the user is sitting still — HR of 100 bpm at rest (caffeine,
+    /// stress, digestion, normal variability) reads as ~3.5 METs by %HR, which
+    /// is wrong. METs is mechanical work, not sympathetic tone. If we don't
+    /// have motion, we return nil and the charts/exports drop the value rather
+    /// than lie.
     ///
     /// Motion confirmation — the caller passes the live pace
     /// (`LivePaceEstimator`), which is nil until movement is measured and once
     /// the user is slower than a stroll. Indoor sports without a pedometer
-    /// signal → nil; that's honest, not a regression.
+    /// signal → nil; that's honest.
     ///
     /// Flagged as "(est)" in UI so users understand the confidence level.
     ///
@@ -215,7 +215,7 @@ extension WorkoutSessionLifecycle {
     /// check and clear run on `recordingStateQueue` after the start's save.
     private func retireRedundantBackups(for session: HRVSession) {
         recorder.core.rawBackup.markAsArchived(session.id)
-        AppDependencies.current.storage.workoutTrackBackup.discard(session.id)
+        recorder.services.workoutTrackBackup.discard(session.id)
         let sessionId = session.id
         Self.recordingStateQueue.async {
             guard PersistedRecordingState.load()?.sessionId == sessionId else { return }
@@ -277,9 +277,7 @@ extension WorkoutSessionLifecycle {
     ///
     /// The archive write's error must not be discarded: export
     /// succeeding while the stamp fails is the shape of a duplicate HealthKit
-    /// workout on the next backfill pass, so it gets a log line. Extracted
-    /// rather than nested so the error handling stays inside the spec nesting
-    /// limit.
+    /// workout on the next backfill pass, so it gets a log line.
     @available(iOS 17.0, *)
     private static func stampHealthKitExport(sessionId: UUID, archive: SessionArchive) {
         do {
@@ -309,24 +307,24 @@ extension WorkoutSessionLifecycle {
     ///     summary view.
     ///
     /// Render runs on a detached background task — CoreGraphics
-    /// drawing + MKMapSnapshotter are off-main-actor friendly and
-    /// pinning UI for a 6-page render was the previous pain point.
+    /// drawing + MKMapSnapshotter are off-main-actor friendly, and a
+    /// 6-page render on the main actor would pin the UI.
     /// The bridge stage call hops back to MainActor at the end.
     ///
     /// Returns the render task, whose value says whether the staged draft
     /// carries the PDF: the post-summary button waits on it to show the
     /// outcome and offer a retry; the auto path ignores it.
-    /// `settings` defaults to the shared store so the view call site is
-    /// unchanged; the recorder passes its own injected provider.
+    /// The view passes the settings it reads; the recorder passes its
+    /// injected provider's.
     @MainActor
     @discardableResult
     static func scheduleCoachReportEmail(
-        for session: HRVSession,
-        settings: UserSettings = AppDependencies.current.app.settingsManager.settingsSnapshot
+        for session: HRVSession, settings: UserSettings, services: WorkoutServices
     ) -> Task<Bool, Never> {
-        let inputs = coachReportInputs(for: session, settings: settings)
+        let inputs = coachReportInputs(for: session, settings: settings, archive: services.sessionArchive)
+        let (metrics, emailBridge) = (services.trainingMetricsCache, services.assistantEmailBridge)
         return Task.detached(priority: .userInitiated) {
-            await renderAndStageCoachReport(inputs)
+            await renderAndStageCoachReport(inputs, metrics: metrics, emailBridge: emailBridge)
         }
     }
 
@@ -377,8 +375,9 @@ extension WorkoutSessionLifecycle {
     /// and general defaults, blank fields skipped
     /// (`UserSettings.resolvedTrainingEmailRecipient` / `resolvedTrainingEmailCC`).
     @MainActor
-    private static func coachReportInputs(for session: HRVSession, settings: UserSettings) -> CoachReportInputs {
-        let archive = AppDependencies.current.storage.sessionArchive
+    private static func coachReportInputs(
+        for session: HRVSession, settings: UserSettings, archive: SessionArchive
+    ) -> CoachReportInputs {
         let dayCutoff = Calendar.current.date(byAdding: .hour, value: -36, to: Date()) ?? Date.distantPast
         let recentOvernight = recentOvernightSessions(archive: archive, reportedNightCutoff: dayCutoff, sleepSchedule: settings.sleepSchedule)
         return CoachReportInputs(
@@ -391,7 +390,7 @@ extension WorkoutSessionLifecycle {
             pdfURL: coachReportPDFURL(for: session),
             todayOvernight: todaysOvernight(in: recentOvernight, reportedNightCutoff: dayCutoff),
             recentOvernight: recentOvernight,
-            pastWorkoutIds: archive.entries
+            pastWorkoutIds: archive.store.entries
                 .filter { $0.sessionType == .workout && $0.sessionId != session.id }
                 .sorted { $0.date > $1.date }
                 .prefix(CoachReportGenerator.historyLimit)
@@ -413,7 +412,7 @@ extension WorkoutSessionLifecycle {
     private static func recentOvernightSessions(
         archive: SessionArchive, reportedNightCutoff: Date, sleepSchedule: SleepSchedule
     ) -> [HRVSession] {
-        let entries = archive.entries.filter { $0.sessionType == .overnight }.sorted { $0.date > $1.date }
+        let entries = archive.store.entries.filter { $0.sessionType == .overnight }.sorted { $0.date > $1.date }
         let reported = entries.first { $0.date >= reportedNightCutoff }
         var nights = reported.flatMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "CoachReport.reportedNight") }
             .map { [$0] } ?? []
@@ -465,8 +464,10 @@ extension WorkoutSessionLifecycle {
     /// the conversational body is then a pure function of them. Returns
     /// whether the PDF was attached (false: the draft was staged with the
     /// summary only, because the render failed).
-    private static func renderAndStageCoachReport(_ inputs: CoachReportInputs) async -> Bool {
-        let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed()
+    private static func renderAndStageCoachReport(
+        _ inputs: CoachReportInputs, metrics: TrainingMetricsCache, emailBridge: AssistantEmailBridge
+    ) async -> Bool {
+        let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed(from: metrics)
         let (archive, ids) = (inputs.archive, inputs.pastWorkoutIds)
         let pastWorkouts = await Task.detached(priority: .userInitiated) {
             ids.compactMap { archive.retrieveLightweightOrLog($0, caller: "CoachReport.pastWorkouts") }
@@ -478,7 +479,7 @@ extension WorkoutSessionLifecycle {
         let attachment = await renderCoachReportPDF(inputs, liveLoadSnapshot: liveLoadSnapshot)
         await MainActor.run {
             let emailBody = attachment == nil ? body : body + "\n\n" + CoachReportGenerator.pdfFootnote
-            AppDependencies.current.assistant.assistantEmailBridge.stage(AssistantEmailDraft(
+            emailBridge.stage(AssistantEmailDraft(
                 subject: inputs.subject, body: emailBody, recipient: inputs.recipient,
                 ccRecipients: inputs.ccRecipients, attachmentURL: attachment
             ))

@@ -35,6 +35,8 @@ protocol SealableBackupStore: AnyObject {
 struct RawBackupSealer {
     /// The folder whose backups this seals.
     let directory: URL
+    /// The key they are sealed with.
+    let encryption: EncryptionManager
 
     /// Write one entry, choosing the protection class from whether it
     /// encrypted. Atomic: `reencrypt` rewrites the only copy of a backup in
@@ -52,9 +54,9 @@ struct RawBackupSealer {
     /// reached disk. An encrypted write clears the entry only once it has
     /// landed: cleared first, a failed rewrite would leave the old plaintext
     /// on disk with nothing queued to repair it.
-    static func writeEntry(_ entry: RawRRBackup.BackupEntry, to url: URL, sessionId: UUID) throws {
+    func writeEntry(_ entry: RawRRBackup.BackupEntry, to url: URL, sessionId: UUID) throws {
         let encoded = try encodedEntry(entry)
-        let wasPending = isPending(sessionId)
+        let wasPending = Self.isPending(sessionId)
         if !encoded.encrypted { PendingEncryptionLedger.record(sessionId, in: .rawBackup) }
         let protection = encoded.encrypted ? BackupProtection.appendable : BackupProtection.plaintext
         do {
@@ -76,12 +78,12 @@ struct RawBackupSealer {
     /// picks the plaintext protection class and queues re-encryption rather
     /// than losing the write. Drained in an autoreleasepool: the entry holds
     /// the full night's points.
-    private static func encodedEntry(_ entry: RawRRBackup.BackupEntry) throws -> (bytes: Data, encrypted: Bool) {
+    private func encodedEntry(_ entry: RawRRBackup.BackupEntry) throws -> (bytes: Data, encrypted: Bool) {
         try autoreleasepool {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             let plaintext = try encoder.encode(entry)
-            let manager = AppDependencies.current.storage.encryptionManager
+            let manager = encryption
             guard manager.isAvailable else { return (plaintext, false) }
             do {
                 return (try manager.encrypt(plaintext), true)
@@ -111,7 +113,7 @@ struct RawBackupSealer {
     /// unlock or activation tries again). Run on the store's `appendQueue`.
     func reencryptPending(in store: some SealableBackupStore) {
         let pending = PendingEncryptionLedger.pending(in: .rawBackup)
-        guard !pending.isEmpty, AppDependencies.current.storage.encryptionManager.isAvailable else { return }
+        guard !pending.isEmpty, encryption.isAvailable else { return }
         debugLog("[RawRRBackup] re-encrypting \(pending.count) backup(s) written under a locked Keychain")
         for sessionId in pending { reencrypt(sessionId, in: store) }
     }
@@ -134,7 +136,7 @@ struct RawBackupSealer {
             let staleRemain = try removeSupersededPlaintext(of: sessionId, entry: entry)
             if let fileName = entry?.fileName {
                 let url = directory.appendingPathComponent(fileName)
-                try Self.writeEntry(try RawRRBackup.decodeLegacyBackup(at: url), to: url, sessionId: sessionId)
+                try writeEntry(try RawRRBackup.decodeLegacyBackup(at: url, encryption: encryption), to: url, sessionId: sessionId)
             }
             let pointsSealed = try resealPointFiles(store.appendPointFiles(of: sessionId))
             if staleRemain || !pointsSealed {
@@ -160,7 +162,7 @@ struct RawBackupSealer {
     /// name that `entry` provably replaced; true when a plain one is left.
     private func removeSupersededPlaintext(of sessionId: UUID, entry: RawRRBackup.BackupIndex?) throws -> Bool {
         let stale = try OneShotBackupName.plaintextFiles(of: sessionId, in: directory, except: entry?.fileName)
-        let superseded = stale.filter { OneShotBackupName.isSuperseded($0, by: entry) }
+        let superseded = stale.filter { OneShotBackupName.isSuperseded($0, by: entry, encryption: encryption) }
         for url in superseded { try FileManager.default.removeItem(at: url) }
         return superseded.count < stale.count
     }
@@ -172,7 +174,7 @@ struct RawBackupSealer {
     private func resealPointFiles(_ files: [URL]) throws -> Bool {
         let present = files.filter { FileManager.default.fileExists(atPath: $0.path) }
         guard !present.isEmpty else { return true }
-        guard let manager = SealedJSONLines.availableManager() else { return false }
+        guard let manager = SealedJSONLines.availableManager(encryption) else { return false }
         return try present.map { try SealedJSONLines.resealFile(at: $0, with: manager) }.allSatisfy { $0 }
     }
 
@@ -181,7 +183,7 @@ struct RawBackupSealer {
     private func adoptFullerBackup(_ sessionId: UUID, in store: some SealableBackupStore) {
         do {
             guard let indexed = store.existingIndexEntry(sessionId),
-                  let fuller = try OneShotBackupName.fullerUnindexedBackup(than: indexed, in: directory) else { return }
+                  let fuller = try OneShotBackupName.fullerUnindexedBackup(than: indexed, in: directory, encryption: encryption) else { return }
             try store.backupOnAppendQueue(points: fuller.points, sessionId: sessionId, deviceId: fuller.deviceId, captureDate: fuller.captureDate)
             if indexed.archived { store.markAsArchived(sessionId) }
         } catch {

@@ -164,20 +164,20 @@ final class METLookupTests: XCTestCase {
     func testRecorderConvertsPaceToSpeedBeforeLookup() {
         // 360 sec/km = 10 km/h (6.2 mph) → the 6 mph row → 9.8 METs
         XCTAssertEqual(
-            WorkoutRecorder.estimateMETs(sport: .run, paceSecPerKm: 360, heartRate: nil, userMaxHR: 190),
+            WorkoutSessionLifecycle.estimateMETs(sport: .run, paceSecPerKm: 360, heartRate: nil, userMaxHR: 190),
             9.8
         )
     }
 
     func testRecorderRejectsNonPositivePace() {
-        XCTAssertNil(WorkoutRecorder.estimateMETs(sport: .run, paceSecPerKm: nil, heartRate: nil, userMaxHR: 190))
-        XCTAssertNil(WorkoutRecorder.estimateMETs(sport: .run, paceSecPerKm: 0, heartRate: nil, userMaxHR: 190))
-        XCTAssertNil(WorkoutRecorder.estimateMETs(sport: .run, paceSecPerKm: -60, heartRate: nil, userMaxHR: 190))
+        XCTAssertNil(WorkoutSessionLifecycle.estimateMETs(sport: .run, paceSecPerKm: nil, heartRate: nil, userMaxHR: 190))
+        XCTAssertNil(WorkoutSessionLifecycle.estimateMETs(sport: .run, paceSecPerKm: 0, heartRate: nil, userMaxHR: 190))
+        XCTAssertNil(WorkoutSessionLifecycle.estimateMETs(sport: .run, paceSecPerKm: -60, heartRate: nil, userMaxHR: 190))
     }
 
     /// A pace so slow the division underflows to below the crawl floor must
     /// not produce a METs number.
     func testRecorderRejectsGlacialPace() {
-        XCTAssertNil(WorkoutRecorder.estimateMETs(sport: .walk, paceSecPerKm: 100_000, heartRate: nil, userMaxHR: 190))
+        XCTAssertNil(WorkoutSessionLifecycle.estimateMETs(sport: .walk, paceSecPerKm: 100_000, heartRate: nil, userMaxHR: 190))
     }
 }

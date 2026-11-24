@@ -599,7 +599,7 @@ struct DiscoverTrailsView: View {
               let saved = makeSavedRoute(name: trail.name, sport: trail.activity.workoutSport, polyline: polyline, route: route)
         else { return }
         savedRouteStore.add(saved)
-        savedRouteStore.enrichWithRoadNames(routeID: saved.id)
+        savedRouteStore.enrichWithRoadNames(routeID: saved.id, geocoder: dependencies.location.roadGeocodingService)
     }
 
     private func makeSavedRoute(name: String, sport: Sport, polyline: Data, route: Route) -> SavedRoute? {

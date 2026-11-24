@@ -55,6 +55,7 @@ final class TrainingAdviceSurfaceTests: XCTestCase {
     func testFloTodayNoteReadsTheLiveLoad() throws {
         let today = night(endingDaysAgo: 0, frozen: clear)
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: today, recentSessions: [today], userSettings: UserSettings(),
             liveLoadSnapshot: liveLoad(acwr: 1.99)
         )
@@ -67,6 +68,7 @@ final class TrainingAdviceSurfaceTests: XCTestCase {
     func testFloPastNoteReadsItsFrozenLoad() throws {
         let past = night(endingDaysAgo: 3, frozen: heavy)
         let context = ContextBuilder.build(
+            services: ContextServices(.current),
             latestSession: past, recentSessions: [past], userSettings: UserSettings(),
             liveLoadSnapshot: liveLoad(acwr: 1.0)
         )

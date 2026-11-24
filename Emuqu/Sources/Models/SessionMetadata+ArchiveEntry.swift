@@ -79,17 +79,8 @@ struct SessionArchiveEntry: Codable, Sendable {
     /// remote copy is newer than this device's without opening the file.
     let modifiedAt: Date?
 
-    /// The date to display in history — prefers the actual sleep end so
-    /// sessions whose recording ran long past wake (e.g. user forgot to
-    /// stop) still show "wake time" in the row. Falls back to the recording
-    /// end date, then the start date.
-    var displayDate: Date {
-        if sessionType == .overnight {
-            if let sleepEnd { return sleepEnd }
-            if let end = endDate { return end }
-        }
-        return date
-    }
+    /// The date History lists the session under (`SessionDay`).
+    var displayDate: Date { SessionDay.date(of: self) }
 
     /// Index-side mirror of `HRVSession.isReliableForHRVAggregates`, for
     /// aggregation paths that operate on `SessionArchiveEntry` (AI facts,

@@ -1,10 +1,7 @@
 import Foundation
 
-// Named replacements for 4- and 5-field tuples that were written out longhand
-// at their declaration and every call site. Field names and meanings are
-// unchanged throughout, so `.mean` / `.deep` / `.low` reads exactly as before —
-// what changes is that the shape has a name, is documented once, and can gain a
-// field without editing every signature that mentions it.
+// Named value types for 4- and 5-field shapes, so each is documented once and
+// can gain a field without editing every signature that mentions it.
 
 /// Heart-rate statistics over a rolling-window analysis.
 ///

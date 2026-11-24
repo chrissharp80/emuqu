@@ -27,7 +27,7 @@ final class ReconciliationManager {
     /// - Parameter sessionId: Session ID to check
     /// - Returns: True if the session is in the archive
     func sessionExists(_ sessionId: UUID) -> Bool {
-        archive.exists(sessionId)
+        archive.store.exists(sessionId)
     }
 
     // MARK: - Retired offline queue

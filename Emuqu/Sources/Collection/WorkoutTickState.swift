@@ -37,10 +37,8 @@ struct TrackBackupWatermark: Equatable {
 
 /// The stationary/moving run-lengths behind auto-pause and auto-resume.
 ///
-/// Kept off `WorkoutRecorder`: two counters and the two
-/// thresholds they are compared against are one mechanism, and holding them
-/// apart on a 4,700-line class is how one counter ends up shared between
-/// pause and resume. Separate counters are deliberate — the
+/// The two counters and the two thresholds they are compared against are
+/// one mechanism, kept together here. Separate counters are deliberate — the
 /// thresholds differ (15 s to pause, 3 s to resume), and decrementing one
 /// shared counter from "−15 stationary" back to zero makes resume feel draggy.
 struct AutoPauseDetector: Equatable {

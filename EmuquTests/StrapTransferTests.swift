@@ -50,7 +50,7 @@ final class StrapTransferTests: XCTestCase {
         let radio = FakeStrapRadio()
         let manager = armedStrap(radio, start: Date().addingTimeInterval(-3600), beats: 3_000)
 
-        await manager.stopDeviceRecordingIfNeeded(streamHoldsIt: true)
+        await manager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: true)
 
         XCTAssertTrue(radio.calls.contains(.stopRecording))
         XCTAssertEqual(manager.recordingState, .idle, "the next arm is refused while this reads .recording")
@@ -69,7 +69,7 @@ final class StrapTransferTests: XCTestCase {
         let walk = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 16 * 3600).rounded(.down))
         let manager = armedStrap(radio, start: walk, beats: 3_000)
 
-        await manager.stopDeviceRecordingIfNeeded(streamHoldsIt: true)
+        await manager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: true)
         try await manager.recording.startFreshRecording()
 
         XCTAssertFalse(radio.calls.contains(.fetchExercise(entryId: exerciseId(walk))),
@@ -87,7 +87,7 @@ final class StrapTransferTests: XCTestCase {
         var rescued: [RRPoint] = []
         manager.onUnrecoveredDataRescued = { rescued = $0.points; return true }
 
-        await manager.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+        await manager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
         try await manager.recording.startFreshRecording()
 
         XCTAssertEqual(rescued.count, 3_000, "a night the app never saved was cleared without a rescue")
@@ -100,7 +100,7 @@ final class StrapTransferTests: XCTestCase {
         let manager = armedStrap(radio, start: start, beats: 3_000)
         radio.refuse("fetchExercise", times: 50, with: PolarErrors.deviceError(description: "transfer failed"))
 
-        let recording = await manager.fetchRecordingIfAvailable(recordedSince: start.addingTimeInterval(-60))
+        let recording = await manager.recording.fetchRecordingIfAvailable(recordedSince: start.addingTimeInterval(-60))
 
         XCTAssertNil(recording)
         XCTAssertEqual(manager.recordingState, .idle)
@@ -116,7 +116,7 @@ final class StrapTransferTests: XCTestCase {
         manager.recordingState = .recording
         manager.isRecordingOnDevice = true
 
-        _ = try await manager.checkRecordingStatus()
+        _ = try await manager.recording.checkRecordingStatus()
 
         XCTAssertEqual(manager.recordingState, .idle)
         XCTAssertFalse(manager.isRecordingOnDevice)
@@ -133,7 +133,7 @@ final class StrapTransferTests: XCTestCase {
         let manager = linkedManager(radio)
 
         do {
-            _ = try await manager.fetchRecording(recordedSince: Date().addingTimeInterval(-8 * 3600), budget: .attended)
+            _ = try await manager.recording.fetchRecording(recordedSince: Date().addingTimeInterval(-8 * 3600), budget: .attended)
             XCTFail("last night's file was returned as tonight's")
         } catch {
             XCTAssertEqual(StrapRecordingCoordinator.classify(error), .deterministic)
@@ -149,7 +149,7 @@ final class StrapTransferTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(start), date: Date(), rrMs: Array(repeating: 1_000, count: 600))
         let manager = linkedManager(radio)
 
-        let recording = try await manager.fetchRecording(recordedSince: nil, budget: .attended)
+        let recording = try await manager.recording.fetchRecording(recordedSince: nil, budget: .attended)
 
         XCTAssertEqual(recording.startedAt, start)
         XCTAssertEqual(recording.endedAt, start.addingTimeInterval(600))
@@ -164,7 +164,7 @@ final class StrapTransferTests: XCTestCase {
         let start = Date().addingTimeInterval(-5 * 3600)
         let manager = armedStrap(radio, start: start, beats: 1_000)
 
-        let recording = try await manager.fetchRecording(recordedSince: nil, budget: .attended)
+        let recording = try await manager.recording.fetchRecording(recordedSince: nil, budget: .attended)
 
         XCTAssertEqual(recording.points.count, 1_000)
         let order = radio.calls.compactMap { call -> String? in
@@ -186,7 +186,7 @@ final class StrapTransferTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 800, count: 500))
         radio.hang("fetchExercise")
         let manager = linkedManager(radio)
-        let transfer = Task { try await manager.fetchRecording(recordedSince: nil, budget: .attended) }
+        let transfer = Task { try await manager.recording.fetchRecording(recordedSince: nil, budget: .attended) }
         try await waitUntil { radio.calls.contains(.fetchExercise(entryId: self.exerciseId(start))) }
 
         let cancelledAt = Date()
@@ -204,7 +204,7 @@ final class StrapTransferTests: XCTestCase {
     func testTheDeadlineReturnsWhenTheCallNeverDoes() async {
         let started = Date()
         do {
-            _ = try await StrapDeadline.race(seconds: 1, timeout: PolarManager.PolarError.fetchFailed("timeout")) {
+            _ = try await Deadline.race(seconds: 1, timeout: PolarManager.PolarError.fetchFailed("timeout")) {
                 await withUnsafeContinuation { (_: UnsafeContinuation<Void, Never>) in }
             }
             XCTFail("a call that never answers returned")
@@ -222,10 +222,10 @@ final class StrapTransferTests: XCTestCase {
         let start = Date().addingTimeInterval(-3600)
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 800, count: 500))
         let manager = linkedManager(radio)
-        manager.beginTransfer()
+        manager.recording.beginTransfer()
         manager.cancelFetch()
 
-        let recording = await manager.fetchRecordingIfAvailable(recordedSince: start.addingTimeInterval(-60))
+        let recording = await manager.recording.fetchRecordingIfAvailable(recordedSince: start.addingTimeInterval(-60))
 
         XCTAssertNil(recording)
         XCTAssertFalse(radio.calls.contains(.fetchExercise(entryId: exerciseId(start))))
@@ -241,7 +241,7 @@ final class StrapTransferTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 800, count: 500))
         let manager = linkedManager(radio)
 
-        _ = try await manager.fetchRecording(recordedSince: nil, budget: .unattended)
+        _ = try await manager.recording.fetchRecording(recordedSince: nil, budget: .unattended)
 
         XCTAssertTrue(manager.hasStoredExercise, "the strap keeps its copy")
         XCTAssertTrue(manager.downloadLedger.wasDownloaded(recordingStartedAt: start))

@@ -354,9 +354,8 @@ struct SleepTimelineChart: View {
         return markers
     }
 
-    /// Hoisted out of `hourLabel(_:)` — that helper runs once per hour
-    /// marker on every chart render; a fresh `DateFormatter()` each call
-    /// was needless allocation.
+    /// Shared rather than built in `hourLabel(_:)`, which runs once per hour
+    /// marker on every chart render.
     private static var hourLabelFormatter: DateFormatter { LocalizedDateFormat.formatter(template: "j") }
 
     private func hourLabel(_ date: Date) -> String {

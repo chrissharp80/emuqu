@@ -10,8 +10,8 @@
 >
 > **Golden rule for this document:** it is a **map, not a mirror.** It records
 > structure, responsibilities, and pointers — not algorithm internals or full
-> API signatures (those live in [`ARCHITECTURE.md`](ARCHITECTURE.md) and
-> [`API_REFERENCE.md`](API_REFERENCE.md)). When the code and this map disagree,
+> API signatures (those live in [`ARCHITECTURE.md`](ARCHITECTURE.md) and in
+> the code). When the code and this map disagree,
 > **the code wins** — fix the map. See [§13 Keeping this document
 > current](#13-keeping-this-document-current).
 
@@ -44,7 +44,6 @@ so you can verify before answering.
 | Understand storage / iCloud sync | [§8.5](#85-storage-sync--export) | [`ARCHITECTURE.md`](ARCHITECTURE.md#storage--sync) |
 | Add a translation / localize a string | [§9.2](#92-localization) | [`LOCALIZATION.md`](LOCALIZATION.md) |
 | Build, test, or ship | [§10](#10-build-test-ci--tooling) | `Makefile`, `.github/` |
-| See what a function does, who calls it, or everything a change can affect | [§10 The code map](#the-code-map) | [`codemap/README.md`](codemap/README.md) |
 | Handle an incident / App Store rejection / data-deletion request | [§11](#11-operations--runbooks) | [`runbooks/`](runbooks/) |
 | Find the right doc for a topic | [§4](#4-documentation-map) | `docs/` |
 | Look up a domain term (RMSSD, α1, TRIMP, ATL/CTL/TSB…) | [§12](#12-glossary) | — |
@@ -247,7 +246,7 @@ This section is the short version; read the spec before any non-trivial change.
 
 | Convention | What it looks like | Why |
 |---|---|---|
-| **Extension file-splitting** | `Foo.swift` + `Foo+Bar.swift`, `Foo+Baz.swift` | Keep each file readable in one sitting; one concern per file. Big objects (RRCollector, HealthKitManager, AppFactResolver, PDFReportGenerator, Archive) are split this way. |
+| **Extension file-splitting** | `Foo.swift` + `Foo+Bar.swift`, `Foo+Baz.swift` | Keep each file readable in one sitting; one concern per file. Big objects (RRCollector, HealthKitManager, PDFReportGenerator, Archive) are split this way. |
 | **Centralized constants** | `Constants.swift` namespaced enums (`RecoveryScoreConstants`, `ScoringWeights`, `FeatureFlags`, …) | No magic numbers in logic; scoring thresholds auditable in one place. |
 | **Centralized theme** | `Utilities`/`Views` `AppTheme` / `Theme.swift` | Colors, typography, accent themes in one surface. |
 | **Per-screen archive subscription** | each screen owns its own `recentSessionsAsync(...)` refresh `Task` | Load limits are per-screen, not tab-routing-dependent (see [`ARCHITECTURE.md` → UI Session Load Contract](ARCHITECTURE.md#ui-session-load-contract)). |
@@ -281,8 +280,6 @@ the index; the others are the depth.**
 | [`FEATURES.md`](FEATURES.md) | The full feature list | — |
 | [`USERS_MANUAL.md`](USERS_MANUAL.md) | End-user behavior of every tab, screen, and feature | ~1800 ln |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | **Algorithms & design decisions** — recording strategy, HRV math, window selection, recovery-score tiers, sleep pipeline, storage, location subsystems, workout math | ~1510 ln |
-| [`API_REFERENCE.md`](API_REFERENCE.md) | **Public Swift API surface** — type signatures, model shapes, contracts | ~3240 ln |
-| [`FLOWCHART.md`](FLOWCHART.md) | **Data flow**, step-by-step: recording → analysis → display, workout pipeline, AI dispatch, session lifecycle, mutation contracts | ~1660 ln |
 | [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md) | **The AI module spec** — turn lifecycle, provider matrix, Fact/tool system, routing, voice, safety gates | ~440 ln |
 | [`VOICE_AND_TOOL_USE.md`](VOICE_AND_TOOL_USE.md) | AI fact catalog contents, tool-use path, voice-mode design, known failure modes | ~950 ln |
 | [`hrv-reference-data.md`](hrv-reference-data.md) | What the HRV-metric reference data validates, and what it cannot | — |
@@ -292,7 +289,6 @@ the index; the others are the depth.**
 | [`CI_POSTURE.md`](CI_POSTURE.md) | What CI runs, where, and what it costs | — |
 | [`REVIEW.md`](REVIEW.md) | Review checklist for a change | — |
 | [`adr/`](adr/) | Architecture decision records | — |
-| [`codemap/README.md`](codemap/README.md) | **The code map** — a record for every function, script target, workflow step and doc section; the call graph; the CI rules that keep it current; the impact report | — |
 | [`runbooks/`](runbooks/) | Operational playbooks — incident, hotfix, App Store rejection, data deletion | — |
 
 ### Topic ownership — one source of truth per topic
@@ -311,8 +307,6 @@ orientation *summary* that points onward — never a second copy of the details.
 | Physiology & algorithm design (HRV, scoring, sleep, windows) | `ARCHITECTURE.md` | link |
 | Training-load derivation (TRIMP → ATL/CTL/TSB) | `TRAINING_LOAD.md` | link |
 | **AI module internals** (routing, tool-use, providers, voice, prompt cache) | `FLO_ARCHITECTURE.md` (+ `VOICE_AND_TOOL_USE.md` for fact-catalog contents & voice field-notes) | link — `ARCHITECTURE.md` keeps **only** the fitness-integration seam |
-| Public Swift API shapes | `API_REFERENCE.md` | link |
-| Step-by-step data flow | `FLOWCHART.md` | link |
 | Coding standard | `REFACTOR_SPEC.md` | link |
 | Localization workflow | `LOCALIZATION.md` | link |
 | Ops playbooks | `runbooks/` | — |
@@ -342,12 +336,11 @@ drift — treat them as scale indicators, not invariants. Directories are under
 | `Emuqu.xcodeproj/` | Xcode project (last upgraded with Xcode 26.6; CI selects Xcode 26.6). |
 | `Emuqu.xctestplan` | Test plan used by CI + `make test`. |
 | `docs/` | All documentation (§4). |
-| `docs/codemap/` | The code map: one record per source file and per unit, kept current by CI (§10, [The code map](#the-code-map)). |
 | `scripts/` | CI/dev shell + python (coverage floor, lint budgets, sim destination, hook install). |
 | `Tools/copy_linter/` | `lint.py` + `prohibited_terms.json` — "copy perimeter" that blocks prohibited medical-claim language. |
 | `.ci/` | Plain-text numeric budgets (swiftlint warnings, large-file count, coverage floor, `try?` budget, shared-usage budget). |
 | `.github/` | `workflows/` (`ci.yml`, `gates.yml`, `security.yml`, `performance.yml`, `testflight.yml`), CODEOWNERS, dependabot, `SECURITY.md`. |
-| `.githooks/pre-commit` | SwiftFormat + SwiftLint + the code-map check before commit (install via `make setup-hooks`). |
+| `.githooks/pre-commit` | SwiftFormat + SwiftLint before commit (install via `make setup-hooks`). |
 | `Makefile` | Dev/CI entry points (§10). |
 | `README.md`, `LICENSE` | Overview; PolyForm Strict 1.0.0 source-available, no-derivatives license. |
 | `.swiftlint.yml` / `.swiftformat` | Lint & format config. |
@@ -358,7 +351,7 @@ drift — treat them as scale indicators, not invariants. Directories are under
 The signal-processing and scoring engine. Mostly pure transforms.
 
 - `HRVAnalysisPipeline.swift` — top-level orchestrator: raw RR → `AnalysisResult`.
-- `RecoveryScoreCalculator.swift` (+`+Composite`, `+Tiers`, `+Training`, and the `+DetailForwarding` / `+ReadinessForwarding` / `+VitalsForwarding` shims) — composite 0-100 recovery score (HRV 60 / Sleep 25 / Vitals 15).
+- `RecoveryScoreCalculator.swift` (+`+Composite`, `+Tiers`, `+Training`, `+Parts`; readiness in `ReadinessScoring`, vitals in `VitalsScoring`, tier composition in `ScoreDetailBuilder`) — composite 0-100 recovery score (HRV 60 / Sleep 25 / Vitals 15).
 - Signal metrics: `TimeDomainAnalysis`, `FrequencyDomainAnalysis`, `NonlinearAnalysis`, `DFAAnalysis`, `LiveDFAAnalyzer` (rolling α1 during workouts).
 - `WindowSelection.swift` (+`+Evaluation`, `+Filters`) — picks the best recovery window (score = RMSSD × stability), not raw peak RMSSD.
 - Workout analytics: `WorkoutAnalyzer.swift`, `WorkoutAnalysisSnapshotBuilder.swift`, `WorkoutLiveTrends.swift`, `WorkoutAlpha1Reanalyzer`, `BarometricAltitudeProcessor`, `TopoElevationService`.
@@ -379,9 +372,9 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
   not end cleanly) and `OvernightStreamingCoordinator` (bluetooth-central
   overnight capture — start, keep-alive, reconnect, morning gather, strap
   merge). Each is a value holding the collector strongly, built on demand
-  (`collector.recovery`, `collector.overnightStreaming`); the collector keeps
-  thin forwarders so call sites did not move with the split. See ADR 005 for
-  why they are not `unowned` back-pointers.
+  (`collector.recovery`, `collector.overnightStreaming`, `collector.morning`,
+  `collector.deviceRecording`), and callers name the one they ask. See ADR 005
+  for why they are not `unowned` back-pointers.
 - `PolarManager.swift` (+`+Streaming`, `+Recording`, `+Observers`) — Polar BLE.
 - `HealthKitManager.swift` (+`+HRV`, `+HeartRate`, `+SleepTrends`, `+Store`, `+Heat`) — HealthKit read/write. Three query classes hold the reads: `VitalsHealthQueries`, `TrainingHealthQueries` and `SleepHealthQueries`. Sleep export, trend analysis and the observers stay on `+SleepTrends` — those write and observe, which is a different job with different failure modes.
 - Apple Health write-back: `HealthExportIdentity` stamps every sample and workout the app exports with the session's sync identifier and a rising sync version, so a re-export replaces the earlier copy rather than adding one; `HealthKitWorkoutExport` (the workout, with its samples and route) and `HealthWriteAndObserve.swift` (`HealthSampleReplacer`, `removeExports` for a session deleted forever, and `HealthSampleWatch`, the anchored observer that hands the app other sources' new samples). A workout saved while the phone was locked, when its earlier exports could not be read, is noted in `PendingWorkoutReplacements` and its earlier copies are deleted on the next return to the app.
@@ -400,16 +393,13 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
   | `SleepRefreshPolicy` | May sleep be refreshed; is it an improvement; what to update | Scoring-window and onset logic that needs direct tests |
   | `HRSleepEstimator` | Sleep boundaries inferred from heart rate alone | One onset clamp shared by every HR-based detector |
 
-  Where an external caller needs the old entry point, a one-line forwarder
-  keeps it (`HealthKitManager.estimateSleepFromHR`).
-
 ### 5.3 `Assistant/` — the "Flo" AI subsystem (~118 files)
 
 Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 
 - **root:** `VoiceConversationController.swift` (+`+Audio`) — app-wide voice chat; `VoiceEchoHeuristics` — the token-overlap rules that decide whether recognised speech is the mic hearing the app's own TTS (three call sites shared this comparison and one carried its own drifting copy of the tokeniser); `WorkoutVoiceCoach`, `WorkoutTriggerEngine`, `WorkoutMileMarkerEngine`, `TurnAlertEngine`, `TurnMarkerEngine` — mid-workout spoken coaching; `CoachCueSpeech` — the coach lines the voice controller speaks, each claiming the workout-cue audio session before it is spoken, and the scripted line an AI-worded interjection falls back to; `MedicalQueryGuard`, `CoachVoiceGuard`, `MetricsVerifier` — safety guards; `TTSTextNormalizer`, `SpokenTextChunker`, `PhoneticOverrides` — speech prep.
 - **`Providers/`:** `AIProvider.swift` (protocol + ToolSpec + stream event) + `AppleFoundationProvider` (on-device) and its `AppleFoundationToolAdapter`/`AppleToolDispatcher`, `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`, `GrokProvider`, `DeepSeekProvider`, `OpenAICompatibleStreamer`, `ProviderStream`, `ProviderRegistry`.
-- **`Facts/`:** `AppFactResolver.swift` (+`+Live`, `+Settings`, `+Sleep`, `+Workout`) — resolves app data into facts; `FactCatalog`, `FactKey`, `FactValue`, `CompactToolRouter`, `SmartProviderRouter`, `TierProviderMapper`, `CapabilityClassifier`, `DeterministicIntent`, `AppleContextCompactor`, `LLMCacheTelemetry`.
+- **`Facts/`:** `AppFactResolver.swift` (the factory) and one `*Facts.swift` file per group of namespaces (`SleepFacts`, `WorkoutFacts`, `LiveNavigationFacts`, …), which read services only through `FactServices`; `FactCatalog`, `FactKey`, `FactValue`, `CompactToolRouter`, `SmartProviderRouter`, `TierProviderMapper`, `CapabilityClassifier`, `DeterministicIntent`, `AppleContextCompactor`, `LLMCacheTelemetry`.
 - **`Chat/`:** `ConversationStore`, `AssistantInbox`, `SpeechInputManager`, `WhisperKitSTTBridge`/`STTProvider`, `UserFactsStore`, `AssistantEmailBridge`, `AssistantCitationResolver`, `PrefabQuestions`, `AnalysisSummaryCache`, `AssistantContextSource`.
 - **`Context/`:** `AssistantContext`, `ContextBuilder`, `AppKnowledgeBase`, `LiveWorkoutBroker`.
 - **`ViewModel/`:** `AssistantViewModel.swift` and its `+*` extensions (`+Tools`, `+Routing`, …).
@@ -425,7 +415,7 @@ Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 
 ### 5.5 `Storage/` — persistence, encryption, sync (~49 files)
 
-- `Archive.swift` (+`+MergeForwarding`, `+Migrations`, `+Repair`; merge logic in `SessionMerger`) — the on-disk session archive (JSON in the App Group, SHA-256 integrity, in-memory index).
+- `Archive.swift` (+`+StoreAPI`, `+Migrations`, `+Repair`, `+Parts`; merge logic in `SessionMerger`, migrations in `ArchiveMigrations`) — the on-disk session archive (JSON in the App Group, SHA-256 integrity, in-memory index).
 - iCloud: `CloudKitSyncManager`, `CloudKitLiveBackupManager`, `CloudKitSyncState`, `Reconciliation`; `CloudSessionPayload` (`CloudSessionPayload.swift`) — the upload shape, with Apple Health data left out; `CloudAccountIdentity` + `CloudAccountGuard` (`CloudAccountIdentity.swift`) — the Apple ID sync was turned on for, checked before anything is read from or written to iCloud; `CloudAccountChangeHandler` — what `.CKAccountChanged` does to sync.
 - Support: `EncryptionManager`, `DataCompression` (ZLIB), `RawRRBackup`, `WorkoutTrackBackup`, caches (`SleepDataCache`, `UIStateCache`, `RespiratoryBaselineCache`, `WristTemperatureBaselineCache`), `SessionStorageDiagnostic`.
 
@@ -483,7 +473,6 @@ Swift file with explicit pbxproj build membership, use
 > you touch a view for another reason, lift its computation into a testable
 > free function rather than adding to the inline pile.
 
-
 SwiftUI screens (thin logic). Roots: `MainTabView` (nav), `DashboardV2View`,
 `RecordView`, `FitnessTabView`, `CoachHomeV2View`, `MoreMenuView`. Detail views
 (`HRVDetailV2View`, `SleepDetailV2View`, `VitalsDetailV2View`,
@@ -503,9 +492,8 @@ the workout flow (`WorkoutPreflightView`,
 ## 6. The core data model
 
 The nouns. These are the types that get created during recording, persisted to
-the archive, synced to iCloud when sync is on, and surfaced to the UI and the AI. Full field
-lists are in [`API_REFERENCE.md`](API_REFERENCE.md#data-models); this is the
-orientation.
+the archive, synced to iCloud when sync is on, and surfaced to the UI and the AI. The types
+themselves hold the full field lists; this is the orientation.
 
 | Type | File | What it is |
 |---|---|---|
@@ -535,8 +523,7 @@ CloudKit database without its Apple Health data (`CloudSessionPayload`). The hea
 
 ## 7. End-to-end flows
 
-The verbs. Each flow lists the sequence with file + symbol anchors and points
-to the deep-flow doc ([`FLOWCHART.md`](FLOWCHART.md)) for the exhaustive version.
+The verbs. Each flow lists the sequence with file + symbol anchors.
 
 ### 7.1 App launch & navigation
 
@@ -563,7 +550,7 @@ to the deep-flow doc ([`FLOWCHART.md`](FLOWCHART.md)) for the exhaustive version
 
 ### 7.2 Overnight recording → recovery score → dashboard
 
-The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md).
+The spine of the product.
 
 1. **Start** — `RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)`
    (`Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift`). Begins BLE streaming;
@@ -608,7 +595,7 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
 
 > **Pause/Resume (split sleep)** and **same-night separate sessions** merge
 > segments before window selection so the score reflects the whole night — see
-> [`FLOWCHART.md` §3, §8](FLOWCHART.md) and [`ARCHITECTURE.md` → Pause & Resume](ARCHITECTURE.md).
+> [`ARCHITECTURE.md` → Pause & Resume](ARCHITECTURE.md).
 
 ### 7.3 Workout recording → summary
 
@@ -640,8 +627,7 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
 
 ### 7.4 An AI turn (Flo)
 
-Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md) and
-[`FLOWCHART.md` §20](FLOWCHART.md).
+Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md).
 
 1. **Input** — chip/type/dictate → `AssistantViewModel.send(text:fromVoice:)`.
    On first send of a session, Apple Foundation model is prewarmed. A
@@ -743,8 +729,7 @@ doc. Use this to decide *where to read next*.
   `Analysis/` (HRVAnalysisPipeline, RecoveryScoreCalculator, WindowSelection,
   DFA/time/frequency, SleepScienceAnalyzer, BaselineTracker).
 - **Deep doc:** [`ARCHITECTURE.md`](ARCHITECTURE.md) (Recording, Analysis, Window
-  Selection, Recovery Score, Sleep, Baseline sections);
-  [`FLOWCHART.md`](FLOWCHART.md) for step-by-step data flow.
+  Selection, Recovery Score, Sleep, Baseline sections).
 - **Key contracts:** window selection operates on 30–70 % of *actual sleep*, not
   recording duration; scores freeze at morning measurement; all magic numbers in
   `Constants+RecoveryScore.swift`.
@@ -776,7 +761,7 @@ doc. Use this to decide *where to read next*.
 - **Owns:** chat + continuous voice, provider routing, tool-use over the Fact
   Catalog, on-device Apple Intelligence, safety/medical guards, memory.
 - **Code:** `Assistant/` (all subdirs). Provider-agnostic; the only app-specific
-  seam is the fact resolvers in `Facts/AppFactResolver*`.
+  seam is the fact namespaces in `Facts/*Facts.swift`.
 - **Naming:** the **chat tab is "Flo"** (`Tab.coach`); the **mid-workout voice is
   "Coach"** (`WorkoutVoiceCoach`); the **auto-email is "Flo Report"** — three
   subsystems, one model picker, distinct bubble badges (`AssistantSubsystem`,
@@ -798,10 +783,9 @@ doc. Use this to decide *where to read next*.
 - **Code:** `Storage/` (Archive, CloudKitSyncManager, CloudAccountIdentity,
   EncryptionManager, DataCompression, RawRRBackup), `Services/PurgeGate`,
   `Export/` (incl. `ExportFile`), `Import/`, `Analysis/{CSV,GPX,TCX}Exporter`.
-- **Deep doc:** [`ARCHITECTURE.md` → Storage & Sync](ARCHITECTURE.md#storage--sync);
-  [`API_REFERENCE.md` → Storage](API_REFERENCE.md#storage).
+- **Deep doc:** [`ARCHITECTURE.md` → Storage & Sync](ARCHITECTURE.md#storage--sync).
 - **Key contracts:** per-screen archive subscriptions (load limits are per-screen,
-  §3); the [post-acceptance mutation contract](FLOWCHART.md#13-post-acceptance-mutation-contract)
+  §3); the [accepted-session contract](adr/009-accepted-sessions-are-frozen.md)
   governs when archived sessions may be rewritten (user overwrite vs. additive
   merge only); sync acts only for the recorded iCloud account and turns itself
   off rather than recreate a deleted zone (§7.5); no archive write lands while
@@ -856,10 +840,9 @@ sub-objects — `ArchiveSignal`, `DeviceStatus`, `SessionState`,
 `StreamingLifecycle`, `MorningCoordination`. All live state lives on these; the
 parent `RRCollector` is a dependency-wiring shell that publishes nothing.
 **How to observe it:** inject and observe the relevant sub-object directly
-(`@Environment(DeviceStatus.self)`). Reads of the parent's back-compat
-forwarders (`collector.isOvernightStreaming`) are plain computed properties;
-under `@Observable` they track through to the sub-object, but prefer the
-sub-object in views so the dependency is visible.
+(`@Environment(DeviceStatus.self)`), or read it through the collector
+(`collector.streamingLifecycle.isOvernightStreaming`); either establishes
+observation on the sub-object that owns the value.
 
 **Observation framework, everywhere.** Every observable
 type is `@Observable`; the `legacy_observable_object_budget` ratchet (§10) sits
@@ -915,8 +898,10 @@ by layer (`app`, `analysis`, `assistant`, `collection`, `location`,
 `providers`, `services`, `storage`). Every accessor resolves lazily, so no
 service is built until asked for and no initialiser can recurse into the
 container. Views read `@Environment(\.dependencies)`; static helpers read
-`AppDependencies.current`; the launch work and `DataPurgeService` are handed
-exactly the services they use (`launchServices`, `purgeStores`) and read no
+`AppDependencies.current`; the launch work, `DataPurgeService`, reanalysis,
+the assistant's fact namespaces, the chat view model, the context builder, the AI providers, the voice conversation, the workout recorder and the recording collector's parts are handed exactly
+the services they use (`launchServices`, `purgeStores`,
+`makeSessionReanalysis`, `FactServices`, `WorkoutServices`, `ChatServices`, `ContextServices`, `VoiceServices`, `AIProviderServices`, `CollectorServices`) and read no
 container. `current` has no setter: a test makes a fresh container, sets the
 substitute on its `overrides`, puts it in force with
 `AppDependencies.install(_:)`, and ends the returned scope in teardown
@@ -959,8 +944,9 @@ Two things to know before you touch this:
   grant from a cached build-type flag: it can survive a TestFlight → App
   Store upgrade, and would then grant permanent free access with no proof
   behind it.
-- **The anchor is written by the one-time history check, and by one
-  deliberate migration.** A sandbox receipt anchors nothing.
+- **The anchor's grant is written by the one-time history check, and by one
+  deliberate migration.** (The anchor also keeps the App Store trial start,
+  which runs the trial clock and grants nothing more.) A sandbox receipt anchors nothing.
   `migrateLegacyTestFlightFlag` promotes the legacy
   `storekit.lastKnownTestFlight` UserDefaults flag into a permanent grant.
   That flag was itself only ever written from a genuine sandbox-receipt
@@ -1030,7 +1016,11 @@ that device (`BroadcasterDisclosure`, kept out of the iCloud settings backup).
 
 **On the device.** Log lines are scrubbed by `DebugLogger.scrubPHI`, which
 redacts every named value whose key is not on a short allow-list of counts and
-identifiers, so a new key is covered without anyone naming it. The CSV, GPX,
+identifiers, so a new key is covered without anyone naming it. The scrubber
+cannot recognise free text or place names, so those never reach a log call:
+`make log-redaction-guard` fails on a query, transcript or prompt, a street,
+city or saved-route name, or a coordinate interpolated into one, and the call
+logs a length, a count or whether a name was found instead. The CSV, GPX,
 TCX, report-PDF, log and crash exports are written through `ExportFile` (§5.5a)
 with complete file protection. The conversation summary is sealed beside the
 history, as the conversation is.
@@ -1065,11 +1055,7 @@ make test          # xcodebuild test (sim auto-selected)
 make test-coverage # enforces the coverage floors in .ci/min_coverage*.txt
 make debt-budget   # enforce the tech-debt budgets in .ci/*.txt
 make ci            # the full lint + budgets + coverage suite (what CI runs)
-make setup-hooks   # install .githooks/pre-commit (SwiftFormat + SwiftLint + code map)
-
-make codemap-guard  # the code map is current (records, re-checks)
-make codemap-impact # everything this branch's changes can affect, against origin/main
-make codemap-report # browsable map in build/codemap (serve it with python3 -m http.server)
+make setup-hooks   # install .githooks/pre-commit (SwiftFormat + SwiftLint)
 
 make ci-local      # every gate the WORKFLOW runs, ~2 min, no simulator
 make ci-local-unit # the above plus the Release build, unit suite and Thread Sanitizer
@@ -1205,11 +1191,11 @@ zero on both counters:
 | `HistoryView` | a `List` of grouped sections, plus swipe/context actions lifted into `withEntryActions(_:entry:)` |
 | `GetMeBackView` | `withAlerts(_:)` / `withLifecycle(_:)` peeling three alerts and three lifecycle hooks off one body |
 | `LoadTrajectoryView` | `some ChartContent` helpers — the mark builders are not `some View` |
-| `AppFactResolver+LiveNavigation` | non-view code: a 58-line array element split into an entry, a hoisted `static let` description and three resolver steps |
+| `LiveNavigationFacts` | non-view code: a 58-line array element split into an entry, a hoisted `static let` description and three resolver steps |
 | `AnalysisSummaryGenerator+Interpretation` | a 98-line `switch` over score categories, one string-builder per case behind an `Inputs` struct |
 | `MorningResultsViewModel` | statistics: averages, baselines and the 7-day trend each computed by their own function |
-| `AppFactResolver+WorkoutDetail` | the fact catalogue: one property per entry, `description:` hoisted to a `static let`, the resolve closure lifted to a method |
-| `AppFactResolver+LiveCoaching` | a 173-line `location.situation` resolver split into fix / address / POI / journey record builders |
+| `WorkoutDetailFacts` | the fact catalogue: one property per entry, `description:` hoisted to a `static let`, the resolve closure lifted to a method |
+| `LiveCoachingFacts` | a 173-line `location.situation` resolver split into fix / address / POI / journey record builders |
 | `AnalysisSummaryGenerator+Steps` | pure logic: a 236-line `[String]` builder turned into `append…(&steps, gates:)` steps over one `PushGates` value |
 | `SettingsPages+DiagnosticActions` | a `Group` of `Section`s where every `Button { } label: { }` became `Button { action() } label: { … }` |
 | `MorningResultsView` | the widest one: `withSheets` / `withDialogs` / `withLifecycle` peel 3 sheets, 3 dialogs and 4 lifecycle hooks off a 325-line body |
@@ -1330,45 +1316,6 @@ Counting the two budgets, for a file or for the tree:
 bash scripts/check_refactor_spec_conformance.sh
 ```
 
-
-### The code map
-
-`docs/codemap/records/` holds a record for every unit of code: each Swift
-function, initializer, computed property and protocol requirement, each script
-function, Makefile target and workflow step, and each Markdown section. A record
-says what the unit does, what triggers it, what it calls, what shared state it
-reads and writes, and what each branch does. Full
-reference: [`codemap/README.md`](codemap/README.md).
-
-The call graph combines the calls the records name with the calls, property
-reads, protocol dispatch and closure assignments found mechanically in the code.
-`make codemap-impact` lists, for every unit a branch changed, its callers up to
-the user-facing triggers that reach it, the tests and docs that reach it, the
-shared state it touches and who else touches it. Pull requests get the same list in the `gates.yml` job summary.
-
-`make codemap-guard` (also in `make ci`, both workflows and the pre-commit hook)
-fails when:
-
-- a unit or file has no record, or the record is empty;
-- the code changed after its record was last stamped.
-
-It also counts the records to re-check, and `codemap.py status` lists them:
-a unit whose callee now describes different behaviour from when the unit was
-last checked, or that now calls something it was not checked against, or
-whose record names a unit that no longer exists ("re-check" lines). A change
-to what one function does sends every certain caller back to be re-read, and
-onward while behaviour keeps changing.
-
-For a change: run `make codemap-impact` first and read what it lists; make the
-change; rewrite each record the guard lists; re-read each re-check caller and
-update it if its behaviour changed too; stamp callees before callers. The
-procedure is in [`codemap/README.md`](codemap/README.md#changing-code).
-
-The guard proves records were stamped after the code and its callees changed.
-It cannot prove a record is right; review does that. The graph has no type
-checker behind it: where a name could mean several units the impact report
-lists them all as possible callers, and only certain edges trigger re-checks.
-
 ### CI/CD (`.github/workflows/`)
 
 - **`ci.yml`** — every pull request and push to `main` (scope `unit`),
@@ -1406,8 +1353,7 @@ lists them all as possible callers, and only certain edges trigger re-checks.
     writes the scope and the job's result to the run summary.
 - **`gates.yml`** — on pushes to `main` and every pull request, ubuntu runner:
   the script gates from `make ci` that need only bash and python (no SwiftLint,
-  no Xcode), including the code-map check. On a pull request it also writes the
-  code-map impact report to the job summary. About a minute. `main` requires
+  no Xcode). About a minute. `main` requires
   this job ("Script gates (no Xcode)") and the five `ci.yml` jobs above to
   pass, on a branch that is up to date with `main`, before anything merges.
 - **`security.yml`** — `workflow_dispatch` only — CodeQL over the Swift
@@ -1464,7 +1410,7 @@ see [`ARCHITECTURE.md` → Strap Link and Reconnection](ARCHITECTURE.md#strap-li
 **What is verified and what is not.** The stream-consumption logic — ordering,
 cancellation, error propagation, not running the completion path after a cancel
 — is covered by `EmuquTests/StreamForwardingTests.swift`, which drives
-`StrapHeartRateFeed.drain` with a synthetic sequence and needs no hardware. What
+`StrapHeartRateFeed.drain` with a synthetic `AsyncThrowingStream` and needs no hardware. What
 those tests do not and cannot establish is that Polar's SDK still talks to the
 radio. Connect, stream, disconnect/reconnect and an overnight need a strap, the
 same as any dependency upgrade.
@@ -1577,7 +1523,7 @@ Domain terms you'll meet in the code and docs.
 This guide is a **map**. Its value is that it stays true. Rules for keeping it so:
 
 1. **The code is the source of truth.** When this doc and the code disagree, the
-   code wins — fix the doc. When a deep-dive doc (ARCHITECTURE/FLO/API/FLOWCHART)
+   code wins — fix the doc. When a deep-dive doc (ARCHITECTURE/FLO)
    and the code disagree, fix that deep doc *and* any pointer here.
 2. **Don't duplicate depth.** Keep algorithm internals, full API signatures, and
    exhaustive step lists in their home docs (§4). Here, record *structure,
@@ -1595,7 +1541,6 @@ This guide is a **map**. Its value is that it stays true. Rules for keeping it s
    | Add a subsystem or move ownership | §8, §9 |
    | Add a doc under `docs/` | §4 |
    | Add a domain term | §12 |
-   | Change any code, script, workflow or doc | its records in [`codemap/`](codemap/README.md) (the CI guard lists them) |
 
 4. **Anchors drift.** `file:line` citations go stale as files change — treat a
    wrong line number as a "refresh me" flag, not a lie. Symbol names are more

@@ -34,17 +34,7 @@ Keep it that way.
 make setup-hooks
 ```
 
-```bash
-make codemap-setup
-```
-
-The first installs the pre-commit hook; the second installs the pinned tree-sitter
-the code map needs (the hook fails without it). It needs Python 3.10 or newer, which
-macOS's own `python3` (3.9) is not; it uses the first `python3.13` … `python3.10` or
-`python3` on PATH that is, then Homebrew's, the python.org installer's or pyenv's, or
-`CODEMAP_BASE_PYTHON`. With none installed, it downloads a pinned, checksum-verified
-standalone CPython 3.12 (python-build-standalone) into `.codemap-python/`. A SwiftLint error or a stale
-code-map record blocks the commit;
+The hook runs SwiftLint and SwiftFormat on the staged files. A SwiftLint error blocks the commit;
 SwiftFormat only reports whether the staged files drifted, because most of the
 tree does not yet conform to `.swiftformat`. `gates.yml` runs the script gates
 on every push to `main`, but nothing macOS-based does, so this hook is what
@@ -66,26 +56,6 @@ xcodebuild test -project Emuqu.xcodeproj -scheme Emuqu \
 
 Warnings are errors (`SWIFT_TREAT_WARNINGS_AS_ERRORS = YES`). A build that
 emits a warning does not compile.
-
-### The code map is part of the change
-
-Every function, script target, workflow step and doc section has a record in
-[`docs/codemap/records/`](docs/codemap/README.md). CI, `make ci` and the
-pre-commit hook fail until the records for what you changed are current.
-
-1. Before you change a unit, run `make codemap-impact` (or
-   `.venv-codemap/bin/python scripts/codemap/codemap.py impact <path::key>`) and
-   read its record, its callers and the tests that reach it.
-2. Make the change.
-3. `make codemap-guard` lists every record to bring up to date. Rewrite each
-   against the code as it now is.
-4. "re-check" lines (`codemap.py status` lists them) are callers whose callee
-   now does something different. Re-read each one; if its own behaviour
-   changed, change it or its record too.
-5. Stamp each record after you have re-read it, callees before callers:
-   `.venv-codemap/bin/python scripts/codemap/codemap.py stamp <path> [<key> ...]`.
-
-The full procedure is in [`docs/codemap/README.md`](docs/codemap/README.md).
 
 ### Budgets ratchet down, never up
 
@@ -164,10 +134,6 @@ localization, copy perimeter, documentation links, the Release build
 (`make release-build`), the unit suite under Thread Sanitizer
 (`make thread-sanitizer`), and the full test suite with coverage. The test
 suite is the slow part, because the UI target drives a real simulator.
-
-`make codemap-impact` lists everything your branch's changes can affect; the
-pull request gets the same list in the `gates.yml` job summary. Check each
-caller, test and shared-state user it names.
 
 Fill in [the pull-request template](.github/PULL_REQUEST_TEMPLATE.md). It is
 short and it is the only review record this project gets.

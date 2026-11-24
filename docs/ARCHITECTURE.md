@@ -1,6 +1,6 @@
 # Emuqu — Architecture & Algorithms
 
-Technical deep-dive into algorithms, design decisions, and implementation details. For API signatures, see `API_REFERENCE.md`. For data flow, see `FLOWCHART.md`. For user-facing features, see `USERS_MANUAL.md`.
+Technical deep-dive into algorithms, design decisions, and implementation details. For user-facing features, see `USERS_MANUAL.md`.
 
 > **Looking for the AI assistant ("Flo") architecture?** That moved into its own authoritative spec: [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). It describes the AI module's internal architecture and the app-specific extension points it depends on. This file (ARCHITECTURE.md) covers fitness-specific subsystems: HRV analysis, recovery score math, training load, sleep integration, etc.
 
@@ -169,7 +169,7 @@ the right rule when summing over an interval.
 
 ## Analysis Algorithms
 
-**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points and the display helpers, with `+Composite`, `+Tiers` and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — in the current scoring, `ScoringVersion.current` = `v3.3.nov2026`, training load is **not** a composite tier). Three pieces live in their own types to keep it under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Each has a forwarding extension on `RecoveryScoreCalculator` (`+ReadinessForwarding`, `+VitalsForwarding`, `+DetailForwarding`), so call sites use the `RecoveryScoreCalculator` API. `WindowSelection` is split into `+Scoring` (`findBestWindow`, `selectWindowByMethod`, `analyzeAtPosition`), `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
+**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points and the display helpers, with `+Composite`, `+Tiers` and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — in the current scoring, `ScoringVersion.current`, training load is **not** a composite tier). Three pieces live in their own types to keep it under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Callers name the type that does the work (`ReadinessScoring.calculateReadiness`, `VitalsScoring.buildVitalsDetail`, `ScoreDetailBuilder.buildTierComposite`); `+Parts` keeps the two input types reachable as `RecoveryScoreCalculator.WorkoutLoad` and `.TierInputs`. `WindowSelection` is split into `+Scoring` (`findBestWindow`, `selectWindowByMethod`, `analyzeAtPosition`), `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
 
 ### Artifact Detection
 
@@ -706,7 +706,7 @@ Each layer re-sorts only because its consumer requires a different order. Do not
 
 **Duplicates**: `removeDuplicates` picks the keeper of tied duplicates by session id, so the result does not depend on index order. Before a copy is retired, its tags, notes, morning feeling (with its tags) and perceived readiness are carried into the keeper (`carryUserContent`), which is stamped and re-uploaded; a copy that cannot be read is not retired that pass. `repairArchive()` throws when the archive cannot be listed or the rebuilt index cannot be saved. A same-night fold stamps `modifiedAt` when it changes the target and asks for the target's re-upload (`archivedId(of:)` maps a folded id to it).
 
-**Recovery Score**: `session.recoveryScore` stores the composite recovery score on a 0-10 scale — the 0-100 composite divided by 10 (`RecoveryScoreCalculator.toTenScale`). Every screen multiplies it back by 10 and shows it as 0-100; only the HRV-only fallback (`ANSMetrics.readinessScore`, used before the composite is computed) is natively 1-10. In the current scoring (`ScoringVersion.current` = `v3.3.nov2026`) it's HRV + Sleep + Vitals when all three are available, falling through to HRV + Sleep or HRV only when inputs are missing. Each `ScoreBreakdown` is stamped with the version that produced it (`scoringVersion`); scores stored before the stamp existed decode as `unversioned`. Older sessions may have been computed under v1 (HRV + Sleep + Training); `ScoreArchitectureChangeSheet` only discloses the change, and re-running `reanalyzeAllSessions` from Settings recomputes history if the user wants it. `ANSMetrics.readinessScore` remains available in `analysisResult` as the HRV-only readiness component. The window selector's `RecoveryWindow.recoveryScore` (RMSSD × stability) is for ranking only, not persisted.
+**Recovery Score**: `session.recoveryScore` stores the composite recovery score on a 0-10 scale — the 0-100 composite divided by 10 (`RecoveryScoreCalculator.toTenScale`). Every screen multiplies it back by 10 and shows it as 0-100; only the HRV-only fallback (`ANSMetrics.readinessScore`, used before the composite is computed) is natively 1-10. In the current scoring (`ScoringVersion.current`) it's HRV + Sleep + Vitals when all three are available, falling through to HRV + Sleep or HRV only when inputs are missing. Each `ScoreBreakdown` is stamped with the version that produced it (`scoringVersion`); scores stored before the stamp existed decode as `unversioned`. Older sessions may have been computed under v1 (HRV + Sleep + Training); `ScoreArchitectureChangeSheet` only discloses the change, and re-running `reanalyzeAllSessions` from Settings recomputes history if the user wants it. `ANSMetrics.readinessScore` remains available in `analysisResult` as the HRV-only readiness component. The window selector's `RecoveryWindow.recoveryScore` (RMSSD × stability) is for ranking only, not persisted.
 
 **Deferred Migrations**: `runDeferredMigrations()` runs 9 passes on a background thread at launch: `reencryptPendingSessions` and `resealPlainIndexIfNeeded` (re-encrypt session files and the index written plain while the key was unavailable), `migrateRecoveryScores`, `migrateEndDates`, `migrateMetrics` (backfills meanHR/stressIndex), `migrateSleepIndexFields` (backfills `sleepEnd` / `sleepSegmentCount`), `migrateLegacyEliteImportIndex`, `removeDuplicates`, and `relinkSameNightSessions`. Each is a no-op if already complete.
 
@@ -856,16 +856,18 @@ and merged monotonically on every read:
    `ubiquity-kvstore-identifier` entitlement would force the provisioning
    profile to be regenerated).
 
-`EntitlementAnchor.persist()` writes those two and `resolve()` merges those
-two — **that is the whole of what this type owns.**
+`EntitlementAnchor.update(wallClock:_:)` writes those two (`saveToDefaults`,
+`saveToKeychain`) and `resolve(wallClock:)` merges them — **that is the whole of
+what this type owns.**
 
 A third copy of `trialStartDate` exists and is deliberately *outside* the
 anchor: **`UserSettings.trialStartDate`**, which already round-trips through
 `CloudKitSettingsSync`. StoreKitManager records the App Store's start in the
 anchor first (`recordStoreTrialStart`), and `SettingsManager.adoptTrialStart(_:)`
 then mirrors the anchor's start into settings. Every reader of the trial clock
-falls back to the settings copy when the anchor has no start; nothing reads it
-back into the anchor. It backstops the trial date for a user who has iCloud
+falls back to the settings copy when the anchor has no start. A cloud restore
+(`SettingsManager.restoreFromJSON`) reads it back: the restored start is
+adopted into the anchor as a device start, which can only move it earlier. It backstops the trial date for a user who has iCloud
 Keychain switched off. Do not remove that mirror on the assumption the anchor
 covers it — the anchor does not write settings.
 
@@ -1113,13 +1115,17 @@ as `AppDependencies.current.{app,storage,collection,analysis,location,services,p
 Each accessor returns the substitute on the container's `overrides`, if one is set, and otherwise
 the production object, built on first use. `current` has no setter: a test puts a container with
 substitutes in force with `AppDependencies.install(_:)` and ends the returned scope afterwards,
-which restores the container before it. The launch work (`AppLaunchTasks.swift`) and the data purge
-(`DataPurgeService`) read no container; the root hands them exactly the services they use
-(`launchServices`, `purgeStores`), and `scripts/check_explicit_dependencies.sh` keeps
-`AppDependencies.current` out of those files and `install` out of app code. Views read it through
+which restores the container before it. The models, storage, analysis, launch work
+(`AppLaunchTasks.swift`), data purge, saved-session reanalysis, assistant fact namespaces, chat view model,
+assistant context builder, AI providers and system prompt, voice conversation, live
+workout recorder and the recording collector's parts read no container: each is handed exactly the services it uses (`launchServices`,
+`purgeStores`, `makeSessionReanalysis`, `FactServices`, `WorkoutServices`, `ChatServices`, `ContextServices`, `VoiceServices`, `AIProviderServices`, `PromptServices`, `CollectorServices`), and
+`scripts/check_explicit_dependencies.sh` keeps `AppDependencies.current` out of those files and
+`install` out of app code. Views read it through
 `@Environment(\.dependencies)`, classes through an `init` parameter defaulting to `.current`, and
 static helpers and `EmuquApp` through `AppDependencies.current`. `.shared` is read only in this
-file and in the Watch target's root, `WatchDependencies`, which
+file, in `AppDependencies+Instances.swift` beside it (the services whose construction names
+other services) and in the Watch target's root, `WatchDependencies`, which
 `scripts/check_no_shared_outside_root.sh` enforces. The reasoning, and why the app is one target,
 is [ADR 007](adr/007-single-target-composition-root.md).
 
@@ -1226,40 +1232,6 @@ The remaining `@unchecked Sendable` / `nonisolated(unsafe)` annotations are
 listed by file in `scripts/check_unchecked_sendable.sh`; each names the queue
 or lock that owns its state.
 
-### Extraction pattern for oversized types
-
-`check_aggregate_type_size.sh` measures every type against a line threshold it
-defines. Two ratchets bound the result: `.ci/aggregate_type_size_budget.txt`
-caps how many types are over it, and `.ci/aggregate_type_excess_budget.txt`
-caps the total overshoot. Both only ever ratchet down. The cuts that reduce
-them follow one pattern:
-
-1. **Pick the seam by ratio, not size.** What decides a good extraction is how
-   many members of the parent the candidate files still need, not how many
-   lines they are. `VitalsHealthQueries` was 486 lines needing six members;
-   `WorkoutRecorder+Context` is 638 lines needing thirty-seven, and stays where
-   it is — cutting it would move coupling around rather than remove it.
-2. **Extracted helpers are values that hold the parent strongly.** The parent
-   builds the helper on demand (`collector.recovery`, `generator.deepDive`) and
-   does not retain it, so there is no cycle and nothing that can outlive its
-   owner. `unowned` is banned by
-   `scripts/check_no_unowned.sh` (ADR 005). Value-type parents take the values
-   they need instead: `ThresholdCards` holds the session. All-static namespaces
-   need no reference at all (`VitalsScoring`, `ReadinessScoring`,
-   `ScoreDetailBuilder`).
-3. **Do not change what callers see.** Every extraction ships a
-   `+…Forwarding.swift` extension that keeps the original API on the parent, and
-   re-exports moved nested types with a typealias. SwiftUI extractions forward
-   through a plain value type rather than a new `View`, so view identity — and
-   therefore animation and `@State` behaviour — is unchanged.
-4. **Lazy-build the sub-object.** A `.summary` PDF never draws deep-dive pages
-   and never allocates that renderer.
-
-The extracted files keep the parent's history in a header comment naming what
-was cut, when, and why that seam and not another.
-
----
-
 ## Home-screen widget
 
 The app has no home-screen widget, Lock Screen accessory or Live Activity, and
@@ -1280,7 +1252,7 @@ store, user facts and unit preferences all live in that container.
 
 The Watch companion (`EmuquWatch Watch App/`) is embedded in the iOS build:
 the iOS app depends on and embeds the `Watch App` target directly. See `project.pbxproj` (the iOS app
-target's build phases) and `docs/FLOWCHART.md` for the workout wiring.
+target's build phases).
 
 **Design: phone-mirror + wrist controls.** The iPhone owns the Polar strap and
 the canonical workout record; the Watch mirrors live HR/stats relayed over

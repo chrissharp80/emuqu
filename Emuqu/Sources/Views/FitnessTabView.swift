@@ -15,7 +15,7 @@ import SwiftUI
 /// the app-level Watch listeners drive the same recorder.
 ///
 /// Single presentation item for the workout-summary sheet, so there's exactly
-/// ONE `.sheet(item:)` (two stacked ones dropped the second — see FitnessTabView).
+/// ONE `.sheet(item:)` (two stacked ones drop the second).
 /// `isJustCompleted` distinguishes the post-recording flow (which acknowledges
 /// the finished recorder on dismiss) from tapping an old workout in Recent.
 struct WorkoutSummaryItem: Identifiable {
@@ -42,8 +42,8 @@ struct FitnessTabView: View {
     @State var startError: String?
     /// **Single source of truth for the pre-flight planning UI.** Owned
     /// by the tab root via `@State` (NOT @State — it's `@Observable`,
-    /// not `ObservableObject`). Survives every parent re-render that
-    /// the previous inline-Plan implementation kept losing state to.
+    /// not `ObservableObject`). Survives every parent re-render, which
+    /// resets picker state held in an inline view.
     /// Injected into WorkoutPreflightView via `.environment(_:)`.
     @State var planModel = WorkoutPlanModel()
     /// GPX import state. Drives the `.fileImporter` modal + the post-import
@@ -148,14 +148,14 @@ struct FitnessTabView: View {
             } message: {
                 Text(startError ?? "")
             }
-            .onChange(of: recorderBox.recorder?.phase) { _, newPhase in
+            .onChange(of: recorderBox.recorder?.lifecycle.phase) { _, newPhase in
                 captureFinishedSession(phase: newPhase)
             }
             // Watch start / stop / pause / resume are handled once, app-wide,
             // by `AppLaunchTasks.runAppLevelWatchWorkoutListeners`; the tab
             // only closes its own summary sheet on Save & Done.
             .task { await listenForWatchAcknowledge() }
-            .onChange(of: recorderBox.recorder?.finishedSession?.workoutMetadata?.hrrSamples?.count ?? -1) { _, _ in
+            .onChange(of: recorderBox.recorder?.lifecycle.finishedSession?.workoutMetadata?.hrrSamples?.count ?? -1) { _, _ in
                 refreshOpenSummaryWithHRR()
             }
     }
@@ -198,11 +198,11 @@ struct FitnessTabView: View {
     /// re-render.
     /// ONE sheet, not two. Two stacked `.sheet(item:)` modifiers
     /// (just-completed + tapped-from-history) silently drop the SECOND on
-    /// present, so tapping a recent workout opens nothing ("recent efforts
-    /// don't open"). Both present the same FitnessPostSummaryView, so derive a
+    /// present, so tapping a recent workout would open nothing. Both present
+    /// the same FitnessPostSummaryView, so derive a
     /// single item from the two states and keep the just-completed vs history
-    /// behavior via `isJustCompleted`. The two @State vars are preserved
-    /// because the recorder/HRR-swap flow still drives `lastCompletedSession`.
+    /// behavior via `isJustCompleted`. The two @State vars stay separate
+    /// because the recorder/HRR-swap flow drives `lastCompletedSession`.
     private func withWorkoutSummarySheet(_ content: some View) -> some View {
         content
             .sheet(item: workoutSummaryBinding) { workoutSummarySheet($0) }
@@ -275,7 +275,7 @@ struct FitnessTabView: View {
     }
 
     private func captureFinishedSession(phase: WorkoutRecorder.Phase?) {
-        if phase == .finished, let session = recorderBox.recorder?.finishedSession {
+        if phase == .finished, let session = recorderBox.recorder?.lifecycle.finishedSession {
             lastCompletedSession = session
         }
     }
@@ -289,7 +289,7 @@ struct FitnessTabView: View {
     /// when the HRR detached task writes the samples back, and we push
     /// the refreshed session into the sheet's bound state.
     private func refreshOpenSummaryWithHRR() {
-        guard let newSession = recorderBox.recorder?.finishedSession,
+        guard let newSession = recorderBox.recorder?.lifecycle.finishedSession,
               let currentId = lastCompletedSession?.id,
               newSession.id == currentId
         else { return }
@@ -322,11 +322,9 @@ struct FitnessTabView: View {
     /// Read directly — `collector.archive.entries` is loaded at
     /// RRCollector init (app launch), so this is just an array
     /// access + filter + sort over the in-memory list. Cheap for
-    /// typical session counts. The earlier attempt to cache via
-    /// @State broke the "workouts visible immediately on tab open"
-    /// behavior because the cache was populated by a `.task` that
-    /// ran AFTER the first body render — so users saw an empty
-    /// workout list flash before the cache populated.
+    /// typical session counts. Not cached in @State: a cache populated
+    /// by a `.task` fills AFTER the first body render, so an empty
+    /// workout list would flash on tab open before it populated.
     var defaultStateBody: some View {
         withFitnessImports(withGPXSheets(withFitnessChrome(fitnessHomeScroll)))
     }
@@ -479,11 +477,10 @@ struct FitnessTabView: View {
     /// `reloadInterruptedRecordings()` starts FIRST, before any `await` (its
     /// scan runs on a detached task and is not awaited here). It is a
     /// local archive read with no HealthKit or CoreMotion dependency, and it
-    /// drives the card that tells a user their recording died. Ordering it after
-    /// the awaits below made it the one thing on this screen that a slow
-    /// HealthKit query — or a tab switch cancelling the `.task` mid-await —
-    /// could silently stop from ever appearing. The cheapest and most important
-    /// readout does not queue behind the most expensive ones.
+    /// drives the card that tells a user their recording died. Queued after
+    /// the awaits below, a slow HealthKit query — or a tab switch cancelling
+    /// the `.task` mid-await — could stop it from ever appearing. The cheapest
+    /// and most important readout does not queue behind the most expensive ones.
     private func loadFitnessHomeData() async {
         paintCachedFitnessSnapshot()
         reloadInterruptedRecordings()
@@ -533,8 +530,7 @@ struct FitnessTabView: View {
 
     private func withGPXSheets(_ content: some View) -> some View {
         content
-            // GPX preview sheet (user-requested
-            // "I'm not able to preview first"). Shows the decoded route
+            // GPX preview sheet. Shows the decoded route
             // on a map + summary stats; "Send" inside the sheet opens
             // the system share once the preview has gone. Dismissing
             // without tapping Send deletes the .gpx file.
@@ -600,7 +596,7 @@ struct FitnessTabView: View {
     // MARK: - Data helpers
 
     func recentWorkoutEntries() -> [SessionArchiveEntry] {
-        collector.archive.entries
+        collector.archive.store.entries
             .filter { $0.sessionType == .workout }
             .sorted { $0.date > $1.date }
     }
@@ -627,13 +623,13 @@ struct FitnessTabView: View {
     // MARK: - Session kick-off
 
     /// Moves the workout to the Trash the way History does
-    /// (`SessionTrash.move`) and closes its summary sheet. False when the
+    /// (`SessionDeletion`) and closes its summary sheet. False when the
     /// archive could not move it; the caller raises the alert where the user
     /// is (the sheet's `workoutDeleteFailed`, or the tab's
     /// `recentWorkoutDeleteFailed`).
     func deleteWorkout(_ id: UUID) async -> Bool {
         do {
-            try await SessionTrash.move(id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
+            try await dependencies.storage.sessionDeletion.moveToTrash(id)
         } catch {
             debugLog("[Fitness] Failed to delete workout \(id): \(error)", level: .error)
             return false
@@ -742,7 +738,7 @@ struct FitnessTabView: View {
     /// (`importGPXFile`), not the main actor; only the message lands here.
     private func importGPX(from url: URL) {
         let archive = collector.archive
-        let starts = archive.entries.filter { $0.sessionType == .workout }.map(\.date)
+        let starts = archive.store.entries.filter { $0.sessionType == .workout }.map(\.date)
         Task {
             let outcome = await Task.detached(priority: .userInitiated) {
                 Self.importGPXFile(url, archive: archive, existingStarts: starts)
@@ -826,8 +822,8 @@ struct FitnessTabView: View {
 // means a phase flip re-evaluates only this body, not the whole tab.
 //
 // Generic over the two body builders so the parent's @State + @Environment
-// captured by the trailing closures aren't lost (which would happen if
-// we used AnyView).
+// captured by the trailing closures aren't lost (as they would be through
+// AnyView).
 private struct PhaseObservingStateBody<Recording: View, Default: View>: View {
     let recorder: WorkoutRecorder
     var lifecycle: WorkoutLifecycle
@@ -867,20 +863,24 @@ private struct PhaseObservingStateBody<Recording: View, Default: View>: View {
 /// `final` with a shared
 /// instance so the app-level Watch event listeners (registered in
 /// `EmuquApp`) and the FitnessTabView both reference the SAME
-/// recorder. With the listener tied to the FitnessTabView's lifecycle,
-/// the Watch's "Start Workout" only
-/// worked if the user had opened the iPhone Fitness tab at least once
-/// in the current app session. The listener mounts at app
-/// launch and the recorder pre-binds in the background, so the Watch
-/// can start a workout cold.
+/// recorder. Tied to the FitnessTabView's lifecycle, the listener would
+/// let the Watch's "Start Workout" work only if the user had opened the
+/// iPhone Fitness tab at least once in the current app session. The listener
+/// mounts at app launch and the recorder pre-binds in the background, so the
+/// Watch can start a workout cold.
 @Observable
 final class RecorderBox {
-    static let shared = RecorderBox()
     var recorder: WorkoutRecorder?
+    /// What the recorder it binds is handed.
+    private let services: WorkoutServices
+
+    init(services: WorkoutServices) {
+        self.services = services
+    }
 
     func bind(core: RecordingCore, conversation: VoiceConversationController) {
         guard recorder == nil else { return }
-        recorder = WorkoutRecorder(core: core, conversation: conversation)
+        recorder = WorkoutRecorder(core: core, conversation: conversation, services: services)
     }
 }
 

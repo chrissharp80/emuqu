@@ -107,7 +107,7 @@ extension VoiceAudioPipeline {
         controller.recognitionRequest?.endAudio()
         controller.recognitionRequest = nil
         stopAudioEngineSafely()
-        AppDependencies.current.services.audioSessionCoordinator.release(.voice)
+        controller.services.audioSessionCoordinator.release(.voice)
         deactivateAudioSession(isRetry: false)
     }
 
@@ -141,7 +141,7 @@ extension VoiceAudioPipeline {
     @MainActor
     private func deactivateAudioSession(isRetry: Bool) {
         let owner = controller
-        AppDependencies.current.collection.backgroundAudioManager.deactivateIfIdle { error in
+        controller.services.backgroundAudioManager.deactivateIfIdle { error in
             Self.deactivationFinished(error, owner: owner, isRetry: isRetry)
         }
     }
@@ -297,7 +297,7 @@ extension VoiceAudioPipeline {
         }
         controller.silenceTimer?.invalidate()
         controller.silenceTimer = nil
-        guard controller.useWhisperKitForCurrentSession, AppDependencies.current.providers.whisperKitSTTBridge.modelReady else {
+        guard controller.useWhisperKitForCurrentSession, controller.services.whisperKitSTTBridge.modelReady else {
             completeFinalizeUserTurn()
             return
         }
@@ -321,7 +321,7 @@ extension VoiceAudioPipeline {
     private func finalizeUserTurnViaWhisperKit() async {
         guard controller.state == .listening else { return }
         do {
-            let whisperText = try await AppDependencies.current.providers.whisperKitSTTBridge.transcribeAndReset()
+            let whisperText = try await controller.services.whisperKitSTTBridge.transcribeAndReset()
             if !whisperText.isEmpty { controller.partialTranscript = whisperText }
             debugLog("[VoiceConv] WhisperKit transcript: \(whisperText.count) chars")
         } catch {
@@ -420,8 +420,8 @@ extension VoiceAudioPipeline {
     /// is wrong, the user sees that and re-speaks.
     private func droppedAsEcho(_ transcript: String) -> Bool {
         if controller.looksLikeEcho(of: transcript) {
-            debugLog("[VoiceConv] 🔁 echo-guard dropped transcript (looked like bleed-through of AI's last reply): \"\(transcript)\" — re-arming listening", level: .warning)
-            AppDependencies.current.assistant.assistantInbox.flashTransientNotice(String(
+            debugLog("[VoiceConv] 🔁 echo-guard dropped a transcript of \(transcript.count) characters (looked like bleed-through of AI's last reply) — re-arming listening", level: .warning)
+            controller.services.assistantInbox.flashTransientNotice(String(
                 localized: "Voice input matched the AI's last reply — likely echo. Tap to retry.",
                 bundle: LanguageManager.appBundle
             ))
@@ -429,7 +429,7 @@ extension VoiceAudioPipeline {
             return true
         }
         guard isMedicalRefusalEcho(transcript) else { return false }
-        debugLog("[VoiceConv] 🔁 medical-refusal echo trap — dropping transcript that re-triggers a refusal already on screen: \"\(transcript)\"", level: .warning)
+        debugLog("[VoiceConv] 🔁 medical-refusal echo trap — dropping a transcript of \(transcript.count) characters that re-triggers a refusal already on screen", level: .warning)
         reArmListening()
         return true
     }
@@ -460,7 +460,7 @@ extension VoiceAudioPipeline {
     /// opens), and a dispatch that stopped before streaming — the routed
     /// provider unavailable or awaiting consent (`handledUnstartedDispatch`).
     private func dispatchTranscript(_ transcript: String) {
-        debugLog("[VoiceConv] handing to AssistantViewModel: provider=\(AppDependencies.current.providers.providerRegistry.activeProvider.id.rawValue), available=\(AppDependencies.current.providers.providerRegistry.activeProvider.isAvailable)")
+        debugLog("[VoiceConv] handing to AssistantViewModel: provider=\(controller.services.providerRegistry.activeProvider.id.rawValue), available=\(controller.services.providerRegistry.activeProvider.isAvailable)")
         let turnsBefore = controller.assistantViewModel.turns.count
         let outcome = controller.assistantViewModel.send(text: transcript, fromVoice: true)
         debugLog("[VoiceConv] send outcome: \(outcome)")
@@ -485,10 +485,9 @@ extension VoiceAudioPipeline {
     /// COMPLETE assistant turn and return WITHOUT streaming, so
     /// `isStreaming` stays false and no `speakableTextCursor` is ever
     /// published for that turn. The streaming observer only speaks text up
-    /// to that cursor — so these turns were NEVER spoken, and because the
-    /// synthesizer was never handed an utterance, its `didFinish` (the only
-    /// thing that re-arms the mic) never fired. Voice wedged in `.speaking`
-    /// forever — the user's "afib question just spins calculating." Speak the
+    /// to that cursor, and the synthesizer's `didFinish` (the only thing that
+    /// re-arms the mic) fires only for an utterance it was handed, so such a
+    /// turn would go unspoken and leave voice in `.speaking`. Speak the
     /// finished turn directly; `didFinish` then re-arms listening.
     ///
     /// Recognised by what this send appended — exactly a user turn and a

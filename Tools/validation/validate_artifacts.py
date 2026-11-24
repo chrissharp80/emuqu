@@ -1,5 +1,5 @@
 """Validation 2: artifact / ectopic handling vs MIT-BIH Arrhythmia Database
-(mitdb 1.0.0) beat annotations, using the ports @ e028039 of
+(mitdb 1.0.0) beat annotations, using the ports @ b87eb64 of
 ArtifactDetector.detectArtifacts, LiveDFAAnalyzer.cleanRRForDFA and
 TimeDomainAnalyzer.computeTimeDomain (RMSSD path).
 
@@ -201,7 +201,7 @@ def main():
                      "median_ref": float(np.median([r["ref"] for r in rows])) if rows else float("nan"),
                      "within10pct_app": float(np.mean([abs(r["app"] - r["ref"]) <= 0.1 * r["ref"] for r in rows])) if rows else float("nan"),
                      "within10pct_raw": float(np.mean([abs(r["raw"] - r["ref"]) <= 0.1 * r["ref"] for r in rows])) if rows else float("nan")}
-    out = {"db": "mitdb 1.0.0", "commit": "e028039", "records": recs, "n_records": len(recs),
+    out = {"db": "mitdb 1.0.0", "commit": "b87eb64", "records": recs, "n_records": len(recs),
            "n_beats": n_beats_total, "n_ectopic_beats": n_ect_total, "pooled": pooled,
            "beat_sensitivity_by_symbol": by_sym, "rmssd": rm,
            "per_record": per_rec, "segments": seg_rows}

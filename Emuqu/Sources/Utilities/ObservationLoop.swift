@@ -19,11 +19,11 @@ final class ObservationHandle {
 enum ObservationLoop {
     /// Calls `onChange` with the freshly read value each time the observable
     /// state read by `read` changes. Delivery happens on the main actor after
-    /// the mutation, like Combine's `.receive(on: DispatchQueue.main)` did.
+    /// the mutation, as Combine's `.receive(on: DispatchQueue.main)` does.
     ///
     /// - Parameter initial: also deliver the current value once, immediately,
-    ///   which is what a `@Published` publisher did on subscription. Leave it
-    ///   `false` for the sites that used `.dropFirst()`.
+    ///   as a `@Published` publisher does on subscription. Leave it
+    ///   `false` where a Combine pipeline would use `.dropFirst()`.
     ///
     /// The loop holds `owner` weakly and ends on its own when the owner is
     /// released, so a discarded handle is fine for a lifetime binding. Owners
@@ -41,7 +41,7 @@ enum ObservationLoop {
         return handle
     }
 
-    /// Deferred one hop, like Combine's `.receive(on: .main)` replay was, so
+    /// Deferred one hop, as Combine's `.receive(on: .main)` replay is, so
     /// an injected initial state is not overwritten mid-initialiser.
     private static func deliverInitial<Owner: AnyObject & Sendable, Value>(
         _ owner: Owner,

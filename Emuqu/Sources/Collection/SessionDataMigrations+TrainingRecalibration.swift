@@ -15,16 +15,14 @@ extension SessionDataMigrations {
     /// would only have moved it for reasons that have nothing to do with
     /// training (today's settings and baseline, the time since the night).
     ///
-    /// Why this exists: an earlier `HealthKitManager.WorkoutSummary.calculateTrimp`
-    /// lacked the 0.64 Banister scaling factor, so CTL/ATL values
-    /// captured onto every morning session were inflated by ~1.56×.
-    /// Historic sessions still carry those inflated numbers in their
-    /// `trainingSnapshot` — which the AI's training tools and the
-    /// reanalysis / rescoring flows read.  Left alone, the AI would
-    /// report pre-fix CTLs when asked about historical dates, and any
-    /// session that got re-scored against the corrected thresholds
-    /// would land in the "novel load" (punishing) path because its
-    /// stored CTL is higher than the current CTL — a silent drift.
+    /// Sessions archived by builds whose `WorkoutSummary.calculateTrimp` lacked
+    /// the 0.64 Banister scaling factor carry CTL/ATL inflated by ~1.56× in
+    /// their `trainingSnapshot`, which the AI's training tools and the
+    /// reanalysis / rescoring flows read. Left alone, the AI would report
+    /// inflated CTLs for historical dates, and any session re-scored against
+    /// the corrected thresholds would land in the "novel load" (punishing)
+    /// path because its stored CTL is higher than the current CTL — a silent
+    /// drift.
     ///
     /// The migration is safe-idempotent:
     ///   • Gated by a UserDefaults flag.
@@ -44,30 +42,23 @@ extension SessionDataMigrations {
     func runTrainingRecalibrationIfNeeded() async {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.trainingRecalibrationKey) else { return }
-        guard let candidates = recalibrationCandidates(in: await loadArchivedSessions(), defaults: defaults) else { return }
+        let sessions = archivedSessions
+        var candidates = 0
         var touched = 0
-        for session in candidates {
+        for index in 0 ..< sessions.count {
+            guard let session = await sessions.session(at: index), Self.isRecalibrationCandidate(session) else { continue }
+            candidates += 1
             if await recalibrate(session) { touched += 1 }
-            // Yield between sessions so the migration is fully background-
-            // friendly even with hundreds of entries to walk.
-            await Task.yield()
         }
         defaults.set(true, forKey: Self.trainingRecalibrationKey)
-        debugLog("[TrainingRecalibration] Complete. Touched \(touched) of \(candidates.count) candidate sessions.")
+        debugLog("[TrainingRecalibration] Complete. Touched \(touched) of \(candidates) candidate sessions.")
     }
 
     /// Sessions with a frozen snapshot are the only ones that carry
     /// potentially-wrong values; ones without training context skip the
-    /// training term entirely and are correct as-is. Nil means there is nothing
-    /// to do: no candidates, and the migration is marked complete.
-    private func recalibrationCandidates(in sessions: [HRVSession], defaults: UserDefaults) -> [HRVSession]? {
-        let candidates = sessions.filter { $0.trainingSnapshot != nil && Self.carriesRecoveryScore($0) }
-        guard !candidates.isEmpty else {
-            defaults.set(true, forKey: Self.trainingRecalibrationKey)
-            debugLog("[TrainingRecalibration] No candidates — marking migration complete")
-            return nil
-        }
-        return candidates
+    /// training term entirely and are correct as-is.
+    private static func isRecalibrationCandidate(_ session: HRVSession) -> Bool {
+        session.trainingSnapshot != nil && carriesRecoveryScore(session)
     }
 
     /// Recompute the training context using the CURRENT formula, built exactly

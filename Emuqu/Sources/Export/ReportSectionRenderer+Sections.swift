@@ -737,13 +737,9 @@ extension ReportSectionRenderer {
         drawFactorDetail(factor: factor, y: y, contentWidth: contentWidth)
     }
 
-    /// #17 — bounded and clipped to the factor row so a long vitals string
+    /// Bounded and clipped to the factor row so a long vitals string
     /// cannot overrun into the page footer.
     private func drawFactorDetail(factor: RecoveryScoreCalculator.ScoreFactor, y: CGFloat, contentWidth: CGFloat) {
-        // Detail text — #17: bounded + clipped to the factor row so a long
-        // vitals string can't overrun into the page footer (it was drawn at
-        // an unbounded point and interleaved "…Page 1…4:32 AM" into the
-        // vitals line).
         let detailParagraph = NSMutableParagraphStyle()
         detailParagraph.lineBreakMode = .byTruncatingTail
         let detailAttr: [NSAttributedString.Key: Any] = [
@@ -823,18 +819,12 @@ extension ReportSectionRenderer {
 
 // MARK: - File-scope helpers
 //
-// Kept out of the type. Each touches no instance state — including the
-// computed properties — and calls nothing inside it, so none is a method
-// in anything but placement. `private` at file scope is fileprivate, so
-// every call site in this file resolves the same way.
-//
-// This is what `check_aggregate_type_size.sh` measures: a type is the sum of
-// its parts across every file, so code that does not need the type inflates
-// that number without making the type do more.
+// Each touches no instance state — including the computed properties —
+// and calls nothing on the type, so none needs to be a method.
 
 /// The "Recording: … (n beats)" line. A HealthKit summary import has no raw
 /// beats, so it says so rather than printing "0.0 min (0 beats)" above
-/// populated HR figures (#6).
+/// populated HR figures.
 private func headerSessionInfoText(session: HRVSession) -> String {
     let dateFormatter = DateFormatter()
     dateFormatter.locale = LanguageManager.appLocale
@@ -843,8 +833,6 @@ private func headerSessionInfoText(session: HRVSession) -> String {
 
     let totalBeats = session.rrSeries?.points.count ?? 0
     let reportDate = session.endDate ?? session.startDate
-    // #6 — don't render "Recording: 0.0 min (0 beats)" above populated HR
-    // for a HealthKit summary import; say so instead.
     let infoText = totalBeats > 0
         ? String(localized: "Date: \(dateFormatter.string(from: reportDate))  •  Recording: \(String(format: "%.1f", locale: LanguageManager.appLocale, session.rrSeries?.durationMinutes ?? 0)) min (\(totalBeats) beats)", bundle: LanguageManager.appBundle)
         : String(localized: "Date: \(dateFormatter.string(from: reportDate))  •  Summary import (no raw beat data)", bundle: LanguageManager.appBundle)

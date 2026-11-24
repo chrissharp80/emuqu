@@ -12,14 +12,14 @@ extension RRCollector {
             sessionId: sessionId,
             startTime: startTime,
             sessionType: sessionType,
-            phase: recordingPhase.description,
-            useDeviceInternalBackup: useDeviceBackupForOvernight
+            phase: sessionState.recordingPhase.description,
+            useDeviceInternalBackup: overnightRun.usesDeviceBackup
         )
         guard PersistedRecordingState.save(state) else {
             debugLog("[RRCollector] Could not persist recording state for session \(sessionId.uuidString.prefix(8)) — a crash now would not offer it at launch", level: .error)
             return
         }
-        debugLog("[RRCollector] Persisted recording state: session=\(sessionId.uuidString.prefix(8)), start=\(startTime), phase=\(recordingPhase)")
+        debugLog("[RRCollector] Persisted recording state: session=\(sessionId.uuidString.prefix(8)), start=\(startTime), phase=\(sessionState.recordingPhase)")
     }
 
     /// Clear persisted recording state (call on successful completion or explicit cancel)
@@ -90,7 +90,7 @@ extension RRCollector {
             return true
         } catch {
             debugLog("[RRCollector] Failed to rescue device data: \(error)", level: .error)
-            lastError = error
+            sessionState.lastError = error
             return false
         }
     }
@@ -113,7 +113,7 @@ extension RRCollector {
         // Debounce: willResignActive + didEnterBackground fire within milliseconds.
         // Skip debounce for willTerminate — it's our last chance before the process dies.
         if !force, let last = lastEmergencyFlush, Date().timeIntervalSince(last) < 2 { return }
-        guard let session = currentSession, isOvernightStreaming || isStreamingMode else { return }
+        guard let session = sessionState.currentSession, streamingLifecycle.isOvernightStreaming || streamingLifecycle.isStreamingMode else { return }
         let buffer = polarManager.streamedRRPoints
         guard !buffer.isEmpty else { return }
         lastEmergencyFlush = Date()
@@ -134,8 +134,8 @@ extension RRCollector {
     /// (tests/previews build many), as `SessionReanalysisCoordinator` does
     /// for its listeners.
     /// The flush runs inline, not in a `Task`: UIKit exits as soon as the
-    /// termination notification returns, so a deferred flush never ran and up
-    /// to a minute of beats went with it. Observers on `.main` make
+    /// termination notification returns, so a deferred flush would never run and
+    /// up to a minute of beats would go with it. Observers on `.main` make
     /// `assumeIsolated` sound.
     func setupLifecycleObservers() {
         let center = NotificationCenter.default

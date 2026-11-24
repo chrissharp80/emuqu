@@ -2,8 +2,6 @@ import Foundation
 
 /// The order of operations when starting a recording on the strap's own memory.
 ///
-/// ## Why this is a type and not three lines inside an async function
-///
 /// Both straps clear whatever is already stored before starting — the H10
 /// refuses to start otherwise (error 106), and a Verity would otherwise
 /// accumulate. Clearing is destructive: it deletes a recording the user may
@@ -12,8 +10,7 @@ import Foundation
 ///
 /// Both straps guard that by downloading what the app does not already hold
 /// and handing it to the backup *first*. Getting those two the wrong way round
-/// destroys exactly the data the rescue exists to save, and buried in the
-/// collector no test could catch it.
+/// destroys exactly the data the rescue exists to save.
 ///
 /// So the order is data here, and the invariant "a rescue precedes the clear it
 /// protects" is a test rather than a comment.

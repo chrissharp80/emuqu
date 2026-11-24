@@ -5,24 +5,16 @@ import Foundation
 /// the device) and `CoachVoiceGuard` (what the assistant says, before it
 /// reaches eyes or speakers).
 ///
-/// ## Why this file exists
+/// ## Why one shared vocabulary
 ///
-/// The two guards were written months apart and each carried its own private
-/// regex list. `MedicalQueryGuard` knew two patterns; `CoachVoiceGuard` knew
-/// twelve; `Tools/copy_linter/prohibited_terms.json` knew twenty-one. Nothing
-/// reconciled them, and `CoachVoiceGuard`'s own header said so out loud:
-/// *"Keeping these in sync is a manual responsibility — there is no runtime
-/// cross-check."* The practical result was that a model could answer
-/// "this looks like atrial fibrillation" and the OUTPUT guard had no pattern
-/// for it, because "arrhythmia" lived only on the build-time list.
+/// Separate regex lists per guard drift apart: a model can then say "this
+/// looks like atrial fibrillation" past an OUTPUT guard that lacks a term
+/// only the build-time list knows.
 ///
-/// Worse, every pattern in all three places was English. The app ships sixteen
-/// non-English localizations at 100% catalogue coverage, and the assistant
-/// answers in the user's language. A guard that only reads English is not a
-/// guard with a gap — for those users it is not a guard at all.
-/// `MedicalQueryGuardTests` documented half of this as a known gap
-/// (`testKnownGap_NonEnglishAFibCurrentlySlips`, since removed) and asserted
-/// nothing.
+/// Every pattern also has to cover every shipped language. The app ships
+/// sixteen non-English localizations at 100% catalogue coverage, and the
+/// assistant answers in the user's language. A guard that only reads English
+/// is not a guard with a gap — for those users it is not a guard at all.
 ///
 /// ## What this is
 ///
@@ -183,8 +175,8 @@ enum MedicalTermLexicon {
     /// be wired into the input guard: it also holds
     /// `bradycardias?`, `tachycardias?` and `hypertension`, and an endurance
     /// athlete asking whether their resting heart rate counts as bradycardia is
-    /// asking an ordinary training question. Refusing that would be a
-    /// regression, not a safeguard.
+    /// asking an ordinary training question. Refusing that would block a
+    /// legitimate question, not add a safeguard.
     ///
     /// So the acute presentations — the ones where the right answer is "call
     /// your local emergency number", and which nobody asks about their training
@@ -515,10 +507,9 @@ enum MedicalTermLexicon {
 
 // MARK: - Symptom triage (input side)
 //
-// These live in an extension rather than the enum body to keep the enum
-// under SwiftLint's 500-line `type_body_length`, and the input-side concepts
-// are the natural second section: everything above is what the model must not
-// SAY, everything here is what the user must not be left to ASK unanswered.
+// The input-side concepts are the second section: everything above is what
+// the model must not SAY, everything here is what the user must not be left
+// to ASK unanswered.
 extension MedicalTermLexicon {
     static let chestPain = Concept(
         id: "chest-pain",
@@ -753,10 +744,8 @@ extension MedicalTermLexicon {
 
 // MARK: - Groupings
 
-/// The groupings and the compiler live in an extension rather than in the
-/// enum body to keep the enum under SwiftLint's 500-line `type_body_length`;
-/// the honest split is along the seam that already exists: above is the
-/// vocabulary, below is how the two guards consume it.
+/// The groupings and the compiler: above is the vocabulary, below is how
+/// the two guards consume it.
 extension MedicalTermLexicon {
     /// Concepts the INPUT guard refuses as a RHYTHM question — the app does not
     /// detect, rule out or discuss the user's own heart rhythm, and the reply
@@ -851,28 +840,23 @@ extension MedicalTermLexicon {
     /// Concepts that can never be legitimate STATIC COPY, in any language.
     ///
     /// `Tools/copy_linter/prohibited_terms.json` is English-only, and the
-    /// app ships 59,650 translated string units. Without this group a
+    /// app ships every string in sixteen other languages. Without this group a
     /// prohibited claim injected into a German translation passes the linter
     /// clean; only its English original would be caught. Nothing else in CI
     /// can see that, because `check_perimeter_sync.sh` proves build-time
     /// terms are covered by the runtime lexicon and not the reverse.
     ///
-    /// The obvious fix — run the whole runtime lexicon over the catalogue —
-    /// does not work, and the reason is worth writing down. The two lists have
-    /// different jobs. The runtime lexicon governs what the MODEL may say;
+    /// The whole runtime lexicon cannot run over the catalogue: the two lists
+    /// have different jobs. The runtime lexicon governs what the MODEL may say;
     /// the build-time list governs what the APP may say, and the app says some
     /// of these things on purpose. "Consult a doctor if consistently low" is
     /// the safety redirect, shipped in 17 locales, and `medicalReferral` is in
     /// the lexicon precisely so the model cannot improvise its own version.
-    /// Pointing one at the other produced 45 matches, all of them the app's own
-    /// copy or its Diagnostics feature name.
     ///
     /// This is the subset with no such overlap: naming a cardiac or
     /// neurovascular condition, claiming a cure, a prescription, a treatment,
     /// a regulatory clearance, or a speculative diagnosis is never something
-    /// this app's copy does, in any language. Measured against every locale in
-    /// the catalogue at the time of writing: zero matches. So it can be a hard
-    /// gate rather than a budget.
+    /// this app's copy does, in any language, so any match fails the check.
     static let neverInStaticCopy: [Concept] = [
         atrialFibrillation, arrhythmia, namedCardiacCondition, acuteCardiacEvent,
         neurovascularEvent, regulatoryClearance, cure, prescription,

@@ -73,7 +73,7 @@ enum SleepBoundaryWrite {
     static func write(_ edit: Edit, readFrom read: HRVSession, inputs: Inputs, to archive: SessionArchive) throws -> Outcome {
         logBoundaryUpdate(edit, on: read)
         guard edit.isUserAdjustment || shouldApplyAutomaticUpdate(edit, to: read) else { return .declined }
-        guard archive.exists(read.id) else {
+        guard archive.store.exists(read.id) else {
             debugLog("[UpdateSleepBounds] Bailed: session \(read.id.uuidString.prefix(8)) not in archive")
             return .notArchived
         }
@@ -124,7 +124,7 @@ enum SleepBoundaryWrite {
     /// HealthKit updates only apply if they bring more data.
     ///
     /// Never let an automatic update overwrite a user-adjusted timeline,
-    /// regardless of "more data" (FLOWCHART §13.2: user edits are the source
+    /// regardless of "more data" (ADR 009: user edits are the source
     /// of truth). The callers' own guards can read a stale `session` captured
     /// at view presentation; this gate reads the copy just retrieved from the
     /// archive, and `write` refuses the edit if that copy is no longer the

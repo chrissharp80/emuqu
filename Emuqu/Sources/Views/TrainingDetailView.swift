@@ -49,9 +49,8 @@ struct TrainingDetailView: View {
         // exists. The frozen `trainingContext` is captured at session-
         // acceptance time; if HealthKit hadn't synced workouts yet
         // (common after an overnight crash), it's permanently atl=0/
-        // ctl=0. Without this filter, the dashboard fell back to that
-        // 0-context even when the live cache had real values, because
-        // the priority order didn't account for a frozen-zero state.
+        // ctl=0. Without this filter the screen would fall back to that
+        // 0-context even when the live cache has real values.
         if let m = liveMetrics, liveLooksReal(m) { return LoadMetrics(m) }
         if let c = trainingContext, frozenLooksReal(c) { return LoadMetrics(c) }
         // Both look empty / cold. Prefer live (it'll auto-refresh).
@@ -139,10 +138,9 @@ struct TrainingDetailView: View {
     }
 
     /// Used by `.refreshable` (pull-to-refresh) and the auto-heal
-    /// `.task` modifier. No explicit button — the priority-order fix
-    /// in `metrics` plus the auto-fetch on view appear means the
-    /// page is self-healing for all the cases the manual button was
-    /// papering over. Only a screen that shows the cache refreshes it: with
+    /// `.task` modifier. No explicit button: the priority order in
+    /// `metrics` plus the auto-fetch on view appear keep the page
+    /// current. Only a screen that shows the cache refreshes it: with
     /// metrics passed in, or a past night's frozen load, a refresh could not
     /// change what is on screen.
     @MainActor

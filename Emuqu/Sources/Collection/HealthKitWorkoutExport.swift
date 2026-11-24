@@ -72,9 +72,9 @@ enum HealthKitWorkoutExport {
     ///   had no workout for that hour.
     ///
     /// The three sample-series builders are pure functions of the captured
-    /// samples rather than inline blocks. `export` keeps the
-    /// I/O and the ordering; the arithmetic that was tangled up with it is
-    /// testable on its own, without a HealthKit store or a simulator.
+    /// samples rather than inline blocks: `export` keeps the I/O and the
+    /// ordering, and the arithmetic is testable on its own, without a HealthKit
+    /// store or a simulator.
     @MainActor
     static func export(
         session: HRVSession,
@@ -189,7 +189,7 @@ enum HealthKitWorkoutExport {
         /// fail closed: a read that does not answer throws, rather than go on
         /// as if there were nothing to replace.
         static func find(sessionId: UUID, startDate: Date, in store: any HealthSampleStore) async throws -> EarlierExport {
-            let timeout = HealthKitManager.backgroundAggregateQueryTimeoutSec
+            let timeout = HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
             let span = searchSpan(around: startDate)
             let workouts = try await store.ownSamples(
                 of: HKObjectType.workoutType(), in: span, timeout: timeout, label: "earlier workout export"
@@ -222,7 +222,7 @@ enum HealthKitWorkoutExport {
             for (type, _) in HealthKitManager.workoutExportSampleTypes {
                 let own = try await store.ownSamples(
                     of: type, in: searchSpan(around: startDate),
-                    timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec, label: "earlier workout series"
+                    timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec, label: "earlier workout series"
                 )
                 series += own.filter { isSeriesMember($0, of: sessionId) && seen.insert($0.uuid).inserted }
             }

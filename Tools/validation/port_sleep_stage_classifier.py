@@ -1,6 +1,6 @@
 """Python port of HRVSleepStageClassifier.classify (RR-only path).
 
-Ported line by line from, all at commit e028039:
+Ported line by line from, all at commit b87eb64:
   Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift        (features, ranks, scores, classify)
   Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift  (smoothStages, buildIntervals only;
                                                                the Watch augmentation path is NOT ported)
@@ -12,14 +12,14 @@ Ported line by line from, all at commit e028039:
 Per-window features call the ported DFAAnalyzer.compute (port_dfa.py) and
 FrequencyDomainAnalyzer.computeFromCleanPairs (port_frequency_domain.py).
 
-Later sync (the gap fix in HRVSleepStageClassifier.swift, after 99f28e6): RMSSD
+Later sync (the gap fix in HRVSleepStageClassifier.swift, after 0bcd6b9): RMSSD
 differences only valid beats adjacent in the recording and not split by a
 recording break (TimeDomainAnalyzer.isRecordingBreak, t_ms rule only: the input
 has no wall clock); alpha1 and LF/HF run on the window's longest break-free
 stretch, alpha1 with invalid beats linearly interpolated
 (port_live_dfa_clean._interpolate) and withheld above 6 % interpolated; LF/HF
 beats are timed on the beat-sum clock from the stretch start, as the Swift code
-has done since before this sync (the e028039 port used the input t_ms).
+has done since before this sync (the b87eb64 port used the input t_ms).
 
 Input: rr_points = list of (t_ms, rr_ms) ints, t_ms monotonic, ms since recording start.
 Times are kept in ms since recording start instead of Date objects.

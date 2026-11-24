@@ -97,12 +97,10 @@ extension FitnessPostSummaryView {
     /// pure field reads — no per-render iteration over thousands of
     /// samples.
     ///
-    /// The schema-version guard (not just nil-check) is what makes
-    /// corrective fixes in `WorkoutAnalysisSnapshotBuilder` retro-apply
-    /// to historical sessions. Each time you view an old workout, if the
-    /// stored snapshot is older than `currentVersion`, it silently
-    /// rebuilds with current math and writes back — so history "heals"
-    /// one visit at a time.
+    /// The schema-version guard (not just a nil-check) makes changes in
+    /// `WorkoutAnalysisSnapshotBuilder` reach historical sessions: when an
+    /// old workout is opened and its stored snapshot is older than
+    /// `currentVersion`, it is rebuilt with current math and written back.
     ///
     /// The build and the archive read-modify-write both run detached, like
     /// the feeling save, so the archiveLock never blocks the main thread.
@@ -300,7 +298,7 @@ extension FitnessPostSummaryView {
 
     private var retrimControl: some View {
         RecoveredWorkoutTrimControl(session: session) { endSec in
-            await collector.retrimRecoveredWorkout(sessionId: session.id, endSec: endSec)
+            await collector.recovery.retrimRecoveredWorkout(sessionId: session.id, endSec: endSec)
         }
         .id(session.endDate)
     }
@@ -517,7 +515,7 @@ extension FitnessPostSummaryView {
 
     private func routeMap(_ coordinates: [CLLocationCoordinate2D]) -> some View {
         Map(
-            initialPosition: .region(regionForTrack(coordinates)),
+            initialPosition: .region(summary.regionForTrack(coordinates)),
             interactionModes: []
         ) {
             MapPolyline(coordinates: coordinates)

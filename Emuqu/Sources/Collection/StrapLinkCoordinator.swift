@@ -193,8 +193,8 @@ struct StrapLinkCoordinator {
     /// health-policy reset reconnects straight away. True when it was one.
     ///
     /// A reset during a session arms the reconnect deadline like any other
-    /// drop. Without it a strap that went silent, was reset and never came
-    /// back never ran out of retries, so a streaming-only night was never
+    /// drop. Without it a strap that goes silent, is reset and never comes
+    /// back never runs out of retries, so a streaming-only night is never
     /// paused to save what it had.
     private func consumeDeliberateDrop(deviceId: String, wasStreaming: Bool) -> Bool {
         if runtime.userDisconnectRequested {
@@ -476,10 +476,10 @@ struct StrapLinkCoordinator {
         _ = try await manager.link.whenFeatureUsable(
             feature, until: Date().addingTimeInterval(statusCheckWindowSec),
             while: { manager.readiness.generation == generation },
-            perform: { try await manager.checkRecordingStatus(deviceId: deviceId) }
+            perform: { try await manager.recording.checkRecordingStatus(deviceId: deviceId) }
         )
         guard manager.readiness.generation == generation else { return }
-        await manager.checkForStoredExercises(deviceId: deviceId)
+        await manager.recording.checkForStoredExercises(deviceId: deviceId)
     }
 
     // MARK: - Feed health

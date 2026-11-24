@@ -39,10 +39,6 @@ import Foundation
 
 @MainActor
 final class BreadcrumbRecorder: NSObject {
-    // MARK: Singleton
-
-    static let shared = BreadcrumbRecorder()
-
     // MARK: Published state
 
     /// Latest CLLocation fix from the recorder. Used by `GetMeBackView`
@@ -52,7 +48,7 @@ final class BreadcrumbRecorder: NSObject {
     /// rotation in the UI. Updates ~10 Hz when active, much faster than
     /// the throttled location commits.
     private(set) var latestHeading: CLHeading?
-    /// Current trail (mirror of `AppDependencies.current.location.breadcrumbStore` content with
+    /// Current trail (mirror of the breadcrumb store's content with
     /// every committed fix). nil when no mode is engaged.
     private(set) var activeTrail: BreadcrumbTrail?
     /// Whether `engage()` has been called and recording is running.
@@ -82,9 +78,24 @@ final class BreadcrumbRecorder: NSObject {
     /// disk without restarting location: it was abandoned, not interrupted.
     private static let resumeWindowSeconds: TimeInterval = 12 * 60 * 60
 
-    override private init() {
+    /// The trail store and the ambient location cache, resolved on use.
+    private let services: BreadcrumbServices
+
+    init(services: BreadcrumbServices) {
+        self.services = services
         authorizationStatus = manager.authorizationStatus
         super.init()
+        configureLocationManager()
+        // Restore prior trail (if any) so the user can pick up where
+        // they left off across an app kill / day rollover, and keep
+        // recording it when the kill interrupted a recent one.
+        activeTrail = services.breadcrumbStore.load()
+        if let trail = activeTrail, Date().timeIntervalSince(Self.lastActivity(of: trail)) < Self.resumeWindowSeconds {
+            resume()
+        }
+    }
+
+    private func configureLocationManager() {
         manager.delegate = self
         // Lower accuracy than the workout recorder — we don't need
         // 5m precision for "lead me back", and the battery savings on
@@ -96,13 +107,6 @@ final class BreadcrumbRecorder: NSObject {
         manager.distanceFilter = 10
         manager.activityType = .otherNavigation
         manager.pausesLocationUpdatesAutomatically = false
-        // Restore prior trail (if any) so the user can pick up where
-        // they left off across an app kill / day rollover, and keep
-        // recording it when the kill interrupted a recent one.
-        activeTrail = AppDependencies.current.location.breadcrumbStore.load()
-        if let trail = activeTrail, Date().timeIntervalSince(Self.lastActivity(of: trail)) < Self.resumeWindowSeconds {
-            resume()
-        }
     }
 
     private static func lastActivity(of trail: BreadcrumbTrail) -> Date {
@@ -125,7 +129,7 @@ final class BreadcrumbRecorder: NSObject {
             label: label, resolvedOriginLabel: nil
         )
         activeTrail = trail
-        AppDependencies.current.location.breadcrumbStore.save(trail)
+        services.breadcrumbStore.save(trail)
         lastCommittedFix = nil
         startStreaming()
         isEngaged = true
@@ -164,7 +168,7 @@ final class BreadcrumbRecorder: NSObject {
         manager.allowsBackgroundLocationUpdates = false
         isEngaged = false
         pendingEngage = (nil, false)
-        if !AppDependencies.current.location.breadcrumbStore.hasActiveTrail() {
+        if !services.breadcrumbStore.hasActiveTrail() {
             activeTrail = nil
             lastCommittedFix = nil
         }
@@ -176,7 +180,7 @@ final class BreadcrumbRecorder: NSObject {
     /// dropped; false when the archive could not be read or written and the
     /// trail is still on disk, where it stays loaded.
     func endAndArchive() -> Bool {
-        AppDependencies.current.location.breadcrumbStore.archiveActive()
+        services.breadcrumbStore.archiveActive()
         disengage()
         return activeTrail == nil
     }
@@ -198,7 +202,7 @@ final class BreadcrumbRecorder: NSObject {
     /// trail stays loaded, as it is still on disk.
     func clearTrail() -> Bool {
         disengage()
-        guard AppDependencies.current.location.breadcrumbStore.clear() else { return false }
+        guard services.breadcrumbStore.clear() else { return false }
         activeTrail = nil
         lastCommittedFix = nil
         return true
@@ -232,7 +236,7 @@ final class BreadcrumbRecorder: NSObject {
         trail.fixes.append(fix)
         activeTrail = trail
         lastCommittedFix = fix
-        AppDependencies.current.location.breadcrumbStore.save(trail)
+        services.breadcrumbStore.save(trail)
     }
 }
 
@@ -278,7 +282,7 @@ extension BreadcrumbRecorder: CLLocationManagerDelegate {
             }
             // Forward to the ambient service so the AI's
             // cache fast-path works during a Get-Me-Back session too.
-            AppDependencies.current.location.ambientLocationService.record(loc)
+            self.services.ambientLocationService.record(loc)
         }
     }
 
@@ -292,4 +296,15 @@ extension BreadcrumbRecorder: CLLocationManagerDelegate {
         // Common during a poor-fix interlude; not actionable here.
         // The UI's accuracy ribbon handles user-visible feedback.
     }
+}
+
+/// The services the breadcrumb recorder reads, and nothing else. Each
+/// accessor resolves on use, as the container's do.
+struct BreadcrumbServices: Sendable {
+    private let container: AppDependencies
+
+    init(_ container: AppDependencies) { self.container = container }
+
+    var ambientLocationService: AmbientLocationService { container.location.ambientLocationService }
+    var breadcrumbStore: BreadcrumbStore { container.location.breadcrumbStore }
 }

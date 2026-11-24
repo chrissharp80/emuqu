@@ -1,9 +1,8 @@
 import SwiftUI
 
 // LT1 estimation, threshold crossings, the derived-metrics block, HR-zone
-// distribution and the settings bridge — split out of
-// `FitnessPostSummaryView+EpicReport.swift`. What stays behind is
-// the α1 report itself, ectopic-shadow detection, and the α1-banded route.
+// distribution and the settings bridge. The α1 report itself, ectopic-shadow
+// detection and the α1-banded route are in `Alpha1ReportCards`.
 
 // There is deliberately no LTHR update suggestion here.
 //
@@ -125,10 +124,9 @@ extension ThresholdCards {
     /// crossing. Matches the ≥ 3-min ramp-phase length Rogers &
     /// Gronwald's validation protocol uses.
     ///
-    /// Closes a user complaint: "my α1 LT1 says 121 bpm on a
-    /// 120 bpm walk because I had one ectopic beat." One ectopic can no
-    /// longer drive a crossing event — the dip expires before the
-    /// sustain counter matures.
+    /// So one ectopic beat cannot drive a crossing event (an LT1 of 121 bpm
+    /// on a 120 bpm walk): the dip expires before the sustain counter
+    /// matures.
     ///
     /// Readings come from `Alpha1ReportCards.timedCleanAlpha1`, the walk the
     /// α1 report times its bands and its crossing with: beat-artifact dips
@@ -559,15 +557,10 @@ final class Alpha1StatsCache {
 /// Average pace with net climb treated as an uphill penalty of +2 s/km per
 /// percent of average grade, expressed in seconds per metre.
 ///
-/// Every value is annotated. Written inline as four chained expressions of
-/// untyped `Double` arithmetic with optional coalescing, this cost 2,171 ms to
-/// type-check on a CI runner (run 33200086130) while measuring under 120 ms on
-/// the developer Mac — the local number does not predict the runner's.
+/// Every value is annotated: as chained untyped `Double` arithmetic with
+/// optional coalescing, the expression takes seconds to type-check.
 ///
-/// File scope rather than a method, because `FitnessPostSummaryView` is already
-/// over the aggregate-type-size threshold and `check_aggregate_type_size.sh`
-/// counts any growth in a type that is already over. This function needs no
-/// part of the view, so it does not have to live inside it.
+/// File scope rather than a method: it needs no part of the view.
 private func gradeAdjustedSecondsPerMetre(
     distanceMetres dist: Double,
     duration: Double,
@@ -660,7 +653,7 @@ private func derivedMetricSublabel(_ sub: String?) -> some View {
 
 /// OR-of-three-signals "moving" detector: pace, cadence or power.
 ///
-/// Pace alone was too strict at walk speeds (upstream GPS pace requires a
+/// Pace alone is too strict at walk speeds (upstream GPS pace requires a
 /// 2.5-m-per-1-s distance delta, which a casual 3 mph walk can't hit) →
 /// "Moving time 32 %" on a 100 %-active 71-minute walk. Cadence ≥ 50 spm is
 /// the most reliable "you are walking" signal at slow speed; power covers a

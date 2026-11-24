@@ -54,7 +54,7 @@ extension HealthWorkoutImporter {
         now: Date = Date()
     ) -> [InterruptedSession] {
         let start = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
-        let workouts = archive.entries(from: start, to: now).filter { $0.sessionType == .workout }
+        let workouts = archive.store.entries(from: start, to: now).filter { $0.sessionType == .workout }
         let stubs = workouts
             .compactMap { Self.stub(from: $0, archive: archive) }
             .sorted { $0.startDate > $1.startDate }
@@ -103,8 +103,8 @@ extension HealthWorkoutImporter {
     ///
     /// It is logged rather than dropped in silence because a crashed recording
     /// is exactly the session most likely to have a damaged file, and "the row
-    /// I came here for isn't listed", with no explanation anywhere, is how this
-    /// feature failed the first time.
+    /// I came here for isn't listed", with no explanation anywhere, leaves the
+    /// user with nothing to go on.
     nonisolated private static func noteUnrebuildable(
         _ entry: SessionArchiveEntry, captured: TimeInterval, readable: Bool
     ) {
@@ -381,8 +381,8 @@ extension HealthWorkoutImporter {
     ) async -> [HealthSampleWindow] {
         guard let type = HKTypes.quantity(identifier) else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
-        return await manager.runBoundedQuery(
-            timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec
+        return await manager.heartRate.runBoundedQuery(
+            timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
         ) { resolve in
             HKSampleQuery(
                 sampleType: type, predicate: predicate,
@@ -443,8 +443,8 @@ extension HealthWorkoutImporter {
     ) async -> Double? {
         guard let type = HKTypes.quantity(identifier) else { return nil }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-        return await manager.runBoundedQuery(
-            timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec
+        return await manager.heartRate.runBoundedQuery(
+            timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
         ) { resolve in
             HKStatisticsQuery(
                 quantityType: type,

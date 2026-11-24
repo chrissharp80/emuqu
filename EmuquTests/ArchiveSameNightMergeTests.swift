@@ -9,7 +9,7 @@ extension ArchiveIntegrityTests {
     private func overnightEntries(anchoredAt start: Date) -> [SessionArchiveEntry] {
         let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
         let night = schedule.overnightWindowStart(relativeTo: start)
-        return archive.entries.filter {
+        return archive.store.entries.filter {
             $0.sessionType == .overnight && schedule.overnightWindowStart(relativeTo: $0.date) == night
         }
     }
@@ -71,7 +71,7 @@ extension ArchiveIntegrityTests {
         let late = recording(start.addingTimeInterval((5 * 60 + 50) * 60), minutes: 120, meanRR: 850)
         _ = try archive.archive(early)
 
-        XCTAssertEqual(try archive.archiveBatch([late]), 1)
+        XCTAssertEqual(try archive.store.archiveBatch([late]), 1)
 
         XCTAssertEqual(overnightEntries(anchoredAt: start).count, 1)
         let points = try XCTUnwrap(archive.retrieve(early.id)?.rrSeries?.points)
@@ -85,7 +85,7 @@ extension ArchiveIntegrityTests {
         let first = recording(start, minutes: 5, meanRR: 900, type: .quick)
         let second = recording(start.addingTimeInterval(40 * 60), minutes: 5, meanRR: 900, type: .quick)
 
-        XCTAssertEqual(try archive.archiveBatch([first, second]), 2)
+        XCTAssertEqual(try archive.store.archiveBatch([first, second]), 2)
 
         XCTAssertNotNil(try archive.retrieve(first.id))
         XCTAssertNotNil(try archive.retrieve(second.id))
@@ -105,7 +105,7 @@ extension ArchiveIntegrityTests {
             _ = try archive.archive(session, skipSameNightMerge: true)
         }
 
-        archive.relinkSameNightSessions()
+        archive.migrations.relinkSameNightSessions()
 
         XCTAssertNil(try archive.retrieve(late.id)?.linkedSessionIds, "two sleeps are not one night's segments")
         XCTAssertNil(try archive.retrieve(early.id)?.linkedSessionIds)

@@ -92,7 +92,7 @@ struct LoadTrajectoryLoader: View {
 
     @MainActor
     private func workoutRows(on day: Date) async -> [LoadTrajectoryView.RecentWorkout] {
-        let entries = collector.archive.entries
+        let entries = collector.archive.store.entries
             .filter { $0.sessionType == .workout && Calendar.current.isDate($0.date, inSameDayAs: day) }
             .sorted { $0.date < $1.date }
         let archived = await workoutRows(for: entries)
@@ -107,14 +107,14 @@ struct LoadTrajectoryLoader: View {
     private func healthKitOnlyRows(on day: Date) async -> [LoadTrajectoryView.RecentWorkout] {
         let calendar = Calendar.current
         guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: day) else { return [] }
-        let healthKit = await collector.healthKit.fetchWorkoutsExtended(days: 1, relativeTo: dayEnd)
+        let healthKit = await collector.healthKit.training.fetchWorkoutsExtended(days: 1, relativeTo: dayEnd)
             .filter { calendar.isDate($0.date, inSameDayAs: day) }
         guard !healthKit.isEmpty else { return [] }
         let archive = collector.archive
         let archived = await Task.detached(priority: .userInitiated) {
             HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: 1, relativeTo: dayEnd)
         }.value
-        let merged = HealthKitManager.mergeArchiveAuthoritative(archive: archived, healthKit: healthKit)
+        let merged = TrainingHealthQueries.mergeArchiveAuthoritative(archive: archived, healthKit: healthKit)
         return merged
             .filter { kept in healthKit.contains { $0.date == kept.date && $0.workoutType == kept.workoutType } }
             .map(Self.healthKitRow)
@@ -211,7 +211,7 @@ struct LoadTrajectoryLoader: View {
     private func loadRecentWorkouts() async {
         recentWorkoutsGeneration += 1
         let generation = recentWorkoutsGeneration
-        let entrySnapshot = collector.archive.entries
+        let entrySnapshot = collector.archive.store.entries
             .filter { $0.sessionType == .workout }
             .sorted { $0.date > $1.date }
             .prefix(20)

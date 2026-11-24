@@ -46,7 +46,7 @@ enum Sport: String, Codable, CaseIterable, Identifiable {
 
     /// The sport's name in the app's language, for the screen and the spoken
     /// start cue. `displayName` stays English for the assistant, exports and
-    /// logs; shown as-is it was English in every language.
+    /// logs; shown as-is it would be English in every language.
     var localizedName: String {
         let b = LanguageManager.appBundle
         return switch self {

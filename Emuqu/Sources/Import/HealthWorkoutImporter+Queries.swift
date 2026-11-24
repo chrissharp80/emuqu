@@ -23,7 +23,7 @@ extension HealthWorkoutImporter {
         guard manager.isHealthKitAvailable else { return [] }
         let start = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
         let workouts = await externalWorkouts(from: start, to: now)
-        let archived = archive.entries(from: start, to: now)
+        let archived = archive.store.entries(from: start, to: now)
             .filter { $0.sessionType == .workout }
             .map(\.date)
         return workouts
@@ -118,8 +118,8 @@ extension HealthWorkoutImporter {
         sortDescriptors: [NSSortDescriptor]?,
         reading what: String
     ) async -> [HKWorkout]? {
-        let found: [HKWorkout]? = await manager.runBoundedQuery(
-            timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec
+        let found: [HKWorkout]? = await manager.heartRate.runBoundedQuery(
+            timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
         ) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(), predicate: predicate,
@@ -166,7 +166,7 @@ extension HealthWorkoutImporter {
     /// logged rather than swallowed the way `try?` would swallow it.
     func heartRateSamples(from start: Date, to end: Date) async -> [(Date, Int)] {
         do {
-            return Self.usableHeartRates(try await manager.fetchHeartRateSamples(from: start, to: end))
+            return Self.usableHeartRates(try await manager.heartRate.fetchHeartRateSamples(from: start, to: end))
         } catch {
             debugLog("[HealthImport] heart rate read failed: \(error.localizedDescription)", level: .warning)
             return []
@@ -203,8 +203,8 @@ extension HealthWorkoutImporter {
     func stepWindows(from start: Date, to end: Date) async -> [HealthSampleWindow] {
         guard let stepType = HKTypes.quantity(.stepCount) else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
-        let windows: [HealthSampleWindow]? = await manager.runBoundedQuery(
-            timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec
+        let windows: [HealthSampleWindow]? = await manager.heartRate.runBoundedQuery(
+            timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
         ) { resolve in
             HKSampleQuery(
                 sampleType: stepType,

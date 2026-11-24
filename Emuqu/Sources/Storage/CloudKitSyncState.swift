@@ -3,7 +3,7 @@ import Foundation
 /// Manages durable sync state for CloudKitSyncManager: which sessions have been
 /// uploaded, which are pending retry, and failure counts for backoff.
 ///
-/// Extracted from CloudKitSyncManager to isolate persistence I/O from sync logic.
+/// Kept apart from CloudKitSyncManager so persistence I/O stays out of sync logic.
 ///
 /// No `CKServerChangeToken` is persisted here: `CloudKitSyncManager.pullRemoteChanges()`
 /// uses a `CKQuery` + cursor pagination path rather than
@@ -89,9 +89,8 @@ struct CloudKitSyncState {
         isLoaded = true
         uploadedRemovedBeforeLoad.removeAll()
         pendingRemovedBeforeLoad.removeAll()
-        // Clean up any change-token blob left over from an earlier revision —
-        // the field is gone, so wipe the UserDefaults value so it doesn't
-        // accumulate as orphan bytes on legacy installs.
+        // Remove the change-token blob older builds stored: nothing reads it,
+        // and on those installs it would otherwise sit as orphan bytes.
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.cloudKitChangeToken)
     }
 

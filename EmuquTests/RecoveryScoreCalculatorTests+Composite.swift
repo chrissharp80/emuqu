@@ -11,7 +11,7 @@ extension RecoveryScoreCalculatorTests {
     // MARK: - Vitals Overrides Tests
 
     func testVitalsNilReturnsOriginalScore() {
-        let score = RecoveryScoreCalculator.applyVitalsOverrides(score: 75.0, vitals: nil)
+        let score = VitalsScoring.applyVitalsOverrides(score: 75.0, vitals: nil)
         XCTAssertEqual(score, 75.0)
     }
 
@@ -240,7 +240,7 @@ extension RecoveryScoreCalculatorTests {
             wristTemperature: nil, wristTemperatureBaseline: nil,
             restingHeartRate: nil
         )
-        let score = RecoveryScoreCalculator.calculateVitalsScore(
+        let score = VitalsScoring.calculateVitalsScore(
             vitals: empty, baselineStats: baselineStats
         )
         XCTAssertNil(score, "All-nil vitals input must return nil so Tier 2 falls through")
@@ -255,7 +255,7 @@ extension RecoveryScoreCalculatorTests {
             wristTemperature: nil, wristTemperatureBaseline: nil,
             restingHeartRate: nil
         )
-        let score = RecoveryScoreCalculator.calculateVitalsScore(
+        let score = VitalsScoring.calculateVitalsScore(
             vitals: onlyRR, baselineStats: baselineStats
         )
         XCTAssertEqual(score ?? -1, 100, accuracy: 0.5,
@@ -271,7 +271,7 @@ extension RecoveryScoreCalculatorTests {
             wristTemperature: 0.7, wristTemperatureBaseline: 0.0,
             restingHeartRate: 58.0 // baseline meanHRBaseline=58 in helper
         )
-        let score = RecoveryScoreCalculator.calculateVitalsScore(
+        let score = VitalsScoring.calculateVitalsScore(
             vitals: mixed, baselineStats: baselineStats
         )
         XCTAssertEqual(score ?? -1, 83.33, accuracy: 0.5)
@@ -285,7 +285,7 @@ extension RecoveryScoreCalculatorTests {
             wristTemperature: 1.4, wristTemperatureBaseline: 0.0,
             restingHeartRate: nil
         )
-        let score = RecoveryScoreCalculator.calculateVitalsScore(
+        let score = VitalsScoring.calculateVitalsScore(
             vitals: feverish, baselineStats: baselineStats
         )
         XCTAssertEqual(score ?? -1, 25, accuracy: 0.01,
@@ -304,7 +304,7 @@ extension RecoveryScoreCalculatorTests {
             wristTemperature: -0.7, wristTemperatureBaseline: 0.0,
             restingHeartRate: nil
         )
-        let score = RecoveryScoreCalculator.calculateVitalsScore(
+        let score = VitalsScoring.calculateVitalsScore(
             vitals: cold, baselineStats: baselineStats
         )
         XCTAssertEqual(score ?? -1, 100, accuracy: 0.01,
@@ -320,7 +320,7 @@ extension RecoveryScoreCalculatorTests {
             wristTemperature: nil, wristTemperatureBaseline: nil,
             restingHeartRate: 50.0 // baseline 58 ± 3 → z = -2.67, well below baseline
         )
-        let score = RecoveryScoreCalculator.calculateVitalsScore(
+        let score = VitalsScoring.calculateVitalsScore(
             vitals: lowRHR, baselineStats: baselineStats
         )
         XCTAssertEqual(score ?? -1, 100, accuracy: 0.5,

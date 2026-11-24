@@ -7,10 +7,9 @@ import UserNotifications
 /// Smart / Fixed, format Auto / Full / Teaser) and its live preview, workout
 /// coach, periodic check-ins, turn alerts, and what is never sent.
 ///
-/// There is no alerts section. Its three switches (HRV anomaly, strap
-/// battery-low, sync failure) were never wired to anything that posts a
-/// notification, and a setting that does nothing is a broken promise to the
-/// user and to App Review (Guideline 2.1).
+/// There is no alerts section. Nothing posts HRV-anomaly, strap battery-low
+/// or sync-failure notifications, and a setting that does nothing is a broken
+/// promise to the user and to App Review (Guideline 2.1).
 ///
 /// **No marketing pushes.** **No "New feature available!" pushes.**
 /// **No re-engagement pushes.**

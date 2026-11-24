@@ -2,14 +2,9 @@ import SwiftUI
 
 // The sleep, training-load, vitals and HRV-science help categories.
 //
-// Split out of `HelpContent+Science.swift` when that file passed the
-// 1000-line limit — and its own enum rather than an `extension HelpContent`,
-// because `check_aggregate_type_size.sh` measures a type as the sum of its
-// parts across every file, which is the right measure: splitting a 2000-line
-// type into four 500-line extensions does not make it smaller. These four
-// categories are a self-contained body of reference copy; nothing else in
-// HelpContent reads them, and the only references are the four names in the
-// `categories` list.
+// Its own enum rather than an extension of HelpContent: these four categories
+// are a self-contained body of reference copy that nothing else in HelpContent
+// reads, and the only references are the four names in the `categories` list.
 
 // The metric band descriptions in this file state a
 // range, not a verdict — never "potentially pathological", "clear
@@ -382,7 +377,7 @@ extension HelpScienceCatalog {
     /// 0.75 anchor comes from graded EXERCISE protocols, where \u{03B1}1 falls as
     /// intensity rises; it was never a resting readiness band.
     ///
-    /// The clinching argument was internal, not literary. Deep sleep — the
+    /// The deciding evidence is internal, not literary. Deep sleep — the
     /// stage most associated with physical restoration — carries the LOWEST
     /// \u{03B1}1 of the night. `WindowSelector.RecoveryWindow` cites the figures
     /// (PMC4100066): N1 0.89 \u{00B1} 0.23, N2 0.85 \u{00B1} 0.16, N3 0.78 \u{00B1} 0.21.
@@ -402,7 +397,7 @@ extension HelpScienceCatalog {
     ///
     /// What survives: \u{03B1}1 describes correlation structure rather than
     /// amplitude, which is genuinely something RMSSD does not capture, and the
-    /// ranges are still worth showing. They are shown as ranges now.
+    /// ranges are still worth showing, so they are shown as ranges.
     private static var dfaExplainedSections: [ArticleSection] {
         [
             .text("""
@@ -568,7 +563,7 @@ extension HelpScienceCatalog {
     ///
     /// Personalised against the reader's age band when we know it, generic when
     /// we do not — genuinely different copy rather than a formatting variation,
-    /// which is why it was a branch and not a parameter.
+    /// which is why it is a branch and not a parameter.
     private static func rmssdIntroSections(forAge age: Int?) -> [ArticleSection] {
         guard let age else {
             return [.tip("Set your birthday in Settings \u{2192} Profile to see ranges personalized for your age. For now, here are general population guidelines — what matters most is YOUR trend over time.")]
@@ -772,9 +767,8 @@ extension HelpScienceCatalog {
     /// Citing the refutation and then printing the conclusion it refutes is wrong.
     ///
     /// The bands are described by what they are: positions in a ratio's
-    /// range. The same four rows
-    /// are there, and the ratio is still charted and trended. Only the
-    /// autonomic verdicts attached to them are gone.
+    /// range. The four rows stay, and the ratio is still charted and
+    /// trended; no autonomic verdict is attached to them.
     ///
     /// Note this does NOT touch `HRVSleepStageClassifier`, which uses LF/HF as
     /// a REM-versus-N2 discriminator. "This ratio separates two sleep stages"

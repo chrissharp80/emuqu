@@ -176,7 +176,7 @@ enum CloudKitSessionFreshness {
     /// the restore marker keeps it, since every upload writes `isDeleted = 0`:
     /// losing it would let a device that deleted the session earlier delete
     /// it again.
-    /// Server fields this build no longer writes (older builds wrote plaintext
+    /// Server fields this build does not write (older builds wrote plaintext
     /// health values) are cleared, so the record holds only what `local` holds.
     static func overwrite(
         _ server: CKRecord, with local: CKRecord, restoring: Bool = false, yieldingIn state: inout CloudKitSyncState
@@ -282,7 +282,7 @@ extension CloudPullCoordinator {
             serverVersion: record.recordChangeTag, heldVersion: manager.state.recordVersions[sessionId]
         )
         let decision = CloudKitSessionFreshness.decide(localModifiedAt: localModifiedAt, remoteModifiedAt: remoteModifiedAt, onTie: tie)
-        guard decision == .importRemote, manager.archive.exists(sessionId),
+        guard decision == .importRemote, manager.archive.store.exists(sessionId),
               let assetURL = await assetURL(for: record) else { return RecordOutcome() }
         let remote = RemoteCopy(modifiedAt: remoteModifiedAt, version: record.recordChangeTag, onTie: tie)
         return await replaceLocalCopy(from: assetURL, sessionId: sessionId, remote: remote)
@@ -309,7 +309,7 @@ extension CloudPullCoordinator {
     /// downloaded, nothing is replaced: the next sync decides again.
     private func replaceLocalCopy(from assetURL: URL, sessionId: UUID, remote copy: RemoteCopy) async -> RecordOutcome {
         do {
-            var remote = try await Task.detached(priority: .utility) { try Self.decodeSessionAsset(at: assetURL) }.value
+            var remote = try await Task.detached(priority: .utility) { [archiveKey = manager.archive.encryption] in try Self.decodeSessionAsset(at: assetURL, archiveKey: archiveKey) }.value
             guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return RecordOutcome() }
             // The record's date is the one the next pull compares against.
             remote.modifiedAt = copy.modifiedAt

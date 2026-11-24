@@ -8,7 +8,7 @@ score in plain language. It reports only what it measured.
 [![Gates](https://github.com/chrissharp80/emuqu/actions/workflows/gates.yml/badge.svg)](https://github.com/chrissharp80/emuqu/actions/workflows/gates.yml)
 ![Swift](https://img.shields.io/badge/Swift-6%20language%20mode-orange)
 ![iOS](https://img.shields.io/badge/iOS-17%2B-blue)
-![Tests](https://img.shields.io/badge/unit%20tests-3%2C000%2B-brightgreen)
+![Tests](https://img.shields.io/badge/unit%20tests-4%2C000%2B-brightgreen)
 ![Locales](https://img.shields.io/badge/locales-17-informational)
 ![License](https://img.shields.io/badge/license-PolyForm--Strict--1.0.0-lightgrey)
 
@@ -66,7 +66,7 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
   tests on synthetic and recorded series.
 - **Honesty about the number.** No wearable's composite recovery score has
   been validated against outcomes, and the app says so. Scoring is versioned
-  (`v3.3.nov2026`), the version is stored with every score and shown on the
+  (`v3.4.nov2026`), the version is stored with every score and shown on the
   score-detail screen, and every heuristic
   is listed with its evidence status in
   [`Tools/science_register/register.json`](Tools/science_register/register.json).
@@ -95,7 +95,7 @@ The repository is set up so that a regression cannot land quietly.
 - **The gates are tested.** One script plants a violation for each gate and
   proves it goes red. Another proves each gate fails closed on a missing
   input. A third proves each is wired into CI.
-- **Tests.** Over 3,000 unit tests and 100 UI tests, including snapshot tests for
+- **Tests.** Over 4,000 unit tests and 100 UI tests, including snapshot tests for
   the score views, characterization tests for the collector's observable
   surface, and negative tests for the gates. Coverage floors are measured and
   ratcheted, and are never restated in prose, so they cannot drift.
@@ -262,8 +262,6 @@ Everything is under [`docs/`](docs/). Start with the maintainers guide.
 | [`docs/FEATURES.md`](docs/FEATURES.md) | The complete feature list |
 | [`docs/USERS_MANUAL.md`](docs/USERS_MANUAL.md) | End-user guide to every tab, screen and feature |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Algorithms, design decisions, subsystem detail |
-| [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) | Public Swift API surface and contracts |
-| [`docs/FLOWCHART.md`](docs/FLOWCHART.md) | Recording to analysis to display, including the post-workout pipeline |
 | [`docs/TRAINING_LOAD.md`](docs/TRAINING_LOAD.md) | ATL, CTL and TSB from per-workout load to trajectory verdicts |
 | [`docs/VOICE_AND_TOOL_USE.md`](docs/VOICE_AND_TOOL_USE.md) | The assistant's fact catalogue, tool use and voice mode |
 | [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) | Source-of-truth rules and how a translation is added |

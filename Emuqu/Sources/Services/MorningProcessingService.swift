@@ -2,8 +2,6 @@ import Foundation
 import HealthKit
 import UIKit
 
-/// Extracted processing logic from `RRCollector+MorningProcessing`.
-///
 /// Owns the heavy analysis pipeline (artifact detection, sleep polling,
 /// window selection, HRV analysis, recovery scoring) without mutating
 /// any observable UI state. The caller (`RRCollector`) performs the
@@ -117,11 +115,9 @@ final class MorningProcessingService {
     /// Runs artifact detection, the sleep-boundary poll, window selection and
     /// the HRV analysis, with the per-step timing instrumentation intact.
     ///
-    /// Kept out of `processOvernightData` as its largest contiguous,
-    /// self-contained stretch. The
-    /// concurrency notes below are load-bearing and travel with the code.
-    /// Per-step timing instrumentation lets us attribute
-    /// the user's "still ~5 min for 10 sec of work" complaint. Each
+    /// The concurrency notes below are load-bearing and travel with the code.
+    /// Per-step timing instrumentation attributes a long wait to the step
+    /// that caused it. Each
     /// line in the log gives a wall-clock delta for one step — the
     /// sum should bound the user-visible wait.
     ///
@@ -149,9 +145,9 @@ final class MorningProcessingService {
         isBackgroundRefinement: Bool,
         settings: SettingsSnapshot,
         trainingContext: TrainingContext?,
-        // Both default so the parameter count stays inside budget; both are
-        // genuinely optional — a background refinement has no status
-        // callback, and the prefetch is a best-effort optimisation.
+        // Both default because both are genuinely optional — a background
+        // refinement has no status callback, and the prefetch is a
+        // best-effort optimisation.
         prefetchedSleepData: SleepData? = nil,
         statusCallback: StatusCallback? = nil
     ) async -> AnalysisPhaseResult {
@@ -162,19 +158,38 @@ final class MorningProcessingService {
         let sleepResult = await timedSleepPoll(
             series: series, effectiveStartDate: effectiveStartDate, totalBeats: totalBeats, isBackgroundRefinement: isBackgroundRefinement, sleepSchedule: settings.sleepSchedule, prefetchedSleepData: prefetchedSleepData, statusCallback: statusCallback
         )
-        // Step 7: Select recovery window and run analysis.
-        let window = await Self.selectWindow(
-            in: series, flags: flags, sleepResult: sleepResult,
-            baselineStats: windowBaseline(for: analyzingSession, settings: settings)
-        )
-        let analysisResult = await Self.withOrganizedZones(window.zones, on: timedAnalysis(
-            analyzingSession: analyzingSession, series: series, flags: flags,
-            windowResult: window.result, trainingContext: trainingContext, ansConfig: settings.ansConfig
-        ))
+        // Step 7: Select recovery window and run analysis. A night the
+        // verifier finds too short or too sparse to measure has no analysis,
+        // so it ends failed rather than scored from a few beats.
+        let analysed = Self.isTooLittleToAnalyse(verifyResult)
+            ? (windowResult: nil, analysisResult: nil)
+            : await analyse(series, of: analyzingSession, flags: flags, sleepResult: sleepResult, settings: settings, trainingContext: trainingContext)
         return AnalysisPhaseResult(
             flags: flags, verifyResult: verifyResult, sleepResult: sleepResult,
-            windowResult: window.result, analysisResult: analysisResult
+            windowResult: analysed.windowResult, analysisResult: analysed.analysisResult
         )
+    }
+
+    /// Select the recovery window and run the analysis on it.
+    private func analyse(
+        _ series: RRSeries, of session: HRVSession, flags: [ArtifactFlags], sleepResult: SleepPollResult,
+        settings: SettingsSnapshot, trainingContext: TrainingContext?
+    ) async -> (windowResult: WindowSelector.WindowSelectionResult?, analysisResult: HRVAnalysisResult?) {
+        let window = await Self.selectWindow(
+            in: series, flags: flags, sleepResult: sleepResult,
+            baselineStats: windowBaseline(for: session, settings: settings)
+        )
+        let analysisResult = await Self.withOrganizedZones(window.zones, on: timedAnalysis(
+            analyzingSession: session, series: series, flags: flags,
+            windowResult: window.result, trainingContext: trainingContext, ansConfig: settings.ansConfig
+        ))
+        return (window.result, analysisResult)
+    }
+
+    /// Whether the recording holds less than the verifier's minimum to
+    /// measure HRV from (`Verification.Config`: duration and beat count).
+    static func isTooLittleToAnalyse(_ verification: Verification.Result) -> Bool {
+        verification.rejectionReasons.contains { $0 == .tooFewPoints || $0 == .tooShort }
     }
 
     /// The baseline windows are ranked against: the scorer's, which leaves
@@ -185,7 +200,6 @@ final class MorningProcessingService {
 
     /// Process overnight data and return a result struct.
     ///
-    /// This is the heavy lifting extracted from `RRCollector.processOvernightData`.
     /// The caller is responsible for updating observable state, archiving,
     /// and CloudKit sync based on the returned result.
     ///

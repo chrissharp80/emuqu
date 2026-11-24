@@ -1,16 +1,10 @@
 import Foundation
 
-// Sleep inputs to `AnalysisSummaryGenerator`, lifted out of it.
+// Sleep inputs to `AnalysisSummaryGenerator`: plain value types the caller
+// fills in and hands over. Nothing about them depends on the generator.
 //
-// Nesting them there would only reflect where they are used. Nothing about
-// them depends on the generator: they are plain value types the caller fills in
-// and hands over, and two of them are the largest declarations in a type
-// already at its size budget — 101 lines describing data, not behaviour.
-//
-// Renamed on the way out. `AnalysisSleepInput` is meaningful qualified as
-// `AnalysisSummaryGenerator.SleepInput` and far too vague at file scope in an
-// app with several sleep representations, so the prefix is carried in the name
-// rather than lost.
+// The `Analysis` prefix is in the name because a bare `SleepInput` is far too
+// vague at file scope in an app with several sleep representations.
 
 struct AnalysisSleepInput {
     let totalSleepMinutes: Int

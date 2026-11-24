@@ -12,16 +12,16 @@ extension SessionDataMigrations {
 
     /// One-time repair for archived sessions whose `trainingSnapshot`,
     /// `analysisResult.trainingContext`, and `frozenReadiness` were computed
-    /// with the broken TRIMP fallback (workout-peak HR as denominator).
+    /// with a TRIMP fallback that used workout-peak HR as the denominator.
     ///
     /// Delegates to `repairTrainingSnapshots`, which recomputes each session's
-    /// training context from current HealthKit workout history using the fixed
-    /// math. Runs exactly once per install.
+    /// training context from current HealthKit workout history using the
+    /// current math. Runs exactly once per install.
     ///
     /// The flag check comes FIRST, before the archive is read at all, so a
     /// launch after the migration has run does no disk work. The archive is
-    /// then read once and handed to the repair, which picks its own
-    /// candidates (complete, analysed sessions); none is a completed run too.
+    /// then handed to the repair, which picks its own candidates (complete,
+    /// analysed sessions); none is a completed run too.
     func runTrimpRepairMigrationIfNeeded() async {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.trimpRepairMigrationKey) else { return }
@@ -30,7 +30,7 @@ extension SessionDataMigrations {
             debugLog("[TrimpRepairMigration] Training load disabled — marking migration complete")
             return
         }
-        let sessions = await loadArchivedSessions()
+        let sessions = archivedSessions
         debugLog("[TrimpRepairMigration] Starting — \(sessions.count) sessions in archive")
         let result = await reanalysisService.repairTrainingSnapshots(sessions: sessions) { _, _ in }
         defaults.set(true, forKey: Self.trimpRepairMigrationKey)

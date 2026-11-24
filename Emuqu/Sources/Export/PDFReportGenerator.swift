@@ -258,13 +258,11 @@ final class PDFReportGenerator {
         baselineStats: BaselineTracker.RecoveryBaselineStats? = nil,
         // Pre-resolved live training-load snapshot from the
         // caller (must be captured on MainActor via
-        // `TrainingLoadRegistry.live()`). When non-nil, the report
+        // `TrainingLoadRegistry.live(from:)`). When non-nil, the report
         // overrides the frozen `result.trainingContext` ATL/CTL/TSB
         // with these live values so the report shows the same numbers
-        // as the Load & Trajectory dashboard. User complaint:
-        // "the report showed a totally different TSB than
-        // the loading page." Root cause: `result.trainingContext`
-        // is frozen at session-acceptance time, pre-walk, while
+        // as the Load & Trajectory dashboard: `result.trainingContext`
+        // is frozen at session-acceptance time, pre-walk, while the
         // Dashboard subscribes to the live cache. Other frozen fields
         // (yesterdayTrimp, vo2Max, daysSinceHardWorkout,
         // recentWorkouts) are preserved from the session snapshot.
@@ -367,15 +365,8 @@ final class PDFReportGenerator {
 
 // MARK: - File-scope helpers
 //
-// Kept outside the type. Each touches no instance state —
-// including the computed properties — and
-// calls nothing inside the type, so none is a method in anything but
-// placement. `private` at file scope is fileprivate, so every call site in
-// this file resolves the same way.
-//
-// This is what `check_aggregate_type_size.sh` measures: a type is the sum of
-// its parts across every file, so code that does not need the type inflates
-// that number without making the type do more.
+// Each touches no instance state — including the computed properties —
+// and calls nothing on the type, so none needs to be a method.
 
 /// The load frozen with the night is the session's snapshot, which a
 /// reanalysis leaves alone, before the result's copy; the training-load
@@ -413,10 +404,9 @@ private func reportInputs(
 /// the frozen session values (a past day's report shows that day's load). Non-load fields (yesterdayTrimp, vo2Max, ...) have no live
 /// equivalent and stay session-context either way.
 ///
-/// User complaint: "the report showed a totally different TSB
-/// than the loading page." `result.trainingContext` is frozen at
-/// session-acceptance time, pre-walk, while the Dashboard subscribes to the
-/// live cache.
+/// `result.trainingContext` is frozen at session-acceptance time, pre-walk,
+/// while the Dashboard subscribes to the live cache; without the live values
+/// the report's TSB would differ from the loading page's.
 private func mergedTrainingContext(
     frozen: TrainingContext?,
     live: TrainingLoadRegistry.TrainingLoad?,

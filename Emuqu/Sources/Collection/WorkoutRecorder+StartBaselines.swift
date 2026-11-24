@@ -21,7 +21,7 @@ extension WorkoutRecorder {
         // SessionArchive owns its own lock — safe to read off the main
         // actor. We just need a stable reference to the archive instance.
         let archive = core.archive
-        let sessionId = currentSession?.id
+        let sessionId = lifecycle.currentSession?.id
         Task.detached(priority: .utility) { [weak self] in
             guard let self else { return }
             await self.computeAndCacheStartBaselines(sportForBaselines: sport, sessionId: sessionId, archive: archive)
@@ -77,7 +77,7 @@ extension WorkoutRecorder {
         projection: TrainingProjectionSnapshot,
         racePredictions: [Double: Double]
     ) {
-        guard let sessionId, currentSession?.id == sessionId else { return }
+        guard let sessionId, lifecycle.currentSession?.id == sessionId else { return }
         cachedHistoricalBaselines = baselines
         cachedTodayReadiness = readiness
         cachedTrainingProjection = projection
@@ -91,15 +91,15 @@ extension WorkoutRecorder {
     /// morning-readiness pull all read `workoutMetadata` / `analysisResult` /
     /// `trainingSnapshot` / scoring fields — none of them touch the raw
     /// `rrSeries` blob. Skipping that decode is a pure perf win and reduces the
-    /// lock contention that was bleeding into the user-perceived start time.
+    /// lock contention that would otherwise bleed into the user-perceived start time.
     ///
     /// Picked from the index by type: the 60 newest workouts (the baselines
     /// and race predictions use workouts only, and taking the 60 newest
-    /// entries of every type left a user with daily overnight and quick
-    /// readings 3–4 weeks of workouts), plus the overnight and quick
+    /// entries of every type would leave a user with daily overnight and quick
+    /// readings only 3–4 weeks of workouts), plus the overnight and quick
     /// readings that ended today, for the readiness snapshot.
     nonisolated private static func recentLightweightSessions(archive: SessionArchive) -> [HRVSession] {
-        let entries = archive.entries
+        let entries = archive.store.entries
         let today = Calendar.current.startOfDay(for: Date())
         let workouts = entries.filter { $0.sessionType == .workout }.prefix(60)
         let mornings = entries.filter {

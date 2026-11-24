@@ -85,7 +85,7 @@ extension RecoveryScoreDetailView {
         return Array(out.prefix(3))
     }
 
-    /// #2 — deviation vs the GEOMETRIC baseline exp(mean) so the percent
+    /// Deviation vs the GEOMETRIC baseline exp(mean) so the percent
     /// matches the score (percent-of-ln is meaningless).
     func hrvExplanation() -> Explanation? {
         guard let pct = hrvPercentVsBaseline else { return nil }
@@ -157,12 +157,12 @@ extension RecoveryScoreDetailView {
     }
 
     /// `RecoveryVitals.status` looks at breathing, temperature and SpO₂ only,
-    /// so "All vitals at baseline … resting heart rate … within your usual
-    /// range" could sit under a key finding of "Sleep HR 69 bpm (+13 vs
-    /// baseline)". The HR comparison the score itself uses — the strap's
+    /// so on its own it would let "All vitals at baseline … resting heart rate
+    /// … within your usual range" sit under a key finding of "Sleep HR 69 bpm
+    /// (+13 vs baseline)". The HR comparison the score itself uses — the strap's
     /// analysis-window mean HR (`result.timeDomain.meanHR`, the same signal
     /// `meanHRBaseline` is built from) against `meanHRBaseline`, in SD
-    /// units — now gates that wording.
+    /// units — gates that wording.
     func sleepHRAboveBaselineExplanation() -> Explanation? {
         guard let baseline = baselineStats?.meanHRBaseline, baseline > 0,
               let sd = baselineStats?.meanHRSD, sd > 0 else { return nil }
@@ -444,7 +444,7 @@ extension RecoveryScoreDetailView {
             .compactMap { $0 }
     }
 
-    /// #2 — deviation vs the GEOMETRIC baseline exp(mean) so the percent
+    /// Deviation vs the GEOMETRIC baseline exp(mean) so the percent
     /// matches the score (percent-of-ln is meaningless).
     func hrvFinding() -> String {
         guard let pct = hrvPercentVsBaseline else {
@@ -601,8 +601,8 @@ extension RecoveryScoreDetailView {
 
 // MARK: - Copy helpers
 
-/// Wording the detail screen picks from its inputs. Kept outside the view so
-/// the view type stays within its size budget; nothing here reads view state.
+/// Wording the detail screen picks from its inputs. Nothing here reads view
+/// state.
 @MainActor
 enum RecoveryDetailCopy {
     /// `selectedSource` is an internal tag ("streaming", "internal",

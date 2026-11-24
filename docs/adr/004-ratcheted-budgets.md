@@ -5,7 +5,8 @@
 Every quality rule in this repository has a numeric ceiling in `.ci/*.txt`
 rather than a pass/fail assertion: SwiftLint warnings, `.shared` singleton uses,
 `try?` uses, legacy `ObservableObject` conformances, fixed-point fonts, test
-skips, aggregate type size.
+skips. ADR 008 narrows this: a rule that holds at zero is a rule, not a
+budget, and no gate measures a type's size.
 
 That looks, at a glance, like institutionalised tolerance for debt. It is the
 opposite, and the distinction matters enough to write down.

@@ -5,10 +5,9 @@ struct RecordView: View {
     @Environment(\.dependencies) var dependencies
     @Environment(RRCollector.self) var collector
     // Direct sub-object observation. Recording state lives on these
-    // @Observable sub-objects; `RRCollector` is @Observable too, and a read
-    // through one of its forwarders is still tracked, but it hides which
-    // object the view depends on. Recording-state reads in this view (and its
-    // +Panels / +Sections extensions) go through these references.
+    // @Observable sub-objects, not on `RRCollector`; holding them here shows
+    // which object each read depends on. Recording-state reads in this view
+    // (and its +Panels / +Sections extensions) go through these references.
     @Environment(DeviceStatus.self) var deviceStatus
     @Environment(StreamingLifecycle.self) var streamingLifecycle
     @Environment(SessionState.self) var sessionState
@@ -135,10 +134,9 @@ struct RecordView: View {
     // MARK: - Body structure
     //
     // `body` is split into the scroll container, the stack of sections, and
-    // one property per section (as one declaration it was 444 lines nested
-    // eight deep). Every extraction is a computed property on this same
-    // struct, so view identity and @State ownership are unaffected — no
-    // child structs, no state moved.
+    // one property per section. Every section is a computed property on this
+    // same struct, so view identity and @State ownership are unaffected — no
+    // child structs, no state held elsewhere.
 
     private var recordScroll: some View {
         ScrollViewReader { scrollProxy in
@@ -171,9 +169,9 @@ struct RecordView: View {
     /// Resolve an interrupted workout once on appear.
     private func resolveInterruptedWorkout() async {
         // Flag OR newest un-archived workout backup, so the recovery card shows
-        // even when the crash flag did not persist. 2026-08 — off-main: the scan
-        // does per-backup disk I/O and was trapping the main thread here.
-        interruptedWorkoutId = await collector.findInterruptedWorkoutSessionId()
+        // even when the crash flag did not persist. Off-main: the scan
+        // does per-backup disk I/O and would block the main thread here.
+        interruptedWorkoutId = await collector.recovery.findInterruptedWorkoutSessionId()
     }
 
     // MARK: - Sheets and covers
@@ -232,8 +230,7 @@ struct RecordView: View {
 
     /// Humanise Polar SDK errors. Raw `PolarErrors` enum text
     /// ("PolarBleSdk.PolarErrors error 3.") gives the user no idea whether
-    /// to retry or give up (reported by a tester with an H10 stuck at 30%
-    /// retrieval after an overnight session).
+    /// to retry or give up.
     @ViewBuilder
     private var errorAlertMessage: some View {
         if let error = sessionState.lastError {
@@ -258,7 +255,7 @@ struct RecordView: View {
     /// at low battery) is already waiting for acceptance.
     private func routeOvernightAcceptance(_ needsAcceptance: Bool) {
         // Overnight/nap: go to Dashboard and auto-accept immediately.
-        // Device fetch is now inline (completed before score is shown),
+        // Device fetch is inline (completed before score is shown),
         // so the score is final — no background refinement to wait for.
         if needsAcceptance,
            let session = sessionState.currentSession,
@@ -357,7 +354,7 @@ struct RecordView: View {
         Task {
             isRecoveringWorkout = true
             workoutRecoverMessage = nil
-            let recovered = await collector.recoverInterruptedWorkoutFromStrap()
+            let recovered = await collector.recovery.recoverInterruptedWorkoutFromStrap()
             isRecoveringWorkout = false
             if recovered != nil {
                 interruptedWorkoutId = nil
@@ -391,7 +388,7 @@ struct RecordView: View {
     /// re-archive carrying the tags and notes the user picked was not stored,
     /// the tag-save failure alert says so first.
     private func finishAutoAccept(tagsStored: Bool) {
-        collector.clearAcceptanceState()
+        collector.morning.clearAcceptanceState()
         if !tagsStored, !selectedTags.isEmpty || !sessionNotes.isEmpty {
             debugLog("[AutoAccept] Re-archive not stored — the pre-night tags and notes were not saved", level: .warning)
             tagSaveFailureMessage = String(localized: "The tags and notes you picked for this reading couldn't be saved. Add them again from History.", bundle: LanguageManager.appBundle)
@@ -418,7 +415,7 @@ struct RecordView: View {
         let retrieved = await collector.retrieveFullSessionAsync(session.id)
         let latestSession = preSessionTagged(retrieved ?? session)
         debugLog("[AutoAccept] archive.retrieve(\(session.id.uuidString.prefix(8))): \(retrieved == nil ? "FAILED — using in-memory session" : "OK"), source=\(latestSession.dataSourceSummary?.selectedSource ?? "nil")")
-        return await collector.updateCompositeRecoveryScore(for: latestSession, exportMetrics: true)
+        return await collector.morning.updateCompositeRecoveryScore(for: latestSession, exportMetrics: true)
     }
 
 }

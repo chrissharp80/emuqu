@@ -17,24 +17,24 @@ final class RecoveryScoreVitalsFallbackTests: XCTestCase {
     // MARK: - respiratoryPopulationScore(rate:)
 
     func testRateInsideWindowScoresFull() {
-        XCTAssertEqual(RecoveryScoreCalculator.respiratoryPopulationScore(rate: 15), 100, accuracy: 0.0001)
-        XCTAssertEqual(RecoveryScoreCalculator.respiratoryPopulationScore(rate: popMin), 100, accuracy: 0.0001)
-        XCTAssertEqual(RecoveryScoreCalculator.respiratoryPopulationScore(rate: popMax), 100, accuracy: 0.0001)
+        XCTAssertEqual(VitalsScoring.respiratoryPopulationScore(rate: 15), 100, accuracy: 0.0001)
+        XCTAssertEqual(VitalsScoring.respiratoryPopulationScore(rate: popMin), 100, accuracy: 0.0001)
+        XCTAssertEqual(VitalsScoring.respiratoryPopulationScore(rate: popMax), 100, accuracy: 0.0001)
     }
 
     func testRateAboveWindowScoresGradedPenalty() {
         // The documented penalty is 15 points per br/min above the band
         // (whitepaper 01, constants table): 2 br/min above popMax → 100 − 30 = 70.
-        XCTAssertEqual(RecoveryScoreCalculator.respiratoryPopulationScore(rate: popMax + 2), 70, accuracy: 0.0001)
+        XCTAssertEqual(VitalsScoring.respiratoryPopulationScore(rate: popMax + 2), 70, accuracy: 0.0001)
     }
 
     func testRateFarAboveWindowFloorsAtZero() {
-        XCTAssertEqual(RecoveryScoreCalculator.respiratoryPopulationScore(rate: popMax + 100), 0, accuracy: 0.0001)
+        XCTAssertEqual(VitalsScoring.respiratoryPopulationScore(rate: popMax + 100), 0, accuracy: 0.0001)
     }
 
     func testRateBelowWindowScoresBelowPopulationConstant() {
         // Below the window the documented score is a flat 90 (whitepaper 01).
-        XCTAssertEqual(RecoveryScoreCalculator.respiratoryPopulationScore(rate: popMin - 3), 90, accuracy: 0.0001)
+        XCTAssertEqual(VitalsScoring.respiratoryPopulationScore(rate: popMin - 3), 90, accuracy: 0.0001)
     }
 
     // MARK: - calculateVitalsScore takes the fallback when rate present, baseline absent
@@ -52,7 +52,7 @@ final class RecoveryScoreVitalsFallbackTests: XCTestCase {
             wristTemperatureBaseline: nil,
             restingHeartRate: nil
         )
-        let score = try XCTUnwrap(RecoveryScoreCalculator.calculateVitalsScore(vitals: vitals, baselineStats: nil))
+        let score = try XCTUnwrap(VitalsScoring.calculateVitalsScore(vitals: vitals, baselineStats: nil))
         XCTAssertEqual(score, 100, accuracy: 0.0001)
     }
 
@@ -67,8 +67,8 @@ final class RecoveryScoreVitalsFallbackTests: XCTestCase {
             wristTemperatureBaseline: nil,
             restingHeartRate: nil
         )
-        let score = try XCTUnwrap(RecoveryScoreCalculator.calculateVitalsScore(vitals: vitals, baselineStats: nil))
-        XCTAssertEqual(score, RecoveryScoreCalculator.respiratoryPopulationScore(rate: rate), accuracy: 0.0001)
+        let score = try XCTUnwrap(VitalsScoring.calculateVitalsScore(vitals: vitals, baselineStats: nil))
+        XCTAssertEqual(score, VitalsScoring.respiratoryPopulationScore(rate: rate), accuracy: 0.0001)
     }
 
     func testVitalsScorePrefersDeviationBranchWhenBaselinePresent() throws {
@@ -84,7 +84,7 @@ final class RecoveryScoreVitalsFallbackTests: XCTestCase {
             wristTemperatureBaseline: nil,
             restingHeartRate: nil
         )
-        let score = try XCTUnwrap(RecoveryScoreCalculator.calculateVitalsScore(vitals: vitals, baselineStats: nil))
+        let score = try XCTUnwrap(VitalsScoring.calculateVitalsScore(vitals: vitals, baselineStats: nil))
         // 20 is outside the population window (>18); if the fallback had been
         // used it would NOT be 100. Asserting 100 proves the deviation branch ran.
         XCTAssertEqual(score, 100, accuracy: 0.0001)

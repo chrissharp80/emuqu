@@ -1,10 +1,10 @@
 # Architecture decision records
 
-These ADRs cover seven decisions a new maintainer
+These ADRs cover nine decisions a new maintainer
 would otherwise have to reconstruct from commit archaeology: the encryption
 fallback, the CI cost posture, the concurrency escapes, ratcheted debt
-budgets, no `unowned` back-references, Swift 6 strict concurrency, and one app
-target with one composition root.
+budgets, no `unowned` back-references, Swift 6 strict concurrency, one app
+target with one composition root, gates that guard behaviour rather than size, and frozen accepted sessions.
 
 The first three are written up at length next to the code they govern, which is
 where the reasoning stays accurate. This index is the map.
@@ -18,6 +18,8 @@ where the reasoning stays accurate. This index is the map.
 | 005 | No `unowned` back-references | [`docs/adr/005-no-unowned-back-references.md`](005-no-unowned-back-references.md) |
 | 006 | Swift 6 language mode is the concurrency gate | [`docs/adr/006-swift-6-strict-concurrency.md`](006-swift-6-strict-concurrency.md) |
 | 007 | One app target, one composition root | [`docs/adr/007-single-target-composition-root.md`](007-single-target-composition-root.md) |
+| 008 | Gates guard behaviour, not size | [`docs/adr/008-gates-guard-behaviour.md`](008-gates-guard-behaviour.md) |
+| 009 | An accepted session is frozen | [`docs/adr/009-accepted-sessions-are-frozen.md`](009-accepted-sessions-are-frozen.md) |
 
 ## 001 — Sensitive storage falls back, then repairs
 
@@ -103,7 +105,7 @@ See [`004-ratcheted-budgets.md`](004-ratcheted-budgets.md).
 
 An `unowned` back-pointer from a helper to its owner traps when a resumed
 continuation outlives the owner. Helpers are values, holding the owner strongly
-and built on demand, and a gate bans `unowned`.
+and built on demand, and the `no_unowned` SwiftLint rule bans `unowned`.
 
 See [`005-no-unowned-back-references.md`](005-no-unowned-back-references.md).
 
@@ -131,3 +133,19 @@ exactly the services they use, and `scripts/check_explicit_dependencies.sh`
 keeps container reads out of them and `install` out of app code.
 
 See [`007-single-target-composition-root.md`](007-single-target-composition-root.md).
+
+## 008 — Gates guard behaviour, not size
+
+A rule that holds at zero is a rule (a SwiftLint custom rule where a regular
+expression can state it), a count above zero is a ratchet, and no gate measures
+a type's size or a document's line numbers.
+
+See [`008-gates-guard-behaviour.md`](008-gates-guard-behaviour.md).
+
+## 009 — An accepted session is frozen
+
+After acceptance a session changes only through a user action, a one-shot
+launch migration, today's sleep refresh, or a fill-in of values that were
+nil; opening a past night never rescores it.
+
+See [`009-accepted-sessions-are-frozen.md`](009-accepted-sessions-are-frozen.md).

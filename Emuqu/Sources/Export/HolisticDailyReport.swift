@@ -75,7 +75,7 @@ final class HolisticDailyReport: Sendable {
     /// reads need no actor hop and no `MainActor.assumeIsolated` trap.
     ///
     /// Crash guard: reading
-    /// `TrainingLoadRegistry.live()` inside the renderer via
+    /// `TrainingLoadRegistry.live(from:)` inside the renderer via
     /// `MainActor.assumeIsolated` traps. PDF generation runs from
     /// `Task.detached(priority: .userInitiated)` (WorkoutRecorder+Metrics'
     /// coach report, ReportsListView.renderHolistic and
@@ -228,16 +228,15 @@ final class HolisticDailyReport: Sendable {
     // MARK: - Loop verdict (delegates to shared DailyLoopAnalysis)
 
     /// Snapshot the canonical training-load value at report-generation
-    /// time. Reads through `TrainingLoadRegistry.live()` so the report
+    /// time. Reads through `TrainingLoadRegistry.live(from:)` so the report
     /// matches what the Dashboard's Load card shows at the moment the
     /// PDF is rendered, not the frozen morning-acceptance value.
     ///
-    /// User report: "CTL 36.4 here vs 30 in the report".
-    /// Root cause: this report reading `workoutSession.trainingSnapshot`
-    /// (frozen at session acceptance, pre-walk) while the dashboard
-    /// shows the live cache value (post-walk). Both numbers are
-    /// "correct" for their store, but the user reasonably calls the
-    /// report stale. So both read through `TrainingLoadRegistry`.
+    /// `workoutSession.trainingSnapshot` is frozen at session acceptance
+    /// (pre-walk) while the dashboard shows the live cache value
+    /// (post-walk); both are "correct" for their store, but a report that
+    /// disagrees with the dashboard reads as stale. So both read through
+    /// `TrainingLoadRegistry`.
     /// Falls back to the frozen session snapshot only when no live
     /// data exists (cold cache on first launch).
     ///
@@ -250,7 +249,7 @@ final class HolisticDailyReport: Sendable {
         // generation runs on a detached task (see the callers named on
         // `liveLoadSnapshot`); calling
         // `MainActor.assumeIsolated` here would trap. Caller
-        // captures via `TrainingLoadRegistry.live()` on MainActor
+        // captures via `TrainingLoadRegistry.live(from:)` on MainActor
         // BEFORE entering the detached task.
         if let live = liveLoadSnapshot {
             return TrainingContext(

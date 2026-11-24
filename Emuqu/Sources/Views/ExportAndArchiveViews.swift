@@ -1,9 +1,7 @@
 import SwiftUI
 
-// The data-export screen, split out of `SettingsSubviews.swift` together
-// with the archive-diagnostics screen (now `ArchiveDiagnosticsView.swift`).
-// Both are large, self-contained views; what stays behind is the
-// log/crash/error-catalog trio and the metric explanations.
+// The data-export screen. The archive-diagnostics screen is in
+// `ArchiveDiagnosticsView.swift`.
 
 // MARK: - Export Data View
 
@@ -156,7 +154,7 @@ struct ExportDataView: View {
     }
 
     private var statisticsSection: some View {
-        let entries = collector.archive.entries
+        let entries = collector.archive.store.entries
         return Section(String(localized: "Statistics", bundle: LanguageManager.appBundle)) {
             totalSessionsSection(entries)
 
@@ -244,7 +242,7 @@ struct ExportDataView: View {
             .appendingPathComponent(Self.timestampedName(prefix: "Emuqu_RR", ext: "csv"))
         // One snapshot for both the walk and the total, so a session archived
         // or deleted meanwhile cannot skew the shortfall note.
-        let entries = archive.entries
+        let entries = archive.store.entries
         let total = entries.count
         do {
             let unreadable = try await Self.cancellableDetached {
@@ -350,7 +348,7 @@ struct ExportDataView: View {
     }
 
     private func runSummaryCSVExport() async {
-        let entries = collector.archive.entries
+        let entries = collector.archive.store.entries
         do {
             let tempURL = try await Task.detached(priority: .userInitiated) {
                 let url = FileManager.default.temporaryDirectory
@@ -414,7 +412,7 @@ struct ExportDataView: View {
 
     private func runFullExport() async {
         let archive = collector.archive
-        let entries = archive.entries
+        let entries = archive.store.entries
         let userFacts = await MainActor.run { dependencies.assistant.userFactsStore.facts }
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(Self.timestampedName(prefix: "Emuqu_Export", ext: "json"))

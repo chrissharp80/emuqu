@@ -3,7 +3,7 @@ import Observation
 
 /// Published mirror of the Polar HR sensor's state.
 ///
-/// Split out from `RRCollector` so views that care about BLE connection /
+/// Separate from `RRCollector` so views that care about BLE connection /
 /// battery / device-recording state don't re-render on every archive,
 /// streaming, or morning-processing property the collector also publishes.
 ///
@@ -13,9 +13,8 @@ import Observation
 /// `isStreaming = false` as a night ends, ahead of the binding, which pushes
 /// the same `false` once `PolarManager` stops streaming.
 ///
-/// Readers: inject via `@Environment(DeviceStatus.self) var deviceStatus`.
-/// `RRCollector` keeps thin back-compat getters (e.g. `collector.isDeviceConnected`)
-/// for code paths that haven't migrated yet; they read through to this object.
+/// Readers: inject via `@Environment(DeviceStatus.self) var deviceStatus`,
+/// or reach it as `collector.deviceStatus`.
 @MainActor
 @Observable
 final class DeviceStatus {

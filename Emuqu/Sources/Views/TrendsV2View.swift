@@ -53,14 +53,14 @@ struct TrendsV2View: View {
     /// now; the v1 plan calls for single-select chip semantics.
     @State private var selectedTagId: UUID?
     /// An `@State` populated once via
-    /// `recentSessionsAsync(limit: nil)` (lightweight loader, no
+    /// `allSessionsAsync()` (lightweight loader, no
     /// rrSeries deserialization), refreshed on selectedRange change
     /// and archive-version bump. Body reads from this without
     /// touching disk. A computed property calling
     /// `collector.recentSessions(limit: nil)` synchronously on every
     /// body re-evaluation decodes the entire archive on the main
     /// thread (~250ms freeze for 50+ sessions, multiple times per
-    /// nav transition) — the "More tab → Trends" stall.
+    /// nav transition).
     @State private var allSessions: [HRVSession] = []
     @State private var isLoadingSessions = false
     /// Set when a refresh is asked for while a load is running; the running
@@ -128,8 +128,8 @@ struct TrendsV2View: View {
         case stress = "Stress"
 
         /// The name on screen. `rawValue` is English and stays the chart's
-        /// data key; shown as-is, the picker and titles were English in every
-        /// language.
+        /// data key; shown as-is, the picker and titles would be English in
+        /// every language.
         var localizedName: String {
             let b = LanguageManager.appBundle
             return switch self {
@@ -215,12 +215,8 @@ struct TrendsV2View: View {
     /// Single calendar surface. The Sun–Sat month grid carries
     /// BOTH the day's objective training load (cell fill intensity) AND the
     /// subjective morning-feeling rating (small colored dot in the top-right
-    /// corner). User complaint: "Two calendars in Trends. Neither make sense.
-    /// One history calendar but it's tiny. The other is a 'how you felt' and
-    /// it's huge and you can't click into it." Resolved by consolidating both
-    /// signals into the one tappable calendar — load tells you what you DID,
-    /// dot tells you how you felt that morning, tap opens the day's session
-    /// detail.
+    /// corner): load tells you what you DID, the dot how you felt that
+    /// morning, and a tap opens the day's session detail.
     private var calendar: some View {
         HistoryCalendarView(allSessions: allSessions, onDelete: deleteSession)
     }
@@ -264,18 +260,21 @@ struct TrendsV2View: View {
             // Async loader runs on a background priority queue and uses
             // the lightweight retrieve path (skips rrSeries decode), so
             // the main thread never blocks on disk during nav transition.
-            allSessions = await collector.recentSessionsAsync(limit: nil)
+            // Nil once the view's task is cancelled (the screen went away):
+            // the load stops and nothing partial replaces the sessions.
+            guard let loaded = await collector.allSessionsAsync() else { return }
+            allSessions = loaded
             rebuildDerived()
         } while reloadRequested
     }
 
     /// Soft-delete a session from the calendar's day sheet (moves it to Trash)
-    /// through `SessionTrash.move`, the delete path History uses. Removing it
+    /// through `SessionDeletion`, the delete path History uses. Removing it
     /// from `allSessions` immediately keeps the calendar in sync before the
     /// archive signal re-loads. Returns whether the reading left the archive.
     private func deleteSession(_ session: HRVSession) async -> Bool {
         do {
-            try await SessionTrash.move(session.id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
+            try await dependencies.storage.sessionDeletion.moveToTrash(session.id)
             allSessions.removeAll { $0.id == session.id }
             rebuildDerived()
             return true

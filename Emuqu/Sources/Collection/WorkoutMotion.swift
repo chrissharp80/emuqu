@@ -4,7 +4,7 @@ import Foundation
 
 /// Published motion / GPS / pedometer metrics for an active workout.
 ///
-/// Split out from `WorkoutRecorder` so the workout live-view doesn't
+/// Separate from `WorkoutRecorder` so the workout live-view doesn't
 /// re-render on HR beats just because distance ticks (and vice versa).
 /// Without the split, every 1 Hz incremental tick invalidates the entire
 /// recorder subscription; views that show only the map or only the stat

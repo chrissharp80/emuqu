@@ -26,7 +26,7 @@ extension MorningSessionPipeline {
         await overnight.backupStreamingData(streamingPoints, sessionId: baseSession.id)
         let internalPoints = await overnight.fetchNightFromStrap(
             baseSession: baseSession, streamingPoints: streamingPoints,
-            isVeritySense: collector.isVeritySenseDevice(baseSession)
+            isVeritySense: collector.overnightStreaming.isVeritySenseDevice(baseSession)
         )
         guard let chosen = await resolveOvernightSource(
             streamingPoints: streamingPoints, internalPoints: internalPoints, baseSession: baseSession
@@ -71,7 +71,7 @@ extension MorningSessionPipeline {
     /// Fail the session, backing up first the strap beats no session will hold.
     private func failRescuingDownload(_ internalPoints: [RRPoint]?, baseSession: HRVSession) async {
         rescueDownloadedBeats(internalPoints, baseSession: baseSession)
-        _ = await collector.failSession(from: baseSession)
+        _ = await collector.overnightStreaming.failSession(from: baseSession)
     }
 
     /// Downloaded strap beats go to their own backup, dated by the night's
@@ -98,24 +98,22 @@ extension MorningSessionPipeline {
     /// clears it.
     func publishGatherSavingState(streamingPoints: [RRPoint], elapsedHours: Double) async {
         await MainActor.run {
-            collector.morningStatus = .saving(beats: streamingPoints.count)
-            collector.isOvernightStreaming = false
+            collector.morningCoordination.morningStatus = .saving(beats: streamingPoints.count)
+            collector.streamingLifecycle.isOvernightStreaming = false
             collector.deviceStatus.isStreaming = false
-            collector.recordingPhase = .analyzing
-            collector.isCollecting = false
-            collector.collectedPoints = streamingPoints
-            collector.streamingElapsedSeconds = 0
-            collector.polarManager.recordRecordingHours(elapsedHours)
+            collector.sessionState.recordingPhase = .analyzing
+            collector.sessionState.isCollecting = false
+            collector.sessionState.collectedPoints = streamingPoints
+            collector.streamingLifecycle.streamingElapsedSeconds = 0
+            collector.polarManager.battery.recordRecordingHours(elapsedHours)
         }
     }
 }
 
 // MARK: - File-scope helpers
 //
-// Kept outside RRCollector: each names no member of the
-// type and calls nothing inside it, so none needs to be a member.
-// `private` at file scope is fileprivate, so every call site in this
-// file resolves the same way.
+// Each names no member of `RRCollector` and calls nothing on it, so none needs
+// to be inside the type.
 
 @MainActor
 /// Select best data source — prefers device when it has more beats,

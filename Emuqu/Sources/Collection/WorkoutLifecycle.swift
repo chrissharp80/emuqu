@@ -3,11 +3,10 @@ import Foundation
 
 /// Published lifecycle state for an active workout session.
 ///
-/// Final slice extracted from `WorkoutRecorder` — covers the recording
-/// phase state-machine, the active/finished session handles, elapsed
-/// time, user-selected target HR zone, and the active HR source. After
-/// this extraction `WorkoutRecorder` has no `@Published` properties of
-/// its own; every observable field lives on a focused sub-observable
+/// Covers the recording phase state-machine, the active/finished session
+/// handles, elapsed time, user-selected target HR zone, and the active HR
+/// source. `WorkoutRecorder` has no `@Published` properties of its own;
+/// every observable field lives on a focused sub-observable
 /// (`WorkoutMotion`, `WorkoutHR`, `WorkoutLifecycle`).
 ///
 /// Views that display workout phase / session / timer can subscribe to

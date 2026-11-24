@@ -4,7 +4,7 @@ import Foundation
 // The on-disk session file codec: encoding and decoding one session file and
 // its integrity hash, depending on nothing else in the archive beyond the
 // shared coders. Encryption is not the codec's own: it uses the app's
-// `EncryptionManager` (`AppDependencies.current.storage.encryptionManager`)
+// `EncryptionManager` (the archive's `encryption`)
 // and reports when that could not encrypt.
 
 extension SessionArchive {
@@ -13,10 +13,9 @@ extension SessionArchive {
     // The encode → encrypt-if-available →
     // SHA256-hex write path is shared by four call sites (`_archive`,
     // `archiveBatch`, `relinkSameNightSessions`, plus the hash step of
-    // `repairArchive`'s read side). As hand-rolled copies, one (relink)
-    // diverged once in the field — hashing plaintext while writing
-    // ciphertext — and broke every subsequent read. Centralizing the path
-    // makes that class of drift structurally impossible.
+    // `repairArchive`'s read side). Hand-rolled copies drift: one that hashes
+    // plaintext while writing ciphertext breaks every subsequent read of the
+    // file. One shared path makes that class of drift structurally impossible.
     enum SessionFileCodec {
         /// Hex-encoded SHA256 of bytes exactly as they sit on disk. THE
         /// integrity contract: `_retrieve` hashes bytes-as-stored, so every
@@ -51,7 +50,8 @@ extension SessionArchive {
 
         static func encodeForDisk(
             _ session: HRVSession,
-            encoder: JSONEncoder
+            encoder: JSONEncoder,
+            encryption: EncryptionManager
         ) throws -> (bytes: Data, hash: String, format: DiskFormat) {
             // Drain in an autoreleasepool. This is the single
             // biggest transient in the overnight-stop path: encoding an
@@ -64,7 +64,7 @@ extension SessionArchive {
             // here frees it immediately. No behavior change — same bytes, same hash.
             try autoreleasepool {
                 let plaintext = try encoder.encode(session)
-                if let encrypted = encryptOrReportFailure(plaintext) {
+                if let encrypted = encryptOrReportFailure(plaintext, with: encryption) {
                     return (encrypted, sha256Hex(encrypted), .encrypted)
                 }
                 return (plaintext, sha256Hex(plaintext), .plaintextPendingEncryption)
@@ -80,14 +80,7 @@ extension SessionArchive {
     /// When Apple Health has already told us the sleep was one continuous
     /// block, we report one block.
     static func deriveSleepIndexFields(from session: HRVSession) -> (sleepEnd: Date?, sleepSegmentCount: Int?) {
-        (sleepEnd(of: session), sleepSegmentCount(of: session))
-    }
-
-    /// The snapshot's own sleep end, or the stored offset converted to a date.
-    private static func sleepEnd(of session: HRVSession) -> Date? {
-        if let snapshotEnd = session.sleepSnapshot?.sleepEnd { return snapshotEnd }
-        guard let endMs = session.sleepEndMs, endMs > 0 else { return nil }
-        return session.startDate.addingTimeInterval(TimeInterval(endMs) / 1000)
+        (session.sleepEndDate, sleepSegmentCount(of: session))
     }
 
     private static func sleepSegmentCount(of session: HRVSession) -> Int? {
@@ -111,8 +104,7 @@ extension SessionArchive {
 /// An unavailable key returns nil quietly (the caller records the session for
 /// re-encryption, which logs it); a seal that throws with the key present is
 /// logged here with its error, so the two causes stay apart in the logs.
-private func encryptOrReportFailure(_ plaintext: Data) -> Data? {
-    let manager = AppDependencies.current.storage.encryptionManager
+private func encryptOrReportFailure(_ plaintext: Data, with manager: EncryptionManager) -> Data? {
     guard manager.isAvailable else { return nil }
     do {
         return try manager.encrypt(plaintext)

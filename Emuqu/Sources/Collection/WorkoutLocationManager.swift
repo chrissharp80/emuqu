@@ -32,8 +32,8 @@ final class WorkoutLocationManager: NSObject {
     /// A workout asked to track before location was allowed. The answer to
     /// the permission prompt arrives later, through the authorization
     /// callback, and that is where tracking starts; without this the first
-    /// outdoor workout of a new install recorded no route and no GPS distance
-    /// even when the user tapped Allow.
+    /// outdoor workout of a new install would record no route and no GPS
+    /// distance even when the user taps Allow.
     private var startsWhenAuthorized = false
     /// Set while the workout is paused. Fixes still extend the route, so the
     /// map shows where the user went, but their movement is not workout
@@ -231,8 +231,8 @@ final class WorkoutLocationManager: NSObject {
     ///    ticker display.
     /// 2) The live estimate uses a deadband (hysteresis) accumulator, NOT a
     ///    per-delta 1 m gate — that overcounts by ~2× from environmental
-    ///    pressure noise (HVAC, weather fronts), the same bug the post-hoc
-    ///    processor's per-delta gate had. This value is what the
+    ///    pressure noise (HVAC, weather fronts), which is also why the
+    ///    post-hoc processor uses hysteresis. This value is what the
     ///    live UI shows AND the fallback persisted value when
     ///    `barometricSamples` is somehow empty at finalize, so it has to be
     ///    honest.
@@ -272,8 +272,8 @@ final class WorkoutLocationManager: NSObject {
     /// `liveSustainedClimbThresholdMeters` above or below the last banked
     /// level, the whole move is banked as gain or loss and the banked level
     /// moves there. A noise reversal smaller than the deadband never resets a
-    /// gradual climb, which an accumulator restarted on every change of
-    /// direction did, reading a long gentle climb as almost no gain.
+    /// gradual climb, as an accumulator restarted on every change of
+    /// direction would, reading a long gentle climb as almost no gain.
     private func advanceLiveAltitudeRun(current: Double) {
         guard let reference = liveAltitudeReference else {
             // First sample seeds the anchor; nothing to accumulate yet.
@@ -394,10 +394,9 @@ final class WorkoutLocationManager: NSObject {
     /// above the 2–5 m of stationary GPS wander, so a sitting user never
     /// accumulates phantom distance. But with DEGRADED outdoor accuracy (cold
     /// GPS at the start of a walk, urban canyon, tree cover — anything up to
-    /// the 65 m accept threshold) the uncapped floor demanded 30–97 m of
-    /// movement before crediting ANY distance, so a real walk read as "frozen"
-    /// until the fix sharpened. User report: "the location is acting
-    /// weird — it wants you to be moving." Capping at 20 m preserves the
+    /// the 65 m accept threshold) an uncapped floor would demand 30–97 m of
+    /// movement before crediting ANY distance, so a real walk would read as
+    /// "frozen" until the fix sharpens. Capping at 20 m preserves the
     /// stationary-drift rejection (drift never reaches 20 m) while letting
     /// genuine walking accumulate even when GPS is momentarily rough. The 3.5 m
     /// minimum-step gate still independently filters sub-step jitter.

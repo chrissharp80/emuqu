@@ -2,13 +2,13 @@ import Foundation
 
 // MARK: - Time-in-Bed Repair One-Shot Migration
 //
-// For a few days in October 2026 the sleep resolver and the sleep editor added
-// the stretch from the start of the sleep search window to the night's first
-// stage to time in bed. That window opens two hours before bedtime (or at the
-// strap recording's start), so stored nights read hours longer in bed than
-// they were, with efficiency — and the recovery score's efficiency component —
-// low to match. Automatic sleep refresh never rewrites a night for a changed
-// time in bed alone, so those nights would keep the wrong value.
+// Nights stored by builds whose sleep resolver and sleep editor added the
+// stretch from the start of the sleep search window to the night's first
+// stage to time in bed read hours longer in bed than they were: that window
+// opens two hours before bedtime (or at the strap recording's start), and
+// efficiency — and the recovery score's efficiency component — is low to
+// match. Automatic sleep refresh never rewrites a night for a changed time
+// in bed alone, so those nights would keep the wrong value.
 //
 // This one-shot migration sets every stage-built night's time in bed back to
 // sleep plus awake, recomputes its efficiency, and rescores the nights it
@@ -22,7 +22,7 @@ extension SessionDataMigrations {
         guard !defaults.bool(forKey: Self.timeInBedRepairKey) else { return }
         var repaired = 0
         var failed = 0
-        for entry in archive.entries where entry.sessionType == .overnight {
+        for entry in archive.store.entries where entry.sessionType == .overnight {
             switch await repairTimeInBed(entry) {
             case .repaired: repaired += 1
             case .failed: failed += 1

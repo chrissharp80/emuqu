@@ -37,9 +37,17 @@ extension RecordView {
     /// What Discard does to a reading awaiting review (`rejectSession`): one
     /// saved for review moves to the Trash and leaves the baseline; a night
     /// that was archived before the review is left as it was. The acceptance
-    /// card and the morning report say it with the same words.
+    /// card and the morning report say it with the same words. A recording the
+    /// archive folded into a night it already held cannot be taken back out
+    /// of that night, and the message says so instead.
     var readingDiscardMessage: String {
-        String(
+        if sessionState.reviewFoldedIntoSessionId != nil {
+            return String(
+                localized: "This recording was added to a night already in your history, and that cannot be undone here. Discarding clears this review; the night stays in your history with this recording in it. To remove it, delete the night from History.",
+                bundle: LanguageManager.appBundle
+            )
+        }
+        return String(
             localized: "This discards the reading and leaves it out of your baseline. If it was already saved, it moves to the Trash, where you can restore it from Settings → iCloud & Data → Trash. A night that was in your history before this recording stays as it was.",
             bundle: LanguageManager.appBundle
         )
@@ -123,7 +131,7 @@ extension RecordView {
            !sessionState.needsAcceptance, morningCoordination.morningStatus == nil {
             let needsConnection = [SessionType.overnight, .nap, .quick].contains(selectedSessionType)
             if needsConnection, !deviceStatus.isStreaming {
-                ConnectionPanel(polarManager: collector.polarManager, collector: collector, selectedSessionType: selectedSessionType)
+                ConnectionPanel(polarManager: collector.polarManager, selectedSessionType: selectedSessionType)
             }
         }
     }
@@ -137,8 +145,8 @@ extension RecordView {
         if deviceStatus.isDeviceConnected, collector.offersStrapRecovery, !fetchFailed, !sessionState.needsAcceptance, !deviceStatus.isStreaming, !sessionState.isCollecting, deviceStatus.fetchProgress == nil, morningCoordination.morningStatus == nil {
             RecoverableDataCard(
                 deviceName: deviceStatus.connectedDeviceType?.displayName ?? String(localized: "Device", bundle: LanguageManager.appBundle),
-                onRecover: recoverStoredData,
-                onDiscard: discardAndStartFresh
+                onRecover: panels.recoverStoredData,
+                onDiscard: panels.discardAndStartFresh
             )
         }
     }
@@ -242,14 +250,14 @@ extension RecordView {
         if (selectedSessionType == .overnight || selectedSessionType == .nap)
             && !streamingLifecycle.isOvernightStreaming && !streamingLifecycle.isPaused,
             let recentSession = sessionState.recentPausedSession {
-            continueRecoveryCard(session: recentSession)
+            panels.continueRecoveryCard(session: recentSession)
         }
     }
 
     @ViewBuilder
     var overnightRecordingSectionIfSelected: some View {
         if selectedSessionType == .overnight || selectedSessionType == .nap {
-            overnightRecordingSection
+            panels.overnightRecordingSection
         }
     }
 
@@ -257,7 +265,7 @@ extension RecordView {
     @ViewBuilder
     var quickReadingSectionIfSelected: some View {
         if selectedSessionType == .quick {
-            quickReadingSection
+            panels.quickReadingSection
         }
     }
 
@@ -477,15 +485,16 @@ extension RecordView {
     /// A delete that fails keeps the report open over the reading, which is
     /// still archived, and says so; the user can try again.
     func discardQuickReading(_ session: HRVSession) {
-        do {
-            try collector.archive.delete(session.id)
-            Task { await AppDependencies.current.storage.cloudKitSyncManager.uploadDeletion(session.id) }
-        } catch {
-            debugLog("[RecordView] ⚠️ Failed to delete discarded session \(session.id.uuidString.prefix(8)): \(error)")
-            quickDiscardFailed = true
-            return
+        Task {
+            do {
+                try await dependencies.storage.sessionDeletion.moveToTrash(session.id)
+            } catch {
+                debugLog("[RecordView] ⚠️ Failed to delete discarded session \(session.id.uuidString.prefix(8)): \(error)")
+                quickDiscardFailed = true
+                return
+            }
+            resetAfterQuickReading()
         }
-        resetAfterQuickReading()
     }
 
     func resetAfterQuickReading() {
@@ -500,7 +509,7 @@ extension RecordView {
         }
     }
 
-    // MARK: - Extracted callbacks
+    // MARK: - Callbacks
     //
     // Each of these would, as an inline closure, put its enclosing
     // view one level past the spec nesting limit. Lifting the closure out is
@@ -520,7 +529,7 @@ extension RecordView {
         interruptedWorkoutId = nil
         recoveredWorkoutFailure = nil
         Task {
-            let closed = await collector.retrimRecoveredWorkout(sessionId: review.sessionId, endSec: endSec)
+            let closed = await collector.recovery.retrimRecoveredWorkout(sessionId: review.sessionId, endSec: endSec)
             if !closed {
                 recoveredWorkoutFailure = String(localized: "Couldn't save the trimmed workout. Try again.", bundle: LanguageManager.appBundle)
             }
@@ -531,7 +540,7 @@ extension RecordView {
     func discardRecoveredWorkout(_ review: MorningCoordination.RecoveredWorkoutReview) {
         interruptedWorkoutId = nil
         recoveredWorkoutFailure = nil
-        if !collector.discardRecoveredWorkout(sessionId: review.sessionId) {
+        if !collector.recovery.discardRecoveredWorkout(sessionId: review.sessionId) {
             recoveredWorkoutFailure = String(localized: "Couldn't delete this workout. Try again.", bundle: LanguageManager.appBundle)
         }
     }

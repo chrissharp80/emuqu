@@ -4,8 +4,7 @@ import Foundation
 //
 // The pure analysis half of `OvernightChartsView`: RR → HR, rolling RMSSD,
 // peak-HRV search, sleep duration, and the assembly of the rendered
-// `OvernightStats`. Split out of the view file so the type stays under the
-// body-length budget; nothing here touches SwiftUI state.
+// `OvernightStats`. Nothing here touches SwiftUI state.
 
 /// Pure overnight-statistics computation, split from the view so it can run
 /// on a detached task without capturing the view (which is not `Sendable`).
@@ -223,8 +222,8 @@ struct OvernightStatsComputer: Sendable {
     }
 
     /// Prefer pre-computed zones from the analysis result; fall back to
-    /// an on-demand scan (cached + disk-backfilled) so sessions recorded
-    /// before this feature existed still get the green overlay.
+    /// an on-demand scan (cached + disk-backfilled) so sessions stored
+    /// without zones still get the green overlay.
     private func organizedZones(
         series: RRSeries,
         flags: [ArtifactFlags],
@@ -686,7 +685,7 @@ extension OvernightChartsView {
         let winEnd = session.startDate.addingTimeInterval(Double(win.end) / 1000.0)
         let samples: [(date: Date, hr: Double)]
         do {
-            samples = try await AppDependencies.current.collection.healthKitManager.fetchHeartRateSamples(from: winStart, to: winEnd)
+            samples = try await dependencies.collection.healthKitManager.heartRate.fetchHeartRateSamples(from: winStart, to: winEnd)
         } catch {
             // Logged, not shown: the chart degrades to the Polar data alone.
             debugLog("[ChartGate] seg[\(segIdx)] HK HR fetch failed: \(error)", level: .warning)

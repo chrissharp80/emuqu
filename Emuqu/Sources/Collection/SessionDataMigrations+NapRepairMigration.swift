@@ -8,7 +8,7 @@ extension SessionDataMigrations {
     private static let napRepairMigrationKey = "FlowRecovery.napRepairBackfill.v1.done"
 
     /// How far back to scan for nap-repairable overnight sessions. Covers the
-    /// full TestFlight history with margin.
+    /// app's full history with margin.
     private static let napRepairLookbackDays = 400
 
     /// One-time backfill for overnight sessions scored before daytime naps were
@@ -26,8 +26,8 @@ extension SessionDataMigrations {
     /// Idempotency is doubly guarded: the global flag skips the whole scan once it
     /// has converged, and `session.napRepaired == true` skips any individual
     /// session already handled — so a session is never processed twice even if the
-    /// flag is somehow cleared. Each night is decoded off the main actor, as
-    /// hundreds of them held the screen. Every scanned session is marked `napRepaired`
+    /// flag is somehow cleared. Each night is decoded off the main actor:
+    /// hundreds of them would hold the screen. Every scanned session is marked `napRepaired`
     /// whether or not a nap was found, so "already checked" is unambiguous. When
     /// HealthKit cannot be read for a night (locked, or the query failed) the
     /// scan stops without marking that night or setting the flag, and the
@@ -101,7 +101,7 @@ extension SessionDataMigrations {
             defaults.set(true, forKey: Self.napRepairMigrationKey)
             return nil
         }
-        let overnightEntries = archive.entries(from: startDate, to: endDate)
+        let overnightEntries = archive.store.entries(from: startDate, to: endDate)
             .filter { $0.sessionType == .overnight }
         // Without HealthKit on this device there is no nap to fold in, ever.
         guard healthKit.isHealthKitAvailable, !overnightEntries.isEmpty else {
@@ -127,7 +127,7 @@ extension SessionDataMigrations {
             markChecked(session.id)
             return .unchanged
         }
-        guard let napMinutes = await healthKit.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt: session.startDate) else {
+        guard let napMinutes = await healthKit.sleepQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt: session.startDate) else {
             return .unreadable
         }
         guard napMinutes > 0 else {

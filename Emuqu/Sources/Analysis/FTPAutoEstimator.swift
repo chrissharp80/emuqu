@@ -48,8 +48,8 @@ enum FTPAutoEstimator {
     private static let cachedFTPKey = "FlowRecovery.ftpAutoEstimate.runningFTP"
     private static let cachedAsOfKey = "FlowRecovery.ftpAutoEstimate.computedAt"
     private static let cachedSourceSessionKey = "FlowRecovery.ftpAutoEstimate.sourceSessionId"
-    /// Written by earlier versions (it held the 20-minute mean power, not
-    /// normalized power, and nothing read it); removed on every scan.
+    /// A key nothing writes or reads (it holds the 20-minute mean power, not
+    /// normalized power); removed on every scan.
     private static let legacySourcePowerKey = "FlowRecovery.ftpAutoEstimate.sourceNP"
     /// Re-scan at most this often unless the archive changed (see `needsRecompute`).
     private static let rescanInterval: TimeInterval = 7 * 24 * 3600
@@ -112,9 +112,9 @@ enum FTPAutoEstimator {
     /// workout is no longer in the archive.
     static func needsRecompute(archive: SessionArchive, now: Date) -> Bool {
         guard let last = lastComputedAt, now.timeIntervalSince(last) < rescanInterval else { return true }
-        if archive.entries.contains(where: { $0.sessionType == .workout && $0.date > last }) { return true }
+        if archive.store.entries.contains(where: { $0.sessionType == .workout && $0.date > last }) { return true }
         guard let anchor = sourceSessionId else { return false }
-        return !archive.entries.contains { $0.sessionId == anchor }
+        return !archive.store.entries.contains { $0.sessionId == anchor }
     }
 
     /// Scan synchronously on the caller's thread. Reads are lightweight (no
@@ -216,7 +216,7 @@ enum FTPAutoEstimator {
     /// the scan incomplete only when the failure may clear.
     private static func recentRunningWorkouts(archive: SessionArchive, now: Date) -> (sessions: [HRVSession], complete: Bool) {
         let cutoff = now.addingTimeInterval(-Double(lookbackDays) * 86_400)
-        let entries = archive.entries.filter { $0.sessionType == .workout && $0.date >= cutoff && $0.date <= now }
+        let entries = archive.store.entries.filter { $0.sessionType == .workout && $0.date >= cutoff && $0.date <= now }
         var sessions: [HRVSession] = []
         var complete = true
         for entry in entries {

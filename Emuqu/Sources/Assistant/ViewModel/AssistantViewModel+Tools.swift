@@ -3,11 +3,8 @@ import Foundation
 import os.log
 import SwiftUI
 
-// Split out of AssistantViewModel.swift to keep the primary FILE under the
-// 1500-line budget, and off the TYPE (which is what the aggregate type-size
-// gate measures) for the same reason as the RRCollector and WorkoutRecorder
-// coordinator splits: ~800 lines reading 26 view-model members. The reads are
-// `owner.` and countable instead of looking like this type's own state.
+// The tool-use loop of a turn: dispatching the model's tool calls and feeding
+// their results back.
 
 extension AssistantToolRunner {
     // MARK: - Tool-use dispatch loop
@@ -23,8 +20,8 @@ extension AssistantToolRunner {
     /// data it should have fetched.
     ///
     /// Each round = one full HTTP round trip to the provider (~800–2000 ms).
-    /// Real coaching turns rarely use more than 4–6 tools (the longest in the
-    /// wild was 6); a higher ceiling just gives misbehaving models room to
+    /// Real coaching turns rarely use more than 4–6 tools; a higher
+    /// ceiling just gives misbehaving models room to
     /// wander. Eight covers every real coaching path from the list above and
     /// keeps pathological turns bounded at 8 × ~1 s.
     static let maxToolCallsPerTurn = 8
@@ -283,7 +280,7 @@ extension AssistantToolRunner {
     private func recordAuditFailure(_ error: Error, auditID: UUID) {
         guard !(error is CancellationError), !Task.isCancelled else { return }
         let description = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-        AppDependencies.current.providers.llmRequestAudit.setError(description, for: auditID)
+        owner.services.llmRequestAudit.setError(description, for: auditID)
     }
 
     /// Prompt audit. Capture the inputs we're
@@ -316,7 +313,7 @@ extension AssistantToolRunner {
         tools: [ToolSpec],
         toolRounds: [[ToolExchange]]
     ) -> UUID {
-        AppDependencies.current.providers.llmRequestAudit.record(
+        owner.services.llmRequestAudit.record(
             provider: provider.id.rawValue,
             model: model.apiID,
             systemPrompt: systemPrompt,
@@ -343,7 +340,7 @@ extension AssistantToolRunner {
         switch event {
         case let .textDelta(chunk):
             buffer.append(chunk: chunk, thisRoundIsEmpty: thisRound.isEmpty)
-            AppDependencies.current.providers.llmRequestAudit.append(textDelta: chunk, to: auditID)
+            owner.services.llmRequestAudit.append(textDelta: chunk, to: auditID)
         case let .toolUse(id, name, inputJSON):
             guard !budgetExhausted, !Task.isCancelled else { return }
             thisRound.append(PendingToolCall(id: id, name: name, inputJSON: inputJSON))
@@ -387,11 +384,11 @@ extension AssistantToolRunner {
         let totalProcessed = input + cached + cacheCreate
         let hitRatio = totalProcessed > 0 ? Double(cached) / Double(totalProcessed) : 0
         debugLog("[Assistant] usage \(provider.id.rawValue): input=\(input) output=\(output) cached=\(cached) cacheCreate=\(cacheCreate) hit_ratio=\(String(format: "%.2f", hitRatio))")
-        AppDependencies.current.providers.llmCacheTelemetry.record(
+        owner.services.llmCacheTelemetry.record(
             provider: provider.id.rawValue, input: input, output: output,
             cachedRead: cached, cacheCreate: cacheCreate
         )
-        AppDependencies.current.providers.llmRequestAudit.setUsage(
+        owner.services.llmRequestAudit.setUsage(
             .init(
                 inputTokens: input, outputTokens: output,
                 cachedReadTokens: cached, cacheCreateTokens: cacheCreate
@@ -446,7 +443,7 @@ extension AssistantToolRunner {
     /// Use the verifier's pre-built corrected text instead of
     /// splicing ranges here. The verifier matches against its own
     /// normalized text (spelled-out → digits), so splicing those ranges
-    /// into the original produced mid-word corruption. Its
+    /// into the original would corrupt words mid-way. Its
     /// `correctedText` is the original text with only the claimed spans
     /// replaced, so we just swap the whole string.
     ///
@@ -461,7 +458,7 @@ extension AssistantToolRunner {
     private func verifyAppStateNumbers(turnID: UUID) {
         guard let assistantIndex = owner.liveTurnIndex(for: turnID) else { return }
         let original = owner.turns[assistantIndex].text
-        let live = MetricsVerifier.verify(original, againstLive: AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot())
+        let live = MetricsVerifier.verify(original, againstLive: owner.services.liveWorkoutBroker.currentSnapshot())
         let text = MetricsVerifier.correctedText(from: original, applying: live) ?? original
         let result = MetricsVerifier.verifyAppStateClaims(text)
         let discrepancies = live + result.discrepancies
@@ -639,8 +636,8 @@ extension AssistantToolRunner {
     }
 
     /// Build the ordered fallback list for the generic
-    /// provider-failure path. The user's spec: "if I don't have an
-    /// API key or credit then it should move to the next one."
+    /// provider-failure path: a missing API key or credit moves the turn
+    /// to the next provider.
     /// Order:
     ///   1. Other configured non-Apple providers (the user paid for
     ///      these too — try them before falling to free)
@@ -659,8 +656,8 @@ extension AssistantToolRunner {
         var result: [(AIProvider, ModelOption)] = []
         for provider in owner.registry.allProviders
             where provider.id != primary.id && provider.id != .apple && provider.isAvailable
-                && ProviderRegistry.isEnabled(provider.id)
-                && !AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id) {
+                && owner.registry.isEnabled(provider.id)
+                && !owner.services.providerConsentTracker.requiresConsent(provider.id) {
             if let model = Self.defaultModel(of: provider) { result.append((provider, model)) }
         }
         if owner.registry.apple.isAvailable, primary.id != .apple,

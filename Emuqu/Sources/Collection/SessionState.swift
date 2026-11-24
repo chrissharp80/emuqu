@@ -3,7 +3,7 @@ import Observation
 
 /// Published core session state for the active recording and its analysis.
 ///
-/// Final slice extracted from `RRCollector` — covers the recording
+/// Covers the recording
 /// state-machine, the active session + its RR samples, error surface,
 /// analysis outcome (verification, recovery window, baseline deviation),
 /// and the paused-session recovery cache.
@@ -15,9 +15,8 @@ import Observation
 /// session and its analysis live here.
 ///
 /// Writers: RRCollector's extension files (lifecycle, streaming,
-/// overnight, acceptance, recovery, analysis). The collector exposes
-/// back-compat forwarding properties so extension code migrates
-/// incrementally.
+/// overnight, acceptance, recovery, analysis), mostly through the
+/// collector's forwarding properties.
 @MainActor
 @Observable
 final class SessionState {
@@ -53,6 +52,19 @@ final class SessionState {
     /// "Discard" trashes this id; nil when the reviewed session was already
     /// in the archive before this review began.
     var reviewArchivedSessionId: UUID?
+
+    /// The night already in the archive that this review's recording was
+    /// folded into when it was saved, a second recording of the same night.
+    /// The fold cannot be undone, so "Discard" leaves that night as it is and
+    /// says so; nil when the recording was saved under its own id.
+    var reviewFoldedIntoSessionId: UUID?
+
+    /// Forget which archived night this review saved or was folded into, so
+    /// Discard no longer points at it.
+    func forgetReviewedNight() {
+        reviewArchivedSessionId = nil
+        reviewFoldedIntoSessionId = nil
+    }
 
     /// The user's own entries on a session, as one value to compare.
     struct ReviewEntries: Equatable {

@@ -48,7 +48,7 @@ extension PDFReportGenerator {
         let pageRect: CGRect
 
         mutating func ensureSpace(_ needed: CGFloat, y: CGFloat, generator: PDFReportGenerator) -> CGFloat {
-            generator.ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
+            generator.sections.ensureSpace(needed: needed, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
         }
     }
 
@@ -121,7 +121,7 @@ extension PDFReportGenerator {
         let explanation = summaryExplanationText(summary)
         let explanationHeight = max(55, wrappedHeight(explanation, width: contentWidth - 40))
         let cardHeight = 50 + explanationHeight + 5
-        let color = diagnosticColorForScore(summary.headlineScore)
+        let color = overnight.diagnosticColorForScore(summary.headlineScore)
         drawSummaryCardFrame(color: color, y: y, contentWidth: contentWidth, cardHeight: cardHeight)
         drawSummaryCardCopy(summary, color: color, y: y, contentWidth: contentWidth)
         explanation.pdfDraw(in: CGRect(x: config.margins.left + 20, y: y + 50, width: contentWidth - 40, height: explanationHeight))
@@ -317,15 +317,8 @@ extension PDFReportGenerator {
 
 // MARK: - File-scope helpers
 //
-// Kept outside the type. Each touches no instance state —
-// including the computed properties — and
-// calls nothing inside it, so none is a method in anything but
-// placement. `private` at file scope is fileprivate, so every call site in
-// this file resolves the same way.
-//
-// This is what `check_aggregate_type_size.sh` measures: a type is the sum of
-// its parts across every file, so code that does not need the type inflates
-// that number without making the type do more.
+// Each touches no instance state — including the computed properties —
+// and calls nothing on the type, so none needs to be a method.
 
 /// The report's trend is already the generator's input type; a trend over no
 /// nights is passed as none.

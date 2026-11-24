@@ -3,10 +3,9 @@ import CoreLocation
 import MapKit
 import SwiftUI
 
-// Split out from FitnessTabView.swift. Holds the Get Me
-// Back card, strap status pill + connect affordance, and supporting
-// view builders. Members on FitnessTabView are internal rather than
-// private so this extension can call them.
+// The Get Me Back card, strap status pill + connect affordance, and
+// supporting view builders. Members on FitnessTabView are internal rather
+// than private so this extension can call them.
 
 extension FitnessTabView {
     // MARK: - Get Me Back card
@@ -361,7 +360,7 @@ extension FitnessTabView {
             weekWorkoutIds.compactMap { archive.retrieveLightweightOrLog($0, caller: "Fitness.elevation") }
         }.value
         // HK-aggregated daily activity (everywhere, all sources). 7 days; index 0 = today.
-        async let activityTask = collector.healthKit.fetchDailyActivity(days: 7)
+        async let activityTask = collector.healthKit.vitals.fetchDailyActivity(days: 7)
         let workouts = await workoutsTask
         let todaysWorkouts = workouts.filter { $0.startDate >= today }
         applyElevationTotals(workouts: workouts, todaysWorkouts: todaysWorkouts, weekAgo: weekAgo)
@@ -395,7 +394,7 @@ extension FitnessTabView {
     private func applyCachedMeanHRR(workouts: [HRVSession], archive: SessionArchive) {
         let workoutById = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var drops: [Int] = []
-        for entry in archive.entries where entry.sessionType == .workout && withinDays(entry.date, 7) {
+        for entry in archive.store.entries where entry.sessionType == .workout && withinDays(entry.date, 7) {
             let session = workoutById[entry.sessionId]
                 ?? archive.retrieveLightweightOrLog(entry.sessionId, caller: "fitness.summary.hrr")
             if let drop = session?.workoutMetadata?.hrrSamples?.bestAtOneMinute?.drop {
@@ -409,7 +408,7 @@ extension FitnessTabView {
     /// reported no steps for the whole week while the pedometer counted some.
     /// HealthKit answers a denied read with an empty result, so all-zero days
     /// are what a denied step/distance/flights read looks like; without this
-    /// the card showed 0 steps instead of the pedometer fallback.
+    /// the card shows 0 steps instead of the pedometer fallback.
     @MainActor
     private func applyDailyActivity(healthKit: [HealthKitManager.DailyActivity]) {
         let healthKitIsEmpty = healthKit.allSatisfy { $0.stepCount == 0 }
@@ -430,9 +429,9 @@ extension FitnessTabView {
         var attribDistance: Double = 0
         var attribFlights = 0
         for (start, end) in mergedWorkoutWindows(workouts, since: dayStart, now: Date()) {
-            async let s = collector.healthKit.fetchSumSteps(from: start, to: end)
-            async let d = collector.healthKit.fetchSumDistance(from: start, to: end)
-            async let f = collector.healthKit.fetchSumFlights(from: start, to: end)
+            async let s = collector.healthKit.vitals.fetchSumSteps(from: start, to: end)
+            async let d = collector.healthKit.vitals.fetchSumDistance(from: start, to: end)
+            async let f = collector.healthKit.vitals.fetchSumFlights(from: start, to: end)
             attribSteps += await s
             attribDistance += await d
             attribFlights += await f
@@ -467,7 +466,7 @@ extension FitnessTabView {
 /// need this week's workouts.
 @MainActor
 private func weekWorkoutSessionIds(archive: SessionArchive, since weekAgo: Date) -> [UUID] {
-    archive.entries
+    archive.store.entries
         .filter { $0.sessionType == .workout && $0.date >= weekAgo }
         .map { $0.sessionId }
 }

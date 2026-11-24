@@ -4,12 +4,9 @@ import SwiftUI
 /// The hero, recent-workout and workout-history surfaces on the fitness
 /// tab.
 ///
-/// Split out of `FitnessTabView`, the same shape as [MorningDetailCards],
-/// [MorningReanalysisControls] and [RecoveryScoreCharts].
-///
-/// Deliberately NOT a `View`. It returns the same view trees from the same
-/// positions, so SwiftUI identity, animation and `@State` behaviour are
-/// unchanged; the snapshot suite pins that.
+/// Deliberately NOT a `View`: it returns view trees into the host view's
+/// body, so SwiftUI identity, animation and `@State` stay the host's; the
+/// snapshot suite pins that.
 @MainActor
 struct FitnessStrapSection {
     let collector: RRCollector
@@ -42,10 +39,10 @@ struct FitnessStrapSection {
     @Binding var meanHRR1m7d: Double?
 }
 
-// MARK: - Forwarders
+// MARK: - Host accessor
 
-// The strap and workout-history surfaces live here, out of
-// FitnessTabView. `strapSection` is rebuilt on each access from the
+// The strap and workout-history surfaces of the fitness tab.
+// `strapSection` is rebuilt on each access from the
 // view's live state, and every mutation travels back through a binding.
 
 extension FitnessTabView {

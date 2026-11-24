@@ -5,12 +5,11 @@ import UIKit
 /// Draws the overnight-session pages of the PDF report: the overnight heart
 /// rate chart, the stats section, and the tags-and-notes block.
 ///
-/// Split out of `PDFReportGenerator`, like `DeepDiveReportRenderer`.
-/// This code needs only three members of the
-/// generator — the report config and two drawing primitives — and the four
-/// types it works with (`OvernightStatValues`, `OvernightSleepStats`,
-/// `PeakRMSSDResult`, `PeakScanWindow`) have no reader anywhere else in the
-/// codebase, so they live with the code that owns them.
+/// It needs only three members of the generator — the report config and
+/// two drawing primitives. The four types it works with
+/// (`OvernightStatValues`, `OvernightSleepStats`, `PeakRMSSDResult`,
+/// `PeakScanWindow`) have no reader anywhere else in the codebase, so they
+/// live here with it.
 ///
 /// Holds its owner strongly and is built on demand by the generator — a
 /// value with no state of its own, so nothing here can outlive what it
@@ -25,6 +24,6 @@ struct OvernightReportRenderer {
     }
 
     func drawCompactStatBox(title: String, value: String, color: UIColor, rect: CGRect) {
-        generator.drawCompactStatBox(title: title, value: value, color: color, rect: rect)
+        generator.sections.drawCompactStatBox(title: title, value: value, color: color, rect: rect)
     }
 }

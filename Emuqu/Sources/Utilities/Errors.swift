@@ -2,7 +2,7 @@ import Foundation
 
 /// Errors that occur within the HRV analysis pipeline.
 /// Used for structured logging and boundary diagnostics — callers see Optional results
-/// so the public API is unchanged, but every failure is now categorized and logged.
+/// so the public API is unchanged, but every failure is categorized and logged.
 enum PipelineError: Error, LocalizedError {
     case noRRSeries(sessionId: UUID)
     case timeDomainFailed(sessionId: UUID, windowStart: Int, windowEnd: Int)
@@ -31,30 +31,24 @@ enum PipelineError: Error, LocalizedError {
 
 /// `try?` that leaves a trace.
 ///
-/// The refactor spec's rule is "no swallowed errors", and the flat `try?` count
-/// was budgeted precisely because it is the one place this codebase routinely
-/// broke it. The write/encode/delete subset is the dangerous half: a swallowed
+/// The write/encode/delete subset of `try?` is the dangerous half: a swallowed
 /// read degrades a feature and the user sees it immediately, while a swallowed
 /// *write* is silent data loss that surfaces days later as a hole in a 60-day
 /// baseline — with nothing in the log to say when it happened.
 ///
-/// This is deliberately **not** a behaviour change. `attempt` returns `nil` on
-/// throw exactly as `try?` does, so every call site keeps its existing control
-/// flow, its existing `guard … else { return }`, and its existing recovery
-/// path. The only difference is that the failure is now recorded. That
-/// restraint is the point: converting these sites to propagate errors would be
-/// a behaviour change wearing a refactor's clothes, and the spec forbids doing
-/// both at once.
+/// `attempt` returns `nil` on throw exactly as `try?` does, so every call site
+/// keeps its control flow, its `guard … else { return }`, and its recovery
+/// path. The only difference is that the failure is recorded.
 ///
 /// Logs at `.warning` so failures land in the user-facing "Recent Problems"
 /// catalog in Settings → Troubleshooting. A write that fails is something the
 /// user is entitled to know about, because it is their data that did not land.
 ///
 /// ```swift
-/// // before — failure is invisible
+/// // `try?` — failure is invisible
 /// try? data.write(to: url, options: .atomic)
 ///
-/// // after — identical behaviour, failure is greppable
+/// // `attempt` — identical behaviour, failure is greppable
 /// attempt("breadcrumbs.write") { try data.write(to: url, options: .atomic) }
 /// ```
 ///
@@ -82,19 +76,18 @@ func attempt<T>(
 
 /// Pause without letting a cancellation propagate, and say so in the log.
 ///
-/// The idiom this replaces — `try? await Task.sleep(...)` — has identical
-/// behaviour (a `CancellationError` is discarded either way) but leaves no
-/// trace. Debugging a "why did that retry loop stop pausing" report from a
-/// user log is impossible when the interruption is silent, so the swallow is
-/// funnelled through one place that records it.
+/// `try? await Task.sleep(...)` has identical behaviour (a `CancellationError`
+/// is discarded either way) but leaves no trace. A retry loop that stops
+/// pausing cannot be debugged from a user log when the interruption is
+/// silent, so the swallow is funnelled through one place that records it.
 ///
 /// `context` is a short phrase naming what the caller was waiting for, e.g.
 /// "strap reconnect backoff".
 ///
 /// The entry is attributed to the caller, as `attempt` does. Attributed here,
-/// every cancelled debounce in the app was filed under this file's name —
-/// `[Errors]` — so an exported log showed routine cancellations as a column of
-/// errors from nowhere in particular.
+/// every cancelled debounce in the app would be filed under this file's name —
+/// `[Errors]` — so an exported log would show routine cancellations as a column
+/// of errors from nowhere in particular.
 func sleepQuietly(_ nanoseconds: UInt64, context: String, file: String = #file, line: Int = #line) async {
     do {
         try await Task.sleep(nanoseconds: nanoseconds)

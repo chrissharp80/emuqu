@@ -73,7 +73,7 @@ extension MainTabView {
 
     /// Don't decrypt the dashboard slice while another tab is showing. These
     /// reloads fire on foreground / archive-change / CloudKit-pull — all
-    /// tab-independent — so tapping Record/Fitness was triggering a
+    /// tab-independent — so without this, tapping Record/Fitness would start a
     /// ~35-session dashboard decrypt unrelated to that screen. Defer to when
     /// the Dashboard is actually shown (it paints from cache meanwhile).
     func dashboardReloadIsWanted() -> Bool {
@@ -107,7 +107,7 @@ extension MainTabView {
             // Compute the true archive count off the main thread too, so the
             // body doesn't read `archive.entries.count` (lock + potential
             // full-index re-sort) on every render.
-            let count = await Task.detached { archiveRef.entries.count }.value
+            let count = await Task.detached { archiveRef.store.entries.count }.value
             timing.countedAt = Date()
             await MainActor.run { [timing] in
                 applyDashboardLoad(loaded, count: count, timing: timing)
@@ -242,17 +242,17 @@ extension MainTabView {
     /// The training-load refresh happens inside the detached task
     /// so the report reflects archive writes since the last cache refresh
     /// (plain `live()` could freeze a stale TSB/ACWR). See
-    /// `TrainingLoadRegistry.liveRefreshed()`.
+    /// `TrainingLoadRegistry.liveRefreshed(from:)`.
     func prepareAndSendReport(_ kind: SendReportKind) {
         guard preparingReportKind == nil else { return }
         preparingReportKind = kind
         reportPrepError = nil
-        let inputs = sendReportInputs(for: kind)
+        let (inputs, metrics) = (sendReportInputs(for: kind), dependencies.analysis.trainingMetricsCache)
         Task.detached(priority: .userInitiated) {
             let outcome = await Self.renderReport(
                 kind: kind,
                 inputs: Self.withFullSessions(inputs, kind: kind),
-                liveLoadSnapshot: await TrainingLoadRegistry.liveRefreshed()
+                liveLoadSnapshot: await TrainingLoadRegistry.liveRefreshed(from: metrics)
             )
             await MainActor.run { finishReportPreparation(outcome) }
         }

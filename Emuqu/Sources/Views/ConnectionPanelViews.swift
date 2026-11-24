@@ -9,9 +9,6 @@ import SwiftUI
 /// every state change.
 struct ConnectionPanel: View {
     var polarManager: PolarManager
-    /// Plain reference used only as a method/dependency carrier; the panel
-    /// reads no RRCollector state.
-    let collector: RRCollector
     let selectedSessionType: SessionType?
 
     var body: some View {
@@ -56,7 +53,7 @@ struct ConnectionPanel: View {
 
     private var cancelConnectionButton: some View {
         Button {
-            polarManager.cancelConnection()
+            polarManager.discovery.cancelConnection()
         } label: {
             Text(String(localized: "Cancel", bundle: LanguageManager.appBundle))
         }
@@ -181,7 +178,7 @@ private struct ConnectionPanelDisconnected: View {
         ForEach(filteredKnownDevices) { device in
             KnownDeviceRow(
                 device: device,
-                onConnect: { polarManager.connect(deviceId: device.id) },
+                onConnect: { polarManager.discovery.connect(deviceId: device.id) },
                 onRemove: { polarManager.removeKnownDevice(id: device.id) }
             )
         }
@@ -192,7 +189,7 @@ private struct ConnectionPanelDisconnected: View {
 
     private var scanButton: some View {
         Button {
-            polarManager.startScanning()
+            polarManager.discovery.startScanning()
         } label: {
             Label(String(localized: "Scan for Devices", bundle: LanguageManager.appBundle), systemImage: "antenna.radiowaves.left.and.right")
                 .frame(maxWidth: .infinity)
@@ -245,7 +242,7 @@ private struct ConnectionPanelScanning: View {
             }
             discoveredDeviceList
             Button {
-                polarManager.stopScanning()
+                polarManager.discovery.stopScanning()
             } label: {
                 Text(String(localized: "Stop Scanning", bundle: LanguageManager.appBundle))
             }
@@ -276,7 +273,7 @@ private struct ConnectionPanelScanning: View {
 
     private func discoveredDeviceRow(_ device: PolarManager.DiscoveredDevice) -> some View {
         Button {
-            polarManager.connect(deviceId: device.id)
+            polarManager.discovery.connect(deviceId: device.id)
         } label: {
             discoveredDeviceLabel(device)
         }
@@ -343,7 +340,7 @@ private struct ConnectionPanelConnected: View {
 
     private var disconnectSection: some View {
         Button {
-            polarManager.disconnect()
+            polarManager.discovery.disconnect()
         } label: {
             Text(String(localized: "Disconnect", bundle: LanguageManager.appBundle))
         }

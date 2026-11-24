@@ -5,10 +5,9 @@ import Foundation
 
 /// Builds the Polar SDK handle with the feature set this app actually uses.
 ///
-/// Its own type because `PolarManager` is over the aggregate type-size
-/// threshold, and because the feature list is a statement about which straps
-/// are supported and how — worth being able to read on its own rather than
-/// mid-way through an initializer.
+/// Its own type because the feature list is a statement about which straps
+/// are supported and how, worth reading on its own rather than mid-way through
+/// an initializer.
 enum PolarSDKFactory {
     #if canImport(PolarBleSdk)
         /// `polarFilter(true)` restricts discovery to Polar devices; without it

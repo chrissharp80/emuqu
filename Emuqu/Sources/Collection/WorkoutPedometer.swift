@@ -44,15 +44,13 @@ final class WorkoutPedometer {
     /// `dispatch_assert_queue(main)`, and libdispatch answers a failed queue
     /// assertion with `__builtin_trap()`. The process dies of SIGTRAP inside the
     /// first pedometer callback of the workout, roughly a second after Start,
-    /// having recorded nothing. A field crash log resolves frame for frame to
-    /// exactly that: `_dispatch_assert_queue_fail` ←
-    /// `_swift_task_checkIsolatedSwift` ← this closure ← CoreMotion ← a dispatch
-    /// workloop thread. It cost a user their whole walk.
+    /// having recorded nothing (`_dispatch_assert_queue_fail` ←
+    /// `_swift_task_checkIsolatedSwift` ← this closure ← CoreMotion ← a
+    /// dispatch workloop thread).
     ///
     /// `@Sendable` makes the closure nonisolated, so no executor check runs in
     /// it at all. `PedometerSample` then carries the reading across to the main
-    /// actor as plain values — the hop this code always meant to make, and the
-    /// reason `CMPedometerData` itself must not be captured.
+    /// actor as plain values; `CMPedometerData` itself must not be captured.
     ///
     /// `scripts/check_coremotion_handler_isolation.sh` holds the line for every
     /// other CoreMotion entry point.

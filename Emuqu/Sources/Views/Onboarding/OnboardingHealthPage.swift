@@ -2,8 +2,7 @@ import SwiftUI
 
 /// Connect Apple Health.
 ///
-/// Dedicated page split from O3.
-/// Critical because iOS only shows the system permission sheet ONCE
+/// A page of its own because iOS only shows the system permission sheet ONCE
 /// per scope; if the user denies in confusion, recovery requires
 /// digging into Settings → Privacy & Security → Health. This page primes the
 /// user for the system sheet, fires it on tap, then infers which scopes
@@ -132,8 +131,7 @@ struct OnboardingHealthPage: View {
     /// categories so the user has informed consent before
     /// the system sheet appears.
     private var dataCategoriesCard: some View {
-        // Translated, and with HRV and activity, which the app reads too:
-        // the list was English in every language and left them out.
+        // Translated, and with HRV and activity, which the app reads too.
         let bundle = LanguageManager.appBundle
         return VStack(alignment: .leading, spacing: 10) {
             scopeRow(glyph: "moon.zzz.fill", title: String(localized: "Sleep", bundle: bundle), subtitle: String(localized: "Stages, duration, in-bed time", bundle: bundle))

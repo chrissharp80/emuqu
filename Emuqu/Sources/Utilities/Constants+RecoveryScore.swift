@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Recovery Score Calculator
 
-/// Magic numbers extracted from RecoveryScoreCalculator and its extensions.
+/// Magic numbers for RecoveryScoreCalculator and its extensions.
 /// Grouped by the scoring stage they belong to.
 enum RecoveryScoreConstants {
     // MARK: - Tier 1: HRV Adjustments
@@ -169,12 +169,11 @@ enum RecoveryScoreConstants {
 
         /// When the user's autonomic state clearly says
         /// "recovered" (recovery score above this), cap the ACWR
-        /// overreaching penalty. Real tester case:
-        /// recovery 73, HRV +7.5ms above baseline, PNS +1.82, but
-        /// readiness shouted "Fatigued" because ACWR=1.4 from a low
-        /// CTL base. Capping ensures the dashboard's HRV-Readiness
-        /// pill and Training-Readiness pill agree on well-recovered
-        /// mornings instead of contradicting each other.
+        /// overreaching penalty. For example: recovery 73, HRV +7.5ms above
+        /// baseline, PNS +1.82, yet ACWR=1.4 from a low CTL base would make
+        /// readiness read "Fatigued". Capping ensures the dashboard's
+        /// HRV-Readiness pill and Training-Readiness pill agree on
+        /// well-recovered mornings instead of contradicting each other.
         static let acwrRescueRecoveryThreshold: Double = 70.0
         static let acwrPenaltyAutonomicRescueCap: Double = 0.10
 
@@ -274,8 +273,8 @@ enum RecoveryScoreConstants {
 
     // MARK: - Display Score Thresholds
 
-    /// No longer read: every screen uses `ScoreVerdict`'s bands. Kept
-    /// because `check_scoring_governance.sh` hashes these numbers.
+    /// Not read: every screen uses `ScoreVerdict`'s bands. Present because
+    /// `check_scoring_governance.sh` hashes these numbers.
     enum DisplayThresholds {
         static let excellent: Double = 80.0
         static let good: Double = 60.0

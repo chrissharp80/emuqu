@@ -172,11 +172,11 @@ final class HealthSampleFactoryTests: XCTestCase {
         for exported in [session, other] {
             try await manager.writes.exportHRV(session: exported, result: result)
             let points = try XCTUnwrap(exported.rrSeries?.points)
-            try await manager.exportHeartRateSeries(from: points, sessionStart: start, sessionId: exported.id)
+            try await manager.heartRate.exportHeartRateSeries(from: points, sessionStart: start, sessionId: exported.id)
             try await manager.writes.exportSleepToHealthKit(sleepData: sleepData(stages: [stage(0, 7_200)]), sessionId: exported.id)
         }
         let end = try XCTUnwrap(session.endDate)
-        try await manager.exportRestingHeartRate(value: 52, at: end, sessionId: session.id)
+        try await manager.heartRate.exportRestingHeartRate(value: 52, at: end, sessionId: session.id)
         let othersCount = store.samples.filter { ($0.metadata?[HKMetadataKeyExternalUUID] as? String)?.hasPrefix(other.id.uuidString) == true }.count
         try await manager.writes.removeExports(sessionId: session.id, from: start, to: end)
         XCTAssertEqual(store.samples.count, othersCount)
@@ -197,8 +197,8 @@ final class HealthSampleFactoryTests: XCTestCase {
         let points = try XCTUnwrap(session.rrSeries?.points)
         let trimmed = try XCTUnwrap(sessionWithBeats(minutes: 6, id: session.id).rrSeries?.points)
         let (sessionStart, id) = (start, session.id)
-        let first = Task { try await manager.exportHeartRateSeries(from: points, sessionStart: sessionStart, sessionId: id) }
-        let second = Task { try await manager.exportHeartRateSeries(from: trimmed, sessionStart: sessionStart, sessionId: id) }
+        let first = Task { try await manager.heartRate.exportHeartRateSeries(from: points, sessionStart: sessionStart, sessionId: id) }
+        let second = Task { try await manager.heartRate.exportHeartRateSeries(from: trimmed, sessionStart: sessionStart, sessionId: id) }
         try await first.value
         try await second.value
         XCTAssertEqual(store.samples.count, 6, "one sample per minute of the later export, and no tail of the first")

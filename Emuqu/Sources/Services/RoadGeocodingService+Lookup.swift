@@ -37,7 +37,7 @@ extension RoadGeocodingService {
         let lookupStartedAt = Date()
         if let tileResolved = await resolveCurrentRoadFromMapTiles(at: location) {
             guard !Task.isCancelled else { return }
-            debugLog("[GeocodingLatency] tiles resolved in \(String(format: "%.3f", Date().timeIntervalSince(lookupStartedAt)))s — \(tileResolved.road ?? "?")", level: .info)
+            debugLog("[GeocodingLatency] tiles resolved in \(String(format: "%.3f", Date().timeIntervalSince(lookupStartedAt)))s — \(tileResolved.road == nil ? "no road" : "road found")", level: .info)
             publishContext(tileResolved, at: location, source: "tiles")
             await enrich(location: location, road: tileResolved.road, enabled: enrichCrossStreet)
             return
@@ -52,9 +52,8 @@ extension RoadGeocodingService {
         await enrich(location: location, road: placemark.thoroughfare, enabled: enrichCrossStreet)
     }
 
-    /// Seen in a real user log: CLGeocoder hung 26.4s
-    /// on workout start (`[GeocodingLatency] geocoder resolved in
-    /// 26.372s — Cedar Ln`). Apple's geocoder has no client-tunable
+    /// CLGeocoder can hang for tens of seconds on workout start, and
+    /// Apple's geocoder has no client-tunable
     /// timeout. `runWithTimeout` races a 5 s sleep task against the call;
     /// on timeout we treat it as a failed lookup and let the next refresh
     /// try again. 5 s caps how long a wedged geocoder can starve the rest
@@ -84,10 +83,10 @@ extension RoadGeocodingService {
             return nil
         }
         guard let placemark = placemarks.first else {
-            logNoPlacemark(at: location, geocoderStartedAt: geocoderStartedAt, lookupStartedAt: lookupStartedAt)
+            logNoPlacemark(geocoderStartedAt: geocoderStartedAt, lookupStartedAt: lookupStartedAt)
             return nil
         }
-        debugLog("[GeocodingLatency] geocoder resolved in \(String(format: "%.3f", Date().timeIntervalSince(geocoderStartedAt)))s (total \(String(format: "%.3f", Date().timeIntervalSince(lookupStartedAt)))s) — \(placemark.thoroughfare ?? "?")", level: .info)
+        debugLog("[GeocodingLatency] geocoder resolved in \(String(format: "%.3f", Date().timeIntervalSince(geocoderStartedAt)))s (total \(String(format: "%.3f", Date().timeIntervalSince(lookupStartedAt)))s) — \(placemark.thoroughfare == nil ? "no road" : "road found")", level: .info)
         return placemark
     }
 
@@ -95,12 +94,11 @@ extension RoadGeocodingService {
     /// (backoffStartedAt). The prior bare `consecutiveFailures += 1`
     /// incremented the counter but never set backoffStartedAt, so the
     /// exponential backoff after repeated no-result responses never engaged.
-    /// The coordinate is truncated to ~3dp (≈100 m) because debugLog is
-    /// user-exportable and raw lat/lon is precise location (PHI).
-    private func logNoPlacemark(at location: CLLocation, geocoderStartedAt: Date, lookupStartedAt: Date) {
+    /// The location is not logged: debugLog is user-exportable, and a
+    /// coordinate even rounded to ~100 m identifies a home or a route.
+    private func logNoPlacemark(geocoderStartedAt: Date, lookupStartedAt: Date) {
         noteFailure(reason: "performLookup no placemark")
-        // log-redaction-ok: truncated to 3dp (~100 m) per the note above.
-        debugLog("[RoadGeocoding] no placemark near (\(String(format: "%.3f", location.coordinate.latitude)), \(String(format: "%.3f", location.coordinate.longitude))) — failures=\(consecutiveFailures)", level: .warning)
+        debugLog("[RoadGeocoding] no placemark near the current location — failures=\(consecutiveFailures)", level: .warning)
         debugLog("[GeocodingLatency] geocoder no-placemark in \(String(format: "%.3f", Date().timeIntervalSince(geocoderStartedAt)))s (total \(String(format: "%.3f", Date().timeIntervalSince(lookupStartedAt)))s)", level: .info)
     }
 
@@ -159,8 +157,8 @@ extension RoadGeocodingService {
     ///     parks).
     ///   • The closest hit is more than 50 m from the user (the
     ///     "current road" claim would be too loose to trust).
-    /// Hard 5 s wall-clock cap. A real-world log showed this
-    /// call hanging for 30+ s, blocking the entire location pipeline at
+    /// Hard 5 s wall-clock cap. This call can hang
+    /// for 30+ s, blocking the entire location pipeline at
     /// workout start. MKLocalSearch has no built-in timeout. `runWithTimeout`
     /// returns nil on overrun; we treat that the same as "no usable results"
     /// and fall through to CLGeocoder.
@@ -177,7 +175,7 @@ extension RoadGeocodingService {
         // that, the next-nearest road might be the right answer
         // and CLGeocoder's authoritative path is safer.
         guard best.distance <= 50 else {
-            debugLog("[RoadGeocoding] tile search closest=\(best.placemark.thoroughfare ?? "?") at \(Int(best.distance))m — too far for tile-confidence; falling back to CLGeocoder", level: .info)
+            debugLog("[RoadGeocoding] tile search closest road at \(Int(best.distance))m — too far for tile-confidence; falling back to CLGeocoder", level: .info)
             return nil
         }
         return Self.context(from: best.placemark, at: location.coordinate)
@@ -286,9 +284,11 @@ extension RoadGeocodingService {
         // Only log when the resolved road CHANGES. Logging every
         // refresh (~once per 60s during a workout) repeats identical
         // text and drowns the rest of the log; the transition is the
-        // actually-useful information ("turned onto Willow Grove").
+        // actually-useful information. The names themselves are not
+        // logged: the log can be exported, and a run of street names
+        // traces the route.
         if previousRoad != ctx.road {
-            debugLog("[RoadGeocoding] resolved (\(source)) \(ctx.road ?? "(no street)"), \(ctx.locality ?? "(no city)")", level: .info)
+            debugLog("[RoadGeocoding] resolved (\(source)) road changed — street \(ctx.road == nil ? "unknown" : "named"), city \(ctx.locality == nil ? "unknown" : "named")", level: .info)
         }
     }
 
@@ -334,7 +334,7 @@ extension RoadGeocodingService {
                 radius: osmHit.distance,
                 searchedAgainstRoad: currentRoad
             )
-            debugLog("[RoadGeocoding] cross-street via OSM road graph: \(osmHit.name) at \(Int(osmHit.distance))m", level: .info)
+            debugLog("[RoadGeocoding] cross-street via OSM road graph at \(Int(osmHit.distance))m", level: .info)
             return
         }
         await scanForCrossStreet(for: location, currentRoad: currentRoad)
@@ -388,10 +388,8 @@ extension RoadGeocodingService {
     /// One radius of the escalating scan. Nil means the search itself timed
     /// out; an empty array means it returned nothing usable.
     ///
-    /// Same 5 s wall-clock cap as the tile-search path. A
-    /// real-world log showed this hanging 30+ s on workout start; the 30 s log
-    /// line ("cross-street MKLocalSearch radius 200m in 30.724s") was the
-    /// smoking gun. A per-radius cap means a stalled tile service caps the
+    /// Same 5 s wall-clock cap as the tile-search path: the
+    /// search can hang 30+ s on workout start. A per-radius cap means a stalled tile service caps the
     /// scan's cross-street latency at ~10 s across its two radii instead of
     /// multiplying.
     private func crossStreetCandidates(
@@ -434,9 +432,9 @@ extension RoadGeocodingService {
     }
 
     /// Only log the "no candidates" line once per
-    /// road. The user's debug log had this fire 30+ times along a stretch of
-    /// road where MapKit just doesn't have cross-street data — same message
-    /// every time. Throttled by current road name; a new road logs again.
+    /// road. Along a stretch of road where MapKit has no cross-street data it
+    /// would otherwise repeat the same message on every cycle. Throttled by
+    /// current road name; a new road logs again.
     private func logNoCrossStreet(currentRoad: String?, radii: [CLLocationDistance]) {
         let key = currentRoad ?? "(unknown)"
         guard lastNoCrossStreetRoad != key else { return }
@@ -541,7 +539,7 @@ extension RoadGeocodingService {
         let upgraded = Self.withCrossStreet(name, on: existing)
         current = upgraded
         AppDependencies.current.location.ambientLocationService.recordResolvedAddress(upgraded)
-        debugLog("[RoadGeocoding] cross-street resolved: \(name) (\(Int(distance))m away, search radius \(Int(radius))m)", level: .info)
+        debugLog("[RoadGeocoding] cross-street resolved \(Int(distance))m away (search radius \(Int(radius))m)", level: .info)
     }
 
     /// A copy of `existing` with only the cross-street filled in.

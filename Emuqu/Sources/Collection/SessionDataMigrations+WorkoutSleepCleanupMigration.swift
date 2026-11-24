@@ -2,13 +2,12 @@ import Foundation
 
 // MARK: - Workout-Session Sleep Cleanup Migration
 //
-// An earlier `morningReading()` selector on the dashboard could pick a
-// `.workout`-typed HRVSession as the "morning reading" if it ended before
-// the morning cutoff. The dashboard's update paths then attached the
-// morning's `sleepSnapshot` to that session and re-archived it. The result:
-// workout sessions in the archive carrying overnight sleep snapshots that
-// don't apply to them, which contaminates the AI's `WorkoutHistoryEntry`
-// surface and the post-summary's data integrity.
+// Builds whose dashboard `morningReading()` selector could pick a
+// `.workout`-typed HRVSession as the "morning reading" (when it ended
+// before the morning cutoff) attached the morning's `sleepSnapshot` to that
+// session and re-archived it. A workout session carrying an overnight sleep
+// snapshot contaminates the AI's `WorkoutHistoryEntry` surface and the
+// post-summary's data integrity.
 //
 // This one-shot migration walks the archive once, finds workout sessions
 // with a non-nil `sleepSnapshot`, and clears the field. Other workout
@@ -25,7 +24,7 @@ extension SessionDataMigrations {
         // decrypts and decodes each one (SessionArchive owns its own lock).
         let archive = self.archive
         let (cleaned, failed, examined) = await Task.detached(priority: .utility) {
-            let workouts = archive.entries.filter { $0.sessionType == .workout }
+            let workouts = archive.store.entries.filter { $0.sessionType == .workout }
             let outcomes = workouts.map { Self.stripWorkoutSleepSnapshot($0, archive: archive) }
             return (outcomes.filter { $0 == .stripped }.count, outcomes.filter { $0 == .failed }.count, workouts.count)
         }.value

@@ -1,5 +1,8 @@
-"""Reproduce the Emuqu unit-test expectations (EmuquTests/* @ e028039) against
-the Python ports. Each case names the Swift test it mirrors. Run:
+"""Reproduce the Emuqu unit-test expectations (EmuquTests/* @ b87eb64, and the
+seven HRVSleepStageClassifierTests recording-break and artifact-gap cases added
+at fff2617) against the Python ports. Each case names the Swift test it
+mirrors. The ports follow the code at those commits, so a full match does not
+by itself show that the current Swift code agrees with them. Run:
     python3 -I test_ports.py
 Prints PASS/FAIL per case and a summary; exit code 1 on any failure.
 """
@@ -931,7 +934,7 @@ def _fixtures():
     import json
     import subprocess
     root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-    src = subprocess.run(["git", "-C", root, "show", "e028039:EmuquTests/HRVReferenceFixtures.swift"],
+    src = subprocess.run(["git", "-C", root, "show", "b87eb64:EmuquTests/HRVReferenceFixtures.swift"],
                          capture_output=True, text=True, check=True).stdout
     body = src.split('static let json = """', 1)[1].split('"""', 1)[0]
     return json.loads(body.replace("\n", ""))["records"]
@@ -986,11 +989,11 @@ def _():
     return ok and narrowed > 0, f"narrowed={narrowed}"
 
 
-@case(S, "(comment value) nsr005 '16.03 against 28.98' -- stale: from the pre-5c4a23d collapsed-array rule")
+@case(S, "(comment value) nsr005 '16.03 against 28.98' -- stale: from the pre-c0dff5b collapsed-array rule")
 def _():
     # The doc comment quotes the first version of the suite (2026-09-08). Commit
-    # 5c4a23d (2026-10-04) changed successiveDifferences to skip non-adjacent
-    # pairs, so at e028039 the pipeline value is lower. We check both: raw
+    # c0dff5b (2026-10-04) changed successiveDifferences to skip non-adjacent
+    # pairs, so at b87eb64 the pipeline value is lower. We check both: raw
     # 28.98, the old collapsed rule 16.03, and report the current-rule value.
     r = [x for x in fix() if x["record"] == "nsr005"][0]
     rr = [float(v) for v in r["rrMs"]]
@@ -999,7 +1002,7 @@ def _():
     collapsed = math.sqrt(sum((c[i] - c[i - 1]) ** 2 for i in range(1, len(c))) / (len(c) - 1))
     cur = _an(r)["rmssd"]
     ok = round(_raw_rmssd(r["rrMs"]), 2) == 28.98 and round(collapsed, 2) == 16.03
-    return ok, f"raw={_raw_rmssd(r['rrMs']):.2f} old-rule={collapsed:.2f} e028039-rule={cur:.2f}"
+    return ok, f"raw={_raw_rmssd(r['rrMs']):.2f} old-rule={collapsed:.2f} b87eb64-rule={cur:.2f}"
 
 
 @case(S, "testPNN50MatchesTheReferenceWhereNoBeatIsFiltered")
@@ -1029,7 +1032,7 @@ def _():
 S = "HRVSleepStageClassifierTests"
 
 
-# The gap fix after 99f28e6 (HRVSleepStageClassifierTests gap extension).
+# The gap fix after 0bcd6b9 (HRVSleepStageClassifierTests gap extension).
 def _contiguous(rrs, start=0):
     pts, t = [], start
     for rr in rrs:

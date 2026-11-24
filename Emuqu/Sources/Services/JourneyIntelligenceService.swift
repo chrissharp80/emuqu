@@ -3,9 +3,8 @@ import Foundation
 
 // MARK: - Journey Intelligence Service
 //
-// Step 1 of the "where am I heading, why, how long" research
-// recommendation: infer journey shape + projected
-// remaining time from `BreadcrumbStore`'s active trail alone. No new
+// Tier 1 of "where am I heading, why, how long": infer journey shape +
+// projected remaining time from `BreadcrumbStore`'s active trail alone. No new
 // permissions, no new APIs, works for the majority of un-routed runs
 // and walks the user does.
 //
@@ -31,12 +30,10 @@ import Foundation
 // and gets a fresh snapshot. Cost is bounded by `fixes.count`,
 // typically < 1500 for a 90-minute walk.
 //
-// Future tiers (per the research output) layer on top of this:
-//   - Tier 2: recurrence classifier over BreadcrumbStore.loadArchive()
-//   - Tier 3: EKEventStore tie-in (calendar-inferred destination)
-//   - Tier 4: WeatherKit at destination + CLMonitor home-return
-// All of those need new permissions or new dependencies; this tier
-// needs neither.
+// Tier 2, the recurrence classifier over BreadcrumbStore.loadArchive(),
+// layers on top of this. A calendar-inferred destination (EKEventStore) or
+// WeatherKit at the destination + CLMonitor home-return would need new
+// permissions or new dependencies; this tier needs neither.
 
 enum JourneyIntelligenceService {
     /// Raw values are the snake_case strings the `location.journey` tool

@@ -6,9 +6,8 @@ import UIKit
 // MARK: - Workout PDF charts and map
 //
 // The alpha-1 timeline, the HR trace with its zone bands, and the route
-// snapshot with its alpha-1-coloured polyline. Kept apart from
-// WorkoutPDFReport+Pages.swift: with these in it, that file passes the
-// 1000-line limit, and the charts are a self-contained half of it.
+// snapshot with its alpha-1-coloured polyline: a self-contained half of the
+// workout report's drawing.
 //
 // Members are internal rather than private because Swift's `private` does
 // not reach across files; same convention as PDFReportGenerator+Sections.
@@ -282,13 +281,11 @@ extension WorkoutPDFRenderer {
     /// Render an MKMapSnapshot for the report.track area. Returns nil when there's
     /// no report.track to snapshot.
     ///
-    /// Scale dropped from 2.0 → 1.0 and dimensions halved: at the PDF's
-    /// print density these pixels get resampled anyway, and the tile
-    /// rendering was the dominant latency in the generator (~1.5 s at
-    /// scale 2.0). Halving both dimensions × halving scale cut snapshot
-    /// time to under ~300 ms on a typical walk's bounding box — a
-    /// roughly 5× speedup with no visible quality loss in the printed
-    /// output.
+    /// Rendered at scale 1.0 and half size: at the PDF's print density these
+    /// pixels get resampled anyway, and tile rendering dominates the
+    /// generator's latency (~1.5 s at scale 2.0 and full size, under ~300 ms
+    /// like this on a typical walk's bounding box) with no visible quality
+    /// loss in the printed output.
     func renderMapSnapshot() async -> RouteMapImage? {
         guard let options = mapSnapshotOptions() else { return nil }
         let coords = report.track.map(\.coordinate)

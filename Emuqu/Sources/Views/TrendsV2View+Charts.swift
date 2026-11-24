@@ -539,7 +539,7 @@ extension TrendsV2View {
         }
     }
 
-    /// #19 — RMSSD/SDNN are log-normal; a raw mean±SD band flags ~70%
+    /// RMSSD/SDNN are log-normal; a raw mean±SD band flags ~70%
     /// of readings as "outliers" and calls normal weeks "51% high". For those
     /// metrics, and the spectral ones read on the same log scale (HF Power,
     /// Balance), compute the CV and outlier band in LOG space (mean ± 2 SD ≈

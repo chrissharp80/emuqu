@@ -13,8 +13,6 @@ final class CloudKitSyncManager {
 
     // MARK: - Singleton
 
-    static let shared = CloudKitSyncManager(syncStateURL: resolveSyncStateURL())
-
     // MARK: - Published State
 
     private(set) var syncState: SyncState = .idle
@@ -28,9 +26,7 @@ final class CloudKitSyncManager {
     /// app is restarted — without this, a permanent server-side
     /// configuration error spins forever, hammering battery and stalling
     /// the main actor (each retry runs retrieve+decrypt+encode+compress
-    /// per session). A beta log showed 100+
-    /// "Cannot create new type X in production schema" errors over 5
-    /// days against the same backlog of 107 pending sessions.
+    /// per session).
     var schemaUnavailable = false
     /// Uploaded sessions the previous pull's listing did not contain. Only a
     /// session missing from two listings in a row is queued again: the query
@@ -44,10 +40,10 @@ final class CloudKitSyncManager {
     private(set) var lastPermanentErrorMessage: String?
     /// Set by `pullRemoteChanges()` when the pull failed for a reason its
     /// internal catch would otherwise swallow with a debug log. Without it the
-    /// full-sync body treated a swallowed pull failure as success: it
-    /// stamped `lastSyncDate` and showed "Up to date" while cross-device
-    /// restore never worked (the beta-user symptom: uploads fine, nothing
-    /// ever comes down). Checked in `performFullSyncBody` so a failed pull
+    /// full-sync body would treat a swallowed pull failure as success: it
+    /// would stamp `lastSyncDate` and show "Up to date" while cross-device
+    /// restore never works (uploads fine, nothing ever comes down). Checked
+    /// in `performFullSyncBody` so a failed pull
     /// surfaces as `.error` and does NOT advance `lastSyncDate`.
     var lastPullErrorMessage: String?
     /// Set by `pushPendingSessions()` (cleared at its start) when a session
@@ -106,10 +102,9 @@ final class CloudKitSyncManager {
     /// Timestamp of the last observed sync PROGRESS (a pushed record, a pulled
     /// page, a processed remote record). The body watchdog (`withProgressWatchdog`)
     /// fails the sync only when this goes stale by `syncStuckThresholdSec` — i.e.
-    /// genuinely wedged — instead of a fixed wall-clock deadline that guillotined
-    /// slow-but-progressing syncs. Field log: successful syncs ran
-    /// 95–118s against a 120s cap, and 3 of 9 tipped over and "failed" while
-    /// still pushing/pulling records. A sync can take as long as it needs as
+    /// genuinely wedged — rather than at a fixed wall-clock deadline, which would
+    /// fail healthy syncs that run close to two minutes while still
+    /// pushing/pulling records. A sync can take as long as it needs as
     /// long as it keeps moving.
     var lastSyncProgressAt: Date = .distantPast
     func noteSyncProgress() { lastSyncProgressAt = Date() }
@@ -197,6 +192,7 @@ final class CloudKitSyncManager {
     }
     @ObservationIgnored private(set) lazy var liveBackup = CloudKitLiveBackupManager(
         settingsManager: settingsManager,
+        archiveKey: archive.encryption,
         ensureZone: { [weak self] in try await self?.ensureZoneExists() ?? () },
         confirmAccount: { [weak self] in await self?.accountGuard.confirmAccount() == .confirmed }
     )
@@ -209,6 +205,9 @@ final class CloudKitSyncManager {
 
     let settingsManager: SettingsManager
     let archive: SessionArchive
+    /// The settings record's sync, whose zone and stored copy follow this
+    /// manager's resets and scrubs.
+    let settingsSync: CloudKitSettingsSync
 
     /// Serializes concurrent sync operations (upload, delete, full sync) so
     /// they can't interleave at await points and race on `state` mutations.
@@ -220,7 +219,7 @@ final class CloudKitSyncManager {
     /// of iCloud mid-run), kept for the manager's lifetime — the process-long
     /// singleton, so it is never removed. Without an
     /// account-change listener, signing out of
-    /// iCloud during a session failed silently — sync just stopped working
+    /// iCloud during a session fails silently — sync just stops working
     /// with no state change the UI could surface.
     @ObservationIgnored private let observers = NotificationTokens()
 
@@ -248,12 +247,14 @@ final class CloudKitSyncManager {
     /// settings and sync-state file, so it neither reads nor rewrites the
     /// app's sync bookkeeping.
     init(
-        settingsManager: SettingsManager = AppDependencies.current.app.settingsManager,
-        archive: SessionArchive = AppDependencies.current.storage.sessionArchive,
+        settingsManager: SettingsManager,
+        archive: SessionArchive,
+        settingsSync: CloudKitSettingsSync,
         syncStateURL: URL
     ) {
         self.settingsManager = settingsManager
         self.archive = archive
+        self.settingsSync = settingsSync
         // Cold-start: keep init lightweight — only
         // construct the URL + empty state container. The disk read of
         // sync_state.json (potentially KB of uploaded-session UUIDs) is
@@ -308,7 +309,7 @@ final class CloudKitSyncManager {
         state.resetAll()
         zoneCreated = false
         missingFromLastListing = []
-        AppDependencies.current.storage.cloudKitSettingsSync.forgetZone()
+        settingsSync.forgetZone()
         lastSyncDate = nil
         syncState = .idle
     }
@@ -357,16 +358,14 @@ final class CloudKitSyncManager {
     /// Serialized: waits for any in-flight sync operation to avoid state mutation races.
     ///
     /// Upload eligibility:
-    ///   • `.complete` sessions always sync (the original gate).
+    ///   • `.complete` sessions always sync.
     ///   • Workout sessions also sync regardless of state when they
     ///     carry a `WorkoutMetadata` payload — this picks up partials
     ///     reconstructed by `WorkoutRecoveryService` (state may be
     ///     `.complete` with a `partialDataReason`) AND legacy `.failed`
     ///     workouts that still have meaningful captured data. Without
     ///     this, a strap-died-mid-workout session would archive
-    ///     locally but never appear on the user's other devices —
-    ///     "I do not see it in iCloud" was the symptom that motivated
-    ///     this behaviour.
+    ///     locally but never appear on the user's other devices.
     ///
     /// The gate applies only to this direct upload, made right after an
     /// archive write. The batch push (`pendingPushBatch`) uploads every
@@ -456,16 +455,6 @@ final class CloudKitSyncManager {
         CloudDeletionCoordinator(manager: self)
     }
 
-    /// Forwarders so existing call sites did not change in the same commit as
-    /// the move. Behaviour lives in `CloudDeletionCoordinator`.
-    func deleteAllRemoteData() async -> Bool {
-        await deletion.deleteAllRemoteData()
-    }
-
-    func clearSanitizeDripState() {
-        deletion.clearSanitizeDripState()
-    }
-
     /// Rewrites earlier uploads without their Apple Health readings, built on
     /// each access; its list lives in UserDefaults.
     var healthScrub: CloudHealthScrubCoordinator {
@@ -491,13 +480,7 @@ final class CloudKitSyncManager {
             await healthScrub.scrubInPlace()
         }
         guard confirmed else { return }
-        await AppDependencies.current.storage.cloudKitSettingsSync.scrubStoredRecord(keepingOutHealthFilledFrom: settings)
-    }
-
-    /// Whether an error means the zone is already gone — used by tests and by
-    /// callers deciding whether a delete needs retrying.
-    static func isZoneAlreadyGoneError(_ error: Error) -> Bool {
-        CloudDeletionCoordinator.isZoneAlreadyGoneError(error)
+        await settingsSync.scrubStoredRecord(keepingOutHealthFilledFrom: settings)
     }
 
     /// The pull subsystem, built on each access; it holds no state of its own.
@@ -508,14 +491,6 @@ final class CloudKitSyncManager {
     /// Restores from the Trash that must outrank an iCloud tombstone.
     var trashRestore: TrashRestoreCoordinator {
         TrashRestoreCoordinator(manager: self)
-    }
-
-    /// Fetch remote changes and merge them locally.
-    ///
-    /// Forwarder so the one existing call site did not have to change in the
-    /// same commit as the move. The behaviour lives in `CloudPullCoordinator`.
-    func pullRemoteChanges() async {
-        await pull.pullRemoteChanges()
     }
 
     /// Re-save a record that lost a revision race on the direct upload path.
@@ -568,7 +543,7 @@ final class CloudKitSyncManager {
     /// The unmark waits in `syncSerializer`, as `markSessionsForReupload`
     /// does: a push or upload of the same session already in flight, with a
     /// record built before the change, finishes first, and its `markUploaded`
-    /// can no longer land after the unmark and turn the upload below away.
+    /// cannot land after the unmark and turn the upload below away.
     func forceReuploadSession(_ session: HRVSession) async {
         await CloudKitSessionFreshness.stampEdit(of: session.id, in: archive)
         await syncSerializer.run { [self] in
@@ -578,7 +553,7 @@ final class CloudKitSyncManager {
         await uploadSession(session)
     }
 
-    private static func resolveSyncStateURL() -> URL {
+    static func resolveSyncStateURL() -> URL {
         let fm = FileManager.default
         if let containerURL = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
             return containerURL.appendingPathComponent(AppConfig.archiveDirectoryName).appendingPathComponent("sync_state.json")
@@ -661,7 +636,7 @@ final class CloudKitSyncManager {
         }
         fullSyncsAdmitted += 1
         defer { fullSyncsAdmitted -= 1 }
-        debugLog("[CloudKit] performFullSync entering serializer (uploaded=\(state.uploadedSessionIds.count), pending=\(state.pendingUploadIds.count), archive=\(archive.entries.count))")
+        debugLog("[CloudKit] performFullSync entering serializer (uploaded=\(state.uploadedSessionIds.count), pending=\(state.pendingUploadIds.count), archive=\(archive.store.entries.count))")
         await syncSerializer.run { [self] in
             guard settings.iCloudSyncEnabled, !PurgeGate.isPurging else {
                 debugLog("[CloudKit] performFullSync skipped — sync turned off, or Delete All My Data started, while it waited")
@@ -740,9 +715,7 @@ final class CloudKitSyncManager {
     /// freeze the state machine forever.
     ///
     /// A FIXED wall-clock deadline would fail a slow-but-progressing sync
-    /// at 120s even while records were still moving (field log: successful
-    /// syncs ran 95–118s, 3 of 9 tipped over and "failed"). So it is a
-    /// NO-PROGRESS watchdog:
+    /// even while records are still moving. So it is a NO-PROGRESS watchdog:
     /// it fails ONLY if the sync stops advancing for syncStuckThresholdSec, so
     /// a slow sync runs to completion and only a genuine wedge is caught. The
     /// push/pull loops call `noteSyncProgress()` as they advance. When the
@@ -773,7 +746,7 @@ final class CloudKitSyncManager {
             await self.deletion.reconcileLocalDeletions()
             try Task.checkCancellation()
             try await self.accountGuard.requireConfirmedAccount()
-            await self.pullRemoteChanges()
+            await self.pull.pullRemoteChanges()
             let afterUploaded = await MainActor.run { self.state.uploadedSessionIds.count }
             return afterUploaded - beforeUploaded
         }

@@ -5,10 +5,9 @@ import SwiftUI
 // `.font(.system(size: N))` does not respond to the user's text-size setting.
 // watchOS has its own Text Size control (Settings → Display & Brightness →
 // Text Size, and the Digital Crown in Accessibility), and a screen this small
-// is where a number that refuses to grow hurts most: on `WatchLiveView` the
-// 44 pt heart rate sat beside a `.caption2` "bpm" label that scaled without
-// it, so at large text sizes the unit grew while the reading it labelled did
-// not.
+// is where a number that refuses to grow hurts most: on `WatchLiveView` a fixed
+// 44 pt heart rate beside a `.caption2` "bpm" label that scales would leave the
+// unit growing at large text sizes while the reading it labels does not.
 //
 // ## Why this is not the app's `ScaledFont.swift`
 //
@@ -16,11 +15,8 @@ import SwiftUI
 // a separate target whose sources come from a `PBXFileSystemSynchronizedRootGroup`
 // — every `.swift` file in this folder is compiled, and nothing outside it is.
 // Reaching into `Emuqu/Sources` would mean adding a cross-target exception to
-// the project file by hand, and a hand-edited `project.pbxproj` has already
-// cost this repository a broken build once.
-//
-// The duplication is nine lines of implementation. The alternative is a
-// project-file edit that no gate can check.
+// the project file by hand, an edit to `project.pbxproj` that nothing checks
+// and that can break the build. The duplication is nine lines of implementation.
 //
 // `@ScaledMetric` is a `DynamicProperty` and only drives invalidation when it
 // is stored on a `View` or `ViewModifier`, which is why this is a modifier

@@ -54,8 +54,8 @@ struct WatchApp: App {
 
     /// Wires the workout manager late, but deliberately does NOT re-activate
     /// WCSession: it was activated in `WatchSessionManager.init()`, and
-    /// activating again opens a window where messages drop — the
-    /// delegate-set-after-activate race behind "the first tap did nothing".
+    /// activating again opens a window where messages drop (the
+    /// delegate is set after activation), so the first tap does nothing.
     ///
     /// HealthKit authorization is asked for here, on the first launch, because
     /// a workout the iPhone starts arrives while the Watch app may not be on
@@ -91,10 +91,10 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
     /// state the session manager already holds starts nothing beside the
     /// session being handed back (a start waits for the recovery). Then the
     /// workout manager is wired at once rather than when the root view
-    /// appears, which a background relaunch may never do: unwired, it heard
-    /// nothing from the iPhone, so the phone-silence check ended a recovered
-    /// workout the iPhone was still recording, and a not-recording report
-    /// never let go of one it was not.
+    /// appears, which a background relaunch may never do: unwired, it hears
+    /// nothing from the iPhone, so the phone-silence check would end a recovered
+    /// workout the iPhone is still recording, and a not-recording report would
+    /// never let go of one it is not.
     func handleActiveWorkoutRecovery() {
         workoutManager.recoverActiveSession()
         wire(to: WatchDependencies.current.sessionManager)

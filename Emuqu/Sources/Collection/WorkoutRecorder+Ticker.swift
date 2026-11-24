@@ -5,27 +5,22 @@ import CoreLocation
 import Foundation
 import UIKit
 
-// Split out of WorkoutRecorder.swift into its own FILE to satisfy the
-// 1500-line file budget, and off the TYPE (which is what the aggregate
-// type-size gate counts): the largest single file on the recorder.
+// The workout ticker's per-tick work.
 
 extension WorkoutTicker {
     // MARK: - Internal
 
-    /// Tick-batching analysis. "3+ observable updates per tick" looks
-    /// like a P2 but is not. Verified by tracing:
-    /// a tick fires `recorder.lifecycle.elapsedSeconds`, and inside
-    /// `incrementalBackupTick` `recorder.workoutHR.beatCount` plus motion
-    /// fields when fresh samples land. SwiftUI's runloop-level
+    /// No tick batching. A tick fires `recorder.lifecycle.elapsedSeconds`,
+    /// and inside `incrementalBackupTick` `recorder.workoutHR.beatCount` plus
+    /// motion fields when fresh samples land, but SwiftUI's runloop-level
     /// coalescing means N observable assignments in one
     /// `Task { @MainActor }` block produce ONE body re-eval, not N.
     /// So the user-visible cost on
     /// iPhone 12+ is one body eval per tick, dominated by the
     /// body's own work, not by the number of properties written. Hand-rolled
     /// batching — writing to `@ObservationIgnored` storage and publishing once
-    /// at the end of the tick — would buy nothing measurable and risks subtle
-    /// race conditions on a 1Hz path that's currently correct;
-    /// not worth it without a measurable regression to fix.
+    /// at the end of the tick — would buy nothing measurable and risk subtle
+    /// race conditions on a 1 Hz path.
     ///
     /// Without the explicit run-loop mode the elapsed clock can freeze
     /// for tens of seconds, because `Timer.scheduledTimer(withTimeInterval:repeats:)`
@@ -65,12 +60,12 @@ extension WorkoutTicker {
     /// (`PauseTimeline.activeSeconds`), not a count of ticks: a repeating
     /// `Timer` does not replay the fires it missed while the app was
     /// suspended (a locked phone with no sensor keeping it awake) or the main
-    /// actor was busy, and counting ticks lost that time from the workout. It
+    /// actor was busy, and counting ticks would lose that time from the workout. It
     /// moves at least one second a tick, so every tick's sample has an offset
     /// of its own; after a gap it jumps to the real time, and the seconds in
     /// the gap have no sample, as none was taken.
     private func runTick() {
-        guard case .recording = recorder.phase else { return }
+        guard case .recording = recorder.lifecycle.phase else { return }
         evaluateAutoPauseResume()
         if !recorder.lifecycle.isPaused {
             let lifecycle = recorder.lifecycle
@@ -85,7 +80,7 @@ extension WorkoutTicker {
     /// Look at the current movement signals and decide whether to
     /// auto-pause or auto-resume. Runs every tick while recording.
     func evaluateAutoPauseResume() {
-        guard let sport = recorder.currentSession?.sport else { return }
+        guard let sport = recorder.lifecycle.currentSession?.sport else { return }
         if !recorder.lifecycle.isPaused {
             accrueStationaryAndMaybeAutoPause(sport: sport)
         } else if recorder.lifecycle.autoPaused {
@@ -142,7 +137,7 @@ extension WorkoutTicker {
         if steps != recorder.lastPedometerStepAdvance.count {
             recorder.lastPedometerStepAdvance = (steps, now)
         }
-        guard let cadence = recorder.cadenceStepsPerMin else { return nil }
+        guard let cadence = recorder.motion.cadenceStepsPerMin else { return nil }
         guard WorkoutSessionLifecycle.pedometerSports.contains(sport),
               recorder.footPod.cadenceStepsPerMin == nil,
               let advancedAt = recorder.lastPedometerStepAdvance.at,
@@ -159,7 +154,7 @@ extension WorkoutTicker {
 
     private func accrueMovingAndMaybeAutoResume(sport: Sport) {
         if recorder.autoPause.accrueMoving(isMoving: isMovingAgain(sport: sport)) {
-            recorder.resume()
+            recorder.session.resume()
         }
     }
 
@@ -216,7 +211,7 @@ extension WorkoutTicker {
         if recorder.settingsProvider().enableAIAssistant {
             publishLiveWorkoutSnapshot()
         }
-        if let sport = recorder.currentSession?.sport {
+        if let sport = recorder.lifecycle.currentSession?.sport {
             runSportScopedTickWork(sport: sport)
         }
         advanceIntervalPlanUnlessPaused()
@@ -227,7 +222,7 @@ extension WorkoutTicker {
     /// a step must not advance or be announced during a rest stop.
     private func advanceIntervalPlanUnlessPaused() {
         guard !recorder.lifecycle.isPaused else { return }
-        _ = recorder.intervalController.tick(totalDistanceMeters: recorder.distanceMeters)
+        _ = recorder.intervalController.tick(totalDistanceMeters: recorder.motion.distanceMeters)
     }
 
     /// The half of the tick that needs a sport: Watch push, threshold
@@ -242,7 +237,7 @@ extension WorkoutTicker {
     private func runSportScopedTickWork(sport: Sport) {
         // Push a live state snapshot to the paired Watch (no-op if unpaired).
         pushLiveStateToWatch(sport: sport)
-        recorder.updateThresholdBreaches(sport: sport)
+        recorder.aiContext.updateThresholdBreaches(sport: sport)
         attemptRouteDetectionIfEligible(sport: sport)
         pushZwiftBroadcasterUpdate()
         refreshEnvironmentContextIfNeeded(sport: sport)
@@ -258,7 +253,7 @@ extension WorkoutTicker {
     /// stutter during recording. Buffer/sessionId/deviceId are captured
     /// as value types into the detached task.
     private func runIncrementalBackup(buffer: [RRPoint]) {
-        guard let session = recorder.currentSession else { return }
+        guard let session = recorder.lifecycle.currentSession else { return }
         let sessionId = session.id
         let deviceId = recorder.core.polarManager.connectedDeviceId
         let bufferSnapshot = buffer  // copy before handing off
@@ -327,7 +322,7 @@ extension WorkoutTicker {
         let baroSnapshot = recorder.trackBackupRows.baro
         let samplesSnapshot = recorder.workoutSamples
         let wristOffsetsSnapshot = recorder.wristHROffsets
-        let trackBackup = AppDependencies.current.storage.workoutTrackBackup
+        let trackBackup = recorder.services.workoutTrackBackup
         Task.detached(priority: .utility) {
             trackBackup.appendIncremental(
                 sessionId: sessionId,
@@ -386,7 +381,7 @@ extension WorkoutTicker {
     ///
     /// Only while the phone's own strap stream is silent. A strap holds a link
     /// to the phone and one to the Watch at once, so both streams carry the
-    /// same beats; taking the Watch's as well counted every beat twice. The
+    /// same beats; taking the Watch's as well would count every beat twice. The
     /// queue is still drained, so beats from a stretch the phone covered are
     /// not replayed when it next drops.
     ///
@@ -396,7 +391,7 @@ extension WorkoutTicker {
     /// (the ticks stopped while the app was suspended) are kept at that
     /// batch's time and go into the series, but not into the live α1 or the
     /// live heart rate, which they no longer describe. Left in the queue
-    /// they were placed back from the next batch's arrival instead,
+    /// they would be placed back from the next batch's arrival instead,
     /// minutes later than they happened.
     private func consumeWatchRoutedStrapFallback() {
         guard let watchStrapAt = recorder.watchBridge.latestWatchStrapAt else { return }
@@ -494,8 +489,8 @@ extension WorkoutTicker {
     /// so the per-second sample knows its heart rate came from Apple Health.
     private func arbitrateHRSource() {
         let arbitration = HRArbitration.decide(HRArbitration.Inputs(
-            sourceMode: recorder.activeHRSource,
-            recordingElapsedSeconds: recorder.elapsedSeconds,
+            sourceMode: recorder.lifecycle.activeHRSource,
+            recordingElapsedSeconds: recorder.lifecycle.elapsedSeconds,
             strapSilentFor: recorder.lastStrapHRAt.map { Date().timeIntervalSince($0) } ?? .infinity,
             watchRoutedSilentFor: recorder.lastWatchRoutedHRAt.map { Date().timeIntervalSince($0) } ?? .infinity,
             latestWatchHR: freshWristHR(now: Date()),
@@ -505,7 +500,7 @@ extension WorkoutTicker {
         if recorder.lifecycle.strapNotice != arbitration.strapNotice {
             recorder.lifecycle.strapNotice = arbitration.strapNotice
             if let notice = arbitration.strapNotice {
-                debugLog("[Recorder] Strap notice raised \(recorder.elapsedSeconds)s in: \(notice)", level: .warning)
+                debugLog("[Recorder] Strap notice raised \(recorder.lifecycle.elapsedSeconds)s in: \(notice)", level: .warning)
             }
         }
     }
@@ -554,8 +549,8 @@ extension WorkoutTicker {
     /// "spm" on the row sport in the recording view.
     private func mirrorMotionAndPowerSensors() {
         recorder.motion.footPodActive = recorder.footPod.connectionState == .connected
-        let isRow = recorder.currentSession?.sport == .row
-        let erg = isRow ? AppDependencies.current.collection.concept2Manager : nil
+        let isRow = recorder.lifecycle.currentSession?.sport == .row
+        let erg = isRow ? recorder.services.concept2Manager : nil
         if isRow, let ergDist = erg?.distanceMeters {
             recorder.motion.distanceMeters = ergDist
         } else {
@@ -575,7 +570,7 @@ extension WorkoutTicker {
     }
 
     /// The map's track, set only when a fix was added or replaced: setting
-    /// the observed array each second redrew the whole polyline of a long
+    /// the observed array each second would redraw the whole polyline of a long
     /// workout even while standing still.
     private func mirrorLiveTrackIfChanged() {
         let track = recorder.startedLocation?.track ?? []
@@ -613,8 +608,7 @@ extension WorkoutTicker {
     ///
     /// Sampled 1 Hz. Persisted to WorkoutMetadata.samples on finalize so
     /// post-summary can render real charts (HR over time, pace, cadence)
-    /// AND exports can attach per-row metrics instead of just GPS. Without
-    /// this the CSV was lat/lon only and charts couldn't exist.
+    /// AND exports can attach per-row metrics instead of just GPS.
     ///
     /// Skipped while paused — otherwise the chart would have a flat-line
     /// valley during a rest stop that looks like the user crashed to 0
@@ -624,10 +618,10 @@ extension WorkoutTicker {
     /// A row whose heart rate is the Watch's wrist HR has its offset added to
     /// `recorder.wristHROffsets`.
     private func capturePerSecondSample() {
-        guard !recorder.lifecycle.isPaused, let sport = recorder.currentSession?.sport else { return }
+        guard !recorder.lifecycle.isPaused, let sport = recorder.lifecycle.currentSession?.sport else { return }
         recorder.workoutSamples.append(makeSample(sport: sport, paceSecPerKm: recorder.currentPaceSecPerKm))
-        if recorder.hrFromWrist, recorder.currentHR != nil {
-            recorder.wristHROffsets.append(recorder.elapsedSeconds)
+        if recorder.hrFromWrist, recorder.workoutHR.currentHR != nil {
+            recorder.wristHROffsets.append(recorder.lifecycle.elapsedSeconds)
         }
         capWorkoutSampleMemory()
     }
@@ -636,15 +630,15 @@ extension WorkoutTicker {
     /// (`finiteValuesOnly`): the archive cannot encode NaN or infinity.
     private func makeSample(sport: Sport, paceSecPerKm: Double?) -> WorkoutSample {
         WorkoutSample(
-            offsetSec: recorder.elapsedSeconds, heartRate: recorder.currentHR,
-            distanceMeters: recorder.distanceMeters > 0 ? recorder.distanceMeters : nil,
-            paceSecPerKm: paceSecPerKm, cadenceStepsPerMin: recorder.cadenceStepsPerMin,
+            offsetSec: recorder.lifecycle.elapsedSeconds, heartRate: recorder.workoutHR.currentHR,
+            distanceMeters: recorder.motion.distanceMeters > 0 ? recorder.motion.distanceMeters : nil,
+            paceSecPerKm: paceSecPerKm, cadenceStepsPerMin: recorder.motion.cadenceStepsPerMin,
             altitudeMeters: recorder.startedLocation?.currentLocation?.altitude, alpha1: recorder.dfa.currentAlpha1,
-            mets: WorkoutRecorder.estimateMETs(
-                sport: sport, paceSecPerKm: paceSecPerKm, heartRate: recorder.currentHR,
+            mets: WorkoutSessionLifecycle.estimateMETs(
+                sport: sport, paceSecPerKm: paceSecPerKm, heartRate: recorder.workoutHR.currentHR,
                 userMaxHR: recorder.settingsProvider().effectiveMaxHR
             ),
-            powerWatts: recorder.powerWatts
+            powerWatts: recorder.motion.powerWatts
         ).finiteValuesOnly
     }
 
@@ -653,14 +647,14 @@ extension WorkoutTicker {
     /// A paused tick clears it: a pause is not a pace, and the window must not
     /// span it. The rower's odometer is its only distance.
     private func updateLivePace() {
-        guard !recorder.lifecycle.isPaused, let sport = recorder.currentSession?.sport else {
+        guard !recorder.lifecycle.isPaused, let sport = recorder.lifecycle.currentSession?.sport else {
             recorder.livePace.reset()
             return
         }
         let paused = recorder.lifecycle.pausedMotion
         let outdoors = sport.usesGPS
         recorder.livePace.update(LivePaceEstimator.Reading(
-            now: Date(), distanceMeters: recorder.distanceMeters,
+            now: Date(), distanceMeters: recorder.motion.distanceMeters,
             gpsMeters: outdoors ? recorder.location.distanceMeters : nil,
             pedometerMeters: LivePaceEstimator.countsSteps(sport) ? paused.pedometerDistance(recorder.pedometer.distanceMeters) : nil,
             footPodSpeedMS: recorder.footPod.instantaneousSpeedMS,
@@ -699,10 +693,10 @@ extension WorkoutTicker {
     /// grade, units preference, and α1 diagnostic status — every piece
     /// of state the AI might need to sound like a real coach.
     private func publishLiveWorkoutSnapshot() {
-        guard let sport = recorder.currentSession?.sport else { return }
+        guard let sport = recorder.lifecycle.currentSession?.sport else { return }
         let loc = recorder.startedLocation?.currentLocation
         let heading = Self.validCourse(loc)
-        AppDependencies.current.assistant.liveWorkoutBroker.publish(
+        recorder.services.liveWorkoutBroker.publish(
             buildBrokerSnapshot(
                 sport: sport,
                 loc: loc,
@@ -725,7 +719,7 @@ extension WorkoutTicker {
     /// Only meaningful when the strap is the selected source — on watch/none
     /// there is no strap silence to report.
     func strapSilentSeconds() -> Double? {
-        guard recorder.activeHRSource == .strap, let last = recorder.lastStrapHRAt else { return nil }
+        guard recorder.lifecycle.activeHRSource == .strap, let last = recorder.lastStrapHRAt else { return nil }
         return Date().timeIntervalSince(last)
     }
 
@@ -761,15 +755,12 @@ extension WorkoutTicker {
     /// Tick stage — the broker-snapshot struct literal; pure construction, no side effects.
     ///
     /// Resolve the geocode ONCE instead of reading
-    /// `AppDependencies.current.location.roadGeocodingService.current` seven times.
+    /// `services.roadGeocodingService.current` seven times.
     ///
-    /// NOT a race fix, despite appearances: both this type and
-    /// `RoadGeocodingService` are `@MainActor` and this function is
-    /// synchronous, so there is no suspension point between the reads and
-    /// all seven observe the same value. The win is smaller and duller —
-    /// one property read instead of seven, and the snapshot's dependency
-    /// on the geocoder is stated once at the top rather than buried seven
-    /// times in an argument list.
+    /// Both this type and `RoadGeocodingService` are `@MainActor` and this
+    /// function is synchronous, so all seven reads would observe the same
+    /// value anyway; reading once states the snapshot's dependency on the
+    /// geocoder at the top rather than seven times in an argument list.
     ///
     /// The live trends, historical baselines and readiness
     /// fields carry the same data fed to the voice path, mirrored here so
@@ -785,17 +776,17 @@ extension WorkoutTicker {
         strapSilent: Double?,
         liveZoneBreakdown: WorkoutZoneBreakdown
     ) -> AssistantContext.LiveWorkoutSnapshot {
-        let (road, trends) = (AppDependencies.current.location.roadGeocodingService.current, syncedLiveTrends())
+        let (road, trends) = (recorder.services.roadGeocodingService.current, syncedLiveTrends())
         return AssistantContext.LiveWorkoutSnapshot(
-            sport: sport.displayName, snapshotAt: Date(), sessionStartAt: recorder.sessionStartDate ?? Date(), elapsedSeconds: recorder.elapsedSeconds, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: recorder.settingsProvider().effectiveMaxHR,
-            beatCount: recorder.beatCount, distanceMeters: recorder.distanceMeters, stepCount: recorder.stepCount, cadenceStepsPerMin: recorder.cadenceStepsPerMin, elevationGainMeters: recorder.elevationGainMeters, alpha1: recorder.dfa.currentAlpha1,
-            alpha1Band: recorder.dfa.currentBand.label, alpha1Status: recorder.dfa.status.label, alpha1FitQualityR2: recorder.dfa.fitQuality, strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: recorder.liveTrack.count,
-            gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy, currentPaceSecPerKm: recorder.currentPaceSecPerKm, currentSpeedMS: speedMS, powerWatts: recorder.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: recorder.recentSplitPacesSecPerKm(),
+            sport: sport.displayName, snapshotAt: Date(), sessionStartAt: recorder.sessionStartDate ?? Date(), elapsedSeconds: recorder.lifecycle.elapsedSeconds, heartRate: recorder.workoutHR.currentHR, peakHR: recorder.workoutHR.peakHR, userMaxHR: recorder.settingsProvider().effectiveMaxHR,
+            beatCount: recorder.workoutHR.beatCount, distanceMeters: recorder.motion.distanceMeters, stepCount: recorder.motion.stepCount, cadenceStepsPerMin: recorder.motion.cadenceStepsPerMin, elevationGainMeters: recorder.motion.elevationGainMeters, alpha1: recorder.dfa.currentAlpha1,
+            alpha1Band: recorder.dfa.currentBand.label, alpha1Status: recorder.dfa.status.label, alpha1FitQualityR2: recorder.dfa.fitQuality, strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: recorder.motion.liveTrack.count,
+            gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy, currentPaceSecPerKm: recorder.currentPaceSecPerKm, currentSpeedMS: speedMS, powerWatts: recorder.motion.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: recorder.aiContext.recentSplitPacesSecPerKm(),
             currentLatitude: loc?.coordinate.latitude, currentLongitude: loc?.coordinate.longitude, currentAltitudeMeters: loc?.altitude, currentHeadingDegrees: heading, currentHeadingCardinal: heading.map(Self.cardinal(fromCourse:)),
-            currentGradePercent: recorder.computeCurrentGradePercent(), unitsPreference: UnitsPreferenceStore.current.rawValue, targetZone: recorder.targetZone, recognizedRouteName: recorder.plannedRoute?.name, recognizedRouteWasAutoDetected: recorder.plannedRouteWasAutoDetected,
+            currentGradePercent: recorder.aiContext.computeCurrentGradePercent(), unitsPreference: UnitsPreferenceStore.current.rawValue, targetZone: recorder.targetZone, recognizedRouteName: recorder.plannedRoute?.name, recognizedRouteWasAutoDetected: recorder.plannedRouteWasAutoDetected,
             recognizedRouteDirection: recognizedRouteDirectionLabel(), routeTotalDistanceMeters: recorder.plannedRoute?.totalDistanceMeters, routeClimbCount: recorder.plannedRoute?.climbs.count, currentRoadName: road?.road, currentLocality: road?.locality,
             currentAdministrativeArea: road?.administrativeArea, currentCountry: road?.country, currentCountryCode: road?.countryCode, currentCompactAddress: road?.compactAddress, currentNearestCrossStreet: road?.nearestCrossStreet,
-            routeTopology: recorder.liveRouteTopologySnapshot(currentLocation: loc), weather: recorder.liveWeatherSnapshot(), reverseSplitDeltaSecPerKm: trends.reverseSplitDeltaSecPerKm,
+            routeTopology: recorder.aiContext.liveRouteTopologySnapshot(currentLocation: loc), weather: recorder.aiContext.liveWeatherSnapshot(), reverseSplitDeltaSecPerKm: trends.reverseSplitDeltaSecPerKm,
             liveHRDriftPercent: trends.hrDriftPercent, aerobicDecouplingPercent: trends.aerobicDecouplingPercent, cadenceDriftSpm: trends.cadenceDriftSpm,
             gradeAdjustedPaceSecPerKm: liveGradeAdjustedPace(), recentSplitGradeAdjustedPaces: trends.recentSplitGradeAdjustedPaces, projectedMinutesUntilFade: trends.projectedMinutesUntilFade,
             historicalSportAvgPaceSecPerKm: recorder.cachedHistoricalBaselines.avgPaceSecPerKm, historicalSportAvgHR: recorder.cachedHistoricalBaselines.avgHR, historicalSportAvgAlpha1: recorder.cachedHistoricalBaselines.avgAlpha1,
@@ -803,7 +794,7 @@ extension WorkoutTicker {
             todayCTL: recorder.cachedTodayReadiness.ctl, todayTSB: recorder.cachedTodayReadiness.tsb, projectedDaysUntilFresh: recorder.cachedTrainingProjection.daysUntilFresh, projectedTSBTomorrowSteadyState: recorder.cachedTrainingProjection.tsbTomorrowSteadyState,
             recoveryHoursNeeded: liveRecoveryHoursNeeded(), zone1Sec: liveZoneBreakdown.z1Sec, zone2Sec: liveZoneBreakdown.z2Sec, zone3Sec: liveZoneBreakdown.z3Sec, zone4Sec: liveZoneBreakdown.z4Sec, zone5Sec: liveZoneBreakdown.z5Sec, dominantZone: liveZoneBreakdown.dominantZone,
             predictedRaceTime5KSec: recorder.cachedRacePredictionsByDistance[5_000], predictedRaceTime10KSec: recorder.cachedRacePredictionsByDistance[10_000], predictedRaceTimeHalfSec: recorder.cachedRacePredictionsByDistance[21_097.5],
-            predictedRaceTimeMarathonSec: recorder.cachedRacePredictionsByDistance[42_195], activeThresholds: activeThresholdSnapshots(), thresholdBreachSec: thresholdBreachSecByID(), intervalProgress: recorder.liveIntervalProgressSnapshot()
+            predictedRaceTimeMarathonSec: recorder.cachedRacePredictionsByDistance[42_195], activeThresholds: activeThresholdSnapshots(), thresholdBreachSec: thresholdBreachSecByID(), intervalProgress: recorder.aiContext.liveIntervalProgressSnapshot()
         )
     }
 
@@ -817,7 +808,7 @@ extension WorkoutTicker {
     private func liveGradeAdjustedPace() -> Double? {
         WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(
             pace: recorder.currentPaceSecPerKm,
-            gradePercent: recorder.computeCurrentGradePercent()
+            gradePercent: recorder.aiContext.computeCurrentGradePercent()
         )
     }
 
@@ -853,13 +844,13 @@ extension WorkoutTicker {
         let paceDisplay = pace.flatMap { units.formatPace(secondsPerMeter: $0 / 1000) }
         let settings = recorder.settingsProvider()
         recorder.watchBridge.sendLiveState(WatchConnectivityBridge.LiveState(
-            sport: sport, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: settings.effectiveMaxHR,
+            sport: sport, heartRate: recorder.workoutHR.currentHR, peakHR: recorder.workoutHR.peakHR, userMaxHR: settings.effectiveMaxHR,
             totals: WatchConnectivityBridge.LiveTotals(
-                elapsedSec: recorder.elapsedSeconds, distanceMeters: recorder.distanceMeters,
-                elevationGainMeters: recorder.elevationGainMeters
+                elapsedSec: recorder.lifecycle.elapsedSeconds, distanceMeters: recorder.motion.distanceMeters,
+                elevationGainMeters: recorder.motion.elevationGainMeters
             ),
             paceDisplay: paceDisplay, alpha1: recorder.dfa.currentAlpha1, band: recorder.dfa.currentBand.localizedLabel,
-            cadenceSpm: recorder.cadenceStepsPerMin, targetZone: recorder.targetZone, unitsPreference: units.rawValue,
+            cadenceSpm: recorder.motion.cadenceStepsPerMin, targetZone: recorder.targetZone, unitsPreference: units.rawValue,
             isRecording: true, isPaused: recorder.lifecycle.isPaused, autoPaused: recorder.lifecycle.autoPaused,
             paceSecPerKm: pace, alpha1Status: recorder.dfa.status
         ))
@@ -874,7 +865,7 @@ extension WorkoutTicker {
         // attempts `attemptAutoRouteDetection` returns at once until the
         // track reaches `recorder.nextRouteDetectionAtMeters`.
         if recorder.plannedRoute == nil, sport.usesGPS {
-            recorder.attemptAutoRouteDetection(sport: sport)
+            recorder.aiContext.attemptAutoRouteDetection(sport: sport)
         }
     }
 
@@ -883,7 +874,7 @@ extension WorkoutTicker {
         // Push live HR + power to the Zwift broadcaster (no-op when
         // user hasn't enabled it). One source of truth for both the
         // app's own analysis and any indoor-trainer game pairing.
-        AppDependencies.current.collection.zwiftPeripheralBroadcaster.update(
+        recorder.services.zwiftPeripheralBroadcaster.update(
             heartRate: recorder.workoutHR.currentHR,
             powerWatts: recorder.motion.powerWatts
         )
@@ -912,10 +903,10 @@ extension WorkoutTicker {
         let settings = recorder.settingsProvider()
         let location = recorder.startedLocation?.currentLocation
         if settings.enableAIAssistant || (settings.heatTrackingEnabled && sport.usesGPS) {
-            AppDependencies.current.location.weatherService.refreshIfNeeded(for: location)
+            recorder.services.weatherService.refreshIfNeeded(for: location)
         }
         guard settings.enableAIAssistant else { return }
-        AppDependencies.current.location.roadGeocodingService.refreshIfNeeded(for: location)
+        recorder.services.roadGeocodingService.refreshIfNeeded(for: location)
     }
 
     /// Tick stage — builds the AI context snapshot and lets the voice coach evaluate triggers.
@@ -923,7 +914,7 @@ extension WorkoutTicker {
         // Build a factual context snapshot and let the voice coach decide
         // whether any trigger rules fire. The coach enforces cooldowns
         // and mute/quiet-mode internally.
-        let context = recorder.buildContext(sport: sport)
+        let context = recorder.aiContext.buildContext(sport: sport)
         recorder.voiceCoach.tick(context: context)
     }
 }

@@ -7,20 +7,15 @@ import os
 /// SDNN and windowed HRV back to Health, writing sleep, deleting what this app
 /// wrote, and the observer queries that notice when the Watch adds new data.
 ///
-/// ## Why this is not on `HealthKitManager`
-///
-/// As two extensions it added 1,010 lines to that type.
-///
 /// Reads and writes fail differently and are worth separating on that alone: a
 /// failed read yields a missing number, a failed write leaves Health holding
 /// something wrong, and a leaked observer query keeps firing after the screen
 /// is gone. The three read-only query classes (`VitalsHealthQueries`,
-/// `TrainingHealthQueries`, `SleepHealthQueries`) came out earlier for the same
-/// reason; this is the other side.
+/// `TrainingHealthQueries`, `SleepHealthQueries`) are the other side.
 ///
-/// The `[weak self]` captures are query completion and update handlers. They now
-/// weakly hold this object rather than the manager — equivalent, since the
-/// manager is the only strong reference and each already no-ops on a nil self.
+/// The `[weak self]` captures are query completion and update handlers. They
+/// weakly hold this object; the manager is its only strong reference, and each
+/// no-ops on a nil self.
 ///
 /// Holds its owner strongly and is built on demand by the manager — a
 /// value with no state of its own, so nothing here can outlive what it
@@ -42,7 +37,7 @@ struct HealthWriteAndObserve {
         let removals: [(String, @MainActor () async throws -> Void)] = [
             ("HRV", { try await removeExportedHRV(sessionId: sessionId, from: start, to: end) }),
             ("heart rate", { try await manager.heartRate.removeExportedHeartRate(sessionId: sessionId, from: start, to: end) }),
-            ("resting heart rate", { try await manager.removeExportedRestingHeartRate(at: end, sessionId: sessionId) }),
+            ("resting heart rate", { try await manager.heartRate.removeExportedRestingHeartRate(at: end, sessionId: sessionId) }),
             ("sleep", { try await removeExportedSleep(sessionId: sessionId) }),
             ("workout", { try await HealthKitWorkoutExport.removeExports(sessionId: sessionId, startDate: start, healthKit: manager) })
         ]
@@ -127,11 +122,11 @@ final class HealthKitSampleStore: HealthSampleStore {
 
     /// The bounded, fail-closed read both lookups run.
     private func ownSamples(of type: HKSampleType, matching predicate: NSPredicate, timeout: TimeInterval, label: String) async throws -> [HKSample] {
-        try await requireManager().runBoundedThrowingQuery(
+        try await requireManager().heartRate.runBoundedThrowingQuery(
             timeout: timeout,
             makeQuery: { resolve in
                 HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, results, error in
-                    resolve(HealthKitManager.sampleResult(results, error))
+                    resolve(HeartRateHealthQueries.sampleResult(results, error))
                 }
             },
             onTimeout: { .failure(HealthKitManager.HealthKitError.queryTimedOut(label)) }
@@ -270,7 +265,7 @@ final class HealthSampleReplacer {
 /// anchor kept for `anchorKey`. One read per anchor runs at a time: a fire
 /// during it (another change, or a restarted observer's first fire) has the
 /// read run once more when it ends, from the anchor it kept. Overlapping
-/// reads delivered the same samples twice, and one answering last could put
+/// reads would deliver the same samples twice, and one answering last could put
 /// back the older anchor. The anchor is stored across launches, so samples
 /// that arrived while the app was not running are delivered on the next
 /// launch, a background one included. Without a stored anchor the read

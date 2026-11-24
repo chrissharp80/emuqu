@@ -2,15 +2,13 @@
 import SwiftUI
 import XCTest
 
-/// Snapshot coverage for the view types split out of `FitnessPostSummaryView`.
+/// Snapshot coverage for the card builders `FitnessPostSummaryView` renders.
 ///
-/// Why these three first. `ThresholdCards`, `WorkoutStatsCards`
-/// and `Alpha1ReportCards` were extracted from that view. The
-/// extraction is behaviour-preserving by construction — each forwarder returns
-/// the same tree from the same position — but "by construction" was the whole
-/// of the evidence: the unit suite cannot see a view, and the UI suite has no
-/// test that opens this screen. These lock the rendering down so the next
-/// change to it is checked by something other than someone remembering to look.
+/// Why these three first. `ThresholdCards`, `WorkoutStatsCards` and
+/// `Alpha1ReportCards` draw most of that screen, the unit suite cannot see a
+/// view, and the UI suite has no test that opens this screen. These lock the
+/// rendering down so the next change to it is checked by something other than
+/// someone remembering to look.
 ///
 /// Every input here is frozen, and the settings are put on fresh-install
 /// defaults for each test. A snapshot built from `Date()` or from live
@@ -129,7 +127,7 @@ final class ViewSnapshotTests: XCTestCase {
     // the same absence of anything checking it.
 
     func testAlpha1ReportCardRenders() {
-        let cards = Alpha1ReportCards(session: makeSession())
+        let cards = Alpha1ReportCards(session: makeSession(), statsCache: AppDependencies.current.app.alpha1StatsCache)
         assertSnapshot(of: cards.alpha1ReportCard, named: "alpha1-report")
     }
 

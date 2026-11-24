@@ -50,7 +50,7 @@ struct SampleDataLibrary {
     }
 
     private var sampleIds: [UUID] {
-        DemoSessionSeeder.sampleSessionIds(in: collector.archive.entries, seededIds: Set(loadLedger().sessionIds))
+        DemoSessionSeeder.sampleSessionIds(in: collector.archive.store.entries, seededIds: Set(loadLedger().sessionIds))
     }
 
     // MARK: - Load
@@ -102,7 +102,7 @@ struct SampleDataLibrary {
     /// and nights analysed side by side would otherwise read each other's.
     private var pipeline: DemoSessionSeeder.NightPipeline {
         let shared = collector.analysisPipeline
-        let ansConfig = collector.currentANSConfig
+        let ansConfig = collector.scoring.currentANSConfig
         return DemoSessionSeeder.NightPipeline(analyze: { session in
             let analysis = HRVAnalysisPipeline(
                 artifactDetector: shared.artifactDetector, windowSelector: WindowSelector(), healthKit: shared.healthKit
@@ -129,7 +129,7 @@ struct SampleDataLibrary {
             baselineStats: collector.scoringBaselineStats(for: night),
             recordingStart: night.startDate, recordingEnd: night.endDate ?? night.startDate
         ).dataQuality
-        if let outcome = await collector.computeRecoveryScore(for: session, from: result) {
+        if let outcome = await collector.morning.computeRecoveryScore(for: session, from: result) {
             session.recoveryScore = outcome.score
             session.scoreBreakdown = outcome.breakdown
             session.frozenReadiness = ReanalysisService.computeFrozenReadiness(
@@ -191,7 +191,7 @@ struct SampleDataLibrary {
     /// device that never saw the sample nights would have.
     private func rebuildBaseline() async {
         let archive = collector.archive
-        let entries = archive.entries
+        let entries = archive.store.entries
         let sessions = await Task.detached(priority: .userInitiated) {
             entries.compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "sampleDataBaseline") }
         }.value

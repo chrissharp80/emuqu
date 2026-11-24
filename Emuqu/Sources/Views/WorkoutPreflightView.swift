@@ -247,7 +247,7 @@ struct WorkoutPreflightView: View {
     // MARK: - Start button
 
     private var startButton: some View {
-        let phase = recorder.phase
+        let phase = recorder.lifecycle.phase
         let canTap = plan.canStart(recorderPhase: phase)
         return Button {
             // Stamp the tap time so the recorder can compute
@@ -311,7 +311,7 @@ struct WorkoutPreflightView: View {
     /// `alreadyRecording` to the user from a mis-timed tap. Once the workout
     /// is recording, the plan's per-workout picks are cleared for the next.
     private func runStartSequence() async {
-        guard plan.canStart(recorderPhase: recorder.phase) else { return }
+        guard plan.canStart(recorderPhase: recorder.lifecycle.phase) else { return }
         let source = resolveSourceAndReconnect()
         // Hand off to the recorder via the callback the tab provided.
         // The tab handles the routing to FitnessRecordingView.
@@ -323,11 +323,10 @@ struct WorkoutPreflightView: View {
             plan.selectedThresholds,
             plan.selectedRoute
         )
-        if recorder.phase == .recording { plan.clearPerWorkoutPicks() }
+        if recorder.lifecycle.phase == .recording { plan.clearPerWorkoutPicks() }
     }
 
-    /// No connect-poll. User direction:
-    /// "Fitness apps just start the workout. why can't this one?" Apple Fitness
+    /// No connect-poll. Apple Fitness
     /// / Strava / Garmin Connect all start the timer the instant the user taps;
     /// the sensor connects in the background and HR appears when it appears.
     /// A flow that blocks the start button for up to 4.6 seconds
@@ -347,7 +346,7 @@ struct WorkoutPreflightView: View {
             hasKnownStrap: !polar.knownDevices.isEmpty
         )
         if source == .strap, polar.connectionState != .connected, !polar.knownDevices.isEmpty {
-            polar.connectToLastDevice()
+            polar.discovery.connectToLastDevice()
         }
         return source
     }
@@ -626,10 +625,8 @@ private struct RoutePicker: View {
     private var routeActionButtons: some View {
         HStack(spacing: 8) {
             findTrailButton
-                // The trail search. A UI test was looking
-                // for a button labelled "Discover", copy this control has not
-                // carried in some time; it reported the feature as "not
-                // exposed in this build" and skipped every run.
+                // The trail search. UI tests find it by this identifier, not
+                // by its label, which is copy and changes.
                 .accessibilityIdentifier("fitness.findTrail")
             gpxImportButton
         }

@@ -412,10 +412,8 @@ extension WindowSelector {
         guard !zones.isEmpty else { return [] }
         let sorted = zones.sorted { $0.startMs < $1.startMs }
         var merged: [HRVAnalysisResult.TimeRange] = [sorted[0]]
-        // `if let last = …` rather than `merged.last!` —
-        // merged is guaranteed non-empty (init with sorted[0]) so the optional
-        // binding always succeeds; avoiding the `!` keeps the file refactor-
-        // spec compliant ("zero magic / no force-unwraps").
+        // `if let last = …` rather than `merged.last!`: merged is never empty
+        // (init with sorted[0]), so the binding always succeeds.
         for zone in sorted.dropFirst() {
             if let last = merged.last, zone.startMs <= last.endMs {
                 // Overlapping or touching — extend current zone

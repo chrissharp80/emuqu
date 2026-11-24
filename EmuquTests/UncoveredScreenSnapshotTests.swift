@@ -190,6 +190,8 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
             recentSessions: (0 ..< 4).map { SnapshotFixtures.overnightSession(dayOffset: -$0) },
             collector: SnapshotFixtures.collector(),
             sessionReanalysis: AppDependencies.current.collection.sessionReanalysis,
+            trainingMetricsCache: AppDependencies.current.analysis.trainingMetricsCache,
+            settingsManager: AppDependencies.current.app.settingsManager,
             onReanalyze: nil,
             onReanalyzeAt: nil,
             onApplyManualResult: nil,
@@ -245,7 +247,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     /// what the user sees in the first seconds of a workout, before any sample
     /// has landed.
     private func recordingRecorder() -> WorkoutRecorder {
-        WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared)
+        WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
     }
 
     /// A strap mid-recording, so the status views draw their populated state

@@ -22,7 +22,7 @@ extension VoiceAudioPipeline {
         // and the cue's claim is treated as satisfied by the same session.
         // Calling `setCategory` directly here AND for the cue would give a
         // last-writer-wins clobber.
-        AppDependencies.current.services.audioSessionCoordinator.claim(.voice, mode: .voiceRecord)
+        controller.services.audioSessionCoordinator.claim(.voice, mode: .voiceRecord)
         let session = AVAudioSession.sharedInstance()
         try session.setActive(true, options: .notifyOthersOnDeactivation)
         debugLog("[VoiceConv] audio session ready: category=\(session.category.rawValue), mode=\(session.mode.rawValue), sampleRate=\(session.sampleRate)")
@@ -44,15 +44,12 @@ extension VoiceAudioPipeline {
     /// Every call here goes through SafeObjC shims. Bare-Swift calls would
     /// trust that `controller.stop`, `removeTap`, and `reset` never
     /// raise NSException. They DO — when the audio session is in a degraded
-    /// controller.state (e.g. after a phone-call interruption, which a user
-    /// log shows happening 5 minutes before workout start), any of these can
+    /// state (e.g. after a phone-call interruption shortly before a
+    /// workout starts), any of these can
     /// raise `NSInternalInconsistencyException`. Swift's `try` doesn't catch
     /// it, so each is a latent SIGABRT on the workout-start path. All three
     /// return Swift errors via the shim and continue gracefully if the
     /// underlying call complains.
-    ///
-    /// Kept separate from `startAudioEngineAndRecognizer` to keep that method's
-    /// cyclomatic complexity down; this pre-flight is four of its branches.
     private func resetAudioEngineSafely() {
         if controller.audioEngine.isRunning {
             var stopErr: NSError?
@@ -87,14 +84,13 @@ extension VoiceAudioPipeline {
         try await startAudioEngineWithRetry()
         debugLog("[VoiceConv] audioEngine.isRunning=\(controller.audioEngine.isRunning)")
         // Note: we don't call startFreshRecognitionTask() here — beginUserTurn()
-        // does it. Avoids the double-task-start that was logging two 'new
-        // recognition task started' lines.
+        // does it, and starting it here too would start two recognition tasks.
     }
 
     /// installTap fires on the audio render
-    /// thread. With the controller now `@MainActor`-isolated, both
+    /// thread. The controller is `@MainActor`-isolated, so both
     /// `controller.recognitionRequest` and `auditBufferActivity` are MainActor
-    /// controller.state. Hop via a Task. SFSpeechAudioBufferRecognitionRequest's
+    /// state. Hop via a Task. SFSpeechAudioBufferRecognitionRequest's
     /// `.append` is documented thread-safe so the buffer arrives
     /// promptly even with the dispatch hop; the audit logger reads
     /// and updates per-tick counters that must stay on MainActor for
@@ -120,7 +116,7 @@ extension VoiceAudioPipeline {
         // Only the user's turn: fed in every state, the bridge also took in
         // the assistant's own speech and transcribed it with the next turn.
         if controller.useWhisperKitForCurrentSession, controller.state == .listening {
-            AppDependencies.current.providers.whisperKitSTTBridge.appendAudio(bufferCopy)
+            controller.services.whisperKitSTTBridge.appendAudio(bufferCopy)
         }
         auditBufferActivity(bufferCopy)
     }
@@ -139,9 +135,8 @@ extension VoiceAudioPipeline {
     /// raises `NSInvalidArgumentException` inside installTap and our
     /// ObjC shim catches it. Throwing and aborting the turn there
     /// leaves the controller in `now listening`
-    /// controller.state but with no tap installed, so the mic produced no audio
-    /// and the user's first message was the only one that worked
-    /// (later toggles re-entered the same broken controller.state).
+    /// state but with no tap installed, so the mic produces no audio
+    /// and every later toggle re-enters the same broken state.
     ///
     /// The robust fallback is to retry with `nil` — `installTap`
     /// documents nil as "use the bus's current format," which is
@@ -164,10 +159,9 @@ extension VoiceAudioPipeline {
         }
     }
 
-    /// Wrap `prepare()` too. Documented as non-throwing
-    /// but the beta crash log frame distribution suggests the
-    /// NSException may have come from prepare's graph realization
-    /// rather than the tap install itself. Cheap insurance.
+    /// Wrap `prepare()` too. Documented as non-throwing, but its graph
+    /// realization can raise an NSException like the tap install does.
+    /// Cheap insurance.
     private func prepareAudioEngine() throws {
         var prepErr: NSError?
         guard !FRSafePrepareAudioEngine(controller.audioEngine, &prepErr) else { return }
@@ -177,25 +171,20 @@ extension VoiceAudioPipeline {
         throw VoiceConversationController.VoiceError.audioSessionUnavailable(reason: reason)
     }
 
-    /// Swift `try` only catches Swift errors. The
-    /// user's crash log showed AVFAudio raising an NSException
-    /// through `startAndReturnError:` (frame 13–14 inside AVFAudio,
-    /// SIGABRT at signal 6). Route the call through the tiny
+    /// Swift `try` only catches Swift errors, and AVFAudio can raise
+    /// an NSException through `startAndReturnError:` (SIGABRT).
+    /// Route the call through the tiny
     /// SafeObjC shim so the exception lands in a Swift `Error`
     /// we can react to instead of aborting the process.
     ///
-    /// A user log captured
-    /// `controller.audioEngine.start failed — coreaudio error -10868`
-    /// exactly when AirPods Pro dropped mid-conversation and the
-    /// engine retry fired DURING the audio route transition.
-    /// -10868 is `kAudioUnitErr_FormatNotSupported`, which iOS
-    /// raises transiently when the new audio route's format hasn't
-    /// settled yet. The route change events in the same window
-    /// (07:44:59 → 07:48:10) confirm the engine is restarting
-    /// mid-transition. A short retry after a 200 ms breather
+    /// `audioEngine.start` fails with coreaudio error -10868
+    /// (`kAudioUnitErr_FormatNotSupported`) when it runs during an
+    /// audio route transition, such as AirPods dropping
+    /// mid-conversation: iOS raises it transiently while the new
+    /// route's format settles. A short retry after a 200 ms breather
     /// lets the route settle. Two attempts is enough — if the
     /// session is genuinely unavailable after that, the user's
-    /// hardware is in a controller.state we can't recover from without their
+    /// hardware is in a state we can't recover from without their
     /// intervention.
     private func startAudioEngineWithRetry() async throws {
         var startErr: NSError?
@@ -289,8 +278,8 @@ extension VoiceAudioPipeline {
     ///
     /// Log-level gating. The 1110 "No speech detected" error
     /// fires NORMALLY when the user is silent OR when we're in `.speaking`
-    /// (TTS is playing, mic is suppressed by half-duplex). Real-user logs
-    /// were 70% these noise entries. Promote to .warning ONLY when the code
+    /// (TTS is playing, mic is suppressed by half-duplex), so it would
+    /// otherwise flood the log. Promote to .warning ONLY when the code
     /// isn't 1110 (truly anomalous), or when we were listening and zero
     /// audio buffers arrived — which suggests the audio engine actually
     /// died. Otherwise demote to .info so the diagnostic detail still ships
@@ -399,8 +388,7 @@ extension VoiceAudioPipeline {
     /// startAudioEngineAndRecognizer, which already does all three)
     /// forces iOS to re-wire the input path from scratch and the mic
     /// comes back live. Cost is a small latency spike per turn (~50ms);
-    /// benefit is reliable voice on speaker playback, which was the
-    /// failure mode documented in a user's diagnostic export.
+    /// benefit is reliable voice on speaker playback.
     @MainActor
     func beginUserTurn() async {
         resetTurnAccumulators()
@@ -561,9 +549,8 @@ extension VoiceAudioPipeline {
 // file resolves the same way.
 
 /// Defensive re-activation of the audio session
-/// before we touch any AVAudioEngine node. Real crash log
-/// (SIGABRT in AVFAudio at `controller.audioEngine.start()`) showed the
-/// session can drop into an inactive controller.state between TTS finish
+/// before we touch any AVAudioEngine node. The session
+/// can drop into an inactive state between TTS finish
 /// and `scheduleListenAfterAudioDrain` re-entering this
 /// function — AirPods interruption, a workout cue's coordinator handoff,
 /// or a route change while the drain delay sleeps. AVFAudio

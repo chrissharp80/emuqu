@@ -292,7 +292,7 @@ enum SleepMergingPipeline {
         }
     }
 
-    /// Split stage intervals by accumulated awake. Thin wrapper over splitByAccumulatedAwake.
+    /// Split stage intervals by accumulated awake (`splitByAccumulatedAwake`).
     static func splitStageIntervalsByAwake(
         _ intervals: [HealthKitManager.SleepStageInterval],
         gap: TimeInterval

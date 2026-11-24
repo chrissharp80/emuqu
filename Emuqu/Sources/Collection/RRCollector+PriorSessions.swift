@@ -8,7 +8,7 @@ extension RRCollector {
     /// newest first. Decoded off the main thread without their RR series, by
     /// the same parallel decode as `recentSessionsAsync(limit:)`.
     func recentSessionsAsync(limit: Int, before date: Date, type: SessionType = .overnight) async -> [HRVSession] {
-        let entries = Array(archive.entries
+        let entries = Array(archive.store.entries
             .filter { $0.sessionType == type && $0.date < date }
             .prefix(limit))
         let archive = self.archive

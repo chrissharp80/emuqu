@@ -24,7 +24,7 @@ final class HistoryViewModelTests: XCTestCase {
 
     override func tearDown() async throws {
         for id in createdSessionIds {
-            try? archive.delete(id)
+            _ = try? archive.delete(id)
         }
         createdSessionIds = []
         try? FileManager.default.removeItem(at: tempDir)

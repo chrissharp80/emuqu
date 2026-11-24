@@ -51,9 +51,8 @@ extension WorkoutTriggerEngine {
         // stays in the band.
     private static func alpha1BelowAeTRule() -> Rule {
         Rule(
-            // .silent rather than .spoken. Per
-            // user spec, alerts during workouts are emergency-
-            // shaped only ("you're about to die"). Routine
+            // .silent rather than .spoken. Alerts during workouts
+            // are emergency-shaped only. Routine
             // physiology coaching like α1 transitions is only
             // recorded (engine.history, in memory, not shown
             // anywhere yet) or left to the opt-in mile-marker
@@ -164,8 +163,8 @@ extension WorkoutTriggerEngine {
         // HR dropping on a downhill mid-quartile would also distort
         // the comparison, just in the other direction). The workout
         // must also be more than 30 min in, and the HR slope must be
-        // known and not falling (see the condition). The user's spec:
-        // "only surface when genuinely meaningful."
+        // known and not falling (see the condition), so the alert
+        // surfaces only when genuinely meaningful.
     private static func hrDriftHighRule() -> Rule {
         Rule(
             id: "hr.driftHigh",
@@ -212,15 +211,11 @@ extension WorkoutTriggerEngine {
 
         // HR spike with no pace change.
         //
-        // OLD (broken): compared HR to SESSION peak, so it fired at 100 bpm
-        // when the session peak was 105 — reading as "effort problem" while
-        // the user was standing still. No zone labels exist on a walk
-        // that never got above a jog, and cooldown of 5 min meant the
-        // spurious alert chained.
-        //
-        // NEW: only fires when (a) HR is genuinely high against the user's
+        // Fires only when (a) HR is genuinely high against the user's
         // MAX HR (not session peak), AND (b) we have meaningful pace data
-        // (GPS-based sport, meaningful recent split). Both gates protect
+        // (GPS-based sport, meaningful recent split). Against session peak it
+        // would fire at 100 bpm with a session peak of 105 while the user stands
+        // still, and chain on its cooldown. Both gates protect
         // against resting-HR false positives on short walks with no GPS.
         // Single-sample ectopic beats can
         // momentarily push HR above 85% max while pace stays
@@ -340,8 +335,8 @@ extension WorkoutTriggerEngine {
         let pct = Double(hr) / Double(ctx.userMaxHR)
         // Top of zone `target` on the canonical %HRmax band model
         // the low-drift rule + TRIMP use: zone N = [(N-1)*0.10+0.50,
-        // N*0.10+0.50]. Was `+ 0.60`, i.e. the top of zone N+1 — one
-        // full zone too high, so high-drift only fired a zone late.
+        // N*0.10+0.50]. `+ 0.60` would be the top of zone N+1, one full zone
+        // too high, and high-drift would fire a zone late.
         let upperBound = Double(target) * 0.10 + 0.50  // Z1 top=0.60, Z2=0.70, Z3=0.80...
         guard pct > upperBound + 0.03, ctx.elapsedSeconds > 60 else { return false }
         // Fail-closed grade gate. An if-let here would let
@@ -436,7 +431,7 @@ extension WorkoutTriggerEngine {
     private static func climbLengthLabel(_ lengthMeters: Double, imperial: Bool) -> String? {
         guard lengthMeters > 0 else { return nil }
         if imperial {
-            let mi = lengthMeters / 1609.344
+            let mi = lengthMeters / UnitConstants.metersPerMile
             let feet = Int((lengthMeters * UnitConstants.feetPerMeter).rounded())
             guard mi >= 0.1 else { return String(localized: "\(feet) feet", bundle: LanguageManager.appBundle) }
             return String(localized: "\(String(format: "%.1f", locale: .current, mi)) miles", bundle: LanguageManager.appBundle)
@@ -836,7 +831,7 @@ extension WorkoutTriggerEngine {
         // spoken.
         //
         // Closure-state caches the live ACWR proxy. Reset via the
-        // engine's resetWorkoutState hook from round 11 so a new
+        // engine's resetWorkoutState hook so a new
         // workout starts clean.
     private static func trainingRecentLoadAboveUsualRangeRule() -> Rule {
         {

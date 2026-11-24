@@ -2,9 +2,9 @@ import Foundation
 
 /// Stateless service that encapsulates session recovery logic.
 ///
-/// Extracted from `RRCollector+Recovery.swift` so the recovery algorithms
-/// can be tested in isolation. `RRCollector` keeps thin wrapper methods
-/// that forward to this service and update its own observable state.
+/// Kept apart from `RRCollector` so the recovery algorithms can be tested in
+/// isolation; `RRCollector` forwards to it and updates its own observable
+/// state.
 @MainActor
 final class SessionRecoveryService {
     // MARK: - Types
@@ -94,7 +94,7 @@ final class SessionRecoveryService {
     /// Whether two beat series are the same recording: the same beat count,
     /// with first and last timestamps within a second of each other.
     ///
-    /// Split out of `patchAction`. Written inline as one
+    /// Written inline in `patchAction` as one
     /// three-term `&&` chain it costs ~2 s to type-check on a CI runner —
     /// `abs((a?.t_ms ?? 0) - (b?.t_ms ?? 0)) < 1000` gives the checker two
     /// optional-coalesces, a subtraction, an `abs` overload set and two untyped
@@ -131,8 +131,8 @@ final class SessionRecoveryService {
     /// crash-safety backup here.
     func checkForLostSessions(excluding live: Set<UUID> = []) async -> [(id: UUID, date: Date, beatCount: Int)] {
         await pullCloudBackupsToLocalIfDue(excluding: live)
-        let archivedIds = Set(archive.entries.map(\.sessionId))
-        let deletedIds = archive.deletedIds
+        let archivedIds = Set(archive.store.entries.map(\.sessionId))
+        let deletedIds = archive.store.deletedIds
         let orphans = rawBackup.allBackups().filter {
             !archivedIds.contains($0.id) && !deletedIds.contains($0.id) && !live.contains($0.id)
         }
@@ -142,7 +142,7 @@ final class SessionRecoveryService {
         // every scan; the cloud copy goes too so another device doesn't
         // re-seed them. A pause/resume fragment an archived session links to
         // is kept: its beats belong to that night.
-        let linkedIds = Set(archive.entries.flatMap { $0.linkedSessionIds ?? [] })
+        let linkedIds = Set(archive.store.entries.flatMap { $0.linkedSessionIds ?? [] })
         discardUnrecoverable(orphans.map(\.id).filter { (counts[$0] ?? Int.max) < Self.minRecoverableBeatCount && !linkedIds.contains($0) })
         let lost = orphans.compactMap { orphan -> (id: UUID, date: Date, beatCount: Int)? in
             guard let count = counts[orphan.id], count >= Self.minRecoverableBeatCount else { return nil }
@@ -177,7 +177,7 @@ final class SessionRecoveryService {
         let row = rawBackup.indexLock.withLock { rawBackup.index.first { $0.id == id } }
         guard let row else { return indexed }
         do {
-            guard let fuller = try OneShotBackupName.fullerUnindexedBackup(than: row, in: rawBackup.backupDirectory) else { return indexed }
+            guard let fuller = try OneShotBackupName.fullerUnindexedBackup(than: row, in: rawBackup.backupDirectory, encryption: rawBackup.encryption) else { return indexed }
             try rawBackup.backup(points: fuller.points, sessionId: id, deviceId: fuller.deviceId, captureDate: fuller.captureDate)
             return fuller.points.count
         } catch {
@@ -229,9 +229,9 @@ final class SessionRecoveryService {
     func pullCloudBackupsToLocal(excluding live: Set<UUID>) async {
         let cloudBackups = await cloudSyncManager.fetchLiveBackups()
         guard !cloudBackups.isEmpty else { return }
-        let retired = Set(archive.entries.map(\.sessionId))
+        let retired = Set(archive.store.entries.map(\.sessionId))
             .union(rawBackup.allBackups().map(\.id))
-            .union(archive.deletedIds)
+            .union(archive.store.deletedIds)
             .union(ForgottenSessions.ids)
         for backup in cloudBackups where !live.contains(backup.sessionId) {
             if retired.contains(backup.sessionId) { retireCloudBackup(backup.sessionId) } else { savePulledBackup(backup) }
@@ -254,7 +254,7 @@ final class SessionRecoveryService {
 
     /// Check for sessions that were intentionally deleted but still have backups.
     func checkForDeletedSessions() -> [(id: UUID, date: Date, beatCount: Int)] {
-        let deletedIds = archive.deletedIds
+        let deletedIds = archive.store.deletedIds
         let allBackups = rawBackup.allBackups()
 
         var deleted: [(id: UUID, date: Date, beatCount: Int)] = []
@@ -268,8 +268,8 @@ final class SessionRecoveryService {
     /// such as imported workouts, which never had one and so never appeared
     /// in the trash at all.
     private func keptWithoutBackup(deletedIds: Set<UUID>, listed: Set<UUID>) -> [(id: UUID, date: Date, beatCount: Int)] {
-        archive.trashedIds.intersection(deletedIds).subtracting(listed).compactMap { id in
-            archive.trashedSession(id).map { (id: id, date: $0.startDate, beatCount: $0.rrSeries?.points.count ?? 0) }
+        archive.store.trashedIds.intersection(deletedIds).subtracting(listed).compactMap { id in
+            archive.store.trashedSession(id).map { (id: id, date: $0.startDate, beatCount: $0.rrSeries?.points.count ?? 0) }
         }
     }
 
@@ -281,7 +281,7 @@ final class SessionRecoveryService {
     func restoreFromTrash(_ sessionId: UUID) {
         cloudSyncManager.trashRestore.noteRestored(sessionId)
         do {
-            try archive.unmarkAsDeleted(sessionId)
+            try archive.store.unmarkAsDeleted(sessionId)
         } catch {
             debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to unmark session \(sessionId.uuidString.prefix(8)) as deleted: \(error)")
         }
@@ -294,7 +294,7 @@ final class SessionRecoveryService {
     func restoreFromTrashFailed(_ sessionId: UUID) {
         cloudSyncManager.trashRestore.abandon(sessionId)
         do {
-            try archive.markAsDeleted(sessionId)
+            try archive.store.markAsDeleted(sessionId)
         } catch {
             debugLog("[SessionRecoveryService] Failed to re-mark session \(sessionId.uuidString.prefix(8)) as deleted after a failed restore: \(error)", level: .error)
         }
@@ -305,8 +305,8 @@ final class SessionRecoveryService {
     /// capture date and last beat. Nil for a session the archive holds, and
     /// for one with neither (nothing dates it).
     func deletedSessionSpan(_ sessionId: UUID) -> ClosedRange<Date>? {
-        guard !archive.exists(sessionId) else { return nil }
-        if let kept = archive.trashedSession(sessionId) {
+        guard !archive.store.exists(sessionId) else { return nil }
+        if let kept = archive.store.trashedSession(sessionId) {
             return kept.startDate ... max(kept.startDate, kept.endDate ?? kept.startDate)
         }
         guard let backup = storedBackup(sessionId) else { return nil }
@@ -332,7 +332,7 @@ final class SessionRecoveryService {
     /// not deleted: only a stray Trash file of it is removed.
     @discardableResult
     func permanentlyDelete(_ sessionId: UUID) -> Bool {
-        guard !archive.exists(sessionId) else { return archive.discardTrashed(sessionId) }
+        guard !archive.store.exists(sessionId) else { return archive.store.discardTrashed(sessionId) }
         guard removeLocalCopies(of: sessionId) else { return false }
         ForgottenSessions.remember(sessionId)
         Task { await cloudSyncManager.deleteLiveBackup(sessionId: sessionId) }
@@ -368,7 +368,7 @@ final class SessionRecoveryService {
             debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} The route of \(sessionId.uuidString.prefix(8)) could not be removed from the breadcrumb history — keeping it in the Trash", level: .error)
             return false
         }
-        guard archive.discardTrashed(sessionId) else { return false }
+        guard archive.store.discardTrashed(sessionId) else { return false }
         do {
             try rawBackup.discardBackup(sessionId)
             return true
@@ -395,7 +395,7 @@ final class SessionRecoveryService {
         var marked: Set<UUID> = []
         for id in sessionIds {
             do {
-                try archive.markAsDeleted(id)
+                try archive.store.markAsDeleted(id)
                 marked.insert(id)
             } catch {
                 debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to mark session \(id.uuidString.prefix(8)) as deleted: \(error)")
@@ -485,7 +485,7 @@ final class SessionRecoveryService {
 
     /// The session this one is a pause/resume child of, if any.
     func parentSession(of sessionId: UUID) -> HRVSession? {
-        guard let entry = archive.entries.first(where: { $0.linkedSessionIds?.contains(sessionId) == true }) else {
+        guard let entry = archive.store.entries.first(where: { $0.linkedSessionIds?.contains(sessionId) == true }) else {
             return nil
         }
         do {

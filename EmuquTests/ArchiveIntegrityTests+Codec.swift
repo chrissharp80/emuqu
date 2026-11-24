@@ -99,7 +99,7 @@ extension ArchiveIntegrityTests {
     private func nightEntries(anchoredAt start: Date) throws -> [SessionArchiveEntry] {
         let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
         let night = schedule.overnightWindowStart(relativeTo: start)
-        return archive.entries
+        return archive.store.entries
             .filter { $0.sessionType == .overnight }
             .filter { schedule.overnightWindowStart(relativeTo: $0.date) == night }
     }
@@ -119,8 +119,8 @@ extension ArchiveIntegrityTests {
         _ = try archive.archive(session1)
         _ = try archive.archive(session2)
 
-        XCTAssertTrue(archive.exists(session1.id))
-        XCTAssertTrue(archive.exists(session2.id))
+        XCTAssertTrue(archive.store.exists(session1.id))
+        XCTAssertTrue(archive.store.exists(session2.id))
     }
 
     /// Linked segments should ignore tiny fragments and collapse near-identical
@@ -186,7 +186,8 @@ extension ArchiveIntegrityTests {
         let session = createTestSession()
         let (bytes, hash, format) = try SessionArchive.SessionFileCodec.encodeForDisk(
             session,
-            encoder: SessionArchive.sessionEncoder
+            encoder: SessionArchive.sessionEncoder,
+            encryption: .shared
         )
         let independent = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
         XCTAssertEqual(hash, independent, "Codec hash must be SHA256 of the bytes-as-written")
@@ -198,7 +199,7 @@ extension ArchiveIntegrityTests {
         try requireEncryptionKey()
         XCTAssertEqual(format, .encrypted, "Encryption was available; the codec must not have fallen back")
         XCTAssertTrue(
-            SessionArchive.looksEncrypted(bytes),
+            ArchiveStore.looksEncrypted(bytes),
             "With encryption available, codec output must be ciphertext (hash covers ciphertext, not plaintext)"
         )
     }
@@ -210,7 +211,7 @@ extension ArchiveIntegrityTests {
     func testCodecRoundTripDecodesEqualSession() throws {
         let session = createTestSession()
         for encoder in [SessionArchive.sessionEncoder, SessionArchive.indexEncoder] {
-            let (bytes, hash, _) = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: encoder)
+            let (bytes, hash, _) = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: encoder, encryption: .shared)
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("\(UUID().uuidString).json")
             try bytes.write(to: url)
@@ -221,7 +222,7 @@ extension ArchiveIntegrityTests {
             let onDisk = try Data(contentsOf: url)
             XCTAssertEqual(SessionArchive.SessionFileCodec.sha256Hex(onDisk), hash)
 
-            let decoded = try SessionArchive.loadAndDecodeSessionFile(at: url, decoder: SessionArchive.sessionDecoder)
+            let decoded = try ArchiveStore.loadAndDecodeSessionFile(at: url, decoder: SessionArchive.sessionDecoder, encryption: .shared)
             XCTAssertEqual(decoded.id, session.id)
             XCTAssertEqual(
                 decoded.startDate.timeIntervalSince1970,
@@ -348,10 +349,10 @@ extension ArchiveIntegrityTests {
         )
         testSessionIds.append(session.id)
 
-        let count = try archive.archiveBatch([session])
+        let count = try archive.store.archiveBatch([session])
         XCTAssertEqual(count, 1)
 
-        let entry = try XCTUnwrap(archive.entries.first { $0.sessionId == session.id })
+        let entry = try XCTUnwrap(archive.store.entries.first { $0.sessionId == session.id })
         XCTAssertEqual(entry.meanSDNN, 48.5)
         XCTAssertEqual(entry.deepSleepMinutes, 80)
         XCTAssertEqual(entry.remSleepMinutes, 90)
@@ -395,7 +396,7 @@ extension ArchiveIntegrityTests {
             }
             XCTAssertEqual(version, newerVersion)
         }
-        XCTAssertFalse(archive.exists(decoded.id), "Gate must reject before any index/file write")
+        XCTAssertFalse(archive.store.exists(decoded.id), "Gate must reject before any index/file write")
     }
 
     /// Current-version round trip: encode always stamps
@@ -426,7 +427,7 @@ extension ArchiveIntegrityTests {
             "fieldFromANewerBuild": ["kept": true]
         ])
         let cold = reopenedArchive()
-        XCTAssertFalse(cold.entries.contains { $0.sessionId == foreignId })
+        XCTAssertFalse(cold.store.entries.contains { $0.sessionId == foreignId })
 
         let next = createTestSession()
         testSessionIds.append(next.id)
@@ -449,7 +450,7 @@ extension ArchiveIntegrityTests {
             "fieldFromANewerBuild": "kept"
         ])
         let cold = reopenedArchive()
-        XCTAssertTrue(cold.entries.contains { $0.sessionId == foreignId }, "It decodes and is listed")
+        XCTAssertTrue(cold.store.entries.contains { $0.sessionId == foreignId }, "It decodes and is listed")
 
         let next = createTestSession()
         testSessionIds.append(next.id)
@@ -466,7 +467,7 @@ extension ArchiveIntegrityTests {
         testSessionIds.append(session.id)
         _ = try archive.archive(session)
         let indexURL = archiveDirectory.appendingPathComponent("index.json")
-        XCTAssertEqual(try SessionArchive.indexJSON(Data(contentsOf: indexURL)), try SessionArchive.indexEncoder.encode(archive.entries))
+        XCTAssertEqual(try SessionArchive.indexJSON(Data(contentsOf: indexURL)), try SessionArchive.indexEncoder.encode(archive.store.entries))
     }
 
     /// Archives one session through `archive`, then appends `object` to the

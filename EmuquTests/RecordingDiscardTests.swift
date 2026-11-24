@@ -38,11 +38,11 @@ final class RecordingDiscardTests: XCTestCase {
     /// Puts the collector in the state an overnight recording runs in, with
     /// the marker and backup a real one writes.
     private func startRecording(_ session: HRVSession, on collector: RRCollector) throws {
-        collector.currentSession = session
-        collector.isOvernightStreaming = true
-        collector.isStreamingMode = true
-        collector.isCollecting = true
-        collector.recordingPhase = .overnightStreaming
+        collector.sessionState.currentSession = session
+        collector.streamingLifecycle.isOvernightStreaming = true
+        collector.streamingLifecycle.isStreamingMode = true
+        collector.sessionState.isCollecting = true
+        collector.sessionState.recordingPhase = .overnightStreaming
         collector.persistRecordingState(sessionId: session.id, startTime: session.startDate, sessionType: .overnight)
         _ = try collector.rawBackup.backup(points: beats(300), sessionId: session.id)
     }
@@ -62,7 +62,7 @@ final class RecordingDiscardTests: XCTestCase {
     }
 
     private func isArchived(_ id: UUID) -> Bool {
-        archive.entries.contains { $0.sessionId == id }
+        archive.store.entries.contains { $0.sessionId == id }
     }
 
     func testDiscardEndsTheRecordingAndKeepsNothing() async throws {
@@ -73,10 +73,10 @@ final class RecordingDiscardTests: XCTestCase {
         let outcome = await collector.control.discardOvernightRecording()
 
         XCTAssertEqual(outcome, CollectorSessionControl.DiscardOutcome(strapCopyKept: false))
-        XCTAssertFalse(collector.isOvernightStreaming)
-        XCTAssertFalse(collector.isCollecting)
-        XCTAssertNil(collector.currentSession)
-        XCTAssertEqual(collector.recordingPhase, .idle)
+        XCTAssertFalse(collector.streamingLifecycle.isOvernightStreaming)
+        XCTAssertFalse(collector.sessionState.isCollecting)
+        XCTAssertNil(collector.sessionState.currentSession)
+        XCTAssertEqual(collector.sessionState.recordingPhase, .idle)
         XCTAssertNil(PersistedRecordingState.load(), "the next launch must not offer the discarded night")
         XCTAssertNil(collector.rawBackup.backedUpBeatCount(session.id), "no crash-recovery backup may remain")
         XCTAssertFalse(isArchived(session.id))
@@ -98,9 +98,9 @@ final class RecordingDiscardTests: XCTestCase {
 
         _ = await collector.control.discardOvernightRecording()
 
-        XCTAssertTrue(collector.isPaused)
-        XCTAssertEqual(collector.pausedSession?.id, parent.id)
-        XCTAssertEqual(collector.recordingPhase, .paused(sessionId: parent.id))
+        XCTAssertTrue(collector.streamingLifecycle.isPaused)
+        XCTAssertEqual(collector.streamingLifecycle.pausedSession?.id, parent.id)
+        XCTAssertEqual(collector.sessionState.recordingPhase, .paused(sessionId: parent.id))
         XCTAssertTrue(isArchived(parent.id), "the paused night the segment continued stays")
         XCTAssertNil(collector.rawBackup.backedUpBeatCount(segment.id))
     }
@@ -109,18 +109,18 @@ final class RecordingDiscardTests: XCTestCase {
         let collector = makeCollector()
         let first = try pausedNight()
         let second = try pausedNight(linkedTo: first.id)
-        collector.pausedSession = second
-        collector.currentSession = second
-        collector.isPaused = true
-        collector.recordingPhase = .paused(sessionId: second.id)
+        collector.streamingLifecycle.pausedSession = second
+        collector.sessionState.currentSession = second
+        collector.streamingLifecycle.isPaused = true
+        collector.sessionState.recordingPhase = .paused(sessionId: second.id)
 
         await collector.control.discardPausedRecording()
 
         XCTAssertFalse(isArchived(first.id))
         XCTAssertFalse(isArchived(second.id))
-        XCTAssertFalse(collector.isPaused)
-        XCTAssertNil(collector.pausedSession)
-        XCTAssertEqual(collector.recordingPhase, .idle)
+        XCTAssertFalse(collector.streamingLifecycle.isPaused)
+        XCTAssertNil(collector.streamingLifecycle.pausedSession)
+        XCTAssertEqual(collector.sessionState.recordingPhase, .idle)
     }
 
     func testDiscardingAPausedNightLeavesAFinishedNightItWasLinkedTo() async throws {
@@ -129,8 +129,8 @@ final class RecordingDiscardTests: XCTestCase {
         finished.state = .complete
         _ = try archive.archive(finished, skipSameNightMerge: true)
         let paused = try pausedNight(linkedTo: finished.id)
-        collector.pausedSession = paused
-        collector.isPaused = true
+        collector.streamingLifecycle.pausedSession = paused
+        collector.streamingLifecycle.isPaused = true
 
         await collector.control.discardPausedRecording()
 
@@ -141,19 +141,19 @@ final class RecordingDiscardTests: XCTestCase {
     func testAPausedNightTheArchiveCannotDeleteStaysPaused() async throws {
         let collector = makeCollector()
         let paused = try pausedNight()
-        collector.pausedSession = paused
-        collector.currentSession = paused
-        collector.isPaused = true
-        collector.recordingPhase = .paused(sessionId: paused.id)
+        collector.streamingLifecycle.pausedSession = paused
+        collector.sessionState.currentSession = paused
+        collector.streamingLifecycle.isPaused = true
+        collector.sessionState.recordingPhase = .paused(sessionId: paused.id)
         try blockDeletedIndexWrites()
 
         await collector.control.discardPausedRecording()
 
         XCTAssertTrue(isArchived(paused.id), "the archive refused the delete")
-        XCTAssertTrue(collector.isPaused, "a night still in the archive stays paused, so Discard can be tapped again")
-        XCTAssertEqual(collector.pausedSession?.id, paused.id)
-        XCTAssertEqual(collector.recordingPhase, .paused(sessionId: paused.id))
-        XCTAssertNotNil(collector.lastError, "the failed discard is shown")
+        XCTAssertTrue(collector.streamingLifecycle.isPaused, "a night still in the archive stays paused, so Discard can be tapped again")
+        XCTAssertEqual(collector.streamingLifecycle.pausedSession?.id, paused.id)
+        XCTAssertEqual(collector.sessionState.recordingPhase, .paused(sessionId: paused.id))
+        XCTAssertNotNil(collector.sessionState.lastError, "the failed discard is shown")
     }
 
     // MARK: - One ending per night
@@ -210,27 +210,27 @@ final class RecordingDiscardTests: XCTestCase {
         let session = HRVSession(sessionType: .overnight)
         try startRecording(session, on: collector)
         let claim = try XCTUnwrap(collector.streamingLifecycle.claimOvernightEnding())
-        collector.isOvernightStreaming = false
+        collector.streamingLifecycle.isOvernightStreaming = false
 
-        XCTAssertThrowsError(try collector.startOvernightStreaming()) { error in
+        XCTAssertThrowsError(try collector.overnightStreaming.startOvernightStreaming()) { error in
             XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
         }
-        XCTAssertThrowsError(try collector.resumeOvernightStreaming(linkedSessionId: UUID())) { error in
+        XCTAssertThrowsError(try collector.control.resumeOvernightStreaming(linkedSessionId: UUID())) { error in
             XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
         }
         XCTAssertThrowsError(try collector.startStreamingSession()) { error in
             XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
         }
         do {
-            try await collector.startSession()
+            try await collector.deviceRecording.startSession()
             XCTFail("a strap-only recording must not start while a night is being ended")
         } catch {
             XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
         }
 
         XCTAssertEqual(collector.streamingLifecycle.overnightEndingClaim, claim, "the ending keeps its claim")
-        XCTAssertEqual(collector.currentSession?.id, session.id)
-        XCTAssertEqual(collector.recordingPhase, .overnightStreaming)
+        XCTAssertEqual(collector.sessionState.currentSession?.id, session.id)
+        XCTAssertEqual(collector.sessionState.recordingPhase, .overnightStreaming)
     }
 
     /// A quick reading or a strap-only recording started while a night is
@@ -239,23 +239,23 @@ final class RecordingDiscardTests: XCTestCase {
         let collector = makeCollector()
         isolateFromHostPausedNight(collector)
         let paused = try pausedNight()
-        collector.pausedSession = paused
-        collector.currentSession = paused
-        collector.isPaused = true
-        collector.recordingPhase = .paused(sessionId: paused.id)
+        collector.streamingLifecycle.pausedSession = paused
+        collector.sessionState.currentSession = paused
+        collector.streamingLifecycle.isPaused = true
+        collector.sessionState.recordingPhase = .paused(sessionId: paused.id)
 
         XCTAssertThrowsError(try collector.startStreamingSession()) { error in
             XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
         }
         do {
-            try await collector.startSession()
+            try await collector.deviceRecording.startSession()
             XCTFail("a strap-only recording must not start while a night is paused")
         } catch {
             XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
         }
 
-        XCTAssertEqual(collector.currentSession?.id, paused.id)
-        XCTAssertEqual(collector.recordingPhase, .paused(sessionId: paused.id))
+        XCTAssertEqual(collector.sessionState.currentSession?.id, paused.id)
+        XCTAssertEqual(collector.sessionState.recordingPhase, .paused(sessionId: paused.id))
     }
 
     /// Stop, Pause and Discard each claim the night's ending before they
@@ -268,22 +268,22 @@ final class RecordingDiscardTests: XCTestCase {
         try startRecording(session, on: collector)
         XCTAssertNotNil(collector.streamingLifecycle.claimOvernightEnding())
 
-        let stopped = await collector.stopOvernightStreaming()
-        let paused = await collector.pauseOvernightStreaming()
+        let stopped = await collector.overnightStreaming.stopOvernightStreaming()
+        let paused = await collector.control.pauseOvernightStreaming()
         let discarded = await collector.control.discardOvernightRecording()
         let strapDiscarded = await collector.control.discardDeviceRecording()
-        let strapStopped = try await collector.stopSession()
+        let strapStopped = try await collector.deviceRecording.stopSession()
 
         XCTAssertNil(stopped)
         XCTAssertNil(paused)
         XCTAssertNil(discarded)
         XCTAssertFalse(strapDiscarded)
-        XCTAssertNil(collector.lastError, "the strap-only discard never asked the strap")
+        XCTAssertNil(collector.sessionState.lastError, "the strap-only discard never asked the strap")
         XCTAssertNil(strapStopped)
-        XCTAssertTrue(collector.isOvernightStreaming)
-        XCTAssertTrue(collector.isCollecting)
-        XCTAssertEqual(collector.currentSession?.id, session.id)
-        XCTAssertEqual(collector.recordingPhase, .overnightStreaming)
+        XCTAssertTrue(collector.streamingLifecycle.isOvernightStreaming)
+        XCTAssertTrue(collector.sessionState.isCollecting)
+        XCTAssertEqual(collector.sessionState.currentSession?.id, session.id)
+        XCTAssertEqual(collector.sessionState.recordingPhase, .overnightStreaming)
         XCTAssertEqual(PersistedRecordingState.load()?.sessionId, session.id)
         XCTAssertEqual(collector.rawBackup.backedUpBeatCount(session.id), 300)
     }
@@ -297,8 +297,8 @@ final class RecordingDiscardTests: XCTestCase {
         let session = HRVSession(sessionType: .overnight)
         try startRecording(session, on: collector)
         let claim = try XCTUnwrap(collector.streamingLifecycle.claimOvernightEnding())
-        collector.isOvernightStreaming = false
-        collector.isCollecting = false
+        collector.streamingLifecycle.isOvernightStreaming = false
+        collector.sessionState.isCollecting = false
 
         XCTAssertTrue(collector.recovery.liveRecordingIds().contains(session.id))
         XCTAssertTrue(collector.recovery.strapRecordingBelongsToLiveSession)
@@ -318,13 +318,13 @@ final class RecordingDiscardTests: XCTestCase {
         let session = HRVSession(sessionType: .overnight)
         try startRecording(session, on: collector)
         XCTAssertNotNil(collector.streamingLifecycle.claimOvernightEnding())
-        collector.isOvernightStreaming = false
-        collector.currentSession?.state = .failed
-        collector.persistPausedSessionState(sessionId: session.id)
+        collector.streamingLifecycle.isOvernightStreaming = false
+        collector.sessionState.currentSession?.state = .failed
+        collector.control.persistPausedSessionState(sessionId: session.id)
 
         collector.resetSession()
 
-        XCTAssertEqual(collector.currentSession?.id, session.id)
+        XCTAssertEqual(collector.sessionState.currentSession?.id, session.id)
         XCTAssertEqual(collector.control.getPersistedPausedSessionId(), session.id)
     }
 
@@ -332,7 +332,7 @@ final class RecordingDiscardTests: XCTestCase {
         let collector = makeCollector()
         isolateFromHostPausedNight(collector)
         let pausedId = UUID()
-        collector.persistPausedSessionState(sessionId: pausedId)
+        collector.control.persistPausedSessionState(sessionId: pausedId)
 
         collector.resetSession()
 
@@ -343,14 +343,14 @@ final class RecordingDiscardTests: XCTestCase {
         let collector = makeCollector()
         isolateFromHostPausedNight(collector)
         let paused = try pausedNight()
-        collector.pausedSession = paused
-        collector.isPaused = true
-        collector.persistPausedSessionState(sessionId: paused.id)
+        collector.streamingLifecycle.pausedSession = paused
+        collector.streamingLifecycle.isPaused = true
+        collector.control.persistPausedSessionState(sessionId: paused.id)
 
         collector.resetSession()
 
         XCTAssertNil(collector.control.getPersistedPausedSessionId())
-        XCTAssertNil(collector.pausedSession)
+        XCTAssertNil(collector.streamingLifecycle.pausedSession)
     }
 
     // MARK: - Continue Recording
@@ -404,20 +404,20 @@ final class RecordingDiscardTests: XCTestCase {
         let collector = makeCollector()
         isolateFromHostPausedNight(collector)
         let paused = try pausedNight()
-        collector.pausedSession = paused
-        collector.currentSession = paused
-        collector.isPaused = true
-        collector.recordingPhase = .paused(sessionId: paused.id)
+        collector.streamingLifecycle.pausedSession = paused
+        collector.sessionState.currentSession = paused
+        collector.streamingLifecycle.isPaused = true
+        collector.sessionState.recordingPhase = .paused(sessionId: paused.id)
         try archive.update(paused.id, requestingReupload: false) { $0.recoveryScore = 7.4 }
 
-        collector.finalizeFromPause()
+        collector.control.finalizeFromPause()
 
         let finished = try XCTUnwrap(try archive.retrieve(paused.id))
         XCTAssertEqual(finished.state, .complete)
         XCTAssertEqual(finished.recoveryScore, 7.4, "the score from before the refresh was written back")
-        XCTAssertEqual(collector.currentSession?.recoveryScore, 7.4)
-        XCTAssertFalse(collector.isPaused)
-        XCTAssertNil(collector.pausedSession)
+        XCTAssertEqual(collector.sessionState.currentSession?.recoveryScore, 7.4)
+        XCTAssertFalse(collector.streamingLifecycle.isPaused)
+        XCTAssertNil(collector.streamingLifecycle.pausedSession)
     }
 
     /// The paused-night marker lives in the standard defaults; the host's is
@@ -425,12 +425,12 @@ final class RecordingDiscardTests: XCTestCase {
     private func isolateFromHostPausedNight(_ collector: RRCollector) {
         let savedId = collector.control.getPersistedPausedSessionId()
         let savedMode = collector.control.persistedPausedCaptureMode()
-        collector.clearPausedSessionState()
+        collector.control.clearPausedSessionState()
         addTeardownBlock { @MainActor in
-            collector.clearPausedSessionState()
+            collector.control.clearPausedSessionState()
             guard let savedId else { return }
-            collector.useDeviceBackupForOvernight = savedMode ?? true
-            collector.persistPausedSessionState(sessionId: savedId)
+            collector.overnightRun.usesDeviceBackup = savedMode ?? true
+            collector.control.persistPausedSessionState(sessionId: savedId)
         }
     }
 

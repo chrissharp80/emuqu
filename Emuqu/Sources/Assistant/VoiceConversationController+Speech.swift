@@ -97,11 +97,10 @@ extension VoiceConversationController {
     /// so the conversation doesn't sound like a robot reciting its
     /// own name every other line.
     ///
-    /// It also names the MODEL handling the session. The user's
-    /// complaint was "I have no idea if it's apple or sonnet
-    /// talking to me." With voice routing now session-sticky to
-    /// the user's primary cloud (or Apple when no cloud is
-    /// configured), naming the model once at session start
+    /// It also names the MODEL handling the session, so the user
+    /// knows whether Apple or a cloud model is talking. Voice routing
+    /// is session-sticky to the user's primary cloud (or Apple when no
+    /// cloud is configured), so naming the model once at session start
     /// settles that question without spoken UI instructions.
     /// Brief — one or two words appended to the existing preamble.
     private func announced(_ guarded: String) -> String {
@@ -153,7 +152,7 @@ extension VoiceConversationController {
             return (assistantViewModel.activeProviderID, assistantViewModel.activeModelDisplayName)
         }
         let name = turns[index].modelID.map {
-            AppDependencies.current.providers.providerRegistry.displayName(forApiID: $0, providerID: providerID)
+            services.providerRegistry.displayName(forApiID: $0, providerID: providerID)
         } ?? providerID.displayName
         return (providerID, name)
     }
@@ -285,7 +284,7 @@ extension VoiceConversationController {
 
 // Every delegate callback is `nonisolated` and hops to the main actor with
 // `Task { @MainActor in }`, so the conformance needs no `@preconcurrency`.
-extension VoiceConversationController: AVSpeechSynthesizerDelegate {
+extension VoiceConversationController {
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
         // TTS audio just started playing — mark the grace-period anchor HERE,
         // not when we optimistically set state=.speaking. Otherwise the grace
@@ -505,9 +504,7 @@ enum ConversationVoicePicker {
     /// would speak with a Japanese voice even when the AI's text was being
     /// forced to English by the system prompt override.
     @MainActor
-    static func preferredLanguage() -> String {
-        let forceEnglish = AppDependencies.current.app.settingsManager.settings.forceAIEnglish
-        return forceEnglish ? "en-US" : LanguageManager.appLocale.language.maximalIdentifier
+    static func preferredLanguage(forceEnglish: Bool) -> String { forceEnglish ? "en-US" : LanguageManager.appLocale.language.maximalIdentifier
     }
 
     /// The voice for `preferredLanguage`: the best installed one, or the

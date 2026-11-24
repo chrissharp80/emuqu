@@ -1,7 +1,7 @@
 @testable import Emuqu
 import XCTest
 
-/// §13.3 Integrity Contract (docs/FLOWCHART.md): opening or re-scoring an
+/// ADR 009, an accepted session is frozen: opening or re-scoring an
 /// archived session must produce an IDENTICAL frozen score. This suite guards
 /// against one specific way it can drift.
 ///
@@ -15,7 +15,6 @@ import XCTest
 /// These tests assert (a) that derivation equals the acceptance rule for every
 /// quality, and (b) that it actually removes a real score difference.
 ///
-/// Referenced by the §13.3 contract in `docs/FLOWCHART.md`.
 @MainActor
 final class SessionImmutabilityTests: XCTestCase {
 
@@ -197,6 +196,101 @@ final class SessionImmutabilityTests: XCTestCase {
         XCTAssertEqual(archived.recoveryScore, 5.2)
         XCTAssertEqual(archived.sleepStartMs, 1_800_000)
         XCTAssertEqual(archived.tags, [ReadingTag.alcohol])
+    }
+
+    // MARK: - Acceptance
+
+    /// What the acceptance service handed iCloud, recorded as it happens.
+    private final class CloudCalls: @unchecked Sendable {
+        private let lock = NSLock()
+        private(set) var uploaded: [UUID] = []
+        private(set) var liveBackupsCleared: [UUID] = []
+        let done: XCTestExpectation
+
+        init(done: XCTestExpectation) { self.done = done }
+
+        func upload(_ id: UUID) { lock.withLock { uploaded.append(id) } }
+        func clear(_ id: UUID) {
+            lock.withLock { liveBackupsCleared.append(id) }
+            done.fulfill()
+        }
+    }
+
+    private func acceptanceService(in directory: URL, archive: SessionArchive, cloud: CloudCalls) -> SessionAcceptanceService {
+        SessionAcceptanceService(
+            archive: archive, healthKit: MockHealthKitService(),
+            baselineTracker: BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json")),
+            rawBackup: RawRRBackup(directory: directory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)),
+            onCloudSync: { cloud.upload($0.id) }, onCloudDelete: { cloud.clear($0) }
+        )
+    }
+
+    private var acceptanceInputs: SessionAcceptanceService.AcceptanceInputs {
+        SessionAcceptanceService.AcceptanceInputs(
+            scoringConfig: config, trainingContext: nil, baselineStats: baselineStats,
+            typicalSleepHours: 7.5, sleepSchedule: SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
+        )
+    }
+
+    /// Accepting a night freezes its score under the current version,
+    /// archives it, uploads it and clears its live backup.
+    func testAcceptanceArchivesScoresAndUploadsTheNight() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Acceptance-\(UUID().uuidString)", isDirectory: true)
+        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
+        let archive = SessionArchive(directory: directory, sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) }, sessionMergeModeProvider: { .off })
+        let cloud = CloudCalls(done: expectation(description: "live backup cleared"))
+        var night = session(quality: nil)
+        night.endDate = anchor.addingTimeInterval(8 * 3600)
+        night.analysisResult = depressedResult()
+        var cleared = false
+
+        let accepted = try await acceptanceService(in: directory, archive: archive, cloud: cloud).processAcceptance(
+            session: night, inputs: acceptanceInputs, enableHealthKitExport: false,
+            clearPersistedRecordingState: { cleared = true }
+        )
+        await fulfillment(of: [cloud.done], timeout: 2)
+
+        XCTAssertEqual(accepted.id, night.id)
+        XCTAssertNotNil(accepted.recoveryScore)
+        XCTAssertEqual(accepted.scoreBreakdown?.scoringVersion, ScoringVersion.current)
+        XCTAssertNotNil(try archive.retrieve(night.id)?.recoveryScore, "The frozen score was not archived")
+        XCTAssertTrue(cleared, "The recording marker was left behind")
+        XCTAssertEqual(cloud.uploaded, [night.id])
+        XCTAssertEqual(cloud.liveBackupsCleared, [night.id])
+    }
+
+    /// A second recording of a night already archived is folded into it;
+    /// acceptance carries on with that night and still clears the
+    /// recording's own live backup.
+    func testAcceptanceAfterAFoldCarriesOnWithTheMergedNight() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AcceptanceFold-\(UUID().uuidString)", isDirectory: true)
+        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
+        let lastNight = Calendar.current.startOfDay(for: Date()).addingTimeInterval(-3600)
+        // Same-night merging on, as it is by default.
+        let archive = SessionArchive(directory: directory)
+        func recording(from start: Date, hours: Double) -> HRVSession {
+            var session = HRVSession(startDate: start, sessionType: .overnight)
+            session.endDate = start.addingTimeInterval(hours * 3600)
+            let beats = (0 ..< 200).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: $0 % 2 == 0 ? 990 : 1010) }
+            session.rrSeries = RRSeries(points: beats, sessionId: session.id, startDate: start)
+            return session
+        }
+        let earlier = recording(from: lastNight, hours: 7)
+        try archive.archive(earlier, skipSameNightMerge: true)
+        var second = recording(from: lastNight.addingTimeInterval(3600), hours: 5)
+        second.analysisResult = depressedResult()
+        let cloud = CloudCalls(done: expectation(description: "live backup cleared"))
+
+        let accepted = try await acceptanceService(in: directory, archive: archive, cloud: cloud).processAcceptance(
+            session: second, inputs: acceptanceInputs, enableHealthKitExport: false, clearPersistedRecordingState: {}
+        )
+        await fulfillment(of: [cloud.done], timeout: 2)
+
+        XCTAssertEqual(accepted.id, earlier.id, "Acceptance carried on with a recording the archive folded away")
+        XCTAssertEqual(cloud.uploaded, [earlier.id])
+        XCTAssertEqual(cloud.liveBackupsCleared, [second.id])
     }
 
     private func depressedResult() -> HRVAnalysisResult {

@@ -53,7 +53,7 @@ enum AssistantSystemPrompt {
     /// build cache-aware system blocks.
     ///
     /// Marked `@MainActor`. Reads MainActor-isolated
-    /// state (AppDependencies.current.app.settingsManager, dashboard snapshot, active
+    /// state (the settings, dashboard snapshot, active
     /// workout marker) via direct sync access. Guarding those reads
     /// with `MainActor.assumeIsolated` instead would trap the process
     /// if any caller invoked compose from a detached / background
@@ -63,6 +63,7 @@ enum AssistantSystemPrompt {
     /// rather than crashing in production.
     @MainActor
     static func compose(
+        services: PromptServices,
         userFacts: String,
         priorSummary: String?,
         contextRendered: String,
@@ -72,6 +73,7 @@ enum AssistantSystemPrompt {
         toolMode: Bool = false
     ) -> String {
         composeSplit(
+            services: services,
             userFacts: userFacts,
             priorSummary: priorSummary,
             contextRendered: contextRendered,
@@ -84,11 +86,11 @@ enum AssistantSystemPrompt {
 
     /// Two-section composer. Stable prefix is large + identical across
     /// turns within a 5-minute window so Anthropic's prompt cache hits
-    /// it on every send (was 0% before this split — the per-second
-    /// `nowSnapshot` immediately after `base` blew the cache prefix
-    /// even though nothing else had changed).
+    /// it on every send. Per-second values such as `nowSnapshot` stay out of
+    /// it: any change inside the prefix misses the cache from that point on.
     @MainActor
     static func composeSplit(
+        services: PromptServices,
         userFacts: String,
         priorSummary: String?,
         contextRendered: String,
@@ -98,13 +100,14 @@ enum AssistantSystemPrompt {
         toolMode: Bool = false
     ) -> Composed {
         let stable = stableSections(
+            settings: services.settingsManager.settings,
             userFacts: userFacts,
             includeAppReference: includeAppReference,
             compactAppReference: compactAppReference,
             voiceMode: voiceMode,
             toolMode: toolMode
         )
-        let variable = variableSections(priorSummary: priorSummary, contextRendered: contextRendered)
+        let variable = variableSections(services: services, priorSummary: priorSummary, contextRendered: contextRendered)
         return Composed(
             stable: stable.joined(separator: "\n\n"),
             variable: variable.joined(separator: "\n\n")
@@ -114,6 +117,7 @@ enum AssistantSystemPrompt {
     /// Everything that is byte-stable across turns, in prompt order.
     @MainActor
     private static func stableSections(
+        settings: UserSettings,
         userFacts: String,
         includeAppReference: Bool,
         compactAppReference: Bool,
@@ -121,7 +125,7 @@ enum AssistantSystemPrompt {
         toolMode: Bool
     ) -> [String] {
         var sections: [String] = [base]
-        sections += localeAndFeatureSections(settings: AppDependencies.current.app.settingsManager.settings)
+        sections += localeAndFeatureSections(settings: settings)
         sections += toolModeSections(toolMode: toolMode)
         // Voice overlay goes AFTER base so its "1–3 sentences, no headers,
         // no lists" rules override the persona's implicit leaning toward
@@ -155,18 +159,17 @@ enum AssistantSystemPrompt {
     /// Apple's window is 4,096 tokens for instructions, tools, transcript and
     /// reply together (`AppleContextCompactor.contextWindow`). The shared
     /// stable half — `base`, the tool overlay and the location guidance — is
-    /// about 11K tokens by the compactor's estimate, so on Apple it overflowed
-    /// the window before any history was added. Apple therefore gets its own
+    /// about 11K tokens by the compactor's estimate, so on Apple it would overflow
+    /// the window before any history is added. Apple therefore gets its own
     /// short stable half (`appleBase` and the condensed overlays, the units,
     /// the disabled features and the user's saved facts) while the per-send
     /// half (clock, training load, corrections, summary, data) is kept as
     /// composed. Whether the turn carries tools or voice is read back from the
     /// composed prompt, which holds the shared overlay only in that case.
     @MainActor
-    static func appleInstructions(fromComposed prompt: String) -> String {
+    static func appleInstructions(fromComposed prompt: String, settings: UserSettings) -> String {
         let halves = prompt.components(separatedBy: Composed.cacheSplitMarker)
         guard halves.count > 1, let stable = halves.first else { return prompt }
-        let settings = AppDependencies.current.app.settingsManager.settings
         var sections = [appleBase]
         if settings.forceAIEnglish { sections.append(englishOnlySection) }
         sections.append(appleUnitsLine(settings: settings))
@@ -199,9 +202,9 @@ enum AssistantSystemPrompt {
     /// **Locale + units directive** — make the user's unit system AND
     /// their location/locale unmissable. Without this the model
     /// defaults to its training-data prior (mostly metric, mostly
-    /// global English) regardless of what the user has set. A US
-    /// user with imperial units explicitly chosen was getting "your
-    /// pace was 5:30 per kilometer" which is wrong on both counts.
+    /// global English) regardless of what the user has set: a US
+    /// user with imperial units explicitly chosen would hear "your
+    /// pace was 5:30 per kilometer", wrong on both counts.
     /// Static per device so prompt cache stays warm; only changes
     /// when the user toggles units or moves country (rare).
     ///
@@ -271,10 +274,12 @@ enum AssistantSystemPrompt {
     /// subsequent turn because it never sees that it got it wrong (the user
     /// heard the corrected number, the model thinks its claim was accepted).
     @MainActor
-    private static func variableSections(priorSummary: String?, contextRendered: String) -> [String] {
+    private static func variableSections(
+        services: PromptServices, priorSummary: String?, contextRendered: String
+    ) -> [String] {
         var sections: [String] = [nowSnapshot()]
-        sections += trainingLoadSections()
-        if let liveMarker = activeWorkoutMarker() { sections.append(liveMarker) }
+        sections += trainingLoadSections(services)
+        if let liveMarker = activeWorkoutMarker(services.liveWorkoutBroker) { sections.append(liveMarker) }
         if let corrections = MetricsVerifier.pendingCorrectionsBlock() {
             sections.append(corrections)
         }
@@ -290,16 +295,11 @@ enum AssistantSystemPrompt {
     /// Inline the dashboard's current training-load
     /// numbers so the AI never has to call a tool to know the
     /// headline TSB / ATL / CTL / recovery score, and can never
-    /// contradict the dashboard. Background:
-    ///
-    /// User asked "what's my current TSB" on Grok. Dashboard
-    /// showed TSB −15.5 / ATL 44.2 / CTL 28.7. Grok answered
-    /// "TSB negative twenty-nine, ATL 58, CTL 29, ACWR 2.0" —
-    /// either because it called `workout.live.today_readiness`
-    /// (frozen at workout-start, would be wrong direction) or
-    /// because the live snapshot the resolver read was stale,
-    /// or because the model misread one of the four tools that
-    /// can return ATL/CTL/TSB and disagree.
+    /// contradict the dashboard. Otherwise a model asked "what's my
+    /// current TSB" can call `workout.live.today_readiness` (frozen at
+    /// workout start), read a stale live snapshot, or misread one of the
+    /// four tools that can return ATL/CTL/TSB and disagree, and quote
+    /// numbers far from the dashboard's.
     ///
     /// Putting the real values in the variable section means
     /// every send carries them in the `<live_state>` block (or
@@ -323,7 +323,7 @@ enum AssistantSystemPrompt {
     ///      told me" / "from <tool>" tag, so the user has a
     ///      handle to see where any disagreement is coming from.
     @MainActor
-    private static func trainingLoadSections() -> [String] {
+    private static func trainingLoadSections(_ services: PromptServices) -> [String] {
         let signals = UserCorrectionDetector.detect(userMessages: Self.pendingRecentUserMessages)
         var sections: [String] = []
         if let userBlock = UserCorrectionDetector.renderAssertedBlock(signals) {
@@ -333,9 +333,9 @@ enum AssistantSystemPrompt {
         // While training load is paused (switched off, or a training break)
         // the load numbers are left out, as the screens leave them out; only
         // today's recovery score is kept.
-        if TrainingLoadVisibility.isPaused(AppDependencies.current.app.settingsManager.settings) {
-            if let recovery = todayRecoveryLine() { sections.append("# Today\n" + recovery) }
-        } else if !suppressCache, let snap = dashboardLoadSnapshot() {
+        if TrainingLoadVisibility.isPaused(services.settingsManager.settings) {
+            if let recovery = todayRecoveryLine(services.sessionArchive) { sections.append("# Today\n" + recovery) }
+        } else if !suppressCache, let snap = dashboardLoadSnapshot(services) {
             sections.append(snap)
         }
         return sections
@@ -502,8 +502,8 @@ enum AssistantSystemPrompt {
     /// anything in this block, the attribution makes it obvious
     /// which source they're correcting.
     @MainActor
-    private static func activeWorkoutMarker() -> String? {
-        guard let live = AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot() else { return nil }
+    private static func activeWorkoutMarker(_ broker: LiveWorkoutBroker) -> String? {
+        guard let live = broker.currentSnapshot() else { return nil }
         let elapsedMinutes = max(1, live.elapsedSeconds / 60)
         let startedAt = formatted(live.sessionStartAt, "h:mm a")
         return """
@@ -567,19 +567,18 @@ enum AssistantSystemPrompt {
     /// misleading zeroes; the model falls back to tools, which will
     /// surface the empty state honestly.
     ///
-    /// Routes through `TrainingLoadRegistry.live()`.
+    /// Routes through `TrainingLoadRegistry.live(from:)`.
     /// See TrainingLoadRegistry.swift's header for the
     /// canonical surface→source map. The registry exists because
     /// four readers (dashboard / AI / report / recovery detail)
-    /// reading three different stores drift; the user
-    /// observed dashboard=36.4 CTL, report=30 CTL, AI=29 CTL all in
+    /// reading three different stores drift, quoting different CTLs in
     /// the same minute. The registry guarantees every "live" reader
     /// sees the same number, attaches provenance + as-of timestamp,
     /// and gates on the same cache-invalidation contract (archive
     /// notifications, in TrainingMetricsCache.init).
     @MainActor
-    private static func dashboardLoadSnapshot() -> String? {
-        guard let load = TrainingLoadRegistry.live() else { return nil }
+    private static func dashboardLoadSnapshot(_ services: PromptServices) -> String? {
+        guard let load = TrainingLoadRegistry.live(from: services.trainingMetricsCache) else { return nil }
         logDashboardSnapshot(load)
         let acwr = load.acwr.map { String(format: "%.2f", $0) } ?? "n/a (ctl=0)"
         var lines: [String] = [
@@ -595,24 +594,18 @@ enum AssistantSystemPrompt {
             "- tsb: \(String(format: "%.1f", load.tsb))  (form: ctl − atl; negative = fatigued, positive = fresh)",
             "- acwr: \(acwr)  (atl ÷ ctl)"
         ]
-        if let recovery = todayRecoveryLine() { lines.append(recovery) }
+        if let recovery = todayRecoveryLine(services.sessionArchive) { lines.append(recovery) }
         lines.append("")
         lines.append(dashboardCacheFooter)
         return lines.joined(separator: "\n")
     }
 
-    /// Diagnostic so we can prove whether the cache
-    /// the AI reads matches the cache the Dashboard renders. Real
-    /// user transcript: AI quoted "ATL 64.7 / CTL 33.6 / TSB -31.1
-    /// as of 6:42 PM cache" while the dashboard at the same minute
-    /// showed ATL 51.2 / CTL 34.9 / TSB -16.2. They should be the
-    /// same source. If the next log shows the emitted values
-    /// still differ from what the user reports seeing on the
-    /// dashboard at the same time, either (a) the dashboard reads
-    /// a different source than `TrainingMetricsCache.snapshot()`
-    /// (= source-of-truth bug, fixable), or (b) the cache hasn't
-    /// refreshed since the dashboard rendered (= refresh-timing
-    /// bug, also fixable). Either way the log identifies which.
+    /// Diagnostic that shows whether the cache the AI reads matches the
+    /// cache the Dashboard renders; they should be the same source. When the
+    /// logged values differ from what the dashboard shows at the same time,
+    /// either (a) the dashboard reads a different source than
+    /// `TrainingMetricsCache.snapshot()`, or (b) the cache hasn't refreshed
+    /// since the dashboard rendered. The log tells the two apart.
     private static func logDashboardSnapshot(_ load: TrainingLoadRegistry.TrainingLoad) {
         debugLog(
             "[dashboardLoadSnapshot] emitting atl=\(String(format: "%.1f", load.atl)) ctl=\(String(format: "%.1f", load.ctl)) tsb=\(String(format: "%+.1f", load.tsb)) as_of=\(load.asOfDisplay)"
@@ -627,8 +620,7 @@ enum AssistantSystemPrompt {
     /// (a night is dated the evening it began) and could pick an unreliable
     /// partial. On the dashboard's 0-100 scale.
     @MainActor
-    private static func todayRecoveryLine() -> String? {
-        let archive = AppDependencies.current.storage.sessionArchive
+    private static func todayRecoveryLine(_ archive: SessionArchive) -> String? {
         guard let score = DeterministicIntent.todaysOvernightEntry(now: Date(), archive: archive)?.recoveryScore else { return nil }
         return "- recovery_score_today: \(RecoveryScoreCalculator.displayScore(score * 10)) / 100"
     }
@@ -662,4 +654,18 @@ enum AssistantSystemPrompt {
     historical or trend questions, call `training.load.by_date(…)` or \
     `training.load.recent(…)`.
     """
+}
+
+/// The services the system prompt is composed from, and nothing else. Each
+/// accessor resolves on use, as the container's do.
+struct PromptServices: Sendable {
+    private let container: AppDependencies
+
+    init(_ container: AppDependencies) { self.container = container }
+
+    var liveWorkoutBroker: LiveWorkoutBroker { container.assistant.liveWorkoutBroker }
+    var sessionArchive: SessionArchive { container.storage.sessionArchive }
+    var settingsManager: SettingsManager { container.app.settingsManager }
+    @MainActor
+    var trainingMetricsCache: TrainingMetricsCache { container.analysis.trainingMetricsCache }
 }

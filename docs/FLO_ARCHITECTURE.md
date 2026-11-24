@@ -128,7 +128,7 @@ Main API: `send(text:fromVoice:)`, `send(prefab:)`, `acknowledgeConsentAndContin
 
 `SendOutcome`: `.dispatched`, `.queued`, `.rejectedEmpty`, `.rejectedNoProvider`, `.requiresConsent(ProviderID)`.
 
-Routing and streaming stages live on `AssistantTurnRouter` and `AssistantToolRunner` (the `+Routing`, `+Tools` and `+*Forwarding` files) so the view-model type stays under the type-size budget.
+Routing and streaming stages live on `AssistantTurnRouter` and `AssistantToolRunner` (the `+Routing` and `+Tools` files, reached through `router` and `tools` in `+Parts`) so the view-model type stays under the type-size budget.
 
 The streaming task is created from MainActor code, so resolvers run on the main actor. Fact bodies declare either `.sync` (in-memory reads) or `.awaitable` (network, HealthKit, geocoding), and awaitable ones suspend the actor instead of blocking it (§6.5).
 
@@ -202,7 +202,7 @@ enum FactValue {
 
 `MissingReason`: `notRecorded`, `notYetComputed`, `outOfRange`, `sensorDropout`, `invalidParameter`, `internalError`, `tooMuchData`, `rateLimited`, `partialData`. The `detail` string lets the model say "you haven't taken a reading yet" instead of "I don't know".
 
-Numeric tool arguments are parsed only through `FactNumericArgument` (`AppFactResolver+NumericArguments.swift`), which declares each parameter's range. A value that is not a finite number inside that range ("inf", "nan", "1e20", "-1") returns `invalidParameter` naming the parameter and range, so no resolver converts an unbounded model-supplied number to `Int` or uses it as a day count or index.
+Numeric tool arguments are parsed only through `FactNumericArgument` (`FactNumericArguments.swift`), which declares each parameter's range. A value that is not a finite number inside that range ("inf", "nan", "1e20", "-1") returns `invalidParameter` naming the parameter and range, so no resolver converts an unbounded model-supplied number to `Int` or uses it as a day count or index.
 
 `Availability` (`hasData`, `validRange`, `lastUpdated`) is a cheap, no-I/O check. Entries with `hasData == false` are left out of the schema, so the model never sees a tool that can't return data.
 
@@ -221,7 +221,7 @@ A read tool maps its arguments to a fact key; for example `get_recovery` with `w
 
 ### 6.4 Registry and namespaces
 
-`AppFactResolverFactory.build(archive:settings:)` in `Emuqu/Sources/Assistant/Facts/AppFactResolver.swift` returns a `FactResolverRegistry` (`Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift`) with every namespace registered. Each namespace is a `struct` conforming to `FactNamespaceResolver` (`namespace`, `entries`), spread across the `AppFactResolver+*.swift` files: `UserProfileNamespace`, `AppCapabilitiesNamespace`, `SessionNamespace`, `WalksNamespace`, `TrainingLoadNamespace`, `SleepNamespace`, `HRVNamespace`, `VitalsNamespace`, `RecoveryNamespace`, `WorkoutNamespace`, `WorkoutLiveNamespace`, `RoutesLibraryNamespace`, `AssistantMemoryNamespace`, `WebSearchNamespace`, `CompositesNamespace` and others.
+`AppFactResolverFactory.build(archive:settings:services:)` in `Emuqu/Sources/Assistant/Facts/AppFactResolver.swift` returns a `FactResolverRegistry` (`Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift`) with every namespace registered. Each namespace is a `struct` conforming to `FactNamespaceResolver` (`namespace`, `entries`) in its own `*Facts.swift` file beside it, and the ones that read a service hold the `FactServices` the factory hands them (`FactServices.swift`), never `AppDependencies.current`: `UserProfileNamespace`, `AppCapabilitiesNamespace`, `SessionNamespace`, `WalksNamespace`, `TrainingLoadNamespace`, `SleepNamespace`, `HRVNamespace`, `VitalsNamespace`, `RecoveryNamespace`, `WorkoutNamespace`, `WorkoutLiveNamespace`, `RoutesLibraryNamespace`, `AssistantMemoryNamespace`, `WebSearchNamespace`, `CompositesNamespace` and others.
 
 `FactCatalogValidationTests` checks the catalog's shape.
 

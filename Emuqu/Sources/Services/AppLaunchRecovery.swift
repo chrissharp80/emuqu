@@ -40,7 +40,7 @@ extension EmuquApp {
     /// Runs once the archive's launch boot (`LaunchArchiveBoot`) has adopted
     /// orphan files: a session whose file was written just before a crash,
     /// but not yet listed in the index, is archived, and asking about it
-    /// would have offered to rebuild it from its backup over the saved copy.
+    /// would offer to rebuild it from its backup over the saved copy.
     ///
     /// The alert is raised only with no launch modal on screen; an alert under
     /// a full-screen cover can be dropped. `EmuquApp.handleLaunchModalChange`
@@ -59,16 +59,15 @@ extension EmuquApp {
     }
 
     /// Dismiss means "stop re-prompting me." Re-prompting on every launch
-    /// (and re-writing the termination report on every launch) is exactly
-    /// the loop the user complained about ("discarding for hours"). So
-    /// both the alert AND the
-    /// termination report are skipped when this session was previously
+    /// (and re-writing the termination report on every launch) traps the
+    /// user discarding the same session over and over. So both the alert AND
+    /// the termination report are skipped once this session has been
     /// dismissed. The backup is still recoverable via Settings → iCloud & Data → Recover Lost Sessions
     /// for users who change their mind.
     private func presentInterruptedSessionAlertIfNeeded() {
         guard let state = collector.getPersistedRecordingState() else { return }
         // Only alert if the session isn't already archived (e.g. auto-archived on background)
-        guard !collector.archive.exists(state.sessionId) else {
+        guard !collector.archive.store.exists(state.sessionId) else {
             collector.clearPersistedRecordingStatePublic()
             return
         }
@@ -103,7 +102,7 @@ extension EmuquApp {
             return
         }
         defer { InterruptedWorkoutAutoRecovery.end(info.sessionId) }
-        let success = await collector.recoverToPausedState(info.sessionId, sessionType: info.sessionType)
+        let success = await collector.recovery.recoverToPausedState(info.sessionId, sessionType: info.sessionType)
         await MainActor.run { showRecoveryOutcome(success: success) }
     }
 
@@ -203,7 +202,7 @@ extension EmuquApp {
     /// (still to be recovered, or still being recovered when `limit` ran out).
     private func savedByAutoRecovery(_ sessionId: UUID, waitingAtMost limit: TimeInterval) async -> String? {
         await InterruptedWorkoutAutoRecovery.waitUntilDone(sessionId, limit: limit)
-        guard collector.archive.exists(sessionId) else { return nil }
+        guard collector.archive.store.exists(sessionId) else { return nil }
         collector.clearPersistedRecordingStatePublic()
         return String(localized: "Saved to your archive.", bundle: languageManager.bundle)
     }
@@ -212,7 +211,7 @@ extension EmuquApp {
     /// interrupted night too short to be one is saved as a quick reading
     /// (`SessionRecoveryService.recoveredSessionType`).
     private func recoverInterruptedRecording(_ info: InterruptedSessionInfo) async -> String {
-        let recovered = await collector.recoverFromBackup(info.sessionId, recordedType: info.sessionType)
+        let recovered = await collector.recovery.recoverFromBackup(info.sessionId, recordedType: info.sessionType)
         collector.clearPersistedRecordingStatePublic()
         guard let recovered else {
             return String(localized: "Could not recover the session. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
@@ -287,9 +286,7 @@ extension EmuquApp {
         }
     }
 
-    /// Delete and recreate one App Group directory. Split out of
-    /// `removeStoredSessionData` to keep both inside the spec nesting limit —
-    /// loop, then do, then the existence check was three levels deep.
+    /// Delete and recreate one App Group directory.
     private static func resetSharedDirectory(named name: String) {
         let directory = AppConfig.sharedContainerURL().appendingPathComponent(name, isDirectory: true)
         do {

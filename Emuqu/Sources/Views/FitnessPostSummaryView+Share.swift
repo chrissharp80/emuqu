@@ -4,9 +4,9 @@ import MessageUI
 import SwiftUI
 import UIKit
 
-// Recap-card generation, PDF mail/share and the share-sheet rows, split out of
-// `FitnessPostSummaryView+Cards.swift`. These produce artifacts the
-// user sends elsewhere; the cards in that file are what the screen renders.
+// Recap-card generation, PDF mail/share and the share-sheet rows. These
+// produce artifacts the user sends elsewhere; the cards in
+// `FitnessPostSummaryView+Cards.swift` are what the screen renders.
 
 extension FitnessSummaryCards {
 
@@ -499,7 +499,7 @@ extension FitnessSummaryCards {
         }
         let recomputed = track.isEmpty ? [] : WorkoutAnalyzer.computeSplits(
             track: track, rrPoints: rrPoints, startDate: startDate,
-            splitDistanceMeters: wantsMile ? 1609.344 : 1000.0
+            splitDistanceMeters: wantsMile ? UnitConstants.metersPerMile : 1000.0
         )
         if !recomputed.isEmpty { return ResolvedSplits(splits: recomputed, isMile: wantsMile) }
         return storedSplits.map { ResolvedSplits(splits: $0, isMile: storedSplitsAreMiles($0) ?? wantsMile) }

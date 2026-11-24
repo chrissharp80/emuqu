@@ -10,13 +10,13 @@ extension MorningSessionPipeline {
     /// acceptance state and without the pre-archive: the caller archives the
     /// night as paused itself, and a paused night is not reviewed.
     ///
-    /// This is now a thin wrapper around `MorningProcessingService`. It delegates
-    /// the heavy analysis work to the service, then applies the results to the
-    /// observable sub-objects, archives the session, and handles CloudKit sync.
+    /// The heavy analysis runs in `MorningProcessingService`; this applies the
+    /// results to the observable sub-objects, archives the session, and handles
+    /// CloudKit sync.
     ///
     /// `collector.createTrainingContextEnsuringFresh` falls back to a live
     /// HealthKit fetch when `collector.fetchTrainingLoadIfEnabled` didn't populate the
-    /// cache. This closes the Tier 2 → 3 re-freeze race: if the cache is
+    /// cache. This prevents a Tier 2 → 3 re-freeze race: if the cache is
     /// momentarily empty, the session would be frozen as Tier 2 (89-style score),
     /// and the user's first re-analyze later would produce Tier 3 (65-style) — same
     /// recording, different number. So we refuse to freeze without training
@@ -33,7 +33,7 @@ extension MorningSessionPipeline {
     ) async -> HRVSession {
         debugLog("[RRCollector] Processing \(dataSource) data for analysis...")
         // Fetch training load before delegating (updates cachedTrainingLoad on self)
-        await collector.fetchTrainingLoadIfEnabled()
+        await collector.deviceRecording.fetchTrainingLoadIfEnabled()
         showAnalyzingSession(baseSession: baseSession, points: points, skip: isBackgroundRefinement)
         let freshContext = await collector.createTrainingContextEnsuringFresh()
         let result = await collector.morningProcessingService.processOvernightData(
@@ -41,9 +41,9 @@ extension MorningSessionPipeline {
                 points: points, baseSession: baseSession, dataSource: dataSource, reconnectCount: reconnectCount,
                 streamingBeats: streamingBeats, deviceBeats: deviceBeats, deviceId: collector.polarManager.connectedDeviceId,
                 isBackgroundRefinement: isBackgroundRefinement, settings: settingsSnapshot(for: baseSession),
-                trainingContext: freshContext, cachedTrainingLoad: collector.cachedTrainingLoad,
+                trainingContext: freshContext, cachedTrainingLoad: collector.scoring.cachedTrainingLoad,
                 prefetchedSleepData: prefetchedSleepData,
-                statusCallback: { [weak collector] status in collector?.morningStatus = status }
+                statusCallback: { [weak collector] status in collector?.morningCoordination.morningStatus = status }
             )
         )
         var finalSession = result.session
@@ -74,7 +74,7 @@ extension MorningSessionPipeline {
             sleepSchedule: settings.sleepSchedule,
             enableTrainingLoadIntegration: settings.enableTrainingLoadIntegration,
             typicalSleepHours: settings.typicalSleepHours,
-            scoringConfig: collector.currentScoringConfig,
+            scoringConfig: collector.scoring.currentScoringConfig,
             ansConfig: collector.ansConfig(for: baseSession),
             sessionMergeMode: settings.sessionMergeMode,
             mergeGapSeconds: settings.effectiveMergeGapSeconds
@@ -85,7 +85,7 @@ extension MorningSessionPipeline {
     /// service works. Skipped for background refinement.
     private func showAnalyzingSession(baseSession: HRVSession, points: [RRPoint], skip: Bool) {
         guard !skip else { return }
-        collector.currentSession = HRVSession(
+        collector.sessionState.currentSession = HRVSession(
             id: baseSession.id,
             startDate: baseSession.startDate,
             endDate: Date(),
@@ -128,41 +128,44 @@ extension MorningSessionPipeline {
         _ result: MorningProcessingService.ProcessingResult, finalSession: HRVSession, awaitsReview: Bool
     ) {
         let awaitsAcceptance = awaitsReview && finalSession.state == .complete
-        collector.currentSession = finalSession
-        collector.verificationResult = result.verificationResult
-        collector.recoveryWindow = result.recoveryWindow
-        collector.needsAcceptance = awaitsAcceptance
+        collector.sessionState.currentSession = finalSession
+        collector.sessionState.verificationResult = result.verificationResult
+        collector.sessionState.recoveryWindow = result.recoveryWindow
+        collector.sessionState.needsAcceptance = awaitsAcceptance
         if awaitsAcceptance {
-            collector.recordingPhase = .awaitingAcceptance
+            collector.sessionState.recordingPhase = .awaitingAcceptance
         } else if awaitsReview {
-            collector.recordingPhase = .idle
+            collector.sessionState.recordingPhase = .idle
         }
-        collector.baselineDeviation = result.baselineDeviation
+        collector.sessionState.baselineDeviation = result.baselineDeviation
         collector.sessionStartTime = nil
     }
 
     /// Save the night before the user reviews it, so a crash on the review
     /// card never loses it. A night that was not in the archive before is
-    /// remembered so "Discard" can take it back out. The morning, the
+    /// remembered so "Discard" can take it back out; one the archive folded
+    /// into a night it already held is remembered as folded, since Discard
+    /// cannot take it back out of that night. The morning, the
     /// device-recording Stop, Retry and Recover all save through here.
     /// A failed save is reported to the user, and the night is then not in
     /// the archive: the morning keeps its recording marker for it
     /// (`OvernightStreamingCoordinator.clearPersistedStateIfSaved`).
     func archiveForReview(_ finalSession: HRVSession) {
         guard finalSession.state == .complete else { return }
-        let isNewEntry = !collector.archive.entries.contains { $0.sessionId == finalSession.id }
+        let isNewEntry = !collector.archive.store.entries.contains { $0.sessionId == finalSession.id }
         do {
             debugLog("[RRCollector] Pre-archiving session for review: \(finalSession.id.uuidString)")
-            try collector.archive.archive(finalSession)
+            let entry = try collector.archive.archive(finalSession)
             retireRawBackupIfSafe(finalSession)
-            collector.archiveSignal.notifyChanged()
-            if isNewEntry {
+            if entry.sessionId != finalSession.id {
+                collector.sessionState.reviewFoldedIntoSessionId = entry.sessionId
+            } else if isNewEntry {
                 collector.sessionState.reviewArchivedSessionId = finalSession.id
                 collector.sessionState.reviewArchivedEntries = SessionState.ReviewEntries(of: finalSession)
             }
         } catch {
             debugLog("[RRCollector] Failed to pre-archive session for review: \(error)", level: .error)
-            collector.lastError = error
+            collector.sessionState.lastError = error
         }
     }
 
@@ -191,22 +194,19 @@ extension MorningSessionPipeline {
     func discardReviewArchivedSession() {
         let reviewId = collector.sessionState.reviewArchivedSessionId
         collector.sessionState.reviewArchivedSessionId = nil
-        guard let reviewId, reviewId == collector.currentSession?.id else { return }
+        guard let reviewId, reviewId == collector.sessionState.currentSession?.id else { return }
         do {
-            try collector.archive.delete(reviewId)
+            guard try collector.archive.delete(reviewId) else { return }
         } catch {
             debugLog("[RRCollector] Discard: could not move session \(reviewId.uuidString.prefix(8)) to Trash: \(error)", level: .error)
             return
         }
-        collector.archiveSignal.notifyChanged()
         collector.rebuildBaselineFromArchive()
         let cloudSync = collector.cloudSyncManager
         Task { await cloudSync.uploadDeletion(reviewId) }
     }
 
     /// Supersede same-night overnight sessions.
-    ///
-    /// Thin wrapper that delegates to `MorningProcessingService`.
     func supersedeSameNightSession(newSession: inout HRVSession) {
         let settings = collector.settingsManager.settings
         collector.morningProcessingService.supersedeSameNightSession(

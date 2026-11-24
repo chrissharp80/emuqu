@@ -26,6 +26,12 @@ final class AppleFoundationProvider: AIProvider {
     // MARK: - AIProvider conformance
 
     let id: ProviderID = .apple
+    /// The settings, perf signposts and tool dispatcher this provider reads.
+    let services: AIProviderServices
+
+    init(services: AIProviderServices) {
+        self.services = services
+    }
     var availableModels: [ModelOption] {
         [Self.model]
     }
@@ -40,7 +46,7 @@ final class AppleFoundationProvider: AIProvider {
         // is being hit on hot render paths and how long it costs.
         // Cached inside ProviderRegistry, but other call sites bypass
         // the cache; this measures every actual call.
-        AppDependencies.current.app.keyboardPerfSignpost.interval("AppleFoundationProvider.isAvailable") {
+        services.keyboardPerfSignpost.interval("AppleFoundationProvider.isAvailable") {
             #if canImport(FoundationModels)
                 if #available(iOS 26, *) {
                     return SystemLanguageModel.default.availability == .available
@@ -72,7 +78,7 @@ final class AppleFoundationProvider: AIProvider {
     // Session cache. The on-device Apple Foundation Model
     // pays a non-trivial warmup cost when a fresh `LanguageModelSession`
     // is created (instructions get tokenised, KV cache primed). Building
-    // a new session on every `send` was the dominant source of perceived
+    // a new session on every `send` would be the dominant source of perceived
     // slowness for "ask the AI" → "answer arrives" latency, especially
     // for follow-up questions where the user expects snappy turn-taking.
     //
@@ -252,9 +258,10 @@ final class AppleFoundationProvider: AIProvider {
     ) -> AsyncThrowingStream<AIStreamEvent, Error> {
         #if canImport(FoundationModels)
             if #available(iOS 26, *) {
+                let services = services
                 return ProviderStream.make { continuation in
                     try await Self.runTranslatingFailures(
-                        messages: messages, systemPrompt: systemPrompt, tools: tools, continuation: continuation
+                        services: services, messages: messages, systemPrompt: systemPrompt, tools: tools, continuation: continuation
                     )
                 }
             }
@@ -272,13 +279,16 @@ final class AppleFoundationProvider: AIProvider {
         /// never saw.
         @available(iOS 26, *)
         private static func runTranslatingFailures(
+            services: AIProviderServices,
             messages: [ChatTurn],
             systemPrompt: String,
             tools: [ToolSpec],
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async throws {
             do {
-                try await runAttempts(messages: messages, systemPrompt: systemPrompt, tools: tools, continuation: continuation)
+                try await runAttempts(
+                    services: services, messages: messages, systemPrompt: systemPrompt, tools: tools, continuation: continuation
+                )
             } catch is CancellationError {
                 await sharedCache.invalidate()
                 throw CancellationError()
@@ -298,6 +308,7 @@ final class AppleFoundationProvider: AIProvider {
         /// a second answer would be appended to the first.
         @available(iOS 26, *)
         private static func runAttempts(
+            services: AIProviderServices,
             messages: [ChatTurn],
             systemPrompt: String,
             tools: [ToolSpec],
@@ -305,7 +316,8 @@ final class AppleFoundationProvider: AIProvider {
         ) async throws {
             var attempt = AppleContextCompactor.Attempt.full
             while let next = try await runAttempt(
-                attempt, messages: messages, systemPrompt: systemPrompt, tools: tools, continuation: continuation
+                attempt, services: services, messages: messages, systemPrompt: systemPrompt, tools: tools,
+                continuation: continuation
             ) {
                 attempt = next
             }
@@ -316,13 +328,16 @@ final class AppleFoundationProvider: AIProvider {
         @available(iOS 26, *)
         private static func runAttempt(
             _ attempt: AppleContextCompactor.Attempt,
+            services: AIProviderServices,
             messages: [ChatTurn],
             systemPrompt: String,
             tools: [ToolSpec],
             continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
         ) async throws -> AppleContextCompactor.Attempt? {
             do {
-                let turnPlan = await makePlan(messages: messages, systemPrompt: systemPrompt, tools: tools, attempt: attempt)
+                let turnPlan = await makePlan(
+                    services: services, messages: messages, systemPrompt: systemPrompt, tools: tools, attempt: attempt
+                )
                 try await runStream(turnPlan, continuation: continuation)
                 return nil
             } catch where isContextOverflow(error) {
@@ -353,11 +368,13 @@ final class AppleFoundationProvider: AIProvider {
             let previousExchange: AppleExchange?
             /// The latest question's turn id.
             let latestQuestionID: UUID?
+            /// Where the tool dispatcher comes from.
+            let services: AIProviderServices
         }
 
         /// The instructions are Apple's own short prompt rebuilt from the
         /// composed one (`AssistantSystemPrompt.appleInstructions`): the shared
-        /// prompt alone overflowed the 4K window. The composed prompt already
+        /// prompt alone overflows the 4K window. The composed prompt already
         /// carries the rendered data context under "# Current data", so
         /// `contextRendered` (the cloud live-state block, a subset of it) is
         /// not appended again.
@@ -374,12 +391,15 @@ final class AppleFoundationProvider: AIProvider {
         /// ledger instead (`runStream`).
         @available(iOS 26, *)
         private static func makePlan(
+            services: AIProviderServices,
             messages: [ChatTurn],
             systemPrompt: String,
             tools allTools: [ToolSpec],
             attempt: AppleContextCompactor.Attempt
         ) async -> TurnPlan {
-            let composed = await MainActor.run { AssistantSystemPrompt.appleInstructions(fromComposed: systemPrompt) }
+            let composed = await MainActor.run {
+                AssistantSystemPrompt.appleInstructions(fromComposed: systemPrompt, settings: services.settingsManager.settings)
+            }
             let instructions = withLengthRule(composed, cap: attempt.instructionTokenCap)
             let isChatTurn = systemPrompt.contains(AssistantSystemPrompt.Composed.cacheSplitMarker)
             let (tools, toolTokens) = fittingTools(isChatTurn ? allTools : [], for: messages, budget: attempt.toolTokenBudget)
@@ -395,7 +415,7 @@ final class AppleFoundationProvider: AIProvider {
                 instructions: instructions, tools: tools, transcript: transcript,
                 allowance: allowance, toolTokens: toolTokens, prefixTokens: fixedTokens, allToolCount: allTools.count,
                 isChatTurn: isChatTurn, previousExchange: AppleExchange.before(latestQuestionIn: messages),
-                latestQuestionID: messages.last { $0.role == .user }?.id
+                latestQuestionID: messages.last { $0.role == .user }?.id, services: services
             )
         }
 
@@ -456,7 +476,7 @@ final class AppleFoundationProvider: AIProvider {
             allowance: AppleContextCompactor.ToolOutputAllowance
         ) async -> AppleToolDispatcher? {
             guard plan.isChatTurn else { return nil }
-            let dispatcher = await MainActor.run { AppDependencies.current.providers.appleToolDispatcher }
+            let dispatcher = await MainActor.run { plan.services.appleToolDispatcher }
             await dispatcher.setToolOutputAllowance(allowance)
             return dispatcher
         }
@@ -466,7 +486,7 @@ final class AppleFoundationProvider: AIProvider {
         @available(iOS 26, *)
         private static func request(for plan: TurnPlan, followUp: String) -> SessionRequest {
             SessionRequest(
-                instructions: plan.instructions, tools: appleTools(for: plan.tools),
+                instructions: plan.instructions, tools: appleTools(for: plan.tools, services: plan.services),
                 toolCatalogHash: hashToolCatalog(plan.tools), conversationLength: plan.transcript.count,
                 previousExchange: plan.previousExchange,
                 prefixTokens: plan.prefixTokens,
@@ -519,16 +539,16 @@ final class AppleFoundationProvider: AIProvider {
         /// Wire the
         /// tool catalog through to `LanguageModelSession(tools:)`.
         /// Each `ToolSpec` becomes an `AppleToolAdapter` whose
-        /// handler delegates to `AppDependencies.current.providers.appleToolDispatcher`,
+        /// handler delegates to the `AppleToolDispatcher` in `services`,
         /// which reads the active `FactResolverRegistry` set by
         /// `AssistantViewModel.dispatch()` immediately before
         /// this send. An empty array means toolless mode (existing
         /// behaviour preserved when no tools are passed).
         @available(iOS 26, *)
-        private static func appleTools(for tools: [ToolSpec]) -> [any Tool] {
+        private static func appleTools(for tools: [ToolSpec], services: AIProviderServices) -> [any Tool] {
             tools.map { spec in
                 AppleToolCatalog.wrap(spec) { argsJSON in
-                    try await AppDependencies.current.providers.appleToolDispatcher.dispatch(name: spec.name, argumentsJSON: argsJSON)
+                    try await services.appleToolDispatcher.dispatch(name: spec.name, argumentsJSON: argsJSON)
                 }
             }
         }

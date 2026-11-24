@@ -1,8 +1,8 @@
 import SwiftUI
 
-// The metric chips row, recent strip, footer and recap-card share, split out of
-// `DashboardV2View.swift`. What stays behind is the hero score,
-// today's loop, the feedback chip and the two banners — the top of the screen.
+// The metric chips row, recent strip, footer and recap-card share.
+// `DashboardV2View.swift` holds the hero score, today's loop, the feedback
+// chip and the two banners — the top of the screen.
 
 extension DashboardV2View {
     // MARK: - Chips row (HRV / Sleep / Vitals / Load)
@@ -189,9 +189,9 @@ extension DashboardV2View {
     /// Routes through `TrajectoryVerdict.compute(...)` so this chip
     /// and the full Load & Trajectory surface share one canonical
     /// implementation. A chip-local heuristic (".detraining" any
-    /// time TSB < -10 AND CTL < 30) made every user with a low
+    /// time TSB < -10 AND CTL < 30) would make every user with a low
     /// chronic load (early in their training history) read as
-    /// "detraining" even when they were pushing daily. Detraining
+    /// "detraining" even when they train daily. Detraining
     /// requires the proper condition: CTL FALLING over the past week
     /// (delta < -1), not just CTL being numerically low.
     var loadVariant: ContributorChip.Variant {
@@ -295,9 +295,8 @@ extension DashboardV2View {
     }
 
     /// Last 7 readings for the Recent strip (see
-    /// `DashboardSessionPolicy.recentDays` for the rule and its audit
-    /// history). This just maps the policy's view-agnostic days onto
-    /// `RecentStrip.Day`.
+    /// `DashboardSessionPolicy.recentDays` for the rule). This just maps
+    /// the policy's view-agnostic days onto `RecentStrip.Day`.
     func buildRecentDays() -> [RecentStrip.Day] {
         recentDaySource().map {
             RecentStrip.Day(id: $0.date, date: $0.date, score: $0.score, verdict: $0.verdict)
@@ -352,10 +351,9 @@ extension DashboardV2View {
         presentShareSheet(activityItem: recapActivityItem(image: image, score: score, date: date), from: presenter)
     }
 
-    /// Bug list #16: presenting the share sheet inline fired before
-    /// `ImageRenderer.uiImage` had a fully-rendered output AND attached a
-    /// nil-or-blank image (the "missing attachment" the user reported).
-    /// So: render synchronously here on @MainActor (the
+    /// Presenting the share sheet inline can fire before
+    /// `ImageRenderer.uiImage` has a fully-rendered output and attach a
+    /// nil or blank image. So: render synchronously here on @MainActor (the
     /// renderer requires it) and let the caller bail loudly via toast if
     /// rendering fails, so the share sheet never opens with a stale or missing
     /// payload.

@@ -79,9 +79,8 @@ extension RRDataImporter {
 
     /// Picks the RR value out of one already-split data row, or nil to skip it.
     ///
-    /// Behaviour is preserved exactly from the inline version, including two
-    /// asymmetries that are load-bearing for real files and easy to
-    /// "tidy away" by accident:
+    /// These rules are load-bearing for real files and easy to "tidy away" by
+    /// accident:
     ///
     ///  • A header-detected RR column, and the single-column shorthand, are
     ///    trusted verbatim with NO range check here. Both shapes are
@@ -93,7 +92,7 @@ extension RRDataImporter {
     ///    wrong guess must not inject garbage into the series.
     ///  • The first-column fallback fires only when column 1 failed to parse
     ///    as a finite number at all — NOT when it parsed and then failed the
-    ///    range check. That was an `else if` on the parse, not on validity.
+    /// range check: the fallback branches on the parse, not on validity.
     static func rrValue(
         fromColumns columns: [String],
         rrColumnIndex: Int?,

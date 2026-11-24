@@ -1,9 +1,9 @@
 import Foundation
 
-// Merge data-loss repair: rebuilds resumed overnight segments whose beat
-// series lost the parent's beats to an earlier merge bug, from the archive
-// alone. Split from `RRCollector+BackupRecovery.swift`, which keeps the
-// backup, Trash and interrupted-workout recovery.
+// Merge data-loss repair: rebuilds, from the archive alone, resumed overnight
+// segments whose beat series lost the parent's beats in an earlier build's
+// merge. Backup, Trash and interrupted-workout recovery are in
+// `RRCollector+BackupRecovery.swift`.
 
 extension SessionRecoveryCoordinator {
     // MARK: - Merge Data Loss Repair
@@ -11,8 +11,8 @@ extension SessionRecoveryCoordinator {
     /// Rebuilds a child night's beat series by appending it to its parent's,
     /// time-shifted so the two are continuous.
     ///
-    /// Repairs sessions affected by the merge data-loss bug where background
-    /// device refinement bypassed `collector.mergeParentSessionData()`, leaving resumed
+    /// Repairs sessions saved by builds whose background device refinement
+    /// bypassed `collector.mergeParentSessionData()`, leaving resumed
     /// sessions with only the child's data instead of parent + child merged.
     ///
     /// A v5-corrupted child already contains a copy of the parent's beats at
@@ -83,7 +83,7 @@ extension SessionRecoveryCoordinator {
     /// the index's `linkedSessionIds` — avoids loading sessions from disk just
     /// to check whether they have links (saves ~700KB per session).
     nonisolated private func linkedOvernightEntries() async -> [SessionArchiveEntry] {
-        let entries = await MainActor.run { collector.archive.entries }
+        let entries = await MainActor.run { collector.archive.store.entries }
         let linkedEntries = entries.filter { entry in
             entry.sessionType == .overnight &&
                 entry.linkedSessionIds != nil &&
@@ -195,7 +195,7 @@ extension SessionRecoveryCoordinator {
             deviceProvenance: session.deviceProvenance,
             linkedSessionIds: session.linkedSessionIds, pausedDate: session.pausedDate
         )
-        var repaired = await collector.processOvernightData(
+        var repaired = await collector.morning.processOvernightData(
             points: mergedPoints, baseSession: baseSession,
             dataSource: session.dataSourceSummary?.selectedSource ?? "streaming",
             reconnectCount: session.dataSourceSummary?.reconnectCount ?? 0,

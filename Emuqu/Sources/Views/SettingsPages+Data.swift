@@ -1,8 +1,7 @@
 import SwiftUI
 
-// The custom-tags and iCloud/data settings pages, split out of
-// `SettingsPages+Diagnostics.swift`. Troubleshooting stays behind;
-// these two are about what the app stores, not how it reports faults.
+// The custom-tags and iCloud/data settings pages: what the app stores, not
+// how it reports faults (troubleshooting is in `SettingsPages+Diagnostics.swift`).
 
 // MARK: - Custom Tags Page
 
@@ -343,12 +342,12 @@ struct DataSettingsPage: View {
             Label(String(localized: "Archived sessions", bundle: LanguageManager.appBundle),
                   systemImage: "externaldrive.fill")
             Spacer()
-            Text("\(collector.archive.entries.count)")
+            Text("\(collector.archive.store.entries.count)")
                 .foregroundColor(AppTheme.textSecondary)
                 .monospacedDigit()
         }
         .accessibilityElement(children: .combine)
-        .accessibilityValue(Text("\(collector.archive.entries.count) sessions", bundle: LanguageManager.appBundle))
+        .accessibilityValue(Text("\(collector.archive.store.entries.count) sessions", bundle: LanguageManager.appBundle))
     }
 
     private var uploadedCountRow: some View {
@@ -650,7 +649,7 @@ struct DataSettingsPage: View {
     /// task would only hop straight back to it.
     func refreshDeletedCount() {
         Task {
-            deletedSessionCount = collector.checkForDeletedSessions().count
+            deletedSessionCount = collector.recovery.recoveryService.checkForDeletedSessions().count
         }
     }
 
@@ -659,7 +658,7 @@ struct DataSettingsPage: View {
         Task {
             let message: String
             do {
-                let session = try await collector.recoverFromDevice()
+                let session = try await collector.recovery.recoverFromDevice()
                 message = String(localized: "RR points recovered: \(session?.rrSeries?.points.count ?? 0)", bundle: LanguageManager.appBundle)
             } catch {
                 message = String(localized: "Recovery failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)

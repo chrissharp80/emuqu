@@ -383,7 +383,7 @@ extension DeepDiveReportRenderer {
         if vo2 > 50 { return String(localized: "Excellent — well above average", bundle: bundle) }
         if vo2 > 40 { return String(localized: "Good — above average fitness", bundle: bundle) }
         if vo2 > 30 { return String(localized: "Fair — average range", bundle: bundle) }
-        // #21 — frame VO₂max as aerobic CAPACITY vs CTL's training LOAD so the
+        // Frame VO₂max as aerobic CAPACITY vs CTL's training LOAD so the
         // two labels don't read as a flat contradiction on the same report.
         return String(localized: "Aerobic capacity has room to grow — your CTL reflects training load, VO₂max your aerobic ceiling", bundle: bundle)
     }
@@ -414,10 +414,9 @@ extension DeepDiveReportRenderer {
 
 // MARK: - Banded interpretation
 //
-// The interpretation strings below were written as nested ternaries — three or
-// four levels deep, each wrapping the next in parentheses, so the reader had to
-// unwind them right-to-left to find which band a value lands in. `banded` states
-// the bands in order, top to bottom, which is the order they are reasoned about.
+// `banded` states the bands in order, top to bottom, which is the order
+// they are reasoned about, rather than as nested ternaries the reader has
+// to unwind right-to-left.
 
 private func banded(_ value: Double, _ cases: [(Double, String)], else fallback: String) -> String {
     for (threshold, text) in cases where value > threshold {
@@ -435,15 +434,8 @@ private func bandedAscending(_ value: Double, _ cases: [(Double, String)], else 
 
 // MARK: - File-scope helpers
 //
-// Kept out of the type. Each touches no instance state —
-// including the computed properties — and
-// calls nothing that stayed behind, so none was a method in anything but
-// placement. `private` at file scope is fileprivate, so every call site in
-// this file resolves exactly as before.
-//
-// This is what `check_aggregate_type_size.sh` measures: a type is the sum of
-// its parts across every file, so code that does not need the type inflates
-// that number without making the type do more.
+// Each touches no instance state — including the computed properties —
+// and calls nothing on the type, so none needs to be a method.
 
 /// SDNN, pNN50 and SDSD are marked, and not read, when they are estimates.
 private func timeDomainRows(result: HRVAnalysisResult, session: HRVSession, bundle: Bundle) -> [DeepDiveReportRenderer.DeepDiveMetric] {
@@ -471,7 +463,7 @@ private func estimable(
 }
 
 private func rmssdRow(td: TimeDomainMetrics, session: HRVSession, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
-    // #6 — a HealthKit summary import has no raw RR / no 5-min window.
+    // A HealthKit summary import has no raw RR / no 5-min window.
     let hasRawRR = !(session.rrSeries?.points.isEmpty ?? true)
     return DeepDiveReportRenderer.DeepDiveMetric(
         name: "RMSSD", value: String(format: "%.1f ms", locale: LanguageManager.appLocale, td.rmssd),
@@ -583,7 +575,7 @@ private func lfHfRatioRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiv
 private func totalPowerRow(fd: FrequencyDomainMetrics, bundle: Bundle) -> DeepDiveReportRenderer.DeepDiveMetric {
     DeepDiveReportRenderer.DeepDiveMetric(
         name: String(localized: "Total Power", bundle: bundle), value: String(format: "%.0f ms²", locale: LanguageManager.appLocale, fd.totalPower),
-        // #11 — VLF needs a 10+ min window; on shorter windows it's
+        // VLF needs a 10+ min window; on shorter windows it's
         // gated out and Total = LF + HF. Don't claim VLF is included.
         explanation: fd.vlf != nil
             ? String(localized: "Sum of VLF + LF + HF. Represents overall autonomic modulation of heart rate. Higher total power means more overall beat-to-beat variation. It declines with age and is reduced by chronic stress, heavy sustained training load, and illness.", bundle: bundle)
@@ -747,10 +739,10 @@ private func lastSevenTrendText(rmssd: Double, recent: [Double], movement: Trend
     case .down: String(localized: "Across these sessions, your RMSSD is trending down.", bundle: bundle)
     case .flat, .insufficient: String(localized: "Across these sessions, your RMSSD is holding steady.", bundle: bundle)
     }
-    // #2 — labelled a SHORT-WINDOW trend, not "your average"/"baseline":
+    // Labelled a SHORT-WINDOW trend, not "your average"/"baseline":
     // the recovery score's baseline is the 60-day geometric ln(RMSSD)
     // mean on the score page. This 7-session arithmetic mean must not
-    // read as if it were the score baseline (it competed before).
+    // read as if it were the score baseline.
     let trendText = String(
         localized: "Your RMSSD today (\(String(format: "%.1f", locale: LanguageManager.appLocale, rmssd)) ms) is \(String(format: "%+.1f", locale: LanguageManager.appLocale, diff)) ms relative to your last \(recent.count) sessions (\(String(format: "%.1f", locale: LanguageManager.appLocale, avg)) ms). This short-window trend is separate from the 60-day baseline your recovery score uses. \(trendVerdict)",
         bundle: bundle

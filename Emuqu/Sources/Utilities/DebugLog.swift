@@ -610,9 +610,9 @@ final class DebugLogger {
 
     /// Everything held, on disk and in memory: the entries, the lines and
     /// entries waiting for the next flush, and the error catalog. Left
-    /// behind after "Delete All My Data", the next flush wrote the pending
-    /// lines into a new log file and Recent Problems kept listing pre-wipe
-    /// messages.
+    /// behind after "Delete All My Data", the next flush would write the
+    /// pending lines into a new log file and Recent Problems would keep
+    /// listing pre-wipe messages.
     ///
     /// The file is removed on `queue`, after any flush already running, and
     /// the caller waits for it. True when no log file is left; a failure is
@@ -648,21 +648,24 @@ final class DebugLogger {
     /// newest lines — the ones describing whatever the user just saw.
     ///
     /// With Persistent Logging off nothing is written to disk, so the export
-    /// comes from the in-memory ring buffer instead.
+    /// comes from the in-memory ring buffer instead. A log file that exists
+    /// but cannot be read also exports the in-memory buffer, and its header
+    /// says the file could not be read, so a failed read never passes for a
+    /// log with no entries.
     nonisolated func exportLogs() -> String {
-        guard persistentBox.withLock({ $0 }) else { return exportMemoryLogs() }
+        guard persistentBox.withLock({ $0 }) else {
+            return exportMemoryLogs(source: "in-memory buffer, last 7 days (Persistent Logging is off)")
+        }
         flushToDiskSync()
         // Read directly from disk for completeness — memory may be a subset
-        let rawContent = (try? String(contentsOf: logFileURL, encoding: .utf8)) ?? ""
-        // Scrubbed again on the way out: lines an earlier build flushed went
-        // through its narrower scrubber. Redaction is idempotent, so a line
-        // already scrubbed comes through unchanged. Off the main thread, as
-        // every caller is.
-        let diskContent = rawContent
-            .split(separator: "\n", omittingEmptySubsequences: false)
-            .map { Self.scrubPHI(String($0)) }
-            .joined(separator: "\n")
-
+        let rawContent: String
+        do {
+            rawContent = try Self.readLogFile(at: logFileURL)
+        } catch {
+            NSLog("[DebugLogger] reading the log file for export failed: %@", error.localizedDescription)
+            return exportMemoryLogs(source: Self.unreadableFileSource(error))
+        }
+        let diskContent = Self.scrubbedLines(rawContent)
         // Count newlines instead of `components(separatedBy:)`
         // which builds an array of every line (1MB log → 14k+ String
         // allocations, multi-second hang on main thread). A single pass
@@ -672,14 +675,38 @@ final class DebugLogger {
         return Self.exportHeader(entryCount: entryCount, source: source) + diskContent
     }
 
+    /// The log file's text: empty when there is no file yet (nothing has
+    /// been flushed since Persistent Logging was turned on); throws when a
+    /// file is there but cannot be read as UTF-8 text.
+    nonisolated static func readLogFile(at url: URL) throws -> String {
+        guard FileManager.default.fileExists(atPath: url.path) else { return "" }
+        return try String(contentsOf: url, encoding: .utf8)
+    }
+
+    /// The export header's source line when the log file could not be read.
+    nonisolated static func unreadableFileSource(_ error: Error) -> String {
+        "in-memory buffer, last 7 days (the log file could not be read: \(error.localizedDescription))"
+    }
+
+    /// Every line of `content` scrubbed again on the way out: lines an
+    /// earlier build flushed went through its narrower scrubber. Redaction is
+    /// idempotent, so a line already scrubbed comes through unchanged. Off
+    /// the main thread, as every caller is.
+    nonisolated private static func scrubbedLines(_ content: String) -> String {
+        content
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { scrubPHI(String($0)) }
+            .joined(separator: "\n")
+    }
+
     /// The in-memory ring buffer (last 7 days, at most `maxMemoryEntries`)
-    /// plus the entries not yet moved into it, scrubbed like the disk path.
-    nonisolated private func exportMemoryLogs() -> String {
+    /// plus the entries not yet moved into it, scrubbed like the disk path,
+    /// under a header naming `source`.
+    nonisolated private func exportMemoryLogs(source: String) -> String {
         let buffered = exportBuffer.withLock { $0 }
         let pending = pendingEntries.withLock { $0 }
         let lines = (buffered + pending).map { Self.scrubPHI($0.formatted) }
         let body = lines.isEmpty ? "" : lines.joined(separator: "\n") + "\n"
-        let source = "in-memory buffer, last 7 days (Persistent Logging is off)"
         return Self.exportHeader(entryCount: lines.count, source: source) + body
     }
 
@@ -722,22 +749,22 @@ final class DebugLogger {
     /// the LOCATION, not the protection. Documents is an iCloud-eligible,
     /// backed-up container, so the share sheet (sharingd) probes every
     /// file there for a CloudKit share mode and then fails to open it
-    /// across the sandbox — the exact console spam the user reported:
+    /// across the sandbox, logging:
     ///   Failed to request default share mode for fileURL:...Documents/...
     ///   Only support loading options for CKShare and SWY types.
     ///   NSCocoaErrorDomain Code=256 "The file couldn't be opened."
     /// sharingd retry-loops ~500 ms per attempt before the sheet finally
-    /// works — "all these errors before they finally are ready." The
+    /// works. The
     /// temp dir is not iCloud-backed, so none of that probing happens
-    /// and the file opens on the FIRST try. (This is also why the
-    /// RR/CSV/all-data exports, which already use tmp, never hit this —
-    /// the log export was the lone Documents outlier.)
+    /// and the file opens on the FIRST try. The RR/CSV/all-data exports
+    /// use tmp for the same reason.
     ///
     /// NOTE: the LaunchServices lines (`-10814`, "Failed to locate
     /// container app bundle record", "canmaplsdatabase domain 8") are
     /// iOS-internal share-sheet noise unrelated to our file and are not
     /// something app code can suppress; the openability failure above is
-    /// the part that actually blocked the share, and that's what this fixes.
+    /// the part that actually blocks the share, and the temp location
+    /// avoids it.
     ///
     /// The temporary folder is the export folder (`ExportFile`): the file
     /// gets complete protection like every export (the share sheet reads it

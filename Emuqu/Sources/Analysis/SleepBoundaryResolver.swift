@@ -206,12 +206,12 @@ final class SleepBoundaryResolver: Sendable {
         // HR drops at sleep onset via parasympathetic surge (magnitude, not
         // onset-specific) — de Zambotti et al., Sleep 2020;43(7):zsaa045
         static let hrDropThreshold = 8.0 // bpm — significant sustained drop
-        // The "asleep" HR ceiling is ADAPTIVE, not a fixed absolute
-        // (per Chris: it must work for anyone). Computed per-night in
+        // The "asleep" HR ceiling is ADAPTIVE, not a fixed absolute, so it
+        // works for anyone. Computed per-night in
         // `detectSleepOnset` as the midpoint of the night's OWN HR range
         // (maxHR − (maxHR − minHR)·fraction), self-normalizing per person. A
-        // fixed 65 bpm failed entirely for anyone whose true sleeping HR sits
-        // above it (deconditioned / older / stressed / febrile) and was
+        // fixed 65 bpm fails entirely for anyone whose true sleeping HR sits
+        // above it (deconditioned / older / stressed / febrile) and is
         // non-binding for athletes (~45 bpm). Same midpoint the sibling HR-onset
         // detectors (estimateSleepFromHR / estimateSleepFromHealthKitHR) use.
         static let sleepCeilingMidpointFraction = 0.5
@@ -226,7 +226,7 @@ final class SleepBoundaryResolver: Sendable {
         guard rrPoints.count > OnsetDetection.minimumBeats else { return nil }
         let hrWindows = onsetHRWindows(rrPoints)
         guard hrWindows.count >= OnsetDetection.minimumWindows else { return nil }
-        // Adaptive "asleep" ceiling (per Chris — works for anyone):
+        // Adaptive "asleep" ceiling, so it works for anyone:
         // post-drop HR must fall into the lower half of the NIGHT'S OWN HR range,
         // self-normalizing per person instead of a fixed 65 bpm. Identical in form
         // to the midpoint threshold the sibling detectors use.
@@ -321,7 +321,7 @@ final class SleepBoundaryResolver: Sendable {
         sessionStart: Date
     ) -> SleepBoundaries? {
         // Try static estimation from HealthKitManager (uses HR patterns)
-        if let estimation = HealthKitManager.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: sessionStart) {
+        if let estimation = HRSleepEstimator.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: sessionStart) {
             let startMs = estimation.sleepStart.flatMap { MillisecondOffset.between($0, and: sessionStart) }
             let endMs = estimation.sleepEnd.flatMap { MillisecondOffset.between($0, and: sessionStart) }
             if startMs != nil || endMs != nil {

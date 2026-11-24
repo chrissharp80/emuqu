@@ -11,7 +11,7 @@ import UIKit
 ///   • Notes — anything else worth keeping (preferences, philosophy
 ///     conversations, methodology choices)
 ///
-/// **Why this exists:** the chat transcript gets pruned when the
+/// **Why:** the chat transcript gets pruned when the
 /// conversation grows past the model's token budget. The auto-summary
 /// (`AssistantViewModel.priorSummary`) preserves the *gist* of dropped
 /// turns, but specific structured items — bug list bullets, decision
@@ -125,14 +125,10 @@ final class AssistantArtifactStore {
         wireRecoveryOnUnlock()
     }
 
-    /// Unlock (and becoming active, since a suspended app can miss the
-    /// unlock notification) runs `recoverAfterUnlock()` on the main actor.
+    /// Runs `recoverAfterUnlock()` on the main actor once the artifacts may
+    /// be readable.
     private func wireRecoveryOnUnlock() {
-        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
-            unlockObservers.add(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
-                self?.scheduleRecoveryAfterUnlock()
-            })
-        }
+        unlockObservers.observeProtectedDataMayBeAvailable { [weak self] in self?.scheduleRecoveryAfterUnlock() }
     }
 
     nonisolated private func scheduleRecoveryAfterUnlock() {

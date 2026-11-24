@@ -37,7 +37,7 @@ extension RecoveryScoreCalculator {
         // baseline forms (science register: rmssd-absolute-fallback-bands).
         // The readiness score is not used here: it is built against a
         // population baseline the register does not cover, and it always
-        // exists, so before it hid the bands entirely.
+        // exists, so it would hide the bands entirely.
         if rmssd > 0 { return min(100, max(0, absoluteRMSSDScore(rmssd))) }
         // No usable RMSSD: the legacy readiness score (1-10 → 10-100) when
         // the analysis produced one, else neutral.
@@ -94,7 +94,7 @@ extension RecoveryScoreCalculator {
         referenceDate: Date
     ) -> (days: Int, penalty: Double)? {
         guard let lastDate = stats.lastDataPointDate else { return nil }
-        let daysSince = baselineStalenessDays(baselineDate: lastDate, referenceDate: referenceDate)
+        let daysSince = ScoreDetailBuilder.baselineStalenessDays(baselineDate: lastDate, referenceDate: referenceDate)
         guard daysSince >= RecoveryScoreConstants.BaselineStaleness.staleAfterDays else { return nil }
         let weeksStale = Double(daysSince - RecoveryScoreConstants.BaselineStaleness.staleAfterDays) / 7.0
         let penalty = min(

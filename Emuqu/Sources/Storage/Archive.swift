@@ -25,12 +25,6 @@ import Foundation
 /// member here that touches the fields above, it takes the lock or it goes in
 /// `Archive+Internal.swift` where the convention says the caller already did.
 final class SessionArchive: @unchecked Sendable {
-    // MARK: - Shared Instance
-
-    /// Shared singleton — use this for all non-test code to prevent multiple
-    /// instances operating on the same index.json concurrently.
-    static let shared = SessionArchive()
-
     /// Shared archive policy tuning. These thresholds are used at multiple
     /// sites (the 0.85 containment ratio, the 1-hour import-duplicate
     /// window); one named home so the next change can't introduce drift
@@ -115,7 +109,7 @@ final class SessionArchive: @unchecked Sendable {
     /// Troubleshooting card surfaces a banner only when this is true,
     /// so a one-off transient EPERM doesn't alarm the user.
     /// Reads both counters under `archiveLock` — the increments in
-    /// `retrieveLightweightOrLog` run locked, so an unlocked two-field read
+    /// the read primitives run locked, so an unlocked two-field read
     /// here could see a torn pair.
     var hasReadHealthIssue: Bool {
         archiveLock.lock()
@@ -127,7 +121,7 @@ final class SessionArchive: @unchecked Sendable {
     /// diagnostics page renders "X of Y reads failed" in a single
     /// sentence — reading the two stored properties individually could
     /// see a torn pair across the locked increments in
-    /// `retrieveLightweightOrLog` (same race `hasReadHealthIssue`
+    /// `retrieve` and `retrieveLightweight` (same race `hasReadHealthIssue`
     /// seals).
     var readHealthCounters: (attempts: Int, permissionDenied: Int) {
         archiveLock.lock()
@@ -163,6 +157,8 @@ final class SessionArchive: @unchecked Sendable {
         totalReadAttempts = 0
         permissionDeniedReadFailures = 0
     }
+    /// The key the session files and the index are sealed with.
+    let encryption: EncryptionManager
     let sleepScheduleProvider: () -> SleepSchedule
     let sessionMergeModeProvider: () -> SessionMergeMode
     /// The user's merge gap in seconds: recordings of one night closer than
@@ -232,11 +228,13 @@ final class SessionArchive: @unchecked Sendable {
         // Passing an explicit directory gives a hermetic instance; `nil`
         // (production) keeps the App Group → Documents → tmp fallback chain
         // unchanged.
-        directory: URL? = nil,
-        sleepScheduleProvider: @escaping () -> SleepSchedule = { AppDependencies.current.app.settingsManager.settingsSnapshot.sleepSchedule },
-        sessionMergeModeProvider: @escaping () -> SessionMergeMode = { AppDependencies.current.app.settingsManager.settingsSnapshot.sessionMergeMode },
-        mergeGapProvider: @escaping () -> TimeInterval = { AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveMergeGapSeconds }
+        directory: URL?,
+        encryption: EncryptionManager,
+        sleepScheduleProvider: @escaping () -> SleepSchedule,
+        sessionMergeModeProvider: @escaping () -> SessionMergeMode,
+        mergeGapProvider: @escaping () -> TimeInterval
     ) {
+        self.encryption = encryption
         self.sleepScheduleProvider = sleepScheduleProvider
         self.sessionMergeModeProvider = sessionMergeModeProvider
         self.mergeGapProvider = mergeGapProvider
@@ -286,9 +284,9 @@ final class SessionArchive: @unchecked Sendable {
     ///
     /// The per-file protection-class walk is not here. It rewrites the
     /// attributes of every session file on every launch, and running it at
-    /// boot put that metadata write on the same files, at the same moment, as
-    /// the dashboard's first read — a field log shows that read taking 3.8 s
-    /// and finishing the instant this finished. It runs in the launch
+    /// boot would put that metadata write on the same files, at the same
+    /// moment, as the dashboard's first read, holding that read up for
+    /// seconds. It runs in the launch
     /// housekeeping phase instead, after the dashboard has its data
     /// (`AppLaunchTasks.scheduleMigrationJobs`).
     func boot() {
@@ -327,7 +325,7 @@ final class SessionArchive: @unchecked Sendable {
 
     /// Whether any tombstoned session was deleted after `cutoff`, by its
     /// recorded deletion time. A deleted session's file is no longer at
-    /// `<id>.json` (it moves to the Trash), so its file date said nothing.
+    /// `<id>.json` (it moves to the Trash), so its file date says nothing.
     private func hasTombstoneNewerThan(_ cutoff: Date, in deletedSnapshot: Set<UUID>) -> Bool {
         deletedSnapshot.contains { store.deletionTime(of: $0).map { $0 > cutoff } ?? false }
     }
@@ -412,7 +410,7 @@ final class SessionArchive: @unchecked Sendable {
         if let uuid = UUID(uuidString: bareId), deleted.contains(uuid) { return nil }
         guard let data = attempt("Archive.readOrphan", { try Data(contentsOf: file) }),
               let session = attempt("Archive.decodeOrphan", {
-                  try Self.loadAndDecodeSessionFile(at: file, decoder: Self.sessionDecoder)
+                  try ArchiveStore.loadAndDecodeSessionFile(at: file, decoder: Self.sessionDecoder, encryption: encryption)
               })
         else {
             debugLog("[Archive] reconcileOrphanFiles: skipping undecodable orphan \(name)")
@@ -451,10 +449,10 @@ final class SessionArchive: @unchecked Sendable {
 
     /// Internal archive variant with optional same-night merge skip.
     ///
-    /// Seen in a user log: a CloudKit full-sync pull triggered 37
-    /// `sameNightMerge` operations in 5 seconds at 05:30, each one
+    /// A CloudKit full-sync pull can trigger dozens of
+    /// `sameNightMerge` operations in seconds, each one
     /// re-archiving (full retrieve + merge + re-encode + re-encrypt +
-    /// write + hash + index save) on the main thread. The app froze
+    /// write + hash + index save) on the main thread, freezing the app
     /// for the duration. CloudKit-pulled sessions are already the
     /// authoritative cross-device-merged version of that session-id;
     /// folding them into a same-night local entry is double-merging
@@ -467,12 +465,11 @@ final class SessionArchive: @unchecked Sendable {
     /// surfaces (Dashboard, History, Recovery Report sheet) refresh
     /// automatically. A writer contract requiring each caller to fire
     /// `archiveSignal.notifyChanged()` after archiving is easy to miss:
-    /// dashboard call sites (sleep refresh, vitals refresh,
-    /// morning-feeling persist, etc.) silently archived
-    /// without propagating, so an open Recovery Report sheet kept
-    /// showing stale numbers until dismissed. Posting at the archive
-    /// layer eliminates the contract burden and makes propagation
-    /// automatic for any future writer.
+    /// a call site (sleep refresh, vitals refresh, morning-feeling
+    /// persist, etc.) that archives without propagating leaves an open
+    /// Recovery Report sheet showing stale numbers until dismissed.
+    /// Posting at the archive layer removes that contract and makes
+    /// propagation automatic for every writer.
     ///
     /// `ArchiveSignal` (an @MainActor `@Observable`) listens for
     /// this notification and bumps its `version`, which triggers the
@@ -480,7 +477,7 @@ final class SessionArchive: @unchecked Sendable {
     ///
     /// `requestingReupload: true` is for a change the user made to a session
     /// already in the archive (a feeling, a trim, a sleep edit). CloudKit sync
-    /// uploads each id once, so without it the edit never reached iCloud. A
+    /// uploads each id once, so without it the edit never reaches iCloud. A
     /// sleep edit's own values stay on the device (`CloudSessionPayload`).
     /// It also stamps `modifiedAt`, which is how another device that already
     /// holds the session knows this copy is newer and takes it on its next
@@ -504,7 +501,7 @@ final class SessionArchive: @unchecked Sendable {
         let entry: SessionArchiveEntry
         let wasArchived = index.contains { $0.sessionId == session.id }
         do {
-            entry = try _archive(session, skipSameNightMerge: skipSameNightMerge)
+            entry = try store._archive(session, skipSameNightMerge: skipSameNightMerge)
         } catch {
             archiveLock.unlock()
             throw error
@@ -547,13 +544,13 @@ final class SessionArchive: @unchecked Sendable {
     func updateIfChanged(_ id: UUID, requestingReupload: Bool = true, _ change: (inout HRVSession) -> Bool) throws -> Bool {
         archiveLock.lock()
         do {
-            guard var session = try _retrieve(id) else { throw ArchiveError.fileNotFound }
+            guard var session = try store._retrieve(id) else { throw ArchiveError.fileNotFound }
             guard change(&session) else {
                 archiveLock.unlock()
                 return false
             }
             if requestingReupload { session.modifiedAt = CloudKitSessionFreshness.stamp() }
-            _ = try _archive(session, skipSameNightMerge: true)
+            _ = try store._archive(session, skipSameNightMerge: true)
         } catch {
             archiveLock.unlock()
             throw error
@@ -577,7 +574,14 @@ final class SessionArchive: @unchecked Sendable {
     func retrieve(_ id: UUID) throws -> HRVSession? {
         archiveLock.lock()
         defer { archiveLock.unlock() }
-        return try _retrieve(id)
+        do {
+            let session = try store._retrieve(id)
+            countRead(failure: nil)
+            return session
+        } catch {
+            countRead(failure: error)
+            throw error
+        }
     }
 
     /// Retrieve a session, logging and returning nil on failure instead of throwing.
@@ -594,25 +598,20 @@ final class SessionArchive: @unchecked Sendable {
     /// Lightweight retrieve, logging and returning nil on failure instead of throwing.
     func retrieveLightweightOrLog(_ id: UUID, caller: String = #function) -> HRVSession? {
         do {
-            let result = try retrieveLightweight(id)
-            archiveLock.lock()
-            totalReadAttempts += 1
-            archiveLock.unlock()
-            return result
+            return try retrieveLightweight(id)
         } catch {
-            recordReadFailure(error)
             debugLog("[SessionArchive] \(caller): failed to retrieve lightweight \(id.uuidString.prefix(8)): \(error)")
             return nil
         }
     }
 
-    /// Count permission-denied failures so
-    /// the Troubleshooting card can surface a recovery prompt
-    /// when the EPERM-storm pattern recurs.
-    private func recordReadFailure(_ error: Error) {
-        archiveLock.lock()
-        defer { archiveLock.unlock() }
+    /// Count one read of a session file, and a permission-denied failure,
+    /// so the Troubleshooting card can surface a recovery prompt when the
+    /// EPERM-storm pattern recurs. Every full and lightweight read is
+    /// counted. Caller holds `archiveLock`.
+    private func countRead(failure error: Error?) {
         totalReadAttempts += 1
+        guard let error else { return }
         if let nsError = error as NSError?,
            nsError.domain == NSCocoaErrorDomain,
            nsError.code == 257 { // NSFileReadNoPermissionError
@@ -650,10 +649,17 @@ final class SessionArchive: @unchecked Sendable {
             guard let entry = store.entryById(id) else { return nil }
             fileURL = resolveFileURL(for: entry)
         }
-        guard fileManager.fileExists(atPath: fileURL.path) else {
-            throw ArchiveError.fileNotFound
+        do {
+            guard fileManager.fileExists(atPath: fileURL.path) else {
+                throw ArchiveError.fileNotFound
+            }
+            let plaintext = try ArchiveStore.plaintextBytes(try Data(contentsOf: fileURL), id: id, encryption: encryption)
+            let session = try Self.lightweightSessionDecoder.decode(HRVSession.self, from: plaintext)
+            archiveLock.withLock { countRead(failure: nil) }
+            return session
+        } catch {
+            archiveLock.withLock { countRead(failure: error) }
+            throw error
         }
-        let plaintext = try ArchiveStore.plaintextBytes(try Data(contentsOf: fileURL), id: id)
-        return try Self.lightweightSessionDecoder.decode(HRVSession.self, from: plaintext)
     }
 }

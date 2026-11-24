@@ -129,7 +129,8 @@ final class SavedRouteStore {
 
     /// Retries a load that file protection blocked (a background launch
     /// before first unlock) once the device is unlocked.
-    @ObservationIgnored private var protectedDataObserver: NSObjectProtocol?
+    @ObservationIgnored private let unlockObservers = NotificationTokens()
+    @ObservationIgnored private var observingUnlock = false
 
     /// Delete All My Data: drops the in-memory copy so nothing reads it
     /// afterwards, and discards any pending write (removing the file again if
@@ -154,13 +155,11 @@ final class SavedRouteStore {
         if loadFailed { installProtectedDataObserver() }
     }
 
+    /// Retries the failed load once the file may be readable.
     private func installProtectedDataObserver() {
-        guard protectedDataObserver == nil else { return }
-        protectedDataObserver = NotificationCenter.default.addObserver(
-            forName: UIApplication.protectedDataDidBecomeAvailableNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
+        guard !observingUnlock else { return }
+        observingUnlock = true
+        unlockObservers.observeProtectedDataMayBeAvailable { [weak self] in
             Task { @MainActor in self?.retryLoadAfterUnlock() }
         }
     }
@@ -190,13 +189,13 @@ final class SavedRouteStore {
         guard !loadFailed else { return false }
         let known = Set(routes.map(\.id))
         routes.append(contentsOf: addedWhileLocked.filter { !known.contains($0.id) })
-        if let protectedDataObserver { NotificationCenter.default.removeObserver(protectedDataObserver) }
-        protectedDataObserver = nil
+        unlockObservers.removeAll()
+        observingUnlock = false
         return true
     }
 
-    /// On first run after the App Group move, copy the legacy Application
-    /// Support file across if no App Group copy exists yet.
+    /// Copy the legacy Application Support file into the App Group when no
+    /// App Group copy exists yet.
     private static func migrateLegacyStoreIfNeeded(to appGroupURL: URL) {
         let fm = FileManager.default
         guard !fm.fileExists(atPath: appGroupURL.path),
@@ -260,14 +259,14 @@ final class SavedRouteStore {
     /// Per-climb failures (geocoder returns no match for the coordinate)
     /// silently leave that climb's roadName as nil — better than
     /// fabricating a wrong street name.
-    func enrichWithRoadNames(routeID: UUID) {
+    func enrichWithRoadNames(routeID: UUID, geocoder: RoadGeocodingService) {
         Task { [weak self] in
             guard let self else { return }
             guard let route = self.routes.first(where: { $0.id == routeID }) else { return }
             if route.enrichedClimbs != nil { return }
             let runtimeRoute = route.toRoute()
             guard !runtimeRoute.climbs.isEmpty else { return }
-            let enriched = await Self.climbsWithRoadNames(on: runtimeRoute)
+            let enriched = await Self.climbsWithRoadNames(on: runtimeRoute, geocoder: geocoder)
             await MainActor.run { [enriched] in
                 self.applyEnrichedClimbs(enriched, to: routeID)
             }
@@ -281,7 +280,7 @@ final class SavedRouteStore {
     /// Paced deliberately — Apple's CLGeocoder is rate-limited at ~50 reqs/min
     /// device-wide. A 600 ms gap is a ~100 reqs/min ceiling, but a route only
     /// needs 2–8 lookups, so bursts stay safely under.
-    private static func climbsWithRoadNames(on route: Route) async -> [Route.Climb] {
+    private static func climbsWithRoadNames(on route: Route, geocoder: RoadGeocodingService) async -> [Route.Climb] {
         var enriched: [Route.Climb] = []
         for climb in route.climbs {
             let coordinate = coordinate(atDistanceMeters: climb.startDistanceMeters, on: route)
@@ -290,19 +289,17 @@ final class SavedRouteStore {
                 endDistanceMeters: climb.endDistanceMeters,
                 gainMeters: climb.gainMeters,
                 averageGradePercent: climb.averageGradePercent,
-                roadName: await roadName(at: coordinate)
+                roadName: await roadName(at: coordinate, geocoder: geocoder)
             ))
             await sleepQuietly(600_000_000, context: "enriched")
         }
         return enriched
     }
 
-    private static func roadName(at coordinate: CLLocationCoordinate2D?) async -> String? {
+    private static func roadName(at coordinate: CLLocationCoordinate2D?, geocoder: RoadGeocodingService) async -> String? {
         guard let coordinate else { return nil }
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        return await Task { @MainActor in
-            await AppDependencies.current.location.roadGeocodingService.reverseGeocodeQueued(location)?.thoroughfare
-        }.value
+        return await geocoder.reverseGeocodeQueued(location)?.thoroughfare
     }
 
     /// Replace the saved route in the store with its enriched version.

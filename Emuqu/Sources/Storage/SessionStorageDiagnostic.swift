@@ -5,8 +5,7 @@ import Foundation
 /// per-session: is the rrSeries on disk in the main archive, in the
 /// RawRRBackup safety net, both, or neither.
 ///
-/// This replaces the "I assumed your data is gone" speculation with an
-/// actual inspection of the file system. Run from Settings → Archive
+/// It inspects the file system rather than guessing. Run from Settings → Archive
 /// Diagnostics → "RR Storage Audit." Surfaces a per-session list with
 /// status icons and a recovery summary so the user knows exactly which
 /// sessions can be repaired.
@@ -23,8 +22,8 @@ import Foundation
 ///
 /// The diagnostic is read-only. Backup beat counts come from the backup
 /// index rather than a decode of each backup: decoding reconciles and
-/// rewrites the index, and a backup that failed to decode fell out of the
-/// orphan list, which is the case this report exists to show.
+/// rewrites the index, and a backup that fails to decode would fall out of
+/// the orphan list, which is the case this report exists to show.
 enum SessionStorageDiagnostic {
     // MARK: - Report types
 
@@ -97,7 +96,7 @@ enum SessionStorageDiagnostic {
     /// so the user sees their most recent sessions first, and one snapshot
     /// keeps ids / list / count mutually consistent.
     static func run(archive: SessionArchive, backup: RawRRBackup) -> Report {
-        let archiveEntries = archive.entries
+        let archiveEntries = archive.store.entries
         let sessions = archiveEntries.map { inspectSession(entry: $0, archive: archive, backup: backup) }
         let counts = statusCounts(in: sessions)
         let orphaned = orphanedBackupIds(archivedIds: Set(archiveEntries.map(\.sessionId)), archive: archive, backup: backup)
@@ -119,7 +118,7 @@ enum SessionStorageDiagnostic {
     /// and was not deleted (`Report.orphanedBackupIds`), in id order.
     static func orphanedBackupIds(archivedIds: Set<UUID>, archive: SessionArchive, backup: RawRRBackup) -> [UUID] {
         Set(backup.unarchivedSessionIds).subtracting(archivedIds)
-            .filter { !archive.wasIntentionallyDeleted($0) }
+            .filter { !archive.store.wasIntentionallyDeleted($0) }
             .sorted { $0.uuidString < $1.uuidString }
     }
 

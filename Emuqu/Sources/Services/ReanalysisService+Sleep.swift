@@ -1,9 +1,8 @@
 import Foundation
 
-// Sleep retro-apply and manual-window reanalysis, split out of
-// `ReanalysisService.swift`. Both re-score an existing session from
-// a user action rather than from new sensor data, which is what the bulk
-// re-analysis left behind does.
+// Sleep retro-apply and manual-window reanalysis. Both re-score an existing
+// session from a user action; the bulk re-analysis in
+// `ReanalysisService.swift` re-scores from new sensor data.
 
 extension ReanalysisService {
     // MARK: - Sleep Retro-Apply
@@ -12,15 +11,17 @@ extension ReanalysisService {
     /// settings. Workouts, naps, quick readings and breathing sessions have no
     /// night's sleep to attach.
     func retroApplySleepSettings(
-        sessions: [HRVSession],
+        sessions: ArchivedSessions,
         progress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async -> Int {
-        let filtered = Self.sessionsInRange(sessions, from: nil, to: nil).filter { $0.sessionType == .overnight }
+        let filtered = sessions.filter { $0.sessionType == .overnight }
         var successCount = 0
 
-        for (index, session) in filtered.enumerated() {
+        for index in 0 ..< filtered.count {
             if Task.isCancelled { break }
-            if await retroApply(to: session) { successCount += 1 }
+            if let session = await filtered.session(at: index), Self.hasBeats(session), await retroApply(to: session) {
+                successCount += 1
+            }
             progress(index + 1, filtered.count)
         }
 
@@ -365,7 +366,7 @@ extension ReanalysisService {
     /// Diagnostic result from training snapshot repair.
     struct TrainingRepairResult {
         let totalSessions: Int
-        let candidates: Int
+        var candidates: Int
         var nilContext: Int
         var repaired: Int
         var errors: Int
@@ -375,40 +376,39 @@ extension ReanalysisService {
     /// Recompute training snapshots for all completed sessions from HealthKit.
     /// Anchors each session to 5 AM on the morning it ended so the EWMA
     /// matches the original morning capture (through yesterday's training).
+    /// Repair one session's snapshot when it is complete and analysed.
+    private func repairSnapshot(
+        ofSessionAt index: Int, in sessions: ArchivedSessions, into result: inout TrainingRepairResult
+    ) async {
+        guard let session = await sessions.session(at: index),
+              session.state == .complete, session.analysisResult != nil else { return }
+        result.candidates += 1
+        await repairSnapshot(for: session, into: &result)
+    }
+
     func repairTrainingSnapshots(
-        sessions: [HRVSession],
+        sessions: ArchivedSessions,
         progress: @escaping (Int, Int) -> Void = { _, _ in }
     ) async -> TrainingRepairResult {
-        let candidates = sessions.filter { $0.state == .complete && $0.analysisResult != nil }
-        Self.logRepairPreamble(sessions: sessions, candidates: candidates)
+        // An analysed session has a mean RMSSD in the index.
+        let analysed = sessions.filter { $0.meanRMSSD != nil }
+        debugLog("[ReanalysisService] Training repair: \(analysed.count) analysed of \(sessions.count) sessions")
 
         var result = TrainingRepairResult(
-            totalSessions: sessions.count, candidates: candidates.count,
+            totalSessions: sessions.count, candidates: 0,
             nilContext: 0, repaired: 0, errors: 0
         )
 
-        for (index, session) in candidates.enumerated() {
+        for index in 0 ..< analysed.count {
             if Task.isCancelled { break }
-            progress(index, candidates.count)
-            await repairSnapshot(for: session, into: &result)
+            progress(index, analysed.count)
+            await repairSnapshot(ofSessionAt: index, in: analysed, into: &result)
         }
 
-        progress(candidates.count, candidates.count)
+        progress(analysed.count, analysed.count)
         Task { @MainActor in self.onArchiveChanged() }
-        debugLog("[ReanalysisService] Training repair complete: \(result.repaired)/\(candidates.count) updated, \(result.nilContext) nil context, \(result.errors) errors")
+        debugLog("[ReanalysisService] Training repair complete: \(result.repaired)/\(result.candidates) updated, \(result.nilContext) nil context, \(result.errors) errors")
         return result
-    }
-
-    /// Session-state breakdown, logged once up front. The "complete but no
-    /// analysisResult" count is the diagnostic that explains a small candidate
-    /// set.
-    private static func logRepairPreamble(sessions: [HRVSession], candidates: [HRVSession]) {
-        debugLog("[ReanalysisService] Training repair: \(candidates.count) candidates from \(sessions.count) sessions")
-        let stateCounts = Dictionary(grouping: sessions, by: { $0.state }).mapValues(\.count)
-        let stateStr = stateCounts.map { "\($0.key.rawValue): \($0.value)" }.sorted().joined(separator: ", ")
-        debugLog("[ReanalysisService] Session states: \(stateStr)")
-        let noAnalysis = sessions.filter { $0.state == .complete && $0.analysisResult == nil }.count
-        debugLog("[ReanalysisService] Complete but no analysisResult: \(noAnalysis)")
     }
 
     /// Rebuild one session's training snapshot and persist it, folding the

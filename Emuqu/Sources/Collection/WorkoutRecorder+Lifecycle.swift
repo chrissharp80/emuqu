@@ -5,32 +5,25 @@ import CoreLocation
 import Foundation
 import UIKit
 
-// Split out of WorkoutRecorder.swift and off the TYPE (which is what the
-// aggregate type-size gate measures): 600 lines reading 25 recorder members,
-// the same coordinator split used for the overnight-streaming, AI-context,
-// tool-runner and archive-migration extractions.
+// Finalizing a workout: assembling the finished session and archiving it.
 
 extension WorkoutFinalizer {
     /// Assemble the finished `HRVSession` from the captured RR series, the
     /// per-tick sample buffer and the sensor/context caches, then archive it.
     ///
-    /// The archive is kept SYNCHRONOUS. Detaching it to a
-    /// background task would make the .finished
-    /// phase transition appear instantly, but a user's
-    /// termination report (iOS SIGKILL at 228 MB phys_footprint right
-    /// after tapping End) showed the detached path is a data-loss risk: if
-    /// iOS suspends the app between `stop()` returning and the
-    /// detached archive completing, the session is lost. With
-    /// calculateTrainingLoad now bounded by a 1.5 s timeout, the
-    /// synchronous archive only adds ~200 ms — well inside the iOS
-    /// background-task budget — and keeps the session-persistence
-    /// guarantee intact.
+    /// The archive is kept SYNCHRONOUS. Detaching it to a background task
+    /// would make the .finished phase transition appear instantly, but it is a
+    /// data-loss risk: if iOS suspends or kills the app (e.g. a memory SIGKILL
+    /// right after End) between `stop()` returning and the detached archive
+    /// completing, the session is lost. With calculateTrainingLoad bounded by
+    /// a 1.5 s timeout, the synchronous archive only adds ~200 ms — well
+    /// inside the iOS background-task budget.
     func finalizeSession(
         rrPoints: [RRPoint],
         stopDate: Date,
         hrrSamples: [HRRSample]
     ) async -> HRVSession {
-        guard var session = recorder.currentSession, let startDate = recorder.sessionStartDate else {
+        guard var session = recorder.lifecycle.currentSession, let startDate = recorder.sessionStartDate else {
             debugLog("[WorkoutRecorder.finalize] no current session or start date — nothing to finalize or archive", level: .warning)
             return HRVSession(sessionType: .workout)
         }
@@ -46,7 +39,7 @@ extension WorkoutFinalizer {
         )
         attachAIContextSnapshot(to: &session, sport: analysis.sport, stopDate: stopDate)
         await attachTrainingSnapshot(to: &session, stopDate: stopDate)
-        await recorder.archive(session: session)
+        await recorder.session.archive(session: session)
         return session
     }
 
@@ -67,7 +60,7 @@ extension WorkoutFinalizer {
         applyPowerAggregates(to: &metadata, sport: analysis.sport, startDate: startDate, stopDate: stopDate)
         applyRouteTRIMPEstimate(to: &metadata, sport: analysis.sport)
         applyRowingTelemetry(to: &metadata, sport: analysis.sport)
-        attachWeatherSnapshot(to: &metadata, sport: analysis.sport)
+        attachWeatherSnapshot(to: &metadata, sport: analysis.sport, weather: recorder.services.weatherService)
         attachAnalysisSnapshot(
             to: &metadata, sport: analysis.sport, rrPoints: rrPoints,
             startDate: startDate, stopDate: stopDate, userMaxHR: analysis.userMaxHR
@@ -115,7 +108,7 @@ extension WorkoutFinalizer {
     /// splits unconditionally gets them mislabelled as "mi" on imperial —
     /// a 6.35 km walk shows "mi 1..mi 6" for a 3.95 mi walk.
     private static func splitDistanceMeters() -> Double {
-        UnitsPreferenceStore.current.resolved == .imperial ? 1609.344 : 1000.0
+        UnitsPreferenceStore.current.resolved == .imperial ? UnitConstants.metersPerMile : 1000.0
     }
 
     /// Banister's original work gave different exponents for men vs
@@ -145,7 +138,7 @@ extension WorkoutFinalizer {
     /// out of the GPS distance, and the pedometer and foot-pod readings drop
     /// what accrued while paused.
     private func finalDistanceMeters(sport: Sport, computed: WorkoutMetadata) -> Double {
-        if sport == .row, let ergDistance = AppDependencies.current.collection.concept2Manager.distanceMeters {
+        if sport == .row, let ergDistance = recorder.services.concept2Manager.distanceMeters {
             return ergDistance
         }
         let paused = recorder.lifecycle.pausedMotion
@@ -205,13 +198,10 @@ extension WorkoutFinalizer {
 
     /// Finalize stage 5 — Apple Watch HR backfill + per-second samples attach.
     ///
-    /// Apple Watch HR fallback at finalize.
-    ///
-    /// User report: strap dropped mid-workout (AirPods route change
-    /// forced a BLE renegotiation), the live Watch-HR bridge wasn't
-    /// streaming because the Watch app wasn't open, and the workout
-    /// finished with most heartRate fields = nil. Their request:
-    /// "at the worst it should have fell back on apple."
+    /// Apple Watch HR fallback at finalize: when the strap drops mid-workout
+    /// (e.g. an AirPods route change forces a BLE renegotiation) and the live
+    /// Watch-HR bridge isn't streaming because the Watch app isn't open, the
+    /// workout would otherwise finish with most heartRate fields nil.
     ///
     /// The Apple Watch generates HR samples to HealthKit every
     /// 5–10 s on the wrist regardless of whether our Watch app is
@@ -263,7 +253,7 @@ extension WorkoutFinalizer {
         metadata.samples = recorder.workoutSamples.isEmpty ? nil : recorder.workoutSamples
         metadata.healthKitHROffsets = Self.healthKitHROffsets(
             samples: recorder.workoutSamples, backfilled: backfillResult.filledOffsets + recorder.wristHROffsets,
-            source: recorder.activeHRSource
+            source: recorder.lifecycle.activeHRSource
         )
         recorder.wristHROffsets = []
         if let splits = metadata.splits, let samples = metadata.samples {
@@ -288,7 +278,7 @@ extension WorkoutFinalizer {
         let avgPower = Double(recorder.powerSampleSum) / Double(recorder.powerSampleCount)
         metadata.averagePowerWatts = avgPower
         metadata.peakPowerWatts = recorder.maxPowerObserved
-        let np = WorkoutRecorder.computeNormalizedPower(samples: recorder.workoutSamples)
+        let np = WorkoutSessionLifecycle.computeNormalizedPower(samples: recorder.workoutSamples)
         metadata.normalizedPowerWatts = np
         if let np, np > 0, avgPower > 0 {
             metadata.variabilityIndex = np / avgPower
@@ -303,17 +293,15 @@ extension WorkoutFinalizer {
     /// Recorded time with pauses left out: the ticker counts only while the
     /// workout runs. Wall-clock start to stop stands in when no tick counted.
     private func activeDurationSeconds(startDate: Date, stopDate: Date) -> TimeInterval {
-        recorder.elapsedSeconds > 0 ? Double(recorder.elapsedSeconds) : stopDate.timeIntervalSince(startDate)
+        recorder.lifecycle.elapsedSeconds > 0 ? Double(recorder.lifecycle.elapsedSeconds) : stopDate.timeIntervalSince(startDate)
     }
 
     /// Finalize stage 7 — route-history TRIMP fallback estimate.
     ///
-    /// Route-history TRIMP fallback. User report:
-    /// strap dropped on a known daily route and the recorded
-    /// TRIMP came out as 2 — meaningless. They asked why we
-    /// can't notice a familiar effort and infer the load from
-    /// (a) the GPS shape matching a saved route and (b) prior
-    /// sessions on that same route. `WorkoutRecoveryService` does
+    /// Route-history TRIMP fallback. When the strap drops on a known daily
+    /// route the recorded TRIMP can come out meaninglessly low (e.g. 2), so
+    /// the load is inferred from (a) the GPS shape matching a saved route
+    /// and (b) prior sessions on that same route. `WorkoutRecoveryService` does
     /// the same for crash-recovered workouts; sessions that finalize
     /// cleanly with bad HR data need it too, so it runs on every
     /// finalize: if the saved
@@ -332,7 +320,7 @@ extension WorkoutFinalizer {
             recordedTRIMP: metadata.luciaTRIMP,
             recordedDistance: metadata.distanceMeters,
             archive: recorder.core.archive,
-            savedRouteStore: AppDependencies.current.location.savedRouteStore
+            savedRouteStore: recorder.services.savedRouteStore
         ) else { return }
         metadata.extrapolatedTRIMP = estimate.estimatedTRIMP
         metadata.extrapolationConfidence = estimate.confidence
@@ -350,11 +338,11 @@ extension WorkoutFinalizer {
         // numbers (split pace, total strokes, drag setting they used)
         // would evaporate the moment they tap Stop.
         if sport == .row {
-            let erg = AppDependencies.current.collection.concept2Manager
+            let erg = recorder.services.concept2Manager
             metadata.strokeCount = erg.strokeCount
             metadata.dragFactor = erg.dragFactor
             metadata.averageSplitSecPer500m = Self.averageSplitSecPer500m(
-                movingSeconds: recorder.elapsedSeconds, distanceMeters: recorder.distanceMeters
+                movingSeconds: recorder.lifecycle.elapsedSeconds, distanceMeters: recorder.motion.distanceMeters
             )
         }
     }
@@ -450,7 +438,7 @@ extension WorkoutFinalizer {
         // when it generated coaching for this session.
         defer { recorder.liveSnapshotAtStop = nil }
         if let liveSnap = recorder.liveSnapshotAtStop {
-            session.aiContext = recorder.buildAiContextSnapshot(liveSnap, sport: sport, stopDate: stopDate)
+            session.aiContext = recorder.session.buildAiContextSnapshot(liveSnap, sport: sport, stopDate: stopDate)
         }
     }
 
@@ -489,25 +477,21 @@ extension WorkoutFinalizer {
     /// semantics — includes today) and is kept warm by the dashboard/AI.
     /// Only fall back to the bounded cold fetch when the cache is cold.
     ///
-    /// That fallback is bounded with a 1.5 s timeout. Bug
-    /// report: user tapped End on a workout, UI froze, force-quit was the
-    /// only exit. Trace pointed at this exact call: HealthKit's
-    /// 12-month training-load query was synchronous-await with
-    /// no time bound, so a slow cold HealthKit query held `stop()`
-    /// mid-finalize. The lifecycle phase had already flipped to
-    /// `.finalizing` so the End button silently no-op'd. So: race
-    /// against a timeout. If training-load doesn't complete in
-    /// 1.5 s, skip the snapshot for this session. The next session
-    /// (or any later view that calls calculateTrainingLoad) gets
-    /// a fresh snapshot. Strictly better than the user losing the
-    /// workout entirely.
+    /// That fallback is bounded with a 1.5 s timeout. HealthKit's 12-month
+    /// training-load query has no time bound of its own, so a slow cold query
+    /// would hold `stop()` mid-finalize with the lifecycle already at
+    /// `.finalizing`: the End button silently no-ops and the UI looks frozen.
+    /// If training-load doesn't complete in 1.5 s, the snapshot is skipped for
+    /// this session; the next session (or any later view that calls
+    /// calculateTrainingLoad) gets a fresh one. Strictly better than the user
+    /// losing the workout entirely.
     private func resolveFinalizeTrainingContext(stopDate: Date) async -> TrainingContext? {
-        if let live = AppDependencies.current.analysis.trainingMetricsCache.current, live.atl > 0 || live.ctl > 0 {
+        if let live = recorder.services.trainingMetricsCache.current, live.atl > 0 || live.ctl > 0 {
             return Self.trainingContext(fromCached: live, relativeTo: stopDate)
         }
         let healthKit = recorder.core.healthKit
         guard let load = await Self.runWithTimeout(seconds: 1.5, {
-            await healthKit.calculateTrainingLoad(forMorningReading: false)
+            await healthKit.training.calculateTrainingLoad(forMorningReading: false)
         }) else {
             debugLog("[WorkoutRecorder.finalize] cache cold AND cold calculateTrainingLoad timed out at 1.5s — saving without trainingSnapshot")
             return nil
@@ -633,7 +617,7 @@ extension WorkoutFinalizer {
     ) async -> Result<[(date: Date, hr: Double)], any Error>? {
         await runWithTimeout(seconds: 3.0) { () async -> Result<[(date: Date, hr: Double)], any Error> in
             do {
-                return .success(try await healthKit.fetchHeartRateSamples(from: sessionStart, to: sessionEnd))
+                return .success(try await healthKit.heartRate.fetchHeartRateSamples(from: sessionStart, to: sessionEnd))
             } catch {
                 return .failure(error)
             }
@@ -660,10 +644,8 @@ extension WorkoutFinalizer {
 
 // MARK: - File-scope helpers
 //
-// Moved out of WorkoutRecorder. Each names no member of the
-// type and calls nothing that stayed behind, so none needed to be inside
-// it. `private` at file scope is fileprivate, so every call site in this
-// file resolves exactly as before.
+// Each names no member of `WorkoutRecorder` and calls nothing on it, so
+// none needs to be inside the type.
 
 @MainActor
 /// IF = NP/FTP — Allen & Coggan, Training and Racing with a Power Meter.
@@ -689,12 +671,12 @@ private func applyFTPAnchoredMetrics(
 @MainActor
 /// Finalize stage — persist the live weather snapshot for the
 /// heat-acclimatization model. The weather is already in memory
-/// (`AppDependencies.current.location.weatherService.current`, refreshed each ~30 min during the
+/// (`WeatherService.current`, refreshed each ~30 min during the
 /// workout); this is purely wiring it into the archived record before
 /// it evaporates. Outdoor sports only — indoor sessions carry no heat
 /// stimulus and would otherwise capture stale ambient weather.
-private func attachWeatherSnapshot(to metadata: inout WorkoutMetadata, sport: Sport) {
-    guard sport.usesGPS, let live = AppDependencies.current.location.weatherService.current else { return }
+private func attachWeatherSnapshot(to metadata: inout WorkoutMetadata, sport: Sport, weather: WeatherService) {
+    guard sport.usesGPS, let live = weather.current else { return }
     metadata.weatherSnapshot = WorkoutWeatherSnapshot(
         temperatureC: live.temperatureC,
         apparentTemperatureC: live.apparentTemperatureC,

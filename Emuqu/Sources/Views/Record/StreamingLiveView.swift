@@ -2,14 +2,14 @@ import SwiftUI
 
 // MARK: - Streaming Progress Panel (isolated from RecordView body evaluation)
 
-/// Extracted as a separate View struct so that per-second timer updates and
+/// A separate View struct so that per-second timer updates and
 /// heartbeat-driven state changes only re-evaluate THIS view, not the entire
 /// RecordView body.
 struct StreamingProgressPanel: View {
     /// Plain reference for non-observable access (onStreamingComplete).
     /// State reads go through the observable sub-objects below
-    /// (`streamingLifecycle`, `polarManager`, `breathingAudio`), which SwiftUI
-    /// tracks; reads through the collector's forwarders don't re-render.
+    /// (`streamingLifecycle`, `polarManager`, `breathingAudio`), which own
+    /// that state and which SwiftUI tracks.
     let collector: RRCollector
     var streamingLifecycle: StreamingLifecycle
     var polarManager: PolarManager

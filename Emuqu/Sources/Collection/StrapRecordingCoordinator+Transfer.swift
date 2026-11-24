@@ -9,10 +9,10 @@ import Foundation
 /// Stop, Retry, Recover, the morning and a pause, a workout's end, crash
 /// recovery, the strap merge on a past session, and the rescue before arming
 /// — goes through `fetchRecording`. There is one stop, one reader, one
-/// retry/reconnect loop and one date filter, so a fix to any of them reaches
-/// every flow. Before this, four near-copies had drifted: only one refused a
-/// recording from an earlier session, only one had a hard deadline, and the
-/// Cancel button reached none of them.
+/// — goes through `fetchRecording`. There is one stop, one reader, one
+/// retry/reconnect loop and one date filter, so every flow refuses a
+/// recording from an earlier session, runs under a hard deadline and
+/// answers the Cancel button.
 extension StrapRecordingCoordinator {
     // MARK: - The one fetch
 
@@ -116,7 +116,7 @@ extension StrapRecordingCoordinator {
     ) async throws -> T {
         if manager.fetchCancelled { throw CancellationError() }
         let timeout = PolarManager.PolarError.fetchFailed("strap \(phase) timed out after \(seconds)s (strap unresponsive)")
-        let task = Task { try await StrapDeadline.race(seconds: seconds, timeout: timeout, operation: operation) }
+        let task = Task { try await Deadline.race(seconds: TimeInterval(seconds), timeout: timeout, operation: operation) }
         let handle = StrapTransferHandle(cancel: { task.cancel() })
         manager.activeTransfer = handle
         defer { if manager.activeTransfer?.id == handle.id { manager.activeTransfer = nil } }
@@ -170,7 +170,7 @@ extension StrapRecordingCoordinator {
     func reconnectForTransfer() async -> Bool {
         guard manager.connectionState != .connected else { return true }
         debugLog("[PolarManager] Strap not connected — reconnecting for the transfer…")
-        manager.connectToLastDevice()
+        manager.discovery.connectToLastDevice()
         let window = StrapRecordingPolicy.reconnectWindowSeconds
         manager.transfersInFlight += 1
         defer { manager.transfersInFlight -= 1 }
@@ -231,7 +231,7 @@ extension StrapRecordingCoordinator {
     /// whose beats the session saved from the stream (`streamHoldsIt`) goes on
     /// the download record.
     ///
-    /// A deadline (`StrapDeadline.race`) that has already given up on this
+    /// A deadline (`Deadline.race`) that has already given up on this
     /// stop cancels the task but cannot cancel the strap's status query, whose
     /// late answer resumes it. Acting on it would stop the strap after the
     /// caller moved on, possibly ending a recording started since, so a
@@ -339,8 +339,8 @@ extension StrapRecordingCoordinator {
         ), let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { return }
         let budget = StrapRecordingPolicy.TransferBudget.unattended
         do {
-            _ = try await StrapDeadline.race(
-                seconds: budget.stopSeconds,
+            _ = try await Deadline.race(
+                seconds: TimeInterval(budget.stopSeconds),
                 timeout: PolarManager.PolarError.fetchFailed("H10 stop timed out after \(budget.stopSeconds)s")
             ) {
                 try await self.stopH10Recording(

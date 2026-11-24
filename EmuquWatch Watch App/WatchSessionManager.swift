@@ -379,11 +379,11 @@ final class WatchSessionManager: NSObject, ObservableObject {
         )
     }
 
-    /// De-dupe rapid taps. The user reported tapping Start ~3 times during a
-    /// walk because nothing visibly changed for several seconds; the in-flight
-    /// gate plus the visual "Starting…" overlay on the Start screen prevents
-    /// the second + third taps from doing anything (and from queuing
-    /// duplicate workouts). False when a request is already in flight.
+    /// De-dupe rapid taps. Nothing visibly changes for several seconds after
+    /// Start, so a user taps it again; the in-flight gate plus the visual
+    /// "Starting…" overlay on the Start screen keeps the extra taps from
+    /// doing anything (and from queuing duplicate workouts). False when a
+    /// request is already in flight.
     @MainActor
     private func beginStartWorkoutRequest() -> Bool {
         guard !startWorkoutRequestInFlight else {
@@ -542,12 +542,9 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     /// The pure display fields: absent means unchanged, in every case.
     ///
-    /// Split out of `apply`, which otherwise sits at SwiftLint
-    /// cyclomatic complexity 32 against a limit of 15.
     /// The three groups below are the three kinds of thing this
     /// message carries: values to show, a recording state machine, and a
-    /// command verb. Splitting on that seam is why the extraction is safe —
-    /// none of the assignments here reads another's result.
+    /// command verb. None of the assignments here reads another's result.
     private func applyDisplayFields(_ update: WatchMessageDecoding.StateUpdate) {
         applyWorkoutMetrics(update)
         applyModeAndPauseState(update)
@@ -648,8 +645,7 @@ final class WatchSessionManager: NSObject, ObservableObject {
 
     /// The Watch must own a running `HKWorkoutSession` for the whole workout,
     /// or watchOS suspends — and may terminate — the app the moment the screen
-    /// darkens: the "it went dark, dropped the session, and offered a NEW
-    /// workout on reopen" report.
+    /// darkens, dropping the session and offering a NEW workout on reopen.
     ///
     /// Driven off `isRecording` rather than the mode-gated `startWorkout`
     /// message, so it re-arms after a relaunch mid-workout: the

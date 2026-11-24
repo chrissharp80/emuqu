@@ -81,7 +81,7 @@ final class ArchiveMigrationParityTests: XCTestCase {
 
     override func tearDown() {
         for id in testSessionIds {
-            try? archive.delete(id)
+            _ = try? archive.delete(id)
         }
         testSessionIds = []
         try? FileManager.default.removeItem(at: archiveDirectory)
@@ -130,15 +130,15 @@ final class ArchiveMigrationParityTests: XCTestCase {
         testSessionIds.append(session.id)
         _ = try archive.archive(session)
 
-        let before = archive.entries.first { $0.sessionId == session.id }
+        let before = archive.store.entries.first { $0.sessionId == session.id }
         XCTAssertNotNil(before)
 
-        archive.runDeferredMigrations()
+        archive.migrations.runDeferredMigrations()
         assertEveryBackfillRan()
-        let afterFirstRun = archive.entries.first { $0.sessionId == session.id }
+        let afterFirstRun = archive.store.entries.first { $0.sessionId == session.id }
 
-        archive.runDeferredMigrations()
-        let afterSecondRun = archive.entries.first { $0.sessionId == session.id }
+        archive.migrations.runDeferredMigrations()
+        let afterSecondRun = archive.store.entries.first { $0.sessionId == session.id }
 
         XCTAssertEqual(afterFirstRun?.fileHash, afterSecondRun?.fileHash,
                        "Second run of runDeferredMigrations changed the file hash")
@@ -156,14 +156,14 @@ final class ArchiveMigrationParityTests: XCTestCase {
         testSessionIds.append(session.id)
         _ = try archive.archive(session)
 
-        guard let before = archive.entries.first(where: { $0.sessionId == session.id }) else {
+        guard let before = archive.store.entries.first(where: { $0.sessionId == session.id }) else {
             return XCTFail("Session missing from index after archive")
         }
 
-        archive.runDeferredMigrations()
+        archive.migrations.runDeferredMigrations()
         assertEveryBackfillRan()
 
-        guard let after = archive.entries.first(where: { $0.sessionId == session.id }) else {
+        guard let after = archive.store.entries.first(where: { $0.sessionId == session.id }) else {
             return XCTFail("Session dropped from index by migration")
         }
 
@@ -192,13 +192,13 @@ final class ArchiveMigrationParityTests: XCTestCase {
         )
         testSessionIds.append(legacy.id)
         _ = try archive.archive(legacy)
-        let before = archive.entries.first { $0.sessionId == legacy.id }
+        let before = archive.store.entries.first { $0.sessionId == legacy.id }
         XCTAssertEqual(before?.stressIndex, 18.2, "Pre-state: the index holds the old importer's stress index")
 
-        archive.runDeferredMigrations()
+        archive.migrations.runDeferredMigrations()
         assertEveryBackfillRan()
 
-        let after = archive.entries.first { $0.sessionId == legacy.id }
+        let after = archive.store.entries.first { $0.sessionId == legacy.id }
         XCTAssertNil(after?.stressIndex)
         XCTAssertNil(after?.recoveryScore)
         XCTAssertEqual(after?.fileHash, before?.fileHash, "Only the index entry changes")

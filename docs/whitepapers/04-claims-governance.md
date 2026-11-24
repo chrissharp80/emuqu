@@ -6,7 +6,7 @@ Technical White Paper • v1.4 • 22 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 6b195c6 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 44a11ce (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
 
 Cite as: Sharp C. Emuqu — Build-Time Governance of a Consumer Physiology Score. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/04-claims-governance.md.
 
@@ -397,7 +397,7 @@ The documentation-links gate scans every Markdown file. Whenever a line names a 
 - *A required baseline in CI.* A comparison that did not happen must not look like one that passed. Locally, the gate skips without a baseline so that uncommitted work needs no justification addressed to no one; in CI the require flag makes the same condition a failure.
 - *No restated values in documentation.* A number copied into prose is a second copy that the ratchet cannot update. Pointing at the file keeps one source of truth.
 
-**Observed history.** Across the 215 commits of the public repository's history at 6b195c6 (2026-09-08 to 2026-11-21, merges and side branches included), every budget whose value changed moved in its tightening direction. The SwiftLint warning, `try?`, test-skip and localization-orphan ceilings each fell more than once, and the refactor-spec watch ceiling fell to zero. The views-coverage floor rose. Three budget files were removed: a superseded SwiftLint budget file on 2026-09-30, before the gate counted a deletion as a loosening, and the two code-map open-findings budgets on 2026-10-13, when they moved to a local, untracked findings overlay; that commit carries a `budget-raise-ok:` trailer for each. No other trailer has been used.
+**Observed history.** Across the 215 commits of the public repository's history at 44a11ce (2026-09-08 to 2026-11-21, merges and side branches included), every budget whose value changed moved in its tightening direction. The SwiftLint warning, `try?`, test-skip and localization-orphan ceilings each fell more than once, and the refactor-spec watch ceiling fell to zero. The views-coverage floor rose. Three budget files were removed: a superseded SwiftLint budget file on 2026-09-30, before the gate counted a deletion as a loosening, and the two code-map open-findings budgets on 2026-10-13, when they moved to a local, untracked findings overlay; that commit carries a `budget-raise-ok:` trailer for each. No other trailer has been used.
 
 ### 3.7 Costed CI posture and the evidence report
 
@@ -457,19 +457,19 @@ Emuqu is a consumer wellness app. It is not developed under IEC 62304 or ISO 134
 
 ## 5. What Is New
 
-Each statement gives only the part not found in a prior-art search made on 2026-10-08 (PyPI, npm, NuGet and GitHub; vendor, lint-rule, requirements-tool and documentation-lint tool documentation; and the literature cited in the references). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 9d89933) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
+Each statement gives only the part not found in a prior-art search made on 2026-10-08 (PyPI, npm, NuGet and GitHub; vendor, lint-rule, requirements-tool and documentation-lint tool documentation; and the literature cited in the references). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 01e2bae) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
 
 **N1 (Section 3.1.1). A build gate that hashes only the comment-stripped numeric `static let` declarations of designated scoring-constant files and enums and fails the build when that digest moves while the scoring version stays the same, or when the recorded version and digest are not the code's.** The digest is SHA-256 over a per-file sorted list of `path:symbol=value` lines, truncated to 16 hexadecimal characters; the version compared is the same string stamped on every stored score (N2), checked against the version recorded beside the digest.
 
 *Builds on:* hashing configuration or lockfiles to detect change, which is general practice; CI checks that fail when hashed content changes without a semantic-version bump were later proposed in maiconsouza89/agents-skills issue 130 (2026-09-17) [22] and pandas-studio/agent-team-plugins pull request 165 (2026-09-27) [23], both after Emuqu's public commit; adds selection of numeric declarations only, comment stripping, and a tie to the version stamped on stored user data.
 
-*Earliest dated record:* flow-recovery dba6fcc, 2026-05-01 (first form, a precursor: a unit test that pinned the version string of a versioned scoring-parameters value and its six score-band values, failing if a value changed without a version change); emuqu-dev f2e6ed1, 2026-09-03 (the hash gate); emuqu e003b94, 2026-11-21 (current form: the recorded pair must be the code's). Intermediate: the scoring enums of the general constants file hashed, emuqu 5a32c19, 2026-10-11.
+*Earliest dated record:* flow-recovery dba6fcc, 2026-05-01 (first form, a precursor: a unit test that pinned the version string of a versioned scoring-parameters value and its six score-band values, failing if a value changed without a version change); emuqu-dev f2e6ed1, 2026-09-03 (the hash gate); emuqu 0c715df, 2026-11-21 (current form: the recorded pair must be the code's). Intermediate: the scoring enums of the general constants file hashed, emuqu 8bb4252, 2026-10-11.
 
 **N2 (Section 3.1.3). Persisting the scoring-version string on every stored score breakdown and showing it to the user.** Records written before the field existed decode to an explicit `unversioned` sentinel rather than to the current version; the stamp is carried through every derived copy; and the score-detail screen renders the stored stamp, or "Scored before score versions were recorded", next to a fixed statement that the weights are calibrated, not outcome-validated.
 
 *Builds on:* version identifiers on machine-learning models in model cards and registries [10][11]; adds a version stamped on each stored consumer score and shown to the user. No wearable vendor documentation found describes score versioning (searched: WHOOP, Oura, Garmin and Polar public documentation).
 
-*Earliest dated record:* flow-recovery dba6fcc, 2026-05-01 (precursor: versioned scoring parameters, not persisted with scores); emuqu-dev f2e6ed1, 2026-09-03 (current form). Later: a stored score with no stored breakdown shown as scored before versions were recorded, emuqu 946c8b2, 2026-10-11.
+*Earliest dated record:* flow-recovery dba6fcc, 2026-05-01 (precursor: versioned scoring parameters, not persisted with scores); emuqu-dev f2e6ed1, 2026-09-03 (current form). Later: a stored score with no stored breakdown shown as scored before versions were recorded, emuqu 896c1da, 2026-10-11.
 
 **N3 (Section 3.1.2). A containment gate that confines a hand-set ranking-weight identifier to a single source directory.** A number with no outcome evidence therefore cannot be displayed as a confidence anywhere else in the app without a visible rename.
 
@@ -487,19 +487,19 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* requirements tools that keep an inventory in the repository (sphinx-needs, Doorstop, reqcov); adds a list of corrected phrasings enforced across the code and documentation. No prior instance found.
 
-*Earliest dated record:* emuqu 9d89933, 2026-09-08 (first and current form; absent from emuqu-dev).
+*Earliest dated record:* emuqu 01e2bae, 2026-09-08 (first and current form; absent from emuqu-dev).
 
 **N6 (Section 3.2.2). Name-shape discovery of score-adjusting functions with a symmetric stale-claim check and a rising entry floor.** Functions in the analysis layer whose names end in Adjustment, Penalty, Bonus, Modifier, Damper or Fraction must each be claimed by a register entry's `symbols` list or waived by name with a reason; every claimed or waived name must still exist; and the register's entry count is a floor that only rises.
 
 *Builds on:* traceability tools that check links from requirements to code [14][16][15]; adds discovery of unregistered code by name shape, with a symmetric stale-claim check and a rising entry floor. No prior instance found.
 
-*Earliest dated record:* emuqu-dev f2e6ed1, 2026-09-03 (first form: discovery and stale-claim check); emuqu 9d89933, 2026-09-08 (current form: entry-count floor).
+*Earliest dated record:* emuqu-dev f2e6ed1, 2026-09-03 (first form: discovery and stale-claim check); emuqu 01e2bae, 2026-09-08 (current form: entry-count floor).
 
 **N7 (Section 3.4.1). A planted-violation harness that refuses to report success while any `check_`/`enforce_` script in the scripts directory lacks a plant.** It searches its own source for each gate's path in a plant's gate command and fails the run if one is absent, so adding a gate without a plant fails the build; a skipped plant also fails the run. A named list exempts the one gate that needs a real build (the coverage-floor gate); a gate that needs a simulator is planted against a stand-in tool (Section 3.4.1); the preflight gate is excluded from the search as the helper library's self-test but carries its own plants.
 
 *Builds on:* canfail (PyPI, 2026-08-31) [17], which breaks a file on purpose, requires the check to go red, confirms the check is green first, requires the anchor to match exactly once and verifies the restore; those rules are therefore not claimed. Adds completeness: a requirement that every check in the repository has a plant.
 
-*Earliest dated record:* emuqu-dev 26fe7b1, 2026-08-28 (first form: plants, green first); emuqu-dev ba968cd, 2026-09-02 (completeness check); emuqu e003b94, 2026-11-21 (current form: the path must be in a plant's command; the Thread Sanitizer gate planted against a stand-in). Intermediate: skips fail the run, emuqu 946c8b2, 2026-10-11.
+*Earliest dated record:* emuqu-dev 26fe7b1, 2026-08-28 (first form: plants, green first); emuqu-dev ba968cd, 2026-09-02 (completeness check); emuqu 0c715df, 2026-11-21 (current form: the path must be in a plant's command; the Thread Sanitizer gate planted against a stand-in). Intermediate: skips fail the run, emuqu 896c1da, 2026-10-11.
 
 **N8 (Section 3.4.2). A preflight gate that statically requires every gate's temp-file creation to go through a helper that exits non-zero on failure.** Every call site must carry an `|| exit` guard on the same line, and every sourced helper path must resolve, so that gates fail closed instead of reporting clean after measuring nothing.
 
@@ -511,13 +511,13 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* canfail [17] (goes red), didrun [18] (ran) and Semgrep's `ruleid:` test annotations [25], which prove that a rule fires on an example; adds a check that every gate is reached by CI. No prior instance found.
 
-*Earliest dated record:* emuqu-dev ba968cd, 2026-09-02 (first form: filename in the workflow file); emuqu 946c8b2, 2026-10-11 (current form: executed step text through make targets, both workflows).
+*Earliest dated record:* emuqu-dev ba968cd, 2026-09-02 (first form: filename in the workflow file); emuqu 896c1da, 2026-10-11 (current form: executed step text through make targets, both workflows).
 
 **N10 (Section 3.5.1). A curated production-mutation harness in which each mutation names the single test suite that must catch it, a misclassified run is retried once, and any skip fails the run.** The named suite is run alone; a run classified as a build or runner failure (a build-failure banner, or no "Test Suite"/"Test Case" line in the log) is retried exactly once, and after the mutation a compiler error in the mutated file marks the mutation itself invalid; and any skipped or invalid mutation (baseline not green, mutation not applicable, mutation not compiling, build failure unrelated to it) fails the whole run.
 
 *Builds on:* mutation testing in general [12][13][26][27], which is not claimed, and canfail [17], which also requires a green baseline and an anchor that matches exactly once, and scores a syntax error, or a run with no evidence it ran, as not a catch; those rules are not claimed. Adds per-mutation suite attribution, a single classified retry, and skips that fail the run (in canfail such cases are reported without failing it).
 
-*Earliest dated record:* emuqu-dev d0267b3 "Add mutation testing", 2026-08-28 (first form: anchor exactly once, green first); emuqu-dev 409a762, 2026-09-01 (build/test classification, single retry, skips fail); emuqu 946c8b2, 2026-10-11 (current form: the mutated run classified too, invalid mutations fail).
+*Earliest dated record:* emuqu-dev d0267b3 "Add mutation testing", 2026-08-28 (first form: anchor exactly once, green first); emuqu-dev 409a762, 2026-09-01 (build/test classification, single retry, skips fail); emuqu 896c1da, 2026-10-11 (current form: the mutated run classified too, invalid mutations fail).
 
 **N11 (Section 3.5.2). A static leak detector that recovers each mutation's target and original text from the mutation harness's own source, combined with an atomic `mkdir` tree lock shared by both mutation harnesses.** The detector handles `chr()`-escaped forms and fails if the original text is absent from its target file or if any case cannot be parsed. The lock lives in the git directory, records the holder's PID, refuses a second mutator while that PID is alive, takes over a dead holder's lock with a warning, and comes with a reader check, used by the local CI simulation, that refuses to run while a live mutator holds it.
 
@@ -529,7 +529,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* jest-ratchet (npm, 2018) [8] and CoverageRatchet (NuGet, versions listed from 2026-05-05) [9], which ratchet coverage thresholds upward, and betterer [7] and SwiftLint baselines [6], which freeze existing results. Ratcheting as an idea is not claimed. Adds per-file direction from the filename, an audited per-file trailer, and a required baseline in CI.
 
-*Earliest dated record:* emuqu-dev 17f1114, 2026-08-22 (first form: `min_` floors and trailer); emuqu-dev 6a7ff33, 2026-08-31 (require-baseline flag); emuqu 946c8b2, 2026-10-11 (current form: decimal values compared, deletions and non-numeric values loosenings, the tip before a push as its baseline). Later: a whole-number ceiling made decimal counts as loosened, emuqu e003b94, 2026-11-21.
+*Earliest dated record:* emuqu-dev 17f1114, 2026-08-22 (first form: `min_` floors and trailer); emuqu-dev 6a7ff33, 2026-08-31 (require-baseline flag); emuqu 896c1da, 2026-10-11 (current form: decimal values compared, deletions and non-numeric values loosenings, the tip before a push as its baseline). Later: a whole-number ceiling made decimal counts as loosened, emuqu 0c715df, 2026-11-21.
 
 **N13 (Section 3.6.3). A documentation gate that rejects any Markdown line naming a ratcheting budget file next to a bare number.** Prose must therefore point at the value instead of restating it.
 
@@ -557,11 +557,11 @@ canfail, didrun and restore-verified were published on PyPI on 2026-08-31 [17][1
 
 ## 6. Verification
 
-Each gate's ability to fail is itself checked (Section 3.4). The counts below are printed by the gates at 6b195c6, or counted in the scripts and history at that revision.
+Each gate's ability to fail is itself checked (Section 3.4). The counts below are printed by the gates at 44a11ce, or counted in the scripts and history at that revision.
 
-**Table 6.1.** Counts at 6b195c6.
+**Table 6.1.** Counts at 44a11ce.
 
-| Check | Result at 6b195c6 |
+| Check | Result at 44a11ce |
 |---|---|
 | Constants hashed by the scoring-governance gate | 188 (91 + 63 + 4 + 30) |
 | Register entries | 19: 3 validated, 4 supported-transfer, 12 awaiting-validation |
@@ -573,7 +573,7 @@ Each gate's ability to fail is itself checked (Section 3.4). The counts below ar
 | Targeted test mutations parsed by the leak detector | 125 of 125 parsed; no leaked mutation |
 | Budgets changed across the 215 commits of the public history | Every value change in its tightening direction; three budget files removed, two of them under a `budget-raise-ok:` trailer (Section 3.6.4) |
 
-The analysis methods that the register classifies were also checked by a separate reimplementation in Python, built from the Swift source at e028039 (2026-10-07) and run against the app's unit-test expectations and PhysioNet recordings; the scripts are in `Tools/validation/` [31].
+The analysis methods that the register classifies were also checked by a separate reimplementation in Python, built from the Swift source at b87eb64 (2026-10-07) and run against the app's unit-test expectations and PhysioNet recordings; the scripts are in `Tools/validation/` [31].
 
 ---
 
@@ -614,7 +614,7 @@ The project began as a general fitness app. Repository AI-Fitness-Coach (2025-02
 | chrissharp80/flow-recovery-dev | Flow Recovery | c48eeb9, 2026-03-01 | Squashed import; to 2026-03-15 | Private |
 | chrissharp80/flow-recovery | Flow Recovery | 39bfcd4, 2026-03-15 | 196 commits to 2026-08-12 | Private |
 | chrissharp80/emuqu-dev | Emuqu | d4e5cf8, 2026-08-16 | Squashed import; to 2026-09-04 | Private |
-| chrissharp80/emuqu | Emuqu | 9d89933, 2026-09-08 | Squashed import; current | Public (PolyForm Strict 1.0.0) |
+| chrissharp80/emuqu | Emuqu | 01e2bae, 2026-09-08 | Squashed import; current | Public (PolyForm Strict 1.0.0) |
 
 History has gaps from 2026-01-26 to 2026-03-01, 2026-08-12 to 2026-08-16 and 2026-09-04 to 2026-09-08, where each new repository began with a squashed import; a date at a squashed import is an upper bound for anything it contains. The pre-code design (v1 to v9.2 FINAL, completed 2026-01-08 21:06 CST) is described in Paper 5, Section 4: versions v1 and v3.0 have not been recovered; v2–v2.2 and v4.0–v9.1 survive in the author's Claude conversation record; v9.2 FINAL survives as a Google Drive document.
 
@@ -629,7 +629,7 @@ No other record outside git dates a method in this paper.
 - 2026-01-27: TestFlight beta opened (over 1,500 sessions by 2026-03-06; 45 testers and over 6,500 sessions by August 2026). A public TestFlight join link appeared in the project README by May 2026.
 - 2026-05-19: Substack article "A Powerfully Lazy Man's Way to Better Health" (Paper 1 lists what it disclosed).
 - 2026-08-10: Substack article "How I Build Production Software by Directing AI" (Paper 5 lists what it disclosed).
-- 2026-09-08: public repository github.com/chrissharp80/emuqu (first commit 9d89933).
+- 2026-09-08: public repository github.com/chrissharp80/emuqu (first commit 01e2bae).
 - 2026-10-08: these white papers.
 
 Neither Substack article disclosed any method in Section 5 of this paper.
@@ -640,7 +640,7 @@ Chris Sharp is the sole author of these papers and of the design, and the only p
 
 ### 8.6 Document history
 
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.3 described source revision e028039 (2026-10-07). v1.4, published 2026-11-22, brings the whole paper to source revision 6b195c6 (2026-11-21) and scoring version v3.3.nov2026. Changed: the hashed sources (two scoring enums added, 188 constants), the rule that the recorded (version, hash) pair must be the code's, and the empty-match check (Section 3.1.1, B.1); the display of a legacy score without a stored breakdown (Section 3.1.3); scoring versions v3.2.oct2026 and v3.3.nov2026 (Table 3.2); every-spelling expansion in perimeter sync (Section 3.3); 48 gates and 86 plants, the Thread Sanitizer gate planted against a stand-in with its canary, the one-entry build exemption, plants that must be run, and skips that fail (Section 3.4.1, B.3); the explicit directory template (Section 3.4.2); the wiring gate's reading of executed steps through make targets in both workflows (Section 3.4.3, B.4); classification of the mutated run and invalid mutations (Section 3.5.1, B.5); the lock's PID wait (Section 3.5.2); slack and whole-number rules and the Watch budget (Section 3.6.1); decimal values, deletions and the push baseline in the ratchet (Section 3.6.2, B.6); the observed history (Section 3.6.4); the CI posture (Section 3.7); N1, N2, N7, N9, N10 and N12 and their records (Section 5); the counts (Section 6, Appendix A); the source map (Appendix C).
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.3 described source revision b87eb64 (2026-10-07). v1.4, published 2026-11-22, brings the whole paper to source revision 44a11ce (2026-11-21) and scoring version v3.3.nov2026. Changed: the hashed sources (two scoring enums added, 188 constants), the rule that the recorded (version, hash) pair must be the code's, and the empty-match check (Section 3.1.1, B.1); the display of a legacy score without a stored breakdown (Section 3.1.3); scoring versions v3.2.oct2026 and v3.3.nov2026 (Table 3.2); every-spelling expansion in perimeter sync (Section 3.3); 48 gates and 86 plants, the Thread Sanitizer gate planted against a stand-in with its canary, the one-entry build exemption, plants that must be run, and skips that fail (Section 3.4.1, B.3); the explicit directory template (Section 3.4.2); the wiring gate's reading of executed steps through make targets in both workflows (Section 3.4.3, B.4); classification of the mutated run and invalid mutations (Section 3.5.1, B.5); the lock's PID wait (Section 3.5.2); slack and whole-number rules and the Watch budget (Section 3.6.1); decimal values, deletions and the push baseline in the ratchet (Section 3.6.2, B.6); the observed history (Section 3.6.4); the CI posture (Section 3.7); N1, N2, N7, N9, N10 and N12 and their records (Section 5); the counts (Section 6, Appendix A); the source map (Appendix C).
 
 ---
 
@@ -684,7 +684,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 
 ## Appendix A: Parameters
 
-**Table A.1.** Parameters and counts at 6b195c6.
+**Table A.1.** Parameters and counts at 44a11ce.
 
 | Name | Value | Unit | Role |
 |---|---|---|---|

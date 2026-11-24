@@ -3,7 +3,7 @@ import Foundation
 
 /// Published heart-rate metrics for an active workout.
 ///
-/// Split out from `WorkoutRecorder` so HR-display chips only re-render on
+/// Separate from `WorkoutRecorder` so HR-display chips only re-render on
 /// real HR updates, not on every motion tick or session-lifecycle change.
 ///
 /// Writers: `WorkoutRecorder` tick + HR-binding closures. Back-compat

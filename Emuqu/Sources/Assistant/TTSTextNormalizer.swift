@@ -4,13 +4,11 @@ import Foundation
 //
 // Composed text-normalization layer for AVSpeechSynthesizer.
 //
-// **Why this exists.** AVSpeech reads numbers as integers ("thirty seven
+// AVSpeech reads numbers as integers ("thirty seven
 // thousand"), years badly ("two thousand twenty-six"), homograph words
 // the wrong way ("live" /lɪv/), and pace strings character-by-character.
 // User-facing voice output needs all of these handled or the AI Coach
-// sounds broken. There's no
-// drop-in Swift Package that solves this — but the primitives are
-// on-device:
+// sounds broken. The primitives are on-device:
 //   • regex passes — domain abbreviations, pace strings, years
 //   • NumberFormatter(.spellOut) — number → words
 //   • accessibilitySpeechIPANotation attribute — homograph IPA hints
@@ -18,9 +16,9 @@ import Foundation
 //
 // This component composes them into a single pipeline. The output is
 // an NSAttributedString suitable for AVSpeechUtterance(attributedString:).
-// The existing PhoneticOverrides handles the homograph layer (live,
-// read, etc.); this normalizer runs BEFORE it so PhoneticOverrides sees
-// already-normalized text.
+// PhoneticOverrides handles the homograph layer (live, read, etc.); this
+// normalizer runs BEFORE it so PhoneticOverrides sees already-normalized
+// text.
 //
 // **Pipeline order matters.** Domain abbreviations and pace strings
 // have to run before generic year/ZIP/number detection — otherwise

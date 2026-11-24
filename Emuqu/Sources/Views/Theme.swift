@@ -48,11 +48,9 @@ enum AppTheme {
     /// different contrast problem, and `primary` fails it in every colour
     /// theme: white on the blue theme is 3.69:1 in light appearance and 2.80:1
     /// in dark, against the 4.5:1 WCAG 2.2 AA floor for body-sized text.
-    /// `AccessibilityAuditUITests` flagged the assistant disclaimer's primary
-    /// button on exactly this.
     ///
     /// Each value is the corresponding `primary`, darkened along its own hue
-    /// where white fell short, until white clears 4.6:1. Indigo and purple in
+    /// where white falls short, until white clears 4.6:1. Indigo and purple in
     /// light appearance already clear it, so they are `primary` unchanged.
     /// The colour theme the user picked still
     /// reads as the colour theme they picked — the button is a deeper version
@@ -286,7 +284,7 @@ enum AppTheme {
     /// Subtle tint for sections
     @MainActor static var sectionTint: Color {
         switch currentTheme {
-        case .light: Color(red: 0.93, green: 0.93, blue: 0.95) // #EDEDED
+        case .light: Color(red: 0.93, green: 0.93, blue: 0.95) // #EDEDF2
         case .dim: Color(red: 0.18, green: 0.18, blue: 0.21) // #2E2E36
         case .dark: Color(red: 0.09, green: 0.09, blue: 0.11) // #17171B
         }
@@ -314,11 +312,7 @@ enum AppTheme {
 
     /// Tertiary text — adapts to background.
     ///
-    /// Contrast-corrected. The previous values (#80808F / #808094 / #707085)
-    /// failed WCAG 2.2 AA in **all three** themes on **all three** surfaces —
-    /// between 2.78:1 and 3.89:1 against a 4.5:1 requirement — which
-    /// `AccessibilityAuditUITests` surfaced as the single largest source of
-    /// contrast failures across every tab. These clear 4.5:1 on the worst case
+    /// Contrast-corrected: these clear WCAG 2.2 AA 4.5:1 on the worst case
     /// (elevated card) and go up from there:
     ///
     /// | theme | page bg | card | elevated |
@@ -327,9 +321,8 @@ enum AppTheme {
     /// | dim   | 6.20    | 5.36 | 4.60     |
     /// | dark  | 5.81    | 5.22 | 4.64     |
     ///
-    /// Hue and the slight blue-violet cast are unchanged — only lightness
-    /// moved, so the visual character of the palette is preserved. Tertiary is
-    /// still clearly recessive against `textSecondary`.
+    /// The slight blue-violet cast keeps the visual character of the palette.
+    /// Tertiary is still clearly recessive against `textSecondary`.
     @MainActor static var textTertiary: Color {
         switch currentTheme {
         case .light: Color(red: 0.43, green: 0.43, blue: 0.49) // #6E6E7D
@@ -537,7 +530,7 @@ extension View {
 
 /// The disabled state is drawn, not ignored. Without it a disabled button
 /// looks exactly like a working one, and the only feedback for a tap is
-/// nothing happening — which reads as a broken app, and was reported as one.
+/// nothing happening — which reads as a broken app.
 ///
 /// The label is white where white clears the WCAG 2.2 AA 4.5:1 on the fill
 /// (as on `primaryFilled`), and black on a fill too light for it (`primary`,

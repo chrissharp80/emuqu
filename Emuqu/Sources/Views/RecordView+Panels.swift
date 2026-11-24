@@ -84,8 +84,8 @@ extension RecordPanels {
 
     /// What the H10's own recording is doing tonight, for the status card.
     private var strapBackupState: OvernightStreamingStatus.StrapBackup {
-        guard collector.useDeviceBackupForOvernight, deviceStatus.connectedDeviceType != .veritySense else { return .notRequested }
-        return collector.overnightDeviceBackupActive ? .recording : .starting
+        guard collector.overnightRun.usesDeviceBackup, deviceStatus.connectedDeviceType != .veritySense else { return .notRequested }
+        return collector.overnightRun.deviceBackupActive ? .recording : .starting
     }
 
     private var overnightHeader: some View {
@@ -655,7 +655,7 @@ extension RecordPanels {
     private func performDeviceRecovery() async {
         await RecordingKeepAwake.during {
             do {
-                _ = try await collector.recoverFromDevice()
+                _ = try await collector.recovery.recoverFromDevice()
             } catch {
                 surfaceRecoveryError(error)
             }
@@ -671,7 +671,7 @@ extension RecordPanels {
     func discardAndStartFresh() {
         Task {
             do {
-                try await collector.polarManager.discardStoredExercises()
+                try await collector.polarManager.recording.discardStoredExercises()
             } catch {
                 // `discardStoredExercises` doesn't set lastError itself.
                 debugLog("[RecordView] ⚠️ Failed to discard stored recordings: \(error)")

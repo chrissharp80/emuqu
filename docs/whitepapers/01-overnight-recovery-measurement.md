@@ -6,7 +6,7 @@ Technical White Paper • v1.4 • 22 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 6b195c6 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 44a11ce (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
 
 Cite as: Sharp C. Emuqu — Overnight Recovery Measurement from Raw Beat Intervals. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/01-overnight-recovery-measurement.md.
 
@@ -524,13 +524,13 @@ Commercial entries state only what the cited public pages say. Items marked † 
 
 ## 5. What Is New
 
-Each statement gives only the part not found in a prior-art search made on 2026-10-08 (patents, vendor support pages and white papers, peer-reviewed and preprint literature, clinical-trial protocols and open-source HRV code). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 9d89933) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
+Each statement gives only the part not found in a prior-art search made on 2026-10-08 (patents, vendor support pages and white papers, peer-reviewed and preprint literature, clinical-trial protocols and open-source HRV code). Commit dates are author dates in US Central time (CST = UTC−6, CDT = UTC−5). Each form of a statement was publicly disclosed when it reached the public repository: on 2026-09-08 (first commit 01e2bae) for forms committed before that date, and on its commit date for later forms, unless an earlier public disclosure is noted. Statement numbering follows v1.1. The section after each label is where the method is specified.
 
 **N1 (Section 3.1.3). Building an overnight RR series by preferring a chest strap's internal recording and adding Bluetooth-streamed beats only when the internal file is more than 5% shorter.** Streamed beats are added only where the internal file has none: inside its gaps (next start − previous end > previous RR + 2000 ms) or before its first or after its last beat. They are matched on the phone's arrival clock rather than their own drifting beat-sum time, and are de-duplicated cluster-wise within 50 ms. If the stream adds no beat the internal file lacks, the stream is used rather than the shorter internal file.
 
 *Builds on:* the Polar H10's internal memory, which stores about 20 h of RR as one session [30][31]; adds a merge that takes live-stream beats only where the internal file has none, which no public tool found performs.
 
-*Earliest dated record:* flow-recovery-old aeaf0db, 2026-01-18 (first form: 5% rule and gap rule, matched on beat-sum time, no de-duplication); emuqu 554540f, 2026-10-03 (gap-interior-only insertion); emuqu da87235, 2026-11-21 (current form: stream beats before and after the internal span added too). 50 ms de-duplication: flow-recovery-dev c48eeb9, 2026-03-01; cluster tolerance: flow-recovery cc7c53e, 2026-04-18; arrival-clock matching: emuqu-dev 680bbee, 2026-08-25.
+*Earliest dated record:* flow-recovery-old aeaf0db, 2026-01-18 (first form: 5% rule and gap rule, matched on beat-sum time, no de-duplication); emuqu 8abc6d7, 2026-10-03 (gap-interior-only insertion); emuqu 53a0e21, 2026-11-21 (current form: stream beats before and after the internal span added too). 50 ms de-duplication: flow-recovery-dev c48eeb9, 2026-03-01; cluster tolerance: flow-recovery cc7c53e, 2026-04-18; arrival-clock matching: emuqu-dev 680bbee, 2026-08-25.
 
 **N2 (Section 3.1.4). Dating a chest-strap recording that carries no start time by subtracting an RR-detected sleep onset from the HealthKit sleep start.** The onset is the first sustained drop of more than 8 bpm (5-window versus 10-window means over 120-beat windows) into the lower half of that night's own HR range, accepted only within 20 min of the start (a later drop gives no onset, so the recording is aligned with its start at the HealthKit sleep start).
 
@@ -554,7 +554,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* deletion-based RR editing [35] and Task Force adjacency [4]; adds the two-stage self-excluding gate, break detection on two clocks, and a shared estimator.
 
-*Earliest dated record:* flow-recovery-old e5948bd, 2026-01-12 (first form: whole-series flags and the self-excluding 10-neighbor gate; RMSSD on the collapsed array); emuqu 5c4a23d, 2026-10-04 (current form: recording breaks). Shared estimator: emuqu-dev 680bbee, 2026-08-25.
+*Earliest dated record:* flow-recovery-old e5948bd, 2026-01-12 (first form: whole-series flags and the self-excluding 10-neighbor gate; RMSSD on the collapsed array); emuqu c0dff5b, 2026-10-04 (current form: recording breaks). Shared estimator: emuqu-dev 680bbee, 2026-08-25.
 
 **N6 (Section 3.5.4). Selecting among windows that are neither isolated spikes nor disorganized.** A spike is an interior window at ≥ 150% of both neighbors' RMSSD. "Organized" means DFA α1 in 0.75–1.0 and RR coefficient of variation (SDNN / mean RR) < 0.08, or the CV test alone when α1 is unavailable. The author's article of 2026-05-19 publicly disclosed α1-based "organized windows", without the thresholds.
 
@@ -566,7 +566,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* the ln(RMSSD) z-score and SWC framework [1][2]; adds the score itself as the window-selection criterion. No public method doing this was found in vendor documentation, patents, the HRV literature or open-source HRV tools.
 
-*Earliest dated record:* flow-recovery be64931, 2026-04-17 (first form; position tie-break flow-recovery a1eb5bc, same day); emuqu 554540f, 2026-10-03 (current form: leave-current-out baseline).
+*Earliest dated record:* flow-recovery be64931, 2026-04-17 (first form; position tie-break flow-recovery a1eb5bc, same day); emuqu 8abc6d7, 2026-10-03 (current form: leave-current-out baseline).
 
 **N8 (Section 3.5.6). Reporting a peak-RMSSD fallback window, flagged not organized, when no organized window exists, alongside a separately computed whole-recording "peak capacity" that is displayed but never scored.**
 
@@ -584,13 +584,13 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* rolling personal baselines [1][2]; adds the per-night slot and ordered replacement. No public method doing this was found in the same search.
 
-*Earliest dated record:* flow-recovery-old 52d6267, 2026-01-22 (first form: same ordered rule, calendar-day slot; morning = before 10:00 from flow-recovery-old abf91d6, 2026-01-18); emuqu 554540f, 2026-10-03 (wake-date key); emuqu 3ad4f82, 2026-11-21 (current form: a re-analysed session replaces or removes its own reading).
+*Earliest dated record:* flow-recovery-old 52d6267, 2026-01-22 (first form: same ordered rule, calendar-day slot; morning = before 10:00 from flow-recovery-old abf91d6, 2026-01-18); emuqu 8abc6d7, 2026-10-03 (wake-date key); emuqu 76457de, 2026-11-21 (current form: a re-analysed session replaces or removes its own reading).
 
 **N11 (Sections 3.6.3–3.6.4). Widening the ln(RMSSD) SD of a personal baseline by √(7/n) below seven nights with a 0.10 floor, and scoring each night only against nights with an earlier night key, with the same leave-current-out statistics used for window ranking and for the score.** The 60-night statistics window is not presented as new.
 
 *Builds on:* HRV4Training's 60-day normal range of ±0.75 SD [28] and comparison with earlier days [5]; adds small-sample widening and shared leave-current-out statistics.
 
-*Earliest dated record:* flow-recovery-dev c48eeb9, 2026-03-01 (first form: 60 nights, ln statistics, 0.10 floor); emuqu 554540f, 2026-10-03 (current form: earlier-nights filter). √(7/n) widening: flow-recovery c6d66dd, 2026-06-25; the same widening of the resting-HR SD: emuqu 3ad4f82, 2026-11-21.
+*Earliest dated record:* flow-recovery-dev c48eeb9, 2026-03-01 (first form: 60 nights, ln statistics, 0.10 floor); emuqu 8abc6d7, 2026-10-03 (current form: earlier-nights filter). √(7/n) widening: flow-recovery c6d66dd, 2026-06-25; the same widening of the resting-HR SD: emuqu 76457de, 2026-11-21.
 
 **N12 (Sections 3.8.1–3.8.5). Freezing a recovery score at acceptance with frozen inputs and a per-score algorithm version.** The freeze substitutes the strap's nocturnal window HR for daytime resting HR in the vitals snapshot; sets the reference date to session end; applies a baseline-substitution rule for unusable readings that is triggered asymmetrically for short readings, with a 70/30 baseline/subjective blend routed through the same penalty tail; and stores an algorithm-version string, with records lacking one labeled `unversioned` rather than current.
 
@@ -602,13 +602,13 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* Oura rescoring after bedtime edits [26] and WHOOP Recovery changing after sleep edits [21]; adds the eligibility horizon, change thresholds, source-upgrade rule and atomic cross-device merge.
 
-*Earliest dated record:* flow-recovery-dev c48eeb9, 2026-03-01, and flow-recovery-dev 6eddc97, 2026-03-15 (first form); emuqu 554540f, 2026-10-03 (current form: atomic cross-device merge). ≥ 20 min rescore: flow-recovery 38c4598, 2026-05-13; 18 h horizon: flow-recovery cec0a25, 2026-07-03; 15-min onset and Watch upgrade: flow-recovery 24d2017, 2026-08-06.
+*Earliest dated record:* flow-recovery-dev c48eeb9, 2026-03-01, and flow-recovery-dev 6eddc97, 2026-03-15 (first form); emuqu 8abc6d7, 2026-10-03 (current form: atomic cross-device merge). ≥ 20 min rescore: flow-recovery 38c4598, 2026-05-13; 18 h horizon: flow-recovery cec0a25, 2026-07-03; 15-min onset and Watch upgrade: flow-recovery 24d2017, 2026-08-06.
 
 **N14 (Section 3.9). RR-only sleep staging on 5-min epochs using four weight sets chosen by which feature families exist that night, combined with a Watch augmentation that repaints only the overridden stage inside overridden epochs.** The staging uses time-of-night priors with a 60-min REM lockout, single-epoch smoothing that never removes wake, and gap-terminated intervals. The Watch augmentation keeps the Watch's own intervals and requires spectral data for any REM override. The statement covers the method, not its accuracy.
 
 *Builds on:* HRV-only staging with fractile normalization [16], elapsed time as a feature [17], within-night normalization [18] and Polar's wrist-based staging [37]; adds availability-dependent weight sets and the anchored Watch repaint.
 
-*Earliest dated record:* flow-recovery-dev c48eeb9, 2026-03-01 (first form: ranks, four weight sets, REM lockout, smoothing, augmentation); emuqu 5c4a23d, 2026-10-04 (current form: tie-averaged ranks). Watch-interval repaint: emuqu 554540f, 2026-10-03.
+*Earliest dated record:* flow-recovery-dev c48eeb9, 2026-03-01 (first form: ranks, four weight sets, REM lockout, smoothing, augmentation); emuqu c0dff5b, 2026-10-04 (current form: tie-averaged ranks). Watch-interval repaint: emuqu 8abc6d7, 2026-10-03.
 
 **Prior work used, not presented as new.**
 
@@ -635,7 +635,7 @@ The cross-implementation scripts are in `Tools/validation/`.
 
 **Time-domain arithmetic.** On every build, RMSSD, SDNN and the percentage of successive differences greater than 50 ms (pNN50) are compared, on 6,000 intervals from 20 records of the PhysioNet Normal Sinus Rhythm RR Interval Database (nsr2db) [40], with a separate reference implementation of the Task Force definitions (register label `validated`). A separate Python reimplementation reproduced the stored references for mean RR and SDNN to within 4.9 × 10⁻⁷ ms. This covers the arithmetic, not the strap's beat detection.
 
-**Separate reimplementation.** The analysis code at e028039 was reimplemented in Python and checked against the app's own unit-test expectations from eight suites (DFA, DFA reference, frequency domain, sleep-stage classifier, artifact detection, live-DFA cleaning, time domain, HRV reference). All 114 ported cases matched, several to the last printed digit (`Tools/validation/test_ports_output.txt`). The port is partial: those suites held 128 test functions at e028039, 14 of them were not ported, and a few of the 114 cases check values quoted in test comments rather than test functions. The omitted tests include the live-DFA window-fill gating (no α1 before the window is full), the arrival-clock dropout that counts as a recording break, eight sleep-stage percentile tests and three HRV-reference tests, so the reimplementation does not confirm those behaviours. It was run by the project.
+**Separate reimplementation.** The analysis code at b87eb64 was reimplemented in Python and checked against the app's own unit-test expectations from eight suites (DFA, DFA reference, frequency domain, sleep-stage classifier, artifact detection, live-DFA cleaning, time domain, HRV reference). All 119 ported cases matched, several to the last printed digit (`Tools/validation/test_ports_output.txt`). The port is partial: those suites held 128 test functions at b87eb64, 109 of them are ported and 19 are not. Seven further cases mirror sleep-stage tests added at fff2617 with the recording-break and artifact-gap rules, and three check values quoted in test comments or compare against SciPy rather than mirror a test function. The omitted tests include the live-DFA window-fill gating (no α1 before the window is full), the arrival-clock dropout that counts as a recording break, five other time-domain tests, eight sleep-stage percentile tests and three HRV-reference tests, so the reimplementation does not confirm those behaviours. The ports mirror the code and tests at those commits, so the match does not by itself show that the current Swift code agrees with them; the Swift tests do that on every build. It was run by the project.
 
 **Artifact pipeline on recordings with ectopic beats (Sections 3.3.1–3.3.3).** On the MIT-BIH Arrhythmia Database [41] (44 records, paced records excluded; 100,733 annotated beats, 10,593 ectopic), with every beat kept as a chest strap would report it, uncorrected ectopic beats inflate 5-min RMSSD by a median of 32 ms against the normal-to-normal reference; on a ratio scale, the uncorrected values are a median 2.2 times the reference. The app's drop-only pipeline (whole-record classifier, local gate and masked estimator) brings the median absolute error to 4.7 ms over all 255 segments and 3.2 ms outside atrial fibrillation (AF) and flutter. The overnight RMSSD exclusion (whole-series classifier plus the per-window ectopic gate) detects 85.6% of ventricular premature beats, with an interval specificity of 94.3%. Detection statistics by beat type and Bland–Altman limits are in the cross-implementation report, which also covers the PhysioNet sleep datasets slpdb [42] and the Cyclic Alternating Pattern (CAP) Sleep Database [43].
 
@@ -691,7 +691,7 @@ The project began as a general fitness app. Repository AI-Fitness-Coach (2025-02
 | chrissharp80/flow-recovery-dev | Flow Recovery | c48eeb9, 2026-03-01 | Squashed import; to 2026-03-15 | Private |
 | chrissharp80/flow-recovery | Flow Recovery | 39bfcd4, 2026-03-15 | 196 commits to 2026-08-12 | Private |
 | chrissharp80/emuqu-dev | Emuqu | d4e5cf8, 2026-08-16 | Squashed import; to 2026-09-04 | Private |
-| chrissharp80/emuqu | Emuqu | 9d89933, 2026-09-08 | Squashed import; current | Public (PolyForm Strict 1.0.0) |
+| chrissharp80/emuqu | Emuqu | 01e2bae, 2026-09-08 | Squashed import; current | Public (PolyForm Strict 1.0.0) |
 
 History has gaps from 2026-01-26 to 2026-03-01, 2026-08-12 to 2026-08-16 and 2026-09-04 to 2026-09-08, where each new repository began with a squashed import; a date at a squashed import is an upper bound for anything it contains. The pre-code design (v1 to v9.2 FINAL, completed 2026-01-08 21:06 CST) is described in Paper 5, Section 4: versions v1 and v3.0 have not been recovered; v2–v2.2 and v4.0–v9.1 survive in the author's Claude conversation record; v9.2 FINAL survives as a Google Drive document.
 
@@ -725,7 +725,7 @@ These are the author's own files and messages that date methods in this paper. C
 - 2026-01-27: TestFlight beta opened (over 1,500 sessions by 2026-03-06; 45 testers and over 6,500 sessions by August 2026). A public TestFlight join link appeared in the project README by May 2026.
 - 2026-05-19: Substack article "A Powerfully Lazy Man's Way to Better Health" (what it disclosed is listed below).
 - 2026-08-10: Substack article "How I Build Production Software by Directing AI" (Paper 5 lists what it disclosed).
-- 2026-09-08: public repository github.com/chrissharp80/emuqu (first commit 9d89933).
+- 2026-09-08: public repository github.com/chrissharp80/emuqu (first commit 01e2bae).
 - 2026-10-08: these white papers.
 
 The 2026-05-19 article described publicly: dual capture (internal strap recording and Bluetooth stream) merged in the morning; DFA α1 used to find "organized windows"; and a window search bounded to 30–70% of the time of sleep that picks the window with the highest RMSSD. It did not describe the gap-fill and de-duplication rules, the arrival-clock mapping, the thresholds of the organized test, score-ranked selection (in code since 2026-04-17), the baseline rules, score freezing or versioning, or sleep staging.
@@ -736,7 +736,7 @@ Chris Sharp is the sole author of these papers and of the design, and the only p
 
 ### 8.6 Document history
 
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.4, published 2026-11-22, describes source revision 6b195c6 (2026-11-21) and scoring version v3.3.nov2026. Changes from v1.3: spectral features resampled within break-free runs, with no Welch segment across a recording break (Section 2); an edit stamped after the latest stamp a device has seen on iCloud (Section 3.8.6); stream beats before and after the internal recording are added (Section 3.1.3); an HR-detected onset later than 20 min is undetermined rather than clamped, and HealthKit/HR onset reconciliation keeps a staged HealthKit onset (Sections 3.1.4, 3.4.1); window DFA interpolates removed beats inside break-free stretches (Section 3.5.2); a fourth admission gate, per-session replacement and the widened resting-HR SD (Sections 3.6.1–3.6.3); the Tier-1 fallback order (Section 3.7.2); the wall-clock mapping returns the matched beat's `t_ms` position (Section 3.4.2); same-second sync ties (Section 3.8.6); epoch features over break-free stretches (Section 3.9.1); and the reimplementation's partial coverage stated (Section 6).
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.4, published 2026-11-22, describes source revision 44a11ce (2026-11-21) and scoring version v3.3.nov2026. Changes from v1.3: spectral features resampled within break-free runs, with no Welch segment across a recording break (Section 2); an edit stamped after the latest stamp a device has seen on iCloud (Section 3.8.6); stream beats before and after the internal recording are added (Section 3.1.3); an HR-detected onset later than 20 min is undetermined rather than clamped, and HealthKit/HR onset reconciliation keeps a staged HealthKit onset (Sections 3.1.4, 3.4.1); window DFA interpolates removed beats inside break-free stretches (Section 3.5.2); a fourth admission gate, per-session replacement and the widened resting-HR SD (Sections 3.6.1–3.6.3); the Tier-1 fallback order (Section 3.7.2); the wall-clock mapping returns the matched beat's `t_ms` position (Section 3.4.2); same-second sync ties (Section 3.8.6); epoch features over break-free stretches (Section 3.9.1); and the reimplementation's partial coverage stated (Section 6). Correction, 2026-11-23: Section 6's port counts restated from `Tools/validation/test_ports_output.txt` (119 cases, not 114), with the commits the ports mirror.
 
 ---
 

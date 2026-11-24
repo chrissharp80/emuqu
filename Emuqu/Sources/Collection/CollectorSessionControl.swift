@@ -4,10 +4,6 @@ import Foundation
 /// pause/resume path that lets a night be split and rejoined, and the Combine
 /// bindings that republish the sub-objects' state for the views.
 ///
-/// ## Why this is not on `RRCollector`
-///
-/// As extensions it would add 1,012 lines to the collector.
-///
 /// All three live together because pause/resume and the streaming session are
 /// the same state machine seen from two directions, and the bindings republish
 /// exactly what those two change.
@@ -26,9 +22,8 @@ import Foundation
 /// Task or a resumed continuation that keeps this object alive after the
 /// collector has gone reads the reference and traps ("Attempted to read an
 /// unowned reference but object … was already destroyed"). A strong
-/// reference from a transient value cannot
-/// outlive its owner and cannot form a cycle, so the class of bug is gone;
-/// `scripts/check_no_unowned.sh` keeps it gone.
+/// reference from a transient value cannot outlive its owner and cannot form a
+/// cycle (ADR 005).
 @MainActor
 struct CollectorSessionControl {
     let collector: RRCollector

@@ -123,8 +123,8 @@ extension StrapRecordingCoordinator {
 
         /// A start that throws part-way (the session ended, a transfer took
         /// the strap, the strap was not ready) leaves nothing starting, so the
-        /// app returns to `.idle`; left at `.starting`, every later start was
-        /// refused as already recording and the Record screen stayed disabled.
+        /// app returns to `.idle`; left at `.starting`, every later start would be
+        /// refused as already recording and the Record screen would stay disabled.
         private func settlingAbortedStart(_ start: () async throws -> Void) async throws {
             do {
                 try await start()
@@ -249,8 +249,8 @@ extension StrapRecordingCoordinator {
         }
 
         /// Humanise raw Polar SDK errors before they surface to the user via
-        /// `manager.lastError`. Without this the alert showed e.g. "Recording failed:
-        /// PolarBleSdk.PolarErrors error 3." (real tester report). A refusal for
+        /// `manager.lastError`. Without this the alert shows e.g. "Recording failed:
+        /// PolarBleSdk.PolarErrors error 3." A refusal for
         /// a low battery becomes `strapBatteryTooLow`, which callers act on.
         /// Both straps' start failures come through here.
         func surfaceStartFailure(_ error: Error) -> Error {
@@ -511,8 +511,8 @@ extension StrapRecordingCoordinator {
     /// an arming.
     private func stopWithinBudget(api: any StrapRadio, deviceId: String) async throws {
         let seconds = StrapRecordingPolicy.TransferBudget.attended.stopSeconds
-        try await StrapDeadline.race(
-            seconds: seconds, timeout: PolarManager.PolarError.fetchFailed("strap stop timed out after \(seconds)s")
+        try await Deadline.race(
+            seconds: TimeInterval(seconds), timeout: PolarManager.PolarError.fetchFailed("strap stop timed out after \(seconds)s")
         ) {
             try await self.stopOnStrap(api: api, deviceId: deviceId)
         }

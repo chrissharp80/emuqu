@@ -36,7 +36,7 @@ extension SessionRecoveryCoordinator {
     /// workout's backup. Recovery flows leave that recording alone. A night
     /// being ended is still live: its ending stops and downloads the strap.
     var strapRecordingBelongsToLiveSession: Bool {
-        if collector.isCollecting || collector.isOvernightStreaming || collector.streamingLifecycle.isEndingOvernight {
+        if collector.sessionState.isCollecting || collector.streamingLifecycle.isOvernightStreaming || collector.streamingLifecycle.isEndingOvernight {
             return true
         }
         return strapRecordingBelongsToLiveWorkout
@@ -45,8 +45,8 @@ extension SessionRecoveryCoordinator {
     /// A workout is recording or finishing, so the strap's recording is its
     /// backup. The Record screen's strap-only Stop and Discard leave it alone.
     var strapRecordingBelongsToLiveWorkout: Bool {
-        guard let recorder = AppDependencies.current.app.recorderBox.recorder else { return false }
-        return recorder.phase == .recording || recorder.phase == .finalizing
+        guard let recorder = collector.services.recorderBox.recorder else { return false }
+        return recorder.lifecycle.phase == .recording || recorder.lifecycle.phase == .finalizing
     }
 
     /// A recording still running on the strap that no session owns: none is
@@ -67,15 +67,15 @@ extension SessionRecoveryCoordinator {
     func recoverFromDevice() async throws -> HRVSession? {
         debugLog("[Recovery] ========== START recoverFromDevice ==========")
         // An earlier operation's error must not stand in for this one's.
-        collector.lastError = nil
+        collector.sessionState.lastError = nil
         try checkRecoverable()
-        collector.polarManager.beginTransfer()
+        collector.polarManager.recording.beginTransfer()
         let recording = try await downloadForRecovery()
         let placement = await recoveryPlacement(for: recording)
         let session = await collector.deviceRecording.assembleDownloadedSession(recording, placement: placement)
         debugLog("[Recovery] ========== END recoverFromDevice: \(session.id.uuidString.prefix(8)) \(session.state) ==========")
         guard session.state == .complete else {
-            throw collector.lastError ?? RRCollector.CollectorError.insufficientData
+            throw collector.sessionState.lastError ?? RRCollector.CollectorError.insufficientData
         }
         return session
     }
@@ -93,18 +93,18 @@ extension SessionRecoveryCoordinator {
 
     private func recoveryRefused(_ error: RRCollector.CollectorError) -> Error {
         debugLog("[Recovery] Not recovering: \(error)")
-        collector.lastError = error
+        collector.sessionState.lastError = error
         return error
     }
 
     private func downloadForRecovery() async throws -> StrapRecording {
         do {
-            let recording = try await collector.polarManager.fetchRecording(recordedSince: nil, budget: .attended)
+            let recording = try await collector.polarManager.recording.fetchRecording(recordedSince: nil, budget: .attended)
             debugLog("[Recovery] Got \(recording.points.count) beats from strap, started \(recording.startedAt?.description ?? "unknown")")
             return recording
         } catch {
             debugLog("[Recovery] Strap download failed: \(error)")
-            collector.lastError = error
+            collector.sessionState.lastError = error
             throw error
         }
     }
@@ -135,7 +135,7 @@ extension SessionRecoveryCoordinator {
               StrapRecordingPolicy.recording(startedAt: start, belongsToSessionStartedAt: persisted.startTime)
         else { return nil }
         debugLog("[Recovery] Recording started \(start), during the persisted session \(persisted.sessionId.uuidString.prefix(8))")
-        let existing = collector.archive.exists(persisted.sessionId) ? collector.archive.retrieveOrLog(persisted.sessionId) : nil
+        let existing = collector.archive.store.exists(persisted.sessionId) ? collector.archive.retrieveOrLog(persisted.sessionId) : nil
         return DeviceRecordingSession.DownloadPlacement(
             sessionId: persisted.sessionId, sessionType: persisted.sessionType, startDate: persisted.startTime,
             deviceProvenance: existing?.deviceProvenance ?? collector.deviceRecording.deviceRecordingProvenance(),
@@ -153,7 +153,7 @@ extension SessionRecoveryCoordinator {
         let end = start.addingTimeInterval(StrapExerciseDecoder.durationSeconds(of: recording.points))
         let span = SessionMerger.span(start: start, end: end)
         let allowsSameSleep = settings.sessionMergeMode != .off && recording.startedAt != nil
-        for entry in collector.archive.entries where entry.sessionType == .overnight {
+        for entry in collector.archive.store.entries where entry.sessionType == .overnight {
             let relation = SessionMerger.relation(
                 of: span, to: SessionMerger.span(of: entry), mergeGap: settings.effectiveMergeGapSeconds
             )

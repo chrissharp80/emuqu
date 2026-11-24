@@ -3,7 +3,7 @@ import Foundation
 
 // The Watch's workout controls other than Start: End, Pause, Resume and the
 // summary's Save & Done, sent live when the iPhone is reachable and queued
-// when it is not. Split out of `WatchSessionManager.swift`.
+// when it is not.
 
 extension WatchSessionManager {
     // MARK: - Workout controls (Watch → phone)

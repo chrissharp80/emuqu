@@ -3,9 +3,8 @@ import HealthKit
 
 // MARK: - Sleep queries and estimation
 //
-// Kept off `HealthKitManager`, the same seam as the vitals and training
-// queries. Export, trend analysis and the sleep observers stay
-// on `+SleepTrends.swift` — those write and observe, this one reads.
+// Export, trend analysis and the sleep observers are in `+SleepTrends.swift`:
+// those write and observe, this one reads.
 
 extension SleepHealthQueries {
     // MARK: - Sleep Data
@@ -182,8 +181,8 @@ extension SleepHealthQueries {
         predicate: NSPredicate,
         sort: NSSortDescriptor
     ) async throws -> [HKCategorySample] {
-        try await manager.runBoundedThrowingQuery(
-            timeout: HealthKitManager.sleepQueryTimeoutSec,
+        try await manager.heartRate.runBoundedThrowingQuery(
+            timeout: HeartRateHealthQueries.sleepQueryTimeoutSec,
             makeQuery: { resolve in
                 HKSampleQuery(
                     sampleType: sleepType,
@@ -191,7 +190,7 @@ extension SleepHealthQueries {
                     limit: HKObjectQueryNoLimit,
                     sortDescriptors: [sort]
                 ) { _, results, error in
-                    resolve(HealthKitManager.categoryResult(results, error))
+                    resolve(HealthWriteAndObserve.categoryResult(results, error))
                 }
             },
             onTimeout: { .failure(HealthKitManager.HealthKitError.queryTimedOut("sleep samples")) }
@@ -239,14 +238,6 @@ extension SleepHealthQueries {
             predicate: sleepReadExcludingOwnWrites(dateRange: datePredicate),
             sort: sort
         )
-    }
-
-    /// Estimate sleep boundaries from recorded RR intervals when the watch
-    /// logged no sleep for the night. The estimator itself lives in
-    /// `HRSleepEstimator`; this stays for the three call sites that reach it
-    /// through the manager.
-    nonisolated static func estimateSleepFromHR(rrPoints: [RRPoint], recordingStart: Date) -> SleepData? {
-        HRSleepEstimator.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: recordingStart)
     }
 
     /// Asleep intervals only (drops inBed / awake), clipped to the nap window.
@@ -332,7 +323,7 @@ extension SleepHealthQueries {
     ///
     /// Apple Watch records HR every ~10 minutes even without Sleep Mode enabled.
     /// This method queries those passive HR samples and detects sleep using the same
-    /// HR-drop algorithm as `estimateSleepFromHR`, adapted for sparser data.
+    /// HR-drop algorithm as `HRSleepEstimator.estimateSleepFromHR`, adapted for sparser data.
     ///
     /// Use case: user wears Apple Watch overnight but doesn't enable Sleep Focus,
     /// so Apple's native sleep tracking writes no sleep samples to HealthKit.
@@ -380,7 +371,7 @@ extension SleepHealthQueries {
     ) async -> [(date: Date, hr: Double)]? {
         let samples: [(date: Date, hr: Double)]
         do {
-            samples = try await manager.fetchHeartRateSamples(from: windowStart, to: windowEnd)
+            samples = try await manager.heartRate.fetchHeartRateSamples(from: windowStart, to: windowEnd)
         } catch {
             debugLog("[HealthKitManager] HealthKit HR sleep estimation failed to fetch samples: \(error)")
             return nil
@@ -399,13 +390,11 @@ extension SleepHealthQueries {
 
 // MARK: - File-scope helpers
 //
-// Kept out of HealthKitManager. Each names no member of the
-// type and calls nothing inside it, so none needs to be a member.
-// `private` at file scope is fileprivate, so every call site in this
-// file resolves the same way.
+// Each names no member of `HealthKitManager` and calls nothing on it, so none needs
+// to be inside the type.
 
-/// CHOKE POINT for the "HealthKit grafts a foreign night's
-/// sleep onto a short recording" bug. HealthKit returns whole sleep blocks
+/// CHOKE POINT against HealthKit grafting a foreign night's
+/// sleep onto a short recording. HealthKit returns whole sleep blocks
 /// within a broad look-back window; for a short pre-sleep clip it can hand
 /// back the *following* night's full block. Reject any resolved block that
 /// doesn't plausibly belong to THIS recording so no caller — morning

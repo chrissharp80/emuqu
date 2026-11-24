@@ -138,7 +138,7 @@ struct SensorManagementSheet: View {
             if strapIsRecording {
                 pendingRelease = .disconnect
             } else {
-                polarManager.disconnect()
+                polarManager.discovery.disconnect()
             }
         } label: {
             Label(String(localized: "Disconnect", bundle: LanguageManager.appBundle), systemImage: "xmark.circle")
@@ -155,7 +155,7 @@ struct SensorManagementSheet: View {
         Button(role: .destructive) {
             pendingRelease = nil
             switch release {
-            case .disconnect: polarManager.disconnect()
+            case .disconnect: polarManager.discovery.disconnect()
             case let .forget(device): forgetNow(device)
             }
         } label: {
@@ -168,7 +168,7 @@ struct SensorManagementSheet: View {
 
     private var cancelConnectionPolarButton: some View {
         Button(role: .destructive) {
-            polarManager.cancelConnection()
+            polarManager.discovery.cancelConnection()
         } label: {
             Label(String(localized: "Cancel", bundle: LanguageManager.appBundle), systemImage: "xmark.circle")
         }
@@ -178,7 +178,7 @@ struct SensorManagementSheet: View {
 
     private var stopScanningPolarButton: some View {
         Button(role: .destructive) {
-            polarManager.stopScanning()
+            polarManager.discovery.stopScanning()
         } label: {
             Label(String(localized: "Stop scanning", bundle: LanguageManager.appBundle), systemImage: "stop.circle")
         }
@@ -193,7 +193,7 @@ struct SensorManagementSheet: View {
     }
 
     private func discoveredDeviceButton(_ device: PolarManager.DiscoveredDevice) -> some View {
-        DiscoveredSensorButton(name: device.name) { polarManager.connect(deviceId: device.id) }
+        DiscoveredSensorButton(name: device.name) { polarManager.discovery.connect(deviceId: device.id) }
     }
 
     /// Known devices list
@@ -238,16 +238,16 @@ struct SensorManagementSheet: View {
 
     private func forgetNow(_ device: PolarManager.KnownDevice) {
         if polarManager.connectionState == .connected, polarManager.connectedDeviceId == device.id {
-            polarManager.disconnect()
+            polarManager.discovery.disconnect()
         } else if polarManager.connectionState == .connecting, polarManager.pendingDeviceId == device.id {
-            polarManager.cancelConnection()
+            polarManager.discovery.cancelConnection()
         }
         polarManager.removeKnownDevice(id: device.id)
     }
 
     private var reconnectButton2: some View {
         Button {
-            polarManager.connectToLastDevice()
+            polarManager.discovery.connectToLastDevice()
         } label: {
             Label(String(localized: "Reconnect", bundle: LanguageManager.appBundle), systemImage: "arrow.clockwise")
         }
@@ -255,7 +255,7 @@ struct SensorManagementSheet: View {
 
     private var pairAnotherButton3: some View {
         Button {
-            polarManager.startScanning()
+            polarManager.discovery.startScanning()
         } label: {
             Label(String(localized: "Pair another", bundle: LanguageManager.appBundle), systemImage: "magnifyingglass")
         }
@@ -263,7 +263,7 @@ struct SensorManagementSheet: View {
 
     private var pairStrapButton: some View {
         Button {
-            polarManager.startScanning()
+            polarManager.discovery.startScanning()
         } label: {
             Label(String(localized: "Pair a strap", bundle: LanguageManager.appBundle), systemImage: "magnifyingglass")
         }

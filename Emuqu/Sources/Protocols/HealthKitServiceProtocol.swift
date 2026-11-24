@@ -133,7 +133,7 @@ extension HealthKitServiceProtocol {
 
     func estimateSleepFromRR(rrPoints: [RRPoint], recordingStart: Date) async -> SleepData? {
         await Task.detached(priority: .userInitiated) {
-            HealthKitManager.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: recordingStart)
+            HRSleepEstimator.estimateSleepFromHR(rrPoints: rrPoints, recordingStart: recordingStart)
         }.value
     }
 
@@ -142,10 +142,53 @@ extension HealthKitServiceProtocol {
     }
 }
 
-// MARK: - HealthKitManager Conformance
+// MARK: - HealthKitManager members the protocol requires
 
-extension HealthKitManager: HealthKitServiceProtocol {
+extension HealthKitManager {
+    func fetchDaytimeRestingHR(for sleepDate: Date) async throws -> Double? {
+        try await heartRate.fetchDaytimeRestingHR(for: sleepDate)
+    }
+
+    func fetchSleepData(
+        for recordingStart: Date,
+        recordingEnd: Date,
+        rrPoints: [RRPoint]? = nil,
+        autoSleepExtension: SleepResolver.AutoSleepExtension? = nil,
+        rrStart: Date? = nil
+    ) async throws -> SleepData {
+        try await sleepQueries.fetchSleepData(
+            for: recordingStart, recordingEnd: recordingEnd,
+            rrPoints: rrPoints, autoSleepExtension: autoSleepExtension, rrStart: rrStart
+        )
+    }
+
+    func fetchDaytimeNapMinutes(nightAnchoredAt nightAnchor: Date) async -> Int {
+        await sleepQueries.fetchDaytimeNapMinutes(nightAnchoredAt: nightAnchor)
+    }
+
+    func estimateSleepFromHealthKitHR(
+        windowStart: Date,
+        windowEnd: Date,
+        minimumSamples: Int = 12,
+        minimumSleepMinutes: Int = 120
+    ) async -> SleepData? {
+        await sleepQueries.estimateSleepFromHealthKitHR(
+            windowStart: windowStart, windowEnd: windowEnd,
+            minimumSamples: minimumSamples, minimumSleepMinutes: minimumSleepMinutes
+        )
+    }
+
+    func fetchRecoveryVitals(
+        relativeTo referenceDate: Date = Date()
+    ) async -> HealthKitManager.RecoveryVitals {
+        await vitals.fetchRecoveryVitals(relativeTo: referenceDate)
+    }
+
+    func exportSessionMetrics(from session: HRVSession) async throws {
+        try await writes.exportSessionMetrics(from: session)
+    }
+
     func calculateTrainingLoad(relativeTo referenceDate: Date) async -> TrainingLoad {
-        await calculateTrainingLoad(days: 7, forMorningReading: true, relativeTo: referenceDate)
+        await training.calculateTrainingLoad(days: 7, forMorningReading: true, relativeTo: referenceDate)
     }
 }

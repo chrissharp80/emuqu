@@ -409,9 +409,9 @@ extension DashboardV2View {
 
     /// At zero nights a "0 of 14" pip says nothing the line above does not,
     /// so that slot carries the sample-data offer instead. Taking an existing
-    /// slot rather than adding a row keeps the Get started checklist where it
-    /// was; one row lower, its last lines sat in the fade above the floating
-    /// tab bar on a 402pt screen and failed the contrast audit.
+    /// slot rather than adding a row keeps the Get started checklist clear of
+    /// the fade above the floating tab bar; one row lower, its last lines sit
+    /// in that fade on a 402pt screen and fail text contrast.
     @ViewBuilder
     private var baselineProgressOrSampleOffer: some View {
         if daysCollected == 0 {

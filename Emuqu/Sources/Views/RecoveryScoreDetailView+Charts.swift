@@ -1,11 +1,9 @@
 import Charts
 import SwiftUI
 
-// Split out from RecoveryScoreDetailView.swift to keep the primary file
-// under the 1500-line tech-debt budget. Holds the chart helpers and the
-// inline Pick Window slider; the window picker and engine room live in
-// +Panels. The members this extension calls on the view are internal, not
-// private, for that reason.
+// The chart helpers and the inline Pick Window slider; the window picker and
+// engine room are in +Panels. The members this extension calls on the view
+// are internal, not private, because it lives in another file.
 
 extension RecoveryScoreCharts {
 
@@ -94,9 +92,7 @@ extension RecoveryScoreCharts {
 
     // Organized-recovery zones — the green tint that lets
     // the user SEE where parasympathetic recovery happened.
-    // Per FLOWCHART.md §green-zone-overlay and the
-    // architecture spec, these are non-negotiable for the
-    // overnight chart. Drawn first so the analysis-window
+    // Drawn first so the analysis-window
     // band sits on top and stays visually dominant.
     private var hrvZoneBands: some ChartContent {
         ForEach(Array(organizedZoneDateRanges.enumerated()), id: \.offset) { _, range in
@@ -218,7 +214,7 @@ extension RecoveryScoreCharts {
         }
     }
 
-    /// Clock-time string for the inline Pick Window label. Extracted
+    /// Clock-time string for the inline Pick Window label. A separate function
     /// so the @ViewBuilder above doesn't need to construct a
     /// DateFormatter inline (Swift's view builder forbids non-view
     /// statements like `f.dateStyle = .none` between `let` bindings).
@@ -568,8 +564,7 @@ extension RecoveryScoreCharts {
     /// Apply the same artifact gate the HRV chart uses
     /// (`buildRMSSDSeries`). Without this, a single bad RR interval (~320 ms
     /// ectopic / dropout) computes to 187 bpm and surfaces as a tall spike on
-    /// the overnight HR chart. A user saw spikes to ~190 on a screenshot of a
-    /// sleep session; their actual nocturnal HR was 50–60. Skipping
+    /// the overnight HR chart, far above a nocturnal HR of 50–60. Skipping
     /// artifact-flagged beats matches what the HRV chart does and drops the
     /// bogus spikes.
     nonisolated private static func strapHR(_ p: RRPoint, idx: Int, flags: [ArtifactFlags]?) -> Double? {

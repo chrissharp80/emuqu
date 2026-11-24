@@ -60,7 +60,7 @@ final class ReanalysisService {
         let atl = trainingContext?.atl ?? 0
         let ctl = trainingContext?.ctl ?? 0
         let acr: Double? = ctl > 0 ? atl / ctl : nil
-        let readiness = RecoveryScoreCalculator.calculateReadiness(
+        let readiness = ReadinessScoring.calculateReadiness(
             recoveryScore: compositeScore,
             todayTrimp: 0,
             ctl: ctl,
@@ -726,20 +726,20 @@ final class ReanalysisService {
         return (RecoveryScoreCalculator.toTenScale(breakdown.compositeScore), breakdown)
     }
 
-    /// Sessions with RR data, optionally bounded by a date range.
+    /// The sessions that started in a date range, by the index alone.
     ///
     /// The upper bound is inclusive to the END of `to`'s day — a user picking
     /// "up to the 14th" means through the 14th, not up to midnight starting it.
-    static func sessionsInRange(_ sessions: [HRVSession], from: Date?, to: Date?) -> [HRVSession] {
-        var filtered = sessions.filter { $0.rrSeries != nil && !($0.rrSeries?.points.isEmpty ?? true) }
-        if let from {
-            filtered = filtered.filter { $0.startDate >= from }
+    nonisolated static func sessionsInRange(_ sessions: ArchivedSessions, from: Date?, to: Date?) -> ArchivedSessions {
+        let endOfDay = to.map { Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: $0) ?? $0 }
+        return sessions.filter { entry in
+            (from.map { entry.date >= $0 } ?? true) && (endOfDay.map { entry.date <= $0 } ?? true)
         }
-        if let to {
-            let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: to) ?? to
-            filtered = filtered.filter { $0.startDate <= endOfDay }
-        }
-        return filtered
+    }
+
+    /// Whether a session has beats to analyse.
+    nonisolated static func hasBeats(_ session: HRVSession) -> Bool {
+        !(session.rrSeries?.points.isEmpty ?? true)
     }
 
     /// Re-analyze all sessions with current algorithms, each through this
@@ -749,7 +749,7 @@ final class ReanalysisService {
     /// the coordinator's per-session pass.
     /// Returns (updated, skipped) where skipped counts sessions with manual window overrides.
     func reanalyzeAllSessions(
-        sessions: [HRVSession],
+        sessions: ArchivedSessions,
         from: Date? = nil,
         to: Date? = nil,
         progress: @escaping (Int, Int) -> Void = { _, _ in }
@@ -768,7 +768,7 @@ final class ReanalysisService {
     /// exactly as single-session Reanalyze does.
     /// Returns (updated, skipped) where skipped counts sessions with manual window overrides.
     func reanalyzeAllSessions(
-        sessions: [HRVSession],
+        sessions: ArchivedSessions,
         from: Date?,
         to: Date?,
         reanalyzeOne: (HRVSession) async -> HRVSession?,
@@ -779,14 +779,15 @@ final class ReanalysisService {
         var successCount = 0
         var skippedCount = 0
 
-        for (index, session) in filtered.enumerated() {
+        for index in 0 ..< filtered.count {
             if Task.isCancelled { break }
+            defer { progress(index + 1, filtered.count) }
+            guard let session = await filtered.session(at: index), Self.hasBeats(session) else { continue }
             if session.windowUserAdjusted == true {
                 skippedCount += 1
             } else if await reanalyzeOne(session) != nil {
                 successCount += 1
             }
-            progress(index + 1, filtered.count)
         }
 
         debugLog("[ReanalysisService] Re-analyzed \(successCount)/\(filtered.count) sessions, \(skippedCount) manual windows preserved\(Task.isCancelled ? " (cancelled)" : "")")

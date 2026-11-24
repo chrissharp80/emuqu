@@ -17,7 +17,7 @@ extension TrainingHealthQueries {
         let windowStart = Calendar.current.date(byAdding: .day, value: -days, to: referenceDate) ?? referenceDate
         let predicate = HKQuery.predicateForSamples(withStart: windowStart, end: referenceDate, options: [])
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: vo2Type,
                 predicate: predicate,
@@ -67,7 +67,7 @@ extension TrainingHealthQueries {
     /// Absorb every later workout that covers the same physical session into
     /// the one starting at `i`, returning whichever copy carries the richest data.
     ///
-    /// The scan window was widened from a 5-min break to 30 min so a session
+    /// The scan window is 30 min so a session
     /// and its own HealthKit back-fill still collapse even when their start
     /// times drift apart (the archive start and the Apple-Health export start
     /// rarely align to the minute). Same-type near-starts still merge on the
@@ -211,7 +211,7 @@ extension TrainingHealthQueries {
         guard let startDate = calendar.date(byAdding: .day, value: -days, to: startOfReferenceDay) else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: referenceDate, options: .strictStartDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,
@@ -323,7 +323,7 @@ extension TrainingHealthQueries {
             end: end.addingTimeInterval(pad),
             options: []
         )
-        return await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,
@@ -354,7 +354,7 @@ extension TrainingHealthQueries {
     /// workouts and needs the same route, and a second copy of this query would
     /// be a second thing to keep correct.
     func routeSeries(for workout: HKWorkout) async -> HKWorkoutRoute? {
-        await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
+        await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKSeriesType.workoutRoute(),
                 predicate: HKQuery.predicateForObjects(from: workout),
@@ -372,7 +372,7 @@ extension TrainingHealthQueries {
     /// route-series queries before it already have — so a route query that
     /// never reports done cannot hang the caller awaiting it.
     func routeLocations(_ route: HKWorkoutRoute) async -> [CLLocation] {
-        await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
+        await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
             Self.routeQuery(route, resolve: resolve)
         } ?? []
     }
@@ -428,7 +428,7 @@ extension TrainingHealthQueries {
         )
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [timePredicate, notOwnSource])
 
-        return await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: distType,
                 quantitySamplePredicate: predicate,
@@ -445,7 +445,7 @@ extension TrainingHealthQueries {
     func hasWorkoutInRange(from start: Date, to end: Date) async -> Bool {
         guard manager.isHealthKitAvailable, end > start else { return false }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,
@@ -522,8 +522,8 @@ extension TrainingHealthQueries {
     private func latestQuantitySample(_ type: HKQuantityType, unit: HKUnit, since: Date?, until: Date) async -> (value: Double, date: Date)? {
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         let window = HKQuery.predicateForSamples(withStart: since, end: until, options: [.strictStartDate, .strictEndDate])
-        let predicate = manager.hrReadExcludingOwnWrites(dateRange: window)
-        return await manager.runBoundedQuery(timeout: HealthKitManager.backgroundAggregateQueryTimeoutSec) { resolve in
+        let predicate = manager.heartRate.hrReadExcludingOwnWrites(dateRange: window)
+        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
                 predicate: predicate,

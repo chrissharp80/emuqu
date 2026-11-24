@@ -6,8 +6,8 @@ import os
 ///
 /// The articles are written as plain English in `HelpContent*.swift`, about
 /// six hundred strings, many of them long multi-line paragraphs. Wrapping each
-/// in `String(localized:)` would have pushed hundreds of lines past the line
-/// limit, and the main catalogue's gates read single-line literals only. A
+/// in `String(localized:)` would push hundreds of lines past the line
+/// limit, and the main catalogue's extraction reads single-line literals only. A
 /// separate table, looked up by the exact English, keeps the content files as
 /// they are. `HelpLocalizationTests` holds the table to the content: every
 /// string the Help Center shows must have a translation in every language,

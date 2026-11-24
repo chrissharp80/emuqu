@@ -10,8 +10,8 @@ struct OnboardingSensorPage: View {
     /// Read on appear and on every return from Settings, the same way the
     /// Record tab's panel does. Without it this page shows pairing buttons
     /// that cannot work: with Bluetooth denied, `startScanning()` and
-    /// `connect(deviceId:)` return silently, and a tester reported the
-    /// buttons "did nothing".
+    /// `connect(deviceId:)` return silently, so the buttons appear to do
+    /// nothing.
     @State private var btAuthorization = CBCentralManager.authorization
 
     /// Set when the user starts a scan or a connect from this page, so a
@@ -159,13 +159,13 @@ struct OnboardingSensorPage: View {
     private func startPairingScan() {
         polar.lastError = nil
         pairingAttempted = true
-        polar.startScanning()
+        polar.discovery.startScanning()
     }
 
     private func startConnect(_ deviceId: String) {
         polar.lastError = nil
         pairingAttempted = true
-        polar.connect(deviceId: deviceId)
+        polar.discovery.connect(deviceId: deviceId)
     }
 
     @ViewBuilder
@@ -285,7 +285,7 @@ struct OnboardingSensorPage: View {
                 .font(.subheadline)
                 .foregroundColor(AppTheme.textSecondary)
             Button(String(localized: "Cancel", bundle: LanguageManager.appBundle)) {
-                polar.cancelConnection()
+                polar.discovery.cancelConnection()
             }
             .buttonStyle(.zenSecondary)
         }
@@ -381,7 +381,7 @@ struct OnboardingSensorPage: View {
 
     private func stopScanningOnLeave() {
         if polar.connectionState == .scanning {
-            polar.stopScanning()
+            polar.discovery.stopScanning()
         }
     }
 
@@ -403,7 +403,7 @@ struct OnboardingSensorPage: View {
 
     private var stopScanningButton: some View {
         Button(String(localized: "Stop Scanning", bundle: LanguageManager.appBundle)) {
-            polar.stopScanning()
+            polar.discovery.stopScanning()
         }
         .buttonStyle(.zenSecondary)
     }

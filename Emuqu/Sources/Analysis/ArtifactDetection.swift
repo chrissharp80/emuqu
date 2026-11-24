@@ -8,7 +8,7 @@ final class ArtifactDetector: Sendable {
         /// Window size for rolling median (beats)
         var windowSize: Int = HRVConstants.Artifacts.windowSize
         /// Threshold for ectopic detection (ratio from median), on both sides
-        var ectopicThreshold: Double = 0.20
+        var ectopicThreshold: Double = HRVThresholds.ectopicThresholdPercent
         /// Threshold for missed beat detection (ratio from median, long side)
         var missedThreshold: Double = 0.50
         /// Threshold for extra beat detection (ratio from median, short side):

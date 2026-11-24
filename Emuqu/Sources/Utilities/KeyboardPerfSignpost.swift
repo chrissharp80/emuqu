@@ -2,14 +2,12 @@ import Foundation
 import os.signpost
 import UIKit
 
-/// Always-on signpost emitter + opt-in in-memory ring buffer for the
-/// keyboard-focus hang investigation.
+/// Always-on signpost emitter + opt-in in-memory ring buffer for measuring
+/// keyboard-focus latency.
 ///
-/// Symptom under investigation: tapping any TextField (Coach chat,
-/// Settings email field, etc.) hangs the main thread for several
-/// seconds before the keyboard appears, then the first character
-/// typed hangs again briefly. Per the investigation hand-off, no
-/// patches without measurement — this is the measurement surface.
+/// What it measures: tapping a TextField (Coach chat, Settings email field,
+/// etc.) can hang the main thread for several seconds before the keyboard
+/// appears, and the first character typed can hang again briefly.
 ///
 /// **Two ways to capture.** Pick whichever is convenient.
 /// 1. **Xcode → Instruments → real device**, Logging or Time Profiler
@@ -165,7 +163,7 @@ final class KeyboardPerfSignpost: @unchecked Sendable {
 
     /// Begin a capture window. Returns false if a capture was
     /// already running. Auto-stops after `captureWindowSeconds`.
-    /// The auto-stop now ALSO writes the trace and updates
+    /// The auto-stop also writes the trace and updates
     /// `lastTraceURL` so the user can navigate away and come back
     /// to a finished trace without losing it.
     @discardableResult

@@ -8,9 +8,9 @@ struct SessionTypeFilterBar: View {
     @Binding var selection: SessionType?
 
     var body: some View {
-        // A bare HStack forces all 5 chips to share
-        // the screen width, so "Extended" wrapped to 3 lines while the
-        // shorter labels stayed on one. Horizontal ScrollView lets each
+        // A bare HStack would force all 5 chips to share
+        // the screen width, wrapping "Extended" to 3 lines while the
+        // shorter labels stay on one. Horizontal ScrollView lets each
         // chip size to its content (matches History's tag filter bar
         // just below it).
         ScrollView(.horizontal, showsIndicators: false) {

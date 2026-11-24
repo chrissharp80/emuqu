@@ -330,7 +330,7 @@ struct LostSessionsView: View {
         // Get collector reference on main actor, then run check
         let collectorRef = collector
         let sessions = await Task.detached(priority: .userInitiated) {
-            await collectorRef.checkForLostSessions()
+            await collectorRef.recovery.checkForLostSessions()
         }.value
 
         // Sort by date, newest first
@@ -347,7 +347,7 @@ struct LostSessionsView: View {
     /// the rest stay, selected rows stay selected, and the alert counts them.
     private func deleteSessions(_ idsToDelete: Set<UUID>) {
         pendingDeleteIds = nil
-        let deleted = collector.deleteLostSessions(Array(idsToDelete))
+        let deleted = collector.recovery.recoveryService.deleteLostSessions(Array(idsToDelete))
         lostSessions.removeAll { deleted.contains($0.id) }
         selectedSessions.subtract(deleted)
         deleteFailedCount = idsToDelete.count - deleted.count
@@ -373,7 +373,7 @@ struct LostSessionsView: View {
             recoveryProgress = (index + 1, total)
             currentSessionDate = session.date
         }
-        let recovered = await collector.recoverFromBackup(session.id)
+        let recovered = await collector.recovery.recoverFromBackup(session.id)
         await MainActor.run {
             if recovered != nil { recoveredCount += 1 } else { failedCount += 1 }
         }

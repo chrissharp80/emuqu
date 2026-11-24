@@ -102,10 +102,10 @@ extension HealthWriteAndObserve {
     /// in `span` that `isOurHRVExport` matches, under the session's key.
     private func hrvReplacement(sdnnType: HKQuantityType, sessionId: UUID, span: DateInterval) -> HealthSampleReplacement {
         HealthSampleReplacement(
-            type: sdnnType, span: span, timeout: HealthKitManager.vitalsQueryTimeoutSec,
+            type: sdnnType, span: span, timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec,
             label: "HRV export", serialKey: sessionId.uuidString,
             matches: { Self.isOurHRVExport($0, sessionId: sessionId) },
-            writeTimeout: HealthKitManager.backgroundAggregateQueryTimeoutSec
+            writeTimeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
         )
     }
 

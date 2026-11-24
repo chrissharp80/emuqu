@@ -495,24 +495,22 @@ struct SettingsView: View {
     }
 }
 
-// NOTE — PermissionsSettingsPage lives HERE (not its own file) because
-// the Views/ group uses explicit pbxproj membership, not a synchronized folder,
-// so a new standalone .swift file isn't added to the target and fails to compile
-// ("cannot find 'PermissionsSettingsPage' in scope"). Keeping it in this
-// already-compiled file guarantees it builds. Move to its own file only after
-// adding that file to the Emuqu target in Xcode.
+// NOTE — PermissionsSettingsPage is in this file because the Views/ group uses
+// explicit pbxproj membership, not a synchronized folder: a new standalone
+// .swift file is not in the target until it is added in Xcode, and fails to
+// compile ("cannot find 'PermissionsSettingsPage' in scope") until then.
 
-/// Permissions status screen. Users hit silent failures when a
-/// system permission wasn't granted — most painfully HealthKit **workout
-/// write**, which made the app's workouts never reach Apple Health with no
-/// visible reason (only a buried "Not authorized" log line). This surfaces the
+/// Permissions status screen. A missing system permission fails silently —
+/// most painfully HealthKit **workout write**, which keeps the app's workouts
+/// out of Apple Health with no visible reason (only a buried "Not authorized"
+/// log line). This surfaces the
 /// status of every permission the app depends on, re-prompts the ones iOS still
 /// allows to be re-prompted (`.notDetermined`), and deep-links to iOS Settings
 /// for the ones the user already declined (iOS won't re-ask those).
 ///
 /// Note on HealthKit **reads**: Apple deliberately withholds read-authorization
 /// status for privacy, so a granted/denied read can't be shown here. Only writes
-/// are reliably inspectable — which is exactly the gap that bit users.
+/// are reliably inspectable.
 struct PermissionsSettingsPage: View {
     @Environment(\.dependencies) var dependencies
     @Environment(\.openURL) private var openURL

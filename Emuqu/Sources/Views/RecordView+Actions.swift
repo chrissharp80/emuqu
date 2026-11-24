@@ -1,13 +1,13 @@
 import SwiftUI
 
-// The connection section, actions and computed properties, split out of
-// `RecordView.swift`. What stays behind is the recording UI itself
-// and the morning-results preview.
+// The connection section, actions and computed properties.
+// `RecordView.swift` holds the recording UI itself and the
+// morning-results preview.
 
 extension RecordView {
     // MARK: - Connection Section
 
-    // connectionSection moved to ConnectionPanel struct (isolated PolarManager observation)
+    // connectionSection is the ConnectionPanel struct (isolated PolarManager observation).
 
     var isBatteryCritical: Bool {
         guard let battery = deviceStatus.batteryLevel else { return false }
@@ -48,18 +48,18 @@ extension RecordView {
         switch mode {
         case .streaming:
             // Streaming mode with overnight processing pipeline.
-            try collector.startOvernightStreaming(sessionType: type, useDeviceInternalBackup: false)
+            try collector.overnightStreaming.startOvernightStreaming(sessionType: type, useDeviceInternalBackup: false)
         case .internalCapture:
             // Device-only recording mode (H10 exercise recording / Verity offline PPI).
-            try await collector.startSession(sessionType: type)
+            try await collector.deviceRecording.startSession(sessionType: type)
         case .both:
-            try collector.startOvernightStreaming(sessionType: type, useDeviceInternalBackup: true)
+            try collector.overnightStreaming.startOvernightStreaming(sessionType: type, useDeviceInternalBackup: true)
         }
     }
 
     func pauseRecording() {
         Task {
-            await collector.pauseOvernightStreaming()
+            await collector.control.pauseOvernightStreaming()
         }
     }
 
@@ -67,7 +67,7 @@ extension RecordView {
         guard let pausedSession = streamingLifecycle.pausedSession else { return }
         Task {
             do {
-                try collector.resumeOvernightStreaming(linkedSessionId: pausedSession.id)
+                try collector.control.resumeOvernightStreaming(linkedSessionId: pausedSession.id)
             } catch {
                 // `resumeOvernightStreaming` doesn't set lastError itself.
                 debugLog("[RecordView] ⚠️ Failed to resume recording: \(error)")
@@ -77,7 +77,7 @@ extension RecordView {
     }
 
     func finalizeFromPause() {
-        collector.finalizeFromPause()
+        collector.control.finalizeFromPause()
     }
 
     /// Ends the recording in progress without keeping anything from it. The
@@ -111,7 +111,7 @@ extension RecordView {
     func startLinkedRecording(linkedTo session: HRVSession) {
         Task {
             do {
-                try collector.resumeOvernightStreaming(linkedSessionId: session.id)
+                try collector.control.resumeOvernightStreaming(linkedSessionId: session.id)
             } catch {
                 debugLog("[RecordView] ⚠️ Failed to start linked recording: \(error)")
                 sessionState.lastError = error
@@ -132,7 +132,7 @@ extension RecordView {
     }
 
     private func stopOvernightAndApplyOutcome() async {
-        let session = await collector.stopOvernightStreaming()
+        let session = await collector.overnightStreaming.stopOvernightStreaming()
         await MainActor.run { applyStopOutcome(session, navigateOnSuccess: false) }
     }
 
@@ -151,7 +151,7 @@ extension RecordView {
     private func stopInternalRecording() async {
         await RecordingKeepAwake.during {
             do {
-                let session = try await collector.stopSession()
+                let session = try await collector.deviceRecording.stopSession()
                 applyStopOutcome(session, navigateOnSuccess: true)
             } catch {
                 sessionState.lastError = error
@@ -183,7 +183,7 @@ extension RecordView {
         isRetrying = true
         await RecordingKeepAwake.during {
             do {
-                let session = try await collector.retryFetchRecording()
+                let session = try await collector.recovery.retryFetchRecording()
                 finishRetry(session)
             } catch {
                 sessionState.lastError = error
@@ -215,7 +215,7 @@ extension RecordView {
     /// A failed reading is not archived and gets none.
     func stopStreaming() {
         Task {
-            let session = await collector.stopStreamingSession()
+            let session = await collector.control.stopStreamingSession()
             guard let session, session.state == .complete else { return }
             await persistTagsAndNotes(for: session)
         }
@@ -232,7 +232,7 @@ extension RecordView {
         Task {
             if let session = sessionState.currentSession { await persistTagsAndNotes(for: session) }
             do {
-                try await collector.acceptSession()
+                try await collector.morning.acceptSession()
             } catch RRCollector.CollectorError.noSessionToAccept {
                 debugLog("[RecordView] ⚠️ No complete session to accept")
             } catch {

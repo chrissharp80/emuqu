@@ -168,8 +168,7 @@ enum TrainingLoadRegistry {
     /// `asOf` is when the value was computed (`computedAt`), which an
     /// invalidation does not clear, so a value computed earlier is never
     /// stamped as just updated. Nil without one.
-    static func live() -> TrainingLoad? {
-        let cache = AppDependencies.current.analysis.trainingMetricsCache
+    static func live(from cache: TrainingMetricsCache) -> TrainingLoad? {
         // `snapshot()` first: it schedules the refresh a cold or stale cache needs.
         let snapshot = cache.snapshot()
         guard let computedAt = cache.computedAt else { return nil }
@@ -223,8 +222,8 @@ enum TrainingLoadRegistry {
     /// and re-renders when the async refresh publishes; a one-shot report
     /// capture does not. `refresh()` fast-exits when the cache is already
     /// fresh, so this is cheap on the warm (no-workout-since) path.
-    static func liveRefreshed() async -> TrainingLoad? {
-        await AppDependencies.current.analysis.trainingMetricsCache.refresh()
-        return live()
+    static func liveRefreshed(from cache: TrainingMetricsCache) async -> TrainingLoad? {
+        await cache.refresh()
+        return live(from: cache)
     }
 }

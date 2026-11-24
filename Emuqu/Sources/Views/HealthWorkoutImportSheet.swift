@@ -175,8 +175,8 @@ struct HealthWorkoutImportSheet: View {
 
     // Deliberately one literal on one line: the catalogue extractor does not
     // pick up a multi-line `"""` literal, so a wrapped version of this sentence
-    // would ship untranslated in all sixteen locales while every gate still
-    // reported clean.
+    // would ship untranslated in all sixteen locales with no localization
+    // check failing.
     private var limitsText: some View {
         Text(String(localized: "Heart rate, distance, route and elevation come across. HRV and DFA α1 don't — Apple Health stores averaged heart rate, not the beat-to-beat intervals those need.", bundle: LanguageManager.appBundle))
             .font(.footnote)

@@ -9,10 +9,9 @@ import SwiftUI
 /// results can render NavigationLinks directly without re-implementing
 /// the routing logic that lives in SettingsView's body.
 struct SettingsSearchEntry: Identifiable {
-    /// Stable identity derived from the row's symbol and title. Was
-    /// `UUID()`, which minted a fresh id every time the index was rebuilt —
-    /// and the index was rebuilt in `SettingsView.body` on every keystroke,
-    /// so `ForEach` treated every result as brand-new each frame (no view
+    /// Stable identity derived from the row's symbol and title. A `UUID()`
+    /// would mint a fresh id every time the index is rebuilt, so `ForEach`
+    /// would treat every result as brand-new (no view
     /// reuse → jank). The title is the translated one, so it alone could
     /// coincide for two rows in some language; every entry has its own SF
     /// Symbol, so the pair stays unique in every language.

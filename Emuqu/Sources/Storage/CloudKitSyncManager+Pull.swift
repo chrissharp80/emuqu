@@ -98,7 +98,7 @@ extension CloudPullCoordinator {
         guard results.allSatisfy({ if case .success = $0.1 { true } else { false } }) else { return }
         let remoteIds = Set(results.compactMap { UUID(uuidString: $0.0.recordName) })
         let missing = manager.state.uploadedSessionIds.filter {
-            !remoteIds.contains($0) && manager.archive.exists($0) && !manager.archive.wasIntentionallyDeleted($0)
+            !remoteIds.contains($0) && manager.archive.store.exists($0) && !manager.archive.store.wasIntentionallyDeleted($0)
         }
         let confirmed = missing.intersection(manager.missingFromLastListing)
         manager.missingFromLastListing = missing
@@ -167,7 +167,7 @@ extension CloudPullCoordinator {
     /// HK-derived `sleepSnapshot` / `vitalsSnapshot` stripped on upload
     /// (Guideline 5.1.3), so they arrive blank. `autoRefreshTodaysSleepIfImproved`
     /// only re-fills TODAY on a live HK observer bump — it never runs on a pull
-    /// and is gated to today, so every synced PAST session stayed blank until
+    /// and is gated to today, so every synced PAST session stays blank until
     /// manually opened. Hand the ids to RRCollector (it owns `healthKit` + the
     /// bounded backfill helper) via a decoupled notification; the backfill
     /// drips a few per cycle at low priority and respects `sleepUserAdjusted`.
@@ -175,7 +175,7 @@ extension CloudPullCoordinator {
         // Hoisted so the detached closure captures the archive, not `self`.
         let archive = manager.archive
         await Task.detached(priority: .utility) {
-            archive.runDeferredMigrations()
+            archive.migrations.runDeferredMigrations()
         }.value
         guard !counts.backfillIds.isEmpty else { return }
         NotificationCenter.default.post(
@@ -280,8 +280,8 @@ extension CloudPullCoordinator {
     /// the daily re-check of local deletions doing it up to a day later. A
     /// session deleted forever here never reaches this point.
     private func adoptRestoreIfNewer(_ record: CKRecord, sessionId: UUID) {
-        guard !manager.archive.exists(sessionId), manager.archive.wasIntentionallyDeleted(sessionId),
-              TrashRestoreCoordinator.restoreIsNewer(record, thanDeletionAt: manager.archive.deletionTime(of: sessionId))
+        guard !manager.archive.store.exists(sessionId), manager.archive.store.wasIntentionallyDeleted(sessionId),
+              TrashRestoreCoordinator.restoreIsNewer(record, thanDeletionAt: manager.archive.store.deletionTime(of: sessionId))
         else { return }
         manager.trashRestore.adoptFromAnotherDevice(sessionId)
     }
@@ -307,7 +307,7 @@ extension CloudPullCoordinator {
     /// not make it uploaded. Whether a held copy is replaced by a newer one is
     /// `refreshIfRemoteIsNewer`'s decision.
     private func isKnownLocally(_ sessionId: UUID) -> Bool {
-        guard manager.archive.exists(sessionId) || manager.archive.wasIntentionallyDeleted(sessionId) else {
+        guard manager.archive.store.exists(sessionId) || manager.archive.store.wasIntentionallyDeleted(sessionId) else {
             return false
         }
         if !manager.state.pendingUploadIds.contains(sessionId) {
@@ -319,7 +319,7 @@ extension CloudPullCoordinator {
     /// Asset read + decompress + JSON decode run off
     /// the main actor (a
     /// 30k-point rrSeries decode per record, repeated for every
-    /// pulled record in one uninterrupted MainActor slice, froze
+    /// pulled record in one uninterrupted MainActor slice, would freeze
     /// launch/foreground). Only `assetURL` (URL, Sendable) crosses
     /// into the detached task; only the decoded `HRVSession`
     /// (Sendable value struct) crosses back.
@@ -327,8 +327,8 @@ extension CloudPullCoordinator {
     /// CloudKit-pulled sessions are the authoritative
     /// cross-device-merged version of their session id. Folding
     /// them into a local same-night entry is double-merging AND
-    /// catastrophically slow under load (user log showed 37
-    /// merges in 5 s on a single launch — each one a full
+    /// catastrophically slow under load (one pull can trigger dozens
+    /// of merges in seconds — each one a full
     /// retrieve + decrypt + decode + merge + encode + encrypt +
     /// write + SHA256 + index save, all on main thread under
     /// archiveLock). The merge is skipped here; the existing
@@ -336,14 +336,13 @@ extension CloudPullCoordinator {
     /// cleanup after the 24-hour safety window.
     ///
     /// NOTE: `archive.archive` (encode + encrypt + write under archiveLock)
-    /// still runs on the main actor — bounded per record; the archive-side fix
-    /// is the SessionFileCodec path.
+    /// runs on the main actor, bounded per record.
     ///
     /// Per-record failures are surfaced instead of only
     /// debug-logged. The record IS retried on the next pull (it stays
     /// un-marked, and the query returns everything), but a record that fails
     /// deterministically (corrupt asset, future-schema payload) would fail
-    /// forever while Settings showed "Up to date". Recording it here makes the
+    /// forever while Settings shows "Up to date". Recording it here makes the
     /// sync body report `.error` and skip the lastSyncDate stamp.
     ///
     /// A record sealed with a key this device does not hold yet — another
@@ -360,7 +359,7 @@ extension CloudPullCoordinator {
     ) async -> RecordOutcome {
         do {
             let session = try await Task.detached(priority: .utility) {
-                try Self.decodeSessionAsset(at: assetURL)
+                try Self.decodeSessionAsset(at: assetURL, archiveKey: manager.archive.encryption)
             }.value
             // The stall watchdog fired, or the account changed, while it
             // decoded: the next sync imports it.
@@ -392,7 +391,7 @@ extension CloudPullCoordinator {
 
     /// JSONDecoder is not Sendable — a fresh one is built here, inside the
     /// detached closure, rather than captured across the actor boundary.
-    nonisolated static func decodeSessionAsset(at assetURL: URL) throws -> HRVSession {
+    nonisolated static func decodeSessionAsset(at assetURL: URL, archiveKey: EncryptionManager) throws -> HRVSession {
         let compressedData = try Data(contentsOf: assetURL)
         // Payloads are encrypted before upload. Older records predate
         // that and are still compressed-only, so decryption is attempted and
@@ -403,7 +402,7 @@ extension CloudPullCoordinator {
         // `try?`-and-fall-back would treat a
         // wrong-key ciphertext as legacy data and hand compressed garbage to
         // the decoder.
-        let decrypted = try CloudPayloadCodec.decode(compressedData)
+        let decrypted = try CloudPayloadCodec.decode(compressedData, archiveKey: archiveKey)
         let jsonData = try DataCompression.decompress(decrypted)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -429,7 +428,7 @@ extension CloudPullCoordinator {
     /// again, tries once more.
     func handleDeletedRecord(sessionId: UUID, sessionIdString: String) -> (new: Int, deleted: Int) {
         var deletedCount = 0
-        if manager.archive.exists(sessionId) {
+        if manager.archive.store.exists(sessionId) {
             do {
                 try removeLocalCopy(sessionId)
                 deletedCount = 1
@@ -467,7 +466,7 @@ extension CloudPullCoordinator {
             }
         }
         try manager.archive.deleteWithoutTrash(sessionId)
-        if !manager.archive.discardTrashed(sessionId) {
+        if !manager.archive.store.discardTrashed(sessionId) {
             debugLog("[CloudKit] Pull: \(sessionId.uuidString.prefix(8)) left a copy in the Trash, removed when the Trash expires", level: .warning)
         }
     }

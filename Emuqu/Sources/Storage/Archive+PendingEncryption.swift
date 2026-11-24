@@ -1,11 +1,8 @@
 import Foundation
 
-// Storage-confidentiality policy for the archive, deliberately at file scope.
-//
-// `SessionArchive` is already over the 1,500 aggregate-line budget for
-// central types. None of this is archive *state* — it is a decision about how
-// bytes are written and a repair pass over them — so it lives beside the type
-// rather than inside it. See docs/adr/README.md, decision 001.
+// Storage-confidentiality policy for the archive. None of this is archive
+// *state*: it is a decision about how bytes are written and a repair pass
+// over them.
 
 /// The write options a given disk format demands.
 ///
@@ -84,7 +81,7 @@ func writeArchiveBytes(
 func reencryptPendingSessions(in archive: SessionArchive) {
     let pending = PendingEncryptionLedger.pending
     guard !pending.isEmpty else { return }
-    guard AppDependencies.current.storage.encryptionManager.isAvailable else {
+    guard archive.encryption.isAvailable else {
         debugLog("[Archive] \(pending.count) session(s) await re-encryption; key still unavailable", level: .error)
         return
     }
@@ -114,10 +111,10 @@ func reencryptPendingSessions(in archive: SessionArchive) {
 private func reencryptOne(_ id: UUID, in archive: SessionArchive) {
     guard let parked = archive.store.parkedCopies(of: id) else { return }
     let parkedEncrypted = parked.map { reencryptParkedCopy($0, id: id, in: archive) }.allSatisfy { $0 }
-    if archive.exists(id) {
+    if archive.store.exists(id) {
         reencryptArchived(id, in: archive)
         if !parkedEncrypted { PendingEncryptionLedger.record(id) }
-    } else if parkedEncrypted, !parked.isEmpty || archive.wasIntentionallyDeleted(id) {
+    } else if parkedEncrypted, !parked.isEmpty || archive.store.wasIntentionallyDeleted(id) {
         PendingEncryptionLedger.clear(id)
     }
 }
@@ -178,7 +175,7 @@ private func reencryptParkedCopy(_ url: URL, id: UUID, in archive: SessionArchiv
     do {
         let stored = try Data(contentsOf: url)
         guard !ArchiveStore.looksEncrypted(stored) else { return true }
-        let sealed = try AppDependencies.current.storage.encryptionManager.encrypt(ArchiveStore.plaintextBytes(stored, id: id))
+        let sealed = try archive.encryption.encrypt(ArchiveStore.plaintextBytes(stored, id: id, encryption: archive.encryption))
         try PurgeGate.admitWrite {
             try sealed.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         }
