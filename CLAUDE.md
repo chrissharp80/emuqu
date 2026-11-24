@@ -24,24 +24,30 @@ Before you change code:
 When you change code:
 
 2. Run `make codemap-guard` to list the records your change affects.
-3. Run `.venv-codemap/bin/python scripts/codemap/codemap.py sync <path>` for files whose units
-   were added or removed.
+3. For a moved file or a renamed unit, run `codemap.py move <old> <new> [OLDKEY=NEWKEY ...]`
+   first; it carries the record and rewrites every reference to it. Then run
+   `.venv-codemap/bin/python scripts/codemap/codemap.py sync <path>` for files whose units were
+   added or removed (a new test's record starts prefilled from its code; read it like any other).
 4. Re-read the changed code and rewrite each listed record so it describes the code as it now is:
-   `does`, `entry`, `calls`, `reads`, `writes` and every branch. With the overlay, remove flags the
-   change fixed and add any problem you find. Public records describe behaviour only; keep defect
-   notes out of them.
-5. For each "re-check" line your change adds (`codemap.py status` lists them), re-read that caller
-   against the callee's new behaviour. If the caller no longer does what its record says, fix the
-   caller or rewrite its record.
-6. Only then stamp, callees before callers:
-   `.venv-codemap/bin/python scripts/codemap/codemap.py stamp <path> [<key> ...]`.
+   `does`, `contract` where it has one, `entry`, `calls`, `reads`, `writes` and every branch. With
+   the overlay, remove flags the change fixed and add any problem you find. Public records describe
+   behaviour only; keep defect notes out of them.
+5. For each "re-check" line your change adds (`codemap.py status --by-callee` shows each callee's
+   change with its callers), re-read that caller against the callee's new behaviour. If the caller
+   is unaffected, acknowledge it: `codemap.py ack <callee> [<caller> ...]`. If it no longer does
+   what its record says, fix the caller or rewrite its record and stamp it.
+6. Only then stamp, once every callee's record is written, in one pass:
+   `.venv-codemap/bin/python scripts/codemap/codemap.py stamp <path>::<key> <path>:: ...`
+   (or `stamp <path> [<key> ...]` for one file).
 7. `make codemap-guard` must be clean before you commit.
 
 High- and medium-severity findings can only go down. When you fix one, delete its flag and lower
 `do_not_ship/codemap/codemap_open_high.txt` or `codemap_open_med.txt` by the same amount. Do not
 record a new high or medium problem as open; fix it.
 
-Never stamp a record you have not rewritten against the current code, and never stamp a re-check
-you have not re-read. A stamp without a re-read defeats the check and leaves a wrong record that
-reads as verified. Do not reword a record whose behaviour did not change: it sends every caller
-back for a re-check. The full procedure is in `docs/codemap/README.md`.
+Never stamp a record you have not rewritten against the current code, and never stamp or `ack` a
+re-check you have not re-read. A stamp or ack without a re-read defeats the check and leaves a wrong
+record that reads as verified. Do not reword a record whose behaviour did not change: it sends every
+caller back for a re-check, unless the record has a `contract`, which alone is what callers are
+checked against. Give a record a contract (what callers rely on: results, errors, effects) when you
+rewrite it. The full procedure is in `docs/codemap/README.md`.

@@ -3,11 +3,23 @@
 
     codemap.py check            fail if any record is missing, stale, orphaned or incomplete
     codemap.py status           the same list, exit 0
-    codemap.py sync PATH...     add empty records for new units in PATH, drop records of deleted ones
+    codemap.py status --by-callee [BASE]
+                                the re-check lines grouped by the callee that caused them, with what
+                                the callee's record says now and at BASE (default origin/main)
+    codemap.py sync PATH...     add records for new units in PATH (a test's prefilled from its code),
+                                drop records of deleted ones
     codemap.py stamp PATH [KEY...]
+    codemap.py stamp PATH::KEY|PATH:: ...
                                 after re-reading the code and updating the record text, mark the
-                                file record (no KEY) or the named units as written against the
-                                current code
+                                file record (no KEY, or PATH::) or the named units as written
+                                against the current code; any number of files in one pass
+    codemap.py ack CALLEE [CALLER...]
+                                after re-reading each caller of CALLEE and finding it unaffected by
+                                CALLEE's changed record, clear those re-check lines (all of CALLEE's
+                                callers when none is named)
+    codemap.py move OLD NEW [OLDKEY=NEWKEY...]
+                                before sync, carry the record of a moved file or renamed units to
+                                their new names and rewrite every reference to them
     codemap.py impact [--base REF] [NODE...]
                                 everything a change can affect: for each unit changed since REF
                                 (default origin/main) or each named `path::key`, its callers up to
@@ -27,6 +39,7 @@ import collections
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -128,11 +141,19 @@ def problems(inv: dict, recs: dict) -> list[tuple[str, str, str]]:
 def described(rec_unit: dict | None, file_level: bool = False) -> str:
     """Hash of what a record says a unit (or a file's top-level code) does: the part its callers
     rely on. Calls are left out (they are how, not what), and so are findings (they live in the
-    local overlay, which a public checkout does not have)."""
+    local overlay, which a public checkout does not have).
+
+    A unit whose record has a `contract` (what callers may rely on: results, errors, effects) is
+    hashed on that, its `entry`, `reads` and `writes` alone, so rewording its `does` or its
+    branches does not send its callers back. A unit without one is hashed on its whole
+    description, as before."""
     if rec_unit is None:
         return ""
     if file_level:
         fields = [rec_unit.get("role"), rec_unit.get("toplevel"), rec_unit.get("state")]
+    elif (rec_unit.get("contract") or "").strip():
+        fields = ["contract", rec_unit["contract"].strip(), rec_unit.get("entry"), rec_unit.get("reads"),
+                  rec_unit.get("writes")]
     else:
         fields = [rec_unit.get("does"), rec_unit.get("entry"), rec_unit.get("reads"), rec_unit.get("writes"),
                   [(b.get("cond"), b.get("effect")) for b in rec_unit.get("branches") or []]]
@@ -160,10 +181,10 @@ def current_deps(graph: dict, desc: dict, node: str) -> dict[str, str]:
     return {c: desc.get(c, "") for c, kind in sorted(graph["edges"].get(node, {}).items()) if kind == "certain"}
 
 
-def dependency_problems(inv: dict, recs: dict, graph: dict) -> list[tuple[str, str, str]]:
-    """A record is checked against what its callees did when it was stamped. When a callee's record
-    now says something different, or the code now calls a unit it was not checked against, the
-    caller must be re-read and re-stamped: its own behaviour may have changed with the callee's."""
+def recheck_items(inv: dict, recs: dict, graph: dict) -> list[tuple[str, str, str, str]]:
+    """(caller file, caller key, callee node, "new" | "changed") for every current record whose
+    certain callee it was not checked against, or whose callee's record says something different
+    from when it was checked."""
     desc = descriptions(recs)
     out = []
     for f, d in inv.items():
@@ -182,9 +203,23 @@ def dependency_problems(inv: dict, recs: dict, graph: dict) -> list[tuple[str, s
             deps = r.get("deps") or {}
             for callee, h in current_deps(graph, desc, node).items():
                 if callee not in deps:
-                    out.append((f, node.split("::", 1)[1], f"re-check: now resolves a call to {callee}, which it was not checked against"))
+                    out.append((f, node.split("::", 1)[1], callee, "new"))
                 elif deps[callee] != h:
-                    out.append((f, node.split("::", 1)[1], f"re-check: {callee} changed what it does since this record was checked"))
+                    out.append((f, node.split("::", 1)[1], callee, "changed"))
+    return out
+
+
+def dependency_problems(inv: dict, recs: dict, graph: dict) -> list[tuple[str, str, str]]:
+    """A record is checked against what its callees did when it was stamped. When a callee's record
+    now says something different, or the code now calls a unit it was not checked against, the
+    caller must be re-read and re-stamped (or acknowledged with `ack`): its own behaviour may have
+    changed with the callee's."""
+    out = []
+    for f, key, callee, how in recheck_items(inv, recs, graph):
+        if how == "new":
+            out.append((f, key, f"re-check: now resolves a call to {callee}, which it was not checked against"))
+        else:
+            out.append((f, key, f"re-check: {callee} changed what it does since this record was checked"))
     return out
 
 
@@ -228,7 +263,7 @@ def budget_problems(counts: dict[str, int]) -> list[tuple[str, str, str]]:
     return out
 
 
-def cmd_check(strict: bool) -> int:
+def cmd_check(strict: bool, by_callee: bool = False, base: str = "origin/main") -> int:
     from inventory import inventory
     import graph as graphmod
     recs = all_records()
@@ -240,11 +275,15 @@ def cmd_check(strict: bool) -> int:
     stale_call = "calls a unit that no longer exists"
     advisory = [p for p in probs if p[2].startswith(stale_call)]
     probs = [p for p in probs if not p[2].startswith(stale_call)]
-    advisory += dependency_problems(inv, recs, graphmod.build(inv, recs, ROOT))
+    g = graphmod.build(inv, recs, ROOT)
+    advisory += dependency_problems(inv, recs, g)
     probs += budget_problems(open_findings(recs))
     if advisory:
         print(f"codemap: {len(advisory)} record(s) to re-check.")
-        if not strict:
+        if by_callee:
+            _print_by_callee(recheck_items(inv, recs, g), recs, base)
+            _print_grouped([p for p in advisory if p[2].startswith(stale_call)])
+        elif not strict:
             _print_grouped(advisory)
     if not probs:
         print("codemap: clean. Every unit and file in scope has a current record.")
@@ -264,6 +303,42 @@ def cmd_check(strict: bool) -> int:
     return 1 if strict else 0
 
 
+def _what_it_says(r: dict | None) -> str:
+    if r is None:
+        return "(no record)"
+    return ((r.get("contract") or "").strip() and f"contract: {r['contract'].strip()}") \
+        or (r.get("does") or r.get("role") or "").strip()
+
+
+def _record_at(base: str, node: str) -> dict | None:
+    """The record of `node` as committed at `base`, or None."""
+    f, key = node.split("::", 1)
+    old = subprocess.run(["git", "-C", str(ROOT), "show", f"{base}:docs/codemap/records/{f}.json"],
+                         capture_output=True, text=True)
+    if old.returncode != 0:
+        return None
+    rec = json.loads(old.stdout)
+    return rec if key == "" else next((u for u in rec.get("units", []) if u["key"] == key), None)
+
+
+def _print_by_callee(items: list[tuple[str, str, str, str]], recs: dict, base: str) -> None:
+    """Re-check lines grouped by the callee that caused them: what the callee's record says now
+    and, where it differs, what it said at `base`, then every caller to re-read against it. The
+    callers of one callee are re-read against one change, and acknowledged together with `ack`."""
+    by: dict[str, list] = collections.defaultdict(list)
+    for f, key, callee, how in items:
+        by[callee].append((f"{f}::{key}", how))
+    for callee in sorted(by, key=lambda c: (-len(by[c]), c)):
+        now = _what_it_says(record_of(recs, callee))
+        was = _what_it_says(_record_at(base, callee))
+        print(f"\n  {callee}  ({len(by[callee])} caller(s))")
+        print(f"      now: {now[:600]}")
+        if was != now:
+            print(f"      at {base}: {was[:600]}")
+        for caller, how in sorted(by[callee]):
+            print(f"        - {caller}{'  (not checked against it before)' if how == 'new' else ''}")
+
+
 def _print_grouped(items: list[tuple[str, str, str]]) -> None:
     by_file: dict[str, list] = {}
     for f, k, what in items:
@@ -272,6 +347,52 @@ def _print_grouped(items: list[tuple[str, str, str]]) -> None:
         print(f"  {f}")
         for k, what in rows:
             print(f"      {k or '(file record)'}: {what}")
+
+
+TEST_ROOTS = ("EmuquTests/", "EmuquUITests/")
+XCTEST_ENTRY = "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass"
+XCTEST_HOOKS = {"setUp": "XCTest runner: per-test setUp", "setUpWithError": "XCTest runner: per-test setUp",
+                "tearDown": "XCTest runner: per-test tearDown", "tearDownWithError": "XCTest runner: per-test tearDown"}
+
+
+def _doc_comment(lines: list[str], start: int) -> str:
+    """The `///` comment directly above line `start` (1-based), attributes skipped, as one line."""
+    i = start - 2
+    while i >= 0 and lines[i].strip().startswith("@"):
+        i -= 1
+    out = []
+    while i >= 0 and lines[i].strip().startswith("///"):
+        out.append(lines[i].strip()[3:].strip())
+        i -= 1
+    return " ".join(reversed(out)).strip()
+
+
+def _sentence(test_name: str) -> str:
+    """`testACancelledCallerResumesAtOnce` -> `a cancelled caller resumes at once`."""
+    words = re.findall(r"[A-Z]+(?=[A-Z][a-z])|[A-Z][a-z]+|[A-Z]+|[a-z]+|\d+", test_name[4:])
+    return " ".join(w if len(w) > 1 and w.isupper() else w.lower() for w in words)
+
+
+def prefilled(path: str, unit: dict, lines: list[str]) -> dict:
+    """The empty record `sync` writes for a new unit. A test-target unit starts from its code: a
+    test method's `entry` is the XCTest runner and its `does` is its `///` comment, or its name as
+    a sentence; setUp and tearDown get their runner entry; any other test helper takes its `///`
+    comment. It is a starting point the author reads against the code before stamping."""
+    rec = {"key": unit["key"], "hash": None, "does": "", "entry": None, "calls": [], "reads": [],
+           "writes": [], "branches": []}
+    if not path.startswith(TEST_ROOTS) or not path.endswith(".swift"):
+        return rec
+    name = unit.get("name") or ""
+    doc = _doc_comment(lines, unit["start"])
+    if unit["kind"] == "function_declaration" and name.startswith("test") and name[4:5].isupper():
+        rec["entry"] = XCTEST_ENTRY
+        rec["does"] = doc or f"Checks that {_sentence(name)}."
+    elif name in XCTEST_HOOKS:
+        rec["entry"] = XCTEST_HOOKS[name]
+        rec["does"] = doc
+    else:
+        rec["does"] = doc
+    return rec
 
 
 def cmd_sync(paths: list[str]) -> int:
@@ -289,14 +410,14 @@ def cmd_sync(paths: list[str]) -> int:
             continue
         rec = load(p) or {"file": p, "hash": None, "role": "", "types": [], "state": [], "toplevel": "", "units": []}
         have = {u["key"]: u for u in rec["units"]}
+        lines = (ROOT / p).read_text(errors="replace").split("\n")
         units = []
         for u in inv[p]["units"]:
             if u["key"] in have:
                 units.append(have[u["key"]])
             else:
-                units.append({"key": u["key"], "hash": None, "does": "", "entry": None, "calls": [], "reads": [],
-                              "writes": [], "branches": []})
-                print(f"{p}: added empty record for {u['key']}")
+                units.append(prefilled(p, u, lines))
+                print(f"{p}: added {'a prefilled' if units[-1]['does'] or units[-1]['entry'] else 'an empty'} record for {u['key']}")
         for k in have.keys() - {u["key"] for u in inv[p]["units"]}:
             print(f"{p}: dropped record for {k} (no longer in the code)")
         rec["units"] = units
@@ -304,41 +425,144 @@ def cmd_sync(paths: list[str]) -> int:
     return 0
 
 
-def cmd_stamp(path: str, keys: list[str]) -> int:
+def stamp_targets(args: list[str]) -> dict[str, list[str]] | None:
+    """`PATH [KEY...]` (no KEY: the file record), or any number of `PATH::KEY` / `PATH::` nodes
+    across files, grouped by path. None when the two forms are mixed."""
+    if any("::" in a for a in args):
+        if not all("::" in a for a in args):
+            return None
+        groups: dict[str, list[str]] = {}
+        for a in args:
+            path, key = a.split("::", 1)
+            groups.setdefault(path, []).append(key)
+        return groups
+    return {args[0]: args[1:] or [""]}
+
+
+def cmd_stamp(groups: dict[str, list[str]]) -> int:
+    """Stamp every named record in one pass: the inventory, records and graph are built once.
+    Every target is checked before any is written, so a refused one leaves all of them as they
+    were."""
     from inventory import inventory
     import graph as graphmod
     full = inventory(ROOT)
-    inv = {path: full[path]} if path in full else {}
-    rec = load(path)
-    if path not in inv or rec is None:
-        print(f"{path}: no record or not in scope. Run sync first.", file=sys.stderr)
-        return 2
-    if not keys:
-        if not (rec.get("role") or "").strip():
-            print(f"{path}: write the file record's role before stamping it.", file=sys.stderr)
-            return 1
-        recs = all_records()
-        g = graphmod.build(full, recs, ROOT)
-        rec["hash"] = inv[path]["hash"]
-        rec["deps"] = current_deps(g, descriptions(recs), f"{path}::")
-        print(f"{path}: file record stamped")
-    else:
-        recs = all_records()
-        g = graphmod.build(full, recs, ROOT)
-        desc = descriptions(recs)
-        current = {u["key"]: u["hash"] for u in inv[path]["units"]}
+    recs = all_records()
+    for path, keys in groups.items():
+        rec = recs.get(path)
+        if path not in full or rec is None:
+            print(f"{path}: no record or not in scope. Run sync first.", file=sys.stderr)
+            return 2
+        current = {u["key"] for u in full[path]["units"]}
         have = {u["key"]: u for u in rec["units"]}
         for k in keys:
-            if k not in current or k not in have:
+            if k == "":
+                if not (rec.get("role") or "").strip():
+                    print(f"{path}: write the file record's role before stamping it.", file=sys.stderr)
+                    return 1
+            elif k not in current or k not in have:
                 print(f"{path}: no unit {k!r}. Run sync, or check the key.", file=sys.stderr)
                 return 2
-            if not (have[k].get("does") or "").strip():
+            elif not (have[k].get("does") or "").strip():
                 print(f"{path}: {k}: write what it does before stamping it.", file=sys.stderr)
                 return 1
-            have[k]["hash"] = current[k]
-            have[k]["deps"] = current_deps(g, desc, f"{path}::{k}")
-            print(f"{path}: stamped {k}")
+    g = graphmod.build(full, recs, ROOT)
+    desc = descriptions(recs)
+    for path, keys in groups.items():
+        rec = recs[path]
+        current = {u["key"]: u["hash"] for u in full[path]["units"]}
+        have = {u["key"]: u for u in rec["units"]}
+        for k in keys:
+            if k == "":
+                rec["hash"] = full[path]["hash"]
+                rec["deps"] = current_deps(g, desc, f"{path}::")
+                print(f"{path}: file record stamped")
+            else:
+                have[k]["hash"] = current[k]
+                have[k]["deps"] = current_deps(g, desc, f"{path}::{k}")
+                print(f"{path}: stamped {k}")
+        save(rec)
+    return 0
+
+
+def cmd_ack(callee: str, callers: list[str]) -> int:
+    """After re-reading each caller of `callee` against the callee's changed record and finding
+    the caller unaffected, mark those re-check lines (and only those) as read: set each caller's
+    recorded hash for `callee` to what the callee's record says now. With no CALLER, every
+    caller with an open re-check line for `callee`. A caller whose own behaviour changed is not
+    acknowledged: its record is rewritten and stamped instead."""
+    from inventory import inventory
+    import graph as graphmod
+    recs = all_records()
+    inv = inventory(ROOT)
+    items = [(f, k) for f, k, c, _ in recheck_items(inv, recs, graphmod.build(inv, recs, ROOT)) if c == callee]
+    if not items:
+        print(f"ack: no open re-check line for {callee}", file=sys.stderr)
+        return 1
+    open_nodes = {f"{f}::{k}" for f, k in items}
+    missing = set(callers) - open_nodes
+    if missing:
+        print("ack: no open re-check line for " + callee + " on: " + ", ".join(sorted(missing)), file=sys.stderr)
+        return 2
+    want = set(callers) or open_nodes
+    h = descriptions(recs)[callee]
+    touched = set()
+    for f, k in items:
+        if f"{f}::{k}" not in want:
+            continue
+        r = record_of(recs, f"{f}::{k}")
+        r.setdefault("deps", {})[callee] = h
+        touched.add(f)
+        print(f"acknowledged {f}::{k}")
+    for f in touched:
+        save(recs[f])
+    return 0
+
+
+def cmd_move(old: str, new: str, renames: list[str]) -> int:
+    """Carry records across a file move or a unit rename, before `sync`: the record of `old`
+    becomes the record of `new` (findings overlay included), each `OLDKEY=NEWKEY` unit is renamed,
+    and every reference to them in other records' `calls` and `deps` is rewritten, so callers are
+    neither sent back nor left naming a unit that is gone. Recorded descriptions are untouched."""
+    pairs = {}
+    for r in renames:
+        if "=" not in r:
+            print(f"move: {r!r} is not OLDKEY=NEWKEY", file=sys.stderr)
+            return 2
+        a, b = r.split("=", 1)
+        pairs[a] = b
+    rec = load(old)
+    if rec is None:
+        print(f"move: no record for {old}", file=sys.stderr)
+        return 2
+    if new != old and record_path(new).is_file():
+        print(f"move: {new} already has a record; run move before sync", file=sys.stderr)
+        return 2
+    for u in rec.get("units", []):
+        u["key"] = pairs.get(u["key"], u["key"])
+    rec["file"] = new
     save(rec)
+    if new != old:
+        record_path(old).unlink()
+        (FLAGS / (old + ".json")).unlink(missing_ok=True)
+    nodes = {f"{old}::{a}": f"{new}::{b}" for a, b in sorted(pairs.items(), key=lambda x: -len(x[0]))}
+    prefix = re.compile(rf"(?<![\w/.+-]){re.escape(old)}::")
+
+    def moved(s: str) -> str:
+        for a, b in nodes.items():
+            s = s.replace(a, b)
+        return prefix.sub(f"{new}::", s) if new != old else s
+    changed = 0
+    for path, r in all_records().items():
+        before = json.dumps(r, sort_keys=True)
+        for holder in [r] + r.get("units", []):
+            if holder.get("calls"):
+                holder["calls"] = [moved(c) if isinstance(c, str) else c for c in holder["calls"]]
+            if holder.get("deps"):
+                holder["deps"] = {moved(k): v for k, v in holder["deps"].items()}
+        if json.dumps(r, sort_keys=True) != before:
+            save(r)
+            changed += 1
+    print(f"move: {old} -> {new}; {len(pairs)} unit(s) renamed; references rewritten in {changed} record(s)")
     return 0
 
 
@@ -491,11 +715,21 @@ def main(argv: list[str]) -> int:
     if cmd == "check":
         return cmd_check(strict=True)
     if cmd == "status":
+        if rest[:1] == ["--by-callee"]:
+            return cmd_check(strict=False, by_callee=True, base=rest[1] if len(rest) > 1 else "origin/main")
         return cmd_check(strict=False)
     if cmd == "sync" and rest:
         return cmd_sync(rest)
     if cmd == "stamp" and rest:
-        return cmd_stamp(rest[0], rest[1:])
+        groups = stamp_targets(rest)
+        if groups is None:
+            print("stamp: give either PATH [KEY...] or PATH::KEY nodes, not both", file=sys.stderr)
+            return 2
+        return cmd_stamp(groups)
+    if cmd == "ack" and rest:
+        return cmd_ack(rest[0], rest[1:])
+    if cmd == "move" and len(rest) >= 2:
+        return cmd_move(rest[0], rest[1], rest[2:])
     if cmd == "impact":
         return cmd_impact(rest)
     if cmd == "callers" and len(rest) == 1:

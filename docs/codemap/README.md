@@ -18,6 +18,7 @@ two large string catalogs also has a file-level record.
 | `role`, `types`, `state`, `toplevel` | What the file is for, the types it declares, the stored state it declares, and what any code outside the units does. |
 | `units[].key` | Stable name of the unit: kind, enclosing type, name and argument labels, e.g. `func HRVSession.isValidForAnalysis(minimumBeats:)`. Overloads that share labels add parameter types; identical signatures add `#2`. A unit's full name is `<path>::<key>`; a file's top-level code is `<path>::`. |
 | `units[].does` | What the unit does, concretely. |
+| `units[].contract` | Optional. What callers may rely on: results, errors and effects, without the how. When present, callers are checked against it (with `entry`, `reads` and `writes`) instead of the whole description. |
 | `units[].entry` | What triggers it when app code does not call it directly (SwiftUI, a delegate, a notification, a timer, XCTest, CI). |
 | `units[].calls` | Units it calls, as `path::key`, plus `ext:` framework calls and `dyn:` / `closure:` dispatch. |
 | `units[].reads`, `writes` | Persistent or shared state, prefixed `ud:` `file:` `archive:` `hk:` `ck:` `kc:` `kvs:` `mem:` `notif:` `net:` `ble:` `wc:`. |
@@ -71,8 +72,11 @@ It also lists, without failing, the records to re-check:
   far as it reaches;
 - a record names a callee that no longer exists.
 
-`codemap.py status` prints every re-check line; `check` prints only how many there are. Each one
-is cleared by re-reading the unit and stamping it (see "Changing code").
+`codemap.py status` prints every re-check line; `check` prints only how many there are.
+`codemap.py status --by-callee [BASE]` groups them by the callee that caused them and prints what
+that callee's record says now and at `BASE` (default `origin/main`), so its callers are read
+against one change. Each line is cleared by re-reading the unit and either stamping it (its record
+was rewritten) or acknowledging it with `ack` (it was unaffected); see "Changing code".
 
 Findings are kept out of the public records. Each record's `flags` (kind, severity, text and
 evidence of a problem found) live in a local, untracked overlay, `do_not_ship/codemap/flags/<path>.json`
@@ -86,8 +90,18 @@ overlay (a public clone, GitHub Actions) the ratchet does not run.
 
 The code hash leaves out whole-line comments and the lines of units nested inside a unit, so
 editing a comment or a nested function does not make the outer record stale. What a caller is
-checked against is the callee's `does`, `entry`, `reads`, `writes` and branches: rewording
-a record therefore sends its callers back, so change a record only when the behaviour changed.
+checked against is the callee's `does`, `entry`, `reads`, `writes` and branches; for a callee
+whose record has a `contract`, it is the contract, `entry`, `reads` and `writes` only. Without a
+contract, rewording a record sends its callers back, so change a record only when the behaviour
+changed. With one, `does` and the branches can be corrected or reworded freely; change the
+contract only when what callers get changes (a different result, error or effect), and that change
+sends them back. Adding a contract to a record sends its callers back once.
+
+What belongs in a contract is what a caller would break on: what is returned and when (including
+nil, empty and failure), what is thrown, what is written or posted, and what must hold first. Log
+text, timing details callers do not depend on, and how the result is computed stay in `does`. A
+contract that leaves out something callers rely on stops them being sent back when it changes, so
+when in doubt, put it in.
 
 The check proves that each record was written after the last change to its code, and lists the
 records whose callees have changed since. It cannot prove a record is right; that is the author's
@@ -116,19 +130,33 @@ failed. `codemap.py callers <path::key>` lists one unit's direct callers.
    overlay) the open findings. Those are the paths the change has to keep working.
 2. Make the change, including whatever the impact list shows the callers need.
 3. `make codemap-guard` lists every record the change affects.
-4. For new or deleted units: `codemap.py sync <path>` adds empty records and drops the ones whose
-   code is gone.
-5. Re-read the code and rewrite each listed record so it describes the code as it now is: `does`,
-   `entry`, `calls`, `reads`, `writes` and every branch. With the overlay, delete the flags the
-   change fixed and lower the matching `codemap_open_*.txt` budget.
-6. For each "re-check" line, re-read that unit against the callee's new behaviour. If the unit
-   still behaves as its record says, stamp it unchanged. If it does not, fix the unit or rewrite its
-   record, which sends its own callers back.
-7. Stamp each record once it is right, callees before callers:
-   `codemap.py stamp <path> [<key> ...]` (no key stamps the file-level record). `stamp` refuses a
-   record with an empty description and records the code hash and the callees' current
-   descriptions. Stamping a caller before its callee leaves it to be re-checked again.
-8. `make codemap-guard` is clean.
+4. For a moved or renamed file, or a renamed unit, run `codemap.py move <old path> <new path>
+   [OLDKEY=NEWKEY ...]` before `sync` (the same path twice for a rename in place). It carries the
+   record across and rewrites every other record's `calls` and `deps` that name it, so callers are
+   neither sent back nor left naming a unit that is gone.
+5. For new or deleted units: `codemap.py sync <path>` adds records and drops the ones whose code is
+   gone. A new unit in a test target starts prefilled from its code (a test's `///` comment, or its
+   name as a sentence, and its XCTest trigger); read it against the test before stamping, as any
+   record.
+6. Re-read the code and rewrite each listed record so it describes the code as it now is: `does`,
+   `contract` where the record has one, `entry`, `calls`, `reads`, `writes` and every branch. With
+   the overlay, delete the flags the change fixed and lower the matching `codemap_open_*.txt`
+   budget.
+7. For each "re-check" line, re-read that unit against the callee's new behaviour
+   (`codemap.py status --by-callee` shows the callee's change with its callers). If the unit still
+   behaves as its record says, acknowledge it: `codemap.py ack <callee> [<caller> ...]` clears the
+   named callers' lines for that callee (every caller's, when none is named), and only those lines.
+   If it does not, fix the unit or rewrite its record, which sends its own callers back, and stamp
+   it.
+8. Stamp each record once it is right, after its callees' records are written (a stamp records
+   what the callees' records say at that moment, so a callee record rewritten later sends the
+   caller back): `codemap.py stamp <path> [<key> ...]` (no key stamps the
+   file-level record), or any number of records across files in one pass with
+   `codemap.py stamp <path>::<key> <path>:: ...`. `stamp` refuses a record with an empty
+   description, checks every target before writing any, and records the code hash and the callees'
+   current descriptions. Stamping a unit clears every open re-check line on it, so stamp only a
+   unit re-read against all of them; `ack` clears one callee's lines without touching the rest.
+9. `make codemap-guard` is clean.
 
 Run these with the interpreter `make codemap-setup` creates (`.venv-codemap/bin/python`); the
 inventory needs tree-sitter, which needs Python 3.10 or newer. `scripts/codemap/setup_venv.sh`
@@ -136,8 +164,8 @@ picks the first such interpreter on PATH, then in Homebrew, the python.org insta
 (or `CODEMAP_BASE_PYTHON`); with none installed it downloads a pinned, checksum-verified
 standalone CPython 3.12 into `.codemap-python/`. It rebuilds a venv an older interpreter made.
 
-`stamp` records hashes; it does not read anything. Stamping without re-reading defeats the check,
-and review is the only thing that catches that.
+`stamp` and `ack` record hashes; they do not read anything. Stamping or acknowledging without
+re-reading defeats the check, and review is the only thing that catches that.
 
 ## The report
 

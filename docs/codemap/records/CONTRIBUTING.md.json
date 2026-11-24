@@ -102,8 +102,8 @@
   },
   {
    "key": "§ How a change lands in Emuqu > While you work > The code map is part of the change",
-   "hash": "390ad96db8f5f82b",
-   "does": "Says every function, script target, workflow step and doc section has a record in docs/codemap/records and that CI, make ci and the pre-commit hook fail until the records for a change are current. Steps: impact before the change (make codemap-impact or codemap.py impact <path::key>), reading the record, callers and tests that reach it; make the change; make codemap-guard and rewrite each listed record against the code; re-read each re-check caller (codemap.py status lists them) and change it or its record if its behaviour changed; stamp after re-reading, callees before callers. Links docs/codemap/README.md. Every command named exists.",
+   "hash": "54f75c34728edb6b",
+   "does": "Says every function, script target, workflow step and doc section has a record in docs/codemap/records and that CI, make ci and the pre-commit hook fail until the records for a change are current. Steps: impact before the change (make codemap-impact or codemap.py impact <path::key>), reading the record, callers and tests that reach it; make the change; make codemap-guard and rewrite each listed record against the code; re-read each re-check caller (codemap.py status --by-callee lists them under the changed callee), clearing an unaffected one with codemap.py ack and changing it or its record if its behaviour changed; stamp after re-reading, once the callees' records are written, any number in one pass; a moved file or renamed unit carried over first with codemap.py move. Links docs/codemap/README.md. Every command named exists.",
    "entry": null,
    "calls": [
     "Makefile::target codemap-impact",
@@ -121,8 +121,8 @@
     "Makefile::target codemap-impact": "03eba22ded671ba7",
     "scripts/codemap/codemap.py::def budget_problems": "4b5252320a3020b3",
     "scripts/codemap/codemap.py::def cmd_impact": "192de9074058712d",
-    "scripts/codemap/codemap.py::def cmd_stamp": "02a2425e48ed73af",
-    "scripts/codemap/codemap.py::def dependency_problems": "df4bf0f691649e50"
+    "scripts/codemap/codemap.py::def cmd_stamp": "c9cdf3a9ec8f865c",
+    "scripts/codemap/codemap.py::def dependency_problems": "bd259b7be6811115"
    }
   },
   {
