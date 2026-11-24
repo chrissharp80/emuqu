@@ -41,7 +41,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "67c13f7cb06693bf"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::func LivePaceEstimator.DistanceWindow.speed(now:)": "9b56cb60dbb544ab"
    }
   },
   {
@@ -88,13 +88,12 @@
    ],
    "reads": [],
    "writes": [
-    "file:WorkoutBackup/ directory",
-    "mem:WorkoutTrackBackup.unlockObservers"
+    "file:WorkoutBackup/ directory"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "b0bf24dc1620001d",
-    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "d432f67cdef18c5f",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "a581e331ec0b88b2"
    }
   },
   {
@@ -107,12 +106,11 @@
    ],
    "reads": [],
    "writes": [
-    "file:WorkoutBackup/ directory",
-    "mem:WorkoutTrackBackup.unlockObservers"
+    "file:WorkoutBackup/ directory"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:notificationCenter:)": "469fe62263ca0c99"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:notificationCenter:)": "5d3dd963259640fe"
    }
   },
   {
@@ -128,14 +126,13 @@
    "reads": [],
    "writes": [
     "file:WorkoutBackup/ directory",
-    "mem:WorkoutTrackBackup.notificationCenter",
-    "mem:WorkoutTrackBackup.unlockObservers"
+    "mem:WorkoutTrackBackup.notificationCenter"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.createDirectoryIfNeeded()": "642908bcc6906478",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.observeUnlock()": "25349c1d4cb34747",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "8449be48b2a3ef16"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.createDirectoryIfNeeded()": "5dd95bc6b34eac15",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.observeUnlock()": "2c5519c15658087b",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "2587f45dbf3428ec"
    }
   },
   {
@@ -155,7 +152,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "dd504bad520a4d13"
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "f557587dcc2ab67c"
    }
   },
   {
@@ -176,8 +173,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "8449be48b2a3ef16",
-    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "2587f45dbf3428ec",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "0e56488d70447a5e"
    }
   },
   {
@@ -207,7 +204,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -274,12 +271,10 @@
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncrementalSerialized(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)"
    ],
    "reads": [],
-   "writes": [
-    "file:<uuid>_workout_* streams"
-   ],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncrementalSerialized(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "6c90af313d5f3b41"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncrementalSerialized(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "f83351572a604267"
    }
   },
   {
@@ -301,7 +296,6 @@
     "mem:WorkoutTrackBackup.headerWritten"
    ],
    "writes": [
-    "file:<uuid>_workout_header.json",
     "file:<uuid>_workout_track.jsonl",
     "file:<uuid>_workout_samples.jsonl",
     "file:<uuid>_workout_baro.jsonl",
@@ -309,14 +303,14 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendOrderedStream(_:from:url:sessionId:streamName:cursors:)": "4bbdb11db9577530",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendStream(_:from:url:sessionId:streamName:cursor:)": "1b83b38d8bb23991",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.baroURL(_:)": "c2f06e3d3cc708af",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)": "1620eab2d263416c",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.offsets(for:)": "e74fdb822610d3eb",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)": "2623e70d69b0083b",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "31306b37d1ca89db",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.writeHeader(sessionId:sport:startDate:)": "b07b56d25aba959c"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendOrderedStream(_:from:url:sessionId:streamName:cursors:)": "cc23c200e9852de4",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendStream(_:from:url:sessionId:streamName:cursor:)": "2a28bec482b850cc",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.baroURL(_:)": "61e74e0a5262f8f9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)": "1f2d67ac17fc0de5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.offsets(for:)": "0d3820ee5c26420f",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)": "71dd83eba5f61ae0",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "247276e22cc78d4a",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.writeHeader(sessionId:sport:startDate:)": "03500c307c7651b1"
    }
   },
   {
@@ -359,11 +353,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.baroURL(_:)": "c2f06e3d3cc708af",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)": "1620eab2d263416c",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.persistedLineCount(_:)": "d7865f30a161198b",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)": "2623e70d69b0083b",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "31306b37d1ca89db"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.baroURL(_:)": "61e74e0a5262f8f9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)": "1f2d67ac17fc0de5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.persistedLineCount(_:)": "8a8c7576c76f4480",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)": "71dd83eba5f61ae0",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "247276e22cc78d4a"
    }
   },
   {
@@ -392,8 +386,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.setAsideFiles(for:)": "e8f5bcefba514cb3",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.setAsideFiles(for:)": "0b42ffbdb3afc04c",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -435,8 +429,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.advanceCursor(_:sessionId:to:)": "75606382427bce44",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendJSONL(url:items:sessionId:streamName:)": "741f5aadd2558532"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.advanceCursor(_:sessionId:to:)": "238dabc49650bb29",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendJSONL(url:items:sessionId:streamName:)": "75f2b7e72b031a0d"
    }
   },
   {
@@ -474,9 +468,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.advanceCursor(_:sessionId:to:)": "75606382427bce44",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendJSONL(url:items:sessionId:streamName:)": "741f5aadd2558532",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.firstIndex(in:after:)": "f2b7fa6bd121a632"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.advanceCursor(_:sessionId:to:)": "238dabc49650bb29",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendJSONL(url:items:sessionId:streamName:)": "75f2b7e72b031a0d",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.firstIndex(in:after:)": "433174ad54bd7633"
    }
   },
   {
@@ -498,8 +492,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var Int.backupOrderKey": "edfcbce95fb533ac",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutSample.backupOrderKey": "edac879594898cfc"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var Int.backupOrderKey": "7fcf0496d7f2421d",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutSample.backupOrderKey": "b25327bbd89d0097"
    }
   },
   {
@@ -524,9 +518,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.headerURL(_:)": "182ae9153186756b",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::let WorkoutTrackBackup.encoder": "c47f9590ef4b95da",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.headerURL(_:)": "2024c1eacb0da6c3",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::let WorkoutTrackBackup.encoder": "9eb20a264b56aeee",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -542,9 +536,7 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
-   "writes": [
-    "file:<uuid>_workout_* stream"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+6",
@@ -573,11 +565,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.append(_:toExisting:)": "82f94e7ca99c5081",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.encodeLines(_:sessionId:streamName:)": "029b6f67cafb034f",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.rewriteUnopenable(_:adding:sessionId:streamName:)": "b36aa727c74377a2",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.write(_:to:sessionId:streamName:label:)": "e5ec60a35a0a24f5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.append(_:toExisting:)": "1194838c9b71cf12",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.encodeLines(_:sessionId:streamName:)": "fc4fded87170719d",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.rewriteUnopenable(_:adding:sessionId:streamName:)": "900bfa63eedebe1b",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.write(_:to:sessionId:streamName:label:)": "759ba8ab64aa3a26",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -591,13 +583,8 @@
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.write(_:to:sessionId:streamName:label:)",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.preserveCorruptedFile(at:)"
    ],
-   "reads": [
-    "file:<uuid>_workout_* stream"
-   ],
-   "writes": [
-    "file:<uuid>_workout_* stream",
-    "file:<stream>.corrupted_<epoch>"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -611,10 +598,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.completeLines(of:)": "6ed2cb8999fb9be8",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.preserveCorruptedFile(at:)": "adaa68e91e276b1a",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.write(_:to:sessionId:streamName:label:)": "e5ec60a35a0a24f5",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.completeLines(of:)": "df6e9cb8f101d97e",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.preserveCorruptedFile(at:)": "95d992fb222cc0f7",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.write(_:to:sessionId:streamName:label:)": "759ba8ab64aa3a26",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -638,7 +625,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -655,10 +642,7 @@
    "reads": [
     "kc:session-encryption-key (via EncryptionManager)"
    ],
-   "writes": [
-    "ud:storage.pendingReencryption.workoutTrackIDs",
-    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+3",
@@ -672,11 +656,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "3fe4c23abb6fccf2",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)": "ba864e9622862fb5",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::let WorkoutTrackBackup.encoder": "c47f9590ef4b95da",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "ebe58488fea24a49",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "bd74e3705df55cd2",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)": "e47e026bcd96583a",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::let WorkoutTrackBackup.encoder": "9eb20a264b56aeee",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -700,7 +684,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -728,7 +712,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -745,7 +729,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieveSerialized(_:)": "7dfa2be0ed043ce6"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieveSerialized(_:)": "942b433cccf3a22b"
    }
   },
   {
@@ -778,15 +762,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.baroURL(_:)": "c2f06e3d3cc708af",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.decodeJSONL(url:as:)": "fd3e0f9cf4f6db62",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.headerURL(_:)": "182ae9153186756b",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)": "1620eab2d263416c",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.logHeaderlessStreams(_:)": "b71fa22fd209499f",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.recoveredTrack(_:)": "f07f97aaad99092e",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)": "2623e70d69b0083b",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::let WorkoutTrackBackup.decoder": "70e5a2a626ab00f1",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutSample.finiteValuesOnly": "7e65abae37dc65d0"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.baroURL(_:)": "61e74e0a5262f8f9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.decodeJSONL(url:as:)": "cf3ef4a7bc8f8bf0",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.headerURL(_:)": "2024c1eacb0da6c3",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)": "1f2d67ac17fc0de5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.logHeaderlessStreams(_:)": "563d7151d70bdddf",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.recoveredTrack(_:)": "36ee9d2bdb60f3d0",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)": "71dd83eba5f61ae0",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::let WorkoutTrackBackup.decoder": "ebd8ff15154dfe71",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutSample.finiteValuesOnly": "2b5a5c3f817a07a0"
    }
   },
   {
@@ -805,9 +789,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.decodeJSONL(url:as:)": "fd3e0f9cf4f6db62",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "31306b37d1ca89db",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutTrackBackup.PersistedFix.asCLLocation": "e49133fc1ea4652f"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.decodeJSONL(url:as:)": "cf3ef4a7bc8f8bf0",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "247276e22cc78d4a",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutTrackBackup.PersistedFix.asCLLocation": "5ae25f3d3deb046c"
    }
   },
   {
@@ -834,11 +818,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.baroURL(_:)": "c2f06e3d3cc708af",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)": "1620eab2d263416c",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)": "2623e70d69b0083b",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "31306b37d1ca89db",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.baroURL(_:)": "61e74e0a5262f8f9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)": "1f2d67ac17fc0de5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)": "71dd83eba5f61ae0",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "247276e22cc78d4a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -856,8 +840,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.decodeJSONLFile(url:as:)": "d5f03ceb4744f49f",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.setAsideFiles(for:)": "e8f5bcefba514cb3"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.decodeJSONLFile(url:as:)": "a97d068082640793",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.setAsideFiles(for:)": "0b42ffbdb3afc04c"
    }
   },
   {
@@ -880,7 +864,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -898,8 +882,7 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "file:<uuid>_workout_* stream",
-    "kc:session-encryption-key (via EncryptionManager)"
+    "file:<uuid>_workout_* stream"
    ],
    "writes": [],
    "branches": [
@@ -925,13 +908,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.open(_:with:)": "47cc1779bcdbfa0f",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::let WorkoutTrackBackup.decoder": "70e5a2a626ab00f1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager": "73ebcb3083a7f73a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.open(_:with:)": "4f51cc23db946e19",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::let WorkoutTrackBackup.decoder": "ebd8ff15154dfe71",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager": "0efbb5422901852e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -946,17 +929,15 @@
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.setAsideFiles(for:)"
    ],
-   "reads": [
-    "file:WorkoutBackup/ directory listing"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.baroURL(_:)": "c2f06e3d3cc708af",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)": "1620eab2d263416c",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)": "2623e70d69b0083b",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.setAsideFiles(for:)": "e8f5bcefba514cb3",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "31306b37d1ca89db"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.baroURL(_:)": "61e74e0a5262f8f9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)": "1f2d67ac17fc0de5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)": "71dd83eba5f61ae0",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.setAsideFiles(for:)": "0b42ffbdb3afc04c",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "247276e22cc78d4a"
    }
   },
   {
@@ -972,16 +953,10 @@
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.resealStreams(of:with:)"
    ],
    "reads": [
-    "file:Application Support/PendingEncryption/<store key>.json (no file protection)",
-    "kc:session-encryption-key (via EncryptionManager)",
-    "mem:WorkoutTrackBackup.resealQueued",
-    "ud:storage.pendingReencryption.workoutTrackIDs"
+    "mem:WorkoutTrackBackup.resealQueued"
    ],
    "writes": [
-    "file:<uuid>_workout_{track,samples,baro,hkhr}.jsonl and their .corrupted_<ts> copies (re-sealed)",
-    "file:Application Support/PendingEncryption/<store key>.json (no file protection)",
-    "mem:WorkoutTrackBackup.resealQueued",
-    "ud:storage.pendingReencryption.workoutTrackIDs"
+    "mem:WorkoutTrackBackup.resealQueued"
    ],
    "branches": [
     {
@@ -996,10 +971,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "3fe4c23abb6fccf2",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.resealStreams(of:with:)": "2111a38d3434611f",
-    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()": "7eb7fa9354ab076a"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "99927b4fcee8f58e",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "bd74e3705df55cd2",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.resealStreams(of:with:)": "d29a42f705e2b542",
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()": "a713555178f8e958"
    }
   },
   {
@@ -1020,8 +995,7 @@
    ],
    "writes": [
     "file:<uuid>_workout_{track,samples,baro,hkhr}.jsonl and their .corrupted_<ts> copies (re-sealed)",
-    "ud:storage.pendingReencryption.workoutTrackIDs",
-    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
+    "ud:storage.pendingReencryption.workoutTrackIDs"
    ],
    "branches": [
     {
@@ -1041,10 +1015,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.resealFile(at:with:)": "c3e6212f7a5f6717",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.streamFiles(of:)": "97e26bee35cd10d9",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a02f43686d9ee25f",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.resealFile(at:with:)": "bf60763b0829cc59",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.streamFiles(of:)": "50dba69367c6569f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -1057,15 +1031,10 @@
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discardSerialized(_:)"
    ],
    "reads": [],
-   "writes": [
-    "file:<uuid>_workout_* files (deleted)",
-    "mem:WorkoutTrackBackup cursors/headerWritten",
-    "ud:storage.pendingReencryption.workoutTrackIDs",
-    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
-   ],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discardSerialized(_:)": "99374614563aeb53"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discardSerialized(_:)": "a864a1610e158af8"
    }
   },
   {
@@ -1085,8 +1054,7 @@
    "writes": [
     "file:<uuid>_workout_* files (deleted)",
     "mem:WorkoutTrackBackup cursors/headerWritten",
-    "ud:storage.pendingReencryption.workoutTrackIDs",
-    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
+    "ud:storage.pendingReencryption.workoutTrackIDs"
    ],
    "branches": [
     {
@@ -1096,12 +1064,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func BackupFiles.remove(_:using:)": "b9745b71c153650d",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.forgetCursors(of:)": "7f2ea67cf64c1f7d",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.headerURL(_:)": "182ae9153186756b",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.streamFiles(of:)": "97e26bee35cd10d9",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a02f43686d9ee25f",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func BackupFiles.remove(_:using:)": "b1ae43f5c9575398",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.forgetCursors(of:)": "2d0ce7ccdf6a4d3a",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.headerURL(_:)": "2024c1eacb0da6c3",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.streamFiles(of:)": "50dba69367c6569f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -1132,15 +1100,10 @@
     "ext:DispatchQueue.sync",
     "ext:NSLock"
    ],
-   "reads": [
-    "file:WorkoutBackup/ directory listing"
-   ],
+   "reads": [],
    "writes": [
     "file:WorkoutBackup/* (deleted)",
-    "file:WorkoutBackup/ directory",
-    "mem:WorkoutTrackBackup.trackCursor/sampleCursor/baroCursor/healthKitHRCursor/sampleLastKey/healthKitHRLastKey/headerWritten",
-    "ud:storage.pendingReencryption.workoutTrackIDs",
-    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
+    "mem:WorkoutTrackBackup.trackCursor/sampleCursor/baroCursor/healthKitHRCursor/sampleLastKey/healthKitHRLastKey/headerWritten"
    ],
    "branches": [
     {
@@ -1155,10 +1118,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.allSessionIdsOnDisk()": "9993716fa79fdaa4",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.createDirectoryIfNeeded()": "642908bcc6906478",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discardSerialized(_:)": "99374614563aeb53",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.allSessionIdsOnDisk()": "3309c0aa0eee7232",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.createDirectoryIfNeeded()": "5dd95bc6b34eac15",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discardSerialized(_:)": "a864a1610e158af8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -1185,8 +1148,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func finiteOrNil(_:)": "b553a472caa936fd"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "ac3a80bf00fc3b08",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func finiteOrNil(_:)": "3801f0cf02f202b0"
    }
   },
   {

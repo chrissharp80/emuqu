@@ -35,7 +35,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "5c9bb3b18af92a73"
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "fd4aa9aec5632a6d"
    }
   },
   {
@@ -50,9 +50,7 @@
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.span(of:)",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.newSessionMayClaimNight(over:newBeatCount:)"
    ],
-   "reads": [
-    "archive:SessionArchive.entries (index)"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -92,12 +90,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.gapBetween(_:_:)": "9faf3e99aeec17d1",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)": "2e660c842d5f5a67",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.newSessionMayClaimNight(over:newBeatCount:)": "eaae2e311bbe20e7",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightEntries(of:sleepSchedule:)": "e0bd0bd914140e54",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.span(of:)": "180ab52cd243a5e7"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "48667315e3fffa7a",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.gapBetween(_:_:)": "82024eeec7757c69",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)": "f982ada6e4a1fd4c",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.newSessionMayClaimNight(over:newBeatCount:)": "883b5ac860573263",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightEntries(of:sleepSchedule:)": "d198448395a7a559",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.span(of:)": "4d1d4aff6c32b11f",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)": "4b779c62baced850",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)": "579f14da553c5143"
    }
   },
   {
@@ -116,7 +116,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "56ce14dca634ba7d"
    }
   },
   {
@@ -140,8 +140,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "0241edd84800b1f0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "8c525844aa381012",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -178,8 +178,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)": "ce13fa16aa3fc9ea"
-   }
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)": "4b779c62baced850"
+   },
+   "delegates": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.gapBetween(_:_:)"
+   ]
   },
   {
    "key": "func MorningProcessingService.span(of:)",
@@ -193,8 +196,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)": "43e95b40f5202b4d"
-   }
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)": "579f14da553c5143"
+   },
+   "delegates": [
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(of: SessionArchiveEntry)"
+   ]
   },
   {
    "key": "func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)",
@@ -206,9 +212,7 @@
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.offsetPoints(_:to:)"
    ],
-   "reads": [
-    "archive:SessionArchive.entries + retrieve of same-night sessions"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -228,11 +232,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)": "2e660c842d5f5a67",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.offsetPoints(_:to:)": "235f414be2d6b80e",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)": "5ea0543e954f1a8b"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "48667315e3fffa7a",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "e642612567733de9",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)": "f982ada6e4a1fd4c",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.offsetPoints(_:to:)": "7ae098294a511b60",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)": "ae07733542cb4496"
    }
   },
   {
@@ -262,10 +266,7 @@
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeableSegment(_:in:)",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.segmentsWithinGap(_:gap:)"
    ],
-   "reads": [
-    "archive:SessionArchive.entries",
-    "archive:SessionArchive.retrieve"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -280,11 +281,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)": "2e660c842d5f5a67",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeableSegment(_:in:)": "9a6494d20222a18d",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightEntries(of:sleepSchedule:)": "e0bd0bd914140e54",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.segmentsWithinGap(_:gap:)": "a644cb81f019ea3b",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)": "f982ada6e4a1fd4c",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeableSegment(_:in:)": "b1608de0508f13a8",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightEntries(of:sleepSchedule:)": "d198448395a7a559",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.segmentsWithinGap(_:gap:)": "d73d0b450c5adb73",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "7cb48f6937f0b9f5"
    }
   },
   {
@@ -306,10 +307,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "4efda53e781606e1",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.runsWithinGap(_:gap:span:)": "70b5f3e0d68fd10e",
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(start:end:)": "3728bcbc8451feee"
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "cf2921aa73b5fd06",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "7cb48f6937f0b9f5",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.runsWithinGap(_:gap:span:)": "33ff5eb9f9bbd5c7",
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.span(start:end:)": "a81f123f8f75a946"
    }
   },
   {
@@ -326,8 +327,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "54265da0046fd3e1"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "48667315e3fffa7a",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "3345ee65c2db127b"
    }
   },
   {
@@ -342,7 +343,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:from:onto:)": "5072ead99fbd8db0"
+    "Emuqu/Sources/Storage/SessionMerger+Timeline.swift::func SessionMerger.rebased(_:from:onto:)": "f3f5fd3b06ef9135"
    }
   },
   {
@@ -358,8 +359,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.runAnalysis(analyzingSession:series:flags:windowResult:trainingContext:ansConfig:)": "bb2f28dcc3996eef",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.runAnalysis(analyzingSession:series:flags:windowResult:trainingContext:ansConfig:)": "c0a24b546b7f723a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -384,10 +385,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.fetchDaytimeRestingHR(for:sessionId:)": "a1eb54e64b9d99fb",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)": "2c159d80c38446e8",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "f982489dcaac4121",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.analyzeFullSeriesOffMain(series:flags:peakCapacity:trainingContext:ansConfig:daytimeRestingHR:)": "da35b8ae58d23a12"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.fetchDaytimeRestingHR(for:sessionId:)": "99fc67c2c8b08b83",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)": "935dae0c5b94a68f",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "c8574ebc105f7044",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.analyzeFullSeriesOffMain(series:flags:peakCapacity:trainingContext:ansConfig:daytimeRestingHR:)": "8a16f8d94ec2188e"
    }
   },
   {
@@ -420,13 +421,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "6b22c8efc9ae5167",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.carryForward(links:sleep:to:)": "e064acb68f792dd5",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.baseSession(ending:points:)": "c8b7b25bbb7589ad"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "48667315e3fffa7a",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "b9e79116cd73c167",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "02d2df7c3381fdff",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "cdc80e964ca1bc0b",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.carryForward(links:sleep:to:)": "3d9f17bb05ac6edb",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "a8febda7887ce36b",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestArchiveSeed.baseSession(ending:points:)": "37e1e519f13b32ff"
    }
   },
   {
@@ -450,7 +451,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "dc47bc37dcaf85ef"
    }
   },
   {
@@ -471,7 +472,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)": "7c69fbf5624d0fa7"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.DataSourceSummary(selectedSource:streamingBeats:deviceBeats:totalBeats:beatDifferencePercent:reconnectCount:deviceModel:)": "f14f95d2972fc29d"
    }
   },
   {
@@ -490,7 +491,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "255aba061542ff63"
    }
   },
   {
@@ -528,13 +529,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "5502e8cc0b7a6e8b",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "eb3b9be07070a091",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.ansBalance(of:)": "1eae191198ada1bb",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoreInputs(result:health:settings:baselineStats:)": "c8599e1fa4e902e2",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)": "6233dd6d8bf3eef8",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "8d54c092a68c1d94"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "9deb7cab7e82cedc",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "617bb7dd0e350f4c",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "2ee489480f6d8c78",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.ansBalance(of:)": "52a850389ac644e8",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoreInputs(result:health:settings:baselineStats:)": "a5a698aff3678353",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)": "8151c2a803059ee0",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "07e34753ca8aa693"
    }
   },
   {
@@ -547,7 +548,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "255aba061542ff63"
    }
   },
   {
@@ -577,10 +578,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.freshSleepData(for:sessionEnd:)": "ac6519e6a56fc393"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "dc47bc37dcaf85ef",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "eba9702a453593a9",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "23cd3669b4aa090e",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.freshSleepData(for:sessionEnd:)": "f39ab97233cbe957"
    }
   },
   {
@@ -610,8 +611,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "e0f3fbb6f526617f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "29dbca6aa58e7240",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -641,10 +642,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMinutes": "1fb1be479fb2a952",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMinutes": "efa9f0804b66cb2c",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "7cb48f6937f0b9f5",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "33e465f32fcf44b0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -666,8 +667,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "d3f1eca5cb52fae2",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeriesWithCapacity(series:flags:peakCapacity:trainingContext:ansConfig:daytimeRestingHR:)": "9a41ea5c2ae53057"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "a58ae2c8df6cce3d",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeriesWithCapacity(series:flags:peakCapacity:trainingContext:ansConfig:daytimeRestingHR:)": "b462242526c4eabc"
    }
   }
  ],

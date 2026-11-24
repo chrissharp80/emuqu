@@ -653,13 +653,15 @@ check "codemap/stale_record" \
     "Emuqu/Sources/Utilities/Extensions.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Extensions.swift');s=p.read_text();t=s.replace('static func hoursMinutes(minutes: Int) -> String {','static func hoursMinutes(minutes: Int) -> String {'+chr(10)+'        let planted = 0; _ = planted',1);assert t!=s;p.write_text(t)"
 
-# A callee whose record now says it does something different sends its certain
-# callers back: the check stays red until each is re-read and stamped or
-# acknowledged. A record naming a callee that no longer exists is red too.
+# A callee whose record now says it does something different (here: a new
+# effect in `writes`, which callers are checked against with or without a
+# contract) sends its certain callers back: the check stays red until each is
+# re-read and stamped or acknowledged. A record naming a callee that no longer
+# exists is red too.
 check "codemap/callee_behaviour_changed" \
     "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
     "docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json" \
-    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json');r=json.loads(p.read_text());u=[x for x in r['units'] if x['key']=='func DebugLogger.scrubPHI(_:)'];assert len(u)==1;u[0]['does']+=' Planted.';p.write_text(json.dumps(r,indent=1,ensure_ascii=False)+chr(10))"
+    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json');r=json.loads(p.read_text());u=[x for x in r['units'] if x['key']=='func DebugLogger.scrubPHI(_:)'];assert len(u)==1;u[0]['writes']=list(u[0].get('writes') or [])+['mem:Planted.state'];p.write_text(json.dumps(r,indent=1,ensure_ascii=False)+chr(10))"
 
 check "codemap/call_to_missing_unit" \
     "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \

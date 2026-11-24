@@ -37,21 +37,10 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.saveIndexIfOwed()"
    ],
    "reads": [
-    "mem:RawRRBackup.index",
-    "mem:RawRRBackup.indexReadFailed",
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)",
-    "mem:RawRRBackup.indexSaveOwed"
+    "mem:RawRRBackup.index"
    ],
    "writes": [
-    "file:<backupDir>/<uuid>_header.json",
-    "file:<backupDir>/<uuid>_points.jsonl",
-    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ms> (via writeAppendData or startAppendFormat)",
-    "mem:RawRRBackup.index",
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)",
-    "file:<backupDir>/<legacy one-shot>.json (deleted after the switch completes)",
-    "ud:storage.pendingReencryption.rawBackupIDs",
-    "file:Application Support/PendingEncryption/<store key>.json (no file protection)",
-    "mem:RawRRBackup.indexSaveOwed"
+    "mem:RawRRBackup.index"
    ],
    "branches": [
     {
@@ -86,14 +75,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.encodedLines(_:sessionId:)": "9f78182bcc5f75e6",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexIfLaunchReadFailed()": "123e4bfce1021a16",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.removeReplacedLegacyFile(_:)": "95f32eb09c0ca8fd",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.saveIndexIfOwed()": "fcbc23ffbc731952",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormatIfNew(_:sessionId:deviceId:newCount:)": "4fcb8a590143e360",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.updateAppendIndex(sessionId:existingEntry:beatCount:)": "191c282287e948e7",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:allLines:)": "c001681678b12f45",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.encodedLines(_:sessionId:)": "e7dcf718c5695507",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexIfLaunchReadFailed()": "3b8b5f757313db53",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.removeReplacedLegacyFile(_:)": "e54b09681cae03cc",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.saveIndexIfOwed()": "9b8cd69b63d3a64d",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormatIfNew(_:sessionId:deviceId:newCount:)": "7a0eff6275db85d7",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.updateAppendIndex(sessionId:existingEntry:beatCount:)": "165b7368a75829b0",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:allLines:)": "d926d1467dc8ea49",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "461ead34c61d42d0"
    }
   },
   {
@@ -117,7 +106,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -130,10 +119,7 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)"
    ],
    "reads": [],
-   "writes": [
-    "file:<backupDir>/<uuid>_header.json",
-    "file:<backupDir>/<uuid>_points.jsonl"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+3",
@@ -147,8 +133,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.refuseReplacingLargerBackup(_:newCount:)": "662eda45e6ddbbc6",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)": "68edb2e2aa8c4896"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.refuseReplacingLargerBackup(_:newCount:)": "2f1e1946f39b67e0",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)": "85a5e921842c64b5"
    }
   },
   {
@@ -177,15 +163,8 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeHeaderUnlessReadable(_:)",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.keepOrStartPointsFile(_:)"
    ],
-   "reads": [
-    "file:<backupDir>/<uuid>_header.json",
-    "file:<backupDir>/<uuid>_points.jsonl"
-   ],
-   "writes": [
-    "file:<backupDir>/<uuid>_header.json",
-    "file:<backupDir>/<uuid>_points.jsonl",
-    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ms>"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+3",
@@ -194,8 +173,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.keepOrStartPointsFile(_:)": "77b1fa29366132c9",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeHeaderUnlessReadable(_:)": "d7872f8273408db2"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.keepOrStartPointsFile(_:)": "0c36c8bb5bb062fd",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeHeaderUnlessReadable(_:)": "4cdd579731665fd5"
    }
   },
   {
@@ -210,12 +189,8 @@
     "ext:JSONEncoder.encode",
     "ext:Data.write"
    ],
-   "reads": [
-    "file:<backupDir>/<uuid>_header.json"
-   ],
-   "writes": [
-    "file:<backupDir>/<uuid>_header.json"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
@@ -224,10 +199,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedHeader(at:)": "ddfb350655a9b9cd",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)": "1324d2a42a7cfe52",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::let RawRRBackup.lineEncoder": "1b3fa8e8da775522",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedHeader(at:)": "1d58d7d5328cdc98",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)": "8b3785e5d7e7626f",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::let RawRRBackup.lineEncoder": "446ca905ef8fa7cc",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -241,13 +216,8 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.preserveCorruptedPointsFile(at:sessionId:)",
     "ext:Data.write"
    ],
-   "reads": [
-    "file:<backupDir>/<uuid>_points.jsonl"
-   ],
-   "writes": [
-    "file:<backupDir>/<uuid>_points.jsonl",
-    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ms>"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
@@ -256,9 +226,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.preserveCorruptedPointsFile(at:sessionId:)": "4ed9bf89cb823b15",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.preserveCorruptedPointsFile(at:sessionId:)": "0ed5f0ff50b12b95",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "461ead34c61d42d0",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -291,10 +261,7 @@
    "reads": [
     "kc:session-encryption-key (via EncryptionManager)"
    ],
-   "writes": [
-    "ud:storage.pendingReencryption.rawBackupIDs",
-    "file:Application Support/PendingEncryption/<store key>.json (no file protection)"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
@@ -303,11 +270,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "3fe4c23abb6fccf2",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)": "ba864e9622862fb5",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::let RawRRBackup.lineEncoder": "1b3fa8e8da775522",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "ebe58488fea24a49",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "bd74e3705df55cd2",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)": "e47e026bcd96583a",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::let RawRRBackup.lineEncoder": "446ca905ef8fa7cc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -322,16 +289,14 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.open(_:with:)",
     "ext:JSONDecoder.decode"
    ],
-   "reads": [
-    "kc:session-encryption-key (via EncryptionManager)"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.open(_:with:)": "47cc1779bcdbfa0f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager": "73ebcb3083a7f73a"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.open(_:with:)": "4f51cc23db946e19",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager": "0efbb5422901852e"
    }
   },
   {
@@ -347,13 +312,8 @@
     "ext:FileManager.fileExists",
     "ext:Data.write"
    ],
-   "reads": [
-    "file:<backupDir>/<uuid>_points.jsonl"
-   ],
-   "writes": [
-    "file:<backupDir>/<uuid>_points.jsonl",
-    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ms>"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+3",
@@ -372,9 +332,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.append(_:toExisting:)": "82f94e7ca99c5081",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.rewriteKeepingExisting(_:at:sessionId:)": "6a8fb095b9e02fee",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.append(_:toExisting:)": "1194838c9b71cf12",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.rewriteKeepingExisting(_:at:sessionId:)": "b5f5f4b700f444aa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -388,11 +348,8 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.completeLines(of:)",
     "ext:Data.write"
    ],
-   "reads": [
-    "file:<backupDir>/<uuid>_points.jsonl"
-   ],
+   "reads": [],
    "writes": [
-    "file:<backupDir>/<uuid>_points.jsonl",
     "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ts>"
    ],
    "branches": [
@@ -403,9 +360,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.completeLines(of:)": "6ed2cb8999fb9be8",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.preserveCorruptedPointsFile(at:sessionId:)": "4ed9bf89cb823b15",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.completeLines(of:)": "df6e9cb8f101d97e",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.preserveCorruptedPointsFile(at:sessionId:)": "0ed5f0ff50b12b95",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -438,7 +395,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -453,8 +410,7 @@
     "mem:RawRRBackup.index"
    ],
    "writes": [
-    "mem:RawRRBackup.index",
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
+    "mem:RawRRBackup.index"
    ],
    "branches": [
     {
@@ -469,9 +425,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.saveIndex()": "de70c5b57b608142",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.beatCount(of:)": "b8e3f1f3dec96ab1",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)": "4997678122529341"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.saveIndex()": "b051444317977d55",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.beatCount(of:)": "a06e6350da2b0935",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup.BackupIndex(id:captureDate:fileName:beatCount:hash:archived:lastBackupTime:backedUpCount:)": "6d1240673e15ffe6"
    }
   },
   {
@@ -486,15 +442,8 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.checkRecoveredCount(_:against:sessionId:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.integrityHash(of:)"
    ],
-   "reads": [
-    "file:<backupDir>/<uuid>_header.json",
-    "file:<backupDir>/<uuid>_points.jsonl",
-    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ts>"
-   ],
-   "writes": [
-    "mem:RawRRBackup.index",
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+5",
@@ -503,11 +452,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.checkRecoveredCount(_:against:sessionId:)": "fce437104a2c1d09",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedHeader(at:)": "ddfb350655a9b9cd",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readAllPointLines(sessionId:decoder:)": "d22d45c16ab94b8e",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)": "1324d2a42a7cfe52",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.integrityHash(of:)": "1fb3ccef498336b3"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.checkRecoveredCount(_:against:sessionId:)": "2409b0177b5f9aa1",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedHeader(at:)": "1d58d7d5328cdc98",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readAllPointLines(sessionId:decoder:)": "8b8aa67b2afbdb81",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)": "8b3785e5d7e7626f",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.integrityHash(of:)": "f05aec37c9a712c6"
    }
   },
   {
@@ -521,10 +470,7 @@
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readPointLines(at:sessionId:decoder:)"
    ],
-   "reads": [
-    "file:<backupDir>/<uuid>_points.jsonl",
-    "file:<backupDir>/<uuid>_points.jsonl.corrupted_<ts>"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -549,10 +495,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.corruptedSiblingNames(of:)": "f556e46be3726553",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readPointLines(at:sessionId:decoder:)": "6fed6018a1fce26f",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.corruptedSiblingNames(of:)": "0415a07e65495702",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.readPointLines(at:sessionId:decoder:)": "bb09c478f4012f62",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "461ead34c61d42d0",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -575,7 +521,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -610,8 +556,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodePointLine(_:decoder:)": "55c8a04ef8bc2fa1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodePointLine(_:decoder:)": "4d8a4192262e429f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -627,8 +573,7 @@
     "mem:RawRRBackup.index"
    ],
    "writes": [
-    "mem:RawRRBackup.index",
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
+    "mem:RawRRBackup.index"
    ],
    "branches": [
     {
@@ -648,8 +593,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.reconcileBeatCount(sessionId:to:claimed:)": "11d6a2ee72014f0a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.reconcileBeatCount(sessionId:to:claimed:)": "841b13f2f1bb6f2d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -685,8 +630,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.migrateExistingFileProtection()": "19d87388eb0219a6",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.migrateExistingFileProtection()": "8b4bb0c5588c513d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -703,8 +648,6 @@
     "ext:FileManager.contentsOfDirectory"
    ],
    "reads": [
-    "ud:storage.pendingReencryption.rawBackupIDs",
-    "file:Application Support/PendingEncryption/<store key>.json (no file protection)",
     "file:<backupDir> listing"
    ],
    "writes": [
@@ -733,10 +676,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "ef97a1a3f041353b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "99927b4fcee8f58e",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "c722a31a61e251b9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -748,14 +691,12 @@
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendPointFiles(of:)"
    ],
-   "reads": [
-    "file:<backupDir> listing"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendPointFiles(of:)": "0b7159c126df8768",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)": "1324d2a42a7cfe52"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendPointFiles(of:)": "e1ba45517193e143",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.headerURL(for:)": "8b3785e5d7e7626f"
    }
   },
   {
@@ -767,14 +708,12 @@
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.corruptedSiblingNames(of:)"
    ],
-   "reads": [
-    "file:<backupDir> listing"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.corruptedSiblingNames(of:)": "f556e46be3726553",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.corruptedSiblingNames(of:)": "0415a07e65495702",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "461ead34c61d42d0"
    }
   },
   {
@@ -786,9 +725,7 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendFiles(of:)",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func BackupFiles.remove(_:using:)"
    ],
-   "reads": [
-    "file:<backupDir> listing"
-   ],
+   "reads": [],
    "writes": [
     "file:<backupDir>/<uuid>_header.json",
     "file:<backupDir>/<uuid>_points.jsonl",
@@ -796,8 +733,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func BackupFiles.remove(_:using:)": "b9745b71c153650d",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendFiles(of:)": "f7d2b5cd4e52d18a"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func BackupFiles.remove(_:using:)": "b1ae43f5c9575398",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendFiles(of:)": "d22578eaf2298af9"
    }
   },
   {
@@ -809,9 +746,7 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedIndexOrRecovered(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
-   ],
+   "reads": [],
    "writes": [
     "mem:RawRRBackup.index",
     "mem:RawRRBackup.indexReadFailed"
@@ -834,9 +769,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedIndexOrRecovered(_:)": "e16ad402a35e8e57",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "1681eb54ade0893b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedIndexOrRecovered(_:)": "c351399062773a0d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -849,9 +784,7 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
-   "writes": [
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile) (moved aside on recovery)"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+5",
@@ -860,8 +793,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoverIndexFromFiles()": "e720b6e33ab40072",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoverIndexFromFiles()": "cff8c6d79639056e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -873,13 +806,11 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedIndexOrRecovered(_:)"
    ],
    "reads": [
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)",
     "mem:RawRRBackup.indexReadFailed"
    ],
    "writes": [
     "mem:RawRRBackup.index",
-    "mem:RawRRBackup.indexReadFailed",
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile) (moved aside on recovery)"
+    "mem:RawRRBackup.indexReadFailed"
    ],
    "branches": [
     {
@@ -904,8 +835,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedIndexOrRecovered(_:)": "e16ad402a35e8e57",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.decodedIndexOrRecovered(_:)": "c351399062773a0d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -916,17 +847,11 @@
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexThatFailedToLoad()"
    ],
-   "reads": [
-    "mem:RawRRBackup.indexReadFailed",
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)"
-   ],
-   "writes": [
-    "mem:RawRRBackup.index",
-    "mem:RawRRBackup.indexReadFailed"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexThatFailedToLoad()": "c08e9235f8d64541"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexThatFailedToLoad()": "485a5968b699fc31"
    }
   },
   {
@@ -942,13 +867,12 @@
     "mem:RawRRBackup.index"
    ],
    "writes": [
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)",
     "mem:RawRRBackup.index",
     "mem:RawRRBackup.indexSaveOwed"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexThatFailedToLoad()": "c08e9235f8d64541"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexThatFailedToLoad()": "485a5968b699fc31"
    }
   },
   {
@@ -961,11 +885,9 @@
     "ext:NSLock.withLock"
    ],
    "reads": [
-    "mem:RawRRBackup.indexSaveOwed",
-    "mem:RawRRBackup.index"
+    "mem:RawRRBackup.indexSaveOwed"
    ],
    "writes": [
-    "file:<AppGroup>/<AppConfig.backupDirectoryName>/backup_index.json (RawRRBackup.indexFile)",
     "mem:RawRRBackup.indexSaveOwed"
    ],
    "branches": [
@@ -976,7 +898,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.saveIndex()": "de70c5b57b608142"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.saveIndex()": "b051444317977d55"
    }
   },
   {
@@ -1044,10 +966,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager": "73ebcb3083a7f73a"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "7b4c35273a92d9e0",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager": "0efbb5422901852e"
    }
   },
   {
@@ -1059,9 +981,7 @@
     "ext:JSONEncoder.encode",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.sealedOrPlain(_:sealer:)"
    ],
-   "reads": [
-    "kc:session-encryption-key (via EncryptionManager)"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -1071,7 +991,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.sealedOrPlain(_:sealer:)": "a0e7317ce26bd0b3"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.sealedOrPlain(_:sealer:)": "6fc98f446d336c65"
    }
   },
   {
@@ -1101,8 +1021,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "640f811107d8b1c4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -1132,8 +1052,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.isPlain(_:)": "913f48401a57dc94"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "e8b51ebb38885987",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.isPlain(_:)": "b9115fb8a116db56"
    }
   },
   {
@@ -1159,7 +1079,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.isPlain(_:)": "913f48401a57dc94"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.isPlain(_:)": "b9115fb8a116db56"
    }
   },
   {
@@ -1184,8 +1104,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.isPlain(_:)": "913f48401a57dc94"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "640f811107d8b1c4",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.isPlain(_:)": "b9115fb8a116db56"
    }
   },
   {
@@ -1200,8 +1120,7 @@
     "ext:Data.write"
    ],
    "reads": [
-    "file:<backupDir>/<uuid>_points.jsonl[.corrupted_<ms>] or <AppGroup>/WorkoutBackup/<uuid>_workout_*.jsonl[.corrupted_<ts>]",
-    "kc:session-encryption-key (via EncryptionManager)"
+    "file:<backupDir>/<uuid>_points.jsonl[.corrupted_<ms>] or <AppGroup>/WorkoutBackup/<uuid>_workout_*.jsonl[.corrupted_<ts>]"
    ],
    "writes": [
     "file:<backupDir>/<uuid>_points.jsonl[.corrupted_<ms>] or <AppGroup>/WorkoutBackup/<uuid>_workout_*.jsonl[.corrupted_<ts>] (atomic rewrite)"
@@ -1214,8 +1133,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)": "7fa9a505f692a5b6",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.resealed(_:with:)": "5cad745f36cfefed"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)": "baa5872bf39307f6",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.resealed(_:with:)": "11d4e29fc7921123"
    }
   },
   {
@@ -1240,7 +1159,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -1281,9 +1200,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.dropTornTail(_:)": "9e2b0957290acd73",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "180c93c5e3c79538",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.dropTornTail(_:)": "13c916a0ef4bfa38",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -1332,7 +1251,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "180c93c5e3c79538"
    }
   },
   {

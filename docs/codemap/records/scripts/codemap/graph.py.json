@@ -23,10 +23,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/codemap/graph.py::def _swift_refs.arg_labels": "73dcb0599a258537",
-    "scripts/codemap/graph.py::def _swift_refs.receiver": "fa616d91c0a26fe4",
-    "scripts/codemap/graph.py::def _swift_refs.txt": "28ac3cf28f1b4368",
-    "scripts/codemap/graph.py::def _swift_refs.walk": "fb73126cca904285"
+    "scripts/codemap/graph.py::def _swift_refs.arg_labels": "39e77af47aa0829e",
+    "scripts/codemap/graph.py::def _swift_refs.receiver": "50fc8fd0a003e7f0",
+    "scripts/codemap/graph.py::def _swift_refs.txt": "27c041b9d6fc9ae2",
+    "scripts/codemap/graph.py::def _swift_refs.walk": "7358fa4902a03ca0"
    }
   },
   {
@@ -73,7 +73,7 @@
     }
    ],
    "deps": {
-    "scripts/codemap/graph.py::def _swift_refs.txt": "28ac3cf28f1b4368"
+    "scripts/codemap/graph.py::def _swift_refs.txt": "27c041b9d6fc9ae2"
    }
   },
   {
@@ -119,7 +119,7 @@
     }
    ],
    "deps": {
-    "scripts/codemap/graph.py::def _swift_refs.txt": "28ac3cf28f1b4368"
+    "scripts/codemap/graph.py::def _swift_refs.txt": "27c041b9d6fc9ae2"
    }
   },
   {
@@ -202,9 +202,9 @@
     }
    ],
    "deps": {
-    "scripts/codemap/graph.py::def _swift_refs.arg_labels": "73dcb0599a258537",
-    "scripts/codemap/graph.py::def _swift_refs.receiver": "fa616d91c0a26fe4",
-    "scripts/codemap/graph.py::def _swift_refs.txt": "28ac3cf28f1b4368"
+    "scripts/codemap/graph.py::def _swift_refs.arg_labels": "39e77af47aa0829e",
+    "scripts/codemap/graph.py::def _swift_refs.receiver": "50fc8fd0a003e7f0",
+    "scripts/codemap/graph.py::def _swift_refs.txt": "27c041b9d6fc9ae2"
    }
   },
   {
@@ -252,8 +252,8 @@
   },
   {
    "key": "def build",
-   "hash": "4b54f7595f883907",
-   "does": "Builds the whole graph. Nodes: every inventory unit (`path::key`) and every file (`path::`). Edges, each certain or possible (certain is never downgraded): (1) every `path::key` call named in a record (not ext:/dyn:/closure:) -> certain. (2) Swift: _swift_refs over every .swift file, conformances merged. A call on an implicit receiver whose name is a repo type is an initializer call: inits of that type whose labels match (certain if one). Calls/reads on self/super/implicit resolve within the unit's own type family (type, superclasses, protocols, transitively); an implicit one with no match falls back to same-file units, then to global functions. A receiver that is a repo type resolves within that type's family; a framework or unknown receiver resolves against every unit of that name and label set, and a single match on a COMMON name is only possible. Certainty is decided on every candidate the name matches; two filters then drop candidates the reference cannot mean and never promote what is left, so they only remove edges: a property-style read on a framework or unknown receiver drops functions that need an argument (takes_arguments), and a reference from outside the test targets drops units inside them (is_test_file). An implicit property name with no match is ignored (a local). One candidate -> certain, several -> possible; a call with no candidate whose name is an assigned stored closure -> possible edges to the assigning units. (3) Each protocol requirement -> certain edge to each same-named, label-compatible function in a type conforming to that protocol. (4) Non-Swift code: a Makefile target -> its prerequisites; target recipes, workflow jobs and steps -> each `make`/`$(MAKE)` target and each scripts/ or Tools/ .sh/.py path (file node); a job -> its steps; Python and shell functions -> local functions (and, for Python, top-level defs imported from sibling modules via `from m import a` or `import m` + `m.a`) named in their body; file-level code outside units -> local functions and scripts it names. Returns {'edges': {src: {dst: kind}}, 'units': {node: inventory entry with file}}.",
+   "hash": "c1d7e56257a0e59d",
+   "does": "Builds the whole graph. Nodes: every inventory unit (`path::key`) and every file (`path::`). Edges, each certain or possible (certain is never downgraded): (1) every `path::key` call named in a record (not ext:/dyn:/closure:) -> certain. (2) Swift: _swift_refs over every .swift file, conformances merged. A call on an implicit receiver whose name is a repo type is an initializer call: inits of that type whose labels match (certain if one). Calls/reads on self/super/implicit resolve within the unit's own type family (type, superclasses, protocols, transitively); an implicit one with no match falls back to same-file units, then to global functions. A receiver that is a repo type resolves within that type's family; a framework or unknown receiver resolves against every unit of that name and label set, and a single match on a COMMON name is only possible. Certainty is decided on every candidate the name matches; two filters then drop candidates the reference cannot mean and never promote what is left, so they only remove edges: a property-style read on a framework or unknown receiver drops functions that need an argument (takes_arguments), and a reference from outside the test targets drops units inside them (is_test_file). An implicit property name with no match is ignored (a local). One candidate -> certain, several -> possible; a call with no candidate whose name is an assigned stored closure -> possible edges to the assigning units. (3) Each protocol requirement -> certain edge to each same-named, label-compatible function in a type conforming to that protocol. (4) Non-Swift code: a Makefile target -> its prerequisites; target recipes, workflow jobs and steps -> each `make`/`$(MAKE)` target and each scripts/ or Tools/ .sh/.py path (file node); a job -> its steps; Python and shell functions -> local functions (and, for Python, top-level defs imported from sibling modules via `from m import a` or `import m` + `m.a`) named in their body; file-level code outside units -> local functions and scripts it names. For each certain edge it also records why it is certain: 'recorded', 'initializer', 'own type', 'same file', 'global function', 'typed receiver', 'unique name', 'protocol requirement' or 'build wiring' (an edge certain by several routes keeps every reason). Returns {'edges': {src: {dst: kind}}, 'units': {node: inventory entry with file}, 'why': {(src, dst): sorted reasons}}.",
    "entry": null,
    "calls": [
     "scripts/codemap/graph.py::def _swift_refs",
@@ -363,35 +363,40 @@
     }
    ],
    "deps": {
-    "scripts/codemap/graph.py::def _labels_match": "681a10d66459ebc0",
-    "scripts/codemap/graph.py::def _swift_refs": "46ba65b064ec314d",
-    "scripts/codemap/graph.py::def _swift_refs.receiver": "fa616d91c0a26fe4",
-    "scripts/codemap/graph.py::def build.add": "94fbef9ad5b780e2",
-    "scripts/codemap/graph.py::def build.candidates": "bafa44e2646e2eee",
-    "scripts/codemap/graph.py::def build.family": "0d684b8fc2affccf",
-    "scripts/codemap/graph.py::def build.short": "3a547d8dc75df5f9",
-    "scripts/codemap/graph.py::def build.takes_arguments": "1d1f73be9bb586a9",
-    "scripts/codemap/graph.py::def is_test_file": "60bcf81fec301734"
+    "scripts/codemap/graph.py::def _labels_match": "fad5a6532d27c5ea",
+    "scripts/codemap/graph.py::def _swift_refs": "3f7e869aea3769dd",
+    "scripts/codemap/graph.py::def _swift_refs.receiver": "50fc8fd0a003e7f0",
+    "scripts/codemap/graph.py::def build.add": "22bbccf54d5edc0d",
+    "scripts/codemap/graph.py::def build.candidates": "2f9073bfd27e08cc",
+    "scripts/codemap/graph.py::def build.family": "5313ec7d1c8cf951",
+    "scripts/codemap/graph.py::def build.short": "6f1c9df9eb0b9e97",
+    "scripts/codemap/graph.py::def build.takes_arguments": "426b63061d5438c3",
+    "scripts/codemap/graph.py::def is_test_file": "6bde3d56f8b2eb2e"
    }
   },
   {
    "key": "def build.add",
-   "hash": "06b058f0ace640d7",
-   "does": "Adds edge a -> b of the given kind unless it is a self-edge or b is not a node; an existing certain edge is never downgraded to possible.",
+   "hash": "80008aeeb5482828",
+   "does": "Adds edge a -> b of the given kind unless it is a self-edge or b is not a node; an existing certain edge is never downgraded to possible. For a certain edge it adds the reason to why[(a, b)].",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "self-edge or unknown target",
      "effect": "nothing added"
     },
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "no certain edge yet",
      "effect": "set to the given kind"
+    },
+    {
+     "at": "+6",
+     "cond": "kind is certain",
+     "effect": "reason added to why"
     }
    ],
    "deps": {}
@@ -425,7 +430,7 @@
     }
    ],
    "deps": {
-    "scripts/codemap/graph.py::def build.short": "3a547d8dc75df5f9"
+    "scripts/codemap/graph.py::def build.short": "6f1c9df9eb0b9e97"
    }
   },
   {
@@ -478,9 +483,9 @@
     }
    ],
    "deps": {
-    "scripts/codemap/graph.py::def _labels_match": "681a10d66459ebc0",
-    "scripts/codemap/graph.py::def _swift_refs.receiver": "fa616d91c0a26fe4",
-    "scripts/codemap/graph.py::def build.short": "3a547d8dc75df5f9"
+    "scripts/codemap/graph.py::def _labels_match": "fad5a6532d27c5ea",
+    "scripts/codemap/graph.py::def _swift_refs.receiver": "50fc8fd0a003e7f0",
+    "scripts/codemap/graph.py::def build.short": "6f1c9df9eb0b9e97"
    }
   },
   {
@@ -496,6 +501,6 @@
   }
  ],
  "deps": {
-  "scripts/codemap/graph.py::def _swift_refs.receiver": "fa616d91c0a26fe4"
+  "scripts/codemap/graph.py::def _swift_refs.receiver": "50fc8fd0a003e7f0"
  }
 }

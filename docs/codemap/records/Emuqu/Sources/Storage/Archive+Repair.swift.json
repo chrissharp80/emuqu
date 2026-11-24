@@ -21,9 +21,7 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "file:<archiveDirectory>/<uuid>.json",
-    "mem:SessionArchive.index",
-    "mem:SessionArchive.deletedSessionIds"
+    "mem:SessionArchive.index"
    ],
    "writes": [
     "mem:SessionArchive.index",
@@ -44,10 +42,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "fa7f11dc067c058a",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.archiveFiles()": "e60eae376fb8d9b0",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.rebuiltIndex(from:)": "0153a84b167d324f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "f0834edfbe8e3a4d",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.archiveFiles()": "12e1f067b6c81e86",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.rebuiltIndex(from:)": "38f2def6e70a8d55",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -71,7 +69,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -88,7 +86,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.rebuiltEntry(for:existing:)": "14a52e9fc33bb376"
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.rebuiltEntry(for:existing:)": "9d8e43a9e9c2f4ec"
    }
   },
   {
@@ -132,11 +130,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "696f2c8d3a354f3e",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "e279cc050a658fb7",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.decodeRepairable(_:id:)": "96165bc19f77aef9",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.preserved(_:filename:error:verb:)": "00f2d7eea9818c4d",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "47479f1bcfe2c38f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "56a6740f8f031225",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "c07a2147565b41dd",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.decodeRepairable(_:id:)": "983a0888d5ea03ee",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.preserved(_:filename:error:verb:)": "9e329ab6535f871f",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "6d21c7deff864346"
    }
   },
   {
@@ -158,9 +156,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "0b3ffc735a23d053",
-    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "ca0eef42258b468f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "336040ec00fe8876",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "545215f1cd6d9304",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -186,7 +184,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -205,14 +203,11 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "mem:SessionArchive.index",
-    "file:<archiveDirectory>/<uuid>.json"
+    "mem:SessionArchive.index"
    ],
    "writes": [
     "mem:SessionArchive.index",
-    "file:<archiveDirectory>/index.json",
-    "mem:SessionArchive.sortedEntriesCache",
-    "mem:SessionArchive.sessionIdLookup"
+    "file:<archiveDirectory>/index.json"
    ],
    "branches": [
     {
@@ -242,14 +237,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "696f2c8d3a354f3e",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "e279cc050a658fb7",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.bytesForRepair(at:id:)": "25c9889c73f24e46",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.decodeRepairable(_:id:)": "96165bc19f77aef9",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.persistRehash(sessionId:from:to:)": "0ed4bb916ae774f7",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "47479f1bcfe2c38f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.readinessScore": "56a6740f8f031225",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "1387a3265efcaf61",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "c07a2147565b41dd",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.bytesForRepair(at:id:)": "31f2e582f1fffe48",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.decodeRepairable(_:id:)": "983a0888d5ea03ee",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.persistRehash(sessionId:from:to:)": "db165ba4d981536e",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "6d21c7deff864346",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -280,11 +275,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d583476cc5734253",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "7b4c35273a92d9e0",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -300,9 +295,7 @@
     "mem:SessionArchive.index"
    ],
    "writes": [
-    "file:<archiveDirectory>/index.json",
-    "mem:SessionArchive.sortedEntriesCache",
-    "mem:SessionArchive.sessionIdLookup"
+    "file:<archiveDirectory>/index.json"
    ],
    "branches": [
     {
@@ -312,8 +305,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "fa7f11dc067c058a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "f0834edfbe8e3a4d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -343,8 +336,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "47479f1bcfe2c38f"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "1387a3265efcaf61",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "6d21c7deff864346"
    }
   }
  ],

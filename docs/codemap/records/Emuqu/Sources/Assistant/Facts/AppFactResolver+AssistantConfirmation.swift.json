@@ -26,9 +26,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "a9161ec7b1d3b09c"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "74b42b01be472259",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "40b71c4701cad4e4"
    }
   },
   {
@@ -41,12 +41,9 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)"
    ],
    "reads": [
-    "mem:AssistantViewModel.turns (context transcript)",
-    "mem:AssistantActionConfirmations.pending"
+    "mem:AssistantViewModel.turns (context transcript)"
    ],
-   "writes": [
-    "mem:AssistantActionConfirmations.pending"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
@@ -55,8 +52,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "897cf5f4f388f1f2",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.isStated(_:in:)": "c77ada2804e1ed94"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "3375119d1f2d0f1f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.isStated(_:in:)": "3a8c93b95f9cc99d"
    }
   },
   {
@@ -68,12 +65,8 @@
     "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.evaluate(action:target:turns:now:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.confirmationRequired(_:)"
    ],
-   "reads": [
-    "mem:AssistantActionConfirmations.pending"
-   ],
-   "writes": [
-    "mem:AssistantActionConfirmations.pending"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -82,8 +75,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.evaluate(action:target:turns:now:)": "b7fb5761ee363506",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.confirmationRequired(_:)": "7ab7294d3ae2f976"
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.evaluate(action:target:turns:now:)": "fc0e962ef9635e93",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.confirmationRequired(_:)": "c1ea247202a9c45c"
    }
   },
   {
@@ -109,13 +102,11 @@
    ],
    "reads": [
     "mem:UserFactsStore.facts",
-    "mem:UserFactsStore.setAsideCopiesRemain",
-    "mem:AssistantActionConfirmations.pending"
+    "mem:UserFactsStore.setAsideCopiesRemain"
    ],
    "writes": [
     "mem:UserFactsStore.facts",
     "mem:UserFactsStore.clearedBackup",
-    "mem:AssistantActionConfirmations.pending",
     "file:AppGroup/Assistant/user_facts.json (UserFactsStore)"
    ],
    "branches": [
@@ -141,9 +132,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()": "0d56d2132b416b5d",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.hasAnythingToForget": "f2c09810ce6a5ae5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "897cf5f4f388f1f2"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()": "7a4acb4b2eaee85d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.hasAnythingToForget": "4ac05bedc4c9eb45",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "3375119d1f2d0f1f"
    }
   },
   {
@@ -156,12 +147,10 @@
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)"
    ],
    "reads": [
-    "mem:UserFactsStore.facts",
-    "mem:AssistantActionConfirmations.pending"
+    "mem:UserFactsStore.facts"
    ],
    "writes": [
     "mem:UserFactsStore.facts",
-    "mem:AssistantActionConfirmations.pending",
     "file:AppGroup/Assistant/user_facts.json (UserFactsStore)"
    ],
    "branches": [
@@ -182,8 +171,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "959a11cea7fa2e44",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "897cf5f4f388f1f2"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "670e9bbdc3ffc94b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "3375119d1f2d0f1f"
    }
   },
   {
@@ -211,7 +200,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.restoreCleared()": "f5e4e6631a246f68"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.restoreCleared()": "b421b559a7de3d9f"
    }
   }
  ],

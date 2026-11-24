@@ -150,6 +150,9 @@ def problems(inv: dict, recs: dict) -> list[tuple[str, str, str]]:
                 out.append((f, u["key"], "stale: the code changed after the record was written"))
             for c in line_citations(r):
                 out.append((f, u["key"], f"cites a line number ({c}); name the unit or target instead"))
+            for target in r.get("delegates") or []:
+                if target not in known and not (target.endswith("::") and target[:-2] in inv):
+                    out.append((f, u["key"], f"delegates to a unit that no longer exists: {target}"))
             for c in r.get("calls") or []:
                 if "::" in c and not c.startswith(("ext:", "dyn:", "closure:")) and c not in known:
                     out.append((f, u["key"], f"calls a unit that no longer exists: {c}"))
@@ -165,19 +168,21 @@ def described(rec_unit: dict | None, file_level: bool = False) -> str:
     rely on. Calls are left out (they are how, not what), and so are findings (they live in the
     local overlay, which a public checkout does not have).
 
+    `reads` is left out too: a caller depends on what a callee returns and writes, not on what it
+    reads to get there.
+
     A unit whose record has a `contract` (what callers may rely on: results, errors, effects) is
-    hashed on that, its `entry`, `reads` and `writes` alone, so rewording its `does` or its
-    branches does not send its callers back. A unit without one is hashed on its whole
-    description, as before."""
+    hashed on that, its `entry` and `writes` alone, so rewording its `does` or its branches does
+    not send its callers back. A unit without one is hashed on its `does`, `entry`, `writes` and
+    branches."""
     if rec_unit is None:
         return ""
     if file_level:
         fields = [rec_unit.get("role"), rec_unit.get("toplevel"), rec_unit.get("state")]
     elif (rec_unit.get("contract") or "").strip():
-        fields = ["contract", rec_unit["contract"].strip(), rec_unit.get("entry"), rec_unit.get("reads"),
-                  rec_unit.get("writes")]
+        fields = ["contract", rec_unit["contract"].strip(), rec_unit.get("entry"), rec_unit.get("writes")]
     else:
-        fields = [rec_unit.get("does"), rec_unit.get("entry"), rec_unit.get("reads"), rec_unit.get("writes"),
+        fields = [rec_unit.get("does"), rec_unit.get("entry"), rec_unit.get("writes"),
                   [(b.get("cond"), b.get("effect")) for b in rec_unit.get("branches") or []]]
     return hashlib.sha256(json.dumps(fields, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
 
@@ -199,8 +204,26 @@ def record_of(recs: dict, node: str) -> dict | None:
     return next((u for u in rec.get("units", []) if u["key"] == key), None)
 
 
-def current_deps(graph: dict, desc: dict, node: str) -> dict[str, str]:
-    return {c: desc.get(c, "") for c, kind in sorted(graph["edges"].get(node, {}).items()) if kind == "certain"}
+def delegates_of(recs: dict | None, node: str) -> list[str]:
+    """The units a record says it only runs or forwards to (`delegates`), making no claim of its
+    own about what they do."""
+    r = record_of(recs, node) if recs is not None else None
+    return list((r or {}).get("delegates") or [])
+
+
+def current_deps(graph: dict, desc: dict, node: str, recs: dict | None = None) -> dict[str, str]:
+    """What a record is checked against: each certain callee's described hash, and, for a callee
+    that only delegates, what it delegates to (transitively), so a caller of a wrapper is still sent
+    back when the wrapped unit changes."""
+    out: dict[str, str] = {}
+    todo = [c for c, kind in sorted(graph["edges"].get(node, {}).items()) if kind == "certain"]
+    while todo:
+        c = todo.pop(0)
+        if c in out or c == node:
+            continue
+        out[c] = desc.get(c, "")
+        todo.extend(d for d in delegates_of(recs, c) if d not in out)
+    return dict(sorted(out.items()))
 
 
 def recheck_items(inv: dict, recs: dict, graph: dict) -> list[tuple[str, str, str, str]]:
@@ -219,11 +242,16 @@ def recheck_items(inv: dict, recs: dict, graph: dict) -> list[tuple[str, str, st
             r = have.get(u["key"])
             if r is not None:
                 nodes.append((f"{f}::{u['key']}", r, r.get("hash") == u["hash"]))
+        if f.startswith(TEST_ROOTS):
+            continue  # a test is checked by running it; its record is not sent back
         for node, r, current in nodes:
             if not current:
                 continue  # already reported as stale; re-reading it covers its callees too
             deps = r.get("deps") or {}
-            for callee, h in current_deps(graph, desc, node).items():
+            own_delegates = set(r.get("delegates") or [])
+            for callee, h in current_deps(graph, desc, node, recs).items():
+                if callee in own_delegates:
+                    continue  # it states nothing about what it delegates to
                 if callee not in deps:
                     out.append((f, node.split("::", 1)[1], callee, "new"))
                 elif deps[callee] != h:
@@ -492,11 +520,11 @@ def cmd_stamp(groups: dict[str, list[str]]) -> int:
         for k in keys:
             if k == "":
                 rec["hash"] = full[path]["hash"]
-                rec["deps"] = current_deps(g, desc, f"{path}::")
+                rec["deps"] = current_deps(g, desc, f"{path}::", recs)
                 print(f"{path}: file record stamped")
             else:
                 have[k]["hash"] = current[k]
-                have[k]["deps"] = current_deps(g, desc, f"{path}::{k}")
+                have[k]["deps"] = current_deps(g, desc, f"{path}::{k}", recs)
                 print(f"{path}: stamped {k}")
         save(rec)
     return 0
@@ -690,7 +718,7 @@ def cmd_impact(args: list[str]) -> int:
         cert = sorted(c for c, k in direct.items() if k == "certain")
         poss = sorted(c for c, k in direct.items() if k == "possible")
         lines.append(f"\n**Direct callers:** {len(cert)} certain, {len(poss)} possible.")
-        lines += [f"- {c}" for c in cert]
+        lines += [f"- {c} ({', '.join(g['why'].get((c, node), []))})" for c in cert]
         lines += [f"- (possible) {c}" for c in poss[:40]] + ([f"- ... {len(poss) - 40} more possible"] if len(poss) > 40 else [])
         # walk certain callers to triggers
         seen, todo, triggers, tests, docs = {node}, [node], [], set(), set()
@@ -729,6 +757,12 @@ def cmd_impact(args: list[str]) -> int:
                                           + ", ".join(sorted(others)[:12]) + (" ..." if len(others) > 12 else ""))
             lines.append(f"\n**Shared state:** {len(shared)} store(s) also used elsewhere")
             lines += shared
+            via = state_through_callees(g, recs, node)
+            lines.append(f"\n**State reached through its callees:** {len(via)} store(s)")
+            lines += [f"- {which} `{key}` (by {', '.join(sorted(by)[:4])}{' ...' if len(by) > 4 else ''})"
+                      for (which, key), by in sorted(via.items())[:60]]
+            if len(via) > 60:
+                lines.append(f"- ... {len(via) - 60} more")
         open_flags = []
         for n in [node] + cert:
             nr = record_of(recs, n)
@@ -744,6 +778,26 @@ def cmd_impact(args: list[str]) -> int:
         with open(summary, "a", encoding="utf-8") as fh:
             fh.write(text[:900_000])
     return 0
+
+
+def state_through_callees(graph: dict, recs: dict, node: str) -> dict[tuple[str, str], set[str]]:
+    """The state a unit touches through its certain callees, transitively: {(reads|writes, store):
+    {callee nodes}}. Records list only the state their own code touches, so this is how a caller's
+    full reach is seen."""
+    out: dict[tuple[str, str], set[str]] = collections.defaultdict(set)
+    seen, todo = {node}, [c for c, k in graph["edges"].get(node, {}).items() if k == "certain"]
+    while todo:
+        c = todo.pop()
+        if c in seen:
+            continue
+        seen.add(c)
+        r = record_of(recs, c) if "::" in c else None
+        for which in ("reads", "writes"):
+            for st in (r or {}).get(which) or []:
+                if isinstance(st, str) and ":" in st:
+                    out[(which, st.split(" (")[0].strip())].add(c)
+        todo.extend(d for d, k in graph["edges"].get(c, {}).items() if k == "certain" and d not in seen)
+    return out
 
 
 def cmd_callers(node: str) -> int:

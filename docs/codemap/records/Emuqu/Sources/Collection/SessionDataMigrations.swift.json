@@ -24,7 +24,7 @@
   {
    "key": "func SessionDataMigrations.retrieveOffMain(_:caller:)",
    "hash": "d1f544390338b524",
-   "does": "Reads one archived session in full (retrieveOrLog, failure logged → nil) on a detached utility task, for the migrations that walk the archive a session at a time.",
+   "does": "Reads one archived session in full (retrieveOrLog: nil when missing or unreadable, a read failure logged) on a detached utility task, for the migrations that walk the archive a session at a time.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
@@ -35,7 +35,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "33e465f32fcf44b0"
    }
   },
   {
@@ -55,9 +55,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.entries": "f629e88f36624942",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.entries": "75dc0f18fea89e5a",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "a26236f690df976d",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "33e465f32fcf44b0"
    }
   },
   {
@@ -85,8 +85,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::var SessionDataMigrations.migrationSchedule": "f6f5cd151db5b7e3",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::var SessionDataMigrations.migrationSchedule": "301106ae2116ef03",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "977c5bbf1d9004f1"
    }
   },
   {
@@ -106,12 +106,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "beaafa1b2a7ae497",
-    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.runNapRepairMigrationIfNeeded()": "a4fe15b7605517ef",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.runTimeInBedRepairIfNeeded()": "e17f3d73182014cc",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()": "e18158f89261a421",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "aba3fe476d6810c5",
-    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "dff3bf9c3b6b0db7"
+    "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "336aefdf3db93b5f",
+    "Emuqu/Sources/Collection/SessionDataMigrations+NapRepairMigration.swift::func SessionDataMigrations.runNapRepairMigrationIfNeeded()": "fc0dc1c12995bdde",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.runTimeInBedRepairIfNeeded()": "dad3d7c0ae9fb594",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()": "fbb0793b1ad7e407",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "41601107d8c5d619",
+    "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "cdf2bf22f88eb053"
    }
   }
  ],

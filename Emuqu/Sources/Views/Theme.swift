@@ -286,7 +286,7 @@ enum AppTheme {
     /// Subtle tint for sections
     @MainActor static var sectionTint: Color {
         switch currentTheme {
-        case .light: Color(red: 0.93, green: 0.93, blue: 0.95) // #EDEDED
+        case .light: Color(red: 0.93, green: 0.93, blue: 0.95) // #EDEDF2
         case .dim: Color(red: 0.18, green: 0.18, blue: 0.21) // #2E2E36
         case .dark: Color(red: 0.09, green: 0.09, blue: 0.11) // #17171B
         }

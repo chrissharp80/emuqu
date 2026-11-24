@@ -37,9 +37,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptedSessionState()": "5b04c84dc00adc29",
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.runAcceptance(_:)": "f1798d14699abfd7",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1"
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptedSessionState()": "6bcfe7a2763f21ec",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.runAcceptance(_:)": "193251e3fc05e5e3",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "1983f85e56e55b60"
    }
   },
   {
@@ -61,18 +61,18 @@
    "writes": [
     "archive:HRVSession (via processAcceptance)",
     "mem:BaselineTracker (via processAcceptance)",
-    "file:RawRRBackup archived mark",
     "hk:HRV/recovery export when enableHealthKitExport",
     "ck:session sync",
     "ud:PersistedRecordingState (cleared via closure)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)": "febc656a83965dca",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "d01d388b13fd04b5",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig": "919ff9ba927ddca8",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processAcceptance(session:inputs:enableHealthKitExport:clearPersistedRecordingState:)": "8a2eb0105d7ee1d8"
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)": "e34c3750fc42c836",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "9b41a84892f09331",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "71f48a8c1a6d3e02",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig": "98dad0b757e79efb",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processAcceptance(session:inputs:enableHealthKitExport:clearPersistedRecordingState:)": "935345ff49a3cd40",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.scoringBaselineStats(for:)": "e13ee4456b28f6e0"
    }
   },
   {
@@ -86,18 +86,12 @@
    ],
    "reads": [],
    "writes": [
-    "mem:RRCollector.currentSession",
-    "mem:SessionState.reviewArchivedSessionId",
-    "mem:RRCollector.needsAcceptance",
-    "mem:RRCollector.recordingPhase",
-    "mem:RRCollector.verificationResult",
-    "mem:RRCollector.recoveryWindow",
     "mem:ArchiveSignal (changed)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()": "d45408932af4e294"
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "d9275715fe6d6d32",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()": "d47324c1bc8b5907"
    }
   },
   {
@@ -138,11 +132,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)": "febc656a83965dca",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "d01d388b13fd04b5",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig": "919ff9ba927ddca8",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.updateCompositeRecoveryScore(for:scoringConfig:trainingContext:baselineStats:typicalSleepHours:sleepSchedule:exportMetrics:enableHealthKitExport:)": "b25f7b1779017004"
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "d9275715fe6d6d32",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.scoringTrainingContext(result:sessionEnd:)": "e34c3750fc42c836",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "71f48a8c1a6d3e02",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentScoringConfig": "98dad0b757e79efb",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.updateCompositeRecoveryScore(for:scoringConfig:trainingContext:baselineStats:typicalSleepHours:sleepSchedule:exportMetrics:enableHealthKitExport:)": "d7c8490bd7b6691a",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.scoringBaselineStats(for:)": "e13ee4456b28f6e0"
    }
   },
   {
@@ -164,11 +159,11 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.stopObservingSleepData()": "65f5744fb7dfe840",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "c178ef092653f880",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
+    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.stopObservingSleepData()": "e8fd81de526e3c2e",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "22a5b237aef875bf",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "aa7cc85c066e4d06",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "008575569beaba4e",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "e66c300807aefc94"
    }
   },
   {
@@ -187,17 +182,13 @@
    "writes": [
     "ud:PersistedRecordingState (cleared via closure)",
     "ck:live backup delete (onCloudDelete)",
-    "mem:RRCollector.currentSession",
-    "mem:RRCollector.needsAcceptance",
-    "mem:RRCollector.recordingPhase",
-    "mem:RRCollector.verificationResult",
-    "mem:RRCollector.recoveryWindow"
+    "mem:RRCollector.currentSession"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()": "d45408932af4e294",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)": "dd5e5308773988b0"
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()": "d47324c1bc8b5907",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "9b41a84892f09331",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)": "b37450b0f6fb3834"
    }
   },
   {
@@ -222,8 +213,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.takeArchivedCopy(_:)": "89bffed2fc740002",
-    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.takeArchivedCopy(_:)": "7411837f4b14c1bc",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "0e56488d70447a5e"
    }
   },
   {
@@ -238,10 +229,7 @@
    "reads": [
     "mem:SessionState.needsAcceptance"
    ],
-   "writes": [
-    "mem:RRCollector.currentSession",
-    "mem:SessionState.reviewArchivedEntries"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -250,8 +238,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.adoptArchivedCopy(_:)": "d06b512952cbe98f",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899"
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.adoptArchivedCopy(_:)": "bee408ff47de0fb0",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "22a5b237aef875bf"
    }
   },
   {
@@ -291,10 +279,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.currentSession": "0190ca0fc6deab5f",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
-    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)": "6aaab0fdba9aba60",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.currentSession": "1558cd32a4673f5d",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "4e4f6d0424b1c38a",
+    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)": "c7cf5cf8f6735e62",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "7cb48f6937f0b9f5"
    }
   }
  ],

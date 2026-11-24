@@ -53,12 +53,8 @@
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)",
     "ext:AES.GCM.seal"
    ],
-   "reads": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
-   ],
-   "writes": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN] (created when absent)"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+5",
@@ -68,7 +64,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::var AssistantSystemPrompt.Composed.combined": "3c86d6708fa36edc",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "d57929ceabea0682"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "93df755bdfd4a4a2"
    }
   },
   {
@@ -79,13 +75,8 @@
    "calls": [
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openReportingVersion(_:)"
    ],
-   "reads": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
-    "mem:EncryptionManager.cachedKeys"
-   ],
-   "writes": [
-    "mem:EncryptionManager.cachedKeys"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+4",
@@ -99,7 +90,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openReportingVersion(_:)": "ef65af53de90d0bc"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openReportingVersion(_:)": "5c5dca573ef2ad7d"
    }
   },
   {
@@ -112,13 +103,8 @@
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openAsBare(_:otherwise:)"
    ],
-   "reads": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
-    "mem:EncryptionManager.cachedKeys"
-   ],
-   "writes": [
-    "mem:EncryptionManager.cachedKeys"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+4",
@@ -132,9 +118,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "23819ca6a7583ff6",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openAsBare(_:otherwise:)": "ca6b1a77384a1d1d",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "d8c98cac26eff591"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "20b74a8c8807435f",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openAsBare(_:otherwise:)": "33d1dbd717f8d4c0",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "bff7db0c393376dd"
    }
   },
   {
@@ -145,13 +131,8 @@
    "calls": [
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)"
    ],
-   "reads": [
-    "mem:EncryptionManager.cachedKeys",
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
-   ],
-   "writes": [
-    "mem:EncryptionManager.cachedKeys"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+3",
@@ -160,7 +141,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "d8c98cac26eff591"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "bff7db0c393376dd"
    }
   },
   {
@@ -172,13 +153,11 @@
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)",
     "ext:AES.GCM.open"
    ],
-   "reads": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "e2135a76562a08f7"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "5784758c39a962b1"
    }
   },
   {
@@ -189,12 +168,8 @@
    "calls": [
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)"
    ],
-   "reads": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
-   ],
-   "writes": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN] (created when absent)"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+4",
@@ -203,7 +178,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "d57929ceabea0682"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "93df755bdfd4a4a2"
    }
   },
   {
@@ -216,12 +191,8 @@
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openReportingVersion(_:)",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)"
    ],
-   "reads": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
-   ],
-   "writes": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
@@ -235,9 +206,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "23819ca6a7583ff6",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openReportingVersion(_:)": "ef65af53de90d0bc"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "640f811107d8b1c4",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "20b74a8c8807435f",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openReportingVersion(_:)": "5c5dca573ef2ad7d"
    }
   },
   {
@@ -269,8 +240,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)": "8cd1311d2fa505f4",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "8e9549f30eb3395f"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)": "b403f64859a6cd40",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.magicPrefixed(_:)": "784c37acbbcf0e3e"
    }
   },
   {
@@ -323,12 +294,10 @@
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)"
    ],
    "reads": [
-    "mem:EncryptionManager.cachedKeys",
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+    "mem:EncryptionManager.cachedKeys"
    ],
    "writes": [
-    "mem:EncryptionManager.cachedKeys",
-    "kc:AppConfig.keychainService / session-encryption-key[-vN] (accessibility update)"
+    "mem:EncryptionManager.cachedKeys"
    ],
    "branches": [
     {
@@ -343,9 +312,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "598d3b1447a1ad8b",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "25a975a4420f8455",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "6fb7272cbaa2c234"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "fd89c0190af450ea",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "468f6a484b483704",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "343fb0296b83dd24"
    }
   },
   {
@@ -364,7 +333,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "dfee940ff7356857"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadOrCreateKey(version:cache:)": "50094f2d0b143e4c"
    }
   },
   {
@@ -379,11 +348,9 @@
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.storeKeyInKeychain(_:account:)"
    ],
    "reads": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
     "mem:EncryptionManager.cachedKeys"
    ],
    "writes": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
     "mem:EncryptionManager.cachedKeys"
    ],
    "branches": [
@@ -399,10 +366,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "598d3b1447a1ad8b",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "25a975a4420f8455",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "6fb7272cbaa2c234",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.storeKeyInKeychain(_:account:)": "bced1e929b282c26"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "fd89c0190af450ea",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "468f6a484b483704",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "343fb0296b83dd24",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.storeKeyInKeychain(_:account:)": "db16ad3e80e7e605"
    }
   },
   {
@@ -426,7 +393,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.keyAccessibility": "2c50f7251bf0dba3"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.keyAccessibility": "e6fb2ba2448c0072"
    }
   },
   {
@@ -461,8 +428,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.keyAccessibility": "2c50f7251bf0dba3",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.keyAccessibility": "e6fb2ba2448c0072",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -524,7 +491,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -535,13 +502,8 @@
    "calls": [
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)"
    ],
-   "reads": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
-    "mem:EncryptionManager.cachedKeys"
-   ],
-   "writes": [
-    "mem:EncryptionManager.cachedKeys"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -550,7 +512,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "e8b51ebb38885987"
    }
   },
   {

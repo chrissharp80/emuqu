@@ -16,9 +16,7 @@
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)"
    ],
    "reads": [],
-   "writes": [
-    "ud:storage.pendingReencryption.sessionIDs"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+5",
@@ -32,8 +30,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "e211f6c61a83cb74"
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "226471e38411b0e8",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "5ce1f4c123de325a"
    }
   },
   {
@@ -72,12 +70,10 @@
     "ext:Data.write(to:options:)"
    ],
    "reads": [
-    "ud:storage.pendingReencryption.sessionIDs",
     "mem:PurgeGate.state"
    ],
    "writes": [
     "file:<archive bytes at url>",
-    "ud:storage.pendingReencryption.sessionIDs",
     "mem:PurgeGate.state"
    ],
    "branches": [
@@ -93,11 +89,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d11072f0ae247cd7",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "e211f6c61a83cb74",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "3a3880893754edfe"
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "6c62184b0995d39f",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "c6584f781f0dfcce",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "226471e38411b0e8",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "5ce1f4c123de325a",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "4ffce3b6e88b8960"
    }
   },
   {
@@ -119,11 +115,9 @@
    ],
    "writes": [
     "ud:storage.pendingReencryption.sessionIDs",
-    "file:<archiveDirectory>/<uuid>.json",
     "mem:SessionArchive.index",
     "file:<archiveDirectory>/index.json",
-    "file:<archiveDirectory>/Trash/<uuid>.session",
-    "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>[.<stamp>].json"
+    "file:<archiveDirectory>/Trash/<uuid>.session"
    ],
    "branches": [
     {
@@ -148,13 +142,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex": "4d992f398d9be95b",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "9d0d7818e676156f",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "3a3880893754edfe",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex": "7bcffe4558250307",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "1c653821e0aacdac",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "7b4c35273a92d9e0",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "4ffce3b6e88b8960",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -172,20 +166,11 @@
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)"
    ],
    "reads": [
-    "file:<archiveDirectory>/<uuid>.json",
-    "file:<archiveDirectory>/Trash/<uuid>.session",
-    "file:<archiveDirectory>/QuarantinedDuplicates/ (listing)",
     "mem:SessionArchive.index",
     "mem:SessionArchive.deletedSessionIds"
    ],
    "writes": [
-    "file:<archiveDirectory>/<uuid>.json",
-    "file:<archiveDirectory>/Trash/<uuid>.session",
-    "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>[.<stamp>].json",
-    "mem:SessionArchive.index",
-    "file:<archiveDirectory>/index.json",
-    "ud:storage.pendingReencryption.sessionIDs",
-    "notif:flowRecoveryArchiveChanged"
+    "mem:SessionArchive.index"
    ],
    "branches": [
     {
@@ -205,13 +190,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptArchived(_:in:)": "34c0d7e7f4546552",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)": "e48f5326dcbbb248",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)": "824b945ef63af701",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "e211f6c61a83cb74"
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptArchived(_:in:)": "429f071963522ccf",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)": "2b81a590f924454d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "16db834861f36e85",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "a9b90e6b969f76e4",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)": "9ecd7f7687ae75f8",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "226471e38411b0e8",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "5ce1f4c123de325a"
    }
   },
   {
@@ -226,15 +211,10 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "file:<archiveDirectory>/<uuid>.json",
     "mem:SessionArchive.index"
    ],
    "writes": [
-    "file:<archiveDirectory>/<uuid>.json",
-    "mem:SessionArchive.index",
-    "file:<archiveDirectory>/index.json",
-    "ud:storage.pendingReencryption.sessionIDs",
-    "notif:flowRecoveryArchiveChanged"
+    "mem:SessionArchive.index"
    ],
    "branches": [
     {
@@ -259,10 +239,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func clearOnceParkedCopiesAreEncrypted(_:in:)": "49346445dd282fe1",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "5dc05159bc65d04f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "917ec504a26a996e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func clearOnceParkedCopiesAreEncrypted(_:in:)": "9dff0fa50853e4c6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "69b1d071c185d69b",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "aab8d441e86f195b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -275,15 +255,8 @@
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)"
    ],
-   "reads": [
-    "file:<archiveDirectory>/Trash/<uuid>.session",
-    "file:<archiveDirectory>/QuarantinedDuplicates/ (listing)"
-   ],
-   "writes": [
-    "file:<archiveDirectory>/Trash/<uuid>.session",
-    "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>[.<stamp>].json",
-    "ud:storage.pendingReencryption.sessionIDs"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -292,9 +265,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)": "e48f5326dcbbb248",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)": "824b945ef63af701",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71"
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)": "2b81a590f924454d",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)": "9ecd7f7687ae75f8",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "226471e38411b0e8"
    }
   },
   {
@@ -333,13 +306,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "0b3ffc735a23d053",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "6c62184b0995d39f",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d583476cc5734253",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "336040ec00fe8876",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "640f811107d8b1c4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   }
  ],

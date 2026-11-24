@@ -26,8 +26,7 @@
    ],
    "reads": [],
    "writes": [
-    "mem:UIStateCache.dashboard",
-    "file:ApplicationSupport/UIStateCache.json"
+    "mem:UIStateCache.dashboard"
    ],
    "branches": [
     {
@@ -37,7 +36,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "cfd31f4deb858931"
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "5c461dc6fe70a099"
    }
   },
   {
@@ -50,8 +49,7 @@
    ],
    "reads": [],
    "writes": [
-    "mem:UIStateCache.fitness",
-    "file:ApplicationSupport/UIStateCache.json"
+    "mem:UIStateCache.fitness"
    ],
    "branches": [
     {
@@ -61,7 +59,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "cfd31f4deb858931"
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "5c461dc6fe70a099"
    }
   },
   {
@@ -92,8 +90,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/UIStateCache.swift::let UIStateCache.persistenceURL": "1458ca068386f73b",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/UIStateCache.swift::let UIStateCache.persistenceURL": "9ecb404249636dba",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -127,7 +125,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.loadFromDisk()": "dd8af9d2440ca814"
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.loadFromDisk()": "d286dfd43fbc65c4"
    }
   },
   {
@@ -142,12 +140,9 @@
     "ext:Data.write",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
-   ],
+   "reads": [],
    "writes": [
-    "file:ApplicationSupport/UIStateCache.json",
-    "kc:AppConfig.keychainService / session-encryption-key[-vN] (created when absent)"
+    "file:ApplicationSupport/UIStateCache.json"
    ],
    "branches": [
     {
@@ -162,9 +157,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb",
-    "Emuqu/Sources/Storage/UIStateCache.swift::let UIStateCache.persistenceURL": "1458ca068386f73b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "06051ad11eb1ce2f",
+    "Emuqu/Sources/Storage/UIStateCache.swift::let UIStateCache.persistenceURL": "9ecb404249636dba",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -181,8 +176,7 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "file:ApplicationSupport/UIStateCache.json",
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+    "file:ApplicationSupport/UIStateCache.json"
    ],
    "writes": [
     "mem:UIStateCache.dashboard",
@@ -196,11 +190,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "a26db50852d1a413",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
-    "Emuqu/Sources/Storage/UIStateCache.swift::let UIStateCache.persistenceURL": "1458ca068386f73b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "91b3175897e9c4b2",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "20d8d937ea60f4f4",
+    "Emuqu/Sources/Storage/UIStateCache.swift::let UIStateCache.persistenceURL": "9ecb404249636dba",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   }
  ],

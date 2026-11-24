@@ -44,7 +44,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "d7e6ba844750c90b"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "8a5be1add32f14b3"
    }
   },
   {
@@ -63,9 +63,7 @@
    "reads": [
     "file:email_contacts.json"
    ],
-   "writes": [
-    "mem:EmailContactStore.contacts"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -84,11 +82,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.installProtectedDataObserver()": "cfbaa1dd8e3a9aa3",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "c643e06dd2691591",
-    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:retryDelays:seal:)": "2194b0c246cd5121",
-    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.installProtectedDataObserver()": "8db688b00bd1e168",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "966a04f04aca2cd1",
+    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:retryDelays:seal:)": "d11b3ac62773b538",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "a581e331ec0b88b2",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -114,7 +112,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "04d965a004d2ee00"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "ff2bffbbc094773f"
    }
   },
   {
@@ -128,8 +126,7 @@
    ],
    "reads": [],
    "writes": [
-    "mem:EmailContactStore.contacts",
-    "file:email_contacts.json"
+    "mem:EmailContactStore.contacts"
    ],
    "branches": [
     {
@@ -139,8 +136,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "04d965a004d2ee00",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "92952b96008002e5"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "ff2bffbbc094773f",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "95d6cf08e0ce70f6"
    }
   },
   {
@@ -156,9 +153,7 @@
     "mem:EmailContactStore.contacts"
    ],
    "writes": [
-    "mem:EmailContactStore.contacts",
-    "file:email_contacts.json",
-    "file:email_contacts.undecodable.json (removed)"
+    "mem:EmailContactStore.contacts"
    ],
    "branches": [
     {
@@ -173,8 +168,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "04d965a004d2ee00",
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)": "db0e03828a3d6d3e"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "ff2bffbbc094773f",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)": "18e4785fe00be088"
    }
   },
   {
@@ -186,15 +181,14 @@
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()"
    ],
    "reads": [
-    "mem:EmailContactStore.contacts",
-    "file:email_contacts.json"
+    "mem:EmailContactStore.contacts"
    ],
    "writes": [
     "mem:EmailContactStore.contacts"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "04d965a004d2ee00"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "ff2bffbbc094773f"
    }
   },
   {
@@ -205,9 +199,7 @@
    "calls": [
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)"
    ],
-   "reads": [
-    "mem:EmailContactStore.contacts"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -232,7 +224,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "9dd0c3d5ab04929f"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "e71120d751b6db57"
    }
   },
   {
@@ -244,9 +236,7 @@
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.looksLikeEmailAddress(_:)",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)"
    ],
-   "reads": [
-    "mem:EmailContactStore.contacts"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -266,9 +256,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "ae0a857674e18280",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.looksLikeEmailAddress(_:)": "e4c137486b3dae9d",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "1e4a4f1ea99d7efc",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.looksLikeEmailAddress(_:)": "8ab9f8861859779c",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "6c5a47fd27898e2b"
    }
   },
   {
@@ -303,14 +293,9 @@
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.adoptStoredBook(_:)",
     "ext:Data(contentsOf:)"
    ],
-   "reads": [
-    "file:email_contacts.json",
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
-   ],
+   "reads": [],
    "writes": [
-    "mem:EmailContactStore.contacts",
-    "mem:EmailContactStore.loadFailed",
-    "file:email_contacts.undecodable.json"
+    "mem:EmailContactStore.loadFailed"
    ],
    "branches": [
     {
@@ -325,8 +310,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.adoptStoredBook(_:)": "76b1c66dc7cf8586",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.adoptStoredBook(_:)": "c449f32806969a4c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -340,13 +325,10 @@
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.setAsideUndecodable(_:reason:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
-   ],
+   "reads": [],
    "writes": [
     "mem:EmailContactStore.contacts",
-    "mem:EmailContactStore.loadFailed",
-    "file:email_contacts.undecodable.json"
+    "mem:EmailContactStore.loadFailed"
    ],
    "branches": [
     {
@@ -361,10 +343,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.setAsideUndecodable(_:reason:)": "e92e9e0f79a8a45c",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)": "7c29c0d5a06f281b",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.setAsideUndecodable(_:reason:)": "b56d42a33a06c551",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)": "814152c2f067c287",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "20d8d937ea60f4f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -397,8 +379,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -410,9 +392,7 @@
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()",
     "ext:NotificationCenter.removeObserver"
    ],
-   "reads": [
-    "file:email_contacts.json"
-   ],
+   "reads": [],
    "writes": [
     "mem:EmailContactStore.contacts",
     "mem:EmailContactStore.protectedDataObserver"
@@ -430,7 +410,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "c643e06dd2691591"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "966a04f04aca2cd1"
    }
   },
   {
@@ -454,8 +434,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "1cecd48171fbd501",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "b681b8beddae6da1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   }
  ],

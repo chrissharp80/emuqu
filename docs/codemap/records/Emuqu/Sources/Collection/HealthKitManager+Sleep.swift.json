@@ -54,14 +54,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "f58c07f55431753c",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.lastNightContext(samples:window:)": "cfc0b4198df7d428",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.lastNightSamples(sleepType:windowStart:windowEnd:)": "34a961aeac2201bd",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.resolvedOffMain(_:)": "42eff1f191aab83b",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.sleepSchedule": "d65a551fec4ed6af",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "54265da0046fd3e1"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "e650a79e57cc674f",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.lastNightContext(samples:window:)": "6c1a9d6695978a4e",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.lastNightSamples(sleepType:windowStart:windowEnd:)": "0d9e5485d70d0f24",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.resolvedOffMain(_:)": "535a2ab940195254",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7be3a6a55a4658d7",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.sleepSchedule": "d7e25426d2eadc11",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "2ede733302c47065",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "3345ee65c2db127b"
    }
   },
   {
@@ -76,7 +76,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)": "014d3d907f4138f9"
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)": "26e964c3e492091d"
    }
   },
   {
@@ -91,7 +91,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "02861496baa5245b"
    }
   },
   {
@@ -114,7 +114,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingConfig.defaultProcessing(settingsManager:)": "3463bc30d89554d5"
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingConfig.defaultProcessing(settingsManager:)": "5aafc7955b13da7c"
    }
   },
   {
@@ -126,14 +126,12 @@
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)"
    ],
-   "reads": [
-    "hk:sleepAnalysis"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "65774819e6aa8968",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)": "e1523d9d1844b0cb"
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "f444302b93227465",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)": "a3a0cdefb4fc0a1d"
    }
   },
   {
@@ -149,12 +147,8 @@
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.warmSleepCache(_:rrPoints:autoSleepExtension:)",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable"
    ],
-   "reads": [
-    "hk:sleepAnalysis"
-   ],
-   "writes": [
-    "ud:SleepDataCache.v2"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+7",
@@ -178,12 +172,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.processOffMain(_:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)": "15cde6567a317e2c",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.querySleepSamples(recordingStart:recordingEnd:)": "572bcc701fa22dab",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.warmSleepCache(_:rrPoints:autoSleepExtension:)": "25528ca5bd673b8c",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func plausibleForRecording(_:recordingStart:recordingEnd:autoSleepExtension:)": "3e015a782586355b",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingConfig.fromSettings(recordingStart:settingsManager:)": "9e9bd368c1df8618"
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.processOffMain(_:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)": "7b76102058eac1fe",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.querySleepSamples(recordingStart:recordingEnd:)": "cd4de8e43989e9e0",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.warmSleepCache(_:rrPoints:autoSleepExtension:)": "b3c379340bbb6040",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func plausibleForRecording(_:recordingStart:recordingEnd:autoSleepExtension:)": "24d9347d7fcbdaa8",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7be3a6a55a4658d7",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingConfig.fromSettings(recordingStart:settingsManager:)": "6773113efdecc74d"
    }
   },
   {
@@ -206,8 +200,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.write(_:)": "debe73edd173a032"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "fa587c280cf6ebe9",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.write(_:)": "fb76f2a73bd14dc3"
    }
   },
   {
@@ -239,15 +233,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "f58c07f55431753c",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "65774819e6aa8968",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.logSleepDiag(_:_:window:)": "23a5e2d268936104",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)": "e1523d9d1844b0cb",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.sleepSchedule": "d65a551fec4ed6af",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "f306ef98d67e6cfb",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "54265da0046fd3e1",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "ec9bf42598061022"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "e650a79e57cc674f",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "f444302b93227465",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.logSleepDiag(_:_:window:)": "c03aac13b0d8c252",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)": "a3a0cdefb4fc0a1d",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.sleepSchedule": "d7e25426d2eadc11",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "453ac06cad117bad",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "2ede733302c47065",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "3345ee65c2db127b",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "dc4b97db005e5767"
    }
   },
   {
@@ -273,10 +267,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)": "b4e42c1bf96126f4",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.sleepQueryTimeoutSec": "a1b738afbc6d9661",
-    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.categoryResult(_:_:)": "0bf0de42d7e2a7e3",
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)": "7305d2dfbb69b157",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.sleepQueryTimeoutSec": "30d72971d731fe3f",
+    "Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift::func HealthKitManager.categoryResult(_:_:)": "f8e28a5b768cb653",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "8dffbe19e2220cac"
    }
   },
   {
@@ -287,10 +281,7 @@
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt:)"
    ],
-   "reads": [
-    "hk:sleepAnalysis",
-    "mem:UserSettings.sleepSchedule"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -300,7 +291,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt:)": "5baee33eeecd7c41"
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt:)": "adb2a7cdb1a22ec0"
    }
   },
   {
@@ -345,13 +336,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "f58c07f55431753c",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.asleepIntervals(_:clippedTo:)": "3ed85cd6df856221",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.napSamples(sleepType:window:)": "b890cfafd3bfe1ec",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.qualifyingNapMinutes(asleepIntervals:episodeGapSeconds:floorSeconds:)": "982f3276858404c1",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.sleepSchedule": "d65a551fec4ed6af",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeNapWindow(relativeTo:)": "db08f3b63b8dd4ce"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "e650a79e57cc674f",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.asleepIntervals(_:clippedTo:)": "484213cd2d5c5541",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.napSamples(sleepType:window:)": "36985924928a3342",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.qualifyingNapMinutes(asleepIntervals:episodeGapSeconds:floorSeconds:)": "d0a2bd8123e3a1fd",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7be3a6a55a4658d7",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.sleepSchedule": "d7e25426d2eadc11",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeNapWindow(relativeTo:)": "caf5d0772328120a"
    }
   },
   {
@@ -363,14 +354,12 @@
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)"
    ],
-   "reads": [
-    "hk:sleepAnalysis"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "65774819e6aa8968",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)": "e1523d9d1844b0cb"
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.executeSleepQuery(sleepType:predicate:sort:)": "f444302b93227465",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.sleepReadExcludingOwnWrites(dateRange:)": "a3a0cdefb4fc0a1d"
    }
   },
   {
@@ -385,7 +374,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "2e8dcb644819aff3"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "f29de316615b76fd"
    }
   },
   {
@@ -438,8 +427,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.asleepIntervals(_:clippedTo:)": "3ed85cd6df856221",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.episodeSeconds(_:floorSeconds:)": "3a273ffc6193ea20"
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.asleepIntervals(_:clippedTo:)": "484213cd2d5c5541",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.episodeSeconds(_:floorSeconds:)": "d4de782feb250580"
    }
   },
   {
@@ -486,7 +475,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -503,9 +492,7 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable"
    ],
-   "reads": [
-    "hk:heartRate"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -535,13 +522,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimatedSleepData(sleepStart:sleepEnd:sleepMinutes:)": "3b5ec710f739d944",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)": "911cd76c4571878c",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)": "7db0574b0b9083d0",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.sleepWake(_:threshold:)": "7972d91bba6e75ba",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.smoothedOvernightHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "2b8d9243811e2753",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimatedSleepData(sleepStart:sleepEnd:sleepMinutes:)": "9d75c7fb42726111",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)": "1139e7595e68504a",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)": "6ecb3bf4c4904d58",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.sleepWake(_:threshold:)": "3478dae5ecb83df1",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.smoothedOvernightHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "ce715ab61293d890",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7be3a6a55a4658d7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -554,9 +541,7 @@
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.smoothHRSamples(_:windowMinutes:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [
-    "hk:heartRate"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -581,9 +566,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.smoothHRSamples(_:windowMinutes:)": "bc17098a940ab724",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "ababe979d0000127",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.smoothHRSamples(_:windowMinutes:)": "1d9ac25289b0e590",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "c6b257bf991cb66d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.fetchHeartRateSamples(from:to:)": "dc3f65d9f901cce1"
    }
   },
   {
@@ -606,9 +592,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "0937b2fc06093e13",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "bf1e5c5a9136f108",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "fa587c280cf6ebe9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   }
  ],

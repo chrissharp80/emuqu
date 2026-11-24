@@ -33,9 +33,12 @@ When you change code:
    `does`, `contract` where it has one, `entry`, `calls`, `reads`, `writes` and every branch. With
    the overlay, remove flags the change fixed and add any problem you find. Public records describe
    behaviour only; keep defect notes out of them. Name units, targets and files, never line
-   numbers: the check rejects a `file:line` citation.
+   numbers: the check rejects a `file:line` citation. Describe only the unit's own code: its own
+   reads and writes, not its callees' (impact shows the whole reach), and for a unit that only
+   runs or forwards to another, say so and list it in `delegates`.
 5. For each "re-check" line your change adds (`codemap.py status --by-callee` shows each callee's
-   change with its callers), re-read that caller against the callee's new behaviour. If the caller
+   change with its callers; tests are never sent back, they are checked by running them), re-read
+   that caller against the callee's new behaviour. If the caller
    is unaffected, acknowledge it: `codemap.py ack <callee> [<caller> ...]`. If it no longer does
    what its record says, fix the caller or rewrite its record and stamp it.
 6. Only then stamp, once every callee's record is written, in one pass:

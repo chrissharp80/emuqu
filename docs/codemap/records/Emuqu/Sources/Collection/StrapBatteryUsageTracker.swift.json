@@ -36,20 +36,17 @@
    "reads": [
     "ud:polar.batteryUsage.value.<id>",
     "ud:polar.batteryUsage.changedAt.<id>",
-    "ud:polar.batteryUsage.hours.<id>",
-    "mem:PolarManager.batteryLevel",
-    "mem:PolarManager.connectedDeviceType"
+    "ud:polar.batteryUsage.hours.<id>"
    ],
    "writes": [
     "mem:PolarManager.batteryLastReportedValue",
     "mem:PolarManager.batteryLastChangedAt",
-    "mem:PolarManager.hoursRecordedSinceBatteryChanged",
-    "mem:PolarManager.isBatteryReadingStale"
+    "mem:PolarManager.hoursRecordedSinceBatteryChanged"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "f95817d41b4552ca",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "cd8e2eeeb387c6ca"
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "bbf2c8a090186df9",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "a4c21fd158d423a8"
    }
   },
   {
@@ -83,7 +80,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "cd8e2eeeb387c6ca"
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.usageKey(_:deviceId:)": "a4c21fd158d423a8"
    }
   },
   {
@@ -99,13 +96,11 @@
    ],
    "reads": [
     "mem:PolarManager.connectedDeviceId",
-    "mem:PolarManager.knownDevices",
     "mem:PolarManager.hoursRecordedSinceBatteryChanged"
    ],
    "writes": [
     "mem:PolarManager.hoursRecordedSinceBatteryChanged",
-    "ud:polar.batteryUsage.*.<id>",
-    "mem:PolarManager.isBatteryReadingStale"
+    "ud:polar.batteryUsage.*.<id>"
    ],
    "branches": [
     {
@@ -120,10 +115,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastConnectedDeviceId": "1011e2c07cc732c3",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "734b808f33c32f3f",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "f95817d41b4552ca",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.lastConnectedDeviceId": "ddad316566ee899d",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "dd4bf6d69405e6ef",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "bbf2c8a090186df9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -150,9 +145,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours": "d1e3b3d94aa50cfc",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours": "051215564e976037",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ed08a36b281e054e",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "836efa30d0856207"
    }
   },
   {
@@ -197,11 +192,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.isActiveDeviceInfoSource(_:)": "adbf9f7d75365ac4",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "734b808f33c32f3f",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "f95817d41b4552ca",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.isActiveDeviceInfoSource(_:)": "cf0883080890cb67",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ed08a36b281e054e",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.persist(for:)": "dd4bf6d69405e6ef",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "bbf2c8a090186df9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   }
  ],

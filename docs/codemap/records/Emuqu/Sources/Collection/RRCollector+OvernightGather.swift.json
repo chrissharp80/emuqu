@@ -24,16 +24,12 @@
    ],
    "reads": [
     "mem:RRCollector.currentSession",
-    "mem:PolarManager.streamingReconnectCount",
     "mem:RRCollector.streamingElapsedSeconds"
    ],
    "writes": [
     "mem:RRCollector.isStreamingMode",
     "ble:PolarManager streaming",
-    "mem:RRCollector.morningStatus",
-    "mem:SessionState.recordingPhase",
-    "mem:SessionState.isCollecting",
-    "file:RawRRBackup"
+    "mem:RRCollector.morningStatus"
    ],
    "branches": [
     {
@@ -48,13 +44,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.resolveOvernightSource(streamingPoints:internalPoints:baseSession:)": "636facceda0bc0c2",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.backupStreamingData(_:sessionId:)": "9ec6ffb5020f31eb",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "2f699405c9e324fe",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "7118bb68655824f9",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.isVeritySenseDevice(_:)": "fcdf7e5816f3f122",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.resolveOvernightSource(streamingPoints:internalPoints:baseSession:)": "340c0113a4006139",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.backupStreamingData(_:sessionId:)": "698f7f40ae71ecbb",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "8b87303e807482ac",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "781d05ea38a6a636",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.isVeritySenseDevice(_:)": "d0988ce82630fede",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "b87ffc34fab6fea8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.isVeritySenseDevice(_:)": "8bbe9d24a50def83"
    }
   },
   {
@@ -70,8 +67,7 @@
    "reads": [],
    "writes": [
     "mem:RRCollector.currentSession",
-    "mem:RRCollector.lastError",
-    "file:RawRRBackup (rescue)"
+    "mem:RRCollector.lastError"
    ],
    "branches": [
     {
@@ -91,10 +87,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.failRescuingDownload(_:baseSession:)": "110c92804e292686",
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func selectOvernightSource(streamingPoints:internalPoints:baseSession:isResumedChild:)": "fde77c3ad050ea33",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.hasSufficientOvernightData(streamingCount:internalCount:isResumedChild:)": "dee888bbecd54ac9",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.failRescuingDownload(_:baseSession:)": "20401767140fc3d4",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func selectOvernightSource(streamingPoints:internalPoints:baseSession:isResumedChild:)": "71ef4c244f7950e1",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.hasSufficientOvernightData(streamingCount:internalCount:isResumedChild:)": "b3a0abd6003b6be0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -107,15 +103,12 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.failSession(from:)"
    ],
    "reads": [],
-   "writes": [
-    "file:RawRRBackup",
-    "mem:RRCollector.currentSession",
-    "mem:RRCollector.lastError"
-   ],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.rescueDownloadedBeats(_:baseSession:)": "07b86008e2260ce4",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.failSession(from:)": "52c934ea30eaf897"
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.rescueDownloadedBeats(_:baseSession:)": "e76fde2aa72eb2d9",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.failSession(from:)": "07a83110a6be3d01",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.failSession(from:)": "5142802ed97750d0"
    }
   },
   {
@@ -145,8 +138,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "0241edd84800b1f0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "8c525844aa381012",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -170,13 +163,13 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.recordRecordingHours(_:)": "568275b6e254e507",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "afead9ad3142686a",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "0e3fa7b6eee80a18",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.recordRecordingHours(_:)": "cc8a6b09bbf2ec9d",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "ae73487dbdbe7fa4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "94d877dee16ca13f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "35d6b7414f438371",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "abe9c5f330831de6",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "aa7cc85c066e4d06",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "e850d31a670f5780"
    }
   },
   {
@@ -202,9 +195,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "5c9bb3b18af92a73",
-    "Emuqu/Sources/Collection/DataSourceSelector.swift::var DataSourceSelector.SelectionResult.normalizedSource": "1651f859bcfeb9bc",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "fd4aa9aec5632a6d",
+    "Emuqu/Sources/Collection/DataSourceSelector.swift::var DataSourceSelector.SelectionResult.normalizedSource": "d1d989adb38a8686",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   }
  ],

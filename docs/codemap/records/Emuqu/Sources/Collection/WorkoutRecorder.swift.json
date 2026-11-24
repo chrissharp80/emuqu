@@ -77,7 +77,8 @@
    ],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns the recorder's WorkoutLifecycle.phase; read only."
   },
   {
    "key": "var WorkoutRecorder.currentSession",
@@ -116,7 +117,8 @@
    ],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns the recorder's WorkoutLifecycle.elapsedSeconds; read only."
   },
   {
    "key": "var WorkoutRecorder.currentHR",
@@ -142,7 +144,8 @@
    ],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns WorkoutHR.peakHR; read-only."
   },
   {
    "key": "var WorkoutRecorder.beatCount",
@@ -181,7 +184,8 @@
    ],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns WorkoutMotion.elevationGainMeters, the value views observe."
   },
   {
    "key": "var WorkoutRecorder.liveTrack",
@@ -220,7 +224,8 @@
    ],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns WorkoutMotion.cadenceStepsPerMin, the value views observe."
   },
   {
    "key": "var WorkoutRecorder.powerWatts",
@@ -233,7 +238,8 @@
    ],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns WorkoutMotion.powerWatts, the value views observe."
   },
   {
    "key": "var WorkoutRecorder.footPodActive",
@@ -300,8 +306,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)": "5f56efcad87b7b36",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "847d122c6e26f24c"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)": "f37bbb1431b2b9b5",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "064598de03df2f5f"
    }
   },
   {
@@ -317,8 +323,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.pause(isAuto:)": "d5cf815c9ee50b9b",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "847d122c6e26f24c"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.pause(isAuto:)": "b92e35e86074a36d",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "064598de03df2f5f"
    }
   },
   {
@@ -334,8 +340,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resume()": "8f1e2902f4c0c16d",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "847d122c6e26f24c"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.resume()": "47322008185c67e0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "064598de03df2f5f"
    }
   },
   {
@@ -351,8 +357,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "66055d6a54f84c45",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "847d122c6e26f24c"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "97689f9a06897548",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "064598de03df2f5f"
    }
   },
   {
@@ -368,9 +374,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.buildAiContextSnapshot(_:sport:stopDate:)": "a60416c8bf428af1",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "847d122c6e26f24c"
-   }
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.buildAiContextSnapshot(_:sport:stopDate:)": "b6ab14c71b93ef33",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "064598de03df2f5f"
+   },
+   "delegates": [
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.buildAiContextSnapshot(_:sport:stopDate:)"
+   ]
   },
   {
    "key": "func WorkoutRecorder.computeNormalizedPower(samples:)",
@@ -384,7 +393,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "458a960884374ba5"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.computeNormalizedPower(samples:)": "7f5b803fe4cac749"
    }
   },
   {
@@ -399,7 +408,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "cc09535357700ce5"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)": "102d6d373b7d3689"
    }
   },
   {
@@ -414,8 +423,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.scheduleCoachReportEmail(for:settings:)": "60a53da251361b3f",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "847d122c6e26f24c"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.scheduleCoachReportEmail(for:settings:)": "15e4ae4a8cfbf63c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "064598de03df2f5f"
    }
   },
   {
@@ -430,8 +439,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.scheduleCoachReportEmail(for:settings:)": "60a53da251361b3f",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "847d122c6e26f24c"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.scheduleCoachReportEmail(for:settings:)": "15e4ae4a8cfbf63c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.session": "064598de03df2f5f"
    }
   },
   {
@@ -476,7 +485,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::init WorkoutLocationManager()": "9a1613ce604f88cd"
+    "Emuqu/Sources/Collection/WorkoutLocationManager.swift::init WorkoutLocationManager()": "9406a113c6589c60"
    }
   },
   {
@@ -506,7 +515,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "2fa58de650200945"
+    "Emuqu/Sources/Collection/LivePaceEstimator.swift::var LivePaceEstimator.paceSecPerKm": "33071210ad8e92ee"
    }
   },
   {
@@ -545,8 +554,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func FootPodOdometer.record(_:)": "1587807f6b77b486",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters": "27a085a0a1467e6f"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func FootPodOdometer.record(_:)": "1ceccd603f88636f",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters": "3c2b9156390d538d"
    }
   },
   {
@@ -585,12 +594,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:alertHaptic:)": "f137e4289e1dba6d",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "bf6480b3ac06b1d3",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:alertHaptic:)": "c8cefb932269f569",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "2e075cb0da2a67f9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "a3eb0234020bced9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "a51b2bd0dfe5054f"
    }
   },
   {
@@ -605,7 +614,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "bf6480b3ac06b1d3"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "2e075cb0da2a67f9"
    }
   },
   {
@@ -659,7 +668,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters": "27a085a0a1467e6f"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var FootPodOdometer.distanceMeters": "3c2b9156390d538d"
    }
   }
  ],

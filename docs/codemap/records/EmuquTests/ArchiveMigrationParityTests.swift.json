@@ -29,7 +29,7 @@
    ],
    "branches": [],
    "deps": {
-    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "f07306afb47b7ee7"
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "a2f34dd858624ac5"
    }
   },
   {
@@ -63,17 +63,12 @@
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
     "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.clearMigrationFlags()"
    ],
-   "reads": [
-    "ud:FlowRecovery.migration.{recoveryScores,endDates,metrics,sleepIndexFields}.v1.done (UserDefaults.standard, the host's ArchiveMigrations done flags)"
-   ],
-   "writes": [
-    "ud:FlowRecovery.migration.{recoveryScores,endDates,metrics,sleepIndexFields}.v1.done (UserDefaults.standard, the host's ArchiveMigrations done flags)",
-    "mem:ArchiveMigrationParityTests.savedMigrationFlags"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.clearMigrationFlags()": "7eb79978d61dd6aa"
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "7b9187df25d20494",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.clearMigrationFlags()": "451f6ca359398825"
    }
   },
   {
@@ -86,13 +81,10 @@
     "ext:FileManager.removeItem",
     "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.restoreMigrationFlags()"
    ],
-   "reads": [
-    "mem:ArchiveMigrationParityTests.savedMigrationFlags"
-   ],
+   "reads": [],
    "writes": [
     "file:ArchiveMigrationParityTests-<uuid> temp archive directory",
-    "ud:archive.deletionTimes (UserDefaults.standard, via ArchiveStore.recordDeletionTime)",
-    "ud:FlowRecovery.migration.{recoveryScores,endDates,metrics,sleepIndexFields}.v1.done (UserDefaults.standard, the host's ArchiveMigrations done flags)"
+    "ud:archive.deletionTimes (UserDefaults.standard, via ArchiveStore.recordDeletionTime)"
    ],
    "branches": [
     {
@@ -102,8 +94,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.restoreMigrationFlags()": "f60436576b162217"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "431036fe868d4634",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.restoreMigrationFlags()": "edd54ee5f2a3e21c"
    }
   },
   {
@@ -198,18 +190,17 @@
    "writes": [
     "file:ArchiveMigrationParityTests-<uuid> temp archive directory",
     "kc:EncryptionManager archive key",
-    "notif:flowRecoveryArchiveChanged",
     "ud:ArchiveMigrations MigrationFlag.* done flags (UserDefaults.standard)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "e2b15f19b0bc66b6",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "eaf16369c9612392",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()": "fb1491fb78cecfe9"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "56ce14dca634ba7d",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "fa7dad5a16f53378",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "0ec3e04635ae526c",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "a26236f690df976d",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "24f214109cb69703",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "9bb3afb1e3b9a1a5",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()": "3b6cc30cb60766dc"
    }
   },
   {
@@ -234,7 +225,6 @@
    "writes": [
     "file:ArchiveMigrationParityTests-<uuid> temp archive directory",
     "kc:EncryptionManager archive key",
-    "notif:flowRecoveryArchiveChanged",
     "ud:ArchiveMigrations MigrationFlag.* done flags (UserDefaults.standard)"
    ],
    "branches": [
@@ -250,14 +240,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "e2b15f19b0bc66b6",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "eaf16369c9612392",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()": "fb1491fb78cecfe9"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "48667315e3fffa7a",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "fa7dad5a16f53378",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "0ec3e04635ae526c",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "a26236f690df976d",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "24f214109cb69703",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "0c2bdfaa757a22bb",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "9bb3afb1e3b9a1a5",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()": "3b6cc30cb60766dc"
    }
   },
   {
@@ -275,15 +265,15 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "e2b15f19b0bc66b6",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.legacyElitePatch(entry:session:)": "99fe94900694fa31",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()": "b04f455c10ed849c",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "eaf16369c9612392",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "84963dca14540033"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "56ce14dca634ba7d",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "cdc80e964ca1bc0b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "ca1ad154fd46a628",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "7cb48f6937f0b9f5",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "fa7dad5a16f53378",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.legacyElitePatch(entry:session:)": "df4b5939e7bd74b2",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()": "551b0449275258dd",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "9bb3afb1e3b9a1a5",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "7cefd3fc4a347d7d"
    }
   },
   {
@@ -304,9 +294,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.unusedQuarantineURL(for:in:fileManager:)": "82d6b5f14e8955e3",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)": "4011267e08da02e8",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)": "824b945ef63af701"
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.unusedQuarantineURL(for:in:fileManager:)": "af7764f8387be068",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)": "36b6b2cac373eb95",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)": "9ecd7f7687ae75f8"
    }
   },
   {
@@ -327,7 +317,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "ad2eb582449857dd"
    }
   }
  ],

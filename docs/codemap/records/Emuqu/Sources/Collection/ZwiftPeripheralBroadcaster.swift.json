@@ -46,7 +46,6 @@
     "ext:CBPeripheralManager.startAdvertising"
    ],
    "reads": [
-    "mem:ZwiftPeripheralBroadcaster.peripheralManager",
     "mem:ZwiftPeripheralBroadcaster.isAdvertising"
    ],
    "writes": [
@@ -68,12 +67,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.configureServices()": "bcee43bd3aefbfa0",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "ef15547ae1ec005b",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.existingOrNewPeripheralManager()": "6288c5e9baeb3bbb",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()": "ed610baf6d09794b",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)": "6ec63cb788b6753d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.configureServices()": "90566bbdbdc4b4f7",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "9de7105f3c3e2fb8",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.existingOrNewPeripheralManager()": "e7f963fd63c22297",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()": "1fa42922f90a66e1",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)": "df6635788befc2cd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -113,13 +112,11 @@
    "writes": [
     "mem:ZwiftPeripheralBroadcaster.wantsBroadcast",
     "mem:ZwiftPeripheralBroadcaster.isAdvertising",
-    "mem:ZwiftPeripheralBroadcaster.isBroadcastBlocked",
-    "mem:ZwiftPeripheralBroadcaster.subscribedCentrals",
-    "mem:ZwiftPeripheralBroadcaster.subscriberCount"
+    "mem:ZwiftPeripheralBroadcaster.isBroadcastBlocked"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()": "d595d1b3373c4a2e"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()": "f317b648c7c3703c"
    }
   },
   {
@@ -174,8 +171,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerMeasurementPacket(watts:)": "53119a99de0d02f3",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateMeasurementPacket(bpm:)": "8046bf3798ca66bc"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerMeasurementPacket(watts:)": "16040e582ac0546f",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateMeasurementPacket(bpm:)": "0daad2a36660a0b4"
    }
   },
   {
@@ -228,8 +225,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "ef15547ae1ec005b",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()": "ed610baf6d09794b"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.cyclingPowerService()": "9de7105f3c3e2fb8",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.heartRateService()": "1fa42922f90a66e1"
    }
   },
   {
@@ -264,7 +261,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.readOnlyCharacteristic(_:value:)": "cf876d2388e2ffa1"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.readOnlyCharacteristic(_:value:)": "99d69a42e8c257b0"
    }
   },
   {
@@ -309,7 +306,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.radioStateChanged(_:)": "36c956c5e5abef75"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.radioStateChanged(_:)": "887c348b834861de"
    }
   },
   {
@@ -328,9 +325,7 @@
    ],
    "writes": [
     "mem:ZwiftPeripheralBroadcaster.isAdvertising",
-    "mem:ZwiftPeripheralBroadcaster.isBroadcastBlocked",
-    "mem:ZwiftPeripheralBroadcaster.subscribedCentrals",
-    "mem:ZwiftPeripheralBroadcaster.subscriberCount"
+    "mem:ZwiftPeripheralBroadcaster.isBroadcastBlocked"
    ],
    "branches": [
     {
@@ -345,9 +340,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()": "d595d1b3373c4a2e",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)": "6ec63cb788b6753d",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "962d535849c8d225"
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.clearSubscribers()": "f317b648c7c3703c",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.isRadioUnusable(_:)": "df6635788befc2cd",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "da283a3185e67067"
    }
   },
   {
@@ -409,7 +404,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   }
  ],

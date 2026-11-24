@@ -25,8 +25,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsList()": "86cee629f2b4ba4b",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsList()": "42c9f6b9560e4298",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "d7e3ba61ed5dc91b"
    }
   },
   {
@@ -58,9 +58,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "6ccff086e88d7a89"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "91b80302c82cfe1e"
    }
   },
   {
@@ -76,9 +76,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsAdd(_:)": "148c6299a38a5ed7",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "96217c66f5b84d41",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsAdd(_:)": "7f9320a2c26352fb",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "f8310b98bff3f716",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "c345e45ec94d72b1"
    }
   },
   {
@@ -96,15 +96,8 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore",
     "ext:MainActor.assumeIsolated"
    ],
-   "reads": [
-    "mem:AssistantViewModel.turns",
-    "mem:AssistantActionConfirmations.pending"
-   ],
-   "writes": [
-    "file:Application Support/email_contacts.json (EmailContactStore)",
-    "mem:EmailContactStore.contacts",
-    "mem:AssistantActionConfirmations.pending"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -128,14 +121,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live": "fba34d98abddbf6a",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:store:context:)": "b394fa01954cff17",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactInputProblem(name:email:)": "cb7403cb3500c436",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "37d7f0088e388109",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "a2b5550709809fa9",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "6ccff086e88d7a89"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live": "ecf1661dc46864fb",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:store:context:)": "eff12b3ddee88ed1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactInputProblem(name:email:)": "af88973266075ffa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "7e56e785db858c83",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "75d9d56a70a23303",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "91b80302c82cfe1e"
    }
   },
   {
@@ -149,14 +142,10 @@
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsNotChanged()"
    ],
-   "reads": [
-    "mem:AssistantViewModel.turns (context transcript)",
-    "mem:AssistantActionConfirmations.pending"
-   ],
+   "reads": [],
    "writes": [
     "file:Application Support/email_contacts.json (EmailContactStore)",
-    "mem:EmailContactStore.contacts",
-    "mem:AssistantActionConfirmations.pending"
+    "mem:EmailContactStore.contacts"
    ],
    "branches": [
     {
@@ -176,10 +165,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "fa5e4ee2a83fe2df",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsNotChanged()": "3cc8cdeaebff617a",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "bf5d46125beaa0ed",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "647cee2bf7e67017",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsNotChanged()": "9956915119272070",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "9f9f2df2cce72053",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "4cab2bb5db8b9fb5"
    }
   },
   {
@@ -233,9 +222,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsRemove(_:)": "9f3da49436e3a482",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "96217c66f5b84d41",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantContactsRemove(_:)": "b6ba6e1b2e6ed316",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "f8310b98bff3f716",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "c345e45ec94d72b1"
    }
   },
   {
@@ -252,16 +241,8 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.removeContact(named:store:context:)",
     "ext:MainActor.assumeIsolated"
    ],
-   "reads": [
-    "file:Application Support/email_contacts.json (EmailContactStore)",
-    "mem:AssistantViewModel.turns",
-    "mem:AssistantActionConfirmations.pending"
-   ],
-   "writes": [
-    "file:Application Support/email_contacts.json (EmailContactStore)",
-    "mem:EmailContactStore.contacts",
-    "mem:AssistantActionConfirmations.pending"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -275,13 +256,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live": "fba34d98abddbf6a",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.removeContact(named:store:context:)": "110ea7b340b7c8e4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "37d7f0088e388109",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "a2b5550709809fa9",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "6ccff086e88d7a89"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::var AssistantMemoryNamespace.DestructiveActionContext.live": "ecf1661dc46864fb",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.removeContact(named:store:context:)": "6a053d6b69cae7b6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "7e56e785db858c83",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "75d9d56a70a23303",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "91b80302c82cfe1e"
    }
   },
   {
@@ -297,13 +278,11 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsNotChanged()"
    ],
    "reads": [
-    "mem:EmailContactStore.contacts",
-    "mem:AssistantActionConfirmations.pending"
+    "mem:EmailContactStore.contacts"
    ],
    "writes": [
     "file:Application Support/email_contacts.json (EmailContactStore)",
-    "mem:EmailContactStore.contacts",
-    "mem:AssistantActionConfirmations.pending"
+    "mem:EmailContactStore.contacts"
    ],
    "branches": [
     {
@@ -323,11 +302,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "897cf5f4f388f1f2",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ambiguousContact(name:matches:)": "acac94d50ec3519d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsNotChanged()": "3cc8cdeaebff617a",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "ae0a857674e18280",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)": "269e602d9dfb753c"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "3375119d1f2d0f1f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ambiguousContact(name:matches:)": "5c6ca23d9c8d81bf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactsNotChanged()": "9956915119272070",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "1e4a4f1ea99d7efc",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)": "6f6fec62c4475f43"
    }
   },
   {
@@ -360,8 +339,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantEmailCompose(_:)": "76e7bdead6bd3111",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "96217c66f5b84d41"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantEmailCompose(_:)": "8531357c84dae095",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "f8310b98bff3f716"
    }
   },
   {
@@ -374,9 +353,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)"
    ],
-   "reads": [
-    "mem:AssistantViewModel.turns (latest user message, via latestUserMessageContains)"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -396,9 +373,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmail(subject:body:args:)": "74213f24c15b29fa",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "37d7f0088e388109",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "a2b5550709809fa9"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmail(subject:body:args:)": "6d83eaceb7192c6e",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "7e56e785db858c83",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "75d9d56a70a23303"
    }
   },
   {
@@ -415,12 +392,9 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmailRecord(subject:body:category:to:cc:)"
    ],
    "reads": [
-    "file:Application Support/email_contacts.json (EmailContactStore)",
     "mem:UserSettings.default*EmailRecipient/CC"
    ],
-   "writes": [
-    "mem:AssistantEmailBridge.pendingDraft"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -449,13 +423,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ccRecipients(_:fallback:)": "49602d7e4159168a",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactResolutionFailure(_:_:)": "cf6dfec7f309615d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.emailDefaults(for:)": "541b352df0c3f822",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveContacts(_:)": "dc412f77feeeb4fd",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stageEmail(subject:body:to:cc:)": "539ee7ab9e72b9fd",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmailRecord(subject:body:category:to:cc:)": "a6e9822b6a736ed7",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ccRecipients(_:fallback:)": "3cf5298d1623d9b2",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.contactResolutionFailure(_:_:)": "80e101b1230b4734",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.emailDefaults(for:)": "9e9fa7c95d3e28d6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveContacts(_:)": "9209b4fafe34779d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stageEmail(subject:body:to:cc:)": "2b60ef6608271173",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmailRecord(subject:body:category:to:cc:)": "9e404bde78ae5265",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "6c5a47fd27898e2b"
    }
   },
   {
@@ -484,14 +458,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "a1abab14c1ff8f17",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "dac42d076ea6279c",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "46367860bc72e5b4",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC": "c4c996f8ca2bbd96",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient": "19fcbec0d072481a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "34ed2f02766fcce6",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "b016bccc9f09df27",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "9c2fe31874ba38a9",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC": "9cd6aaedd6f49215",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient": "fb6cf9985a0c1916",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "a6a0c97cb407b211"
    }
   },
   {
@@ -506,8 +480,7 @@
     "ext:MainActor.assumeIsolated"
    ],
    "reads": [
-    "file:Application Support/email_contacts.json (EmailContactStore)",
-    "mem:EmailContactStore.contacts"
+    "file:Application Support/email_contacts.json (EmailContactStore)"
    ],
    "writes": [],
    "branches": [
@@ -518,10 +491,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "c4268e3b21a089d1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "6ccff086e88d7a89"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.resolveNames(_:)": "579f9b143388cf95",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "91b80302c82cfe1e"
    }
   },
   {
@@ -562,7 +535,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "6c5a47fd27898e2b"
    }
   },
   {
@@ -577,16 +550,14 @@
     "ext:MainActor.assumeIsolated"
    ],
    "reads": [],
-   "writes": [
-    "mem:AssistantEmailBridge.pendingDraft"
-   ],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::func AssistantEmailBridge.stage(_:)": "7791d8f3be0dea27",
-    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::init AssistantEmailDraft(subject:body:recipients:ccRecipients:attachmentURL:)": "8af83e873059fce8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantEmailBridge": "e91fb094093c76e5"
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::func AssistantEmailBridge.stage(_:)": "64bd13e46872c6c9",
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::init AssistantEmailDraft(subject:body:recipients:ccRecipients:attachmentURL:)": "f91fcce364a11fa5",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "74b42b01be472259",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantEmailBridge": "a874537c37050568"
    }
   },
   {

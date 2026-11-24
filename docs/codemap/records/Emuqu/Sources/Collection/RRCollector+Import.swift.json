@@ -21,8 +21,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.save(_:)": "de32bd0871d62ce5"
-   }
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.save(_:)": "e89376df06483599"
+   },
+   "delegates": [
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.save(_:)"
+   ]
   },
   {
    "key": "func RRCollector.saveImportedSessionsBatch(_:)",
@@ -36,8 +39,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.saveBatch(_:)": "06c20ad410a42dba"
-   }
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.saveBatch(_:)": "9c8da74423814f62"
+   },
+   "delegates": [
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.saveBatch(_:)"
+   ]
   },
   {
    "key": "func SessionImport.save(_:)",
@@ -59,12 +65,10 @@
    "writes": [
     "archive:session file+index",
     "archive:modifiedAt stamp",
-    "notif:flowRecoveryArchiveSessionsNeedReupload (merged)",
     "ck:session record",
     "file:HRVBaseline",
     "mem:SessionState.baselineDeviation",
-    "mem:ArchiveSignal.version",
-    "notif:flowRecoveryArchiveChanged"
+    "mem:ArchiveSignal.version"
    ],
    "branches": [
     {
@@ -94,14 +98,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:sleepSchedule:)": "8a442bdf4f9e7021",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "a468796746c73ee7",
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)": "200604cc5c2d081f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "5dc05159bc65d04f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "55bc57d654968cf9"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:sleepSchedule:)": "eb8be0a17c9c9127",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "0186adacfdbe6156",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "d9275715fe6d6d32",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "7cb48f6937f0b9f5",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.holdsCopy(of:)": "721f1e730d7e9002",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "69b1d071c185d69b",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "33e465f32fcf44b0",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "78dcfa250d571dfe"
    }
   },
   {
@@ -121,7 +125,6 @@
    ],
    "writes": [
     "archive:session files+index",
-    "file:HRVBaseline",
     "mem:ArchiveSignal.version",
     "ck:full sync"
    ],
@@ -138,12 +141,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
-    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.updateBaseline(withImported:)": "2c3fc80f9621528f",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)": "98519ebf250ec639",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "eff72e3d17da1100",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "d9275715fe6d6d32",
+    "Emuqu/Sources/Collection/RRCollector+Import.swift::func SessionImport.updateBaseline(withImported:)": "f6b3e5463c822a60",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.archiveBatch(_:)": "7cfb9b5b3d55618f",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "a26236f690df976d",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "75a150826604ed4d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -169,8 +172,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "a468796746c73ee7",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "0186adacfdbe6156",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "a26236f690df976d"
    }
   }
  ],

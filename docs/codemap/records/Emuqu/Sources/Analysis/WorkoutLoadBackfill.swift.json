@@ -30,10 +30,7 @@
    "reads": [
     "mem:SavedRouteStore.routes"
    ],
-   "writes": [
-    "ud:FlowRecovery.workoutLoadBackfill.lastRun",
-    "ud:FlowRecovery.workoutLoadBackfill.routeIdsAtLastRun"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+7",
@@ -47,11 +44,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.ranRecently(defaults:routeIds:)": "4917a0e33a0cb8c7",
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.routeFingerprint(_:)": "44e0a62a1efa576f",
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.run(archive:savedRouteStore:lookbackDays:)": "9566c557b737dd87",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.ranRecently(defaults:routeIds:)": "9c4bfe22fe293ab2",
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.routeFingerprint(_:)": "5ad6539d6fa3fea3",
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.run(archive:savedRouteStore:lookbackDays:)": "5b43efcc4bd80df2",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "f760959478fbb133",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -123,11 +120,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorRuns(archive:from:to:)": "3cea66c633220f88",
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.backfill(_:archive:savedRouteStore:scan:)": "feefdfc9785b841c",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)": "4fcbd00ac4e40650",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "48667315e3fffa7a",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorRuns(archive:from:to:)": "d38be82425e9bfb3",
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.backfill(_:archive:savedRouteStore:scan:)": "2f70e8f07a756cd1",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)": "c524fb86de413c0b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entries(from:to:)": "885944697f6fedba"
    }
   },
   {
@@ -148,7 +146,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.Scan.replaceRun(of:)": "9e635cc2a1e217b8"
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.Scan.replaceRun(of:)": "89b41089efce3d04"
    }
   },
   {
@@ -169,9 +167,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::init RouteTRIMPEstimator.PriorRun(session:)": "80ef55d248ac1e90",
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.run(archive:savedRouteStore:lookbackDays:)": "9566c557b737dd87",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::init RouteTRIMPEstimator.PriorRun(session:)": "5bf1b541fabd29e5",
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.run(archive:savedRouteStore:lookbackDays:)": "5b43efcc4bd80df2",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "7cb48f6937f0b9f5"
    }
   },
   {
@@ -206,13 +204,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:priorRuns:savedRouteStore:)": "9a53df62b54c8a8d",
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.recordingMayBeTruncated(_:)": "1575198c43155941",
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.Scan.record(_:)": "1e4d0e81b9bc7462",
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.loadCandidate(_:archive:)": "60a717dbd76f597f",
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.persist(_:entry:archive:)": "aff97f9b8de28f73",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:priorRuns:savedRouteStore:)": "aec73658a195e71a",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.recordingMayBeTruncated(_:)": "0f7d7fae945dc647",
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.Scan.record(_:)": "0ceed9b1803148d5",
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.loadCandidate(_:archive:)": "62419f313b765390",
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.persist(_:entry:archive:)": "1d0236a1437efd34",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "1681eb54ade0893b",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "7cb48f6937f0b9f5"
    }
   },
   {
@@ -248,10 +246,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)": "178d40e8393fff4f",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "40d04f34ec0697be",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)": "33247269fdc01eff",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "c27692fe2c7dc235",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "88f1292bc11cc9a4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -293,11 +291,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.write(_:sport:archive:)": "3e3c70ec43cf7f5d",
-    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.failure(_:_:id:)": "8345d5c45acb0212",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f"
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.write(_:sport:archive:)": "6efab74e66aeef00",
+    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "e81221986a2a673b",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "7cb48f6937f0b9f5",
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.failure(_:_:id:)": "75b207f7f9564029",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "88f1292bc11cc9a4"
    }
   },
   {
@@ -312,8 +310,7 @@
    ],
    "reads": [],
    "writes": [
-    "archive:SessionArchive.archive",
-    "notif:flowRecoveryArchiveChanged"
+    "archive:SessionArchive.archive"
    ],
    "branches": [
     {
@@ -328,11 +325,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.failure(_:_:id:)": "8345d5c45acb0212",
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.failure(_:_:id:)": "75b207f7f9564029",
     "Emuqu/Sources/Services/ReanalysisService.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "24f214109cb69703",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "e81221986a2a673b"
    }
   },
   {
@@ -354,8 +351,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)": "178d40e8393fff4f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)": "33247269fdc01eff",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   }
  ],

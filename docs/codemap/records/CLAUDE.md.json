@@ -19,8 +19,8 @@
   },
   {
    "key": "§ Working in this repository > The code map is part of every change",
-   "hash": "f94c144d39f1e319",
-   "does": "States that docs/codemap/records holds a record per unit, that a call graph is built from the records and the code, and that CI (gates.yml, ci.yml, make ci) and the pre-commit hook fail while any record is missing or older than its code, names a callee that no longer exists, or has an unread re-check line (checked against an older description of a callee). Says findings (flags) and the open-findings budgets live in the local, untracked overlay do_not_ship/codemap/ (flags/<path>.json, codemap_open_high.txt, codemap_open_med.txt), that codemap.py merges it when present and writes flags only there, and that the ratchet runs only where the overlay exists (pre-commit hook, local make ci). Before a change: run codemap.py impact <path::key> (or make codemap-impact) and read the record, callers, triggers, tests, shared state and, with the overlay, open findings. During: make codemap-guard; codemap.py move for a moved file or renamed unit, then sync for added/removed units (a new test's record prefilled from its code, read like any other); rewrite each listed record against the code, contract included where it has one (with the overlay, removing fixed flags and adding found problems; public records describe behaviour only and name units, targets and files, never line numbers, which the check rejects); re-read each re-check caller the change adds (codemap.py status --by-callee groups them under the changed callee) against its callee's new behaviour and either ack it (unaffected) or fix the caller or its record and stamp it; then stamp in one pass once every callee's record is written; guard clean before committing. High- and medium-severity findings only go down: a fix deletes the flag and lowers the overlay's codemap_open_high.txt or codemap_open_med.txt; a new one is fixed, not recorded. Forbids stamping or acking a record or a re-check that was not re-read, and rewording a record whose behaviour did not change (it sends every caller back) unless the record has a contract, which alone is what callers are checked against; asks for a contract (results, errors, effects) when a record is rewritten. Points to docs/codemap/README.md for the full procedure. Every command named exists.",
+   "hash": "4e5740ca97c72ca5",
+   "does": "States that docs/codemap/records holds a record per unit, that a call graph is built from the records and the code, and that CI (gates.yml, ci.yml, make ci) and the pre-commit hook fail while any record is missing or older than its code, names a callee that no longer exists, or has an unread re-check line (checked against an older description of a callee). Says findings (flags) and the open-findings budgets live in the local, untracked overlay do_not_ship/codemap/ (flags/<path>.json, codemap_open_high.txt, codemap_open_med.txt), that codemap.py merges it when present and writes flags only there, and that the ratchet runs only where the overlay exists (pre-commit hook, local make ci). Before a change: run codemap.py impact <path::key> (or make codemap-impact) and read the record, callers, triggers, tests, shared state and, with the overlay, open findings. During: make codemap-guard; codemap.py move for a moved file or renamed unit, then sync for added/removed units (a new test's record prefilled from its code, read like any other); rewrite each listed record against the code, contract included where it has one (with the overlay, removing fixed flags and adding found problems; public records describe behaviour only and name units, targets and files, never line numbers, which the check rejects; a record describes only its own code, its own reads and writes, not its callees' (impact shows the whole reach), and a unit that only runs or forwards to another says so and lists it in `delegates`); re-read each re-check caller the change adds (codemap.py status --by-callee groups them under the changed callee; tests are never sent back, they are checked by running them) against its callee's new behaviour and either ack it (unaffected) or fix the caller or its record and stamp it; then stamp in one pass once every callee's record is written; guard clean before committing. High- and medium-severity findings only go down: a fix deletes the flag and lowers the overlay's codemap_open_high.txt or codemap_open_med.txt; a new one is fixed, not recorded. Forbids stamping or acking a record or a re-check that was not re-read, and rewording a record whose behaviour did not change (it sends every caller back) unless the record has a contract, which alone is what callers are checked against; asks for a contract (results, errors, effects) when a record is rewritten. Points to docs/codemap/README.md for the full procedure. Every command named exists.",
    "entry": null,
    "calls": [
     "Makefile::target codemap-guard",
@@ -36,13 +36,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target codemap-guard": "31a759d3fd34483c",
-    "Makefile::target codemap-impact": "03eba22ded671ba7",
-    "scripts/codemap/codemap.py::def budget_problems": "4b5252320a3020b3",
-    "scripts/codemap/codemap.py::def cmd_impact": "192de9074058712d",
-    "scripts/codemap/codemap.py::def cmd_stamp": "c9cdf3a9ec8f865c",
-    "scripts/codemap/codemap.py::def cmd_sync": "dd4fdb9471588710",
-    "scripts/codemap/codemap.py::def dependency_problems": "bd259b7be6811115"
+    "Makefile::target codemap-guard": "4a06f650cb356cc9",
+    "Makefile::target codemap-impact": "5482b6961d2aba7a",
+    "scripts/codemap/codemap.py::def budget_problems": "e5a11d6e8e9be5cb",
+    "scripts/codemap/codemap.py::def cmd_impact": "a7d6e1a29fc181f4",
+    "scripts/codemap/codemap.py::def cmd_stamp": "a7ef841765c69a88",
+    "scripts/codemap/codemap.py::def cmd_sync": "ea6b82466df26d40",
+    "scripts/codemap/codemap.py::def dependency_problems": "ab045892f64feee1"
    }
   }
  ],
