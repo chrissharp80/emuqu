@@ -242,7 +242,7 @@ extension MainTabView {
     /// The training-load refresh happens inside the detached task
     /// so the report reflects archive writes since the last cache refresh
     /// (plain `live()` could freeze a stale TSB/ACWR). See
-    /// `TrainingLoadRegistry.liveRefreshed()`.
+    /// `TrainingLoadRegistry.liveRefreshed(from:)`.
     func prepareAndSendReport(_ kind: SendReportKind) {
         guard preparingReportKind == nil else { return }
         preparingReportKind = kind
@@ -252,7 +252,7 @@ extension MainTabView {
             let outcome = await Self.renderReport(
                 kind: kind,
                 inputs: Self.withFullSessions(inputs, kind: kind),
-                liveLoadSnapshot: await TrainingLoadRegistry.liveRefreshed()
+                liveLoadSnapshot: await TrainingLoadRegistry.liveRefreshed(from: AppDependencies.current.analysis.trainingMetricsCache)
             )
             await MainActor.run { finishReportPreparation(outcome) }
         }

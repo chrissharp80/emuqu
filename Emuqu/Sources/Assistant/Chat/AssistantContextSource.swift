@@ -32,7 +32,7 @@ final class AssistantContextSource: Sendable {
     ///
     /// The canonical live training-load snapshot resolves on
     /// MainActor BEFORE `build()` goes to a background queue. Calling
-    /// `MainActor.assumeIsolated { TrainingLoadRegistry.live() }` inside the
+    /// `MainActor.assumeIsolated { TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache) }` inside the
     /// downstream AnalysisSummaryGenerator's cumulative-load gate instead
     /// traps when invoked off-main (the queue.async closure
     /// runs on a serial bg queue). Capturing here and threading through is the
@@ -51,7 +51,7 @@ final class AssistantContextSource: Sendable {
     /// lock-protected and safe to read from the build queue.
     func currentContext() async -> AssistantContext {
         let (liveLoadSnapshot, tracker) = await MainActor.run {
-            (TrainingLoadRegistry.live(), RRCollector.current?.baselineTracker)
+            (TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache), RRCollector.current?.baselineTracker)
         }
         return await withCheckedContinuation { continuation in
             queue.async {

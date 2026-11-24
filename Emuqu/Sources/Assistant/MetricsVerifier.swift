@@ -225,7 +225,7 @@ enum MetricsVerifier {
 
     /// Training load — ATL / CTL / TSB / ACWR.
     ///
-    /// Source of truth is `TrainingLoadRegistry.live()`,
+    /// Source of truth is `TrainingLoadRegistry.live(from:)`,
     /// the same accessor the Dashboard, AI live block, and AI tools
     /// (`training.load.*`, `workout.live.today_readiness`) use. Reading
     /// `cache.sampleOn(today)` directly can lag
@@ -248,7 +248,7 @@ enum MetricsVerifier {
     @MainActor
     private static func trainingLoadDiscrepancies(in text: String) -> [Discrepancy] {
         guard !TrainingLoadVisibility.isPaused(AppDependencies.current.app.settingsManager.settings),
-              let load = TrainingLoadRegistry.live() else { return [] }
+              let load = TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache) else { return [] }
         var found = claimsMatching(
             in: text,
             pattern: #"\bTSB(?:\s+(?:is|of|at|now|currently|today|sitting|sits|reads|stands\s+at|right\s+now))*(?:\s*[:=]\s*|\s+)(?<claim>(?:negative\s+)?(?<value>-?\d+(?:\.\d+)?))(?!\d|\.\d|\s*%|\s*-?\s*(?:days?|d|hours?|hrs?|h|weeks?|wks?|nights?|mins?|minutes?|sessions?|workouts?)\b)"#,

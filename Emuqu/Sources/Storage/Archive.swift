@@ -25,12 +25,6 @@ import Foundation
 /// member here that touches the fields above, it takes the lock or it goes in
 /// `Archive+Internal.swift` where the convention says the caller already did.
 final class SessionArchive: @unchecked Sendable {
-    // MARK: - Shared Instance
-
-    /// Shared singleton — use this for all non-test code to prevent multiple
-    /// instances operating on the same index.json concurrently.
-    static let shared = SessionArchive()
-
     /// Shared archive policy tuning. These thresholds are used at multiple
     /// sites (the 0.85 containment ratio, the 1-hour import-duplicate
     /// window); one named home so the next change can't introduce drift
@@ -163,6 +157,8 @@ final class SessionArchive: @unchecked Sendable {
         totalReadAttempts = 0
         permissionDeniedReadFailures = 0
     }
+    /// The key the session files and the index are sealed with.
+    let encryption: EncryptionManager
     let sleepScheduleProvider: () -> SleepSchedule
     let sessionMergeModeProvider: () -> SessionMergeMode
     /// The user's merge gap in seconds: recordings of one night closer than
@@ -232,11 +228,13 @@ final class SessionArchive: @unchecked Sendable {
         // Passing an explicit directory gives a hermetic instance; `nil`
         // (production) keeps the App Group → Documents → tmp fallback chain
         // unchanged.
-        directory: URL? = nil,
-        sleepScheduleProvider: @escaping () -> SleepSchedule = { AppDependencies.current.app.settingsManager.settingsSnapshot.sleepSchedule },
-        sessionMergeModeProvider: @escaping () -> SessionMergeMode = { AppDependencies.current.app.settingsManager.settingsSnapshot.sessionMergeMode },
-        mergeGapProvider: @escaping () -> TimeInterval = { AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveMergeGapSeconds }
+        directory: URL?,
+        encryption: EncryptionManager,
+        sleepScheduleProvider: @escaping () -> SleepSchedule,
+        sessionMergeModeProvider: @escaping () -> SessionMergeMode,
+        mergeGapProvider: @escaping () -> TimeInterval
     ) {
+        self.encryption = encryption
         self.sleepScheduleProvider = sleepScheduleProvider
         self.sessionMergeModeProvider = sessionMergeModeProvider
         self.mergeGapProvider = mergeGapProvider
@@ -412,7 +410,7 @@ final class SessionArchive: @unchecked Sendable {
         if let uuid = UUID(uuidString: bareId), deleted.contains(uuid) { return nil }
         guard let data = attempt("Archive.readOrphan", { try Data(contentsOf: file) }),
               let session = attempt("Archive.decodeOrphan", {
-                  try Self.loadAndDecodeSessionFile(at: file, decoder: Self.sessionDecoder)
+                  try Self.loadAndDecodeSessionFile(at: file, decoder: Self.sessionDecoder, encryption: encryption)
               })
         else {
             debugLog("[Archive] reconcileOrphanFiles: skipping undecodable orphan \(name)")
@@ -655,7 +653,7 @@ final class SessionArchive: @unchecked Sendable {
             guard fileManager.fileExists(atPath: fileURL.path) else {
                 throw ArchiveError.fileNotFound
             }
-            let plaintext = try ArchiveStore.plaintextBytes(try Data(contentsOf: fileURL), id: id)
+            let plaintext = try ArchiveStore.plaintextBytes(try Data(contentsOf: fileURL), id: id, encryption: encryption)
             let session = try Self.lightweightSessionDecoder.decode(HRVSession.self, from: plaintext)
             archiveLock.withLock { countRead(failure: nil) }
             return session

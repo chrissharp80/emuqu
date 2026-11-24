@@ -464,7 +464,7 @@ extension WorkoutSessionLifecycle {
     /// whether the PDF was attached (false: the draft was staged with the
     /// summary only, because the render failed).
     private static func renderAndStageCoachReport(_ inputs: CoachReportInputs) async -> Bool {
-        let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed()
+        let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed(from: AppDependencies.current.analysis.trainingMetricsCache)
         let (archive, ids) = (inputs.archive, inputs.pastWorkoutIds)
         let pastWorkouts = await Task.detached(priority: .userInitiated) {
             ids.compactMap { archive.retrieveLightweightOrLog($0, caller: "CoachReport.pastWorkouts") }

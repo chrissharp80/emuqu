@@ -561,7 +561,7 @@ enum AssistantSystemPrompt {
     /// misleading zeroes; the model falls back to tools, which will
     /// surface the empty state honestly.
     ///
-    /// Routes through `TrainingLoadRegistry.live()`.
+    /// Routes through `TrainingLoadRegistry.live(from:)`.
     /// See TrainingLoadRegistry.swift's header for the
     /// canonical surface→source map. The registry exists because
     /// four readers (dashboard / AI / report / recovery detail)
@@ -572,7 +572,7 @@ enum AssistantSystemPrompt {
     /// notifications, in TrainingMetricsCache.init).
     @MainActor
     private static func dashboardLoadSnapshot() -> String? {
-        guard let load = TrainingLoadRegistry.live() else { return nil }
+        guard let load = TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache) else { return nil }
         logDashboardSnapshot(load)
         let acwr = load.acwr.map { String(format: "%.2f", $0) } ?? "n/a (ctl=0)"
         var lines: [String] = [

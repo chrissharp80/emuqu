@@ -21,7 +21,6 @@ import Foundation
 @Observable
 @MainActor
 final class HeatAcclimationCache {
-    static let shared = HeatAcclimationCache()
 
     /// Current status — drives a self-explaining card instead of one that
     /// silently hides when there is nothing to score.
@@ -53,7 +52,7 @@ final class HeatAcclimationCache {
     /// assistant's `heat.acclimation.*` facts (`currentAwaitingRefresh()`) —
     /// return without computing while it is off.
     private var trackingEnabled: Bool {
-        AppDependencies.current.app.settingsManager.settings.heatTrackingEnabled
+        settingsManager.settings.heatTrackingEnabled
     }
 
     /// Persisted last readout so the card shows the previous value
@@ -127,10 +126,14 @@ final class HeatAcclimationCache {
     }
 
     private let archive: SessionArchive
+    private let settingsManager: SettingsManager
+    private let healthKit: HealthKitManager
     private let maxAgeSec: TimeInterval = 300 // 5 min, matches TrainingMetricsCache
 
-    init(archive: SessionArchive = AppDependencies.current.storage.sessionArchive) {
+    init(archive: SessionArchive, settingsManager: SettingsManager, healthKit: HealthKitManager) {
         self.archive = archive
+        self.settingsManager = settingsManager
+        self.healthKit = healthKit
         // Seed from the last persisted readout so the card shows
         // the previous value immediately instead of a spinner while a fresh
         // (archive + HealthKit) compute runs. `lastUpdated` stays nil so
@@ -231,7 +234,7 @@ final class HeatAcclimationCache {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let windowStart = calendar.date(byAdding: .day, value: -HeatConstants.replayLookbackDays, to: today) ?? today
-        let workouts = await Self.mergingHealthKitWorkouts(into: archivedWorkouts(since: windowStart))
+        let workouts = await Self.mergingHealthKitWorkouts(into: archivedWorkouts(since: windowStart), from: healthKit)
         guard !workouts.isEmpty else { return .noOutdoorWorkouts }
         let exposuresByDay = Self.exposuresByDay(workouts, calendar: calendar)
         guard !exposuresByDay.isEmpty else { return .noRecordedWeather(outdoorWorkouts: workouts.count) }
@@ -310,10 +313,10 @@ final class HeatAcclimationCache {
     /// sessions 20 minutes apart both count. Their weather comes from the
     /// workout's HealthKit metadata when Apple Watch saved it.
     private static func mergingHealthKitWorkouts(
-        into workouts: [WorkoutForHeat]
+        into workouts: [WorkoutForHeat], from healthKit: HealthKitManager
     ) async -> [WorkoutForHeat] {
         var merged = workouts
-        let hkWorkouts = await AppDependencies.current.collection.healthKitManager.fetchOutdoorWorkoutsForHeat(
+        let hkWorkouts = await healthKit.fetchOutdoorWorkoutsForHeat(
             days: HeatConstants.replayLookbackDays
         )
         for w in hkWorkouts {

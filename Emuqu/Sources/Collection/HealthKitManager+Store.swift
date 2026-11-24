@@ -67,7 +67,7 @@ extension HealthKitManager {
     func fetchLatestBodyMassKg() async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .bodyMass) else { return nil }
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await runBoundedQuery(timeout: Self.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
                 predicate: nil,

@@ -73,7 +73,7 @@ final class MorningResultsViewModel {
     /// read against the load frozen with it, as the score detail and the PDF
     /// read it, not against today's.
     var adviceLiveLoad: TrainingLoadRegistry.TrainingLoad? {
-        isHistoricalSession ? nil : TrainingLoadRegistry.live()
+        isHistoricalSession ? nil : TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache)
     }
 
     /// The shared advice gate's read of the load the morning steps use, so the
@@ -602,7 +602,7 @@ final class MorningResultsViewModel {
     private func estimateSleepFallback(for window: (start: Date, end: Date)) async -> SleepData? {
         if let points = session.rrSeries?.points,
            !points.isEmpty,
-           let rrEstimate = HealthKitManager.estimateSleepFromHR(rrPoints: points, recordingStart: window.start),
+           let rrEstimate = SleepHealthQueries.estimateSleepFromHR(rrPoints: points, recordingStart: window.start),
            rrEstimate.nightSleepMinutes > 0 {
             return rrEstimate
         }

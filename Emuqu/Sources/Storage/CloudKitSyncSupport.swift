@@ -86,7 +86,6 @@ final class SyncSerializer {
 
 @MainActor
 final class CloudKitSettingsSync {
-    static let shared = CloudKitSettingsSync()
 
     enum Status: Equatable {
         case idle
@@ -133,11 +132,25 @@ final class CloudKitSettingsSync {
     /// notification keeps re-arming the debounce → another doomed push.
     private var schemaUnavailable = false
 
-    private init() {
+    private let settingsManager: SettingsManager
+    /// Opens a settings record an older build sealed with the archive key.
+    private let archiveKey: EncryptionManager
+    /// The session sync, whose account guard and zone this sync defers to.
+    /// A provider, resolved when used: the two syncs refer to each other.
+    private let sessionSync: @MainActor () -> CloudKitSyncManager
+
+    init(
+        settingsManager: SettingsManager,
+        archiveKey: EncryptionManager,
+        sessionSync: @escaping @MainActor () -> CloudKitSyncManager
+    ) {
+        self.settingsManager = settingsManager
+        self.archiveKey = archiveKey
+        self.sessionSync = sessionSync
         // The settings as they are now are the starting point: a change made
         // before this object listened, or a field a new build added, is not an
         // edit made now.
-        Self.takeEditFingerprint(stampingAChange: false)
+        takeEditFingerprint(stampingAChange: false)
         // Listen to the same notification SettingsManager fires on every
         // change. Debounce so a flurry of edits (e.g. user rapidly
         // toggling a row) collapses into one push.
@@ -147,7 +160,7 @@ final class CloudKitSettingsSync {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
-                Self.noteSettingsChange()
+                self?.noteSettingsChange()
                 self?.scheduleDebouncedPush()
             }
         }
@@ -159,7 +172,7 @@ final class CloudKitSettingsSync {
     /// launch-task flags, the sync switch) post the same change and leave it
     /// alone, so a device that only scored a night does not count as edited
     /// later than one where the user changed a setting.
-    private static func noteSettingsChange() {
+    private func noteSettingsChange() {
         takeEditFingerprint(stampingAChange: true)
     }
 
@@ -167,8 +180,8 @@ final class CloudKitSettingsSync {
     /// `stampingAChange`, set the edit time to now when it differs from the
     /// stored one. A device's first fingerprint is a starting point, never
     /// an edit. Nothing is taken while the settings file is not loaded.
-    private static func takeEditFingerprint(stampingAChange: Bool) {
-        guard let json = AppDependencies.current.app.settingsManager.currentSettingsJSON() else { return }
+    private func takeEditFingerprint(stampingAChange: Bool) {
+        guard let json = settingsManager.currentSettingsJSON() else { return }
         let fingerprint: String
         do {
             fingerprint = try CloudSettingsRecord.editFingerprint(json)
@@ -177,10 +190,10 @@ final class CloudKitSettingsSync {
             return
         }
         let defaults = UserDefaults.standard
-        let previous = defaults.string(forKey: editFingerprintKey)
+        let previous = defaults.string(forKey: Self.editFingerprintKey)
         guard previous != fingerprint else { return }
-        defaults.set(fingerprint, forKey: editFingerprintKey)
-        if stampingAChange, previous != nil { defaults.set(Date(), forKey: localEditedAtKey) }
+        defaults.set(fingerprint, forKey: Self.editFingerprintKey)
+        if stampingAChange, previous != nil { defaults.set(Date(), forKey: Self.localEditedAtKey) }
     }
 
     /// Forget the zone: after a remote wipe or an account change, the next
@@ -193,9 +206,9 @@ final class CloudKitSettingsSync {
     /// edited at `editedAt`: that is their edit time, and their fingerprint is
     /// the starting point, so the restore itself (and the trial date it
     /// adopts) is not taken for an edit made on this device now.
-    private static func noteRestored(editedAt: Date?) {
+    private func noteRestored(editedAt: Date?) {
         takeEditFingerprint(stampingAChange: false)
-        if let editedAt { UserDefaults.standard.set(editedAt, forKey: localEditedAtKey) }
+        if let editedAt { UserDefaults.standard.set(editedAt, forKey: Self.localEditedAtKey) }
     }
 
     /// Push the current settings now, without debounce. Called by the
@@ -248,18 +261,17 @@ final class CloudKitSettingsSync {
         } catch let error as CKError where CloudHealthScrubCoordinator.meansNoRecord(error) {
             throw RestoreError.noCloudCopy
         }
-        let settingsManager = AppDependencies.current.app.settingsManager
-        let data = try CloudSettingsRecord.settingsJSON(from: record)
+        let data = try CloudSettingsRecord.settingsJSON(from: record, archiveKey: archiveKey)
         try settingsManager.restoreFromJSON(CloudSettingsRecord.restorable(data, keepingProfileOf: settingsManager.settings))
         let editedAt = record[CloudSettingsRecord.modifiedAtField] as? Date
-        Self.noteRestored(editedAt: editedAt)
+        noteRestored(editedAt: editedAt)
         return editedAt ?? Date()
     }
 
     /// Returns once the signed-in account is the one sync is enabled for;
     /// throws `RestoreError.accountNotConfirmed` with the reason otherwise.
     private func requireConfirmedAccount() async throws {
-        switch await AppDependencies.current.storage.cloudKitSyncManager.accountGuard.confirmAccount() {
+        switch await sessionSync().accountGuard.confirmAccount() {
         case .confirmed:
             return
         case let .unavailable(message):
@@ -409,13 +421,13 @@ final class CloudKitSettingsSync {
     private func zoneWasDeleted(_ error: CKError) async -> PushOutcome {
         debugLog("[CloudKitSettings] settings zone gone (\(error.code.rawValue)) — not recreated", level: .warning)
         status = .idle
-        let message = await AppDependencies.current.storage.cloudKitSyncManager.accountGuard.zoneWasDeleted()
+        let message = await sessionSync().accountGuard.zoneWasDeleted()
         return .failed(message ?? Self.syncOffMessage)
     }
 
     /// Why nothing may be pushed right now, or nil when a push may go ahead.
     private func pushSkipReason() -> String? {
-        let settings = AppDependencies.current.app.settingsManager.settings
+        let settings = settingsManager.settings
         guard settings.iCloudSyncEnabled, settings.hasCompletedOnboarding else {
             return String(localized: "iCloud sync is off", bundle: LanguageManager.appBundle)
         }
@@ -437,7 +449,7 @@ final class CloudKitSettingsSync {
     /// clobber the cloud copy), or no cloud key is available. The second is
     /// fail-closed — no key means no push, never a plaintext one.
     private func sealedLocalSettings() -> SealedSettings {
-        guard let json = AppDependencies.current.app.settingsManager.currentSettingsJSON() else {
+        guard let json = settingsManager.currentSettingsJSON() else {
             debugLog("[CloudKitSettings] skipping push — local settings file isn't fully loaded yet", level: .warning)
             return .unavailable(String(localized: "Your settings haven't finished loading yet", bundle: LanguageManager.appBundle))
         }
@@ -507,7 +519,7 @@ final class CloudKitSettingsSync {
         guard !defaults.bool(forKey: Self.scrubbedKey), !schemaUnavailable else { return }
         do {
             let record = try await privateDB.record(for: CKRecord.ID(recordName: recordName, zoneID: zoneID))
-            let json = try CloudSettingsRecord.settingsJSON(from: record)
+            let json = try CloudSettingsRecord.settingsJSON(from: record, archiveKey: archiveKey)
             let sealed = try CloudPayloadCodec.sealForUpload(CloudSettingsRecord.scrubbed(json, markedBy: local))
             CloudSettingsRecord.write(sealed, to: record, modifiedAt: (record[CloudSettingsRecord.modifiedAtField] as? Date) ?? Date())
             _ = try await privateDB.save(record)
@@ -548,7 +560,7 @@ final class CloudKitSettingsSync {
     /// the zone and the settings back.
     private func ensureZoneExists() async throws {
         guard !UserDefaults.standard.bool(forKey: Self.zoneCreatedKey) else { return }
-        let sessionSync = AppDependencies.current.storage.cloudKitSyncManager
+        let sessionSync = sessionSync()
         if sessionSync.zoneCreated || sessionSync.lastSyncDate != nil {
             guard try await zoneExists(sessionSync.zoneID) else { throw CKError(.zoneNotFound) }
         }
@@ -702,7 +714,7 @@ enum CloudSettingsRecord {
     /// `CloudPayloadCodec.decode` passes unrecognised bytes through unchanged,
     /// which suits its session callers, but this field has only ever been
     /// written encrypted, so anything else is damage, not an old format.
-    static func settingsJSON(from record: CKRecord) throws -> Data {
+    static func settingsJSON(from record: CKRecord, archiveKey: EncryptionManager) throws -> Data {
         if let legacy = record[legacyJSONField] as? String {
             return Data(legacy.utf8)
         }
@@ -712,7 +724,7 @@ enum CloudSettingsRecord {
             throw CloudKitSettingsSync.RestoreError.cloudCopyMalformed
         }
         do {
-            return try CloudPayloadCodec.decode(sealed)
+            return try CloudPayloadCodec.decode(sealed, archiveKey: archiveKey)
         } catch CloudPayloadCodec.CodecError.noMatchingKey {
             throw CloudKitSettingsSync.RestoreError.keyNotOnThisDevice
         }

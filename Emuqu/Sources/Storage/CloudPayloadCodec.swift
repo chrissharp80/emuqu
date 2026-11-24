@@ -177,7 +177,7 @@ enum CloudPayloadCodec {
     /// reclassified as legacy: "this is old data" and "this failed to decrypt"
     /// are different answers, and conflating them turns a decryption failure
     /// into silent corruption.
-    static func decode(_ raw: Data) throws -> Data {
+    static func decode(_ raw: Data, archiveKey: EncryptionManager) throws -> Data {
         if raw.count > magic.count, raw.prefix(magic.count) == magic {
             return try openCurrent(raw)
         }
@@ -186,8 +186,7 @@ enum CloudPayloadCodec {
             // Whole payload, framing included — EncryptionManager parses its own.
             // The archive key, not the cloud key — FR payloads were sealed by
             // EncryptionManager and only it can open them.
-            let archive = AppDependencies.current.storage.encryptionManager
-            return try archive.decrypt(raw)
+            return try archiveKey.decrypt(raw)
         }
         return raw
     }

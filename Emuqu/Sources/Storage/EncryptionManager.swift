@@ -372,12 +372,6 @@ struct JSONFileSeal: Sendable {
     /// build that did not seal the file passed through as it is.
     let open: @Sendable (Data) throws -> Data
 
-    /// The app's key, through `AppDependencies.current`.
-    static let app = JSONFileSeal(
-        seal: { try AppDependencies.current.storage.encryptionManager.encrypt($0) },
-        open: { try AppDependencies.current.storage.encryptionManager.openStoredJSON($0) }
-    )
-
     /// `value` encoded with `encoder`, then sealed.
     func sealJSON(_ value: some Encodable, with encoder: JSONEncoder) throws -> Data {
         try seal(encoder.encode(value))

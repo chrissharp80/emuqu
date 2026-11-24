@@ -36,6 +36,9 @@ EXPLICIT_PATTERNS=(
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator*.swift"
     "Emuqu/Sources/Collection/SessionScoringContext.swift"
     "Emuqu/Sources/Models/*.swift"
+    "Emuqu/Sources/Storage/*.swift"
+    "Emuqu/Sources/Analysis/*.swift"
+    "Emuqu/Sources/Analysis/*/*.swift"
 )
 APP_DIRS=("Emuqu" "EmuquWatch Watch App")
 

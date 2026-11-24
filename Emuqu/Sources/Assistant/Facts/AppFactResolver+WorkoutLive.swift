@@ -41,7 +41,7 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     /// Live training-load read for AI tool surfaces inside this
     /// namespace.
     ///
-    /// **Routed through `TrainingLoadRegistry.live()`**, NOT a
+    /// **Routed through `TrainingLoadRegistry.live(from:)`**, NOT a
     /// separate code path reading
     /// `cache.sampleOn(today)` directly — because the daily-series
     /// EWMA replay can lag `cache.current` by up to ~4 s during cache
@@ -51,7 +51,7 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     /// through the registry makes `workout.live.today_readiness`,
     /// `training.load.*`, and the Dashboard share one source of truth.
     func liveTrainingLoad() -> (atl: Double, ctl: Double, tsb: Double)? {
-        guard let load = MainActor.assumeIsolated({ TrainingLoadRegistry.live() }) else {
+        guard let load = MainActor.assumeIsolated({ TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache) }) else {
             return nil
         }
         return (load.atl, load.ctl, load.tsb)

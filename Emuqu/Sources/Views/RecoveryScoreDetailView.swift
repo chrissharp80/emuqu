@@ -416,7 +416,7 @@ struct RecoveryScoreDetailView: View {
         let sleepEnd = session.sleepSnapshot?.sleepEnd ?? session.endDate ?? referenceDate
         guard sleepEnd > sleepStart else { return }
         do {
-            fallbackHRSamples = try await collector.healthKit.fetchHeartRateSamples(from: sleepStart, to: sleepEnd)
+            fallbackHRSamples = try await collector.healthKit.heartRate.fetchHeartRateSamples(from: sleepStart, to: sleepEnd)
         } catch {
             debugLog("[RecoveryScoreDetail] Fallback HR samples not fetched: \(error.localizedDescription)", level: .warning)
         }

@@ -186,7 +186,8 @@ extension ArchiveIntegrityTests {
         let session = createTestSession()
         let (bytes, hash, format) = try SessionArchive.SessionFileCodec.encodeForDisk(
             session,
-            encoder: SessionArchive.sessionEncoder
+            encoder: SessionArchive.sessionEncoder,
+            encryption: .shared
         )
         let independent = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
         XCTAssertEqual(hash, independent, "Codec hash must be SHA256 of the bytes-as-written")
@@ -210,7 +211,7 @@ extension ArchiveIntegrityTests {
     func testCodecRoundTripDecodesEqualSession() throws {
         let session = createTestSession()
         for encoder in [SessionArchive.sessionEncoder, SessionArchive.indexEncoder] {
-            let (bytes, hash, _) = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: encoder)
+            let (bytes, hash, _) = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: encoder, encryption: .shared)
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("\(UUID().uuidString).json")
             try bytes.write(to: url)
@@ -221,7 +222,7 @@ extension ArchiveIntegrityTests {
             let onDisk = try Data(contentsOf: url)
             XCTAssertEqual(SessionArchive.SessionFileCodec.sha256Hex(onDisk), hash)
 
-            let decoded = try SessionArchive.loadAndDecodeSessionFile(at: url, decoder: SessionArchive.sessionDecoder)
+            let decoded = try SessionArchive.loadAndDecodeSessionFile(at: url, decoder: SessionArchive.sessionDecoder, encryption: .shared)
             XCTAssertEqual(decoded.id, session.id)
             XCTAssertEqual(
                 decoded.startDate.timeIntervalSince1970,

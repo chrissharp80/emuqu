@@ -509,19 +509,19 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
     let archive: SessionArchive
     let settings: @Sendable () -> UserSettings
 
-    /// The live load the Dashboard shows, from `TrainingLoadRegistry.live()`:
+    /// The live load the Dashboard shows, from `TrainingLoadRegistry.live(from:)`:
     /// the metrics cache's `snapshot()` (`cache.current`) first, and the
     /// daily-series sample for today only when that is missing (cold cache).
     /// Nil when neither exists; there is no per-session fallback.
     func liveOrCached() -> TrainingLoadState? {
-        // Route through `TrainingLoadRegistry.live()`.
+        // Route through `TrainingLoadRegistry.live(from:)`.
         // The registry is the single source of truth for any "live"
         // training-load read across the app — dashboard card, AI live
         // block, AI atomic tools (this function), Load & Trajectory
         // numbers. See TrainingLoadRegistry.swift's header for the
         // surface→source map. Don't give this function its own
         // fallback chain: a local copy drifts from the dashboard's.
-        guard let load = MainActor.assumeIsolated({ TrainingLoadRegistry.live() }) else {
+        guard let load = MainActor.assumeIsolated({ TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache) }) else {
             return nil
         }
         return TrainingLoadState(atl: load.atl, ctl: load.ctl, tsb: load.tsb, acwr: load.acwr)

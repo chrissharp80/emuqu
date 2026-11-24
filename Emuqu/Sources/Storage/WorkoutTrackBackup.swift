@@ -38,7 +38,8 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     // Same justification as `RawRRBackup`. Lets us call from a background
     // detached task off the main-actor recorder tick.
 
-    static let shared = WorkoutTrackBackup()
+    /// The key the streams are sealed with.
+    let encryption: EncryptionManager
 
     // MARK: - Public types
 
@@ -184,21 +185,18 @@ final class WorkoutTrackBackup: @unchecked Sendable {
 
     // MARK: - Initialization
 
-    convenience init() {
-        self.init(directory: AppConfig.sharedContainerURL().appendingPathComponent("WorkoutBackup", isDirectory: true))
+    /// The app's backup directory, in the shared container.
+    static var appDirectory: URL {
+        AppConfig.sharedContainerURL().appendingPathComponent("WorkoutBackup", isDirectory: true)
     }
 
-    /// A backup kept in `directory`; the app's lives in the shared container
-    /// (`init()`), tests use their own.
-    convenience init(directory: URL) {
-        self.init(directory: directory, notificationCenter: .default)
-    }
-
-    /// A backup kept in `directory` that observes unlock and activation on
-    /// `notificationCenter`.
-    init(directory: URL, notificationCenter: NotificationCenter) {
+    /// A backup kept in `directory`, sealed with `encryption`, that observes
+    /// unlock and activation on `notificationCenter`. The app's is
+    /// `WorkoutTrackBackup.shared`; tests use a directory of their own.
+    init(directory: URL, notificationCenter: NotificationCenter, encryption: EncryptionManager) {
         self.directory = directory
         self.notificationCenter = notificationCenter
+        self.encryption = encryption
         createDirectoryIfNeeded()
         reencryptPendingTracks()
         observeUnlock()
@@ -502,7 +500,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// workout in `PendingEncryptionLedger` before it is written.
     private func encodeLines(_ items: [some Encodable], sessionId: UUID, streamName: String) -> Data? {
         do {
-            let encoded = try SealedJSONLines.encode(items, with: encoder, manager: SealedJSONLines.availableManager())
+            let encoded = try SealedJSONLines.encode(items, with: encoder, manager: SealedJSONLines.availableManager(encryption))
             if !encoded.allSealed {
                 debugLog("[WorkoutTrackBackup] \(streamName) of \(sessionId.uuidString.prefix(8)) written WITHOUT app-layer encryption", level: .error)
                 PendingEncryptionLedger.record(sessionId, in: .workoutTrack)
@@ -614,7 +612,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     private func decodeJSONLFile<T: Decodable>(url: URL, as: T.Type) -> [T] {
         guard fileManager.fileExists(atPath: url.path),
               let raw = attempt("WorkoutTrackBackup.readStream", { try String(contentsOf: url, encoding: .utf8) }) else { return [] }
-        let manager = AppDependencies.current.storage.encryptionManager
+        let manager = encryption
         var out: [T] = []
         var skipped = 0
         for line in raw.split(separator: "\n", omittingEmptySubsequences: true) {
@@ -650,7 +648,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         guard resealQueued.setIfClear() else { return }
         appendQueue.async { [self] in
             resealQueued.withLock { $0 = false }
-            guard let manager = SealedJSONLines.availableManager() else { return }
+            guard let manager = SealedJSONLines.availableManager(encryption) else { return }
             PendingEncryptionLedger.pending(in: .workoutTrack).forEach { resealStreams(of: $0, with: manager) }
         }
     }

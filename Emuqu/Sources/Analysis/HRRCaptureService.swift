@@ -352,8 +352,8 @@ final class HRRCaptureService {
     private func runHeartRateQuery(type hrType: HKQuantityType, start: Date, end: Date) async -> [HKQuantitySample] {
         // This app writes the strap's HR series to HealthKit; reading it back
         // would label the strap's own beats as Watch samples.
-        let predicate = healthKit.hrReadExcludingOwnWrites(dateRange: HKQuery.predicateForSamples(withStart: start, end: end))
-        let samples: [HKQuantitySample] = await healthKit.runBoundedQuery(timeout: HealthKitManager.hrvQueryTimeoutSec) { resolve in
+        let predicate = healthKit.heartRate.hrReadExcludingOwnWrites(dateRange: HKQuery.predicateForSamples(withStart: start, end: end))
+        let samples: [HKQuantitySample] = await healthKit.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.hrvQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: hrType,
                 predicate: predicate,
@@ -433,7 +433,7 @@ final class HRRCaptureService {
             withStart: stopDate.addingTimeInterval(-5 * 60),
             end: stopDate.addingTimeInterval(5 * 60)
         )
-        let samples: [HKQuantitySample] = await healthKit.runBoundedQuery(timeout: HealthKitManager.hrvQueryTimeoutSec) { resolve in
+        let samples: [HKQuantitySample] = await healthKit.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.hrvQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
                 predicate: predicate,

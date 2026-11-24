@@ -360,7 +360,7 @@ extension FitnessTabView {
             weekWorkoutIds.compactMap { archive.retrieveLightweightOrLog($0, caller: "Fitness.elevation") }
         }.value
         // HK-aggregated daily activity (everywhere, all sources). 7 days; index 0 = today.
-        async let activityTask = collector.healthKit.fetchDailyActivity(days: 7)
+        async let activityTask = collector.healthKit.vitals.fetchDailyActivity(days: 7)
         let workouts = await workoutsTask
         let todaysWorkouts = workouts.filter { $0.startDate >= today }
         applyElevationTotals(workouts: workouts, todaysWorkouts: todaysWorkouts, weekAgo: weekAgo)
@@ -429,9 +429,9 @@ extension FitnessTabView {
         var attribDistance: Double = 0
         var attribFlights = 0
         for (start, end) in mergedWorkoutWindows(workouts, since: dayStart, now: Date()) {
-            async let s = collector.healthKit.fetchSumSteps(from: start, to: end)
-            async let d = collector.healthKit.fetchSumDistance(from: start, to: end)
-            async let f = collector.healthKit.fetchSumFlights(from: start, to: end)
+            async let s = collector.healthKit.vitals.fetchSumSteps(from: start, to: end)
+            async let d = collector.healthKit.vitals.fetchSumDistance(from: start, to: end)
+            async let f = collector.healthKit.vitals.fetchSumFlights(from: start, to: end)
             attribSteps += await s
             attribDistance += await d
             attribFlights += await f

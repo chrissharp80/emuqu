@@ -258,7 +258,7 @@ final class PDFReportGenerator {
         baselineStats: BaselineTracker.RecoveryBaselineStats? = nil,
         // Pre-resolved live training-load snapshot from the
         // caller (must be captured on MainActor via
-        // `TrainingLoadRegistry.live()`). When non-nil, the report
+        // `TrainingLoadRegistry.live(from:)`). When non-nil, the report
         // overrides the frozen `result.trainingContext` ATL/CTL/TSB
         // with these live values so the report shows the same numbers
         // as the Load & Trajectory dashboard: `result.trainingContext`

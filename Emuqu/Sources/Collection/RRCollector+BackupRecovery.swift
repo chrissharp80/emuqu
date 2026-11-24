@@ -305,12 +305,12 @@ extension SessionRecoveryCoordinator {
         guard let session = collector.archive.retrieveOrLog(sessionId), let series = session.rrSeries else { return .failed }
         let start = session.startDate
         let end = session.endDate ?? start
-        if let route = await collector.healthKit.fetchWorkoutRoute(from: start, to: end), route.count >= 2 {
+        if let route = await collector.healthKit.training.fetchWorkoutRoute(from: start, to: end), route.count >= 2 {
             guard let rebuilt = await recoverWorkout(sessionId: sessionId, points: series.points, track: route) else { return .failed }
             await MainActor.run { collector.archiveSignal.notifyChanged() }
             return .recovered(distanceMeters: rebuilt.workoutMetadata?.distanceMeters ?? 0)
         }
-        let hkDistance = await collector.healthKit.fetchPassiveDistanceMeters(from: start, to: end)
+        let hkDistance = await collector.healthKit.training.fetchPassiveDistanceMeters(from: start, to: end)
         // Only worth rewriting when HealthKit meaningfully beats what we recorded.
         guard hkDistance > (session.workoutMetadata?.distanceMeters ?? 0) + 50 else { return .noRoute }
         guard let rebuilt = await recoverWorkout(sessionId: sessionId, points: series.points, distanceMeters: hkDistance)

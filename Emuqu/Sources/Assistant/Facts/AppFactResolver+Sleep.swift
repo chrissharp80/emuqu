@@ -648,7 +648,7 @@ struct VitalsNamespace: FactNamespaceResolver {
         let now = Date()
         do {
             let samples = try await AppDependencies.current.collection.healthKitManager
-                .fetchHeartRateSamplesDetailed(from: now.addingTimeInterval(-600), to: now)
+                .heartRate.fetchHeartRateSamplesDetailed(from: now.addingTimeInterval(-600), to: now)
             guard let latest = samples.max(by: { $0.date < $1.date }) else { return nil }
             return (bpm: latest.hr, at: latest.date, source: latest.source)
         } catch {

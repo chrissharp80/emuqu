@@ -127,7 +127,7 @@ extension ArchiveMigrations {
         var patches: [(UUID, SessionArchiveEntry)] = []
         var loadedAll = true
         for (entry, fileURL) in workItems {
-            guard let session = Self.loadForMigration(at: fileURL, entry: entry, label: label) else { loadedAll = false; continue }
+            guard let session = Self.loadForMigration(at: fileURL, entry: entry, label: label, encryption: archive.encryption) else { loadedAll = false; continue }
             if let patched = patch(entry, session) { patches.append((entry.sessionId, patched)) }
         }
         applyIndexPatches(patches, label: label)
@@ -140,10 +140,10 @@ extension ArchiveMigrations {
     /// through the shared dual-format reader so
     /// encrypted + legacy plaintext both decode.
     private static func loadForMigration(
-        at fileURL: URL, entry: SessionArchiveEntry, label: String
+        at fileURL: URL, entry: SessionArchiveEntry, label: String, encryption: EncryptionManager
     ) -> HRVSession? {
         do {
-            return try SessionArchive.loadAndDecodeSessionFile(at: fileURL, decoder: SessionArchive.lightweightSessionDecoder)
+            return try SessionArchive.loadAndDecodeSessionFile(at: fileURL, decoder: SessionArchive.lightweightSessionDecoder, encryption: encryption)
         } catch {
             debugLog("[Archive] \(label): failed to load session \(entry.sessionId.uuidString.prefix(8)): \(error)", level: .warning)
             return nil
@@ -878,7 +878,7 @@ extension ArchiveMigrations {
         do {
             // Encrypted-file dual-format reader.
             return try SessionArchive.loadAndDecodeSessionFile(
-                at: work.fileURL, decoder: SessionArchive.sessionDecoder
+                at: work.fileURL, decoder: SessionArchive.sessionDecoder, encryption: archive.encryption
             )
         } catch {
             debugLog("[Archive] relinkSameNightSessions: failed to load session \(work.parentEntry.sessionId.uuidString.prefix(8)): \(error)", level: .warning)
@@ -893,7 +893,7 @@ extension ArchiveMigrations {
             // Shared codec path. A relink under a locked Keychain falls back
             // to plaintext; `writeArchiveBytes` picks protection per the
             // format actually written and keeps the ledger in step with disk.
-            let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: Self.relinkEncoder)
+            let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: Self.relinkEncoder, encryption: archive.encryption)
             try writeArchiveBytes(result.bytes, to: fileURL, format: result.format, sessionID: session.id)
             return result.hash
         } catch {

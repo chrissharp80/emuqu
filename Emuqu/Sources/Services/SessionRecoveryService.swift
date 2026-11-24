@@ -177,7 +177,7 @@ final class SessionRecoveryService {
         let row = rawBackup.indexLock.withLock { rawBackup.index.first { $0.id == id } }
         guard let row else { return indexed }
         do {
-            guard let fuller = try OneShotBackupName.fullerUnindexedBackup(than: row, in: rawBackup.backupDirectory) else { return indexed }
+            guard let fuller = try OneShotBackupName.fullerUnindexedBackup(than: row, in: rawBackup.backupDirectory, encryption: rawBackup.encryption) else { return indexed }
             try rawBackup.backup(points: fuller.points, sessionId: id, deviceId: fuller.deviceId, captureDate: fuller.captureDate)
             return fuller.points.count
         } catch {

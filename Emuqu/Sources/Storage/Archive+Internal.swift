@@ -104,7 +104,7 @@ extension ArchiveStore {
         let fileURL = archive.resolveFileURL(for: entry)
         guard archive.fileManager.fileExists(atPath: fileURL.path) else { return nil }
         do {
-            _ = try Self.plaintextBytes(try Data(contentsOf: fileURL), id: id)
+            _ = try Self.plaintextBytes(try Data(contentsOf: fileURL), id: id, encryption: archive.encryption)
             return nil
         } catch {
             return error
@@ -142,7 +142,7 @@ extension ArchiveStore {
         }
         guard let entry = archive.index.first(where: { $0.sessionId == id }),
               let salvaged = attempt("Archive.storedRRSeries.rawRead", {
-                  try Self.loadAndDecodeSessionFile(at: archive.resolveFileURL(for: entry), decoder: SessionArchive.sessionDecoder)
+                  try Self.loadAndDecodeSessionFile(at: archive.resolveFileURL(for: entry), decoder: SessionArchive.sessionDecoder, encryption: archive.encryption)
               })
         else { return .unreadable }
         return salvaged.rrSeries.map { .preserved($0, viaRawDecode: true) } ?? .noBeatsStored
@@ -292,7 +292,7 @@ extension ArchiveStore {
     private func encodedForDisk(
         _ session: HRVSession
     ) throws -> (Data, String, SessionArchive.SessionFileCodec.DiskFormat) {
-        let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.sessionEncoder)
+        let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.sessionEncoder, encryption: archive.encryption)
         return (result.bytes, result.hash, result.format)
     }
 
@@ -338,7 +338,7 @@ extension ArchiveStore {
         }
         let rawBytes = try readSessionBytes(for: entry, id: id)
         try verifyHash(of: rawBytes, against: entry, id: id)
-        let plaintext = try Self.plaintextBytes(rawBytes, id: id)
+        let plaintext = try Self.plaintextBytes(rawBytes, id: id, encryption: archive.encryption)
         do {
             return try SessionArchive.sessionDecoder.decode(HRVSession.self, from: plaintext)
         } catch {
@@ -374,26 +374,26 @@ extension ArchiveStore {
     /// pre-date the `"FR"` magic prefix (see `loadAndDecodeSessionFile`
     /// for the full breakdown). If the file doesn't start with JSON
     /// whitespace, try decrypt before declaring it corrupt.
-    static func plaintextBytes(_ rawBytes: Data, id: UUID) throws -> Data {
+    static func plaintextBytes(_ rawBytes: Data, id: UUID, encryption: EncryptionManager) throws -> Data {
         if looksEncrypted(rawBytes) {
             do {
-                return try AppDependencies.current.storage.encryptionManager.decrypt(rawBytes)
+                return try encryption.decrypt(rawBytes)
             } catch {
                 debugLog("[Archive] ERROR: decrypt failed for session \(id): \(error)")
                 throw error
             }
         }
-        return jsonOrLegacyPlaintext(rawBytes, name: id.uuidString)
+        return jsonOrLegacyPlaintext(rawBytes, name: id.uuidString, encryption: encryption)
     }
 
     /// JSON as it is. Anything else is tried as a legacy ciphertext without
     /// the `"FR"` magic (Formats 2 and 3, see `loadAndDecodeSessionFile`);
     /// when that fails too the bytes are handed on unchanged, logged, so the
     /// decoder reports the corruption.
-    private static func jsonOrLegacyPlaintext(_ rawBytes: Data, name: String) -> Data {
+    private static func jsonOrLegacyPlaintext(_ rawBytes: Data, name: String, encryption: EncryptionManager) -> Data {
         if looksLikeJSON(rawBytes) { return rawBytes }
         do {
-            return try AppDependencies.current.storage.encryptionManager.decrypt(rawBytes)
+            return try encryption.decrypt(rawBytes)
         } catch {
             debugLog("[Archive] \(name) is neither JSON nor a ciphertext the key opens: \(error)", level: .warning)
             return rawBytes
@@ -437,11 +437,11 @@ extension ArchiveStore {
     ///   3. Bare             `[...AES-GCM]` — legacy v0
     /// Formats 2 and 3 carry no magic, so a file that is not JSON is tried as
     /// one of them before it is declared corrupt (`jsonOrLegacyPlaintext`).
-    static func loadAndDecodeSessionFile(at fileURL: URL, decoder: JSONDecoder) throws -> HRVSession {
+    static func loadAndDecodeSessionFile(at fileURL: URL, decoder: JSONDecoder, encryption: EncryptionManager) throws -> HRVSession {
         let rawBytes = try Data(contentsOf: fileURL)
         let plaintext = looksEncrypted(rawBytes)
-            ? try AppDependencies.current.storage.encryptionManager.decrypt(rawBytes)
-            : jsonOrLegacyPlaintext(rawBytes, name: fileURL.lastPathComponent)
+            ? try encryption.decrypt(rawBytes)
+            : jsonOrLegacyPlaintext(rawBytes, name: fileURL.lastPathComponent, encryption: encryption)
         return try decoder.decode(HRVSession.self, from: plaintext)
     }
 

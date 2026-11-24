@@ -154,7 +154,7 @@ struct CloudHealthScrubCoordinator {
     /// left its payload on has the payload removed.
     private func rewrite(_ record: CKRecord, sessionId: UUID) async throws -> Outcome {
         if (record["isDeleted"] as? Int64) == 1 { return try await clearTombstonePayload(record) }
-        guard let session = await Self.storedSession(in: record) else { return .finished }
+        guard let session = await Self.storedSession(in: record, archiveKey: manager.archive.encryption) else { return .finished }
         if CloudSessionPayload.isHealthKitSourced(session) {
             try await manager.markKeptOnDevice(record.recordID)
             manager.state.markLocalOnly(sessionId)
@@ -205,14 +205,14 @@ struct CloudHealthScrubCoordinator {
     /// it (sealed with another device's key, or damaged). The device that
     /// wrote it rewrites it. A record with no payload holds no reading to
     /// strip, so it is finished too.
-    private static func storedSession(in record: CKRecord) async -> HRVSession? {
+    private static func storedSession(in record: CKRecord, archiveKey: EncryptionManager) async -> HRVSession? {
         guard let assetURL = (record["sessionData"] as? CKAsset)?.fileURL else {
             debugLog("[CloudKit] Health scrub: \(record.recordID.recordName.prefix(8)) has no payload — nothing to strip")
             return nil
         }
         do {
             return try await Task.detached(priority: .utility) {
-                try CloudPullCoordinator.decodeSessionAsset(at: assetURL)
+                try CloudPullCoordinator.decodeSessionAsset(at: assetURL, archiveKey: archiveKey)
             }.value
         } catch {
             debugLog("[CloudKit] Health scrub: \(record.recordID.recordName.prefix(8)) is unreadable here (\(error.localizedDescription)) — left to the device that wrote it", level: .warning)

@@ -359,7 +359,7 @@ extension CloudPullCoordinator {
     ) async -> RecordOutcome {
         do {
             let session = try await Task.detached(priority: .utility) {
-                try Self.decodeSessionAsset(at: assetURL)
+                try Self.decodeSessionAsset(at: assetURL, archiveKey: manager.archive.encryption)
             }.value
             // The stall watchdog fired, or the account changed, while it
             // decoded: the next sync imports it.
@@ -391,7 +391,7 @@ extension CloudPullCoordinator {
 
     /// JSONDecoder is not Sendable — a fresh one is built here, inside the
     /// detached closure, rather than captured across the actor boundary.
-    nonisolated static func decodeSessionAsset(at assetURL: URL) throws -> HRVSession {
+    nonisolated static func decodeSessionAsset(at assetURL: URL, archiveKey: EncryptionManager) throws -> HRVSession {
         let compressedData = try Data(contentsOf: assetURL)
         // Payloads are encrypted before upload. Older records predate
         // that and are still compressed-only, so decryption is attempted and
@@ -402,7 +402,7 @@ extension CloudPullCoordinator {
         // `try?`-and-fall-back would treat a
         // wrong-key ciphertext as legacy data and hand compressed garbage to
         // the decoder.
-        let decrypted = try CloudPayloadCodec.decode(compressedData)
+        let decrypted = try CloudPayloadCodec.decode(compressedData, archiveKey: archiveKey)
         let jsonData = try DataCompression.decompress(decrypted)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601

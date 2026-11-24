@@ -31,7 +31,7 @@ extension HealthKitManager {
         guard let start = calendar.date(byAdding: .day, value: -days, to: startOfToday) else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await runBoundedQuery(timeout: Self.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,

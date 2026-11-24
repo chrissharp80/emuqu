@@ -81,7 +81,7 @@ func writeArchiveBytes(
 func reencryptPendingSessions(in archive: SessionArchive) {
     let pending = PendingEncryptionLedger.pending
     guard !pending.isEmpty else { return }
-    guard AppDependencies.current.storage.encryptionManager.isAvailable else {
+    guard archive.encryption.isAvailable else {
         debugLog("[Archive] \(pending.count) session(s) await re-encryption; key still unavailable", level: .error)
         return
     }
@@ -175,7 +175,7 @@ private func reencryptParkedCopy(_ url: URL, id: UUID, in archive: SessionArchiv
     do {
         let stored = try Data(contentsOf: url)
         guard !ArchiveStore.looksEncrypted(stored) else { return true }
-        let sealed = try AppDependencies.current.storage.encryptionManager.encrypt(ArchiveStore.plaintextBytes(stored, id: id))
+        let sealed = try archive.encryption.encrypt(ArchiveStore.plaintextBytes(stored, id: id, encryption: archive.encryption))
         try PurgeGate.admitWrite {
             try sealed.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         }

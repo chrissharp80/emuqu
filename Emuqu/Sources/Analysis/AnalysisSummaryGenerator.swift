@@ -79,7 +79,7 @@ final class AnalysisSummaryGenerator {
     /// gap is from accumulated training load, not a same-day session.
     let todayTrimp: Double
     /// Live training-load snapshot captured by the caller on MainActor.
-    /// Exists so generate() need not read `TrainingLoadRegistry.live()`
+    /// Exists so generate() need not read `TrainingLoadRegistry.live(from:)`
     /// under `MainActor.assumeIsolated`. The generator can
     /// run from off-main paths (AssistantContextSource async pipeline,
     /// PDF render Task.detached), where assumeIsolated would trap.

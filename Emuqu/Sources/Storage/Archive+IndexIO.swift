@@ -159,7 +159,7 @@ extension SessionArchive {
             return
         }
         do {
-            (index, newerBuildIndexEntries) = try Self.decodeIndex(Self.indexJSON(data))
+            (index, newerBuildIndexEntries) = try Self.decodeIndex(Self.indexJSON(data, encryption: encryption))
             sortedEntriesCache = nil
             sessionIdLookup = nil
         } catch {
@@ -180,7 +180,7 @@ extension SessionArchive {
         let data = try readStoredIndex()
         indexReadFailed = false
         do {
-            let onDisk = try Self.decodeIndex(Self.indexJSON(data))
+            let onDisk = try Self.decodeIndex(Self.indexJSON(data, encryption: encryption))
             let known = Set(index.map(\.sessionId))
             index += onDisk.entries.filter { !known.contains($0.sessionId) && !deletedSessionIds.contains($0.sessionId) }
             newerBuildIndexEntries.merge(onDisk.newer)
@@ -203,21 +203,16 @@ extension SessionArchive {
     /// corrupt, and stays where it is.
     private func readStoredIndex() throws -> Data {
         let stored = try Data(contentsOf: indexFile)
-        guard ArchiveStore.looksEncrypted(stored), !Self.indexEncryption.isAvailable else { return stored }
+        guard ArchiveStore.looksEncrypted(stored), !encryption.isAvailable else { return stored }
         throw EncryptionManager.EncryptionError.keyNotFound
-    }
-
-    /// The key the index is sealed with: the archive's, as for session files.
-    private static var indexEncryption: EncryptionManager {
-        AppDependencies.current.storage.encryptionManager
     }
 
     /// The index JSON in `stored`: unsealed, or as it is when a build that
     /// did not seal the index wrote it as plain JSON
     /// (`EncryptionManager.openStoredJSON`). Throws when sealed bytes do not
     /// open, which `loadIndex` treats as corruption.
-    static func indexJSON(_ stored: Data) throws -> Data {
-        try indexEncryption.openStoredJSON(stored)
+    static func indexJSON(_ stored: Data, encryption: EncryptionManager) throws -> Data {
+        try encryption.openStoredJSON(stored)
     }
 
     /// The index entries in `data`, each decoded on its own: an entry this
@@ -340,15 +335,15 @@ extension SessionArchive {
             sortedEntriesCache = nil
             sessionIdLookup = nil
             let data = try newerBuildIndexEntries.indexData(for: index, deleted: deletedSessionIds)
-            try Self.sealedOrPlain(data).write(to: indexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            try sealedOrPlain(data).write(to: indexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         }
     }
 
     /// `data` sealed with the archive's key, or `data` itself, logged as an
     /// error, when the key cannot be reached.
-    private static func sealedOrPlain(_ data: Data) -> Data {
+    private func sealedOrPlain(_ data: Data) -> Data {
         do {
-            return try indexEncryption.encrypt(data)
+            return try encryption.encrypt(data)
         } catch {
             debugLog("[Archive] index written unsealed, the archive key is unavailable: \(error)", level: .error)
             return data
@@ -361,7 +356,7 @@ extension SessionArchive {
     /// partial list never replaces it.
     func resealPlainIndexIfNeeded() {
         guard fileManager.fileExists(atPath: indexFile.path),
-              Self.indexEncryption.isAvailable, hasCompleteIndex else { return }
+              encryption.isAvailable, hasCompleteIndex else { return }
         archiveLock.withLock {
             guard let stored = attempt("Archive.readIndexForReseal", { try Data(contentsOf: indexFile) }),
                   !ArchiveStore.looksEncrypted(stored) else { return }

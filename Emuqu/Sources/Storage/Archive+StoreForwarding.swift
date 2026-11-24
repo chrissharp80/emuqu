@@ -82,8 +82,8 @@ extension SessionArchive {
     }
 
     /// Pure helpers — no archive state — so they forward to the type.
-    static func loadAndDecodeSessionFile(at fileURL: URL, decoder: JSONDecoder) throws -> HRVSession {
-        try ArchiveStore.loadAndDecodeSessionFile(at: fileURL, decoder: decoder)
+    static func loadAndDecodeSessionFile(at fileURL: URL, decoder: JSONDecoder, encryption: EncryptionManager) throws -> HRVSession {
+        try ArchiveStore.loadAndDecodeSessionFile(at: fileURL, decoder: decoder, encryption: encryption)
     }
 
     static func looksEncrypted(_ data: Data) -> Bool { ArchiveStore.looksEncrypted(data) }

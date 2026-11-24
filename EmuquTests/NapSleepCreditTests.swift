@@ -94,7 +94,7 @@ final class NapSleepCreditTests: XCTestCase {
     }
 
     private func aggregate(_ intervals: [(start: Date, end: Date)]) -> Int {
-        HealthKitManager.qualifyingNapMinutes(
+        SleepHealthQueries.qualifyingNapMinutes(
             asleepIntervals: intervals,
             episodeGapSeconds: TimeInterval(SleepConstants.napEpisodeGapMinutes * 60),
             floorSeconds: TimeInterval(SleepConstants.napMinimumMinutesToCount * 60)

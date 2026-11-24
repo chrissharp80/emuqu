@@ -65,10 +65,10 @@ extension HealthWriteAndObserve {
     /// session's key.
     private static func sleepReplacement(sleepType: HKCategoryType, sessionId: UUID) -> HealthSampleReplacement {
         HealthSampleReplacement(
-            type: sleepType, span: nil, timeout: HealthKitManager.sleepQueryTimeoutSec,
+            type: sleepType, span: nil, timeout: HeartRateHealthQueries.sleepQueryTimeoutSec,
             label: "sleep export", serialKey: sessionId.uuidString,
             matches: { HealthExportIdentity.belongsToSession($0, sessionId: sessionId, metric: .sleep) },
-            writeTimeout: HealthKitManager.backgroundAggregateQueryTimeoutSec
+            writeTimeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
         )
     }
 
@@ -126,7 +126,7 @@ extension HealthWriteAndObserve {
         }
         let store = manager.sampleReplacer.store
         let existingSamples = try await store.ownSamples(
-            of: sleepType, in: nil, timeout: HealthKitManager.sleepQueryTimeoutSec, label: "deleteAllAppWrittenSleepSamples"
+            of: sleepType, in: nil, timeout: HeartRateHealthQueries.sleepQueryTimeoutSec, label: "deleteAllAppWrittenSleepSamples"
         )
         guard !existingSamples.isEmpty else { return 0 }
         try await store.delete(existingSamples)
@@ -178,10 +178,10 @@ extension HealthWriteAndObserve {
     private func exportHRMetrics(session: HRVSession, result: HRVAnalysisResult) async -> Error? {
         do {
             if let points = session.rrSeries?.points, points.count >= 30 {
-                try await manager.exportHeartRateSeries(from: points, sessionStart: session.startDate, sessionId: session.id)
+                try await manager.heartRate.exportHeartRateSeries(from: points, sessionStart: session.startDate, sessionId: session.id)
             } else {
                 let date = session.endDate ?? session.startDate
-                try await manager.exportHeartRate(value: result.timeDomain.meanHR, at: date, sessionId: session.id)
+                try await manager.heartRate.exportHeartRate(value: result.timeDomain.meanHR, at: date, sessionId: session.id)
             }
             return nil
         } catch {
@@ -207,10 +207,10 @@ extension HealthWriteAndObserve {
         let date = session.endDate ?? session.startDate
         do {
             guard let restingHR = Self.restingHeartRateToExport(session: session, result: result) else {
-                try await manager.removeExportedRestingHeartRate(at: date, sessionId: session.id)
+                try await manager.heartRate.removeExportedRestingHeartRate(at: date, sessionId: session.id)
                 return nil
             }
-            try await manager.exportRestingHeartRate(value: restingHR, at: date, sessionId: session.id)
+            try await manager.heartRate.exportRestingHeartRate(value: restingHR, at: date, sessionId: session.id)
             return nil
         } catch {
             debugLog("[HealthKit Export] RHR export failed: \(error)")
@@ -270,11 +270,11 @@ extension HealthWriteAndObserve {
     /// `start...end`. Bounded and FAIL CLOSED: a timeout throws, so the export
     /// is skipped rather than written beside a night the store didn't return.
     private func otherSourceWroteSleep(from start: Date, to end: Date, sleepType: HKCategoryType) async throws -> Bool {
-        let predicate = manager.sleepReadExcludingOwnWrites(
+        let predicate = manager.sleepQueries.sleepReadExcludingOwnWrites(
             dateRange: HKQuery.predicateForSamples(withStart: start, end: end, options: [])
         )
-        let samples = try await manager.runBoundedThrowingQuery(
-            timeout: HealthKitManager.sleepQueryTimeoutSec,
+        let samples = try await manager.heartRate.runBoundedThrowingQuery(
+            timeout: HeartRateHealthQueries.sleepQueryTimeoutSec,
             makeQuery: { resolve in
                 HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: 1, sortDescriptors: nil) { _, results, error in
                     resolve(Self.categoryResult(results, error))
@@ -362,7 +362,7 @@ extension HealthWriteAndObserve {
     @MainActor
     private func warmSleepCache(referenceDate: Date) async {
         do {
-            let data = try await manager.fetchLastNightSleep(relativeTo: referenceDate)
+            let data = try await manager.sleepQueries.fetchLastNightSleep(relativeTo: referenceDate)
             if data.nightSleepMinutes > 0 {
                 SleepDataCache.write(data)
             }
