@@ -62,8 +62,8 @@
   },
   {
    "key": "def build",
-   "hash": "75f4469fcd15f9d1",
-   "does": "Builds the report. Opens the index (open_index) and joins its inventory with the records into per-unit entries (with the record's contract when it has one; branch offsets turned back into line numbers; `current` = record hash equals code hash) and collects every file and unit finding. Takes the call graph from the index (Index.graph) and merges it with the recorded calls (direct `path::key`, or keys embedded in dyn:/closure: text): recorded calls and certain graph edges become `callers`, possible graph edges not already certain become `possible_callers`, and both count as `targets` for reachability, so the unreachable list errs toward leaving code out. Reachability: walks the call graph from units with an external trigger, admitting a type once code already reached mentions it and seeding @main types plus EmuquMain/EmuquApp/WatchApp; dead types are those never admitted; then a name closure also marks a production unit reached when its type is live and its name appears in reached code; test code is walked separately. Groups reads/writes into shared-state rows with writer/reader areas. Counts area-to-area and file-to-file call edges and renders a whole-app Mermaid flowchart (edges of 8+ calls) and one per production area (45 strongest internal file links plus in/out traffic). Writes data/index.json, data/units/<area>.json, flags, stores, unreachable, strings, meta, and index.html from report_template.html, failing if any {{placeholder}} is left.",
+   "hash": "c8a26e424dd80391",
+   "does": "Builds the report. Opens the index (open_index) and joins its inventory with the records into per-unit entries (with the record's contract when it has one; branch offsets turned back into line numbers; `current` = record hash equals code hash) and collects every file and unit finding. Takes the call graph from the index (Index.graph) and merges it with the recorded calls (direct `path::key`, or keys embedded in dyn:/closure: text): recorded calls and certain and implicit graph edges become `callers`, possible graph edges not already among them become `possible_callers`, and both count as `targets` for reachability, so the unreachable list errs toward leaving code out. Reachability: walks the call graph from units with an external trigger, admitting a type once code already reached mentions it and seeding @main types plus EmuquMain/EmuquApp/WatchApp; dead types are those never admitted; then a name closure also marks a production unit reached when its type is live and its name appears in reached code; test code is walked separately. Groups reads/writes into shared-state rows with writer/reader areas. Counts area-to-area and file-to-file call edges and renders a whole-app Mermaid flowchart (edges of 8+ calls) and one per production area (45 strongest internal file links plus in/out traffic). Writes data/index.json, data/units/<area>.json, flags, stores, unreachable, strings, meta, and index.html from report_template.html, failing if any {{placeholder}} is left.",
    "entry": null,
    "calls": [
     "scripts/codemap/report.py::def _area_resolver",
@@ -157,7 +157,7 @@
     }
    ],
    "deps": {
-    "scripts/codemap/index.py::def Index.graph": "46ebe012451685a7",
+    "scripts/codemap/index.py::def Index.graph": "350d06b0f1b08f9b",
     "scripts/codemap/index.py::def Index.inventory": "82175465c4c8258b",
     "scripts/codemap/index.py::def open_index": "89e30daef005e70a",
     "scripts/codemap/report.py::def _area_resolver": "c2e3cc523b4088bf",

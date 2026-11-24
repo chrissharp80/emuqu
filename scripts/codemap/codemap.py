@@ -704,7 +704,7 @@ def walk_callers(callers: dict, recs: dict, node: str):
         nxt = []
         for x in frontier:
             for c, k in sorted(callers.get(x, {}).items()):
-                if k != "certain" or c in dist:
+                if k == "possible" or c in dist:
                     continue
                 dist[c] = dist[x] + 1
                 if c.startswith(TEST_ROOTS):
@@ -782,12 +782,16 @@ def cmd_impact(args: list[str]) -> int:
         direct, why = ix.callers_why(node)
         cert = sorted(c for c, k in direct.items() if k == "certain" and not is_test(c) and not is_doc(c))
         poss = sorted(c for c, k in direct.items() if k == "possible" and not is_test(c) and not is_doc(c))
-        lines.append(f"\n### 1. Code that calls it: {len(cert)} certain, {len(poss)} possible")
+        implicit = sorted(c for c, k in direct.items() if k == "implicit" and not is_test(c) and not is_doc(c))
+        lines.append(f"\n### 1. Code that calls it: {len(cert)} certain, {len(implicit)} through the frameworks, "
+                     f"{len(poss)} possible")
         for c in cert:
             lines.append(f"- `{c}` ({', '.join(sorted(why.get(c, ())))})")
             said = _mentions(record_of(recs, c), node)
             if said:
                 lines.append(f"  - relies on: {said}")
+        lines += [f"- (through the frameworks) `{c}` ({', '.join(sorted(why.get(c, ())))})" for c in implicit[:20]]
+        lines += [f"- ... {len(implicit) - 20} more through the frameworks"] if len(implicit) > 20 else []
         lines += [f"- (possible) `{c}`" for c in poss[:20]] + ([f"- ... {len(poss) - 20} more possible"] if len(poss) > 20 else [])
         dist, triggers, tests, docs = walk_callers(callers, recs, node)
         # 2. test suites, nearest first
@@ -867,7 +871,7 @@ def state_through_callees(graph: dict, recs: dict, node: str) -> dict[tuple[str,
     {callee nodes}}. Records list only the state their own code touches, so this is how a caller's
     full reach is seen."""
     out: dict[tuple[str, str], set[str]] = collections.defaultdict(set)
-    seen, todo = {node}, [c for c, k in graph["edges"].get(node, {}).items() if k == "certain"]
+    seen, todo = {node}, [c for c, k in graph["edges"].get(node, {}).items() if k != "possible"]
     while todo:
         c = todo.pop()
         if c in seen:
@@ -878,7 +882,7 @@ def state_through_callees(graph: dict, recs: dict, node: str) -> dict[tuple[str,
             for st in (r or {}).get(which) or []:
                 if isinstance(st, str) and ":" in st:
                     out[(which, st.split(" (")[0].strip())].add(c)
-        todo.extend(d for d, k in graph["edges"].get(c, {}).items() if k == "certain" and d not in seen)
+        todo.extend(d for d, k in graph["edges"].get(c, {}).items() if k != "possible" and d not in seen)
     return out
 
 

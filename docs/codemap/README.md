@@ -57,6 +57,15 @@ recorded call; a protocol requirement to each implementation; build wiring. An e
 **possible** when the name matches several units and nothing narrows it: there is no type checker
 here, so `x.load()` on a variable of unknown type is a possible call to every `load()` in the repo.
 
+An edge is **implicit** when a framework makes the call and no line of code shows it: making a
+value of a SwiftUI view, style, modifier, layout or UIKit wrapper (SwiftUI then calls its `body`,
+`makeBody`, `body(content:)`, `sizeThatFits`, `updateUIViewController` and the like); passing
+`T.self` to a preference or environment lookup; passing `T.self` to a `decode`/`encode` call, which
+runs the `init(from:)` and `encode(to:)` of T and of every type T's stored values hold; and a
+type's `init(from:)` to its own `encode(to:)`, since the decoder reads what the encoder wrote.
+Implicit edges count wherever `impact` walks callers (tests, entry points, state), and the report
+counts them as callers; they do not send records back for re-checks, which only certain edges do.
+
 Certainty is decided on every unit a name could mean. Two filters then drop references that
 cannot be what they look like, and they only ever remove edges: a property-style read on a
 receiver of unknown or framework type (`x.name`) is not a call to a function that needs

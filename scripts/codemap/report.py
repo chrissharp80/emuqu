@@ -99,7 +99,7 @@ def build(root: Path, records: dict, out: Path) -> int:
     callers, maybe = collections.defaultdict(set), collections.defaultdict(set)
     for k, u in units.items():
         sure = {t for c in u["calls"] if isinstance(c, str) for t in targets(c)}
-        sure |= {t for t, kind in g["edges"].get(k, {}).items() if kind == "certain" and t in units}
+        sure |= {t for t, kind in g["edges"].get(k, {}).items() if kind in ("certain", "implicit") and t in units}
         unsure = {t for t, kind in g["edges"].get(k, {}).items() if kind == "possible" and t in units} - sure
         u["targets"] = sorted(sure | unsure)
         for t in sure:
