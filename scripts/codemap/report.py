@@ -12,7 +12,6 @@ import re
 import shutil
 from pathlib import Path
 
-from inventory import inventory
 
 AREA_NAMES = {
     "A_shell": "App shell & launch", "B_recording": "Recording & sensors", "C1_workout": "Workouts",
@@ -46,7 +45,9 @@ def _tok(text: str) -> set[str]:
 
 
 def build(root: Path, records: dict, out: Path) -> int:
-    inv = inventory(root)
+    import index
+    ix = index.open_index()
+    inv = ix.inventory()
     area = _area_resolver(root)
     is_test = lambda f: f.startswith(("EmuquTests/", "EmuquUITests/"))
     is_prod_swift = lambda f: f.endswith(".swift") and not is_test(f)
@@ -94,8 +95,7 @@ def build(root: Path, records: dict, out: Path) -> int:
     # Recorded calls (with keys embedded in dyn:/closure: text) merged with the mechanical graph.
     # Certain edges are callers; possible edges (an ambiguous name) are listed separately. Both
     # count for reachability, so the unreachable list errs toward leaving code out.
-    import graph as graphmod
-    g = graphmod.build(inv, records, root)
+    g = ix.graph()
     callers, maybe = collections.defaultdict(set), collections.defaultdict(set)
     for k, u in units.items():
         sure = {t for c in u["calls"] if isinstance(c, str) for t in targets(c)}

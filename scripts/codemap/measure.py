@@ -65,17 +65,14 @@ def history() -> list[tuple[str, list[str]]]:
 
 def main(argv: list[str]) -> int:
     import codemap as cm
-    import graph as graphmod
-    import similar
+    import index as indexmod
     most = int(argv[0]) if argv else 25
     data = history()
-    recs = cm.all_records()
-    inv = invmod.inventory(ROOT)
-    g = graphmod.build(inv, recs, ROOT)
-    callers = graphmod.callers(g)
-    units = g["units"]
-    index = similar.Index(similar.unit_texts(inv, ROOT))
-    users = cm.store_users_of(recs)
+    ix = indexmod.open_index()
+    recs = indexmod.View(ix.record)
+    callers = indexmod.View(ix.callers)
+    units = indexmod.View(ix.unit)
+    users = indexmod.View(ix.store_users)
     is_test = lambda n: n.startswith(cm.TEST_ROOTS)
     suite = lambda n: (n.split("::")[0], (units.get(n) or {}).get("type", "").split(".")[0])
 
@@ -87,14 +84,14 @@ def main(argv: list[str]) -> int:
             code = set(dist) - {n}
             for _, _, others in cm.state_partners(users, cm.record_of(recs, n), n):
                 code |= others
-            code |= {o for o, _ in index.similar(n)}
+            code |= {o for o, _ in ix.similar(n)}
             reach[n] = (code, {suite(t) for t in tests})
         return reach[n]
 
     found = {"code": [0, 0], "tests": [0, 0]}
     used = 0
     for _, changed in data:
-        ch = [n for n in changed if n in units]
+        ch = [n for n in changed if ix.unit(n) is not None]
         if not 2 <= len(ch) <= most:
             continue
         used += 1

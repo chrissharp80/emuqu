@@ -1,0 +1,710 @@
+{
+ "file": "scripts/codemap/index.py",
+ "hash": "6056629fbdcfa7fd",
+ "role": "The persistent, incrementally updated index every code-map command reads: units, inventory entries, call-graph edges with reasons, record stores and 4-token code runs in build/codemap-index.sqlite. refresh() re-reads only files and records whose size or modification time changed and re-resolves only the files whose references can resolve differently; queries are indexed lookups. Run as a script it refreshes and prints what it redid; with --verify it compares its graph and inventory with graph.build from scratch.",
+ "types": [
+  "Index",
+  "View"
+ ],
+ "state": [
+  "file:build/codemap-index.sqlite (and its -journal)",
+  "DB, RECORDS, HERE, ROOT: paths",
+  "SOURCES: the modules whose source decides the index version (inventory.py, graph.py, similar.py, index.py)",
+  "SCHEMA: the tables (meta, files, units, refkeys, ids, edges, records, stores, run_files, unit_runs, posting, df)",
+  "_TOKEN_IDS: token to CRC-32 memo"
+ ],
+ "toplevel": "Module docstring, `from __future__ import annotations`, imports (collections, hashlib, json, math, os, pickle, sqlite3, zlib, Path, graph, inventory, similar), the constants above, the Index and View class statements, and the script entry: `--verify` exits with verify(); otherwise open_index().refresh() and a one-line summary.",
+ "units": [
+  {
+   "key": "def _stamp",
+   "hash": "f15f688b1f967888",
+   "does": "'mtime_ns:size' of a path, or None when it cannot be stat'ed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def _run_id",
+   "hash": "083e834f0dd02f77",
+   "does": "A stable 63-bit id for a 4-token run: each token's CRC-32 (memoized in _TOKEN_IDS) combined positionally.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:_TOKEN_IDS"
+   ],
+   "writes": [
+    "mem:_TOKEN_IDS"
+   ],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.id": "a3277187274f29e1"
+   }
+  },
+  {
+   "key": "def _pack",
+   "hash": "fab6d9587a6ae5ec",
+   "does": "Packs run ids as signed 64-bit integers into bytes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def _unpack",
+   "hash": "5e559582b6fc4495",
+   "does": "The run ids _pack packed.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def _sig",
+   "hash": "e746a74fe4eae163",
+   "does": "What resolution in other files depends on about one unit: its name, kind, type and parameter list (from the file's swift meta; None for a non-Swift file).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.unit": "010dc2859bc0a581"
+   }
+  },
+  {
+   "key": "def Index.__init__",
+   "hash": "b8ea08bdb31b2f44",
+   "does": "Opens the index database, creating the directory. When the stored version (a SHA-256 of the SOURCES) differs, or the file is not a readable index, deletes it and its journal and creates the schema afresh with the current version.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "file:build/codemap-index.sqlite",
+    "file:scripts/codemap/{inventory,graph,similar,index}.py"
+   ],
+   "writes": [
+    "file:build/codemap-index.sqlite"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "no version, another version, or not a database",
+     "effect": "rebuilt empty"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "def Index.id",
+   "hash": "efce522d55a47a83",
+   "does": "The integer id of a node or edge-group name, inserting it on first use; the name-to-id table is loaded once per Index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "file:build/codemap-index.sqlite (ids)",
+    "mem:Index._idmap"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def Index._ids",
+   "hash": "f35b9c877b0f0ef1",
+   "does": "{name: id} for a set of names.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def Index.id"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.id": "a3277187274f29e1"
+   }
+  },
+  {
+   "key": "def Index._put_edges",
+   "hash": "e986f7011b872097",
+   "does": "Replaces the edge contributions stored under one group (a file's Swift references, a record's calls, protocol requirements or build wiring) with the given (src, dst, kind, reason) rows, stored as ids with certain as 1 or 0.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def Index.id",
+    "scripts/codemap/index.py::def Index._ids"
+   ],
+   "reads": [],
+   "writes": [
+    "file:build/codemap-index.sqlite (edges)"
+   ],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index._ids": "85c495eafe03456a",
+    "scripts/codemap/index.py::def Index.id": "a3277187274f29e1",
+    "scripts/codemap/index.py::def Index.refresh": "8fb2bd3a4b0172b6"
+   }
+  },
+  {
+   "key": "def Index.refresh",
+   "hash": "b355fe5b94430e0c",
+   "does": "Brings the index up to date with the working tree: stamps every git-tracked in-scope file that exists, runs _refresh_files for files whose stamp differs or that are gone, then _refresh_records, commits, and returns how many files were re-read, how many Swift files re-resolved and how many records re-read.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def tracked_files",
+    "scripts/codemap/index.py::def _stamp",
+    "scripts/codemap/index.py::def Index._refresh_files",
+    "scripts/codemap/index.py::def Index._refresh_records"
+   ],
+   "reads": [],
+   "writes": [
+    "file:build/codemap-index.sqlite"
+   ],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "no file changed",
+     "effect": "files left as they are; records still checked"
+    }
+   ],
+   "deps": {
+    "scripts/codemap/index.py::def Index._refresh_files": "f5e00c774f0b048c",
+    "scripts/codemap/index.py::def Index._refresh_records": "85d30aeda8723173",
+    "scripts/codemap/index.py::def _stamp": "f5e3c319eadf5e29",
+    "scripts/codemap/inventory.py::def tracked_files": "4b08bc3276525808"
+   }
+  },
+  {
+   "key": "def Index._refresh_files",
+   "hash": "c726d7d14191b6f6",
+   "does": "For each changed or removed file: parses the new version (inventory; swift_file for Swift), notes which names and types resolution elsewhere depends on changed (a unit added, removed, or with a different name, kind, type or parameters; a stored-closure name; a type whose conformances changed), and replaces the file's rows (files, units with a file node, reference keys, its Swift edges). Then re-resolves the changed Swift files, every Swift file whose references name an affected name or type, and, when conformances changed, every file with units of a type whose family reaches a changed type before or after; rebuilds protocol-requirement edges when any Swift file changed, and build wiring when any script, Makefile or workflow changed.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def inventory",
+    "scripts/codemap/graph.py::def swift_file",
+    "scripts/codemap/graph.py::def short",
+    "scripts/codemap/index.py::def _sig",
+    "scripts/codemap/index.py::def Index._put_edges",
+    "scripts/codemap/index.py::def Index.units",
+    "scripts/codemap/graph.py::def Resolver.__init__",
+    "scripts/codemap/graph.py::def Resolver.resolve_file",
+    "scripts/codemap/graph.py::def Resolver.protocol_edges",
+    "scripts/codemap/graph.py::def wiring_edges"
+   ],
+   "reads": [
+    "file:changed in-scope files",
+    "file:build/codemap-index.sqlite"
+   ],
+   "writes": [
+    "file:build/codemap-index.sqlite (files, units, refkeys, edges)"
+   ],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "Swift file still present",
+     "effect": "references, parameters, conformances and closures parsed"
+    },
+    {
+     "at": "+24",
+     "cond": "unit added, removed or re-signed",
+     "effect": "its name and type marked affected"
+    },
+    {
+     "at": "+33",
+     "cond": "conformances differ",
+     "effect": "type marked changed"
+    },
+    {
+     "at": "+45",
+     "cond": "file removed",
+     "effect": "rows deleted only"
+    },
+    {
+     "at": "+63",
+     "cond": "some conformance changed",
+     "effect": "every type reaching it, and files holding their units, re-resolved"
+    },
+    {
+     "at": "+87",
+     "cond": "anything to resolve or a Swift file changed",
+     "effect": "files re-resolved and protocol edges rebuilt"
+    },
+    {
+     "at": "+97",
+     "cond": "a script, Makefile or workflow changed",
+     "effect": "build wiring rebuilt"
+    }
+   ],
+   "deps": {
+    "scripts/codemap/graph.py::def Resolver.__init__": "f9bf06f5aedc1eda",
+    "scripts/codemap/graph.py::def Resolver.protocol_edges": "49bd746eca6d5130",
+    "scripts/codemap/graph.py::def Resolver.resolve_file": "d335821e89a61404",
+    "scripts/codemap/graph.py::def short": "8a404d3b33d427f4",
+    "scripts/codemap/graph.py::def swift_file": "ac9eeb4ae15d2775",
+    "scripts/codemap/graph.py::def wiring_edges": "08c37f78e0c7aadb",
+    "scripts/codemap/index.py::def Index._put_edges": "24d197910e3cf371",
+    "scripts/codemap/index.py::def Index.inv": "5b1b54316dc278b7",
+    "scripts/codemap/index.py::def Index.unit": "010dc2859bc0a581",
+    "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7",
+    "scripts/codemap/index.py::def _sig": "b1f4c706edfbec0b",
+    "scripts/codemap/index.py::def _stamp": "f5e3c319eadf5e29",
+    "scripts/codemap/inventory.py::def inventory": "9c1468b9894854e2"
+   }
+  },
+  {
+   "key": "def Index._refresh_runs",
+   "hash": "3215e40d15f17d30",
+   "does": "Once per refresh, and only when similar asks: for every file whose stamp differs from when its runs were stored (or that is gone), drops its units' runs and, for a non-Markdown file with units, stores each unit's 4-token runs (similar.shingles over its lines, # comments stripped outside Swift/C/Objective-C); commits.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def Index._drop_runs",
+    "scripts/codemap/index.py::def Index._add_runs",
+    "scripts/codemap/similar.py::def shingles"
+   ],
+   "reads": [
+    "file:changed in-scope files",
+    "file:build/codemap-index.sqlite"
+   ],
+   "writes": [
+    "file:build/codemap-index.sqlite (run_files, unit_runs, posting, df)",
+    "mem:Index._runs_fresh"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "already fresh in this refresh",
+     "effect": "returns"
+    },
+    {
+     "at": "+9",
+     "cond": "stamp unchanged",
+     "effect": "skipped"
+    }
+   ],
+   "deps": {
+    "scripts/codemap/index.py::def Index._add_runs": "79a84ebbdfed0a2d",
+    "scripts/codemap/index.py::def Index._drop_runs": "a7c90a0070d100f9",
+    "scripts/codemap/index.py::def Index.inv": "5b1b54316dc278b7",
+    "scripts/codemap/index.py::def Index.similar": "a65a972085270eca",
+    "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7",
+    "scripts/codemap/similar.py::def shingles": "213d581420d8aa74"
+   }
+  },
+  {
+   "key": "def Index._drop_runs",
+   "hash": "bf4905fe45b4a04a",
+   "does": "Removes the given units' runs: lowers each run's unit count, deletes their posting entries and stored run lists, and deletes runs no unit has any more.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def Index.id",
+    "scripts/codemap/index.py::def _unpack"
+   ],
+   "reads": [],
+   "writes": [
+    "file:build/codemap-index.sqlite (unit_runs, posting, df)"
+   ],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.id": "a3277187274f29e1",
+    "scripts/codemap/index.py::def _unpack": "fcc987e6bbad787f"
+   }
+  },
+  {
+   "key": "def Index._add_runs",
+   "hash": "14602ff4418da13d",
+   "does": "Stores each unit's run ids (_run_id, sorted, packed), a posting entry per run and unit, and adds to each run's unit count.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def Index.id",
+    "scripts/codemap/index.py::def _run_id",
+    "scripts/codemap/index.py::def _pack"
+   ],
+   "reads": [],
+   "writes": [
+    "file:build/codemap-index.sqlite (unit_runs, posting, df)"
+   ],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.id": "a3277187274f29e1",
+    "scripts/codemap/index.py::def _pack": "291d0ca4d0f1eb57",
+    "scripts/codemap/index.py::def _run_id": "2a6b29ba8e6e0d5e"
+   }
+  },
+  {
+   "key": "def Index._refresh_records",
+   "hash": "f729f1bb5d1f2699",
+   "does": "Stamps every record file; for each whose stamp changed or that is gone, replaces its recorded-call edges (graph.recorded_edges) and the stores its units read and write (entries with ':' up to ' ('), and counts it in `done`.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def _stamp",
+    "scripts/codemap/index.py::def Index._put_edges",
+    "scripts/codemap/graph.py::def recorded_edges"
+   ],
+   "reads": [
+    "file:docs/codemap/records/**"
+   ],
+   "writes": [
+    "file:build/codemap-index.sqlite (records, edges, stores)"
+   ],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/graph.py::def recorded_edges": "5fcffe019357d077",
+    "scripts/codemap/index.py::def Index._put_edges": "24d197910e3cf371",
+    "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7",
+    "scripts/codemap/index.py::def _stamp": "f5e3c319eadf5e29"
+   }
+  },
+  {
+   "key": "def Index.units",
+   "hash": "a8c3a4b373b7d3b8",
+   "does": "Every unit and file node as graph.build's `units`, loaded once until the next refresh.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:Index._units"
+   ],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/graph.py::def build": "b2ae839c6e336bd3",
+    "scripts/codemap/index.py::def Index.graph": "46ebe012451685a7",
+    "scripts/codemap/index.py::def Index.unit": "010dc2859bc0a581"
+   }
+  },
+  {
+   "key": "def Index.unit",
+   "hash": "bbc6a02a9e95503e",
+   "does": "One node's unit entry, or None.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7"
+   }
+  },
+  {
+   "key": "def Index._combine",
+   "hash": "213d1f5207767f19",
+   "does": "Folds edge rows (other node, certain flag, reason) into {node: 'certain'|'possible'} (certain wins) and {node: reasons of its certain rows}.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def Index.callers",
+   "hash": "a6322a753d99e1e4",
+   "does": "{caller: certain|possible} for a node, as the assembled graph gives it.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def Index.callers_why"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.callers_why": "2e144244664e354e",
+    "scripts/codemap/index.py::def Index.graph": "46ebe012451685a7"
+   }
+  },
+  {
+   "key": "def Index.callers_why",
+   "hash": "6502c8086cc49e16",
+   "does": "({caller: kind}, {caller: reasons}) for a node: edge rows into it from existing units other than itself, folded by _combine; empty when the node does not exist.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def Index.unit",
+    "scripts/codemap/index.py::def Index._combine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index._combine": "4c755e67cda74fce",
+    "scripts/codemap/index.py::def Index.id": "a3277187274f29e1",
+    "scripts/codemap/index.py::def Index.unit": "010dc2859bc0a581",
+    "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7"
+   }
+  },
+  {
+   "key": "def Index.callees",
+   "hash": "009ea9c0b04c2f5b",
+   "does": "{callee: kind} for a node: edge rows out of it to existing units other than itself, folded by _combine; empty when the node does not exist.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def Index.unit",
+    "scripts/codemap/index.py::def Index._combine"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index._combine": "4c755e67cda74fce",
+    "scripts/codemap/index.py::def Index.id": "a3277187274f29e1",
+    "scripts/codemap/index.py::def Index.unit": "010dc2859bc0a581",
+    "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7"
+   }
+  },
+  {
+   "key": "def Index.graph",
+   "hash": "746ca9aba0dd9727",
+   "does": "The whole graph in graph.build's form: every stored edge row with its names, assembled over units().",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def Index.units",
+    "scripts/codemap/graph.py::def assemble"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/graph.py::def assemble": "577bb7649c323fa0",
+    "scripts/codemap/graph.py::def build": "b2ae839c6e336bd3",
+    "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7"
+   }
+  },
+  {
+   "key": "def Index.record",
+   "hash": "8f3e91f6da22c472",
+   "does": "The record of one file with the overlay's findings (codemap.load), read once per Index.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/codemap.py::def load"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:Index._records"
+   ],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def load": "24126b87a9682101"
+   }
+  },
+  {
+   "key": "def Index.store_users",
+   "hash": "89028697b6f37cbd",
+   "does": "{'reads': units, 'writes': units} for one store name.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def Index.test_classes",
+   "hash": "3ba6c85e132e206c",
+   "does": "Every `Target/Class` in the test targets that has a unit whose name starts with 'test'.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7"
+   }
+  },
+  {
+   "key": "def Index.similar",
+   "hash": "9590fe3b6526af35",
+   "does": "The units whose code is most alike: brings the runs up to date, then, for a unit whose summed run rarity (log(units / units having the run)) is at least 25, scores every unit sharing one of its runs that at most 50 units have by the shared rarity over the larger of the two units' totals; keeps scores of at least `minimum` (default 0.35), best first (ties by name), up to `limit` (default 15), rounded to 2 places. [] for a unit without runs or under the rarity floor.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def Index._refresh_runs",
+    "scripts/codemap/index.py::def Index._df",
+    "scripts/codemap/index.py::def _unpack"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no runs stored for it",
+     "effect": "[]"
+    },
+    {
+     "at": "+11",
+     "cond": "total rarity under 25",
+     "effect": "[]"
+    },
+    {
+     "at": "+23",
+     "cond": "cannot reach minimum even against its own total",
+     "effect": "skipped without reading the other's runs"
+    }
+   ],
+   "deps": {
+    "scripts/codemap/index.py::def Index._df": "f43fa71c767d77b8",
+    "scripts/codemap/index.py::def Index._refresh_runs": "98fd9f6ccebd9182",
+    "scripts/codemap/index.py::def Index.id": "a3277187274f29e1",
+    "scripts/codemap/index.py::def _unpack": "fcc987e6bbad787f"
+   }
+  },
+  {
+   "key": "def Index._df",
+   "hash": "a156f9f4a8134214",
+   "does": "{run id: how many units have it} for the given runs, read 500 at a time.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def Index.inv",
+   "hash": "184578e3c387479e",
+   "does": "One file's inventory entry, or None when the file is not in the index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.inventory": "82175465c4c8258b"
+   }
+  },
+  {
+   "key": "def Index.named_like",
+   "hash": "d25ad536b239a8a9",
+   "does": "Every node containing `name`, sorted.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7"
+   }
+  },
+  {
+   "key": "def Index.inventory",
+   "hash": "4e4a7ab83e5be3db",
+   "does": "The inventory as inventory.inventory returns it, from the stored per-file entries.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.inv": "5b1b54316dc278b7",
+    "scripts/codemap/inventory.py::def inventory": "9c1468b9894854e2"
+   }
+  },
+  {
+   "key": "def View.__init__",
+   "hash": "d9cefbf2e529dcb5",
+   "does": "Wraps a query function.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:View.query"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def View.get",
+   "hash": "63bc5cb057e67742",
+   "does": "The query's answer for a key, or `default` when the answer is empty or None and a default is given.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def View.__contains__",
+   "hash": "ae0f5b4dc9c22d76",
+   "does": "Whether the query's answer for a key is not None.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def View.__getitem__",
+   "hash": "dcbf1f607733b4ac",
+   "does": "The query's answer for a key; KeyError when it is None.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def open_index",
+   "hash": "46ecc829b9b7c301",
+   "does": "An Index, refreshed.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def Index.__init__",
+    "scripts/codemap/index.py::def Index.refresh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/index.py::def Index.__init__": "b0bdcdf96ef29812",
+    "scripts/codemap/index.py::def Index.refresh": "8fb2bd3a4b0172b6"
+   }
+  },
+  {
+   "key": "def verify",
+   "hash": "0571bcde4f7743c9",
+   "does": "Refreshes the index, builds the inventory and graph from scratch (inventory.inventory, graph.build over all records), prints for inventory, units, edges and why whether the index's version is identical, and returns 0 only when all four are.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/index.py::def open_index",
+    "scripts/codemap/inventory.py::def inventory",
+    "scripts/codemap/graph.py::def build",
+    "scripts/codemap/codemap.py::def all_records",
+    "scripts/codemap/index.py::def Index.graph",
+    "scripts/codemap/index.py::def Index.inventory"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/codemap/codemap.py::def all_records": "3e3143a0d4a0752c",
+    "scripts/codemap/graph.py::def build": "b2ae839c6e336bd3",
+    "scripts/codemap/index.py::def Index.graph": "46ebe012451685a7",
+    "scripts/codemap/index.py::def Index.inv": "5b1b54316dc278b7",
+    "scripts/codemap/index.py::def Index.inventory": "82175465c4c8258b",
+    "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7",
+    "scripts/codemap/index.py::def open_index": "89e30daef005e70a",
+    "scripts/codemap/inventory.py::def inventory": "9c1468b9894854e2"
+   }
+  }
+ ],
+ "deps": {
+  "scripts/codemap/graph.py::def build": "b2ae839c6e336bd3",
+  "scripts/codemap/index.py::def Index.callees": "cf41a481209e0efb",
+  "scripts/codemap/index.py::def Index.callers": "92c14f4eefa087c8",
+  "scripts/codemap/index.py::def Index.graph": "46ebe012451685a7",
+  "scripts/codemap/index.py::def Index.id": "a3277187274f29e1",
+  "scripts/codemap/index.py::def Index.inv": "5b1b54316dc278b7",
+  "scripts/codemap/index.py::def Index.inventory": "82175465c4c8258b",
+  "scripts/codemap/index.py::def Index.record": "18b2e14cbf13e261",
+  "scripts/codemap/index.py::def Index.refresh": "8fb2bd3a4b0172b6",
+  "scripts/codemap/index.py::def Index.similar": "a65a972085270eca",
+  "scripts/codemap/index.py::def Index.store_users": "608cb066e3341438",
+  "scripts/codemap/index.py::def Index.unit": "010dc2859bc0a581",
+  "scripts/codemap/index.py::def Index.units": "b6589f5f337ae8d7",
+  "scripts/codemap/index.py::def open_index": "89e30daef005e70a",
+  "scripts/codemap/index.py::def verify": "cb34ff7f2448207b"
+ }
+}

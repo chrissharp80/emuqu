@@ -23,10 +23,10 @@
                                 before sync, carry the record of a moved file or renamed units to
                                 their new names and rewrite every reference to them
     codemap.py impact [--base REF] [NODE...]
-                                everything a change can affect: for each unit changed since REF
-                                (default origin/main) or each named `path::key`, its callers up to
-                                their triggers, the tests that reach it, the shared state it
-                                touches and who else touches it, and the open findings on all of it
+                                what a change can break, nearest first, for each unit changed since
+                                REF (default origin/main) or each named `path::key`: the test suites
+                                to run, its callers and what each relies on, alike code elsewhere,
+                                shared state, the entry points and docs that reach it, open findings
     codemap.py callers NODE     direct callers of one `path::key` (certain and possible)
     codemap.py report OUTDIR    build the browsable report from the records
 
@@ -313,13 +313,18 @@ def budget_problems(counts: dict[str, int]) -> list[tuple[str, str, str]]:
     return out
 
 
+def current_state() -> tuple[dict, dict]:
+    """(inventory, call graph) of the working tree, from the persistent index (index.py), which
+    re-reads only what changed since it was last brought up to date."""
+    import index
+    ix = index.open_index()
+    return ix.inventory(), ix.graph()
+
+
 def cmd_check(strict: bool, by_callee: bool = False, base: str = "origin/main") -> int:
-    from inventory import inventory
-    import graph as graphmod
     recs = all_records()
-    inv = inventory(ROOT)
+    inv, g = current_state()
     probs = problems(inv, recs)
-    g = graphmod.build(inv, recs, ROOT)
     rechecks = dependency_problems(inv, recs, g)
     if by_callee and rechecks:
         print(f"codemap: {len(rechecks)} record(s) to re-check, by the callee that changed:")
@@ -489,9 +494,7 @@ def cmd_stamp(groups: dict[str, list[str]]) -> int:
     """Stamp every named record in one pass: the inventory, records and graph are built once.
     Every target is checked before any is written, so a refused one leaves all of them as they
     were."""
-    from inventory import inventory
-    import graph as graphmod
-    full = inventory(ROOT)
+    full, g = current_state()
     recs = all_records()
     for path, keys in groups.items():
         rec = recs.get(path)
@@ -511,7 +514,6 @@ def cmd_stamp(groups: dict[str, list[str]]) -> int:
             elif not (have[k].get("does") or "").strip():
                 print(f"{path}: {k}: write what it does before stamping it.", file=sys.stderr)
                 return 1
-    g = graphmod.build(full, recs, ROOT)
     desc = descriptions(recs)
     for path, keys in groups.items():
         rec = recs[path]
@@ -534,8 +536,6 @@ def cmd_ack_from(path: str) -> int:
     """`ack` for many callees in one pass: each non-blank line of `path` is `CALLER<TAB>CALLEE`,
     one re-check line re-read and found unaffected. Every pair must be an open re-check line, or
     nothing is written."""
-    from inventory import inventory
-    import graph as graphmod
     pairs = []
     for n, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
@@ -546,8 +546,8 @@ def cmd_ack_from(path: str) -> int:
         caller, callee = (x.strip() for x in line.split("\t", 1))
         pairs.append((caller, callee))
     recs = all_records()
-    inv = inventory(ROOT)
-    open_pairs = {(f"{f}::{k}", c) for f, k, c, _ in recheck_items(inv, recs, graphmod.build(inv, recs, ROOT))}
+    inv, g = current_state()
+    open_pairs = {(f"{f}::{k}", c) for f, k, c, _ in recheck_items(inv, recs, g)}
     missing = [p for p in pairs if p not in open_pairs]
     if missing:
         for caller, callee in missing[:20]:
@@ -570,11 +570,9 @@ def cmd_ack(callee: str, callers: list[str]) -> int:
     recorded hash for `callee` to what the callee's record says now. With no CALLER, every
     caller with an open re-check line for `callee`. A caller whose own behaviour changed is not
     acknowledged: its record is rewritten and stamped instead."""
-    from inventory import inventory
-    import graph as graphmod
     recs = all_records()
-    inv = inventory(ROOT)
-    items = [(f, k) for f, k, c, _ in recheck_items(inv, recs, graphmod.build(inv, recs, ROOT)) if c == callee]
+    inv, g = current_state()
+    items = [(f, k) for f, k, c, _ in recheck_items(inv, recs, g) if c == callee]
     if not items:
         print(f"ack: no open re-check line for {callee}", file=sys.stderr)
         return 1
@@ -752,34 +750,26 @@ def state_partners(store_users: dict, rec: dict | None, node: str) -> list[tuple
 def cmd_impact(args: list[str]) -> int:
     """What a change can break, nearest first: direct callers and what each relies on, the test
     suites that reach it, the same code elsewhere, shared state, then the entry points and docs."""
-    from inventory import inventory
-    import graph as graphmod
-    import similar
+    import index as indexmod
     base = "origin/main"
     if args[:1] == ["--base"]:
         if len(args) < 2:
             print("impact: --base needs a git ref", file=sys.stderr)
             return 2
         base, args = args[1], args[2:]
-    recs = all_records()
-    inv = inventory(ROOT)
-    g = graphmod.build(inv, recs, ROOT)
-    callers = graphmod.callers(g)
-    units = g["units"]
-    targets = [(a, "named") for a in args] if args else changed_since(base, inv)
-    unknown = [a for a, how in targets if how == "named" and a not in units]
+    ix = indexmod.open_index()
+    recs = indexmod.View(ix.record)
+    callers = indexmod.View(ix.callers)
+    targets = [(a, "named") for a in args] if args else changed_since(base, indexmod.View(ix.inv))
+    unknown = [a for a, how in targets if how == "named" and ix.unit(a) is None]
     if unknown:
         for a in unknown:
-            near = sorted(k for k in units if a.split("::")[-1].split("(")[0].split(".")[-1] in k)[:15]
+            near = ix.named_like(a.split("::")[-1].split("(")[0].split(".")[-1])[:15]
             print(f"impact: no unit {a!r}. Units with that name:\n  " + "\n  ".join(near or ["(none)"]), file=sys.stderr)
         return 2
     is_test = lambda n: n.startswith(TEST_ROOTS)
     is_doc = lambda n: n.split("::")[0].endswith(".md")
-    index = similar.Index(similar.unit_texts(inv, ROOT))
-    test_classes = {f"{n.split('/')[0]}/{(u.get('type') or '').split('.')[0]}" for n, u in units.items()
-                    if is_test(n) and u.get("name", "").startswith("test")}
-
-    store_users = store_users_of(recs)
+    test_classes = ix.test_classes()
 
     sections, all_suites = [], {}
     for node, how in targets:
@@ -789,12 +779,12 @@ def cmd_impact(args: list[str]) -> int:
             promise = (r.get("contract") or "").strip()
             lines.append(f"{'Contract' if promise else 'Does'}: {(promise or r.get('does') or r.get('role') or '').strip()[:500]}")
         # 1. direct callers, and what each says it relies on
-        direct = callers.get(node, {})
+        direct, why = ix.callers_why(node)
         cert = sorted(c for c, k in direct.items() if k == "certain" and not is_test(c) and not is_doc(c))
         poss = sorted(c for c, k in direct.items() if k == "possible" and not is_test(c) and not is_doc(c))
         lines.append(f"\n### 1. Code that calls it: {len(cert)} certain, {len(poss)} possible")
         for c in cert:
-            lines.append(f"- `{c}` ({', '.join(g['why'].get((c, node), []))})")
+            lines.append(f"- `{c}` ({', '.join(sorted(why.get(c, ())))})")
             said = _mentions(record_of(recs, c), node)
             if said:
                 lines.append(f"  - relies on: {said}")
@@ -803,7 +793,7 @@ def cmd_impact(args: list[str]) -> int:
         # 2. test suites, nearest first
         suites = {}
         for t, d in tests.items():
-            s = _suite(t, units, test_classes)
+            s = _suite(t, indexmod.View(ix.unit), test_classes)
             if s:
                 suites[s] = min(d, suites.get(s, d))
         for s, d in suites.items():
@@ -814,17 +804,18 @@ def cmd_impact(args: list[str]) -> int:
         if len(suites) > 25:
             lines.append(f"- ... {len(suites) - 25} more, further away")
         # 3. the same code elsewhere
-        twins = index.similar(node) if how != "deleted" else []
+        twins = ix.similar(node) if how != "deleted" else []
         lines.append(f"\n### 3. Same code elsewhere (may need the same change): {len(twins)}")
         lines += [f"- `{o}` ({int(sc * 100)}% alike)" for o, sc in twins]
         # 4. shared state
         if r is not None and how != "deleted" and node.split("::", 1)[1]:
             shared = []
-            for which, key, others in state_partners(store_users, r, node):
+            for which, key, others in state_partners(indexmod.View(ix.store_users), r, node):
                 role = "read by" if which == "writes" else "also written by"
                 shared.append(f"- {which[:-1]}s `{key}`, {role} {len(others)}: "
                               + ", ".join(f"`{o}`" for o in sorted(others)[:8]) + (" ..." if len(others) > 8 else ""))
-            effects = sorted(k for (w, k) in state_through_callees(g, recs, node) if w == "writes")
+            effects = sorted(k for (w, k) in state_through_callees({"edges": indexmod.View(ix.callees)}, recs, node)
+                             if w == "writes")
             lines.append(f"\n### 4. Shared state: {len(shared)} store(s) it uses that other code also uses")
             lines += shared
             if effects:
@@ -892,11 +883,8 @@ def state_through_callees(graph: dict, recs: dict, node: str) -> dict[tuple[str,
 
 
 def cmd_callers(node: str) -> int:
-    from inventory import inventory
-    import graph as graphmod
-    recs = all_records()
-    inv = inventory(ROOT)
-    cl = graphmod.callers(graphmod.build(inv, recs, ROOT)).get(node, {})
+    import index
+    cl = index.open_index().callers(node)
     for c, k in sorted(cl.items(), key=lambda x: (x[1], x[0])):
         print(f"{k:8} {c}")
     if not cl:
