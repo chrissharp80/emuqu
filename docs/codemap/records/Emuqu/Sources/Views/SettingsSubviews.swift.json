@@ -21,7 +21,7 @@
   "mem:MetricExplanationRow.isExpanded (@State)",
   "file:tmp/Exports/Emuqu_Error_Catalog.txt (ErrorCatalogExport.makeFile; deleted when its share sheet closes)"
  ],
- "toplevel": "AddTagSheet.presetColors is a stored let of 12 SwiftUI colours (red..brown) parallel to presetColorNames. MetricExplanationRow.action defaults to nil. Comment at line 88 points to ShareSheet in Views/Utilities/ShareSheet.swift.",
+ "toplevel": "AddTagSheet.presetColors is a stored let of 12 SwiftUI colours (red..brown) parallel to presetColorNames. MetricExplanationRow.action defaults to nil. Comment points to ShareSheet in Views/Utilities/ShareSheet.swift.",
  "units": [
   {
    "key": "var DebugLogView.logger",
@@ -42,7 +42,7 @@
    "key": "var DebugLogView.body",
    "hash": "e947ffe62ccc34ac",
    "does": "Renders logList with the Clear/Export toolbar, a 'Clear Debug Logs?' alert whose destructive Clear button calls debugLogger.clear() and sets clearFailed from its result (the message quotes logger.entries.count), and a 'Some logs couldn't be deleted. Try again.' alert while clearFailed is set.",
-   "entry": "SwiftUI body (pushed from Troubleshooting › Debug Logs, SettingsPages+DiagnosticActions.swift:255; snapshot test ScreenSnapshotTests.swift:66)",
+   "entry": "SwiftUI body (pushed from Troubleshooting › Debug Logs, SettingsPages+DiagnosticActions.swift; snapshot test ScreenSnapshotTests.swift)",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.logList",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.debugLogToolbar",
@@ -197,7 +197,7 @@
    "key": "var CrashLogView.body",
    "hash": "ec8adfbe14af2aba",
    "does": "List of crash details and actions; .task loads the previous crash log off-main; a 'Delete Crash Report?' alert hosts deleteCrashAlertActions.",
-   "entry": "SwiftUI body (pushed from SettingsPages+Diagnostics.swift:442; snapshot test ScreenSnapshotTests.swift:73); .task on appear",
+   "entry": "SwiftUI body (pushed from SettingsPages+Diagnostics.swift; snapshot test ScreenSnapshotTests.swift); .task on appear",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.crashDetailsSection",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var CrashLogView.crashActionsSection",
@@ -235,7 +235,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()": "d266947c5401e5ec"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()": "0d4ef304d0e64576"
    }
   },
   {
@@ -390,7 +390,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()": "ef7245749c5169c4"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.exportCrashLog()": "fe4f259271d1d2bc"
    }
   },
   {
@@ -412,7 +412,7 @@
    "key": "var ErrorCatalogView.body",
    "hash": "f7097cc3a51924d0",
    "does": "List of summary and error-list sections with an export toolbar item and a 'Clear All Errors?' alert (message quotes errorCatalog.count).",
-   "entry": "SwiftUI body (pushed from SettingsPages+DiagnosticActions.swift:256; snapshot test ScreenSnapshotTests.swift:59)",
+   "entry": "SwiftUI body (pushed from SettingsPages+DiagnosticActions.swift; snapshot test ScreenSnapshotTests.swift)",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.errorSummarySection",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.errorListSection",
@@ -458,7 +458,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()": "17d3df8b6493db40",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()": "3a34ae6bcd8d8a41",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var ErrorCatalogView.logger": "3f0b80962265b1aa"
    }
@@ -669,14 +669,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()": "a1e2da0314a4f1d3"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportErrorCatalog()": "38eb88563d7d6217"
    }
   },
   {
    "key": "var AddTagSheet.body",
    "hash": "521b0caf7bbbdc8c",
    "does": "NavigationStack/Form with name, colour and preview sections, inline 'New Tag' title and Cancel/Save toolbar.",
-   "entry": "SwiftUI body (sheet presented by CustomTagsPage, SettingsPages+Data.swift:60; snapshot tests ScreenSnapshotTests.swift:119,131)",
+   "entry": "SwiftUI body (sheet presented by CustomTagsPage, SettingsPages+Data.swift; snapshot tests ScreenSnapshotTests.swift)",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagNameSection",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.tagColorSection",
@@ -831,7 +831,7 @@
    "does": "Toolbar: Cancel dismisses; Save calls onSave() then dismisses, disabled unless canSave.",
    "entry": "SwiftUI toolbar; button taps",
    "calls": [
-    "closure:onSave set by CustomTagsPage.addTagSheet → saveNewTag (SettingsPages+Data.swift:66), appends a ReadingTag to settings.customTags",
+    "closure:onSave set by CustomTagsPage.addTagSheet → saveNewTag (SettingsPages+Data.swift), appends a ReadingTag to settings.customTags",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.canSave"
    ],
@@ -876,14 +876,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "ca00f16b8dca855b"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "caf342fdad38031b"
    }
   },
   {
    "key": "var MetricExplanationsView.body",
    "hash": "d404cbb3b2b5e580",
    "does": "List of the age banner and the time-domain, frequency-domain, nonlinear and composite metric sections, titled 'Metric Guide'.",
-   "entry": "SwiftUI body (pushed from SettingsView.swift:428 and the Settings search entry)",
+   "entry": "SwiftUI body (pushed from SettingsView.swift and the Settings search entry)",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.ageBanner",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var MetricExplanationsView.timeDomainMetrics",

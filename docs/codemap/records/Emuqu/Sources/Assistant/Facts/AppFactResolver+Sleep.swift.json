@@ -302,7 +302,8 @@
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "e7e96550dc32a12b",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func SleepNamespace.sleepScienceFields(_:userAge:typicalSleepHours:)": "8e49151cfb43d027",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "7048e5b4587e15b2"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "7048e5b4587e15b2",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "1dd3dd91a24f0a38"
    }
   },
   {
@@ -328,7 +329,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "23c89fed3f3a35fe"
    }
   },
   {
@@ -587,7 +588,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "1dd3dd91a24f0a38",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.ansFields(_:)": "9c7d49c81cd75445",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.estimatedFactKeys(_:)": "55dade72616fcc91",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.frequencyFields(_:)": "8b2a9646f4261075",
@@ -654,7 +655,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.optionalDoubles(_:)": "ce1985cecac7fef8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.optionalDoubles(_:)": "ce1985cecac7fef8",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "1dd3dd91a24f0a38"
    }
   },
   {
@@ -705,7 +707,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.optionalDoubles(_:)": "ce1985cecac7fef8"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.optionalDoubles(_:)": "ce1985cecac7fef8",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "1dd3dd91a24f0a38"
    }
   },
   {
@@ -770,7 +773,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)": "588527c718c69ff5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)": "fd6d703c451d01a5",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "c969891a95b4545d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.byDate(_:archive:scoredOnly:)": "e207765d3c176aac"
    }
@@ -804,7 +807,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)": "588527c718c69ff5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)": "fd6d703c451d01a5",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "c969891a95b4545d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.inPeriod(_:archive:types:)": "fe368daf19667646",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.invalidPeriod(_:)": "d673a87b3fd57fd6"
@@ -828,7 +831,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)": "588527c718c69ff5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)": "fd6d703c451d01a5",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.availability(_:)": "c969891a95b4545d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.latest(_:scoredOnly:)": "4299813c374829e7",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:availability:resolve:)": "01ca92a96a21d8b8"
@@ -1165,10 +1168,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)": "0feaf5b3d6b3b080",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.subjectiveMorningFields(_:)": "f2816ab75c9e46d3"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func RecoveryNamespace.subjectiveMorningFields(_:)": "f2816ab75c9e46d3",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "1dd3dd91a24f0a38"
    }
   },
   {

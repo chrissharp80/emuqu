@@ -10,7 +10,7 @@
   "static let locationCurrentDescription (says lat/lon are where the cached address was resolved, up to 5 min ago, and points to location.current_detailed for the live fix)",
   "static let locationSituationDescription"
  ],
- "toplevel": "Struct conformance; registered in AppFactResolverFactory.registerHealthNamespaces (AppFactResolver.swift:201).",
+ "toplevel": "Struct conformance; registered in AppFactResolverFactory.registerHealthNamespaces (AppFactResolver.swift).",
  "units": [
   {
    "key": "func WorkoutLiveCoachingNamespace.snapshot()",
@@ -319,7 +319,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.cachedAddressRecord(_:)": "a495ef7101f34130",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.locationGatedOffMessage()": "9e433acd3a0094b8",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.workoutActive()": "36dd0d0d14cc905c",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedResolvedAddress(maxAgeSec:)": "5678c689470f1b00",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedResolvedAddress(maxAgeSec:)": "fcf939792827c80a",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
    }
@@ -338,7 +338,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.addressFields(_:)": "0711ed584a30bc0f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.mapLinkFields(lat:lon:)": "afa000c7b0fa217e"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.mapLinkFields(lat:lon:)": "afa000c7b0fa217e",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "1dd3dd91a24f0a38"
    }
   },
   {
@@ -422,7 +423,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.roadContext(near:)": "ad5aa7548eabd529",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.situationFixFields(_:)": "31151a3e02fb0c0c",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.workoutActive()": "36dd0d0d14cc905c",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "d1265f1ef505d839",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
    }
@@ -473,7 +474,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "f371094b11799aa6",
-    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.searchWithStatus(near:radiusMeters:topPerCategory:)": "2e673438062d9b58",
+    "Emuqu/Sources/Services/SurroundingsPOIService.swift::func SurroundingsPOIService.searchWithStatus(near:radiusMeters:topPerCategory:)": "dc9d8ef494990373",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.surroundingsPOIService": "cca5dc6312ad5573"
    }
@@ -525,7 +526,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.addressFields(_:)": "0711ed584a30bc0f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.addressStatus(_:)": "6d99657605e76d4b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.addressStatus(_:)": "6d99657605e76d4b",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "1dd3dd91a24f0a38"
    }
   },
   {
@@ -543,7 +545,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: String?, reason: MissingReason, detail: String?)": "36f066ca29f04ce0",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.compactAddress": "15809705576bbcfa",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.nearestIntersection": "a46cf43c59a92ca5",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::var RoadGeocodingService.RoadContext.nearestIntersection": "e57b877d7c9798a8",
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "84a1ad6f830929e0"
    }
   },
@@ -704,10 +706,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.journeyRecord(from:)": "b441f08e6aa269a1",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.journeyRecurrence(for:)": "dc4efa6f8eb6b079",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "b54fe126660d8722",
-    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.snapshot(for:)": "f44e5bf0109f742c",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.journeyRecord(from:)": "383dd9c8c45c1a4b",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.journeyRecurrence(for:)": "706fdae2eaefbd37",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "e1282e17fd6e3ecb",
+    "Emuqu/Sources/Services/JourneyIntelligenceService.swift::func JourneyIntelligenceService.snapshot(for:)": "9d4f6648891f616f",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
    }

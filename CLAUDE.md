@@ -6,8 +6,9 @@
 function, Makefile target, workflow step and doc section: what it does, what triggers it, what it
 calls, what state it reads and writes, and what each branch does. A call graph is built from those
 records and from the code. CI (`scripts/check_codemap.sh`, in `gates.yml`, `ci.yml` and `make ci`)
-and the pre-commit hook fail while any record is missing or older than its code, and list the
-records that are older than a change in what one of their callees does.
+and the pre-commit hook fail while any record is missing or older than its code, names a callee
+that no longer exists, or was last checked against an older description of one of its callees (a
+"re-check" line) that has not been re-read.
 
 Findings (`flags`) and the open-findings budgets are not in the public records. They live in a
 local, untracked overlay, `do_not_ship/codemap/` (`flags/<path>.json`, `codemap_open_high.txt`,
@@ -31,7 +32,8 @@ When you change code:
 4. Re-read the changed code and rewrite each listed record so it describes the code as it now is:
    `does`, `contract` where it has one, `entry`, `calls`, `reads`, `writes` and every branch. With
    the overlay, remove flags the change fixed and add any problem you find. Public records describe
-   behaviour only; keep defect notes out of them.
+   behaviour only; keep defect notes out of them. Name units, targets and files, never line
+   numbers: the check rejects a `file:line` citation.
 5. For each "re-check" line your change adds (`codemap.py status --by-callee` shows each callee's
    change with its callers), re-read that caller against the callee's new behaviour. If the caller
    is unaffected, acknowledge it: `codemap.py ack <callee> [<caller> ...]`. If it no longer does

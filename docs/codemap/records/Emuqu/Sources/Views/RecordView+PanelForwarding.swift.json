@@ -41,14 +41,14 @@
    "deps": {
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardPausedNight()": "80d9a9ce95f413ee",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardRecording(startOver:)": "7bff8b86c4aed2b5",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.finalizeFromPause()": "04082d143da28d6e",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.pauseRecording()": "ff0a80a3b96c820a",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.resumeRecording()": "d22e4d610978b814",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startLinkedRecording(linkedTo:)": "e93b1bacd51756f7",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()": "102151158fd99ab0",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)": "2b2fdef5ca7d4bf3",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()": "e1e39ea7e6df9863",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopStreaming()": "f9b07db8e4366ee6",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.finalizeFromPause()": "efc62d814e300889",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.pauseRecording()": "f71fea72b237352d",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.resumeRecording()": "13cad660a51b9c27",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startLinkedRecording(linkedTo:)": "e7ff39d5bcf527fb",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()": "3b1b161d73241ba4",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)": "ea47e4c5f8e69561",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()": "f392f6985b32be1d",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopStreaming()": "1cfbab0c168fe815",
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecordView.isActivelyRecording": "b5880660e0f0218d",
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecordView.isBatteryCritical": "c66dfec4b878100f",
     "Emuqu/Sources/Views/RecordView+Actions.swift::var RecordView.isBatteryLow": "9817a92504eea16f"
@@ -58,7 +58,7 @@
    "key": "var RecordView.overnightRecordingSection",
    "hash": "92777934e664b561",
    "does": "Forwards to RecordPanels.overnightRecordingSection.",
-   "entry": "SwiftUI subview via RecordView.overnightRecordingSectionIfSelected (RecordView+Sections.swift:211)",
+   "entry": "SwiftUI subview via RecordView.overnightRecordingSectionIfSelected (RecordView+Sections.swift)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::var RecordView.panels",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightRecordingSection"
@@ -75,7 +75,7 @@
    "key": "var RecordView.quickReadingSection",
    "hash": "a30da74ea79e0aa1",
    "does": "Forwards to RecordPanels.quickReadingSection.",
-   "entry": "SwiftUI subview via RecordView.quickReadingSectionIfSelected (RecordView+Sections.swift:219)",
+   "entry": "SwiftUI subview via RecordView.quickReadingSectionIfSelected (RecordView+Sections.swift)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::var RecordView.panels",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.quickReadingSection"
@@ -92,7 +92,7 @@
    "key": "func RecordView.continueRecoveryCard(session:)",
    "hash": "d1585e4c44a80a0f",
    "does": "Forwards to RecordPanels.continueRecoveryCard(session:).",
-   "entry": "SwiftUI subview via RecordView.continueRecoverySection (RecordView+Sections.swift:204)",
+   "entry": "SwiftUI subview via RecordView.continueRecoverySection (RecordView+Sections.swift)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::var RecordView.panels",
     "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.continueRecoveryCard(session:)"
@@ -109,7 +109,7 @@
    "key": "func RecordView.recoverStoredData()",
    "hash": "7b2533837fd715c9",
    "does": "Forwards to RecordPanels.recoverStoredData (Task → collector.recoverFromDevice, fetchFailed=true on throw).",
-   "entry": "RecoverableDataCard Recover button (RecordView+Sections.swift:111)",
+   "entry": "RecoverableDataCard Recover button (RecordView+Sections.swift)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::var RecordView.panels",
     "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.recoverStoredData()"
@@ -119,14 +119,14 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::var RecordView.panels": "f13de435430405b4",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.recoverStoredData()": "aae0f346483264bf"
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.recoverStoredData()": "2f51f3c3ea080442"
    }
   },
   {
    "key": "func RecordView.discardAndStartFresh()",
    "hash": "a018acc6bb600e43",
    "does": "Forwards to RecordPanels.discardAndStartFresh (Task → polarManager.discardStoredExercises; lastError on throw).",
-   "entry": "RecoverableDataCard Discard button (RecordView+Sections.swift:112)",
+   "entry": "RecoverableDataCard Discard button (RecordView+Sections.swift)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::var RecordView.panels",
     "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.discardAndStartFresh()"
@@ -136,7 +136,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/RecordView+PanelForwarding.swift::var RecordView.panels": "f13de435430405b4",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.discardAndStartFresh()": "80b31ec1410ae93c"
+    "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.discardAndStartFresh()": "a64e4808d49d4bb8"
    }
   }
  ],

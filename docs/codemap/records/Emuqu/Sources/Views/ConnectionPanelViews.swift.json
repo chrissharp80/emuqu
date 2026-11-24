@@ -3,7 +3,7 @@
  "hash": "60d4035ada0c48d8",
  "role": "Record-screen Polar strap connection panel: routes on PolarManager.connectionState to disconnected (known devices + scan, Bluetooth-denied banner), scanning (discovered list), connecting (cancel) and connected (device info + disconnect) sub-views; also hosts the shared ConnectionStatusBadge text/color mapping.",
  "types": [
-  "ConnectionPanel: struct — outer panel (used by RecordView+Sections.swift:97)",
+  "ConnectionPanel: struct — outer panel (used by RecordView+Sections.swift)",
   "ConnectionPanelHeader: struct (private) — device name + status badge",
   "ConnectionStatusBadge: enum — (color,text) for connection state + feed health; also used by SensorManagementSheet and WorkoutPreflightView",
   "ConnectionPanelDisconnected: struct (private) — known devices, scan, Bluetooth-denied banner",
@@ -23,7 +23,7 @@
    "key": "var ConnectionPanel.body",
    "hash": "36a26fa0b4e0634d",
    "does": "Panel body: header + state-routed section in a padded rounded card with an accessibility container label.",
-   "entry": "SwiftUI view-body evaluation (ConnectionPanel in RecordView+Sections.swift:97).",
+   "entry": "SwiftUI view-body evaluation (ConnectionPanel in RecordView+Sections.swift).",
    "calls": [
     "Emuqu/Sources/Views/ConnectionPanelViews.swift::var ConnectionPanel.connectingSection",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -160,7 +160,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "c8e7eca32987cb72",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "2c3c375f1b0bb003",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
@@ -169,7 +169,7 @@
    "key": "func ConnectionStatusBadge.content(state:feed:heartRate:)",
    "hash": "b116ca24ede5a436",
    "does": "Maps connection state to (color,text): gray Disconnected, yellow Scanning, orange Connecting, or for connected defers to linked(feed:heartRate:).",
-   "entry": "Also called by SensorManagementSheet.swift:281, WorkoutPreflightView.swift:446,476 and EmuquTests/StrapConnectionBadgeTests.swift.",
+   "entry": "Also called by SensorManagementSheet.swift, WorkoutPreflightView.swift and EmuquTests/StrapConnectionBadgeTests.swift.",
    "calls": [
     "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.linked(feed:heartRate:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -612,7 +612,7 @@
    "entry": "Button tap",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "closure:onRemove → PolarManager.removeKnownDevice (set at ConnectionPanelViews.swift:187)"
+    "closure:onRemove → PolarManager.removeKnownDevice (set at ConnectionPanelViews.swift)"
    ],
    "reads": [],
    "writes": [
@@ -669,7 +669,7 @@
    "does": "Tap: closes the revealed delete action if open, otherwise calls onConnect.",
    "entry": "onTapGesture",
    "calls": [
-    "closure:onConnect → polarManager.connect(deviceId:) set at ConnectionPanelViews.swift:186"
+    "closure:onConnect → polarManager.connect(deviceId:) set at ConnectionPanelViews.swift"
    ],
    "reads": [],
    "writes": [],
@@ -785,7 +785,7 @@
    "entry": "Context menu tap",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "closure:onRemove → PolarManager.removeKnownDevice (set at ConnectionPanelViews.swift:187)"
+    "closure:onRemove → PolarManager.removeKnownDevice (set at ConnectionPanelViews.swift)"
    ],
    "reads": [],
    "writes": [
@@ -803,7 +803,7 @@
    "does": "Combines the row's children into one accessibility element with the button trait, hint 'Connects to this device', and a 'Remove Device' accessibility action running onRemove.",
    "entry": "SwiftUI ViewModifier body (KnownDeviceRow.deviceRow)",
    "calls": [
-    "closure:onRemove → PolarManager.removeKnownDevice (set at ConnectionPanelViews.swift:187)",
+    "closure:onRemove → PolarManager.removeKnownDevice (set at ConnectionPanelViews.swift)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -814,7 +814,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "c8e7eca32987cb72"
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "2c3c375f1b0bb003"
    }
   }
  ],

@@ -653,6 +653,24 @@ check "codemap/stale_record" \
     "Emuqu/Sources/Utilities/Extensions.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Extensions.swift');s=p.read_text();t=s.replace('static func hoursMinutes(minutes: Int) -> String {','static func hoursMinutes(minutes: Int) -> String {'+chr(10)+'        let planted = 0; _ = planted',1);assert t!=s;p.write_text(t)"
 
+# A callee whose record now says it does something different sends its certain
+# callers back: the check stays red until each is re-read and stamped or
+# acknowledged. A record naming a callee that no longer exists is red too.
+check "codemap/callee_behaviour_changed" \
+    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
+    "docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json" \
+    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json');r=json.loads(p.read_text());u=[x for x in r['units'] if x['key']=='func DebugLogger.scrubPHI(_:)'];assert len(u)==1;u[0]['does']+=' Planted.';p.write_text(json.dumps(r,indent=1,ensure_ascii=False)+chr(10))"
+
+check "codemap/call_to_missing_unit" \
+    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
+    "docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json" \
+    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json');r=json.loads(p.read_text());u=[x for x in r['units'] if x['key']=='func DebugLogger.scrubPHI(_:)'];assert len(u)==1;u[0]['calls'].append('Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.plantedMissing()');p.write_text(json.dumps(r,indent=1,ensure_ascii=False)+chr(10))"
+
+check "codemap/line_number_citation" \
+    "CODEMAP_PYTHON=$CODEMAP_PY ./scripts/check_codemap.sh" \
+    "docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json" \
+    "import json,pathlib;p=pathlib.Path('docs/codemap/records/Emuqu/Sources/Utilities/DebugLog.swift.json');r=json.loads(p.read_text());r['role']+=' (see DebugLog.swift:12)';p.write_text(json.dumps(r,indent=1,ensure_ascii=False)+chr(10))"
+
 # A change that records a new high-severity finding, instead of fixing it, must
 # break the open-findings ratchet. Findings and their budgets live in the local,
 # untracked overlay (do_not_ship/codemap), so the plant builds a temporary
@@ -721,10 +739,6 @@ check "thread_sanitizer/race_does_not_fail_run" \
     "$TSAN_GATE" \
     "scripts/check_thread_sanitizer.sh" \
     "import pathlib;p=pathlib.Path('scripts/check_thread_sanitizer.sh');s=p.read_text();o='env TEST_RUNNER_TSAN_OPTIONS=halt_on_error=1 ';assert s.count(o)==1;p.write_text(s.replace(o,'env '))"
-
-# TODO(codemap-recheck): restore the "codemap/callee_behaviour_changed" case (a
-# planted change to a callee's record must turn the check red) once re-check
-# lines fail the check again; see the TODO in scripts/codemap/codemap.py.
 
 echo
 echo "  $PASS proven, $FAIL not protecting anything, $SKIP skipped"

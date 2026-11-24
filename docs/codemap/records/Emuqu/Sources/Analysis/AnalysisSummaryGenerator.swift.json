@@ -14,7 +14,7 @@
   "mem:AnalysisSummaryGenerator.diagnosticScore (lazy var Double, computeDiagnosticScore() run once per instance; read by generate() and headlineScore)",
   "mem:AnalysisSummaryGenerator.TrendStats.empty (static let)"
  ],
- "toplevel": "Stored lets hold all inputs; `lazy var stats` (line 107) runs computeTrendStats(referenceDate: referenceDate) on first access and caches it (the class is not Sendable/locked; each caller builds its own instance). `lazy var diagnosticScore` caches computeDiagnosticScore() the same way, so the summary field, the headline fallback and the headline-driven title/icon/steps compute it once. The referenceDate doc comment says what it does: it is capped at the session's end and only reaches the output through the unreachable daySpan fallback. File-scope private functions sessionBaselines and average live after the class. The TrendStats fields daySpan and trend30Day are written here but read by no production code (only EmuquTests/CauseDetectorTests.swift:41,43 construct them); trend30Day is always nil (line 200).",
+ "toplevel": "Stored lets hold all inputs; `lazy var stats` runs computeTrendStats(referenceDate: referenceDate) on first access and caches it (the class is not Sendable/locked; each caller builds its own instance). `lazy var diagnosticScore` caches computeDiagnosticScore() the same way, so the summary field, the headline fallback and the headline-driven title/icon/steps compute it once. The referenceDate doc comment says what it does: it is capped at the session's end and only reaches the output through the unreachable daySpan fallback. File-scope private functions sessionBaselines and average live after the class. The TrendStats fields daySpan and trend30Day are written here but read by no production code (only EmuquTests/CauseDetectorTests.swift construct them); trend30Day is always nil.",
  "units": [
   {
    "key": "var AnalysisSummaryGenerator.ProbableCause.confidenceLabel",
@@ -112,7 +112,7 @@
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.trendStats(for:referenceDate:)": "dadfdb9f2b57014f",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Models/Route.swift::func Route.empty(named:)": "f6a3d39f940cb565",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "1f169ca3f7045de3"
    }
   },
   {
@@ -145,7 +145,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.sessionAverages(_:)": "c6b65f5cafe7fd58",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.sessionAverages(_:)": "df1cd50e9e00883b",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func sessionBaselines(_:)": "2f44dab36a1229e2",
     "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.weeklyRMSSDChange(_:)": "b346eabaad1eb4a8",
     "Emuqu/Sources/Models/Route.swift::func Route.empty(named:)": "f6a3d39f940cb565"

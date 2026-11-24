@@ -158,11 +158,13 @@
    "reads": [
     "ud:storekit.lastKnownTestFlight",
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary"
+    "ud:entitlement.anchor.account",
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
    ],
    "writes": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary"
+    "ud:entitlement.anchor.account (created on first use)",
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
    ],
    "branches": [
     {
@@ -177,8 +179,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "1f50f386668c92fd",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordBetaTester(wallClock:)": "e38f5e43d8f8feb2",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "3cd6345cc5b71d44",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordBetaTester(wallClock:)": "daf578085952d189",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -287,7 +289,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "1232f41fce92d6b6",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "cb4d1ea835f91e33",
     "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "814bbf66e427e6a2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -389,7 +391,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)": "5cfd470998fad6a3",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "1232f41fce92d6b6",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "cb4d1ea835f91e33",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b"
    }
   },
@@ -410,7 +412,7 @@
    "writes": [
     "mem:StoreKitManager.purchaseNotice",
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary",
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>",
     "mem:SettingsManager.settings.trialStartDate"
    ],
    "branches": [
@@ -432,7 +434,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)": "ef7b603e7ba92bc5",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)": "340b627751feeef6",
     "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "b8e8d1ec5a29b9c8",
     "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "643885aa9999eb53",
     "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "0c542716ce6a23c7"
@@ -452,17 +454,17 @@
    ],
    "reads": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary"
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
    ],
    "writes": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary",
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>",
     "mem:SettingsManager.settings.trialStartDate"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)": "357fbb7428dfc716",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordStoreTrialStart(_:wallClock:)": "f14ed2057ec54b1f",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)": "4958df5d94f11e8d",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordStoreTrialStart(_:wallClock:)": "ef2dfde1699028b9",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
@@ -584,7 +586,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func apply(_:)": "6c9ce4d1904533f7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func apply(_:)": "f489b1d50392b4e2",
     "Emuqu/Sources/Services/StoreKitManager.swift::func entitlementSweep()": "60dbdf1909143396"
    }
   },
@@ -608,7 +610,7 @@
     "mem:StoreKitManager.hasPurchasedProduct",
     "mem:StoreKitManager.hasTrialTransaction",
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary",
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>",
     "mem:SettingsManager.settings.trialStartDate"
    ],
    "branches": [
@@ -624,7 +626,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)": "ef7b603e7ba92bc5",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)": "340b627751feeef6",
     "Emuqu/Sources/Services/StoreKitManager.swift::var hasBypassGrant": "f1df8d9eb12d219e",
     "Emuqu/Sources/Services/StoreKitManager.swift::var lastConfirmedPurchase": "b0d5199466263063",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"

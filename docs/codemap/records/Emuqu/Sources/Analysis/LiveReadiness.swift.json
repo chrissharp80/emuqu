@@ -42,8 +42,8 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.interpolatedLoad(morningSession:live:hoursSinceMorning:)": "312a650844565803",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningOnly(recoveryScore:hoursSinceMorning:)": "4b0a5707f61c717d",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "302fee87cf8a05fe",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)": "89c6035f516c2de9",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.readiness(recoveryScore:hoursSinceMorning:live:interpolated:recentLoads:now:)": "71401bbb00d967e4",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.workoutLoads(from:since:now:)": "898ed509ce6dab58",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
@@ -60,7 +60,9 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)"
    ],
    "reads": [
-    "mem:WorkoutLoadRestingHR.lastAppleValue (via userScaledLoad)"
+    "mem:WorkoutLoadRestingHR.lastAppleValue (via userScaledLoad)",
+    "ud:WorkoutLoadRestingHR.lastApple.v1 (via userScaledLoad)",
+    "mem:SettingsManager.settingsSnapshot (effectiveRestingHR, effectiveMaxHR via userScaledLoad)"
    ],
    "writes": [],
    "branches": [
@@ -73,10 +75,9 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.gateLoad(interpolated:live:now:)": "82a56d92e0f8907a",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)": "934486c05d509c28",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "43820eb4a430824b",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.todayPrimary(from:now:)": "6a2fbff435fc245a",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.rawAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "65e7cfbcfed7a66f",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819"
    }
   },
   {
@@ -201,7 +202,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.morningReadiness(recoveryScore:interpolated:)": "934486c05d509c28",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::var WorkoutDescriptor.phrase": "b947f319e70fff14",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "298b8b4866490148",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "7fb69eb9626bb3db",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   },
@@ -250,7 +251,8 @@
    ],
    "reads": [
     "mem:WorkoutLoadRestingHR.lastAppleValue",
-    "mem:SettingsManager.settingsSnapshot (via userScaledLoad)"
+    "ud:WorkoutLoadRestingHR.lastApple.v1",
+    "mem:SettingsManager.settingsSnapshot (effectiveRestingHR, effectiveMaxHR via userScaledLoad)"
    ],
    "writes": [],
    "branches": [
@@ -271,7 +273,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748"
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "acfa3bddf79da897"
    }
   },
   {
@@ -284,7 +286,8 @@
    ],
    "reads": [
     "mem:WorkoutLoadRestingHR.lastAppleValue",
-    "mem:SettingsManager.settingsSnapshot (via userScaledLoad)"
+    "ud:WorkoutLoadRestingHR.lastApple.v1",
+    "mem:SettingsManager.settingsSnapshot (effectiveRestingHR, effectiveMaxHR via userScaledLoad)"
    ],
    "writes": [],
    "branches": [
@@ -300,7 +303,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "4d7fbc2f366fb7fc"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.recentWorkoutLoads(from:now:)": "690f53f0c86395b4"
    }
   },
   {
@@ -337,7 +340,9 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)"
    ],
    "reads": [
-    "mem:WorkoutLoadRestingHR.lastAppleValue"
+    "mem:WorkoutLoadRestingHR.lastAppleValue",
+    "ud:WorkoutLoadRestingHR.lastApple.v1",
+    "mem:SettingsManager.settingsSnapshot (effectiveRestingHR, effectiveMaxHR via userScaledLoad)"
    ],
    "writes": [],
    "branches": [
@@ -355,8 +360,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.intensityWord(for:)": "945ba9dd8fc7c7d8",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptor.typeLabel(for:)": "1d8662e16c13d8e7",
-    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "acfa3bddf79da897"
    }
   },
   {

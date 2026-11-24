@@ -8,9 +8,9 @@
   "AppDevicesNamespace: struct (FactNamespaceResolver, namespace 'app') — connected hardware facts"
  ],
  "state": [
-  "RoutesLibraryNamespace.routesLibraryEngageDescription: private static let (model-facing description, line 321)"
+  "RoutesLibraryNamespace.routesLibraryEngageDescription: private static let (model-facing description)"
  ],
- "toplevel": "Each namespace is registered by AppFactResolverFactory.registerAppNamespaces (AppFactResolver.swift:214-216). Stored lets: namespace strings and RoutesLibraryNamespace.archive.",
+ "toplevel": "Each namespace is registered by AppFactResolverFactory.registerAppNamespaces (AppFactResolver.swift). Stored lets: namespace strings and RoutesLibraryNamespace.archive.",
  "units": [
   {
    "key": "func RoutesLibraryNamespace.currentRoutes()",
@@ -128,7 +128,7 @@
    "key": "var RoutesLibraryNamespace.entries",
    "hash": "2a86f67ad585203d",
    "does": "Returns the 5 routes.library entries (count, list, rename, save_workout, engage).",
-   "entry": "FactNamespaceResolver.entries witness read by FactResolverRegistry.toolSchema (FactResolverRegistry.swift:212) and findEntry (:429)",
+   "entry": "FactNamespaceResolver.entries witness read by FactResolverRegistry.toolSchema (FactResolverRegistry.swift) and findEntry",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryCountEntry",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryListEntry",
@@ -140,18 +140,18 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryCountEntry": "28885bff2469d9e0",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryEngageEntry": "fd3cce32e0039884",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryListEntry": "73fd2bb67098b4fb",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryRenameEntry": "f6172905bf6077c6",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibrarySaveWorkoutEntry": "8fb39494d9f27c14"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryCountEntry": "87ae26566f4dd005",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryEngageEntry": "de7baaded14091bf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryListEntry": "17dfd5e9b43324d0",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibraryRenameEntry": "2ea8392100da77fc",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var RoutesLibraryNamespace.routesLibrarySaveWorkoutEntry": "d3fc3d5ccb324b7c"
    }
   },
   {
    "key": "var RoutesLibraryNamespace.routesLibraryCountEntry",
    "hash": "6a405732d57d106b",
    "does": "Fixed entry 'routes.library.count' (Int): number of saved routes, or libraryUnreadable's .missing while the library can't be read (instead of a misleading 0).",
-   "entry": "fact closure runs when the LLM calls tool 'routes.library.count' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'routes.library.count' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()",
@@ -178,7 +178,7 @@
    "key": "var RoutesLibraryNamespace.routesLibraryListEntry",
    "hash": "fee05292e08a3361",
    "does": "Fixed entry 'routes.library.list' (List): libraryUnreadable's .missing while the library can't be read; else saved routes sorted newest-created first as summary records; .missing when none.",
-   "entry": "fact closure runs when the LLM calls tool 'routes.library.list' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'routes.library.list' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()",
@@ -212,7 +212,7 @@
    "key": "var RoutesLibraryNamespace.routesLibraryRenameEntry",
    "hash": "d9a1dc935bb34384",
    "does": "Action entry 'routes.library.rename' (current_name, new_name) calling resolveRoutesLibraryRename; the description says a new name not in the user's own latest message first returns confirmation_required.",
-   "entry": "fact closure runs when the LLM calls tool 'routes.library.rename' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'routes.library.rename' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.resolveRoutesLibraryRename(_:)"
@@ -337,7 +337,7 @@
    "key": "var RoutesLibraryNamespace.routesLibrarySaveWorkoutEntry",
    "hash": "8a747dc6b4a770dc",
    "does": "Action entry 'routes.library.save_workout' (name, optional date) calling resolveRoutesLibrarySaveWorkout. Its description says that without a date it saves the newest of the 20 most recent workouts with a GPS polyline, and that a workout already in the library returns status 'already_saved'.",
-   "entry": "fact closure runs when the LLM calls tool 'routes.library.save_workout' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'routes.library.save_workout' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.resolveRoutesLibrarySaveWorkout(_:)"
@@ -346,7 +346,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.resolveRoutesLibrarySaveWorkout(_:)": "59c68bb431102226",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.resolveRoutesLibrarySaveWorkout(_:)": "72534dbafa6fda88",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "96217c66f5b84d41",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::init ActionParam(_:_:required:)": "75738c1801a0d4ac"
    }
@@ -433,7 +433,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "8ce66ce9a369bbce",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.savedRouteRecord(_:from:)": "b339c3000bb0a586",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "661da9c38d8c720b",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "37cad3fe03844533",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
   },
@@ -471,7 +471,7 @@
    "key": "var RoutesLibraryNamespace.routesLibraryEngageEntry",
    "hash": "99b5973b273a2408",
    "does": "Async action entry 'routes.library.engage' (name) calling resolveRoutesLibraryEngage.",
-   "entry": "fact closure runs when the LLM calls tool 'routes.library.engage' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'routes.library.engage' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.resolveRoutesLibraryEngage(_:)"
@@ -524,7 +524,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.ambiguousRoute(name:matches:)": "6fd5aa45a6bdbdf5",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.currentRoutes()": "8ce66ce9a369bbce",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func RoutesLibraryNamespace.engageSavedRoute(_:from:)": "a780ea1cf8c9b5bf",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "d1265f1ef505d839",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
   },
@@ -599,7 +599,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "423b1cb3be26f42e",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engageSyntheticRoute(steps:totalDistance:totalDuration:destinationLabel:destinationCoord:)": "b98bcf3c774134e6",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
   },
@@ -636,7 +636,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "f371094b11799aa6",
-    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.build(savedRoute:currentLocation:)": "b526d1a82e7c3ef2"
+    "Emuqu/Sources/Services/SavedRouteStepBuilder.swift::func SavedRouteStepBuilder.build(savedRoute:currentLocation:)": "282c89b3ac3fbc51"
    }
   },
   {
@@ -662,7 +662,7 @@
    "key": "var AppNowNamespace.entries",
    "hash": "3c740bdb41ed6fa0",
    "does": "Returns the 4 app.now entries.",
-   "entry": "FactNamespaceResolver.entries witness read by FactResolverRegistry.toolSchema/findEntry (FactResolverRegistry.swift:212/429)",
+   "entry": "FactNamespaceResolver.entries witness read by FactResolverRegistry.toolSchema/findEntry (FactResolverRegistry.swift/429)",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowIsoEntry",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowLocalDateEntry",
@@ -673,17 +673,17 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowDayOfWeekEntry": "20bc75e02768c588",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowIsoEntry": "7fe1540f5f1b9bc1",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowLocalDateEntry": "8945bc67f941239b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowTimezoneEntry": "da0434494fa3727f"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowDayOfWeekEntry": "72da05c19d0fee1a",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowIsoEntry": "1bbcaf4a0e780bd6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowLocalDateEntry": "24bab6cf604c8b72",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppNowNamespace.appNowTimezoneEntry": "227cd45f6ceaa5a3"
    }
   },
   {
    "key": "var AppNowNamespace.appNowIsoEntry",
    "hash": "df204ee611855d48",
    "does": "Fixed entry 'app.now.iso': current time as ISO8601 internet date-time (UTC) string.",
-   "entry": "fact closure runs when the LLM calls tool 'app.now.iso' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.now.iso' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
    ],
@@ -698,7 +698,7 @@
    "key": "var AppNowNamespace.appNowLocalDateEntry",
    "hash": "9d5ed9639e95c9c5",
    "does": "Fixed entry 'app.now.local_date': today's yyyy-MM-dd via FactLocalDay.formatter().",
-   "entry": "fact closure runs when the LLM calls tool 'app.now.local_date' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.now.local_date' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func FactLocalDay.formatter()"
@@ -715,7 +715,7 @@
    "key": "var AppNowNamespace.appNowTimezoneEntry",
    "hash": "de9da2af1a224acf",
    "does": "Fixed entry 'app.now.timezone': TimeZone.current.identifier.",
-   "entry": "fact closure runs when the LLM calls tool 'app.now.timezone' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.now.timezone' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
    ],
@@ -730,7 +730,7 @@
    "key": "var AppNowNamespace.appNowDayOfWeekEntry",
    "hash": "533c1daac73161f5",
    "does": "Fixed entry 'app.now.day_of_week': weekday name ('EEEE') in Locale.current.",
-   "entry": "fact closure runs when the LLM calls tool 'app.now.day_of_week' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.now.day_of_week' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
    ],
@@ -780,7 +780,7 @@
    "key": "var AppDevicesNamespace.entries",
    "hash": "696bcdb68ed53275",
    "does": "Returns the 14 app.devices entries.",
-   "entry": "FactNamespaceResolver.entries witness read by FactResolverRegistry.toolSchema/findEntry (FactResolverRegistry.swift:212/429)",
+   "entry": "FactNamespaceResolver.entries witness read by FactResolverRegistry.toolSchema/findEntry (FactResolverRegistry.swift/429)",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarConnectedEntry",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarBatteryPercentEntry",
@@ -801,27 +801,27 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodConnectedEntry": "88159696c8edba26",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodKnownCountEntry": "1112cca66cee7461",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodSnapshotEntry": "0127f09b85d6869f",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPm5ConnectedEntry": "9c293ae481f318d5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPm5KnownCountEntry": "b4c9406148f8e4c3",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarBatteryPercentEntry": "4ed51a78c4105bac",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarConnectedEntry": "16c16db0d1490491",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarDeviceTypeEntry": "cb89e56a2e988572",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarFirmwareEntry": "5cccca5774ff4966",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarKnownCountEntry": "fb87c7df963d5a3e",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarSpecCapacityHoursEntry": "b2b8ca5aade8e09c",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesZwiftBroadcastAdvertisingEntry": "583c0f183f56fed5",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.polarHoursSinceChargeEntry": "08637aacc1a49ddf",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.zwiftSubscriberCountEntry": "d1dc06315d176005"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodConnectedEntry": "d8c548bf8e511ecf",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodKnownCountEntry": "20c93ee8517cede7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesFootPodSnapshotEntry": "5a70165cdf6a51c9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPm5ConnectedEntry": "58ad628184325fc8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPm5KnownCountEntry": "83125177a176461d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarBatteryPercentEntry": "c17fc3daf3e7e39f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarConnectedEntry": "40389e291b2f84e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarDeviceTypeEntry": "234ff445e3d79c2f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarFirmwareEntry": "7edd3acb6820fb65",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarKnownCountEntry": "0785022a8e173b1f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesPolarSpecCapacityHoursEntry": "a9dcb6be55733446",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.appDevicesZwiftBroadcastAdvertisingEntry": "a62c43872045f79f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.polarHoursSinceChargeEntry": "86267cf7abbe4120",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::var AppDevicesNamespace.zwiftSubscriberCountEntry": "02bf098a50c4e219"
    }
   },
   {
    "key": "var AppDevicesNamespace.appDevicesPolarConnectedEntry",
    "hash": "83aa2fe05ade0d9c",
    "does": "Fixed entry 'app.devices.polar.connected' (Bool): PolarManager.connectionState == .connected.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.connected' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.connected' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.polar()"
@@ -848,7 +848,7 @@
    "key": "var AppDevicesNamespace.appDevicesPolarBatteryPercentEntry",
    "hash": "5d96d786fa2da070",
    "does": "Fixed entry 'app.devices.polar.battery_percent' (Int): the connected strap's PolarManager.batteryLevel, .missing 'battery never reported' when nil and 'no Polar connected' when no strap is linked. Description points to spec_capacity_hours for time left.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.battery_percent' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.battery_percent' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()",
@@ -878,7 +878,7 @@
    "key": "var AppDevicesNamespace.polarHoursSinceChargeEntry",
    "hash": "21a9fa74c37de111",
    "does": "Fixed entry 'app.devices.polar.recording_hours_since_charge' (Double): the connected strap's PolarManager.hoursRecordedSinceBatteryChanged. Description says it counts hours since the strap last reported a changed battery level (not since a full charge).",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.recording_hours_since_charge' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.recording_hours_since_charge' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()"
@@ -905,7 +905,7 @@
    "key": "var AppDevicesNamespace.appDevicesPolarSpecCapacityHoursEntry",
    "hash": "01c6896a28d2798a",
    "does": "Fixed entry 'app.devices.polar.spec_capacity_hours' (Double): the connected strap's device type specRecordingHours. Description tells the model to estimate time left as spec × battery_percent / 100 minus recording_hours_since_charge.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.spec_capacity_hours' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.spec_capacity_hours' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()",
@@ -935,7 +935,7 @@
    "key": "var AppDevicesNamespace.appDevicesPolarDeviceTypeEntry",
    "hash": "e7a1b99a7cc8beb7",
    "does": "Fixed entry 'app.devices.polar.device_type' (String): the connected strap's device type displayName.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.device_type' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.device_type' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()",
@@ -965,7 +965,7 @@
    "key": "var AppDevicesNamespace.appDevicesPolarFirmwareEntry",
    "hash": "06f95bc2464a1b3a",
    "does": "Fixed entry 'app.devices.polar.firmware' (String): the connected strap's PolarManager.firmwareVersion, .missing 'firmware not yet read' when nil and 'no Polar connected' when no strap is linked.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.firmware' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.firmware' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.connectedPolar()",
@@ -994,7 +994,7 @@
    "key": "var AppDevicesNamespace.appDevicesPolarKnownCountEntry",
    "hash": "f243b4f8cb88e4a9",
    "does": "Fixed entry 'app.devices.polar.known_count' (Int): PolarManager.knownDevices.count, 0 without a manager.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.known_count' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.polar.known_count' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.polar()"
@@ -1020,7 +1020,7 @@
    "key": "var AppDevicesNamespace.appDevicesFootPodConnectedEntry",
    "hash": "9c0acce2f9ee172b",
    "does": "Fixed entry 'app.devices.foot_pod.connected' (Bool): FootPodManager.connectionState == .connected.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.foot_pod.connected' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.foot_pod.connected' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
    ],
@@ -1040,7 +1040,7 @@
    "key": "var AppDevicesNamespace.appDevicesFootPodKnownCountEntry",
    "hash": "a5b0edcc7a8cb8b5",
    "does": "Fixed entry 'app.devices.foot_pod.known_count' (Int): FootPodManager.knownDevices.count.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.foot_pod.known_count' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.foot_pod.known_count' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
    ],
@@ -1059,7 +1059,7 @@
    "key": "var AppDevicesNamespace.appDevicesFootPodSnapshotEntry",
    "hash": "31056c0370782116",
    "does": "Fixed entry 'app.devices.foot_pod.snapshot' (Record) calling resolveAppDevicesFootPodSnapshot.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.foot_pod.snapshot' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.foot_pod.snapshot' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+RoutesAndDevices.swift::func AppDevicesNamespace.resolveAppDevicesFootPodSnapshot()"
@@ -1099,7 +1099,7 @@
    "key": "var AppDevicesNamespace.appDevicesPm5ConnectedEntry",
    "hash": "06851fbe35ae102e",
    "does": "Fixed entry 'app.devices.pm5.connected' (Bool): Concept2Manager.connectionState == .connected.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.pm5.connected' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.pm5.connected' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
    ],
@@ -1119,7 +1119,7 @@
    "key": "var AppDevicesNamespace.appDevicesPm5KnownCountEntry",
    "hash": "8c13ea17dc163901",
    "does": "Fixed entry 'app.devices.pm5.known_count' (Int): Concept2Manager.knownDevices.count.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.pm5.known_count' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.pm5.known_count' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
    ],
@@ -1138,7 +1138,7 @@
    "key": "var AppDevicesNamespace.appDevicesZwiftBroadcastAdvertisingEntry",
    "hash": "cf4ca215bddff31d",
    "does": "Fixed entry 'app.devices.zwift_broadcast.advertising' (Bool): ZwiftPeripheralBroadcaster.isAdvertising.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.zwift_broadcast.advertising' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.zwift_broadcast.advertising' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
    ],
@@ -1157,7 +1157,7 @@
    "key": "var AppDevicesNamespace.zwiftSubscriberCountEntry",
    "hash": "0ed4813b0ab20660",
    "does": "Fixed entry 'app.devices.zwift_broadcast.subscriber_count' (Int): ZwiftPeripheralBroadcaster.subscriberCount.",
-   "entry": "fact closure runs when the LLM calls tool 'app.devices.zwift_broadcast.subscriber_count' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift:291/348); property read when the namespace's entries list is built",
+   "entry": "fact closure runs when the LLM calls tool 'app.devices.zwift_broadcast.subscriber_count' (FactResolverRegistry.resolveTool/resolveActionTool, FactResolverRegistry.swift/348); property read when the namespace's entries list is built",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)"
    ],

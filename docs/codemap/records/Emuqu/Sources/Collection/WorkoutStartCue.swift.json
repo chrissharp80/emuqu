@@ -13,13 +13,13 @@
   "mem:_voiceCache (file-scope OSAllocatedUnfairLock<[String: AVSpeechSynthesisVoice]>)",
   "mem:_voicePrewarms (file-scope OSAllocatedUnfairLock<Set<String>>)"
  ],
- "toplevel": "Static lets create one AVSpeechSynthesizer, a CueAudioSessionReleaser bound to AppDependencies.current.collection.backgroundAudioManager (first access on MainActor), and UINotificationFeedbackGenerator/UIImpactFeedbackGenerator(.heavy); prepare() is called at launch by AppLaunchTasks.swift:391-392. File-scope lock-protected voice cache and in-flight prewarm set.",
+ "toplevel": "Static lets create one AVSpeechSynthesizer, a CueAudioSessionReleaser bound to AppDependencies.current.collection.backgroundAudioManager (first access on MainActor), and UINotificationFeedbackGenerator/UIImpactFeedbackGenerator(.heavy); prepare() is called at launch by AppLaunchTasks.swift. File-scope lock-protected voice cache and in-flight prewarm set.",
  "units": [
   {
    "key": "func WorkoutStartCue.announceStart(sport:)",
    "hash": "9534e8727dbe6d23",
    "does": "Fires the start cue: success haptic now, heavy impact 0.12 s later, plays system sound 1013, then schedules the spoken '<sport> started' off-main; logs per-layer ms.",
-   "entry": "Task { @MainActor } scheduled by WorkoutSessionLifecycle.queueStartAnnouncement (WorkoutRecorder+Start.swift:437) at workout start.",
+   "entry": "Task { @MainActor } scheduled by WorkoutSessionLifecycle.queueStartAnnouncement (WorkoutRecorder+Start.swift) at workout start.",
    "calls": [
     "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.speakStartAnnouncementOffMain(sportName:)",
     "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName",
@@ -171,7 +171,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "4fcf7e9af3f6bbf2",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "363c5456aea4ce84",
     "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.voiceCacheKey(_:)": "f161acf0e71c9f48",
     "Emuqu/Sources/Collection/WorkoutStartCue.swift::func _voiceCacheLookup(_:)": "9a5b598346378922"
    }
@@ -216,7 +216,7 @@
    "key": "func WorkoutStartCue.prewarm(forLanguage:)",
    "hash": "135900a8d9fcb58f",
    "does": "If the language is neither cached nor already being prewarmed, marks it in-flight and enumerates on a detached utility task, then clears the in-flight mark.",
-   "entry": "Called at launch (EmuquApp.swift:717), by VoiceConversationController.swift:494, BreathingAudioManager.swift:100, and on cache miss.",
+   "entry": "Called at launch (EmuquApp.swift), by VoiceConversationController.swift, BreathingAudioManager.swift, and on cache miss.",
    "calls": [
     "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.voiceCacheKey(_:)",
     "Emuqu/Sources/Collection/WorkoutStartCue.swift::func _voiceCacheLookup(_:)",

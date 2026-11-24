@@ -31,7 +31,7 @@
   {
    "key": "§ Scripts > Quality / CI scripts > `select_simulator_destination.sh`",
    "hash": "24bb4fa550667662",
-   "does": "Claims select_simulator_destination.sh selects the first usable iOS Simulator destination for the Emuqu scheme; run_tests_with_coverage.sh calls it with SCHEME and PROJECT when DESTINATION is unset (run_tests_with_coverage.sh:54). The script has no listed units.",
+   "does": "Claims select_simulator_destination.sh selects the first usable iOS Simulator destination for the Emuqu scheme; run_tests_with_coverage.sh calls it with SCHEME and PROJECT when DESTINATION is unset (run_tests_with_coverage.sh). The script has no listed units.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -97,7 +97,7 @@
   {
    "key": "§ Scripts > Quality / CI scripts > `check_uitest_fresh_install.sh`",
    "hash": "2bc646194ec3beba",
-   "does": "Claims check_uitest_fresh_install.sh requires every UI-test suite to launch with -UITests-FreshInstall (via the UITestLaunch harness). Script outside this chunk confirms the grep at check_uitest_fresh_install.sh:53; it has no listed units.",
+   "does": "Claims check_uitest_fresh_install.sh requires every UI-test suite to launch with -UITests-FreshInstall (via the UITestLaunch harness). Script outside this chunk confirms the grep at check_uitest_fresh_install.sh; it has no listed units.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -133,8 +133,8 @@
   },
   {
    "key": "§ Scripts > Quality / CI scripts > `check_fixed_font_budget.sh`",
-   "hash": "399176d44ea93273",
-   "does": "Claims check_fixed_font_budget.sh counts raw .font(.system(size:)) in the view layer against .ci/fixed_font_budget.txt. Code counts only numeric-literal sizes across all of Emuqu/ (not only views) and also enforces a separate watch budget.",
+   "hash": "e5ad989cf36ab105",
+   "does": "Says check_fixed_font_budget.sh counts `.system(size:)` calls with a numeric-literal size (with or without the `Font` prefix) across the `Emuqu/` app target against .ci/fixed_font_budget.txt, and those in the watch app against .ci/fixed_font_watch_budget.txt.",
    "entry": null,
    "calls": [
     "scripts/check_fixed_font_budget.sh::fn measure"
@@ -143,13 +143,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_fixed_font_budget.sh::fn measure": "4d1a1fa1b937bd36"
+    "scripts/check_fixed_font_budget.sh::fn measure": "fe7fbaea4ec2e963"
    }
   },
   {
    "key": "§ Scripts > Quality / CI scripts > `check_strict_concurrency_enabled.sh`",
    "hash": "c55307e04dd2c4b2",
-   "does": "Claims check_strict_concurrency_enabled.sh proves Swift 6 mode, SWIFT_STRICT_CONCURRENCY = complete and warnings-as-errors in every configuration. Script greps SWIFT_VERSION/SWIFT_STRICT_CONCURRENCY/SWIFT_TREAT_WARNINGS_AS_ERRORS counts (check_strict_concurrency_enabled.sh:32-35).",
+   "does": "Claims check_strict_concurrency_enabled.sh proves Swift 6 mode, SWIFT_STRICT_CONCURRENCY = complete and warnings-as-errors in every configuration. Script greps SWIFT_VERSION/SWIFT_STRICT_CONCURRENCY/SWIFT_TREAT_WARNINGS_AS_ERRORS counts (check_strict_concurrency_enabled.sh).",
    "entry": null,
    "calls": [
     "scripts/check_strict_concurrency_enabled.sh::fn fail"
@@ -198,7 +198,7 @@
   {
    "key": "§ Scripts > Quality / CI scripts > `remove_swift_file.py`",
    "hash": "fd728ed2071b9050",
-   "does": "Claims remove_swift_file.py strips the four pbxproj entries for a file and deletes it from disk with --delete. remove_swift_file.py:83-104 parses --delete.",
+   "does": "Claims remove_swift_file.py strips the four pbxproj entries for a file and deletes it from disk with --delete. remove_swift_file.py parses --delete.",
    "entry": null,
    "calls": [
     "scripts/remove_swift_file.py::def remove_file",

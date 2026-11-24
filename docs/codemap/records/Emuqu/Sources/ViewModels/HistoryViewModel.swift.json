@@ -6,18 +6,18 @@
   "HistoryViewModel: class — History tab state and off-main filter/dedup compute"
  ],
  "state": [
-  "var searchText/selectedSessionType/selectedTags/displayLimit (observable UI state, :11-14)",
+  "var searchText/selectedSessionType/selectedTags/displayLimit (observable UI state)",
   "private(set) var filteredEntries, linkedSegmentCounts (mem:HistoryViewModel.filteredEntries read by HistoryView)",
   "filterObservation, filterDebounce, recomputeTask, lastArchiveVersion (private)",
   "let pageSize = 10"
  ],
- "toplevel": "Uses HistoryConstants (Constants+SleepAndDisplay.swift:291-307): debounce 150 ms, close-window 90 min, overlap 0.85, tiny artifact ≤45 min, near-end 30 min, start tol 5 min, end tol 30 min.",
+ "toplevel": "Uses HistoryConstants (Constants+SleepAndDisplay.swift): debounce 150 ms, close-window 90 min, overlap 0.85, tiny artifact ≤45 min, near-end 30 min, start tol 5 min, end tol 30 min.",
  "units": [
   {
    "key": "init HistoryViewModel(archive:settingsProvider:)",
    "hash": "49beb43d9ed112c2",
    "does": "Stores the archive and settings provider (defaults: AppDependencies sessionArchive and SettingsManager.settingsSnapshot) and starts an ObservationLoop on (searchText, selectedSessionType, selectedTags) with initial delivery, calling scheduleFilterRecompute on each change.",
-   "entry": "@State in HistoryView (HistoryView.swift:15); HistoryViewModelTests",
+   "entry": "@State in HistoryView (HistoryView.swift); HistoryViewModelTests",
    "calls": [
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.scheduleFilterRecompute()",
@@ -62,7 +62,7 @@
    "key": "func HistoryViewModel.refreshIfNeeded(archiveVersion:)",
    "hash": "6a7ca9f6c124c251",
    "does": "Recomputes filtered entries when the archive version differs from the last seen one.",
-   "entry": "HistoryView .onAppear / .onChange(of: archiveSignal.version) (HistoryView.swift:301-302)",
+   "entry": "HistoryView .onAppear / .onChange(of: archiveSignal.version) (HistoryView.swift)",
    "calls": [
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.recomputeFilteredEntries()"
    ],
@@ -85,7 +85,7 @@
    "key": "func HistoryViewModel.loadMore()",
    "hash": "de6d7d4fa8f4fa33",
    "does": "Increases displayLimit by pageSize (10).",
-   "entry": "HistoryView load-more row .onAppear (HistoryView.swift:283-285)",
+   "entry": "HistoryView load-more row .onAppear (HistoryView.swift)",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -463,9 +463,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "1dd3dd91a24f0a38",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "54265da0046fd3e1",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.sameNightHiddenIds(group:entryById:)": "def840ca32715100"
    }
   },

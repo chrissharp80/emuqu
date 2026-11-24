@@ -16,7 +16,7 @@
    "key": "var DeviceInfoPanelObserving.body",
    "hash": "c964333a49cb9b30",
    "does": "Builds DeviceInfoPanelView from PolarManager's connectedDeviceType, batteryLevel, batteryLastChangedAt, hoursRecordedSinceBatteryChanged, connectedDeviceType?.specRecordingHours, isBatteryReadingStale, firmwareVersion, hasStoredExercise, storedExerciseDate, lastConnectedTime; observation of PolarManager (@Observable) re-renders it when those change.",
-   "entry": "SwiftUI body; instantiated by ConnectionPanelViews.swift:319 and snapshot test UncoveredScreenSnapshotTests.swift:128",
+   "entry": "SwiftUI body; instantiated by ConnectionPanelViews.swift and snapshot test UncoveredScreenSnapshotTests.swift",
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours"
    ],
@@ -44,7 +44,7 @@
    "key": "var OvernightStreamingStatus.body",
    "hash": "5f39fe826a8028f0",
    "does": "Vertical card: recordingSection, liveStatsOrWaiting, strapBackupLine, then two fixed captions ('Bluetooth keeps the recording running while your phone is locked...' and 'Tap I'm Up when you're ready to analyze.') on a tinted rounded background.",
-   "entry": "SwiftUI body; instantiated by RecordView+Panels.swift:76 when streamingLifecycle.isOvernightStreaming, and by UncoveredScreenSnapshotTests.swift:118",
+   "entry": "SwiftUI body; instantiated by RecordView+Panels.swift when streamingLifecycle.isOvernightStreaming, and by UncoveredScreenSnapshotTests.swift",
    "calls": [
     "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.recordingSection",
     "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.liveStatsOrWaiting",
@@ -261,7 +261,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.formattedElapsed(now:)": "8049d154f9769733",
+    "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.formattedElapsed(now:)": "16936f148273918a",
     "Emuqu/Sources/Views/RecordingStatusViews.swift::func OvernightStreamingStatus.statColumn(value:label:color:)": "33822e2bb1b3eca9",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
@@ -296,7 +296,7 @@
    "key": "var DeviceRecordingStatus.body",
    "hash": "891e494656b9d450",
    "does": "Card with recordingOnDeviceSection and deviceRecordingGuidance on tinted rounded background.",
-   "entry": "SwiftUI body; instantiated by RecordView+Panels.swift:65 when deviceStatus.isRecordingOnDevice, not overnight streaming, and no fetch in progress; also UncoveredScreenSnapshotTests.swift:105",
+   "entry": "SwiftUI body; instantiated by RecordView+Panels.swift when deviceStatus.isRecordingOnDevice, not overnight streaming, and no fetch in progress; also UncoveredScreenSnapshotTests.swift",
    "calls": [
     "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.recordingOnDeviceSection",
     "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceRecordingStatus.deviceRecordingGuidance"
@@ -462,7 +462,7 @@
    "key": "var DeviceInfoPanelView.body",
    "hash": "0d03776ea761a079",
    "does": "Device info card: Device row (displayName or 'Unknown', icon or heart.fill), batteryRows, estimatedBatteryLifeRow, firmwareRow, memorySessionStoredSection, connectedSection.",
-   "entry": "SwiftUI body; built by DeviceInfoPanelObserving (RecordingStatusViews.swift:11)",
+   "entry": "SwiftUI body; built by DeviceInfoPanelObserving (RecordingStatusViews.swift)",
    "calls": [
     "Emuqu/Sources/Views/RecordingStatusViews.swift::func DeviceInfoPanelView.infoRow(label:value:icon:valueColor:)",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName",

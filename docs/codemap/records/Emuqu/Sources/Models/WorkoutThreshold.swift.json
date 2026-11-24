@@ -36,7 +36,7 @@
    "key": "init WorkoutThreshold(from:)",
    "hash": "fbdc707285e92aab",
    "does": "Tolerant decode: missing id → new UUID; unknown/missing metric → .naturalLanguage (never fires); missing condition → .greaterThan, value → 0, debounce → 30 (>=0), cooldown → 120 (>=10); naturalLanguageText falls back to userCue only when the metric was unknown.",
-   "entry": "Decodable requirement. No production code encodes or decodes WorkoutThreshold (thresholds live only in memory: WorkoutPlanModel.selectedThresholds, WorkoutRecorder.userThresholds; the AI context uses ThresholdSnapshot); the only decode is EmuquTests/WorkoutAnalyzerMathTests.swift:322.",
+   "entry": "Decodable requirement. No production code encodes or decodes WorkoutThreshold (thresholds live only in memory: WorkoutPlanModel.selectedThresholds, WorkoutRecorder.userThresholds; the AI context uses ThresholdSnapshot); the only decode is EmuquTests/WorkoutAnalyzerMathTests.swift.",
    "calls": [
     "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.value(_:_:or:)",
     "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)"
@@ -63,7 +63,7 @@
    "deps": {
     "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)": "0cf3e1c2452dfd34",
     "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.value(_:_:or:)": "84ac2daea8077aca",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.naturalLanguage(text:userCue:debounceSec:cooldownSec:)": "fdfcc73e61e543d0",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.naturalLanguage(text:userCue:debounceSec:cooldownSec:)": "0c1f1cc8dbca6a6a",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.value(_:)": "be8ddaa36c055fdd",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::var WorkoutThreshold.CueText.condition": "84c0f3ac83b67324"
    }
@@ -71,7 +71,7 @@
   {
    "key": "func WorkoutThreshold.naturalLanguage(text:userCue:debounceSec:cooldownSec:)",
    "hash": "fce5794307c16d72",
-   "does": "Builds a .naturalLanguage threshold whose text is both condition and cue (debounce 60, cooldown 300). Only called by EmuquTests/WorkoutAnalyzerMathTests.swift:310.",
+   "does": "Builds a .naturalLanguage threshold whose text is both condition and cue (debounce 60, cooldown 300). Only called by EmuquTests/WorkoutAnalyzerMathTests.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)"

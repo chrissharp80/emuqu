@@ -8,10 +8,10 @@
   "OverpassClient.Remark: private Decodable — the top-level `remark` of an Overpass JSON reply"
  ],
  "state": [
-  "static endpoints: overpass.private.coffee, overpass-api.de (OverpassClient.swift:59)",
-  "static userAgent 'Emuqu/<version> iOS (<AppConfig.contactEmail>)' (OverpassClient.swift:73)",
-  "static busyCooldown 60 s, refusalCooldown 300 s (OverpassClient.swift:68-69)",
-  "actor state: lastRequestAt, requestInFlight, queuedCallers [(ticket UUID, CheckedContinuation<Bool>)], cooling[URL], replies cache (max 16) (OverpassClient.swift:72-80)",
+  "static endpoints: overpass.private.coffee, overpass-api.de (OverpassClient.swift)",
+  "static userAgent 'Emuqu/<version> iOS (<AppConfig.contactEmail>)' (OverpassClient.swift)",
+  "static busyCooldown 60 s, refusalCooldown 300 s (OverpassClient.swift)",
+  "actor state: lastRequestAt, requestInFlight, queuedCallers [(ticket UUID, CheckedContinuation<Bool>)], cooling[URL], replies cache (max 16) (OverpassClient.swift)",
   "static malformedQueryStatus = 400: a malformed-query reply, not held against any host"
  ],
  "toplevel": "endpoints built by compactMap(URL(string:)); userAgent reads Bundle.main.appVersion and AppConfig.contactEmail at first access. One shared instance is created in AppDependencies.OverpassServices.client with the live HTTPTransport.",

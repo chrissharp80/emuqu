@@ -13,8 +13,8 @@
   "FloSetupCard: struct View — setup screen with 'Add an API key' button"
  ],
  "state": [
-  "static ChatScrollPositionKey.defaultValue = .zero (line 17)",
-  "static ChatViewportKey.defaultValue = 0 (line 24)",
+  "static ChatScrollPositionKey.defaultValue = .zero",
+  "static ChatViewportKey.defaultValue = 0",
   "@State ChatInputBar.draft / draftBeforeDictation (field text when dictation started) / speech (SpeechInputManager instance) / voiceErrorMessage, @FocusState inputFocused"
  ],
  "toplevel": "#if canImport(FoundationModels) imports FoundationModels and compiles AppleIntelligenceStatus.status(of:) (iOS 26); without it `current` always returns .unsupported. No global state.",
@@ -120,7 +120,7 @@
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.prefabChips": "166a21fa4914e937",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "307d74d767ff8c77",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "bd45a05be7ff4704",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8"
    }
   },
@@ -155,7 +155,7 @@
    "does": "PrefabQuestionChips enabled by composerState.canSend; selecting one calls onSendPrefab (AssistantViewModel.send(prefab:) via connectedInputBar).",
    "entry": "SwiftUI view body evaluation; chip tap",
    "calls": [
-    "closure:onSendPrefab — set by AssistantChatView.connectedInputBar (+Sections.swift:514) to viewModel.send(prefab:)",
+    "closure:onSendPrefab — set by AssistantChatView.connectedInputBar (+Sections.swift) to viewModel.send(prefab:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(prefab:)"
    ],
    "reads": [
@@ -164,7 +164,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(prefab:)": "a5a84cd775bb04db",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(prefab:)": "58e653290929759d",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.canSend": "5991e7b484d5b439",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8"
    }
@@ -264,7 +264,7 @@
    "entry": "button tap; body evaluation",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.stopDictationIfRecording()",
-    "closure:onSend — set by connectedInputBar (+Sections.swift:513) to viewModel.send(text:)",
+    "closure:onSend — set by connectedInputBar (+Sections.swift) to viewModel.send(text:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)"
    ],
    "reads": [
@@ -284,7 +284,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "1d32d561b3768746",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.stopDictationIfRecording()": "c93ed3fd5f689494",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
@@ -445,7 +445,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.start()": "ba5c684196dfff57",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.start()": "1fc2020e871789dc",
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()": "9b36d52513445124",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)": "db0645396bac441f"
    }
@@ -510,7 +510,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "1d32d561b3768746",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.endsWithQuestionMark(_:)": "4a4d13807970f1c7",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)": "db0645396bac441f",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.floNoticeAccepted": "182e95ef93f6bdb3",
@@ -536,8 +536,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.aiIsAllowed(disclaimerAccepted:)": "7e73dffeed2f3e9b",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "7b0cb0f1c0ee5aac",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.aiIsAllowed(disclaimerAccepted:)": "b0355a50fe476480",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "9df569d2cf20cc52",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "a9161ec7b1d3b09c"
    }
@@ -663,7 +663,7 @@
    "key": "var AppleIntelligenceStatus.explanation",
    "hash": "772807c84b009d04",
    "does": "Returns the localized one-sentence explanation for each status (on and free / turn on in Settings / still downloading / needs iPhone 15 Pro+ with iOS 26).",
-   "entry": "read by FloSetupCard.setupText and CoachHomeV2View.swift:474",
+   "entry": "read by FloSetupCard.setupText and CoachHomeV2View.swift",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -740,7 +740,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.current": "ba60a71446647c5e",
-    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.explanation": "43425390eb4f886a",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var AppleIntelligenceStatus.explanation": "c74e5a3396cf575e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
@@ -750,7 +750,7 @@
    "does": "Prominent 'Add an API key' button invoking onAddKey (sets AssistantChatView.floSettingsPresented = true).",
    "entry": "button tap",
    "calls": [
-    "closure:onAddKey — set by AssistantChatView.emptyState (+Sections.swift:321) to floSettingsPresented = true"
+    "closure:onAddKey — set by AssistantChatView.emptyState (+Sections.swift) to floSettingsPresented = true"
    ],
    "reads": [],
    "writes": [],

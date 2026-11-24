@@ -83,7 +83,7 @@
    "key": "var CrashLogManager.hasPreviousCrash",
    "hash": "cf0353bf9db4c839",
    "does": "True when previous_crash.txt exists on disk; drives the Settings crash badge/rows.",
-   "entry": "SwiftUI view bodies: SettingsView.swift:416, SettingsPages+Diagnostics.swift:353/432, SettingsPages+DiagnosticActions.swift:109",
+   "entry": "SwiftUI view bodies: SettingsView.swift, SettingsPages+Diagnostics.swift/432, SettingsPages+DiagnosticActions.swift",
    "calls": [
     "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL",
     "ext:FileManager.fileExists"
@@ -130,7 +130,7 @@
    "key": "func CrashLogManager.install()",
    "hash": "f8aa631f39093ebd",
    "does": "Launch hook: promotes last run's crash files into previous_crash.txt, stores self in installedInstance, installs an NSSetUncaughtExceptionHandler closure that writes a PHI-scrubbed exception report through installedInstance (the instance that ran install, not the dependency container's), then installs the C fatal-signal handlers.",
-   "entry": "EmuquMain.main → EmuquApp.installDiagnostics (EmuquApp.swift:223) before the SwiftUI app starts; closure runs on an uncaught NSException",
+   "entry": "EmuquMain.main → EmuquApp.installDiagnostics (EmuquApp.swift) before the SwiftUI app starts; closure runs on an uncaught NSException",
    "calls": [
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.promoteCurrentCrashLog()",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.installSignalHandlers()",
@@ -169,7 +169,7 @@
    "key": "func CrashLogManager.clearPreviousCrash()",
    "hash": "99499a1d4c78719e",
    "does": "Deletes previous_crash.txt; a missing file is ignored, other errors are logged via debugLog.",
-   "entry": "Settings buttons: SettingsSubviews.swift:125, SettingsPages+DiagnosticActions.swift:111",
+   "entry": "Settings buttons: SettingsSubviews.swift, SettingsPages+DiagnosticActions.swift",
    "calls": [
     "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashURL",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -443,7 +443,7 @@
    "key": "func CrashLogManager.exportCrashLog()",
    "hash": "9ef6ef8c499cd4b9",
    "does": "Reads previous_crash.txt, scrubs each line with scrubPHI, writes it as Emuqu_Crash_<yyyyMMdd_HHmmss, Gregorian/POSIX>.txt into the export folder through ExportFile.write (atomic, complete protection, earlier Emuqu_Crash_* exports removed) and returns its URL; nil when there is no log or the write fails (the failure is logged at .warning).",
-   "entry": "Settings share button, SettingsSubviews.swift:162",
+   "entry": "Settings share button, SettingsSubviews.swift",
    "calls": [
     "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)",
@@ -524,7 +524,7 @@
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.previousProcessTrace(_:launchedAt:)": "88c01021b8d911ef",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.traceTimeline(_:)": "8b2ba777c3ba36c1",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::init MemoryTraceSummary(trace:)": "0402e4531b58bf11",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)": "a26593368b9b7383"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readRecentMemoryTrace(limit:)": "c03af3f4f81c30ae"
    }
   },
   {
@@ -705,7 +705,7 @@
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)": "337d17041865a66b",
     "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "76f45a25c424e560",
     "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "39e90677709e32e9",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersionString": "79cd8016731537fb"
+    "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersionString": "e07e3bc21cb48cfa"
    }
   },
   {

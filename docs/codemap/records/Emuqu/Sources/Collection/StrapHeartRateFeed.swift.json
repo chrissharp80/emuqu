@@ -16,7 +16,7 @@
    "key": "func StrapHeartRateFeed.start(generation:)",
    "hash": "5340362c0ca01cbd",
    "does": "Cancels any existing feed task and starts a new Task (holding the manager strongly) running the subscription loop for link `generation`.",
-   "entry": "Called from StrapLinkCoordinator.linkEstablished (StrapLinkCoordinator.swift:104) and restart().",
+   "entry": "Called from StrapLinkCoordinator.linkEstablished (StrapLinkCoordinator.swift) and restart().",
    "calls": [
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.run(generation:manager:)",
     "ext:Task"
@@ -34,7 +34,7 @@
    "key": "func StrapHeartRateFeed.restart()",
    "hash": "edea68595be46551",
    "does": "Restarts the subscription on the current link generation if linked.",
-   "entry": "Called from StrapLinkCoordinator.evaluateFeedHealth (resubscribe), PolarManager+Streaming.swift:28 (Verity session start) and :50 (Verity session end); tests StrapNightTests.swift:231,265.",
+   "entry": "Called from StrapLinkCoordinator.evaluateFeedHealth (resubscribe), PolarManager+Streaming.swift (Verity session start) (Verity session end); tests StrapNightTests.swift.",
    "calls": [
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.start(generation:)"
    ],
@@ -50,14 +50,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.start(generation:)": "a72fa36db125e906"
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.start(generation:)": "09166d599a8540ba"
    }
   },
   {
    "key": "func StrapHeartRateFeed.desiredKind(deviceType:sessionActive:)",
    "hash": "cb9f3f459413daa6",
    "does": "Returns .ppi only for a Verity Sense with a session active, else .heartRate.",
-   "entry": "Called from resolveKind; tests StreamForwardingTests.swift:35-38.",
+   "entry": "Called from resolveKind; tests StreamForwardingTests.swift.",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -133,7 +133,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.resubscribeDelay(afterFailures:)": "23ef8ecbfdba4b48",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.resubscribeDelay(afterFailures:)": "a86c90ecad102ded",
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.isCurrent(_:generation:)": "01f74fd8f4957937",
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.logPass(_:_:failure:attempt:since:)": "95750b38f6df4c21",
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.openAndDrain(kind:manager:)": "10426a03860f3a98",
@@ -187,9 +187,9 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.desiredKind(deviceType:sessionActive:)": "54a93e3f2c157db5",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.desiredKind(deviceType:sessionActive:)": "75bc3eb53e52fbcb",
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.isCurrent(_:generation:)": "01f74fd8f4957937",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "ad034f12378b9f3a"
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "0cdd2abab2b6c5a5"
    }
   },
   {
@@ -199,8 +199,8 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI",
-    "dyn:StrapRadio.startHrStreaming → Emuqu/Sources/Collection/StrapRadio.swift:85|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startHrStreaming(_:peripheralId:)",
-    "dyn:StrapRadio.startPpiStreaming → Emuqu/Sources/Collection/StrapRadio.swift:91|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startPpiStreaming(_:)",
+    "dyn:StrapRadio.startHrStreaming → Emuqu/Sources/Collection/StrapRadio.swift|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startHrStreaming(_:peripheralId:)",
+    "dyn:StrapRadio.startPpiStreaming → Emuqu/Sources/Collection/StrapRadio.swift|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.startPpiStreaming(_:)",
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)",
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.ppiReadings(_:)",
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)",
@@ -234,7 +234,7 @@
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3",
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestPpi(_:receivedAt:)": "ba02fbeb859912bd",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "4cddd723f0a007db",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "071b0f3fb0e388bc",
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.ppiReadings(_:)": "96ec3e66cc789aa4"
    }
   },
@@ -253,7 +253,7 @@
    "key": "func StrapHeartRateFeed.drain(_:_:)",
    "hash": "bafbf4e07b6d80d5",
    "does": "Runs forward over the stream, recording the sample count and any thrown error in a Pass; never throws.",
-   "entry": "Also tested directly by EmuquTests/StreamForwardingTests.swift:45-117.",
+   "entry": "Also tested directly by EmuquTests/StreamForwardingTests.swift.",
    "calls": [
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.forward(_:counting:_:)"
    ],

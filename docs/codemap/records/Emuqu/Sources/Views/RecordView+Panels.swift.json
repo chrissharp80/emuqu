@@ -3,11 +3,11 @@
  "hash": "ec6430819ec2adbe",
  "role": "RecordPanels extension holding the Record tab's overnight 'Extended Recording' panel (capture mode picker, status badge/subtitles, paused/streaming/legacy/idle button sets, battery and connection notes), the Continue Recovery card, device-data recovery/discard actions, and the Quick Reading panel; plus three file-private continue-recovery helpers.",
  "types": [
-  "RecordPanels: extension — panel view builders and recovery actions (RecordPanels struct declared in RecordPanels.swift:16, rebuilt per access by RecordView.panels)",
+  "RecordPanels: extension — panel view builders and recovery actions (RecordPanels struct declared in RecordPanels.swift, rebuilt per access by RecordView.panels)",
   "RecordPanels.QuickReadingButton: struct (View, private) — duration tile button for 2/3/5-minute readings"
  ],
  "state": [],
- "toplevel": "File-scope @MainActor private helpers continueRecoveryHeader/Title/ScoreLine (lines 827-869) used by continueRecoveryCard.",
+ "toplevel": "File-scope @MainActor private helpers continueRecoveryHeader/Title/ScoreLine used by continueRecoveryCard.",
  "units": [
   {
    "key": "var RecordPanels.overnightRecordingSection",
@@ -39,7 +39,7 @@
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.deviceRecordingStatus": "a0b8077a68fa347b",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.extendedCaptureModePicker": "205aed8c094264b7",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.fetchProgressSection": "8b1c4a9c655ac2c8",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightActionButtons": "136f54344773ec08",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightActionButtons": "13158ca4202dba29",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightHeader": "38a87dc80cf6d38b",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightHintText": "4d31ba4fd974ea7d",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.overnightStreamingStatus": "9b54be5b5f327662"
@@ -161,7 +161,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.strapBackupState": "ce32cf529eba1c9c"
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.strapBackupState": "5b0826b78d0ec4b1"
    }
   },
   {
@@ -180,7 +180,7 @@
     {
      "at": "+1",
      "cond": "useDeviceBackupForOvernight && device != veritySense",
-     "effect": "false: .notRequested; true: line 87"
+     "effect": "false: .notRequested; true: .recording when the strap's backup is active, else .starting"
     },
     {
      "at": "+2",
@@ -510,12 +510,12 @@
     {
      "at": "+5",
      "cond": "isOvernightStreaming && morningStatus == nil",
-     "effect": "true: streamingStateButtons. The morningStatus == nil half is always true when this renders: the panel is reached only through activeSessionSection, which requires morningStatus == nil (RecordView+Sections.swift:121)"
+     "effect": "true: streamingStateButtons. The morningStatus == nil half is always true when this renders: the panel is reached only through activeSessionSection, which requires morningStatus == nil (RecordView+Sections.swift)"
     },
     {
      "at": "+7",
      "cond": "isRecordingOnDevice || recordingState == .recording",
-     "effect": "true: legacyRecordingButtons; false: idleStateButtons. Not shown during morning processing: the whole panel is hidden then (RecordView+Sections.swift:121)"
+     "effect": "true: legacyRecordingButtons; false: idleStateButtons. Not shown during morning processing: the whole panel is hidden then (RecordView+Sections.swift)"
     },
     {
      "at": "+13",
@@ -573,7 +573,7 @@
    "does": "'Done' button finishing the paused session via the finalizeFromPause closure.",
    "entry": "Button action.",
    "calls": [
-    "closure:RecordPanels.finalizeFromPause set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.finalizeFromPause",
+    "closure:RecordPanels.finalizeFromPause set by RecordView.panels (RecordView+PanelForwarding.swift) → RecordView.finalizeFromPause",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.finalizeFromPause()"
    ],
    "reads": [],
@@ -581,8 +581,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.finalizeFromPause()": "04082d143da28d6e",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.finalizeFromPause()": "efc62d814e300889",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "3280cd33e9388361"
    }
   },
   {
@@ -591,7 +591,7 @@
    "does": "'Resume Recording' button (disabled unless connected) calling the resumeRecording closure.",
    "entry": "Button action.",
    "calls": [
-    "closure:RecordPanels.resumeRecording set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.resumeRecording",
+    "closure:RecordPanels.resumeRecording set by RecordView.panels (RecordView+PanelForwarding.swift) → RecordView.resumeRecording",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.resumeRecording()"
    ],
    "reads": [
@@ -602,8 +602,8 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.resumeRecording()": "d22e4d610978b814",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.resumeRecording()": "13cad660a51b9c27",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "3280cd33e9388361",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
@@ -616,7 +616,7 @@
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.connectionLostWarning",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.imUpButton",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled",
-    "closure:RecordPanels.pauseRecording set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.pauseRecording",
+    "closure:RecordPanels.pauseRecording set by RecordView.panels (RecordView+PanelForwarding.swift) → RecordView.pauseRecording",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.pauseRecording()",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton"
    ],
@@ -626,7 +626,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.pauseRecording()": "ff0a80a3b96c820a",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.pauseRecording()": "f71fea72b237352d",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.connectionLostWarning": "8ba2392c80c2d87d",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton": "6b344d3a471c1948",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.imUpButton": "f8dd3537f86ffc91",
@@ -744,7 +744,7 @@
    "does": "'I'm Up' button calling stopAndFetch (disabled while busy).",
    "entry": "Button action.",
    "calls": [
-    "closure:RecordPanels.stopAndFetch set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.stopAndFetch",
+    "closure:RecordPanels.stopAndFetch set by RecordView.panels (RecordView+PanelForwarding.swift) → RecordView.stopAndFetch",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled"
    ],
@@ -753,9 +753,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()": "e1e39ea7e6df9863",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()": "f392f6985b32be1d",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "a0b24694be6cc5b0",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "3280cd33e9388361"
    }
   },
   {
@@ -826,7 +826,7 @@
    "does": "'Wake Up - Get Results' button for device/internal recording calling stopAndFetch, then Discard Recording.",
    "entry": "Button action.",
    "calls": [
-    "closure:RecordPanels.stopAndFetch set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.stopAndFetch",
+    "closure:RecordPanels.stopAndFetch set by RecordView.panels (RecordView+PanelForwarding.swift) → RecordView.stopAndFetch",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton"
@@ -836,10 +836,10 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()": "e1e39ea7e6df9863",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()": "f392f6985b32be1d",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton": "6b344d3a471c1948",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "a0b24694be6cc5b0",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "d415f592739ab39a"
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "3280cd33e9388361"
    }
   },
   {
@@ -848,7 +848,7 @@
    "does": "'Start Extended Recording' button (disabled while busy, when not connected or battery <10%) calling startOvernightRecording, followed by the idle note.",
    "entry": "Button action.",
    "calls": [
-    "closure:RecordPanels.startOvernightRecording set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.startOvernightRecording",
+    "closure:RecordPanels.startOvernightRecording set by RecordView.panels (RecordView+PanelForwarding.swift) → RecordView.startOvernightRecording",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.idleStateNote"
@@ -861,10 +861,10 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()": "102151158fd99ab0",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()": "3b1b161d73241ba4",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.idleStateNote": "1afb33c67e99813a",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "a0b24694be6cc5b0",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "3280cd33e9388361",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
@@ -1086,7 +1086,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
-    "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.metrics(_:)": "4245b10b405826c6"
+    "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.metrics(_:)": "f89188a28264620a"
    }
   },
   {
@@ -1166,7 +1166,7 @@
    "does": "'Continue Recording' button (disabled unless connected) calling startLinkedRecording(session).",
    "entry": "Button action.",
    "calls": [
-    "closure:RecordPanels.startLinkedRecording set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.startLinkedRecording(linkedTo:)",
+    "closure:RecordPanels.startLinkedRecording set by RecordView.panels (RecordView+PanelForwarding.swift) → RecordView.startLinkedRecording(linkedTo:)",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startLinkedRecording(linkedTo:)"
    ],
    "reads": [
@@ -1177,8 +1177,8 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startLinkedRecording(linkedTo:)": "e93b1bacd51756f7",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startLinkedRecording(linkedTo:)": "e7ff39d5bcf527fb",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "3280cd33e9388361",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
@@ -1212,7 +1212,7 @@
    "key": "func RecordPanels.recoverStoredData()",
    "hash": "0b9e1e8a7829415a",
    "does": "Starts a Task running performDeviceRecovery.",
-   "entry": "RecoverableDataCard onRecover via RecordView.recoverStoredData (RecordView+PanelForwarding.swift:40).",
+   "entry": "RecoverableDataCard onRecover via RecordView.recoverStoredData (RecordView+PanelForwarding.swift).",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Panels.swift::func RecordPanels.performDeviceRecovery()"
    ],
@@ -1282,7 +1282,7 @@
    "key": "func RecordPanels.discardAndStartFresh()",
    "hash": "49007cbccd7e2032",
    "does": "Task: deletes stored exercises on the strap; failure is logged and assigned to sessionState.lastError (alert).",
-   "entry": "RecoverableDataCard onDiscard via RecordView.discardAndStartFresh (RecordView+PanelForwarding.swift:42).",
+   "entry": "RecoverableDataCard onDiscard via RecordView.discardAndStartFresh (RecordView+PanelForwarding.swift).",
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.discardStoredExercises()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -1351,14 +1351,14 @@
    "does": "StreamingProgressPanel with collector, lifecycle, PolarManager, breathing audio and stopStreaming closure.",
    "entry": null,
    "calls": [
-    "closure:RecordPanels.stopStreaming set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.stopStreaming",
+    "closure:RecordPanels.stopStreaming set by RecordView.panels (RecordView+PanelForwarding.swift) → RecordView.stopStreaming",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopStreaming()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopStreaming()": "f9b07db8e4366ee6"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopStreaming()": "1cfbab0c168fe815"
    }
   },
   {
@@ -1483,7 +1483,7 @@
    "does": "5 min 'Full' button → startStreaming(300).",
    "entry": "Button action.",
    "calls": [
-    "closure:RecordPanels.startStreaming set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.startStreaming(seconds:)",
+    "closure:RecordPanels.startStreaming set by RecordView.panels (RecordView+PanelForwarding.swift) → RecordView.startStreaming(seconds:)",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)"
    ],
    "reads": [],
@@ -1491,7 +1491,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)": "2b2fdef5ca7d4bf3",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)": "ea47e4c5f8e69561",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
@@ -1501,7 +1501,7 @@
    "does": "3 min 'Standard' button → startStreaming(180).",
    "entry": "Button action.",
    "calls": [
-    "closure:RecordPanels.startStreaming set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.startStreaming(seconds:)",
+    "closure:RecordPanels.startStreaming set by RecordView.panels (RecordView+PanelForwarding.swift) → RecordView.startStreaming(seconds:)",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)"
    ],
    "reads": [],
@@ -1509,7 +1509,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)": "2b2fdef5ca7d4bf3"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)": "ea47e4c5f8e69561"
    }
   },
   {
@@ -1518,7 +1518,7 @@
    "does": "2 min 'Basic' button → startStreaming(120).",
    "entry": "Button action.",
    "calls": [
-    "closure:RecordPanels.startStreaming set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.startStreaming(seconds:)",
+    "closure:RecordPanels.startStreaming set by RecordView.panels (RecordView+PanelForwarding.swift) → RecordView.startStreaming(seconds:)",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)"
    ],
    "reads": [],
@@ -1526,7 +1526,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)": "2b2fdef5ca7d4bf3"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startStreaming(seconds:)": "ea47e4c5f8e69561"
    }
   },
   {
@@ -1673,7 +1673,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "0296267ddd882a15",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.recoveryColor(_:)": "c4db2acf4b41fffe",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"

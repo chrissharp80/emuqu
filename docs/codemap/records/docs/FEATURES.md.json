@@ -56,7 +56,7 @@
   {
    "key": "§ Emuqu — feature reference > Key Features > Advanced HRV Analysis",
    "hash": "315e71c022858482",
-   "does": "Claims time-domain (RMSSD, SDNN, pNN50, mean RR), LF/HF reported as measurements, DFA alpha1 with log-spaced boxes, Poincare SD1/SD2, artifact detection, and tap-to-analyse manual windows compared side-by-side with the algorithm's pick. Manual pick keeps autoWindowResult/autoWindowScore for comparison (ReanalysisService.preserveAutoWindow) and is persisted to the archive and baseline (see ARCHITECTURE.md:264 record).",
+   "does": "Claims time-domain (RMSSD, SDNN, pNN50, mean RR), LF/HF reported as measurements, DFA alpha1 with log-spaced boxes, Poincare SD1/SD2, artifact detection, and tap-to-analyse manual windows compared side-by-side with the algorithm's pick. Manual pick keeps autoWindowResult/autoWindowScore for comparison (ReanalysisService.preserveAutoWindow) and is persisted to the archive and baseline (see ARCHITECTURE.md record).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
@@ -195,7 +195,7 @@
   {
    "key": "§ Emuqu — feature reference > Key Features > History & Trends",
    "hash": "65b3ebdd0c0c181c",
-   "does": "Claims history paginated 10 at a time, 14 built-in tags plus custom tags, trends over 7/14/30/90 days or all time, calendar, organized-window overlay, PDF reports, import from CSV/JSON/TXT/Kubios/EliteHRV. Code: HistoryViewModel pageSize 10; ReadingTag.systemTagDefinitions has 14 entries (HRVSession.swift:83-97); TrendAnalyzer.TimePeriod week/twoWeeks/month/threeMonths/all = 7/14/30/90/nil; Import/RRDataImporter+CSV/JSON/EliteHRV/FlowHRV files.",
+   "does": "Claims history paginated 10 at a time, 14 built-in tags plus custom tags, trends over 7/14/30/90 days or all time, calendar, organized-window overlay, PDF reports, import from CSV/JSON/TXT/Kubios/EliteHRV. Code: HistoryViewModel pageSize 10; ReadingTag.systemTagDefinitions has 14 entries (HRVSession.swift); TrendAnalyzer.TimePeriod week/twoWeeks/month/threeMonths/all = 7/14/30/90/nil; Import/RRDataImporter+CSV/JSON/EliteHRV/FlowHRV files.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)",
@@ -232,7 +232,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "76ae30834e1f191d",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "667f0d5358bf0828",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "fe140477d3574bdf",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "b08f3e6cd45365eb",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "d79c6198aa2d904e",
@@ -260,7 +260,7 @@
   {
    "key": "§ Emuqu — feature reference > Key Features > Customization",
    "hash": "8266664fab47313b",
-   "does": "Claims six accent themes (Blue, Teal, Indigo, Purple, Rose, Orange), Light/Dim/Dark appearance, VoiceOver support. The accent enum in UserSettings.swift:205-210 has exactly those six cases.",
+   "does": "Claims six accent themes (Blue, Teal, Indigo, Purple, Rose, Orange), Light/Dim/Dark appearance, VoiceOver support. The accent enum in UserSettings.swift has exactly those six cases.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UserSettings.swift::var ColorTheme.displayName",
@@ -287,7 +287,7 @@
   {
    "key": "§ Emuqu — feature reference > Key Features > In-App Help",
    "hash": "8e327c41597bf2ad",
-   "does": "Claims a searchable Help Center with 12 categories. HelpCategory static instances: gettingStarted, recording, recoveryScore, aiAssistant, getMeBack, yourData, personalization, appNavigation, sleepAnalysis, trainingLoad, vitals plus the HRV-science category built in HelpContent+ScienceArticles.swift:355 = 12.",
+   "does": "Claims a searchable Help Center with 12 categories. HelpCategory static instances: gettingStarted, recording, recoveryScore, aiAssistant, getMeBack, yourData, personalization, appNavigation, sleepAnalysis, trainingLoad, vitals plus the HRV-science category built in HelpContent+ScienceArticles.swift = 12.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)",
@@ -307,7 +307,7 @@
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categories": "435405d26fd2bbc4",
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.categoryGrid": "a671df56e4d38351",
     "Emuqu/Sources/Views/HelpCenterView.swift::var HelpCenterView.searchResults": "0a09dfd97180ab37",
-    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)": "4a706dfe9b864747",
+    "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.categories(forAge:)": "e4ef354239591f25",
     "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)": "559e0262137c8884",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.hrvScience(forAge:)": "b47b96f12a024855",
     "Emuqu/Sources/Views/HelpContent+ScienceArticles.swift::func HelpScienceCatalog.metricsGuide(forAge:)": "6247908cb94ddb33",
@@ -344,10 +344,10 @@
    "branches": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquApp.handleDisclaimerAcceptance(_:)": "acb4005e1a1d86af",
-    "Emuqu/EmuquApp.swift::func EmuquApp.launchModal(_:)": "f440b53ba52aa07f",
+    "Emuqu/EmuquApp.swift::func EmuquApp.launchModal(_:)": "56d89a2c66c958d8",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "6137b39fe90ea00e",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.presentLaunchModal()": "f00256b018d4aad6",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "e6acb9353a76f87b",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "97e201d0d436e2fd",
     "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.homeAddressSection": "f07436409251c0b6",
     "Emuqu/Sources/Views/HealthDisclaimerView.swift::var HealthDisclaimerView.iAgreeButton": "95e07a3736f176a0",
     "Emuqu/Sources/Views/Onboarding/OnboardingBackupPage.swift::var OnboardingBackupPage.iCloudSyncToggle": "fa5c03eada5910c0",
@@ -355,9 +355,9 @@
     "Emuqu/Sources/Views/Onboarding/OnboardingProfilePage.swift::var OnboardingProfilePage.stack": "aa2758b705a1bc66",
     "Emuqu/Sources/Views/Onboarding/OnboardingSensorPage.swift::var OnboardingSensorPage.skipButton": "2f70da4b5b362f19",
     "Emuqu/Sources/Views/Onboarding/OnboardingValuePropPage.swift::var OnboardingValuePropPage.cardPager": "977053f729e77d55",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()": "f1d3693a6be85522",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()": "af31065bb696ceb0",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.noteHealthPageSwipedPast(from:to:)": "d754bd0298a73ee8",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.advanceToNext()": "b392a6d2aa11c6f0",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.completeOnboarding()": "8e5245b2bd60ab6b",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::func OnboardingView.noteHealthPageSwipedPast(from:to:)": "48bd92859cd34b5a",
     "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::var OnboardingView.pages": "0352974c516fcc9b",
     "Emuqu/Sources/Views/Onboarding/OnboardingWelcomePage.swift::var OnboardingWelcomePage.body": "dd473befce290c71"
    }
@@ -374,7 +374,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "a5ec0a0a99759886"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "afd0b2e19cca6419"
    }
   },
   {

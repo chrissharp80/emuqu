@@ -11,7 +11,7 @@
   "mem:AnalysisSleepInput.empty (static let, all zero/nil)",
   "mem:AnalysisSleepTrendInput.empty (static let, trend .insufficient, 0 nights)"
  ],
- "toplevel": "Two static `empty` instances built via the memberwise inits (AnalysisSleepInputs.swift:36-40, 76-79).",
+ "toplevel": "Two static `empty` instances built via the memberwise inits (AnalysisSleepInputs.swift).",
  "units": [
   {
    "key": "var AnalysisSleepInput.isShortSleep",
@@ -60,7 +60,7 @@
   {
    "key": "init AnalysisSleepInput(from:)",
    "hash": "e21b01ed895120f2",
-   "does": "Builds the input from a HealthKit-resolved SleepData: total = nightSleepMinutes (nap excluded), inBed, deep, rem, awake, and measuredSleepEfficiency (nil when wake unmeasured). Called from MorningResultsViewModel.swift:312.",
+   "does": "Builds the input from a HealthKit-resolved SleepData: total = nightSleepMinutes (nap excluded), inBed, deep, rem, awake, and measuredSleepEfficiency (nil when wake unmeasured). Called from MorningResultsViewModel.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
@@ -95,7 +95,7 @@
   {
    "key": "init AnalysisSleepTrendInput(from:)",
    "hash": "23c274a440b7637f",
-   "does": "Builds the trend input from HealthKitManager.SleepTrendStats (averages, nightsAnalyzed) and copies its trend directly (SleepTrend is the same enum). Called from MorningResultsViewModel.swift:313.",
+   "does": "Builds the trend input from HealthKitManager.SleepTrendStats (averages, nightsAnalyzed) and copies its trend directly (SleepTrend is the same enum). Called from MorningResultsViewModel.swift.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -128,7 +128,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)": "5e71c2cae2b503a7",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)": "0bd1af9403ea7501",
     "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.recentNights(before:in:days:)": "39cbbc4f849d2168"
    }
   }

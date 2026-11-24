@@ -3,17 +3,17 @@
  "hash": "3dca80242e9e82f4",
  "role": "The paywall screen (launch gate or from Settings/More) offering the 30-day free trial and the one-time unlock, restore, legal links and data export/deletion; plus PurchaseStatusView, the Settings row showing Owned or a link to the paywall.",
  "types": [
-  "PaywallView: struct (View) — paywall UI; isGate true when presented as the launch fullScreenCover (EmuquApp.swift:352), false from Settings (PaywallView.swift:686) and More (MoreMenuView.swift:78)",
+  "PaywallView: struct (View) — paywall UI; isGate true when presented as the launch fullScreenCover (EmuquApp.swift), false from Settings (PaywallView.swift) and More (MoreMenuView.swift)",
   "PaywallView.PaywallMessage: private enum — the one message the page's alert shows: .error / .purchase / .restore with its text",
   "PaywallView (private extension) — offer-state helpers offersTrial/offersUnlock/trialHasEnded/trialTermsText/trialButtonTitle",
-  "PurchaseStatusView: struct (View) — Settings 'Purchase' section (SettingsView.swift:318)"
+  "PurchaseStatusView: struct (View) — Settings 'Purchase' section (SettingsView.swift)"
  ],
  "state": [
   "mem:PaywallView.showPrivacyPolicy/showTermsOfUse/showYourData (@State, view-local)",
   "mem:PaywallView.restoreNotice (@State String?, view-local)",
   "mem:PaywallView.isGate (init param, default true)"
  ],
- "toplevel": "Two #Preview blocks (lines 719-731) build PaywallView and PurchaseStatusView with AppDependencies.current.services.storeKitManager injected; preview-only. The `skipDebugButton` body is wrapped in #if DEBUG (lines 355-363), so release builds render nothing there.",
+ "toplevel": "Two #Preview blocks build PaywallView and PurchaseStatusView with AppDependencies.current.services.storeKitManager injected; preview-only. The `skipDebugButton` body is wrapped in #if DEBUG, so release builds render nothing there.",
  "units": [
   {
    "key": "var PaywallView.offer",
@@ -183,7 +183,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.dismiss(_:)": "fd1f101d34d83cd5",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()": "0d1aa80c31e9afdf",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()": "ef86ce7a0911ea32",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.text": "c1e1d08040497212",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.title": "75ec02154c0ff9f5",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pendingMessage": "8e13d8a51daceace",
@@ -197,7 +197,7 @@
    "key": "func PaywallView.loadProducts()",
    "hash": "dd94be56de023a9e",
    "does": "debugLogs, awaits storeKit.loadProducts() (fetches the unlock and trial Products; no-op when paywallEnabled is false), debugLogs again.",
-   "entry": ".task on the paywall chrome (line 88)",
+   "entry": ".task on the paywall chrome",
    "calls": [
     "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -577,7 +577,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.bottomCaption(_:)": "ab41e082ae7d0e53",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.trialTermsText(price:)": "fccb9fb9a10f3614",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.trialTermsText(price:)": "38ea0d25f9a8daec",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "18f2d4a9de749468",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialHasEnded": "4a307001a3397101"
    }
@@ -748,7 +748,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.body": "fdf08baf61874e5f",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body": "763f75757225cbd8"
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body": "4f1540290cd3bf6d"
    }
   },
   {
@@ -780,7 +780,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.dismissTermsToolbarItem": "42b9df66ddb0e094",
-    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.body": "4c2b390051995b8b"
+    "Emuqu/Sources/Views/TermsOfUseView.swift::var TermsOfUseView.body": "12986d8908dc62eb"
    }
   },
   {
@@ -812,7 +812,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.dismissPrivacyToolbarItem": "c08952791bf18544",
-    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body": "29788e8ebfaf0c70"
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.body": "1c6319b3cae061db"
    }
   },
   {
@@ -905,9 +905,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.startTrial()": "9349fff6c3335b4d",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.startTrial()": "34c6915a931d2c0b",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButtonLabel": "9030ea5f3e29d12e",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "3280cd33e9388361",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
@@ -930,7 +930,7 @@
    "key": "func PaywallView.purchaseAndLeave()",
    "hash": "6e5ec84eba552fda",
    "does": "Awaits storeKit.purchase() and dismisses the paywall if a purchase is now recorded.",
-   "entry": "purchaseButton tap (line 529)",
+   "entry": "purchaseButton tap",
    "calls": [
     "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()"
    ],
@@ -944,9 +944,9 @@
     "mem:StoreKitManager.isPurchased",
     "mem:StoreKitManager.hasPurchasedProduct",
     "net:App Store (purchase)",
-    "ud:storekit.lastKnownPurchased (StoreKitManager.apply, StoreKitManager.swift:445)",
+    "ud:storekit.lastKnownPurchased (StoreKitManager.apply, StoreKitManager.swift)",
     "mem:StoreKitManager.hasTrialTransaction",
-    "ud:entitlement.anchor.v1 + kc:EntitlementAnchor record (adoptStoreTrialStart -> EntitlementAnchor.persist, EntitlementAnchor.swift:318-321, when the sweep finds a trial start)",
+    "ud:entitlement.anchor.v1 + kc:EntitlementAnchor record (adoptStoreTrialStart -> EntitlementAnchor.persist, EntitlementAnchor.swift, when the sweep finds a trial start)",
     "mem:SettingsManager.settings.trialStartDate (SettingsManager.adoptTrialStart)"
    ],
    "branches": [
@@ -957,14 +957,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "8b7618dd90500267"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "814bbf66e427e6a2"
    }
   },
   {
    "key": "func PaywallView.startTrial()",
    "hash": "7778cefee85ecaf7",
    "does": "Awaits storeKit.startFreeTrial() (buys the $0 trial product) and dismisses if the user now has active access.",
-   "entry": "startTrialButton tap (line 488)",
+   "entry": "startTrialButton tap",
    "calls": [
     "Emuqu/Sources/Services/StoreKitManager.swift::func startFreeTrial()",
     "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess"
@@ -979,9 +979,9 @@
     "mem:StoreKitManager.product",
     "mem:StoreKitManager.trialProduct (loadedTrialProduct reload when nil)",
     "net:App Store (trial purchase)",
-    "ud:storekit.lastKnownPurchased (StoreKitManager.apply, StoreKitManager.swift:445)",
+    "ud:storekit.lastKnownPurchased (StoreKitManager.apply, StoreKitManager.swift)",
     "mem:StoreKitManager.hasTrialTransaction",
-    "ud:entitlement.anchor.v1 + kc:EntitlementAnchor record (adoptStoreTrialStart -> EntitlementAnchor.persist, EntitlementAnchor.swift:318-321, when the sweep finds a trial start)",
+    "ud:entitlement.anchor.v1 + kc:EntitlementAnchor record (adoptStoreTrialStart -> EntitlementAnchor.persist, EntitlementAnchor.swift, when the sweep finds a trial start)",
     "mem:SettingsManager.settings.trialStartDate (SettingsManager.adoptTrialStart)"
    ],
    "branches": [
@@ -992,7 +992,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func startFreeTrial()": "afe1230dd9809cdc",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func startFreeTrial()": "f198baffe5efa775",
     "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "0c542716ce6a23c7"
    }
   },
@@ -1020,7 +1020,7 @@
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.continueWithAccessButton": "053a65bc43b7654b",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersUnlock": "88468d8a9c89e402",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButton": "8361231da4bb29a2",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.restoreButton": "9a9295259e4d26e6"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.restoreButton": "4cc6a32c3fb1b75c"
    }
   },
   {
@@ -1048,10 +1048,10 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.purchaseAndLeave()": "59630815637fc653",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.purchaseAndLeave()": "057efb661b4e4f78",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "18f2d4a9de749468",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtonLabel": "f717b787ec249d7a",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "d415f592739ab39a",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "3280cd33e9388361",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "140811f9fa591035"
    }
@@ -1104,9 +1104,9 @@
     "mem:StoreKitManager.isPurchased",
     "mem:StoreKitManager.hasPurchasedProduct",
     "net:App Store (AppStore.sync)",
-    "ud:storekit.lastKnownPurchased (StoreKitManager.apply, StoreKitManager.swift:445)",
+    "ud:storekit.lastKnownPurchased (StoreKitManager.apply, StoreKitManager.swift)",
     "mem:StoreKitManager.hasTrialTransaction",
-    "ud:entitlement.anchor.v1 + kc:EntitlementAnchor record (adoptStoreTrialStart -> EntitlementAnchor.persist, EntitlementAnchor.swift:318-321, when the sweep finds a trial start)",
+    "ud:entitlement.anchor.v1 + kc:EntitlementAnchor record (adoptStoreTrialStart -> EntitlementAnchor.persist, EntitlementAnchor.swift, when the sweep finds a trial start)",
     "mem:SettingsManager.settings.trialStartDate (SettingsManager.adoptTrialStart)"
    ],
    "branches": [],
@@ -1223,7 +1223,7 @@
   {
    "key": "func PaywallView.trialTermsText(price:)",
    "hash": "0ed365150a3c9388",
-   "does": "Localized trial terms with TrialPolicy.durationDays (30, EntitlementAnchor.swift:460) and the unlock price.",
+   "does": "Localized trial terms with TrialPolicy.durationDays (30, EntitlementAnchor.swift) and the unlock price.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -1254,7 +1254,7 @@
    "key": "var PurchaseStatusView.body",
    "hash": "da5d6914ed6092dd",
    "does": "Settings 'Purchase' section with the status row, only when StoreKitManager.paywallEnabled.",
-   "entry": "SwiftUI body; embedded in SettingsView (SettingsView.swift:318)",
+   "entry": "SwiftUI body; embedded in SettingsView (SettingsView.swift)",
    "calls": [
     "Emuqu/Sources/Views/PaywallView.swift::var PurchaseStatusView.purchaseStatusRow",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -1377,8 +1377,8 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.showsTrialClock(hasPermanentAccess:isTrialActive:)": "98de5c90ab9770ce",
     "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentAccess": "71d275bb55330c5c",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var isTrialActive": "225bcd4fa8d3d525",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var trialDaysRemaining": "05d8a0b6c96fd72d",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isTrialActive": "752c545c3f1eb711",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialDaysRemaining": "692555a0796521f6",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   }

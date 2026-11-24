@@ -4,7 +4,7 @@
  "role": "Maintainer's orientation map of the Emuqu repo: product summary, layer diagram, directory/file map, core models, end-to-end flows, subsystem index, cross-cutting concerns, build/CI/tooling, runbooks, glossary. Its file counts are policed by scripts/check_doc_file_counts.sh (15% tolerance).",
  "types": [],
  "state": [],
- "toplevel": "Markdown only. File counts written as '(~N files)' / '(N files)' are parsed and compared to the tree by scripts/check_doc_file_counts.sh (run in ci.yml:308); links are checked by scripts/check_doc_links.sh (ci.yml:184).",
+ "toplevel": "Markdown only. File counts written as '(~N files)' / '(N files)' are parsed and compared to the tree by scripts/check_doc_file_counts.sh (run in ci.yml); links are checked by scripts/check_doc_links.sh (ci.yml).",
  "units": [
   {
    "key": "§ Emuqu — Maintainer's Guide",
@@ -53,7 +53,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 1. What Emuqu is",
    "hash": "0fd1b1c416c80ab8",
-   "does": "Claims: @main is enum EmuquMain in Emuqu/EmuquApp.swift running pre-launch hooks then EmuquApp (verified EmuquApp.swift:869-871); MARKETING_VERSION 1.0, CURRENT_PROJECT_VERSION 3, bundle id com.chrissharp.flowrecovery (verified project.pbxproj:4833/4843/4844); iOS 17.0 and watchOS 11.6 deployment targets (verified pbxproj:4838/4964); App Group group.com.chrissharp.flowrecovery (verified Emuqu.entitlements:19).",
+   "does": "Claims: @main is enum EmuquMain in Emuqu/EmuquApp.swift running pre-launch hooks then EmuquApp (verified EmuquApp.swift); MARKETING_VERSION 1.0, CURRENT_PROJECT_VERSION 3, bundle id com.chrissharp.flowrecovery (verified project.pbxproj); iOS 17.0 and watchOS 11.6 deployment targets (verified pbxproj:4838/4964); App Group group.com.chrissharp.flowrecovery (verified Emuqu.entitlements).",
    "entry": null,
    "calls": [
     "Emuqu/EmuquApp.swift::func EmuquMain.main()"
@@ -68,7 +68,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 1. What Emuqu is > System context (what talks to what)",
    "hash": "bd554633ec44657e",
-   "does": "Claims a system-context diagram and an owner table: Polar BLE → PolarManager.swift; Stryd/FTMS/PM5 → FootPodManager.swift/Concept2Manager.swift; HealthKit → HealthKitManager.swift; CloudKit → CloudKitSyncManager.swift; Watch → WatchConnectivityBridge.swift; Apple Intelligence → AppleFoundationProvider.swift; cloud LLMs → Assistant/Providers/*Provider.swift; StoreKit 2 lifetime purchase + 30-day $0 trial purchase, paywall on → StoreKitManager.swift/EntitlementAnchor.swift; weather/trails/roads → WeatherService/TrailDiscoveryService/RoadGeocodingService; Tavily → WebSearchService. All named files exist; trial product id com.chrissharp.flowrecovery.trial30day and paywallEnabled = true verified (StoreKitManager.swift:22,138).",
+   "does": "Claims a system-context diagram and an owner table: Polar BLE → PolarManager.swift; Stryd/FTMS/PM5 → FootPodManager.swift/Concept2Manager.swift; HealthKit → HealthKitManager.swift; CloudKit → CloudKitSyncManager.swift; Watch → WatchConnectivityBridge.swift; Apple Intelligence → AppleFoundationProvider.swift; cloud LLMs → Assistant/Providers/*Provider.swift; StoreKit 2 lifetime purchase + 30-day $0 trial purchase, paywall on → StoreKitManager.swift/EntitlementAnchor.swift; weather/trails/roads → WeatherService/TrailDiscoveryService/RoadGeocodingService; Tavily → WebSearchService. All named files exist; trial product id com.chrissharp.flowrecovery.trial30day and paywallEnabled = true verified (StoreKitManager.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
@@ -85,7 +85,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 2. Architecture at a glance",
    "hash": "8a9664fd7463a494",
-   "does": "Claims: one iOS target, one watchOS target, two test targets; no backend and nothing sent to the developer; lists every network destination (user-consented cloud AI providers, Tavily, Anthropic server-side web search, MET Norway at ~1 km rounding, Overpass/OSM, Apple geocoder and MKLocalSearch, OpenTopoData, Hugging Face WhisperKit download, CloudKit (off by default, encrypted on device, Apple Health data excluded), Apple server speech recognizer, StoreKit). The CloudKit Health-data exclusion is implemented by CloudSessionPayload.uploadable (CloudKitSyncSupport.swift:564-581); the no-developer-endpoint claim is policed by scripts/check_no_developer_endpoint.sh (ci.yml:177). Individual endpoints other than CloudKit were not traced here.",
+   "does": "Claims: one iOS target, one watchOS target, two test targets; no backend and nothing sent to the developer; lists every network destination (user-consented cloud AI providers, Tavily, Anthropic server-side web search, MET Norway at ~1 km rounding, Overpass/OSM, Apple geocoder and MKLocalSearch, OpenTopoData, Hugging Face WhisperKit download, CloudKit (off by default, encrypted on device, Apple Health data excluded), Apple server speech recognizer, StoreKit). The CloudKit Health-data exclusion is implemented by CloudSessionPayload.uploadable (CloudKitSyncSupport.swift); the no-developer-endpoint claim is policed by scripts/check_no_developer_endpoint.sh (ci.yml). Individual endpoints other than CloudKit were not traced here.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)"
@@ -123,13 +123,13 @@
     "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.annotate(_:archive:)": "9d7c347586e27bec",
     "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::init AssistantContextSource()": "fed18644c746a69f",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "161dc2ff7b10dee3",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)": "b9c613af80e4eebd",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.armSessionStateMirrorObservation()": "adf60dca1f356db7",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.setupBindings()": "9e8477a00022ab2f",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "66ead1532c972b74",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "be1e45efca604118",
-    "Makefile::target doc-counts-guard": "81cc0795ce562bec"
+    "Makefile::target doc-counts-guard": "19be949df3dbfe60"
    }
   },
   {
@@ -152,7 +152,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 2. Architecture at a glance > The five tabs (navigation spine)",
    "hash": "1428ba305550d1b7",
-   "does": "Claims MainTabView.Tab has five live cases dashboard/record/fitness/coach(label Flo)/more with roots DashboardV2View/RecordView/FitnessTabView/CoachHomeV2View/MoreMenuView, Fitness and Flo tabs can be hidden, and retired cases assistant/history/trends/settings remain for deep-link routing. Verified MainTabView.swift:134-146 (rawValues Dashboard/Record/Fitness/Flo/More plus Assistant/History/Trends/Settings).",
+   "does": "Claims MainTabView.Tab has five live cases dashboard/record/fitness/coach(label Flo)/more with roots DashboardV2View/RecordView/FitnessTabView/CoachHomeV2View/MoreMenuView, Fitness and Flo tabs can be hidden, and retired cases assistant/history/trends/settings remain for deep-link routing. Verified MainTabView.swift (rawValues Dashboard/Record/Fitness/Flo/More plus Assistant/History/Trends/Settings).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.body",
@@ -180,7 +180,7 @@
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "13438c24dcea9cc9",
-    "Makefile::target spec-conformance": "76fac68887ff9527"
+    "Makefile::target spec-conformance": "220ba9761974f8a6"
    }
   },
   {
@@ -214,7 +214,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 3. Code-design philosophy > Conventions you will see everywhere (so you can pattern-match)",
    "hash": "e63d691a6278936e",
-   "does": "Claims conventions: extension file-splitting for big types; Constants.swift namespaced enums (RecoveryScoreConstants, ScoringWeights, FeatureFlags); AppTheme in Theme.swift; per-screen recentSessionsAsync refresh tasks; views observe collector sub-objects because RRCollector publishes nothing; FeatureFlags kill switches; nil + missingReason envelopes; sortedKeys JSON for tool schemas. FeatureFlags is actually declared in Constants+SleepAndDisplay.swift:422 (a final class, not an enum in Constants.swift).",
+   "does": "Claims conventions: extension file-splitting for big types; Constants.swift namespaced enums (RecoveryScoreConstants, ScoringWeights, FeatureFlags); AppTheme in Theme.swift; per-screen recentSessionsAsync refresh tasks; views observe collector sub-objects because RRCollector publishes nothing; FeatureFlags kill switches; nil + missingReason envelopes; sortedKeys JSON for tool schemas. FeatureFlags is actually declared in Constants+SleepAndDisplay.swift (a final class, not an enum in Constants.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)",
@@ -248,8 +248,8 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "336e7a9de9707672",
     ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "13438c24dcea9cc9",
-    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
-    "Makefile::target spec-conformance": "76fac68887ff9527",
+    "Makefile::target budget-monotonicity": "3f2b4858f1a3dead",
+    "Makefile::target spec-conformance": "220ba9761974f8a6",
     "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66",
     "scripts/check_refactor_spec_conformance.sh::fn over": "341bf1022cffa220",
     "scripts/check_refactor_spec_conformance.sh::fn read_budget": "86fc96319d6851a0"
@@ -269,7 +269,7 @@
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "a1053db502266300",
-    "Makefile::target doc-links": "4731861b7121254e"
+    "Makefile::target doc-links": "ce4a52f284444e24"
    }
   },
   {
@@ -297,7 +297,7 @@
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Documented file counts match the tree": "42e852ed3bb188e8",
-    "Makefile::target doc-counts-guard": "81cc0795ce562bec"
+    "Makefile::target doc-counts-guard": "19be949df3dbfe60"
    }
   },
   {
@@ -313,8 +313,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".githooks/pre-commit::fn fail": "29cfd9e1cadbdba1",
-    "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b"
+    ".githooks/pre-commit::fn fail": "4ec1709ea1471bb7",
+    "Tools/copy_linter/lint.py::def main": "dd12888862011cc6"
    }
   },
   {
@@ -490,26 +490,26 @@
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightScore(inEntries:calendar:)": "ba95a5cd73a92909",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "bf5d46125beaa0ed",
     "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "a3b9630f2b36647a",
-    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.displayLabel": "9d01c7943a101868",
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.displayLabel": "11bf42c62fe883ad",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.isPhysiologicallyValid": "0d121ed7a4c16aee",
     "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "e226df4b619cd0ca",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "f9797bf1cd911e58",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.word": "7113ebad78dd0cba",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.word": "d9a7a23b7f2a1752",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:seal:)": "89d436bdca3f9309",
-    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager()": "daadcd0f53a009c3",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager()": "fb968a6fdff65fca",
     "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)": "ede9ffb941ebbf43",
     "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "e04a40813a53feb6",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51",
-    "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift::var WorkoutAnalysisSnapshot.needsRebuild": "ef26992659ba790b",
+    "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift::var WorkoutAnalysisSnapshot.needsRebuild": "93a296bf7dfc4a23",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "6f839942402cc192",
-    "Makefile::target doc-counts-guard": "81cc0795ce562bec"
+    "Makefile::target doc-counts-guard": "19be949df3dbfe60"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.6b `Emuqu/Sources/Models/SleepSchedule.swift`",
    "hash": "d0d6c3a761a72ab2",
-   "does": "Claims SleepSchedule.swift (kept separate from UserSettings.swift to hold that file under the 1,500-line budget) owns derived sleep times as pure functions, and that AcquisitionPureLogicTests pins the daytime-HR window running forward from wake to bedtime (else the HKQuery predicate matches nothing). Current code: daytimeHRStart = last wake before overnightWindowStart + 4 h; daytimeHREnd = overnightWindowStart + 1 h (SleepSchedule.swift:112-120), so start precedes end for ordinary schedules; AcquisitionPureLogicTests.swift exists.",
+   "does": "Claims SleepSchedule.swift (kept separate from UserSettings.swift to hold that file under the 1,500-line budget) owns derived sleep times as pure functions, and that AcquisitionPureLogicTests pins the daytime-HR window running forward from wake to bedtime (else the HKQuery predicate matches nothing). Current code: daytimeHRStart = last wake before overnightWindowStart + 4 h; daytimeHREnd = overnightWindowStart + 1 h (SleepSchedule.swift), so start precedes end for ordinary schedules; AcquisitionPureLogicTests.swift exists.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeHRStart(relativeTo:)",
@@ -568,17 +568,17 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Documented file counts match the tree": "42e852ed3bb188e8",
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash": "641cca446688e09e",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.hasPreviousCrash": "a6b9b2d47e59d1d0",
     "Emuqu/Sources/Utilities/DebugLog.swift::init DebugLogger()": "2f65eb8a92ad3e2f",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
     "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "c991ffd8e3975e6f",
     "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.install()": "1fc7b317584f17cb",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "bd45a05be7ff4704",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()": "c15f55dd92f347d8",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)": "4476c41e93b017fe",
     "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "9253edd1b85f1ce3",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.install()": "4023e8c2ad706c16",
-    "Makefile::target doc-counts-guard": "81cc0795ce562bec"
+    "Makefile::target doc-counts-guard": "19be949df3dbfe60"
    }
   },
   {
@@ -655,7 +655,7 @@
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.paywallModal()": "63a78b8bf3186b01",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.presentLaunchModal()": "f00256b018d4aad6",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runDeferredBoot()": "24bb139a2c4ecb6c",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "e6acb9353a76f87b",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "97e201d0d436e2fd",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetPath(from:to:)": "f7e631498f909e01"
    }
   },
@@ -750,9 +750,9 @@
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "f61db63d73e6b0a7",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "cd6403f788fa4edb",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.netMETs(_:)": "7a61cfddd41f146e",
-    "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift::func WorkoutRecorder.finalizeSession(rrPoints:stopDate:hrrSamples:)": "1e3e4431c984daf6",
+    "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift::func WorkoutRecorder.finalizeSession(rrPoints:stopDate:hrrSamples:)": "fedb3bef20b7e038",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "a7d5cc61801af2cf",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "5c15b4a33c0ef2e6",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "4d34469069a6ad4b",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "f56389b765313440",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "ce818f1d27dc80fe",
@@ -808,8 +808,8 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.resolveProviderForThisTurn()": "23ca3517bef7efb1",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.dispatch(regenerating:)": "74238d879bcd0903",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "20d2e837dc8e8c64",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "1d32d561b3768746",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "d023d80a71049fad"
    }
   },
   {
@@ -844,7 +844,7 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2",
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.beginPurge()": "2ab1219114a4f254",
-    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "533489add6f1c58a",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "e2b15f19b0bc66b6",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.applyAttribution(to:generation:)": "c50b80e12055f68c",
@@ -875,7 +875,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 8. Subsystem reference > 8.1 Recording & analysis",
    "hash": "be0a32cbf873395b",
-   "does": "Claims recording/analysis ownership and contracts: window selection over 30-70% of actual sleep (WindowSelection+Scoring.swift:54-57), scores freeze at morning measurement, all magic numbers in Constants+RecoveryScore.swift.",
+   "does": "Claims recording/analysis ownership and contracts: window selection over 30-70% of actual sleep (WindowSelection+Scoring.swift), scores freeze at morning measurement, all magic numbers in Constants+RecoveryScore.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
@@ -892,7 +892,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 8. Subsystem reference > 8.2 Workout & training load",
    "hash": "e76ec8dffa904ac0",
-   "does": "Claims workout/training-load ownership and contracts: Banister TRIMP sex-dependent and never applies male coefficients to female users (female coefficients used when biologicalSex == .female, HealthDataTypes.swift:384-391; an unset sex gets male values); power-TSS only with a power source and FTP (readTimePowerTSS returns nil without FTP, TrainingLoadPrecedence.swift:101-110); elevation barometric.",
+   "does": "Claims workout/training-load ownership and contracts: Banister TRIMP sex-dependent and never applies male coefficients to female users (female coefficients used when biologicalSex == .female, HealthDataTypes.swift; an unset sex gets male values); power-TSS only with a power source and FTP (readTimePowerTSS returns nil without FTP, TrainingLoadPrecedence.swift); elevation barometric.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.banisterIntensityFactor(hrReserve:)",
@@ -926,7 +926,7 @@
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHR(rrPoints:recordingStart:)": "9a2ca7bd234f3585",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "4f58afe1cb801516",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "dd8baa8be271270b"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "e3be72064ae6ecd1"
    }
   },
   {
@@ -997,7 +997,7 @@
    "deps": {
     "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)": "5e2282d2c0cf5298",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchSendTimeoutBreaker.isOpen(at:)": "e41941deed03eb57",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "a5ec0a0a99759886",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "afd0b2e19cca6419",
     "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.handleActiveWorkoutRecovery()": "3b489de6a153b88a",
     "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.wire(to:)": "c0e138e8e407652b",
     "EmuquWatch Watch App/WatchApp.swift::var WatchApp.body": "0a197b1e78defaae",
@@ -1039,7 +1039,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.1 Concurrency & the `RRCollector` sub-object model",
    "hash": "b2139cb6e15bcdb0",
-   "does": "Claims RRCollector is decomposed into five @MainActor sub-objects (ArchiveSignal, DeviceStatus, SessionState, StreamingLifecycle, MorningCoordination) injected into the environment (EmuquApp.swift:311-315); every observable type is @Observable with legacy_observable_object_budget at 0 (.ci file value 0); code that reacts to a property change (device-status proxies, HealthKit version counters, voice streaming observers, workout strap/HR subscriptions, history filter debounce) uses ObservationLoop.observe.",
+   "does": "Claims RRCollector is decomposed into five @MainActor sub-objects (ArchiveSignal, DeviceStatus, SessionState, StreamingLifecycle, MorningCoordination) injected into the environment (EmuquApp.swift); every observable type is @Observable with legacy_observable_object_budget at 0 (.ci file value 0); code that reacts to a property change (device-status proxies, HealthKit version counters, voice streaming observers, workout strap/HR subscriptions, history filter debounce) uses ObservationLoop.observe.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
@@ -1056,7 +1056,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.2 Localization",
    "hash": "5a03bf083595183e",
-   "does": "Claims localization: Localizable.xcstrings with 17 locales (verified: ar, da, de, en, es, fi, fr, is, it, ja, ko, nb, nl, pt-BR, ru, sv, zh-Hans); LanguageManager swaps locale + bundle, posts languageDidChangeNotification (LanguageManager.swift:42,135) and exposes a nonisolated revision (:80); NarrativeLanguage assembles runtime narrative.",
+   "does": "Claims localization: Localizable.xcstrings with 17 locales (verified: ar, da, de, en, es, fi, fr, is, it, ja, ko, nb, nl, pt-BR, ru, sv, zh-Hans); LanguageManager swaps locale + bundle, posts languageDidChangeNotification (LanguageManager.swift) and exposes a nonisolated revision; NarrativeLanguage assembles runtime narrative.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)",
@@ -1073,7 +1073,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.3 Theming & accessibility",
    "hash": "3864da4e640d0d4c",
-   "does": "Claims Theme.swift holds a single enum AppTheme (verified Theme.swift:5), Wong-2011 palette, and LocalizationSmokeUITests + AccessibilityUITests gates (both files exist in EmuquUITests/).",
+   "does": "Claims Theme.swift holds a single enum AppTheme (verified Theme.swift), Wong-2011 palette, and LocalizationSmokeUITests + AccessibilityUITests gates (both files exist in EmuquUITests/).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme",
@@ -1106,7 +1106,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.4 Dependency injection & testing seams",
    "hash": "38bb3ee8d9a38123",
-   "does": "Claims no DI framework; AppDependencies is the composition root with RRCollector.makeDefault wiring the collector; HealthKitServiceProtocol is the one live protocol; AppDependencies groups app/analysis/assistant/collection/location/providers/services/storage (verified AppDependencies.swift:32-39), resolves lazily, exposes a read-only current, overrides and the test-only install(_:) whose scope restores the previous container in teardown; views read @Environment(\\.dependencies), static helpers current, and the launch work and DataPurgeService are handed launchServices and purgeStores and read no container; check_explicit_dependencies.sh keeps install out of app code; .shared read only in the root (check_no_shared_outside_root.sh).",
+   "does": "Claims no DI framework; AppDependencies is the composition root with RRCollector.makeDefault wiring the collector; HealthKitServiceProtocol is the one live protocol; AppDependencies groups app/analysis/assistant/collection/location/providers/services/storage (verified AppDependencies.swift), resolves lazily, exposes a read-only current, overrides and the test-only install(_:) whose scope restores the previous container in teardown; views read @Environment(\\.dependencies), static helpers current, and the launch work and DataPurgeService are handed launchServices and purgeStores and read no container; check_explicit_dependencies.sh keeps install out of app code; .shared read only in the root (check_no_shared_outside_root.sh).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)",
@@ -1127,13 +1127,13 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.launchServices": "dd94a37f42767d6e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores": "4aef152a558c87c5",
-    "Makefile::target explicit-deps-guard": "f839113f5d8e6bda"
+    "Makefile::target explicit-deps-guard": "306321566755ecf4"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.5 Feature flags & kill switches",
    "hash": "e16ac3eb2481a3a6",
-   "does": "Claims FeatureFlags in Constants+SleepAndDisplay.swift holds per-provider AI kill switches and per-feature switches (Beat Consistency), persisted in the app-group defaults with no remote config; provider switches are toggles in Settings → Flo. Verified: FeatureFlags suite = AppConfig.appGroupIdentifier (Constants+SleepAndDisplay.swift:425), keys medicalGuardEnabled/provider*Enabled/beatConsistencyCardEnabled all default true, toggles in AIAssistantSettingsPage.swift:40-68, ProviderRegistry reads them (ProviderRegistry.swift:187).",
+   "does": "Claims FeatureFlags in Constants+SleepAndDisplay.swift holds per-provider AI kill switches and per-feature switches (Beat Consistency), persisted in the app-group defaults with no remote config; provider switches are toggles in Settings → Flo. Verified: FeatureFlags suite = AppConfig.appGroupIdentifier (Constants+SleepAndDisplay.swift), keys medicalGuardEnabled/provider*Enabled/beatConsistencyCardEnabled all default true, toggles in AIAssistantSettingsPage.swift, ProviderRegistry reads them (ProviderRegistry.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)",
@@ -1149,8 +1149,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.5a Paywall, trial, and beta grandfathering",
-   "hash": "bad567f30d22046b",
-   "does": "Claims paywallEnabled = true; lifetime non-consumable + $0 30-day trial non-consumable com.chrissharp.flowrecovery.trial30day; four bypasses (purchase, grandfathered beta tester on a verified production install, developer install, active trial) in hasAccess; anchor written only by the history check and migrateLegacyTestFlightFlag; no grant from a cached build-type flag (it can survive a TestFlight → App Store upgrade); isDeveloperInstall never writes the anchor; testPaywall* UI tests use -UITests-ForcePaywall (UITestLaunchArguments.forcesPaywall), which the gate honours. prepareEntitlementGate calls migrateLegacyTestFlightFlag and grandfatherExistingUserIfNeeded.",
+   "hash": "29e957a72eee2f38",
+   "does": "Claims paywallEnabled = true; lifetime non-consumable + $0 30-day trial non-consumable com.chrissharp.flowrecovery.trial30day; four bypasses (purchase, grandfathered beta tester on a verified production install, developer install, active trial) in hasAccess; the anchor's grant written only by the history check and migrateLegacyTestFlightFlag, the anchor also keeping the App Store trial start, which runs the trial clock and grants nothing more; no grant from a cached build-type flag (it can survive a TestFlight → App Store upgrade); isDeveloperInstall never writes the anchor; testPaywall* UI tests use -UITests-ForcePaywall (UITestLaunchArguments.forcesPaywall), which the gate honours. prepareEntitlementGate calls migrateLegacyTestFlightFlag and grandfatherExistingUserIfNeeded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/AppLaunchTasks.swift::var EmuquApp.hasAccess",
@@ -1168,11 +1168,11 @@
    "deps": {
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.paywallModal()": "63a78b8bf3186b01",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.prepareEntitlementGate()": "c9f8421fce9815b2",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::var EmuquApp.hasAccess": "0562037118d85c46",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::var EmuquApp.hasAccess": "67f36ec0ab6c63bf",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "4d7efcd4ad0fd486",
     "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)": "af8cc76eea12b046",
     "Emuqu/Sources/Services/StoreKitManager.swift::func grandfatherExistingUserIfNeeded(hasHistory:now:)": "d1a8bba6258c08c1",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now:)": "56ae12379090a5d7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now:)": "3a7fc6f9d4c0fa31",
     "Emuqu/Sources/Services/StoreKitManager.swift::var isGrandfatheredBetaTester": "c77e518303e9898e"
    }
   },
@@ -1227,7 +1227,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "17e2087064119470",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "212ef74d72560eb7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "d1429c6c4a511fa8",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "fa5e4ee2a83fe2df",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "08324bd52931b06a",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
@@ -1235,7 +1235,7 @@
     "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "7bf0551ca86415fb",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)": "cf774c1bba4c4382",
-    "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b"
+    "Tools/copy_linter/lint.py::def main": "dd12888862011cc6"
    }
   },
   {
@@ -1281,24 +1281,24 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
+    "Makefile::target budget-monotonicity": "3f2b4858f1a3dead",
     "Makefile::target ci": "cf2e840175bcfc4b",
     "Makefile::target ci-local": "e2b0391dda4db254",
     "Makefile::target ci-local-unit": "8e51d93d38811f72",
     "Makefile::target codemap-guard": "31a759d3fd34483c",
     "Makefile::target codemap-impact": "03eba22ded671ba7",
     "Makefile::target codemap-report": "fa3a55e61f6b2688",
-    "Makefile::target debt-budget": "107274ad82f7d924",
-    "Makefile::target fixed-font-budget": "85a3e2b2bff351e6",
+    "Makefile::target debt-budget": "1fdd61e80c5baaa9",
+    "Makefile::target fixed-font-budget": "333c21c8aad1f784",
     "Makefile::target format": "6be525b65224f5f8",
-    "Makefile::target lint": "cc79eff098f91f28",
-    "Makefile::target localization-bundle-guard": "8c4bb22083c7e7be",
-    "Makefile::target localization-resolution-guard": "2767f94176460d10",
+    "Makefile::target lint": "3d3535bfb7eb0250",
+    "Makefile::target localization-bundle-guard": "72b0bebd70642f80",
+    "Makefile::target localization-resolution-guard": "27094b6da01abf77",
     "Makefile::target setup-hooks": "4bd20d645743a401",
-    "Makefile::target skip-budget": "7ba8b35e95605b09",
+    "Makefile::target skip-budget": "8c7094d327bfca43",
     "Makefile::target test": "656a3859b904cacc",
-    "Makefile::target test-coverage": "2f52b6f381055f27",
-    "Makefile::target uitest-reset-guard": "368e1ce40cd6fbc2",
+    "Makefile::target test-coverage": "c1919f9fcb7887a7",
+    "Makefile::target uitest-reset-guard": "23a3eef61e21563c",
     "scripts/evidence_report.sh::fn budget": "a927bad97b8838e4",
     "scripts/verify_gates_fail.sh::fn check": "628cb3d9d277ffae",
     "scripts/verify_tests_fail.sh::fn mutate": "b17da90a86fc42d2"
@@ -1324,7 +1324,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > The two gates that check the other gates",
    "hash": "fa8f23a299220e1f",
-   "does": "Claims verify_gates_fail.sh plants a violation per gate and requires it to fail; verify_tests_fail.sh mutates production behaviour and requires a named suite to fail; both treat a skip as failure; verify_gates_fail runs in ci.yml ('Gates actually fail', ci.yml:156-160).",
+   "does": "Claims verify_gates_fail.sh plants a violation per gate and requires it to fail; verify_tests_fail.sh mutates production behaviour and requires a named suite to fail; both treat a skip as failure; verify_gates_fail runs in ci.yml ('Gates actually fail', ci.yml).",
    "entry": null,
    "calls": [
     "scripts/verify_gates_fail.sh::fn check",
@@ -1345,7 +1345,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > Decomposing a long view (the remaining `spec_long_properties` budget)",
    "hash": "6acb91fb1bbed529",
-   "does": "Claims spec_long_properties and spec_deep_nesting_properties budgets ratchet (both files now 0); Codable init(from:) in SessionMetadata/WorkoutMetadata carry // spec:long-function waivers counted in spec_justified_long_budget (value 7); lists worked-example files (RecordView+Sections.swift exists) and decomposition traps; stacked_result_builder SwiftLint rule exists (.swiftlint.yml:143); count with scripts/check_refactor_spec_conformance.sh.",
+   "does": "Claims spec_long_properties and spec_deep_nesting_properties budgets ratchet (both files now 0); Codable init(from:) in SessionMetadata/WorkoutMetadata carry // spec:long-function waivers counted in spec_justified_long_budget (value 7); lists worked-example files (RecordView+Sections.swift exists) and decomposition traps; stacked_result_builder SwiftLint rule exists (.swiftlint.yml); count with scripts/check_refactor_spec_conformance.sh.",
    "entry": null,
    "calls": [
     "scripts/check_refactor_spec_conformance.sh::fn measure_spec",
@@ -1355,14 +1355,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target spec-conformance": "76fac68887ff9527",
+    "Makefile::target spec-conformance": "220ba9761974f8a6",
     "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > The code map",
-   "hash": "2eade9a55ba1ef28",
-   "does": "Describes docs/codemap/records (a record per Swift function, initializer, computed property, protocol requirement, script function, Makefile target, workflow step and Markdown section, with what it does, triggers, calls, shared state and branches); the call graph (recorded calls plus calls, property reads, protocol dispatch and closure assignments found in the code); make codemap-impact (callers up to triggers, tests, docs, shared state and its other users; the same list in the gates.yml PR job summary); and make codemap-guard (in make ci, both workflows and the pre-commit hook) failing on a missing or empty record or code changed since stamping, and counting the re-check lines (callee now describes different behaviour, a new certain callee, or a record naming a unit that no longer exists), which codemap.py status lists. Gives the change procedure (impact, change with codemap.py move for a moved file or renamed unit, rewrite, re-check via status --by-callee with ack for an unaffected caller, stamp in one pass once callees' records are written) and says a record with a contract sends its callers back only when the contract changes, with links to codemap/README.md and CLAUDE.md, and states the limits: the guard proves timing, not correctness; without a type checker ambiguous names are possible callers and only certain edges trigger re-checks. Every claim matches codemap.py, graph.py and the workflows.",
+   "hash": "6705984cad6c5014",
+   "does": "Describes docs/codemap/records (a record per Swift function, initializer, computed property, protocol requirement, script function, Makefile target, workflow step and Markdown section, with what it does, triggers, calls, shared state and branches); the call graph (recorded calls plus calls, property reads, protocol dispatch and closure assignments found in the code); make codemap-impact (callers up to triggers, tests, docs, shared state and its other users; the same list in the gates.yml PR job summary); and make codemap-guard (in make ci, both workflows and the pre-commit hook) failing on a missing or empty record, code changed since stamping, a re-check line (callee now describes different behaviour, or a new certain callee) until it is re-read and stamped or acknowledged, a record naming a unit that no longer exists, or a record citing a line number; codemap.py status lists every problem. Gives the change procedure (impact, change with codemap.py move for a moved file or renamed unit, rewrite, re-check via status --by-callee with ack for an unaffected caller, stamp in one pass once callees' records are written) and says a record with a contract sends its callers back only when the contract changes, with links to codemap/README.md and CLAUDE.md, and states the limits: the guard proves timing, not correctness; without a type checker ambiguous names are possible callers and only certain edges trigger re-checks. Every claim matches codemap.py, graph.py and the workflows.",
    "entry": null,
    "calls": [
     "Makefile::target codemap-impact",
@@ -1381,13 +1381,13 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Code map is current": "565a5ebd37258062",
     ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request": "db4ba9cd8b1a58cd",
-    ".github/workflows/gates.yml::step script-gates/Code map is current": "816d6727b1d4d826",
+    ".github/workflows/gates.yml::step script-gates/Code map is current": "2f4be6cce93f3d96",
     "Makefile::target codemap-guard": "31a759d3fd34483c",
     "Makefile::target codemap-impact": "03eba22ded671ba7",
     "scripts/codemap/codemap.py::def budget_problems": "4b5252320a3020b3",
     "scripts/codemap/codemap.py::def cmd_impact": "192de9074058712d",
     "scripts/codemap/codemap.py::def dependency_problems": "bd259b7be6811115",
-    "scripts/codemap/graph.py::def build": "e683daa77ef33431"
+    "scripts/codemap/graph.py::def build": "2d1abd55262acfb7"
    }
   },
   {
@@ -1419,7 +1419,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "850dff7c2c40af40",
+    ".github/workflows/ci.yml::job lint-and-budgets": "16ff37e02f061463",
     ".github/workflows/ci.yml::job release-build": "5662b1002f46c0a7",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "495c14a3c33d4d31",
@@ -1427,7 +1427,7 @@
     ".github/workflows/ci.yml::step thread-sanitizer/Unit suite under Thread Sanitizer": "7eee23ecc349ef14",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request": "db4ba9cd8b1a58cd",
-    ".github/workflows/gates.yml::step script-gates/Code map is current": "816d6727b1d4d826",
+    ".github/workflows/gates.yml::step script-gates/Code map is current": "2f4be6cce93f3d96",
     ".github/workflows/performance.yml::job performance-tests": "330868dd344a0c70",
     ".github/workflows/security.yml::job codeql": "64078fc4677fac05",
     ".github/workflows/security.yml::job dependency-review": "f544cc3ea5ca4098",
@@ -1470,20 +1470,20 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.bleSdkFeatureReady(_:feature:)": "28800bced5f5e163",
-    "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.bleSdkFeaturesReadiness(_:ready:unavailable:)": "3229af6d64d1548a",
-    "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.deviceDisconnected(_:info:)": "78e4baef5bd16579",
-    "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.linkLoss(from:)": "350451747f2cf471",
+    "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.bleSdkFeatureReady(_:feature:)": "e6526a480b414e82",
+    "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.bleSdkFeaturesReadiness(_:ready:unavailable:)": "9b2b0c12822ff20a",
+    "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.deviceDisconnected(_:info:)": "01e733db81b3cf09",
+    "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.linkLoss(from:)": "d85d33142fde1d2e",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.h10RecordingStatus(api:deviceId:)": "1f312152e6e8f3ff",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listStoredExercises(api:deviceId:)": "256f2264a9380fec",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.veritySenseRecordingStatus(api:deviceId:)": "f21e7866842bc8a7",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "4cddd723f0a007db",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "071b0f3fb0e388bc",
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.openAndDrain(kind:manager:)": "10426a03860f3a98",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitUsable(_:until:while:)": "089911e485fd75dc",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "0b1693c797f384fb",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "8525452f150f3da7",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pairingLost(reason:wasStreaming:)": "d9a67bd0e5e85d0b",
-    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.listExercises(_:)": "d81a7f8a50839a68",
-    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.requestRecordingStatus(_:)": "c91f2f8c211c185a",
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.listExercises(_:)": "d4379f3334b93c52",
+    "Emuqu/Sources/Collection/StrapRadio.swift::func StrapAPI.requestRecordingStatus(_:)": "2348d23bc6f2e7bb",
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "0f292fcd0854ad9c",
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)": "9c600d4a0e709aeb",
     "EmuquTests/StreamForwardingTests.swift::func StreamForwardingTests.testAStreamFailureIsReportedAfterTheSamplesBeforeIt()": "dd741114bc79e5a0",
@@ -1601,7 +1601,7 @@
   {
    "key": "§ Emuqu — Maintainer's Guide > 13. Keeping this document current",
    "hash": "45d2519cdb7d08dd",
-   "does": "No behavioural claim: rules for keeping this map current (code wins, link not duplicate, what to update per change (including, for any change to code, scripts, workflows or docs, its code-map records, which the CI guard lists), anchors drift); says this doc is linked from README and the REFACTOR_SPEC header (both links present: README.md:259, REFACTOR_SPEC.md:12).",
+   "does": "No behavioural claim: rules for keeping this map current (code wins, link not duplicate, what to update per change (including, for any change to code, scripts, workflows or docs, its code-map records, which the CI guard lists), anchors drift); says this doc is linked from README and the REFACTOR_SPEC header (both links present: README.md, REFACTOR_SPEC.md).",
    "entry": null,
    "calls": [
     "Makefile::target doc-counts-guard",
@@ -1617,8 +1617,8 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Documentation links and constants": "a1053db502266300",
     ".github/workflows/ci.yml::step lint-and-budgets/Documented file counts match the tree": "42e852ed3bb188e8",
     "Makefile::target codemap-guard": "31a759d3fd34483c",
-    "Makefile::target doc-counts-guard": "81cc0795ce562bec",
-    "Makefile::target doc-links": "4731861b7121254e"
+    "Makefile::target doc-counts-guard": "19be949df3dbfe60",
+    "Makefile::target doc-links": "ce4a52f284444e24"
    }
   }
  ],

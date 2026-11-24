@@ -21,7 +21,7 @@
    "key": "init KeyboardPerfSignpost()",
    "hash": "9cf85a91352eebfe",
    "does": "Private init: installs keyboard/text-field notification observers.",
-   "entry": "Lazy init of KeyboardPerfSignpost.shared via AppDependencies.swift:437",
+   "entry": "Lazy init of KeyboardPerfSignpost.shared via AppDependencies.swift",
    "calls": [
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.installNotificationObservers()"
    ],
@@ -36,7 +36,7 @@
    "key": "func KeyboardPerfSignpost.event(_:)",
    "hash": "fa26db3b329a58a9",
    "does": "Emits an os_signpost event and records it if a capture is running.",
-   "entry": "SwiftUI body probes (e.g. MainTabView.swift:205) and heartbeat timer",
+   "entry": "SwiftUI body probes (e.g. MainTabView.swift) and heartbeat timer",
    "calls": [
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.record(name:kind:durationNs:detail:)",
     "ext:os_signpost"
@@ -90,7 +90,7 @@
    "key": "func KeyboardPerfSignpost.currentEventCount()",
    "hash": "12e1d377876a5f85",
    "does": "Returns events.count read synchronously on the capture queue.",
-   "entry": "KeyboardCaptureView body (KeyboardCaptureView.swift:83)",
+   "entry": "KeyboardCaptureView body (KeyboardCaptureView.swift)",
    "calls": [],
    "reads": [
     "mem:KeyboardPerfSignpost.events"
@@ -103,7 +103,7 @@
    "key": "func KeyboardPerfSignpost.startCapture()",
    "hash": "2abd816735e403ef",
    "does": "Starts a capture on the queue; if started, publishes isCapturing/captureStartedAt and installs the heartbeat on the main actor; returns whether it started.",
-   "entry": "KeyboardCaptureView start action (KeyboardCaptureView.swift:156)",
+   "entry": "KeyboardCaptureView start action (KeyboardCaptureView.swift)",
    "calls": [
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.beginCaptureLocked()",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.installHeartbeat()"
@@ -170,7 +170,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "bd45a05be7ff4704"
    }
   },
   {
@@ -238,7 +238,7 @@
    "key": "func KeyboardPerfSignpost.stopCaptureAndExportTrace()",
    "hash": "ea8b5c23e7a6b2ea",
    "does": "Stops the capture (finishCapture), writes the events as a JSONL trace whose header carries the capture's own start time, and publishes lastTraceURL/lastTraceEventCount on main; nil when nothing was captured or the write fails.",
-   "entry": "KeyboardCaptureView stop (KeyboardCaptureView.swift:161) and autoStop",
+   "entry": "KeyboardCaptureView stop (KeyboardCaptureView.swift) and autoStop",
    "calls": [
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.finishCapture()",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.writeTrace(entries:startedAt:)"
@@ -278,7 +278,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCaptureAndExportTrace()": "b223e95bdbfa8a4d"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCaptureAndExportTrace()": "add94a814f39faa3"
    }
   },
   {

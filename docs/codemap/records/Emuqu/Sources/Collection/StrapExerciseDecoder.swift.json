@@ -17,7 +17,7 @@
    "key": "func StrapExerciseDecoder.exerciseId(at:timeZone:)",
    "hash": "3586dafb5d1bc66b",
    "does": "Formats `date` as a 14-digit yyyyMMddHHmmss id used as the H10 exercise id, in `timeZone` when given, else in the current zone, whose offset from GMT at `date` is then remembered for the id (rememberOffset) so the id reads back as that instant.",
-   "entry": "Called from PolarManager+Recording.swift:196 when arming the H10; tests StrapExerciseDecoderTests and strap flow tests.",
+   "entry": "Called from PolarManager+Recording.swift when arming the H10; tests StrapExerciseDecoderTests and strap flow tests.",
    "calls": [
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseIdFormatter(timeZone:)",
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rememberOffset(_:forId:)"
@@ -42,7 +42,7 @@
    "key": "func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)",
    "hash": "eb24a40e9cacf15d",
    "does": "Parses a 14-digit all-numeric id back into the recording start Date: in `timeZone` when given, else at the offset the id was written at when remembered, or the zone an earlier version remembered for it (writtenZone), else the current zone; nil for any other id. A phone that changed zone or DST offset between arming and download, or armed in the hour a DST fall-back repeats, reads back the real start.",
-   "entry": "Called from PolarManager+Recording.swift:181,403, StrapRecordingCoordinator+Transfer.swift:239,447, and newestRecording.",
+   "entry": "Called from PolarManager+Recording.swift, StrapRecordingCoordinator+Transfer.swift, and newestRecording.",
    "calls": [
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseIdFormatter(timeZone:)",
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.writtenZone(forId:)"
@@ -129,7 +129,7 @@
    "key": "func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)",
    "hash": "1989c7b56419301a",
    "does": "Picks the entry whose id-encoded start is latest (each id read in `timeZone` when given, else its remembered zone, else the current one); with notBefore nil falls back to the first listed entry when none is dated; with notBefore returns the latest dated entry starting at or after notBefore−2 s, or nil.",
-   "entry": "Called from PolarManager+Recording.swift:402 (notBefore nil) and StrapRecordingCoordinator+Transfer.swift:469 (notBefore = recordedSince).",
+   "entry": "Called from PolarManager+Recording.swift (notBefore nil) and StrapRecordingCoordinator+Transfer.swift (notBefore = recordedSince).",
    "calls": [
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)",
     "closure:exerciseId key-path passed by caller (\\.entryId)"
@@ -149,7 +149,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "542a14a837a1d74f"
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "d99e2f47bff9f1ef"
    }
   },
   {
@@ -167,7 +167,7 @@
    "key": "func StrapExerciseDecoder.durationSeconds(of:)",
    "hash": "848abb17da41634d",
    "does": "Sums rr_ms across points (Int64) and returns seconds.",
-   "entry": "Called from StrapRecording.endedAt, RRCollector+DeviceRecording.swift:312, RRCollector+Recovery.swift:142.",
+   "entry": "Called from StrapRecording.endedAt, RRCollector+DeviceRecording.swift, RRCollector+Recovery.swift.",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -178,7 +178,7 @@
    "key": "func StrapExerciseDecoder.rrPoints(fromIntervalsMs:)",
    "hash": "0b2d96ef001f9d8a",
    "does": "Builds RRPoints from raw ms intervals, each stamped at the cumulative sum of the previous intervals (t_ms starts at 0); no validity filtering.",
-   "entry": "Called from PolarManager.swift:563 (H10 fetchExercise conversion); tests.",
+   "entry": "Called from PolarManager.swift (H10 fetchExercise conversion); tests.",
    "calls": [
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
    ],

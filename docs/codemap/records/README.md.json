@@ -9,7 +9,7 @@
   {
    "key": "§ Emuqu",
    "hash": "232cb9c458495a0a",
-   "does": "Records every beat from a Polar strap overnight and in training, scores against own baseline; one-time purchase after a 30-day trial (EntitlementAnchor durationDays = 30, EntitlementAnchor.swift:460).",
+   "does": "Records every beat from a Polar strap overnight and in training, scores against own baseline; one-time purchase after a 30-day trial (EntitlementAnchor durationDays = 30, EntitlementAnchor.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/EntitlementAnchor.swift::var TrialPolicy.duration"
@@ -24,7 +24,7 @@
   {
    "key": "§ Emuqu > What it does",
    "hash": "19bf095f5a8af99d",
-   "does": "Overnight recovery scored against up to last 60 recorded nights (BaselineTracker.swift:210-213 suffix(60)); workouts across sensors; assistant on Apple Intelligence or BYOK for five providers with a MedicalQueryGuard that refuses diagnosis/self-harm etc.",
+   "does": "Overnight recovery scored against up to last 60 recorded nights (BaselineTracker.swift suffix(60)); workouts across sensors; assistant on Apple Intelligence or BYOK for five providers with a MedicalQueryGuard that refuses diagnosis/self-harm etc.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)",
@@ -45,7 +45,7 @@
   {
    "key": "§ Emuqu > The hard parts",
    "hash": "5b3138d33eec6c2c",
-   "does": "Scoring version v3.3.nov2026 (ScoringVersion.current, ScoringVersion.swift:37), shown on score detail as 'Scored by <version>' (RecoveryScoreDetailView+Sections.swift:275-279); science register at Tools/science_register/register.json (exists); copy linter checks the 12 MedicalTermLexicon.neverInStaticCopy concepts (MedicalTermLexicon.swift:866-870) across translated catalogue strings in 17 locales; background BLE capture.",
+   "does": "Scoring version v3.3.nov2026 (ScoringVersion.current, ScoringVersion.swift), shown on score detail as 'Scored by <version>' (RecoveryScoreDetailView+Sections.swift); science register at Tools/science_register/register.json (exists); copy linter checks the 12 MedicalTermLexicon.neverInStaticCopy concepts (MedicalTermLexicon.swift) across translated catalogue strings in 17 locales; background BLE capture.",
    "entry": null,
    "calls": [
     "Makefile::target copy-perimeter",
@@ -58,15 +58,15 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoringVersionLine": "515df98dfd90af25",
-    "Makefile::target copy-perimeter": "fbee448e717c17f3",
-    "Makefile::target science-register": "9e24175bb2b0670b",
-    "Makefile::target scoring-governance": "2093dbcb1f6e9e8e"
+    "Makefile::target copy-perimeter": "d86c63c1a970a885",
+    "Makefile::target science-register": "55f8e5d2c555df70",
+    "Makefile::target scoring-governance": "5ffc54d3ee4016f0"
    }
   },
   {
    "key": "§ Emuqu > How it is built",
    "hash": "30ee83d9413956e4",
-   "does": "50 scripted gates in `make ci` (the Makefile ci target has exactly 50 prerequisites, counting lint, release-build, thread-sanitizer and test-coverage); verify-gates, gate-preflight, gates-wired-guard meta-gates exist; >3,000 unit tests (3,611 func test in EmuquTests) and ~100 UI tests (102); warnings-as-errors; Swift 6 complete strict concurrency (project.pbxproj:4851-4852); no try!/as!/fatalError/TODO/FIXME in Emuqu/Sources (0 hits); ~220k lines (223,966 in Emuqu/Sources); SBOM for eleven packages; Actions pinned to SHAs (verified in all workflows).",
+   "does": "50 scripted gates in `make ci` (the Makefile ci target has exactly 50 prerequisites, counting lint, release-build, thread-sanitizer and test-coverage); verify-gates, gate-preflight, gates-wired-guard meta-gates exist; >3,000 unit tests (3,611 func test in EmuquTests) and ~100 UI tests (102); warnings-as-errors; Swift 6 complete strict concurrency (project.pbxproj); no try!/as!/fatalError/TODO/FIXME in Emuqu/Sources (0 hits); ~220k lines (223,966 in Emuqu/Sources); SBOM for eleven packages; Actions pinned to SHAs (verified in all workflows).",
    "entry": null,
    "calls": [
     "Makefile::target ci",
@@ -82,18 +82,18 @@
    "branches": [],
    "deps": {
     "Makefile::target ci": "cf2e840175bcfc4b",
-    "Makefile::target doc-counts-guard": "81cc0795ce562bec",
-    "Makefile::target doc-links": "4731861b7121254e",
-    "Makefile::target gate-preflight": "4af96d525dd02798",
-    "Makefile::target gates-wired-guard": "29ee806453e41bae",
-    "Makefile::target strict-concurrency-enabled": "c813f57709ab4832",
-    "Makefile::target verify-gates": "62403efc5c06c498"
+    "Makefile::target doc-counts-guard": "19be949df3dbfe60",
+    "Makefile::target doc-links": "ce4a52f284444e24",
+    "Makefile::target gate-preflight": "7cf50f5360c90cb1",
+    "Makefile::target gates-wired-guard": "33b18f486ce3a6b4",
+    "Makefile::target strict-concurrency-enabled": "bf93ba754ab8532f",
+    "Makefile::target verify-gates": "a1ef2dd0c44fbc10"
    }
   },
   {
    "key": "§ Emuqu > How a night becomes a score",
    "hash": "5d61f6359e866278",
-   "does": "Pipeline: RRCollector → artifact detection → WindowSelector (window at 30-70% of sleep: minRelativePosition 0.30 / maxRelativePosition 0.70, WindowSelection+Scoring.swift:54-57) → HRVAnalysisPipeline → RecoveryScoreCalculator weights HRV 0.60/Sleep 0.25/Vitals 0.15 (Constants.swift:400-402; alternate weight sets exist at 410-424 when inputs are missing) → views/facts/Flo; SessionArchive encrypted with optional CloudKit.",
+   "does": "Pipeline: RRCollector → artifact detection → WindowSelector (window at 30-70% of sleep: minRelativePosition 0.30 / maxRelativePosition 0.70, WindowSelection+Scoring.swift) → HRVAnalysisPipeline → RecoveryScoreCalculator weights HRV 0.60/Sleep 0.25/Vitals 0.15 (Constants.swift; alternate weight sets exist at 410-424 when inputs are missing) → views/facts/Flo; SessionArchive encrypted with optional CloudKit.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
@@ -140,7 +140,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "573ac4aba216c312",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "dd8baa8be271270b",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "e3be72064ae6ecd1",
     "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)": "dd30695f18f59a31",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "4f21d38ab14999a2"
    }
@@ -224,7 +224,7 @@
   {
    "key": "§ Emuqu > Working on it > Local checks",
    "hash": "3b130026ab76f2cf",
-   "does": "`make lint`, `make test-coverage`, `make debt-budget` exist (Makefile:8,22,25); `make setup-hooks` installs .githooks/pre-commit (SwiftLint errors block, swiftformat lint only); `make format` rewrites (Makefile:14).",
+   "does": "`make lint`, `make test-coverage`, `make debt-budget` exist (Makefile); `make setup-hooks` installs .githooks/pre-commit (SwiftLint errors block, swiftformat lint only); `make format` rewrites (Makefile).",
    "entry": null,
    "calls": [
     "Makefile::target lint",
@@ -239,11 +239,11 @@
    "branches": [],
    "deps": {
     "Makefile::target ci": "cf2e840175bcfc4b",
-    "Makefile::target debt-budget": "107274ad82f7d924",
+    "Makefile::target debt-budget": "1fdd61e80c5baaa9",
     "Makefile::target format": "6be525b65224f5f8",
-    "Makefile::target lint": "cc79eff098f91f28",
+    "Makefile::target lint": "3d3535bfb7eb0250",
     "Makefile::target setup-hooks": "4bd20d645743a401",
-    "Makefile::target test-coverage": "2f52b6f381055f27"
+    "Makefile::target test-coverage": "c1919f9fcb7887a7"
    }
   },
   {
@@ -268,7 +268,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "850dff7c2c40af40",
+    ".github/workflows/ci.yml::job lint-and-budgets": "16ff37e02f061463",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "495c14a3c33d4d31",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
@@ -284,7 +284,7 @@
   {
    "key": "§ Emuqu > Documentation",
    "hash": "8a978b1822604eae",
-   "does": "Documentation index; every linked file/directory exists (MAINTAINERS, FEATURES, USERS_MANUAL, ARCHITECTURE, API_REFERENCE, FLOWCHART, TRAINING_LOAD, VOICE_AND_TOOL_USE, LOCALIZATION, REFACTOR_SPEC, REVIEW, runbooks/, adr/, CI_POSTURE). `make doc-links` checks relative links (Makefile:177).",
+   "does": "Documentation index; every linked file/directory exists (MAINTAINERS, FEATURES, USERS_MANUAL, ARCHITECTURE, API_REFERENCE, FLOWCHART, TRAINING_LOAD, VOICE_AND_TOOL_USE, LOCALIZATION, REFACTOR_SPEC, REVIEW, runbooks/, adr/, CI_POSTURE). `make doc-links` checks relative links (Makefile).",
    "entry": null,
    "calls": [
     "Makefile::target doc-links"
@@ -293,7 +293,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target doc-links": "4731861b7121254e"
+    "Makefile::target doc-links": "ce4a52f284444e24"
    }
   },
   {
@@ -319,12 +319,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "212ef74d72560eb7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "d1429c6c4a511fa8",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "82a3cd48321f650a",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "e24210dbe73e3f98",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "08324bd52931b06a",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.makeTierStageInputs(mode:)": "430c3617358bedaf",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.makeTierStageInputs(mode:)": "b63595c36b2fd6c3",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "02d73fe5c6d8e8a9",
     "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)": "7c48500322effe1d",
     "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)": "dd22654c446d6832",

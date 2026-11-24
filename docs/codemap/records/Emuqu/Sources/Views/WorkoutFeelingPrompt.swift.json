@@ -13,7 +13,7 @@
   "@FocusState noteFocused",
   "static feelings: [(value, emoji)] 1..5"
  ],
- "toplevel": "Stored closures onSelect/onSkip and optional existing/existingNote set by FitnessPostSummaryView+Feeling.swift:22 (onSelect spawns saveWorkoutFeeling which archives the rating).",
+ "toplevel": "Stored closures onSelect/onSkip and optional existing/existingNote set by FitnessPostSummaryView+Feeling.swift (onSelect spawns saveWorkoutFeeling which archives the rating).",
  "units": [
   {
    "key": "var WorkoutFeelingPrompt.showNote",
@@ -36,7 +36,7 @@
    "key": "var WorkoutFeelingPrompt.body",
    "hash": "c1f67d43f3951dac",
    "does": "Card stack of header, emoji scale, optional note field and actions; on appear pre-selects existing feeling/note; feelingAutoCommit on autoCommitValue calls onSelect(value, nil) one second after a 3-5 pick.",
-   "entry": "SwiftUI body; .onAppear on first display (FitnessPostSummaryView+Feeling.swift:22, StateSnapshotTests).",
+   "entry": "SwiftUI body; .onAppear on first display (FitnessPostSummaryView+Feeling.swift, StateSnapshotTests).",
    "calls": [
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingPromptHeader",
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingScale",
@@ -44,7 +44,7 @@
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.feelingActions",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::func View.feelingAutoCommit(_:commit:)",
-    "closure:onSelect set by FitnessPostSummaryView+Feeling.swift:23 (Task saveWorkoutFeeling → archive write)"
+    "closure:onSelect set by FitnessPostSummaryView+Feeling.swift (Task saveWorkoutFeeling → archive write)"
    ],
    "reads": [],
    "writes": [],
@@ -181,7 +181,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.saveFeelingButton": "3fb4f1b1afcf04ce",
-    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.skipFeelingButton": "a71773a74ee13198"
+    "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingPrompt.skipFeelingButton": "8c2c9155bf38a9ed"
    }
   },
   {
@@ -190,7 +190,7 @@
    "does": "Button clearing autoCommitValue (cancels a waiting auto-commit) then calling onSkip; label 'Skip' or 'Cancel' when editing.",
    "entry": "Button tap.",
    "calls": [
-    "closure:onSkip set by FitnessPostSummaryView+Feeling.swift:27 (skipFeeling → feelingEditing=false)",
+    "closure:onSkip set by FitnessPostSummaryView+Feeling.swift (skipFeeling → feelingEditing=false)",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -298,7 +298,7 @@
    "does": "Clears autoCommitValue and, if a feeling is selected, calls onSelect(value, trimmed note or nil).",
    "entry": null,
    "calls": [
-    "closure:onSelect set by FitnessPostSummaryView+Feeling.swift:23"
+    "closure:onSelect set by FitnessPostSummaryView+Feeling.swift"
    ],
    "reads": [],
    "writes": [
@@ -381,10 +381,10 @@
    "key": "var WorkoutFeelingBadge.body",
    "hash": "7af719db48050a8e",
    "does": "Plain button wrapping recordedFeelingRow, calling onTap; disabled when onTap is nil.",
-   "entry": "SwiftUI body; built by FitnessPostSummaryView+Feeling.swift:39 and ComponentSnapshotTests.",
+   "entry": "SwiftUI body; built by FitnessPostSummaryView+Feeling.swift and ComponentSnapshotTests.",
    "calls": [
     "Emuqu/Sources/Views/WorkoutFeelingPrompt.swift::var WorkoutFeelingBadge.recordedFeelingRow",
-    "closure:onTap set by FitnessPostSummaryView+Feeling.swift:42 (feelingEditing=true)"
+    "closure:onTap set by FitnessPostSummaryView+Feeling.swift (feelingEditing=true)"
    ],
    "reads": [],
    "writes": [],

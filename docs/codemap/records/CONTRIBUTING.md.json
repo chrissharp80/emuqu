@@ -33,13 +33,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target lint": "cc79eff098f91f28"
+    "Makefile::target lint": "3d3535bfb7eb0250"
    }
   },
   {
    "key": "§ How a change lands in Emuqu > Before you start",
-   "hash": "d80fcd3a2b44012e",
-   "does": "`make setup-hooks` (→ scripts/install-git-hooks.sh) installs .githooks/pre-commit, where SwiftLint errors block and swiftformat runs in --lint mode only; `make codemap-setup` installs the pinned tree-sitter the code map needs, and the hook fails without it. It needs Python 3.10+, which macOS's own python3 (3.9) is not; setup takes the first python3.13…python3.10 or python3 on PATH that is, then Homebrew's, the python.org installer's or pyenv's, or CODEMAP_BASE_PYTHON; with none installed it downloads a pinned, checksum-verified standalone CPython 3.12 into .codemap-python/. A SwiftLint error or a stale code-map record blocks the commit. gates.yml runs script gates on push.",
+   "hash": "a7ac784dd2c26866",
+   "does": "`make setup-hooks` (→ scripts/install-git-hooks.sh) installs .githooks/pre-commit, where SwiftLint errors block and swiftformat runs in --lint mode only; `make codemap-setup` installs the pinned tree-sitter the code map needs, and the hook fails without it. It needs Python 3.10+, which macOS's own python3 (3.9) is not; setup takes CODEMAP_BASE_PYTHON when it is set and 3.10+, else the first python3.13…python3.10 or python3 on PATH that is, then Homebrew's, the python.org installer's or pyenv's; with none installed it downloads a pinned, checksum-verified standalone CPython 3.12 into .codemap-python/. A SwiftLint error or a stale code-map record blocks the commit. gates.yml runs script gates on push.",
    "entry": null,
    "calls": [
     "Makefile::target setup-hooks",
@@ -51,16 +51,16 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".githooks/pre-commit::fn fail": "29cfd9e1cadbdba1",
+    ".githooks/pre-commit::fn fail": "4ec1709ea1471bb7",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
-    "Makefile::target codemap-setup": "7e164b557a14aa9a",
+    "Makefile::target codemap-setup": "e0d8eb66d9fddd88",
     "Makefile::target setup-hooks": "4bd20d645743a401"
    }
   },
   {
    "key": "§ How a change lands in Emuqu > While you work",
    "hash": "1083e8c6f79c53cd",
-   "does": "Build and unit-test commands via xcodebuild; warnings are errors — SWIFT_TREAT_WARNINGS_AS_ERRORS = YES at project-level Debug and Release (project.pbxproj:4763,4822).",
+   "does": "Build and unit-test commands via xcodebuild; warnings are errors — SWIFT_TREAT_WARNINGS_AS_ERRORS = YES at project-level Debug and Release (project.pbxproj).",
    "entry": null,
    "calls": [
     "Makefile::target budget-monotonicity",
@@ -84,15 +84,15 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
-    "Makefile::target copy-perimeter": "fbee448e717c17f3",
-    "Makefile::target debt-budget": "107274ad82f7d924",
-    "Makefile::target localization-bundle-guard": "8c4bb22083c7e7be",
-    "Makefile::target localization-guard": "e2c1ec610e831e83",
-    "Makefile::target orphan-swift-guard": "274019c065545658",
-    "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b",
+    "Makefile::target budget-monotonicity": "3f2b4858f1a3dead",
+    "Makefile::target copy-perimeter": "d86c63c1a970a885",
+    "Makefile::target debt-budget": "1fdd61e80c5baaa9",
+    "Makefile::target localization-bundle-guard": "72b0bebd70642f80",
+    "Makefile::target localization-guard": "74bbb0edd35536cb",
+    "Makefile::target orphan-swift-guard": "05ba360593aa0038",
+    "Tools/copy_linter/lint.py::def main": "dd12888862011cc6",
     "Tools/copy_linter/lint.py::def scan_swift_file": "813f3e2ea367e72e",
-    "Tools/copy_linter/lint.py::def scan_xcstrings": "510e769a5e51b415",
+    "Tools/copy_linter/lint.py::def scan_xcstrings": "9e67cf85cf0bc96d",
     "scripts/add_swift_file.py::def add_file_to_project": "4f532efc9488af7e",
     "scripts/add_swift_file.py::def target_for_path": "0960cca0e39d39d6",
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "76309c9411982f50",
@@ -141,8 +141,8 @@
    "branches": [],
    "deps": {
     ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
-    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
-    "Makefile::target debt-budget": "107274ad82f7d924",
+    "Makefile::target budget-monotonicity": "3f2b4858f1a3dead",
+    "Makefile::target debt-budget": "1fdd61e80c5baaa9",
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "76309c9411982f50"
    }
   },
@@ -158,13 +158,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target orphan-swift-guard": "274019c065545658"
+    "Makefile::target orphan-swift-guard": "05ba360593aa0038"
    }
   },
   {
    "key": "§ How a change lands in Emuqu > While you work > Adding user-facing text",
    "hash": "8b5d0b5198529048",
-   "does": "Strings localized into 17 languages (Localizable.xcstrings has 17 locales incl. en) with 100% coverage enforced; String(localized:bundle:) with LanguageManager.appBundle (LanguageManager.swift:36) and `make localization-bundle-guard` (Makefile:114); health copy linted by Tools/copy_linter/lint.py via `make copy-perimeter` (Makefile:171).",
+   "does": "Strings localized into 17 languages (Localizable.xcstrings has 17 locales incl. en) with 100% coverage enforced; String(localized:bundle:) with LanguageManager.appBundle (LanguageManager.swift) and `make localization-bundle-guard` (Makefile); health copy linted by Tools/copy_linter/lint.py via `make copy-perimeter` (Makefile).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -178,10 +178,10 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Makefile::target copy-perimeter": "fbee448e717c17f3",
-    "Makefile::target localization-bundle-guard": "8c4bb22083c7e7be",
-    "Makefile::target localization-guard": "e2c1ec610e831e83",
-    "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b"
+    "Makefile::target copy-perimeter": "d86c63c1a970a885",
+    "Makefile::target localization-bundle-guard": "72b0bebd70642f80",
+    "Makefile::target localization-guard": "74bbb0edd35536cb",
+    "Tools/copy_linter/lint.py::def main": "dd12888862011cc6"
    }
   },
   {
@@ -207,7 +207,7 @@
     "Makefile::target ci": "cf2e840175bcfc4b",
     "Makefile::target codemap-impact": "03eba22ded671ba7",
     "Makefile::target release-build": "8569be24c7eb1de6",
-    "Makefile::target test-coverage": "2f52b6f381055f27",
+    "Makefile::target test-coverage": "c1919f9fcb7887a7",
     "Makefile::target thread-sanitizer": "adfca9b867c6ab56"
    }
   },
@@ -223,7 +223,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target spec-conformance": "76fac68887ff9527"
+    "Makefile::target spec-conformance": "220ba9761974f8a6"
    }
   },
   {

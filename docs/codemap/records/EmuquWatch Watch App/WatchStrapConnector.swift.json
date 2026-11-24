@@ -11,21 +11,21 @@
   "extension WatchStrapConnector — bridge to WatchSessionManager and iPhone (WCSession)"
  ],
  "state": [
-  "mem:WatchStrapConnector.shared (static singleton, :45)",
-  "mem:WatchStrapConnector.sessionManager (weak WatchSessionManager, set by attach, :50)",
-  "mem:WatchStrapConnector.connectionState (@Published, default .waitingForBluetooth, :67)",
-  "mem:WatchStrapConnector.discovered (@Published [DiscoveredDevice], :72)",
-  "mem:WatchStrapConnector.liveHeartRate (@Published Int?, :81)",
-  "mem:WatchStrapConnector.lastRRMillis (@Published [Double], :85)",
-  "mem:WatchStrapConnector.batteryPercent (@Published Int?, :88)",
-  "mem:WatchStrapConnector.central (lazy CBCentralManager, delegate self, main queue, :101)",
-  "mem:WatchStrapConnector.connectedPeripheral (:102)",
-  "static UUID strings 180D/2A37/180F/2A19 (:115-118)",
-  "ud:WatchStrapConnector.savedPeripheralIdentifier (standard suite, key constant savedPeripheralKey :130, UUID string of last connected peripheral)",
-  "mem:WatchStrapConnector.autoReconnectEnabled (default false, :137)",
-  "mem:WatchStrapConnector.pendingScanRequest (:148)",
-  "wc:type=watchStrapSample {hr, rrMillis, ts} (sent :669-677)",
-  "Logger subsystem com.chrissharp.flowrecovery category WatchStrapConnector (:92, :684)",
+  "mem:WatchStrapConnector.shared (static singleton)",
+  "mem:WatchStrapConnector.sessionManager (weak WatchSessionManager, set by attach)",
+  "mem:WatchStrapConnector.connectionState (@Published, default .waitingForBluetooth)",
+  "mem:WatchStrapConnector.discovered (@Published [DiscoveredDevice])",
+  "mem:WatchStrapConnector.liveHeartRate (@Published Int?)",
+  "mem:WatchStrapConnector.lastRRMillis (@Published [Double])",
+  "mem:WatchStrapConnector.batteryPercent (@Published Int?)",
+  "mem:WatchStrapConnector.central (lazy CBCentralManager, delegate self, main queue)",
+  "mem:WatchStrapConnector.connectedPeripheral",
+  "static UUID strings 180D/2A37/180F/2A19",
+  "ud:WatchStrapConnector.savedPeripheralIdentifier (standard suite, key constant savedPeripheralKey, UUID string of last connected peripheral)",
+  "mem:WatchStrapConnector.autoReconnectEnabled (default false)",
+  "mem:WatchStrapConnector.pendingScanRequest",
+  "wc:type=watchStrapSample {hr, rrMillis, ts} (sent)",
+  "Logger subsystem com.chrissharp.flowrecovery category WatchStrapConnector",
   "mem:WatchStrapConnector.savedStrapIdentifier (@Published mirror of ud:WatchStrapConnector.savedPeripheralIdentifier)"
  ],
  "toplevel": "Stored-property initializers: shared singleton built via private init (which loads savedStrapIdentifier from UserDefaults); central is lazy so CBCentralManager (and the Bluetooth permission prompt) is only created on first access; connectionState starts .waitingForBluetooth; autoReconnectEnabled starts false. Conformances to CBCentralManagerDelegate/CBPeripheralDelegate in extensions. @preconcurrency import CoreBluetooth.",
@@ -99,7 +99,7 @@
    "key": "init WatchStrapConnector()",
    "hash": "39c799332e630472",
    "does": "super.init, loads savedStrapIdentifier from UserDefaults, and creates the CBCentralManager now only when a strap is saved (so it can reconnect when the radio comes up).",
-   "entry": "Called once when `WatchStrapConnector.shared` is first accessed (WatchApp.init at EmuquWatch Watch App/WatchApp.swift:23 / @StateObject at :16).",
+   "entry": "Called once when `WatchStrapConnector.shared` is first accessed (WatchApp.init at EmuquWatch Watch App/WatchApp.swift / @StateObject).",
    "calls": [
     "ext:CBCentralManager(delegate:queue:)"
    ],
@@ -432,7 +432,7 @@
    "key": "func WatchStrapConnector.setAutoReconnect(_:)",
    "hash": "9241939445759ea1",
    "does": "Sets autoReconnectEnabled from the phone's mode. Turning on with a saved strap and powered radio runs radioCameUp (reconnects saved strap); turning off disconnects the current link (saved strap kept).",
-   "entry": "Called from WatchApp .onChange(of: sessionManager.displayOnlyMode, initial: true) with !displayOnly (EmuquWatch Watch App/WatchApp.swift:34-35).",
+   "entry": "Called from WatchApp .onChange(of: sessionManager.displayOnlyMode, initial: true) with !displayOnly (EmuquWatch Watch App/WatchApp.swift).",
    "calls": [
     "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap",
     "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.radioCameUp()",
@@ -454,7 +454,7 @@
     {
      "at": "+3",
      "cond": "enabled",
-     "effect": "true: go to line 282 check; false: disconnect()"
+     "effect": "true: go to check; false: disconnect()"
     },
     {
      "at": "+4",
@@ -1265,14 +1265,14 @@
     }
    ],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.logDroppedSample(_:)": "cde1f08a347aad53"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.logDroppedSample(_:)": "788f334eb2ad146e"
    }
   },
   {
    "key": "func WatchStrapConnector.logDroppedSample(_:)",
    "hash": "4c442b75cde93fe2",
    "does": "Logs at debug that a live strap sample send failed and was dropped.",
-   "entry": "Invoked from the WCSession sendMessage error handler (closure at :677) on WatchConnectivity's queue.",
+   "entry": "Invoked from the WCSession sendMessage error handler (closure) on WatchConnectivity's queue.",
    "calls": [
     "ext:Logger.debug"
    ],

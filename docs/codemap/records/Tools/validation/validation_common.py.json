@@ -1,15 +1,15 @@
 {
  "file": "Tools/validation/validation_common.py",
- "hash": "998f8eb91a7e588c",
+ "hash": "64e26b03609cafd7",
  "role": "Shared helpers for the PhysioNet validation scripts (not ports of app code): WFDB beat-symbol sets, RR-point construction, agreement statistics (confusion/kappa/Bland-Altman), a minimal EDF channel reader.",
  "types": [],
  "state": [
-  "DATA_ROOT (validation_common.py:11) = absolute path inside another Claude session's scratchpad (/tmp/claude-0/-home-user/62b78298-.../scratchpad/physionet); every validate_* / cap_extract script reads data from it",
-  "COMMIT = 'e028039' (line 12, unused by importers; they hard-code the string)",
-  "BEAT_SYMBOLS / NORMAL_SYMBOLS (N,L,R,e,j) / ECTOPIC_SYMBOLS (A,a,J,S,V,r,F,n,E,B) lines 15-17",
-  "CLASSES = ['wake','core','deep','rem'] line 43"
+  "DATA_ROOT: $EMUQU_PHYSIONET_DIR, else build/physionet in this checkout (ignored by git); every validate_* script and cap_extract_rr.py reads its PhysioNet records under it, one folder per database (fetch_physionet.py downloads them there)",
+  "COMMIT = 'e028039' (unused by importers; they hard-code the string)",
+  "BEAT_SYMBOLS / NORMAL_SYMBOLS (N,L,R,e,j) / ECTOPIC_SYMBOLS (A,a,J,S,V,r,F,n,E,B)",
+  "CLASSES = ['wake','core','deep','rem']"
  ],
- "toplevel": "Module-level constants only (DATA_ROOT, COMMIT, symbol sets, CLASSES); imports numpy.",
+ "toplevel": "Module-level constants only: DATA_ROOT ($EMUQU_PHYSIONET_DIR, else build/physionet two directories above this file), COMMIT, the beat symbol sets and CLASSES; imports os, math, struct and numpy.",
  "units": [
   {
    "key": "def beats_from_ann",
@@ -176,7 +176,7 @@
     {
      "at": "+27",
      "cond": "header record count < 0 (unknown, -1)",
-     "effect": "derives record count from file size; always then clamps nrec to what the file size can hold (line 119)"
+     "effect": "derives record count from file size; always then clamps nrec to what the file size can hold"
     }
    ],
    "deps": {

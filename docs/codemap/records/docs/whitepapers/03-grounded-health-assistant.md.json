@@ -126,7 +126,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "73e93a0b9cae48c6",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "02d73fe5c6d8e8a9",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.refusedWhileFloIsOff()": "867dd1d4f93617fa",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "1d32d561b3768746",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "b5e50994c6b3eb1a"
    }
   },
@@ -208,7 +208,7 @@
   {
    "key": "§ Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Per > 3. Methods > 3.1 The typed fact catalog > 3.1.2 Value union and envelope",
    "hash": "9a17613eed604b7e",
-   "does": "Specifies FactValue's nine cases and the sorted-key envelope {value, missingReason (only when absent), detail, asOf local ISO-8601, confidence 'high'} with non-finite doubles nulled per field and nested missing rendered inline, shared by cloud and on-device paths; provenance fields data_source and comparison_safe in records. Code: FactValue.toolResultJSON/toToolResultJSON/envelope/toAnyJSON/localISO8601/nestedRendering (FactValue.swift:198-360), AppleToolDispatcher.dispatch.",
+   "does": "Specifies FactValue's nine cases and the sorted-key envelope {value, missingReason (only when absent), detail, asOf local ISO-8601, confidence 'high'} with non-finite doubles nulled per field and nested missing rendered inline, shared by cloud and on-device paths; provenance fields data_source and comparison_safe in records. Code: FactValue.toolResultJSON/toToolResultJSON/envelope/toAnyJSON/localISO8601/nestedRendering (FactValue.swift), AppleToolDispatcher.dispatch.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.toolResultJSON",
@@ -250,7 +250,7 @@
   {
    "key": "§ Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Per > 3. Methods > 3.1 The typed fact catalog > 3.1.4 No-I/O availability gating",
    "hash": "de62b543a3c9387c",
-   "does": "Specifies synchronous metadata-only availability {hasData, validRange, lastUpdated}; schema builder drops hasData=false entries and appends 'Data available as early as <Month YYYY>' to parameterized entries with a validRange; SHA-256 catalog hash over sorted-key JSON. Code: FactEntry.currentAvailability (FactCatalog.swift:213), FactResolverRegistry.toolSchema/paramDescription/catalogHash/sha256Hex (FactResolverRegistry.swift:210-245,565).",
+   "does": "Specifies synchronous metadata-only availability {hasData, validRange, lastUpdated}; schema builder drops hasData=false entries and appends 'Data available as early as <Month YYYY>' to parameterized entries with a validRange; SHA-256 catalog hash over sorted-key JSON. Code: FactEntry.currentAvailability (FactCatalog.swift), FactResolverRegistry.toolSchema/paramDescription/catalogHash/sha256Hex (FactResolverRegistry.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.currentAvailability",
@@ -553,7 +553,7 @@
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.pendingCorrectionsBlock()": "b712acc089226fa2",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "504750e4ad75b523",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.variableSections(priorSummary:contextRendered:)": "b66f52bdf4d632ed",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "dff1863da10b59ec"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "2cb1a3b0a707c650"
    }
   },
   {
@@ -655,7 +655,7 @@
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "1b78b93208cd2db0",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.appendExchange(user:assistant:localOnly:)": "11daa6b6ede428a3",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "02d73fe5c6d8e8a9",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "1d32d561b3768746",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.isMedicalRefusalEcho(_:)": "ea374da731698e9b",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.echoOverlapRatio(transcript:against:)": "b1c9da66842493bb",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "5026cc5eddd06cce"
@@ -762,15 +762,15 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/FDA copy perimeter": "f8ab28e6efdbb397",
     ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "c6bf52871d62c452",
-    "Makefile::target copy-perimeter": "fbee448e717c17f3",
+    "Makefile::target copy-perimeter": "d86c63c1a970a885",
     "Tools/copy_linter/lint.py::def _forbidden_in_place": "d4c0b2ca033b514e",
     "Tools/copy_linter/lint.py::def _snippet_in_sentence": "4c569fc6ec181f97",
     "Tools/copy_linter/lint.py::def collect_targets": "6fdc08d36c856544",
     "Tools/copy_linter/lint.py::def is_prohibition_context": "cfe17d648c57f065",
     "Tools/copy_linter/lint.py::def iter_swift_strings": "31b5889d18a55095",
-    "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b",
+    "Tools/copy_linter/lint.py::def main": "dd12888862011cc6",
     "Tools/copy_linter/lint.py::def scan_swift_file": "813f3e2ea367e72e",
-    "Tools/copy_linter/lint.py::def scan_xcstrings": "510e769a5e51b415",
+    "Tools/copy_linter/lint.py::def scan_xcstrings": "9e67cf85cf0bc96d",
     "Tools/copy_linter/lint.py::def strip_interpolations": "08bf9be1a557a718",
     "Tools/copy_linter/lint.py::def strip_swift_comments": "9dd7956905e546c5",
     "Tools/copy_linter/lint.py::def translated_claim_patterns": "2fc1fcdec5ea0a60",
@@ -791,7 +791,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310",
-    "Makefile::target perimeter-sync": "7b1a002692b1fe41"
+    "Makefile::target perimeter-sync": "5cd2331f12172c81"
    }
   },
   {
@@ -851,10 +851,10 @@
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "504750e4ad75b523",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)": "6879608aa4982139",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "570e4d9e26321981",
-    "Makefile::target copy-perimeter": "fbee448e717c17f3",
-    "Makefile::target perimeter-sync": "7b1a002692b1fe41",
-    "Makefile::target verify-gates": "62403efc5c06c498",
-    "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b"
+    "Makefile::target copy-perimeter": "d86c63c1a970a885",
+    "Makefile::target perimeter-sync": "5cd2331f12172c81",
+    "Makefile::target verify-gates": "a1ef2dd0c44fbc10",
+    "Tools/copy_linter/lint.py::def main": "dd12888862011cc6"
    }
   },
   {
@@ -886,7 +886,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d7b1be0c3dfd3ecb",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runRoundKeepingActionsOnThisModel(_:state:grokQuirks:)": "b0feb926d495e3eb",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "73e93a0b9cae48c6",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "0c985becfe5c2b42",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "42582f6ffdea6e2c",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.liveWorkoutCorrected(_:)": "67a03066ce5408dd"
    }
   },
@@ -1012,7 +1012,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)": "a52875ed68367c9d",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "08e15dc41d4b0890",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "106ac48cad33a9e9",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "0c985becfe5c2b42"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "42582f6ffdea6e2c"
    }
   },
   {
@@ -1049,7 +1049,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.append(chunk:thisRoundIsEmpty:)": "aea8f0369055328a",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "02d73fe5c6d8e8a9",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "b5e50994c6b3eb1a",
-    "Makefile::target perimeter-sync": "7b1a002692b1fe41"
+    "Makefile::target perimeter-sync": "5cd2331f12172c81"
    }
   },
   {
@@ -1117,12 +1117,12 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.scrubbing(_:)": "21b98668bd816ed2",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.scrubForCoachVoice(at:)": "ac46feb1eaf09e88",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "20d2e837dc8e8c64",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "0c985becfe5c2b42",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "1d32d561b3768746",
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "42582f6ffdea6e2c",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.isMedicalRefusalEcho(_:)": "ea374da731698e9b",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:continuing:)": "927a2058e2e15435",
-    "Makefile::target perimeter-sync": "7b1a002692b1fe41",
-    "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b"
+    "Makefile::target perimeter-sync": "5cd2331f12172c81",
+    "Tools/copy_linter/lint.py::def main": "dd12888862011cc6"
    }
   }
  ],

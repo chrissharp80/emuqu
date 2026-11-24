@@ -37,7 +37,7 @@
   {
    "key": "func WorkoutGeometry.nearestFix(in:to:)",
    "hash": "0c085e0973e5d84f",
-   "does": "Linear scan returning (index, distance) of the fix in track nearest target; returns (0, +infinity) for an empty track. Used by AppFactResolver+WorkoutDetail.swift:719.",
+   "does": "Linear scan returning (index, distance) of the fix in track nearest target; returns (0, +infinity) for an empty track. Used by AppFactResolver+WorkoutDetail.swift.",
    "entry": null,
    "calls": [
     "ext:CLLocation.distance(from:)"
@@ -61,7 +61,7 @@
   {
    "key": "func WorkoutGeometry.localPace(in:at:)",
    "hash": "a20b62115f6cdd91",
-   "does": "Pace in sec/km over fixes [idx-5, idx+5] clamped to the track: (end.timestamp-start.timestamp)/(straight-line distance/1000); nil when idx is not an index of the track (an empty track has none) or the straight-line span <=5 m or <=1 s. Straight-line (not path) distance overstates pace on curves. Used by AppFactResolver+WorkoutDetail.swift:728 after nearestFix.",
+   "does": "Pace in sec/km over fixes [idx-5, idx+5] clamped to the track: (end.timestamp-start.timestamp)/(straight-line distance/1000); nil when idx is not an index of the track (an empty track has none) or the straight-line span <=5 m or <=1 s. Straight-line (not path) distance overstates pace on curves. Used by AppFactResolver+WorkoutDetail.swift after nearestFix.",
    "entry": null,
    "calls": [
     "ext:CLLocation.distance(from:)"
@@ -167,7 +167,7 @@
   {
    "key": "func WorkoutGeometry.hrMaxZone(hr:maxHR:)",
    "hash": "e2b7d69333e886ca",
-   "does": "Returns the 1-5 %maxHR zone for hr: <60% ->1, <70% ->2, <80% ->3, <90% ->4, else 5; nil when hr is nil or maxHR<=0. Used for threshold signals (WorkoutRecorder+Context.swift:401).",
+   "does": "Returns the 1-5 %maxHR zone for hr: <60% ->1, <70% ->2, <80% ->3, <90% ->4, else 5; nil when hr is nil or maxHR<=0. Used for threshold signals (WorkoutRecorder+Context.swift).",
    "entry": null,
    "calls": [],
    "reads": [],

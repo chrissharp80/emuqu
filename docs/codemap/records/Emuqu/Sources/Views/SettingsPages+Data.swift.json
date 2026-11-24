@@ -16,7 +16,7 @@
    "key": "var CustomTagsPage.body",
    "hash": "1523553c3eaba8f5",
    "does": "Form with tagsSection, zen background, nav title \"Custom Tags\"; presents addTagSheet when showingAddTag.",
-   "entry": "SwiftUI renders View.body when the view is pushed/updated (pushed from SettingsView.swift:253 and SettingsSearchIndex.swift:181)",
+   "entry": "SwiftUI renders View.body when the view is pushed/updated (pushed from SettingsView.swift and SettingsSearchIndex.swift)",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
@@ -120,7 +120,7 @@
     "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "c9c2903729a36884",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags": "bf24d9f0be7b980e",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func CustomTagsPage.saveNewTag()": "29a5ca1b2e10a7eb",
-    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.body": "0f00177b4107d1ef"
+    "Emuqu/Sources/Views/SettingsSubviews.swift::var AddTagSheet.body": "f32170718af4aa8f"
    }
   },
   {
@@ -179,7 +179,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e"
    }
   },
   {
@@ -297,7 +297,7 @@
    "key": "var DataSettingsPage.body",
    "hash": "c9027734b9359a3f",
    "does": "Form of status/import/storage/recovery/settings-backup sections; refreshDeletedCount on appear and on ArchiveSignal.version change; RR-recovery alert.",
-   "entry": "SwiftUI renders View.body when the view is pushed/updated (pushed from SettingsView.swift:215, SettingsSearchIndex.swift:122)",
+   "entry": "SwiftUI renders View.body when the view is pushed/updated (pushed from SettingsView.swift, SettingsSearchIndex.swift)",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()",
@@ -563,7 +563,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.recoverRRData()": "0c8514a11751ef83",
+    "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.recoverRRData()": "665744812895bdd5",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.recoverRRDataLabel": "f1264af652e623e4"
    }
   },
@@ -966,7 +966,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::var DataSettingsPage.restoreSettingsLabel": "31041f848cf474a2"
    }
   },
@@ -1052,7 +1052,7 @@
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately(replacingNewerCloudCopy:)": "14f6c1da756190f7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "080e6cf0d13c306b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync": "ea626da789f00ac9",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishSettingsBackup(saved:)": "1f11d3f5218bc732"
    }
@@ -1074,7 +1074,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "080e6cf0d13c306b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync": "ea626da789f00ac9",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.settingsBackupMessage(saved:status:)": "215bbe486dd713a3"
    }
@@ -1146,7 +1146,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "080e6cf0d13c306b",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.finishSettingsRestore(_:)": "1678cfdade4d9b05",
     "Emuqu/Sources/Views/SettingsPages+Data.swift::func DataSettingsPage.restoreSettingsMessage(from:)": "e9d3cad81e682576"
    }
@@ -1237,7 +1237,7 @@
     {
      "at": "+6",
      "cond": "session?.rrSeries?.points.count ?? 0",
-     "effect": "recoverFromDevice never returns nil (it returns the session or throws, RRCollector+Recovery.swift:58-69), so the 0 fallback applies only to a session without rrSeries"
+     "effect": "recoverFromDevice never returns nil (it returns the session or throws, RRCollector+Recovery.swift), so the 0 fallback applies only to a session without rrSeries"
     },
     {
      "at": "+7",

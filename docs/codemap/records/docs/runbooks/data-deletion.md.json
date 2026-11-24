@@ -20,7 +20,7 @@
   {
    "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Architecture you're working with",
    "hash": "6bd5be68e40da013",
-   "does": "Claims: no backend; CloudKit private DB holds session backups, raw RR archives and workout tracks; iCloud sign-out or erasing the device does not delete them; Delete All My Data removes the cloud copy; AI API keys are ThisDeviceOnly; archive encryption key is not synchronizable; CloudPayloadCodec key and EntitlementAnchor are synchronizable. Verified: APIKeyStore uses kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly (APIKeyStore.swift:166), EncryptionManager uses AfterFirstUnlock without synchronizable (Storage/EncryptionManager.swift:252,270), CloudPayloadCodec.swift:294 and EntitlementAnchor.swift:387 set kSecAttrSynchronizable true; workout GPS tracks travel inside the HRVSession payload.",
+   "does": "Claims: no backend; CloudKit private DB holds session backups, raw RR archives and workout tracks; iCloud sign-out or erasing the device does not delete them; Delete All My Data removes the cloud copy; AI API keys are ThisDeviceOnly; archive encryption key is not synchronizable; CloudPayloadCodec key and EntitlementAnchor are synchronizable. Verified: APIKeyStore uses kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly (APIKeyStore.swift), EncryptionManager uses AfterFirstUnlock without synchronizable (Storage/EncryptionManager.swift), CloudPayloadCodec.swift and EntitlementAnchor.swift set kSecAttrSynchronizable true; workout GPS tracks travel inside the HRVSession payload.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()"
@@ -87,7 +87,7 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(_:errors:)": "c27c78dea43a195e",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:stores:scope:errors:)": "40a72001c1ce6517",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(_:errors:)": "4da9739737ac0975",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:stores:)": "1a6a1d05159e03be",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:stores:)": "57481c04974aabb0",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)": "e29a678403bf0b1c",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)": "6175290b41cbe774",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(scope:liveSettingsFile:errors:)": "5b77025e8a30e9bd",
@@ -145,7 +145,7 @@
   {
    "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Step 5 — Data export (Article 15 / 20)",
    "hash": "6f92de50210c2bc7",
-   "does": "Claims More → Settings → iCloud & Data → Import & Export → Export Data offers RR CSV, summary CSV and all-sessions JSON. Verified: SettingsPages+Data.swift:232/252 Import & Export → ExportDataView with 'Export RR Intervals (CSV)', 'Export Summary (CSV)', 'Export All Sessions (JSON)' (ExportAndArchiveViews.swift:121-138).",
+   "does": "Claims More → Settings → iCloud & Data → Import & Export → Export Data offers RR CSV, summary CSV and all-sessions JSON. Verified: SettingsPages+Data.swift/252 Import & Export → ExportDataView with 'Export RR Intervals (CSV)', 'Export Summary (CSV)', 'Export All Sessions (JSON)' (ExportAndArchiveViews.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body",

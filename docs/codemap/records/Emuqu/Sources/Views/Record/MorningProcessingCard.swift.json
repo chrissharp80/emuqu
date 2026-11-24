@@ -27,7 +27,7 @@
    "key": "var MorningProcessingCard.body",
    "hash": "034d1a6c8ac11e34",
    "does": "Stacks progress indicator, beat count, device-fetch rows, skip-device-fetch and skip-sleep-wait controls; animates on status change.",
-   "entry": "SwiftUI view body; built by RecordView.morningProcessingSection (RecordView+Sections.swift:227)",
+   "entry": "SwiftUI view body; built by RecordView.morningProcessingSection (RecordView+Sections.swift)",
    "calls": [
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.processingProgress",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.beatCountRow",
@@ -41,18 +41,18 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.beatCountRow": "c0693307f9a33d40",
-    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.deviceFetchSection": "db7bb3ca7ce5ba36",
-    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.processingProgress": "13eac16f5b60ab73",
-    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.skipDeviceFetchButton": "e8daab7cfa005be1",
-    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.skipSleepWaitButton": "e108055da4061ca4"
+    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.beatCountRow": "d00138f8b3e25aca",
+    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.deviceFetchSection": "a7d1bd9866cf0501",
+    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.processingProgress": "dc98954311faabd8",
+    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.skipDeviceFetchButton": "8ba8b80bf345b593",
+    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.skipSleepWaitButton": "0471ee1e6f573eaf"
    }
   },
   {
    "key": "var MorningProcessingCard.processingProgress",
    "hash": "9f58b987de939f8c",
    "does": "Shows a sage checkmark when status is .complete, else a spinner, plus the step message (sage when complete).",
-   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift:227, when morningCoordination.morningStatus != nil)",
+   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift, when morningCoordination.morningStatus != nil)",
    "calls": [
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.isProcessingComplete(_:)",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.processingStepMessage(_:)",
@@ -84,7 +84,7 @@
    "key": "var MorningProcessingCard.beatCountRow",
    "hash": "973a759abd529bf6",
    "does": "Shows '<N> heartbeats' caption when the status carries a positive beat count.",
-   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift:227, when morningCoordination.morningStatus != nil)",
+   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift, when morningCoordination.morningStatus != nil)",
    "calls": [
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.beatCount(for:)",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.formatBeats(_:)",
@@ -110,7 +110,7 @@
    "key": "var MorningProcessingCard.deviceFetchSection",
    "hash": "ce6a962debf34276",
    "does": "Shows the device-fetch detail rows only in the fallback path.",
-   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift:227, when morningCoordination.morningStatus != nil)",
+   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift, when morningCoordination.morningStatus != nil)",
    "calls": [
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.showsDeviceFetchSection(_:)",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.deviceFetchDetails"
@@ -126,14 +126,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.showsDeviceFetchSection(_:)": "95fd276ea628ae9a",
-    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.deviceFetchDetails": "f12473d9f21ff295"
+    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::var MorningProcessingCard.deviceFetchDetails": "d8fdd07c6784840e"
    }
   },
   {
    "key": "var MorningProcessingCard.deviceFetchDetails",
    "hash": "6657c716e11f090f",
    "does": "Rows 'Streamed' (streamed beat count, checkmark), 'Device' (device beat value + icon) and optionally 'Source' (localized data-source tag).",
-   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift:227, when morningCoordination.morningStatus != nil)",
+   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift, when morningCoordination.morningStatus != nil)",
    "calls": [
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.dataSourceRow(label:value:icon:)",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.formattedStreamedValue(for:)",
@@ -154,7 +154,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.dataSourceRow(label:value:icon:)": "2567df7429201825",
-    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.deviceRowIcon(for:)": "fd80148ef7ea9ef8",
+    "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.deviceRowIcon(for:)": "f089c078140fbad7",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.deviceRowValue(for:)": "26fd451ddb0cf6d3",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.formattedStreamedValue(for:)": "ec04fb2b2011d026",
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.sourceLabel(for:)": "cace00dd5fdd6d79"
@@ -181,10 +181,10 @@
    "key": "var MorningProcessingCard.skipDeviceFetchButton",
    "hash": "dfb6a22ef1e20014",
    "does": "During .fetchingDevice shows a bordered button that calls onSkipDeviceFetch (RecordView sets collector.deviceFetchPolicy = .skipByUser and cancels the PolarManager fetch) plus a 'streamed data is safe' caption.",
-   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift:227, when morningCoordination.morningStatus != nil); button tap by user",
+   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift, when morningCoordination.morningStatus != nil); button tap by user",
    "calls": [
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.useStreamedBeatsLabel(_:)",
-    "closure:onSkipDeviceFetch set by RecordView+Sections.swift:229 (deviceFetchPolicy=.skipByUser; polarManager.cancelFetch())",
+    "closure:onSkipDeviceFetch set by RecordView+Sections.swift (deviceFetchPolicy=.skipByUser; polarManager.cancelFetch())",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -209,7 +209,7 @@
    "key": "var MorningProcessingCard.skipSleepWaitButton",
    "hash": "16501104f2f27468",
    "does": "During .waitingForSleep, when an onSkipSleepWait closure was supplied, shows the skip-sleep prompt.",
-   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift:227, when morningCoordination.morningStatus != nil)",
+   "entry": "SwiftUI subview of MorningProcessingCard (built by RecordView.morningProcessingSection, RecordView+Sections.swift, when morningCoordination.morningStatus != nil)",
    "calls": [
     "Emuqu/Sources/Views/Record/MorningProcessingCard.swift::func MorningProcessingCard.skipSleepWaitPrompt(_:)"
    ],
@@ -250,7 +250,7 @@
    "does": "Bordered 'Skip — analyze without sleep data' button invoking the skip closure (RecordView sets collector.morningProcessingService.skipSleepWait = true).",
    "entry": "Button tap by user",
    "calls": [
-    "closure:onSkipSleepWait set by RecordView+Sections.swift:233 (morningProcessingService.skipSleepWait = true)",
+    "closure:onSkipSleepWait set by RecordView+Sections.swift (morningProcessingService.skipSleepWait = true)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -507,7 +507,7 @@
     {
      "at": "+3",
      "cond": ".fetchingDevice",
-     "effect": "nil; the card-level ProgressView (MorningProcessingCard.swift:49) is the spinner the comment refers to"
+     "effect": "nil; the card-level ProgressView (MorningProcessingCard.swift) is the spinner the comment refers to"
     },
     {
      "at": "+4",

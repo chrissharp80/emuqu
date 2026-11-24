@@ -17,7 +17,7 @@
  ],
  "state": [
   "mem:WorkoutMetadata.currentSchemaVersion = 1 (written as schemaVersion, never read back)",
-  "mem:WorkoutMetadata.routeEstimateNoPriorConfidence = 0.4 (also read by RouteTRIMPEstimator.swift:189)",
+  "mem:WorkoutMetadata.routeEstimateNoPriorConfidence = 0.4 (also read by RouteTRIMPEstimator.swift)",
   "mem:WorkoutMetadata.routeDropoutRecordedShare = 0.5",
   "archive: WorkoutMetadata is persisted inside HRVSession (WorkoutMetadata.CodingKeys)",
   "hk:HKMetadataKeyWeatherTemperature / HKMetadataKeyWeatherHumidity (read by WorkoutWeatherSnapshot init)"
@@ -27,7 +27,7 @@
   {
    "key": "func WorkoutSample.withAlpha1(_:)",
    "hash": "08c253fd657149d6",
-   "does": "Returns a copy of the sample with only alpha1 replaced (used by WorkoutAlpha1Reanalyzer.swift:139-140).",
+   "does": "Returns a copy of the sample with only alpha1 replaced (used by WorkoutAlpha1Reanalyzer.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
@@ -42,7 +42,7 @@
   {
    "key": "func WorkoutSample.withHeartRate(_:)",
    "hash": "7f865c322230795f",
-   "does": "Returns a copy with only heartRate replaced. Used by the finalize-time Apple Watch HR backfill (WorkoutRecorder+Lifecycle.swift:558) and by CloudKitSyncSupport.swift:663/761 to strip or restore Apple-Health HR rows.",
+   "does": "Returns a copy with only heartRate replaced. Used by the finalize-time Apple Watch HR backfill (WorkoutRecorder+Lifecycle.swift) and by CloudKitSyncSupport.swift/761 to strip or restore Apple-Health HR rows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)"
@@ -404,7 +404,7 @@
    "deps": {
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)": "eda5fb18d226da89",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "654be340768a34db",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "76ca57d4e4884777",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
@@ -577,7 +577,7 @@
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeContext(into:)": "f62e64c3d2ce16ac",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeLoadMetrics(into:)": "0492548289852d28",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodePowerMetrics(into:)": "263299ef2cd39a30",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeRouteAndSamples(into:)": "420a0164c9ced6d5"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeRouteAndSamples(into:)": "33f09d9d20e37e53"
    }
   },
   {
@@ -641,7 +641,7 @@
   {
    "key": "init WorkoutWeatherSnapshot(healthKitMetadata:observedAt:)",
    "hash": "e7deb6dbf6d8aeef",
-   "does": "Failable init from a HealthKit workout's metadata: requires both HKMetadataKeyWeatherTemperature (°C-compatible) and HKMetadataKeyWeatherHumidity (percent-compatible) quantities; builds a snapshot with humidity × 100, no apparent temp/wind/conditions, backfilled=false. Used by HealthWorkoutImporter+Queries.swift:217 and HealthKitManager+Heat.swift:55.",
+   "does": "Failable init from a HealthKit workout's metadata: requires both HKMetadataKeyWeatherTemperature (°C-compatible) and HKMetadataKeyWeatherHumidity (percent-compatible) quantities; builds a snapshot with humidity × 100, no apparent temp/wind/conditions, backfilled=false. Used by HealthWorkoutImporter+Queries.swift and HealthKitManager+Heat.swift.",
    "entry": null,
    "calls": [
     "ext:HKQuantity.doubleValue(for:)"

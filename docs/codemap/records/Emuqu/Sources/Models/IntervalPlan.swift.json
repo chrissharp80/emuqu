@@ -11,13 +11,13 @@
  "state": [
   "mem:IntervalPlan.presets (static let: 'Easy base (30 min Z2)' id 1111…, \"5×3' tempo @ Z4\" id 2222…, '4×30/30 VO₂ (2 sets)' id 3333…)"
  ],
- "toplevel": "IntervalPlan.presets is a static let evaluated lazily on first access (WorkoutPreflightView.swift:785); it builds three plans with fixed UUID literals via presetID and the 30/30 plan via thirtyThirtySteps(sets: 2). All Codable/Equatable conformances are synthesized.",
+ "toplevel": "IntervalPlan.presets is a static let evaluated lazily on first access (WorkoutPreflightView.swift); it builds three plans with fixed UUID literals via presetID and the 30/30 plan via thirtyThirtySteps(sets: 2). All Codable/Equatable conformances are synthesized.",
  "units": [
   {
    "key": "var IntervalStep.id",
    "hash": "5b07194704af31c4",
    "does": "Identifiable id = step index (stable only within one plan).",
-   "entry": "Identifiable conformance requirement only; no SwiftUI ForEach or other identity use of IntervalStep exists in the repo (ForEach is only over IntervalPlan.presets at WorkoutPreflightView.swift:785).",
+   "entry": "Identifiable conformance requirement only; no SwiftUI ForEach or other identity use of IntervalStep exists in the repo (ForEach is only over IntervalPlan.presets at WorkoutPreflightView.swift).",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -27,7 +27,7 @@
   {
    "key": "var IntervalStep.displayLabel",
    "hash": "1404eef93210abf1",
-   "does": "Maps the stored English label to its localized string for the 8 preset labels via LanguageManager.appBundle; any other label is returned unchanged. Used by FitnessRecordingView.swift:433 for the live step row.",
+   "does": "Maps the stored English label to its localized string for the 8 preset labels via LanguageManager.appBundle; any other label is returned unchanged. Used by FitnessRecordingView.swift for the live step row.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -176,7 +176,7 @@
   {
    "key": "var IntervalPlan.displayName",
    "hash": "4d69c16c50870ef9",
-   "does": "Localized plan name for the three preset names; any other name returned as stored. Used by WorkoutPreflightView.swift:786 preset chips.",
+   "does": "Localized plan name for the three preset names; any other name returned as stored. Used by WorkoutPreflightView.swift preset chips.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -227,7 +227,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.id": "8ed6a1de6cef222d"
+    "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.id": "4778b33d85004cf6"
    }
   },
   {

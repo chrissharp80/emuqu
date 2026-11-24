@@ -126,7 +126,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "71127c94fab42852"
    }
   },
   {
@@ -291,7 +291,7 @@
   {
    "key": "var UserSettings.effectiveMaxHR",
    "hash": "f91b048a2ee60771",
-   "does": "Max HR via MaxHeartRate.effective: user value >= 80, else Tanaka from birthday (Calendar.current, now), else 180.",
+   "does": "Max HR via MaxHeartRate.effective: user value >= 80 capped at 240, else Tanaka from birthday (Calendar.current, now), else 180.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)"
@@ -300,7 +300,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "f1105a544c54edc9",
+    "Emuqu/Sources/Analysis/MaxHeartRate.swift::func MaxHeartRate.effective(userEntered:birthday:reference:calendar:)": "e29bfce906f37293",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51"
    }
   },

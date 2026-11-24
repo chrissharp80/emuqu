@@ -1,7 +1,7 @@
 {
  "file": "scripts/codemap/codemap.py",
- "hash": "feb9f038725d154c",
- "role": "Command-line front end of the code map: check (the CI gate, including the dependency re-check and, when the local findings overlay exists, the open-findings ratchet), status (optionally grouped by callee), sync (with test records prefilled from their code), stamp (any number of records in one pass), ack (clear one callee's re-check lines after re-reading), move (carry records across a file move or unit rename), impact, callers and report. Run by scripts/check_codemap.sh, the codemap-* Makefile targets and the gates.yml impact step.",
+ "hash": "ac26a8d0d0e028e0",
+ "role": "Command-line front end of the code map: check (the CI gate, failing on unread re-check lines, records naming missing callees or citing line numbers and, when the local findings overlay exists, the open-findings ratchet), status (optionally grouped by callee), sync (with test records prefilled from their code), stamp (any number of records in one pass), ack (clear one callee's re-check lines after re-reading), move (carry records across a file move or unit rename), impact, callers and report. Run by scripts/check_codemap.sh, the codemap-* Makefile targets and the gates.yml impact step.",
  "types": [],
  "state": [
   "ROOT: repository root (two levels above this file)",
@@ -9,7 +9,7 @@
   "OVERLAY: the local, untracked findings overlay, $CODEMAP_OVERLAY or do_not_ship/codemap under ROOT",
   "FLAGS: OVERLAY/flags, one <path>.json per record holding {\"file\": [...], \"units\": {key: [...]}}"
  ],
- "toplevel": "Module docstring (the usage text main prints, including where the findings overlay lives), imports (collections, hashlib, json, os, re, subprocess, sys, Path), ROOT, RECORDS, OVERLAY and FLAGS, sys.path insertion of scripts/codemap so inventory, graph and report import, and the test-record prefill constants: TEST_ROOTS (EmuquTests/, EmuquUITests/), XCTEST_ENTRY (the XCTest runner trigger of a test method) and XCTEST_HOOKS (setUp/setUpWithError and tearDown/tearDownWithError to their per-test runner triggers). `if __name__ == \"__main__\": sys.exit(main(argv))`.",
+ "toplevel": "Module docstring (the usage text main prints, including where the findings overlay lives), imports (collections, hashlib, json, os, re, subprocess, sys, Path), ROOT, RECORDS, OVERLAY and FLAGS, sys.path insertion of scripts/codemap so inventory, graph and report import, LINE_CITATION (a `file:line` citation: a known source, project or config file extension, or Makefile, followed by `:` and a number; \"line N\" prose and a bare `:N` are not matched, being as often data, times or slices) and RECORD_TEXT_FIELDS (the record fields searched for one), and the test-record prefill constants: TEST_ROOTS (EmuquTests/, EmuquUITests/), XCTEST_ENTRY (the XCTest runner trigger of a test method) and XCTEST_HOOKS (setUp/setUpWithError and tearDown/tearDownWithError to their per-test runner triggers). `if __name__ == \"__main__\": sys.exit(main(argv))`.",
  "units": [
   {
    "key": "def record_path",
@@ -131,11 +131,24 @@
    }
   },
   {
-   "key": "def problems",
-   "hash": "e9f53c3db845915b",
-   "does": "Compares the inventory with the records and returns (path, key, message) for: a file with no record; a stale file hash; an empty role; a unit with no record; a unit record with empty `does`; a stale unit hash; a call to a `path::key` that is not a current unit (ext:/dyn:/closure: entries are not checked); a record for a unit no longer in the file; a record file for a path no longer in scope.",
+   "key": "def line_citations",
+   "hash": "cc1ff93f2a29702a",
+   "does": "The `file:line` citations (LINE_CITATION matches) in a file record's or unit record's text fields (RECORD_TEXT_FIELDS: role, types, state, toplevel, does, contract, entry, calls, reads, writes, branches), serialized together.",
    "entry": null,
    "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "def problems",
+   "hash": "2b7e2db7f4ca135e",
+   "does": "Compares the inventory with the records and returns (path, key, message) for: a file with no record; a stale file hash; an empty role; a file or unit record citing a line number (line_citations); a unit with no record; a unit record with empty `does`; a stale unit hash; a call to a `path::key` that is not a current unit (ext:/dyn:/closure: entries are not checked); a record for a unit no longer in the file; a record file for a path no longer in scope.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/codemap.py::def line_citations"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -155,37 +168,49 @@
      "effect": "problem"
     },
     {
-     "at": "+16",
+     "at": "+13",
+     "cond": "file record cites a line number",
+     "effect": "one problem per citation"
+    },
+    {
+     "at": "+18",
      "cond": "unit has no record",
      "effect": "problem; nothing else checked for it"
     },
     {
-     "at": "+19",
+     "at": "+21",
      "cond": "empty description",
      "effect": "problem"
     },
     {
-     "at": "+21",
+     "at": "+23",
      "cond": "unit code changed since stamping",
      "effect": "stale unit record"
     },
     {
-     "at": "+24",
+     "at": "+25",
+     "cond": "unit record cites a line number",
+     "effect": "one problem per citation"
+    },
+    {
+     "at": "+28",
      "cond": "call names a repo unit that is not in the current inventory",
      "effect": "dangling call"
     },
     {
-     "at": "+26",
+     "at": "+30",
      "cond": "record keys with no matching unit",
      "effect": "orphaned unit record"
     },
     {
-     "at": "+28",
+     "at": "+32",
      "cond": "record files for paths not in scope",
      "effect": "orphaned file record"
     }
    ],
-   "deps": {}
+   "deps": {
+    "scripts/codemap/codemap.py::def line_citations": "3af56ebb3497be8b"
+   }
   },
   {
    "key": "def described",
@@ -384,8 +409,8 @@
   },
   {
    "key": "def cmd_check",
-   "hash": "36f6e3422aebe1ee",
-   "does": "Loads all records (with the overlay's findings when present), builds the inventory and the call graph once. Failing problems: problems() except 'calls a unit that no longer exists', plus the open-findings ratchet (budget_problems over open_findings, which runs only when the overlay exists). Advisory (reported, never failing; a TODO(codemap-recheck) comment says to make them fail again once the outstanding re-check lines have been re-read): those stale-call lines plus dependency_problems() re-check lines. Prints the advisory count; with by_callee prints the re-check lines grouped by callee (_print_by_callee over recheck_items, against `base`) and then the stale-call lines by file; else for `status` lists them grouped by file. No failing problems: prints success, and when the overlay exists also the open high/medium/low counts, and returns 0. Otherwise prints the failing problems grouped by file with how to fix each kind, and returns 1 for `check` (strict) or 0 for `status`.",
+   "hash": "e2325021d0912900",
+   "does": "Loads all records (with the overlay's findings when present), builds the inventory and the call graph once. Failing problems: everything problems() reports (records naming missing callees and line citations included), every dependency_problems() re-check line, and the open-findings ratchet (budget_problems over open_findings, which runs only when the overlay exists). With by_callee and re-check lines, first prints them grouped by callee (_print_by_callee over recheck_items, against `base`). No problems: prints success, and when the overlay exists also the open high/medium/low counts, and returns 0. Otherwise prints the problems grouped by file (re-check lines left out when already printed by callee) with how to fix each kind, and returns 1 for `check` (strict) or 0 for `status`.",
    "entry": null,
    "calls": [
     "scripts/codemap/inventory.py::def inventory",
@@ -403,33 +428,23 @@
    "writes": [],
    "branches": [
     {
-     "at": "+15",
-     "cond": "records to re-check",
-     "effect": "count printed"
+     "at": "+8",
+     "cond": "status --by-callee with re-check lines",
+     "effect": "printed grouped by callee first"
     },
     {
-     "at": "+17",
-     "cond": "status --by-callee",
-     "effect": "grouped by callee, then stale-call lines by file"
-    },
-    {
-     "at": "+20",
-     "cond": "status",
-     "effect": "re-check lines listed by file"
-    },
-    {
-     "at": "+22",
-     "cond": "no failing problems",
+     "at": "+14",
+     "cond": "no problems",
      "effect": "success message, 0"
     },
     {
-     "at": "+24",
+     "at": "+16",
      "cond": "overlay exists",
      "effect": "open-findings counts printed"
     },
     {
-     "at": "+37",
-     "cond": "failing problems",
+     "at": "+33",
+     "cond": "problems",
      "effect": "1 when strict (check), 0 for status"
     }
    ],
@@ -439,11 +454,11 @@
     "scripts/codemap/codemap.py::def all_records": "223fc65013166dda",
     "scripts/codemap/codemap.py::def budget_problems": "4b5252320a3020b3",
     "scripts/codemap/codemap.py::def dependency_problems": "bd259b7be6811115",
-    "scripts/codemap/codemap.py::def main": "cf72cf56adad6ae9",
+    "scripts/codemap/codemap.py::def main": "cc8821352b97f3c0",
     "scripts/codemap/codemap.py::def open_findings": "472665e842488997",
-    "scripts/codemap/codemap.py::def problems": "8d66e93ccdbc9099",
+    "scripts/codemap/codemap.py::def problems": "ecfb14aef117828b",
     "scripts/codemap/codemap.py::def recheck_items": "826f5d7908661a65",
-    "scripts/codemap/graph.py::def build": "e683daa77ef33431",
+    "scripts/codemap/graph.py::def build": "2d1abd55262acfb7",
     "scripts/codemap/inventory.py::def inventory": "45bee6ee5719b0b8"
    }
   },
@@ -701,7 +716,50 @@
     "scripts/codemap/codemap.py::def current_deps": "7f6f7684aeeaf6b9",
     "scripts/codemap/codemap.py::def descriptions": "dd47fbd3de0a83ba",
     "scripts/codemap/codemap.py::def save": "f15e1d5ae789e59c",
-    "scripts/codemap/graph.py::def build": "e683daa77ef33431",
+    "scripts/codemap/graph.py::def build": "2d1abd55262acfb7",
+    "scripts/codemap/inventory.py::def inventory": "45bee6ee5719b0b8"
+   }
+  },
+  {
+   "key": "def cmd_ack_from",
+   "hash": "f8a7d83dd9bd6c13",
+   "does": "`ack` for many pairs in one pass: reads `path`, one CALLER<TAB>CALLEE per non-blank line (2 on a line without a tab); builds the inventory, records and graph once; refuses (2, listing up to 20) when any pair is not an open re-check line, writing nothing; otherwise sets each caller's deps[callee] to the callee's current described hash, saves the touched records and prints the count.",
+   "entry": null,
+   "calls": [
+    "scripts/codemap/inventory.py::def inventory",
+    "scripts/codemap/codemap.py::def all_records",
+    "scripts/codemap/codemap.py::def recheck_items",
+    "scripts/codemap/graph.py::def build",
+    "scripts/codemap/codemap.py::def descriptions",
+    "scripts/codemap/codemap.py::def record_of",
+    "scripts/codemap/codemap.py::def save"
+   ],
+   "reads": [
+    "file:<path> (CALLER<TAB>CALLEE lines)",
+    "file:docs/codemap/records/**"
+   ],
+   "writes": [
+    "file:docs/codemap/records/<path>.json (deps of the acknowledged callers)"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "line without a tab",
+     "effect": "error, 2"
+    },
+    {
+     "at": "+19",
+     "cond": "a pair is not an open re-check line",
+     "effect": "error, 2, nothing written"
+    }
+   ],
+   "deps": {
+    "scripts/codemap/codemap.py::def all_records": "223fc65013166dda",
+    "scripts/codemap/codemap.py::def descriptions": "dd47fbd3de0a83ba",
+    "scripts/codemap/codemap.py::def recheck_items": "826f5d7908661a65",
+    "scripts/codemap/codemap.py::def record_of": "5a4db3d864a7532d",
+    "scripts/codemap/codemap.py::def save": "f15e1d5ae789e59c",
+    "scripts/codemap/graph.py::def build": "2d1abd55262acfb7",
     "scripts/codemap/inventory.py::def inventory": "45bee6ee5719b0b8"
    }
   },
@@ -748,7 +806,7 @@
     "scripts/codemap/codemap.py::def recheck_items": "826f5d7908661a65",
     "scripts/codemap/codemap.py::def record_of": "5a4db3d864a7532d",
     "scripts/codemap/codemap.py::def save": "f15e1d5ae789e59c",
-    "scripts/codemap/graph.py::def build": "e683daa77ef33431",
+    "scripts/codemap/graph.py::def build": "2d1abd55262acfb7",
     "scripts/codemap/inventory.py::def inventory": "45bee6ee5719b0b8"
    }
   },
@@ -954,9 +1012,9 @@
    "deps": {
     "scripts/codemap/codemap.py::def all_records": "223fc65013166dda",
     "scripts/codemap/codemap.py::def changed_since": "590bb0d6527b8653",
-    "scripts/codemap/codemap.py::def main": "cf72cf56adad6ae9",
+    "scripts/codemap/codemap.py::def main": "cc8821352b97f3c0",
     "scripts/codemap/codemap.py::def record_of": "5a4db3d864a7532d",
-    "scripts/codemap/graph.py::def build": "e683daa77ef33431",
+    "scripts/codemap/graph.py::def build": "2d1abd55262acfb7",
     "scripts/codemap/graph.py::def callers": "cdfd602e4806fa1e",
     "scripts/codemap/inventory.py::def inventory": "45bee6ee5719b0b8"
    }
@@ -983,15 +1041,15 @@
    ],
    "deps": {
     "scripts/codemap/codemap.py::def all_records": "223fc65013166dda",
-    "scripts/codemap/graph.py::def build": "e683daa77ef33431",
+    "scripts/codemap/graph.py::def build": "2d1abd55262acfb7",
     "scripts/codemap/graph.py::def callers": "cdfd602e4806fa1e",
     "scripts/codemap/inventory.py::def inventory": "45bee6ee5719b0b8"
    }
   },
   {
    "key": "def main",
-   "hash": "52b80b21aeab9698",
-   "does": "Dispatches argv: no args or -h/--help prints the usage and returns 0; check -> strict check; status -> non-strict, or grouped by callee with `--by-callee [BASE]`; sync PATH...; stamp with stamp_targets' groups (2 when the forms are mixed); ack CALLEE [CALLER...]; move OLD NEW [OLDKEY=NEWKEY...]; impact [--base REF] [NODE...]; callers NODE; report OUTDIR -> report.build over all records. Anything else prints the usage to stderr and returns 2.",
+   "hash": "94967abb0385c113",
+   "does": "Dispatches argv: no args or -h/--help prints the usage and returns 0; check -> strict check; status -> non-strict, or grouped by callee with `--by-callee [BASE]`; sync PATH...; stamp with stamp_targets' groups (2 when the forms are mixed); ack --from FILE -> cmd_ack_from; ack CALLEE [CALLER...]; move OLD NEW [OLDKEY=NEWKEY...]; impact [--base REF] [NODE...]; callers NODE; report OUTDIR -> report.build over all records. Anything else prints the usage to stderr and returns 2.",
    "entry": "python3 scripts/codemap/codemap.py <command> (check_codemap.sh, the codemap-* Makefile targets, the gates.yml impact step, by hand)",
    "calls": [
     "scripts/codemap/codemap.py::def cmd_check",
@@ -1003,7 +1061,8 @@
     "scripts/codemap/codemap.py::def cmd_impact",
     "scripts/codemap/codemap.py::def cmd_callers",
     "scripts/codemap/report.py::def build",
-    "scripts/codemap/codemap.py::def all_records"
+    "scripts/codemap/codemap.py::def all_records",
+    "scripts/codemap/codemap.py::def cmd_ack_from"
    ],
    "reads": [],
    "writes": [],
@@ -1035,26 +1094,31 @@
     },
     {
      "at": "+19",
+     "cond": "ack --from FILE",
+     "effect": "cmd_ack_from"
+    },
+    {
+     "at": "+21",
      "cond": "ack with a callee",
      "effect": "cmd_ack"
     },
     {
-     "at": "+21",
+     "at": "+23",
      "cond": "move with two paths",
      "effect": "cmd_move"
     },
     {
-     "at": "+23",
+     "at": "+25",
      "cond": "impact",
      "effect": "cmd_impact"
     },
     {
-     "at": "+25",
+     "at": "+27",
      "cond": "callers with one node",
      "effect": "cmd_callers"
     },
     {
-     "at": "+27",
+     "at": "+29",
      "cond": "report with an output dir",
      "effect": "report.build; otherwise usage to stderr, 2"
     }
@@ -1062,8 +1126,9 @@
    "deps": {
     "scripts/codemap/codemap.py::def all_records": "223fc65013166dda",
     "scripts/codemap/codemap.py::def cmd_ack": "e52321cfc50dde71",
+    "scripts/codemap/codemap.py::def cmd_ack_from": "3d70a75660fe2ac3",
     "scripts/codemap/codemap.py::def cmd_callers": "255fa2d16886ad3d",
-    "scripts/codemap/codemap.py::def cmd_check": "2ff7163721841879",
+    "scripts/codemap/codemap.py::def cmd_check": "f5482ee9727f44a4",
     "scripts/codemap/codemap.py::def cmd_impact": "192de9074058712d",
     "scripts/codemap/codemap.py::def cmd_move": "b05c9524be68b2e2",
     "scripts/codemap/codemap.py::def cmd_stamp": "c9cdf3a9ec8f865c",
@@ -1076,7 +1141,7 @@
  "deps": {
   "scripts/codemap/codemap.py::def cmd_move.moved": "19887d0f58508cb4",
   "scripts/codemap/codemap.py::def load": "feb28450cce553af",
-  "scripts/codemap/codemap.py::def main": "cf72cf56adad6ae9",
+  "scripts/codemap/codemap.py::def main": "cc8821352b97f3c0",
   "scripts/codemap/codemap.py::def prefilled": "2c1e76a577d49c35",
   "scripts/codemap/codemap.py::def save": "f15e1d5ae789e59c",
   "scripts/codemap/report.py::def build": "d6a1eec8fe8cdae2"

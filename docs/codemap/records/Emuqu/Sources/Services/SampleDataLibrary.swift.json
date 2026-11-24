@@ -8,15 +8,15 @@
   "SampleDataError: enum LocalizedError — busy, noOpenNights, incompleteRemoval"
  ],
  "state": [
-  "mem:SampleDataLibrary.isBusy (static var, SampleDataLibrary.swift:33)",
-  "ud:sampleData.ledger.v1 (SampleDataLibrary.ledgerKey, :36; JSON Ledger in injectable defaults, .standard in production)"
+  "mem:SampleDataLibrary.isBusy (static var, SampleDataLibrary.swift)",
+  "ud:sampleData.ledger.v1 (SampleDataLibrary.ledgerKey; JSON Ledger in injectable defaults, .standard in production)"
  ],
  "toplevel": "Stored properties collector, deleteFromCloud and defaults (= .standard). Second type SampleDataError at file end.",
  "units": [
   {
    "key": "init SampleDataLibrary(collector:cloudSync:)",
    "hash": "ff514d64f547ded4",
-   "does": "Convenience init: wires deleteFromCloud to CloudKitSyncManager.uploadDeletion. Used by SampleDataViews (lines 123/163/275).",
+   "does": "Convenience init: wires deleteFromCloud to CloudKitSyncManager.uploadDeletion. Used by SampleDataViews.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)",
@@ -189,12 +189,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "16f070d35d68d9c8",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "58bfe64fc444721d",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "d3f1eca5cb52fae2",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "0537b6229c6d467c",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::init HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:)": "54452f1dbb11842d",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentANSConfig": "8063b546cc072191",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.currentANSConfig": "afead726e87e0471",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
   },
@@ -312,7 +312,7 @@
    "does": "Fire-and-forget Task that awaits deleteFromCloud for each removed id sequentially.",
    "entry": null,
    "calls": [
-    "closure:deleteFromCloud — CloudKitSyncManager.uploadDeletion in production (init at :38)",
+    "closure:deleteFromCloud — CloudKitSyncManager.uploadDeletion in production (init)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)"
    ],
    "reads": [],
@@ -353,7 +353,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "d1901cb2aed50e88",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "b899a073d606c046",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "458e791447e9fdf7",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }

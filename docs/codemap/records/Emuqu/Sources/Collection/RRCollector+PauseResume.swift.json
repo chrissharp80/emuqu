@@ -599,7 +599,7 @@
    "key": "func CollectorSessionControl.finalizeFromPause()",
    "hash": "95f27ca7a3c861d3",
    "does": "Done on a paused session: marks the archive's copy .complete (rearchiveFinalized, so a sleep refresh or rescore since the pause is kept) and takes that copy as the finished night; when the write fails the night stays paused (archive still holds it paused; Resume/Done remain). Otherwise updates the baseline tracker, publishes it; with analysis sets needsAcceptance/awaitingAcceptance and reviewArchivedSessionId, else returns to idle; records the session's tags, notes and feeling in reviewArchivedEntries; clears paused state and marker.",
-   "entry": "Called from RecordView Done (RecordView+Actions.swift:80) and the battery-critical observer (RRCollector+Bindings.swift:205).",
+   "entry": "Called from RecordView Done (RecordView+Actions.swift) and the battery-critical observer (RRCollector+Bindings.swift).",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.rearchiveFinalized(_:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",

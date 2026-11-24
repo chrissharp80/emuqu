@@ -33,7 +33,7 @@
    "key": "func WatchWorkoutManager.requestAuthorizationIfNeeded()",
    "hash": "6b54beca06d516c0",
    "does": "Requests HealthKit authorization once (share workoutType, read heartRate) when health data is available; on success sets hasRequestedAuth; on error sets lastStartError to 'Apple Health authorization failed: …'.",
-   "entry": "Called from WatchApp.wireUp in .onAppear (EmuquWatch Watch App/WatchApp.swift:66) and from start()'s Task.",
+   "entry": "Called from WatchApp.wireUp in .onAppear (EmuquWatch Watch App/WatchApp.swift) and from start()'s Task.",
    "calls": [
     "ext:HKHealthStore.isHealthDataAvailable",
     "ext:HKHealthStore.requestAuthorization(toShare:read:)"
@@ -123,7 +123,7 @@
    "branches": [],
    "deps": {
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.finishPendingStart()": "df7a5f3e1f7420c0",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.requestAuthorizationIfNeeded()": "f8c9538d39f28688"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.requestAuthorizationIfNeeded()": "64a1c6e00774d840"
    }
   },
   {
@@ -482,7 +482,7 @@
    "key": "func WatchWorkoutManager.followPhoneMessages(of:)",
    "hash": "e26a7e52e6ddedc5",
    "does": "Once per app life subscribes (async values of $messagesReceived minus initial) and calls notePhoneContact(phoneRecording: sessionManager.isRecording) for each iPhone message.",
-   "entry": "Called from WatchApp.wireUp in .onAppear (EmuquWatch Watch App/WatchApp.swift:65).",
+   "entry": "Called from WatchApp.wireUp in .onAppear (EmuquWatch Watch App/WatchApp.swift).",
    "calls": [
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.notePhoneContact(phoneRecording:)"
    ],

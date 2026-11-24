@@ -33,7 +33,7 @@
    "key": "var StreamingProgressPanel.body",
    "hash": "77e4b62340432ccc",
    "does": "Shows v2Body; on appear installs the auto-complete handler, on disappear switches the breathing voice guide off.",
-   "entry": "SwiftUI view body; StreamingProgressPanel built by RecordPanels.streamingProgressPanel (RecordView+Panels.swift:641) while quick streaming; .onAppear/.onDisappear lifecycle",
+   "entry": "SwiftUI view body; StreamingProgressPanel built by RecordPanels.streamingProgressPanel (RecordView+Panels.swift) while quick streaming; .onAppear/.onDisappear lifecycle",
    "calls": [
     "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.v2Body",
     "Emuqu/Sources/Views/Record/StreamingLiveView.swift::func StreamingProgressPanel.installAutoCompleteHandler()",
@@ -57,7 +57,7 @@
    "does": "Assigns collector.onStreamingComplete = stopStreaming (RecordView.stopStreaming), so CollectorSessionControl.streamingCountdownTick ends and saves the reading when the countdown expires. Never cleared; the next panel overwrites it.",
    "entry": ".onAppear of StreamingProgressPanel",
    "calls": [
-    "closure:stopStreaming passed by RecordPanels (RecordView+Panels.swift:646) = RecordView.stopStreaming (Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopStreaming())"
+    "closure:stopStreaming passed by RecordPanels (RecordView+Panels.swift) = RecordView.stopStreaming (Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopStreaming())"
    ],
    "reads": [],
    "writes": [
@@ -83,7 +83,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.updatePhase(_:)": "61b5c83b26c06b1b",
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.updatePhase(_:)": "da3aa6ce18356f8e",
     "Emuqu/Sources/Views/BreathingMandalaView.swift::func BreathingMandalaView.slowPacedBreathing(onPhaseUpdate:)": "938fc906c2c607a2",
     "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.liveHRReadout": "cf2bd129a34114bd",
     "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.stopReadingRow": "57fb8df2b7e365ee",
@@ -222,7 +222,7 @@
    "key": "var LiveDataPanel.body",
    "hash": "faf7a11267c4f9bf",
    "does": "Card with current HR row and, once enough beats, waveform + stats.",
-   "entry": "SwiftUI view body; LiveDataPanel built by RecordView.liveDataSection (RecordView+Sections.swift:246) during quick streaming",
+   "entry": "SwiftUI view body; LiveDataPanel built by RecordView.liveDataSection (RecordView+Sections.swift) during quick streaming",
    "calls": [
     "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var LiveDataPanel.currentHRRow",
     "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var LiveDataPanel.waveformAndStats"

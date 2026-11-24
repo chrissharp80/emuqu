@@ -8,7 +8,10 @@ import struct
 
 import numpy as np
 
-DATA_ROOT = "/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet"
+# Where the PhysioNet records are read from: $EMUQU_PHYSIONET_DIR, else build/physionet in this
+# checkout (ignored by git). fetch_physionet.py downloads a database into <DATA_ROOT>/<db>.
+DATA_ROOT = os.environ.get("EMUQU_PHYSIONET_DIR") or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, "build", "physionet")
 COMMIT = "e028039"
 
 # WFDB beat annotation codes (PhysioNet "ecgcodes"); non-beat codes ('+', '~', '|', '"', 'x', '[', ']', '!' ...) are ignored.

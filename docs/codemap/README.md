@@ -26,6 +26,10 @@ two large string catalogs also has a file-level record.
 | `hash` | Hash of the code the record was written against. |
 | `deps` | For each unit it certainly calls: a hash of what that callee's record said when this record was last checked. Written by `stamp`. |
 
+Records name units, targets and files, never line numbers: a `file:line` citation goes wrong
+with every edit above that line while the record's own code is unchanged, so nothing would flag it.
+The check rejects a record that cites one.
+
 `areas.json` assigns each file to a product area for the report. A new file takes the area of the
 other files in its directory. `strings.json` is the key-by-key audit of the two string catalogs.
 
@@ -48,6 +52,11 @@ recorded call; a protocol requirement to each implementation; build wiring. An e
 **possible** when the name matches several units and nothing narrows it: there is no type checker
 here, so `x.load()` on a variable of unknown type is a possible call to every `load()` in the repo.
 
+Certainty is decided on every unit a name could mean. Two filters then drop references that
+cannot be what they look like, and they only ever remove edges: a property-style read on a
+receiver of unknown or framework type (`x.name`) is not a call to a function that needs
+arguments, and app code is never linked with a test target, so a match there is a name collision.
+
 Certain edges drive the re-check rule below. Possible edges are listed by `impact` and the report,
 so a change can be checked against them by hand.
 
@@ -60,19 +69,17 @@ when:
 - the code of a unit, or the code of a file outside its units, has changed since its record was
   stamped;
 - a record exists for a unit or file that no longer does;
+- **a callee changed what it does**: a unit's certain callee has a record that now says something
+  different from when the unit was last checked, or the unit now resolves a call to a unit it was
+  not checked against (a "re-check" line). The unit must be re-read. If its own behaviour changed
+  too, its record changes, and its callers are sent back in turn, so a behaviour change is
+  followed up the graph as far as it reaches;
+- a record names a callee that no longer exists;
+- a record cites a line number (`file:line`);
 - with the local findings overlay present, the number of open high- or medium-severity findings
   differs from its budget (below).
 
-It also lists, without failing, the records to re-check:
-
-- **a callee changed what it does**: a unit's certain callee has a record that now says something
-  different from when the unit was last checked, or the unit now resolves a call to a unit it was
-  not checked against. The unit must be re-read. If its own behaviour changed too, its record
-  changes, and its callers are listed in turn, so a behaviour change is followed up the graph as
-  far as it reaches;
-- a record names a callee that no longer exists.
-
-`codemap.py status` prints every re-check line; `check` prints only how many there are.
+`codemap.py status` prints every problem without failing.
 `codemap.py status --by-callee [BASE]` groups them by the callee that caused them and prints what
 that callee's record says now and at `BASE` (default `origin/main`), so its callers are read
 against one change. Each line is cleared by re-reading the unit and either stamping it (its record
@@ -160,8 +167,9 @@ failed. `codemap.py callers <path::key>` lists one unit's direct callers.
 
 Run these with the interpreter `make codemap-setup` creates (`.venv-codemap/bin/python`); the
 inventory needs tree-sitter, which needs Python 3.10 or newer. `scripts/codemap/setup_venv.sh`
-picks the first such interpreter on PATH, then in Homebrew, the python.org installer or pyenv
-(or `CODEMAP_BASE_PYTHON`); with none installed it downloads a pinned, checksum-verified
+picks `CODEMAP_BASE_PYTHON` when it is set and 3.10 or newer, else the first such interpreter on
+PATH, then in Homebrew, the python.org installer or pyenv; with none installed it downloads a
+pinned, checksum-verified
 standalone CPython 3.12 into `.codemap-python/`. It rebuilds a venv an older interpreter made.
 
 `stamp` and `ack` record hashes; they do not read anything. Stamping or acknowledging without

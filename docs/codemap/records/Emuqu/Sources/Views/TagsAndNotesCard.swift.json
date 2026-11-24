@@ -6,7 +6,7 @@
   "TagsAndNotesCard: struct (@MainActor, not a View) — tags + notes card builder"
  ],
  "state": [
-  "TagsAndNotesCard.notes: @Binding String (bound to MorningResultsViewModel.notes via $notes in MorningDetailCards, whose notes binding is $vm.notes at MorningResultsView+CardForwarding.swift:35)",
+  "TagsAndNotesCard.notes: @Binding String (bound to MorningResultsViewModel.notes via $notes in MorningDetailCards, whose notes binding is $vm.notes at MorningResultsView+CardForwarding.swift)",
   "TagsAndNotesCard.selectedTags: let Set<ReadingTag>",
   "TagsAndNotesCard.onToggleTag: let closure (ReadingTag) -> Void"
  ],
@@ -16,7 +16,7 @@
    "key": "var TagsAndNotesCard.body",
    "hash": "f3287ebe03203ace",
    "does": "Card: tags row, divider, notes header and a vertical TextField (3-5 lines) bound to notes, wrapped in zenCard. Editing writes through the binding to the parent's notes state.",
-   "entry": "Not a View: called explicitly as TagsAndNotesCard(...).body from MorningDetailCards.tagsAndNotesSection (MorningResultsView+DetailCards.swift:218); TextField edits are user input",
+   "entry": "Not a View: called explicitly as TagsAndNotesCard(...).body from MorningDetailCards.tagsAndNotesSection (MorningResultsView+DetailCards.swift); TextField edits are user input",
    "calls": [
     "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.tagsRow",
     "Emuqu/Sources/Views/TagsAndNotesCard.swift::var TagsAndNotesCard.notesHeader",
@@ -101,8 +101,8 @@
    "does": "TagChip for the tag, selected when in selectedTags; tap calls onToggleTag(tag).",
    "entry": null,
    "calls": [
-    "dyn:View.body → Emuqu/Sources/Views/RecordViewHelpers.swift:12",
-    "closure:onToggleTag, set by MorningDetailCards.tagsAndNotesSection (MorningResultsView+DetailCards.swift:222) forwarding to MorningDetailCards.onToggleTag, which MorningResultsView.cards sets to toggleTag (MorningResultsView+CardForwarding.swift:30) → Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift:13"
+    "dyn:View.body → Emuqu/Sources/Views/RecordViewHelpers.swift",
+    "closure:onToggleTag, set by MorningDetailCards.tagsAndNotesSection (MorningResultsView+DetailCards.swift) forwarding to MorningDetailCards.onToggleTag, which MorningResultsView.cards sets to toggleTag (MorningResultsView+CardForwarding.swift) → Emuqu/Sources/Views/MorningResultsView+CardForwarding.swift"
    ],
    "reads": [],
    "writes": [

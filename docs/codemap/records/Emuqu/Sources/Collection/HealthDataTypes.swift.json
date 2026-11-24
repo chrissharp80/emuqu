@@ -18,7 +18,7 @@
   {
    "key": "init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)",
    "hash": "2d0f91454d865fbb",
-   "does": "Memberwise initializer converting HKWorkoutActivityType to the stored English name and defaulting precomputed load/source to nil and wasRecovered false. Called from TrainingHealthQueries+Queries.swift:213 (HealthKit workouts) and summary(from:archive:).",
+   "does": "Memberwise initializer converting HKWorkoutActivityType to the stored English name and defaulting precomputed load/source to nil and wasRecovered false. Called from TrainingHealthQueries+Queries.swift (HealthKit workouts) and summary(from:archive:).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.typeToString(_:)"
@@ -78,7 +78,7 @@
   {
    "key": "var HealthWorkoutSummary.typeDescription",
    "hash": "0d0cc924882f386e",
-   "does": "Returns the stored English workoutType (used by RRModels.swift:560 for snapshots).",
+   "does": "Returns the stored English workoutType (used by RRModels.swift for snapshots).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -89,7 +89,7 @@
   {
    "key": "var HealthWorkoutSummary.localizedTypeDescription",
    "hash": "651687bc6544c153",
-   "does": "Localized display name of workoutType (TrainingDetailView.swift:358).",
+   "does": "Localized display name of workoutType (TrainingDetailView.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.localizedTypeName(_:)"
@@ -190,7 +190,7 @@
   {
    "key": "func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)",
    "hash": "9f5b8c53b4484332",
-   "does": "Lists the archive's workout-type entries from start of day (referenceDate - days) to referenceDate and converts each to a summary. Called off-main by TrainingMetricsCache.swift:514 and TrainingHealthQueries+Queries.swift:555/570.",
+   "does": "Lists the archive's workout-type entries from start of day (referenceDate - days) to referenceDate and converts each to a summary. Called off-main by TrainingMetricsCache.swift and TrainingHealthQueries+Queries.swift/570.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)",
@@ -256,7 +256,7 @@
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.activityTypeFromSport(_:)": "32f3504f2f05e622",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.clampedDuration(samples:entry:)": "ae63c1007ac6f1fc",
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.mean(_:)": "b97d4e833c67077f",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "5f9e195a4d0ab23f",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "6215243917f101b8",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "557250b35e2ea826",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
@@ -370,7 +370,7 @@
   {
    "key": "func HealthWorkoutSummary.effectiveLoad(restingHR:maxHR:)",
    "hash": "341cb5d553364d81",
-   "does": "Workout load: precomputedLoad when > 0, else Banister TRIMP from the given anchors; capped at TrainingConstants.TRIMP.maxSingleWorkoutLoad (1000). Called by TrainingLoadSeries.swift:75, WorkoutSummary+UserLoad.swift:17 (userScaledLoad) and TrainingLoadConsistencyTests.",
+   "does": "Workout load: precomputedLoad when > 0, else Banister TRIMP from the given anchors; capped at TrainingConstants.TRIMP.maxSingleWorkoutLoad (1000). Called by TrainingLoadSeries.swift, WorkoutSummary+UserLoad.swift (userScaledLoad) and TrainingLoadConsistencyTests.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.calculateTrimp(restingHR:maxHR:)",
@@ -477,7 +477,7 @@
   {
    "key": "func HealthWorkoutSummary.intensityScore(anchors:)",
    "hash": "4f974fdfa3a566f4",
-   "does": "Intensity 0-100: min(duration/60*30, 50) plus HR-reserve*50, or calories/500*25 (max 50) when no HR; capped 100. Called by TrainingHealthQueries+Queries.swift:671.",
+   "does": "Intensity 0-100: min(duration/60*30, 50) plus HR-reserve*50, or calories/500*25 (max 50) when no HR; capped 100. Called by TrainingHealthQueries+Queries.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.averageHRReserve(anchors:)"
@@ -520,7 +520,7 @@
   {
    "key": "func HealthWorkoutSummary.isHardWorkout(anchors:)",
    "hash": "aeb81431920655d8",
-   "does": "Hard workout: avg HR >= 60% HRR and >= 20 min; without HR, duration > 60 min. Called by TrainingLoad.swift:51.",
+   "does": "Hard workout: avg HR >= 60% HRR and >= 20 min; without HR, duration > 60 min. Called by TrainingLoad.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.averageHRReserve(anchors:)"
@@ -541,7 +541,7 @@
   {
    "key": "var HealthBiometricProfile.appBiologicalSex",
    "hash": "6ed791b3d4781eb0",
-   "does": "Maps HKBiologicalSex to UserSettings.BiologicalSex (female/male/other), nil for notSet/unknown/nil. Used by BiometricsSettingsPage.swift:173 and AppFactResolver.swift:328.",
+   "does": "Maps HKBiologicalSex to UserSettings.BiologicalSex (female/male/other), nil for notSet/unknown/nil. Used by BiometricsSettingsPage.swift and AppFactResolver.swift.",
    "entry": null,
    "calls": [],
    "reads": [],

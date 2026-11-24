@@ -14,7 +14,7 @@
   "mem:MedicalQueryGuard.selfHarmPatterns",
   "mem:MedicalQueryGuard.injuryPatterns"
  ],
- "toplevel": "Five static lets compile MedicalTermLexicon groups once via compactMap(MedicalTermLexicon.regex(for:)) (lines 66-93); a concept whose pattern fails to compile is dropped silently from the guard (only an NSLog from DebugLogger.compiledPattern). emergencyPatterns includes selfHarm too, but selfHarm is checked first so that inclusion only matters for refuseAsSymptom bookkeeping.",
+ "toplevel": "Five static lets compile MedicalTermLexicon groups once via compactMap(MedicalTermLexicon.regex(for:)); a concept whose pattern fails to compile is dropped silently from the guard (only an NSLog from DebugLogger.compiledPattern). emergencyPatterns includes selfHarm too, but selfHarm is checked first so that inclusion only matters for refuseAsSymptom bookkeeping.",
  "units": [
   {
    "key": "var MedicalQueryGuard.cannedReplies",

@@ -22,7 +22,7 @@
   {
    "key": "func HealthKitManager.sleepReadExcludingOwnWrites(dateRange:)",
    "hash": "04fc6e5c8e06d411",
-   "does": "Forwards to SleepHealthQueries.sleepReadExcludingOwnWrites; called by HealthWriteAndObserve.trendSamples (SleepTrends.swift:59) and otherSourceWroteSleep (SleepTrends.swift:433). HealthKitManager+HeartRate.swift:147 only mentions it in a comment.",
+   "does": "Forwards to SleepHealthQueries.sleepReadExcludingOwnWrites; called by HealthWriteAndObserve.trendSamples (SleepTrends.swift) and otherSourceWroteSleep (SleepTrends.swift). HealthKitManager+HeartRate.swift only mentions it in a comment.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries",
@@ -118,7 +118,7 @@
   {
    "key": "func HealthKitManager.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
    "hash": "86f650d63fe1fd19",
-   "does": "Forwards estimateSleepFromHealthKitHR to SleepHealthQueries; protocol witness called by MorningProcessingService+Sleep.swift:202 and MorningResultsViewModel.swift:498 (and the protocol default HealthKitServiceProtocol.swift:160, which has no callers of its own).",
+   "does": "Forwards estimateSleepFromHealthKitHR to SleepHealthQueries; protocol witness called by MorningProcessingService+Sleep.swift and MorningResultsViewModel.swift (and the protocol default HealthKitServiceProtocol.swift, which has no callers of its own).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries",
@@ -130,7 +130,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "e828c2c98f9aa86c",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "4f58afe1cb801516",
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::var HealthKitManager.sleepQueries": "fa30b96863f9673a"
    }
   },
@@ -152,7 +152,7 @@
   {
    "key": "func HealthKitManager.qualifyingNapMinutes(asleepIntervals:episodeGapSeconds:floorSeconds:)",
    "hash": "602ac893069fd8b4",
-   "does": "Static forwarder to SleepHealthQueries.qualifyingNapMinutes; only caller is NapSleepCreditTests.swift:97 (production calls the SleepHealthQueries static directly).",
+   "does": "Static forwarder to SleepHealthQueries.qualifyingNapMinutes; only caller is NapSleepCreditTests.swift (production calls the SleepHealthQueries static directly).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.qualifyingNapMinutes(asleepIntervals:episodeGapSeconds:floorSeconds:)"

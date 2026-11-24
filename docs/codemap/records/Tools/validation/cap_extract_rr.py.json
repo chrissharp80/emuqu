@@ -4,11 +4,11 @@
  "role": "CAP Sleep Database (capslpdb) preprocessing for validate_sleep.py: per record, reads the EDF ECG channel, detects R peaks with wfdb XQRS at 250 Hz in 5-min chunks with native-rate refinement, parses the RemLogic hypnogram, and writes <DATA_ROOT>/capslpdb/derived/<rec>.json (or <rec>.skip.json).",
  "types": [],
  "state": [
-  "EPOCH_MAP SLEEP-S0..S4/REM -> wake/core/deep/rem (line 35)",
-  "TOK raw token map (line 37)",
-  "ECG_LABELS tried in order: ECG1-ECG2, ECG, EKG, ekg (line 39)",
-  "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/<rec>.edf|.txt (read)",
-  "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/derived/<rec>.json|.skip.json (written)"
+  "EPOCH_MAP SLEEP-S0..S4/REM -> wake/core/deep/rem",
+  "TOK raw token map",
+  "ECG_LABELS tried in order: ECG1-ECG2, ECG, EKG, ekg",
+  "file:<DATA_ROOT>/capslpdb/<rec>.edf|.txt (read)",
+  "file:<DATA_ROOT>/capslpdb/derived/<rec>.json|.skip.json (written)"
  ],
  "toplevel": "Inserts the script directory into sys.path (needed under python -I), imports numpy/scipy/wfdb; runs main() as a script.",
  "units": [
@@ -124,12 +124,12 @@
     "Tools/validation/cap_extract_rr.py::def detect"
    ],
    "reads": [
-    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/<rec>.edf",
-    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/<rec>.txt"
+    "file:<DATA_ROOT>/capslpdb/<rec>.edf",
+    "file:<DATA_ROOT>/capslpdb/<rec>.txt"
    ],
    "writes": [
-    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/derived/<rec>.json",
-    "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/derived/<rec>.skip.json"
+    "file:<DATA_ROOT>/capslpdb/derived/<rec>.json",
+    "file:<DATA_ROOT>/capslpdb/derived/<rec>.skip.json"
    ],
    "branches": [
     {
@@ -157,12 +157,12 @@
     "Tools/validation/cap_extract_rr.py::def detect": "0f37c2ae14d540bd",
     "Tools/validation/cap_extract_rr.py::def hms": "5418281c9d45262e",
     "Tools/validation/cap_extract_rr.py::def parse_hypnogram": "2f3b087019aaef8a",
-    "Tools/validation/validation_common.py::def edf_read_channel": "487bf5b27939bafb"
+    "Tools/validation/validation_common.py::def edf_read_channel": "707cef87b0b6c053"
    }
   }
  ],
  "deps": {
-  "Tools/validation/cap_extract_rr.py::def main": "3b81e18dbe20b6d3",
-  "Tools/validation/validation_common.py::def edf_read_channel": "487bf5b27939bafb"
+  "Tools/validation/cap_extract_rr.py::def main": "896d3f306788dd7e",
+  "Tools/validation/validation_common.py::def edf_read_channel": "707cef87b0b6c053"
  }
 }

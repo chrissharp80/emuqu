@@ -34,13 +34,13 @@
   "wc:type/liveState/strapState/startWorkout/stopWorkout/coachAlert and all MessageKey keys plus 'ts'",
   "mem:WatchConnectivityBridge.heldUntilActivation (static lock [[String: any Sendable]], dual-channel commands issued before activation, last 8)"
  ],
- "toplevel": "Declares five Notification.Name statics (lines 12-29) and the two message enums (MessageType includes coachAlert, sent by +Session's sendCoachAlertHaptic); stored-property initialisers create the serial wcQueue, the didActivate lock, and static locks timeoutBreaker (a WatchSendTimeoutBreaker, declared in +Transport), lastContextErrorMessage, liveStateCache, heldUntilActivation and cachedWatchDisplayOnlyMode initial true. `static let shared` (53) lazily runs init on first access.",
+ "toplevel": "Declares five Notification.Name statics and the two message enums (MessageType includes coachAlert, sent by +Session's sendCoachAlertHaptic); stored-property initialisers create the serial wcQueue, the didActivate lock, and static locks timeoutBreaker (a WatchSendTimeoutBreaker, declared in +Transport), lastContextErrorMessage, liveStateCache, heldUntilActivation and cachedWatchDisplayOnlyMode initial true. `static let shared` (53) lazily runs init on first access.",
  "units": [
   {
    "key": "var WatchConnectivityBridge.isWatchPaired",
    "hash": "f77bc0f895feff0d",
    "does": "Returns WCSession.default.isPaired, or false when WCSession is unsupported; nonisolated so it can be read off-main.",
-   "entry": "Read by WorkoutRecorder+Start.swift:216 to resolve the workout HR source (Watch fallback).",
+   "entry": "Read by WorkoutRecorder+Start.swift to resolve the workout HR source (Watch fallback).",
    "calls": [
     "ext:WCSession.isSupported",
     "ext:WCSession.isPaired"
@@ -60,7 +60,7 @@
    "key": "var WatchConnectivityBridge.latestWatchHR",
    "hash": "868bee77d5816369",
    "does": "didSet observer on latestWatchHR: stamps latestWatchHRAt = Date() when a value is set, nil when cleared.",
-   "entry": "Fires when latestWatchHR is assigned (+Session:185 on watchHRSample, +Session:48 on unreachable, WorkoutRecorder+StartBaselines.swift:35).",
+   "entry": "Fires when latestWatchHR is assigned (+Session:185 on watchHRSample, +Session:48 on unreachable, WorkoutRecorder+StartBaselines.swift).",
    "calls": [],
    "reads": [],
    "writes": [
@@ -114,7 +114,7 @@
    "key": "init WatchConnectivityBridge()",
    "hash": "4b9c214a03875a30",
    "does": "Singleton init: calls super.init, then sets itself as WCSession.default.delegate unless WCSession is unsupported or the perf.enableWatchConnectivity flag is false. Does not activate the session (deferred to boot(), which sets the delegate again before activating, so a flag turned on after init still gets callbacks).",
-   "entry": "Runs once on first access of WatchConnectivityBridge.shared (static let, line 53).",
+   "entry": "Runs once on first access of WatchConnectivityBridge.shared (static let).",
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session",
     "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)",
@@ -145,7 +145,7 @@
    "key": "func WatchConnectivityBridge.boot()",
    "hash": "582217e4f21fce08",
    "does": "One-shot WCSession activation: if not already booted, session exists and the Watch-connectivity flag is on, marks didActivate, sets the bridge as the session delegate, primes the watchDisplayOnlyMode mirror, schedules the settings observation loop on the main actor, and calls session.activate().",
-   "entry": "Called from AppLaunchTasks.swift:143 (deferred launch boot, timedBoot(\"watchBridge\")).",
+   "entry": "Called from AppLaunchTasks.swift (deferred launch boot, timedBoot(\"watchBridge\")).",
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::var WatchConnectivityBridge.session",
     "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)",
@@ -257,7 +257,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.liveStatePayload(_:)": "8131e4d7ab8a48f8",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.liveStatePayload(_:)": "fe9b373654398d56",
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transportLiveStatePayload(_:)": "a8e982079ade6921"
    }
   },
@@ -265,7 +265,7 @@
    "key": "func WatchConnectivityBridge.liveStatePayload(_:)",
    "hash": "7fdd785346645ab8",
    "does": "Flattens a LiveState into the liveState wire dictionary: base keys, isRecording, ts=now, isPaused, autoPaused, heartRate/hrPercentOfMax, bandCode, alpha1Status code, and optional alpha1/paceDisplay/paceSecPerKm/cadenceSpm/targetZone only when non-nil.",
-   "entry": "Also called directly by EmuquTests/WatchAlpha1StatusTests.swift:10,13.",
+   "entry": "Also called directly by EmuquTests/WatchAlpha1StatusTests.swift.",
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.liveStateBase(sport:peakHR:userMaxHR:totals:band:unitsPreference:)",
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.addHeartRate(_:userMaxHR:to:)",
@@ -358,7 +358,7 @@
    "key": "func WatchConnectivityBridge.mirrorStrapState(from:)",
    "hash": "67f5fcf85d2a05c6",
    "does": "Wires strap mirroring: sets onRequestStrapStateFromWatch to a closure pushing the current PolarManager snapshot, reuses it as onWCSessionActivated, and starts an ObservationLoop on PolarManager (initial delivery) that pushes a StrapSnapshot on every change of connection/device/battery.",
-   "entry": "Called once from EmuquApp.swift:728 at launch wiring.",
+   "entry": "Called once from EmuquApp.swift at launch wiring.",
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.pushStrapState(of:)",
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::init WatchConnectivityBridge.StrapSnapshot(polar:)",
@@ -833,7 +833,7 @@
    "key": "func WatchConnectivityBridge.startWatchWorkoutSession(sport:)",
    "hash": "769ea3fae7de5e66",
    "does": "Sends a startWorkout command (type, sport raw value, ts) to the Watch by sendMessage when reachable plus queued transferUserInfo.",
-   "entry": "Called by WorkoutRecorder+Start.swift:656 when a phone workout starts, only when settings.watchDisplayOnlyMode is false (Start.swift:655); with the default true (UserSettings+Model.swift:548) the Watch is never told to start its HKWorkoutSession.",
+   "entry": "Called by WorkoutRecorder+Start.swift when a phone workout starts, only when settings.watchDisplayOnlyMode is false (Start.swift); with the default true (UserSettings+Model.swift) the Watch is never told to start its HKWorkoutSession.",
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannel(_:label:)"
    ],
@@ -850,7 +850,7 @@
    "key": "func WatchConnectivityBridge.stopWatchWorkoutSession()",
    "hash": "d4f154c53bf9c8f2",
    "does": "Ends the Watch side of a workout: clears liveWorkoutStartedAt, caches a stopWorkout payload (isRecording:false, ts) as the live snapshot, sends it via sendMessage+transferUserInfo, and enqueues an applicationContext overwrite with it on wcQueue.",
-   "entry": "Called by WorkoutRecorder+Stop.swift:137 (tearDownLiveWorkoutServices).",
+   "entry": "Called by WorkoutRecorder+Stop.swift (tearDownLiveWorkoutServices).",
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.cacheLiveState(_:)",
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.sendDualChannel(_:label:)",

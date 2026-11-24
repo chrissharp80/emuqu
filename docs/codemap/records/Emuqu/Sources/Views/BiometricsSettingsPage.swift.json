@@ -16,14 +16,14 @@
   "static ftpRange 50...600",
   "static minimumBodyWeightKg 30.0",
   "static maximumBodyWeightKg 250.0",
-  "lb/kg factor 2.20462 literal (lines 167, 223, 230)"
+  "lb/kg factor 2.20462 literal"
  ],
  "toplevel": "Static range constants (67-73) are read by BiometricsSettingsPage+Sections.swift when building the clamped bindings. No #if blocks.",
  "units": [
   {
    "key": "var BiometricsSettingsPage.settingsBinding",
    "hash": "9ff25a714b005e7a",
-   "does": "Builds a Binding<UserSettings> whose get returns settingsManager.settings and set assigns it (stand-in for $settingsManager.settings since @Environment has no projected binding); used for the useHealthKitVO2Max toggle (BiometricsSettingsPage+Sections.swift:112).",
+   "does": "Builds a Binding<UserSettings> whose get returns settingsManager.settings and set assigns it (stand-in for $settingsManager.settings since @Environment has no projected binding); used for the useHealthKitVO2Max toggle (BiometricsSettingsPage+Sections.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
@@ -38,7 +38,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e"
    }
   },
   {
@@ -68,7 +68,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.biometricsForm": "91e819290aad0e69",
+    "Emuqu/Sources/Views/BiometricsSettingsPage+Sections.swift::var BiometricsSettingsPage.biometricsForm": "f4dcd461556d283f",
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.dropValuesBelowMinimum()": "46b342c36821b10d",
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::var BiometricsSettingsPage.keyboardDismissOverlay": "0913da01ae1d051e"
    }
@@ -126,7 +126,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.atLeast(_:_:)": "64657e31d6f187c6"
    }
@@ -173,7 +173,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e"
    }
   },
   {
@@ -201,14 +201,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e"
    }
   },
   {
    "key": "func BiometricsSettingsPage.fillFromAppleHealth()",
    "hash": "99d34c81c46294a5",
    "does": "Async: sets isFillingFromHealthKit, fetches the HealthKit biometric profile (body mass, biological sex, date of birth), fills only empty settings fields via fill(_:from:), saves settings if anything was filled, and sets fillFeedback to 'Nothing to fill…' or 'Filled: <labels>.'.",
-   "entry": "Button action in BiometricsSettingsPage+Sections.swift:67 (Task { await fillFromAppleHealth() })",
+   "entry": "Button action in BiometricsSettingsPage+Sections.swift (Task { await fillFromAppleHealth() })",
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
@@ -239,17 +239,17 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "f57858abc4c464e9",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)": "d45cddae14f6daae"
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fill(_:from:)": "e8137e36cc6e322a"
    }
   },
   {
    "key": "func BiometricsSettingsPage.fill(_:from:)",
    "hash": "c5f139e7f8ab1e9a",
    "does": "Static: runs fillBodyWeight, fillBiologicalSex and fillBirthday on the inout settings and returns the non-nil labels of the fields it filled.",
-   "entry": "Also called directly by tests EmuquTests/HealthSourcedSyncMarkerTests.swift:19,34,45 and CloudSessionPayloadHealthReadingsTests.swift:206",
+   "entry": "Also called directly by tests EmuquTests/HealthSourcedSyncMarkerTests.swift and CloudSessionPayloadHealthReadingsTests.swift",
    "calls": [
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)",
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)",
@@ -261,7 +261,7 @@
    "deps": {
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBiologicalSex(_:from:)": "35c55aa2c1dfe028",
     "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBirthday(_:from:)": "afb72b633b3295e9",
-    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)": "119889dcb8b8ca64"
+    "Emuqu/Sources/Views/BiometricsSettingsPage.swift::func BiometricsSettingsPage.fillBodyWeight(_:from:)": "ad2183391c9d5338"
    }
   },
   {
@@ -278,7 +278,7 @@
     "ud:fitness.unitsPreference (standard suite, legacy fallback when the App Group key is missing)"
    ],
    "writes": [
-    "ud:fitness.unitsPreference (App Group suite; one-time copy of the legacy standard value via UnitsPreferenceStore.current getter, UnitsPreference.swift:136-139)"
+    "ud:fitness.unitsPreference (App Group suite; one-time copy of the legacy standard value via UnitsPreferenceStore.current getter, UnitsPreference.swift)"
    ],
    "branches": [
     {
@@ -332,7 +332,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "8df60a4ed262a060",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "0d01a5b2a70d1ba6",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -362,7 +362,7 @@
    "key": "var BiometricsSettingsPage.zonesModeLabel",
    "hash": "39d9e740acf69aeb",
    "does": "Returns 'Manual' when any of maxHR, userRestingHR or lactateThresholdHR is overridden, else 'Auto'.",
-   "entry": "Read by hrZonesModeSection (BiometricsSettingsPage+Sections.swift:269)",
+   "entry": "Read by hrZonesModeSection (BiometricsSettingsPage+Sections.swift)",
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings"
    ],
@@ -378,7 +378,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
@@ -386,7 +386,7 @@
    "key": "var BiometricsSettingsPage.zonesModeFooter",
    "hash": "64e388734639593a",
    "does": "Returns 'Effective: max X bpm · resting Y bpm · LTHR Z bpm' from UserSettings.effectiveMaxHR/effectiveRestingHR/effectiveLTHR.",
-   "entry": "Read by hrZonesModeSection (BiometricsSettingsPage+Sections.swift:273)",
+   "entry": "Read by hrZonesModeSection (BiometricsSettingsPage+Sections.swift)",
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR",
@@ -399,9 +399,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8ad8fec17a5ea41b",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "71127c94fab42852",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -445,7 +445,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0"
    }
   }

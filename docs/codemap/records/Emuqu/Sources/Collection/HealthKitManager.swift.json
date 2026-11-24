@@ -276,7 +276,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "7229bd19595282d2",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "e423b0618d65db9f",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "b6970e85fc1556b8",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.otherSourcesSamples(from:to:)": "044c92766385247c"
    }
   },
@@ -298,7 +298,7 @@
   {
    "key": "func HealthKitManager.ensureWriteAuthorizationFresh()",
    "hash": "9a31df3c91f5d67b",
-   "does": "If HealthKit is available and not skipped, finds write types whose authorizationStatus is .notDetermined; if any, resets authorizationRequested and re-runs the coalesced authorization prompt, logging any error. Called at app launch (EmuquApp.swift:554).",
+   "does": "If HealthKit is available and not skipped, finds write types whose authorizationStatus is .notDetermined; if any, resets authorizationRequested and re-runs the coalesced authorization prompt, logging any error. Called at app launch (EmuquApp.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.probeableWriteTypes()",
@@ -632,11 +632,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)": "e893db4f613ebe89",
+    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)": "03333a6e4aa73724",
     "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)": "1b5b0fdc46896c07",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportClaimed(_:entry:archive:bodyWeightKg:tally:)": "49636636567f0680",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportedUnstamped()": "3e2b46892d4222d0",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "cf89199258741a44",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "9647545097272cf3",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.readableSession(_:archive:)": "feb7c78fe94f7e63",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.stampAlreadyExported(_:archive:tally:)": "f3c36b16a217dbdb"
    }
@@ -825,7 +825,7 @@
   {
    "key": "func HealthKitManager.needsBackfill(_:)",
    "hash": "c8a19bbcb25fb39b",
-   "does": "Eligible for backfill when not yet exported, failure count below HRVSession.healthKitExportRetryCeiling, has workoutMetadata, and has endDate > startDate. Callers: backfillOne (HealthKitManager.swift:428) and WorkoutBackfillEligibilityTests. (OvernightChartsView+Init.swift:150 is an unrelated local variable named needsBackfill, not a call.)",
+   "does": "Eligible for backfill when not yet exported, failure count below HRVSession.healthKitExportRetryCeiling, has workoutMetadata, and has endDate > startDate. Callers: backfillOne (HealthKitManager.swift) and WorkoutBackfillEligibilityTests. (OvernightChartsView+Init.swift is an unrelated local variable named needsBackfill, not a call.)",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -1068,7 +1068,7 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "dafc9cf51cf35041",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "f667e9c830dac994"
    }
   },
   {
@@ -1157,7 +1157,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "7229bd19595282d2",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "e423b0618d65db9f",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "b6970e85fc1556b8",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.otherSourcesSamples(from:to:)": "044c92766385247c"
    }
   },

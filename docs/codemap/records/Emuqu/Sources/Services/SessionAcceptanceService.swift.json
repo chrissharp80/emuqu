@@ -3,14 +3,14 @@
  "hash": "bc0a831f1da6b315",
  "role": "@MainActor service doing the heavy work of accepting a morning session (freeze score with fresh sleep/vitals/training, archive, baseline update, raw-backup mark, HealthKit export, CloudKit upload + live-backup delete), re-scoring already archived sessions (re-uploaded), rejecting sessions, and the shared HRV quality classifier with the one insufficient-data rule (isInsufficientData).",
  "types": [
-  "SessionAcceptanceService: class — acceptance/rejection/rescore service built by RRCollector.makeAcceptanceService (RRCollector.swift:745)",
+  "SessionAcceptanceService: class — acceptance/rejection/rescore service built by RRCollector.makeAcceptanceService (RRCollector.swift)",
   "SessionAcceptanceService.HRVQualityDecision: struct — dataQuality, with useBaselineHRV derived from it",
   "SessionAcceptanceService.SleepAndVitals: struct (private, Sendable) — timeout race payload",
   "SessionAcceptanceService.AcceptanceInputs: struct — frozen scoring config, training, baseline, typical sleep hours, sleep schedule"
  ],
  "state": [
-  "private let archive/healthKit/baselineTracker/rawBackup (injected, :13-16)",
-  "closure onCloudSync → CloudKitSyncManager.uploadSession; onCloudDelete → CloudKitSyncManager.deleteLiveBackup (set at RRCollector.swift:757-762)"
+  "private let archive/healthKit/baselineTracker/rawBackup (injected)",
+  "closure onCloudSync → CloudKitSyncManager.uploadSession; onCloudDelete → CloudKitSyncManager.deleteLiveBackup (set at RRCollector.swift)"
  ],
  "toplevel": "No top-level code.",
  "units": [
@@ -177,7 +177,7 @@
    "does": "Returns the given training context, else (when integration enabled and not on a training break) builds one from HealthKit calculateTrainingLoad(relativeTo: sessionEnd); nil otherwise.",
    "entry": null,
    "calls": [
-    "dyn:HealthKitServiceProtocol.calculateTrainingLoad(relativeTo:) → Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift:168|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.calculateTrainingLoad(relativeTo:)",
+    "dyn:HealthKitServiceProtocol.calculateTrainingLoad(relativeTo:) → Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.calculateTrainingLoad(relativeTo:)",
     "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)"
    ],
    "reads": [
@@ -197,7 +197,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "fd7deac52d920bd3",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "2f4ef4ae06e9533c",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4fdc3002bba9b633"
    }
   },
@@ -207,7 +207,7 @@
    "does": "Nonisolated static: awaits fetchSleepData for the search range with RR points and rrStart (the strap's start, so RR offsets count from the recording, not the search window's start); logs \"Sleep fetch failed\" and returns nil on error. Used by fetchSleepAndVitals for acceptance and the archived-score refresh.",
    "entry": null,
    "calls": [
-    "dyn:HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:rrStart:) (extension Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift) → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
+    "dyn:HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:rrStart:) (extension Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift) → Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:rrStart:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -238,7 +238,7 @@
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:rrStart:)",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.fetchDaytimeNapMinutes(nightAnchoredAt:)",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)",
-    "dyn:HealthKitServiceProtocol.fetchRecoveryVitals(relativeTo:) → Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift:21|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchRecoveryVitals(relativeTo:)",
+    "dyn:HealthKitServiceProtocol.fetchRecoveryVitals(relativeTo:) → Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchRecoveryVitals(relativeTo:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -297,7 +297,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "3d630ccb9de1838f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "a468796746c73ee7",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.exportToHealthIfEnabled(_:enabled:)": "d4155fc0c857d10d",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.freezeScore(on:result:inputs:)": "274e51d59a1c5012",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.syncToCloud(_:)": "723ee19676cbd67b",
@@ -489,7 +489,7 @@
    "does": "When enabled, fire-and-forget Task exporting the session's metrics to Apple Health; errors logged.",
    "entry": null,
    "calls": [
-    "dyn:HealthKitServiceProtocol.exportSessionMetrics → Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift:12|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.exportSessionMetrics(from:)",
+    "dyn:HealthKitServiceProtocol.exportSessionMetrics → Emuqu/Sources/Collection/HealthKitManager+WriteForwarding.swift|EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.exportSessionMetrics(from:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -518,9 +518,9 @@
    "does": "Fire-and-forget Task: await onCloudSync(session) then onCloudDelete(sessionId) (delete the iCloud live backup).",
    "entry": null,
    "calls": [
-    "closure:onCloudSync — CloudKitSyncManager.uploadSession (RRCollector.swift:757)",
+    "closure:onCloudSync — CloudKitSyncManager.uploadSession (RRCollector.swift)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
-    "closure:onCloudDelete — CloudKitSyncManager.deleteLiveBackup (RRCollector.swift:760)",
+    "closure:onCloudDelete — CloudKitSyncManager.deleteLiveBackup (RRCollector.swift)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)"
    ],
    "reads": [],
@@ -598,7 +598,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "1f169ca3f7045de3",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyHRVQuality(to:result:baselineStats:)": "41d27b90cf0776c8"
    }
   },
@@ -718,7 +718,7 @@
    "does": "Clears persisted recording state via callback and, when a session id is given, fires a Task deleting the iCloud live backup.",
    "entry": null,
    "calls": [
-    "closure:clearPersistedRecordingState — RRCollector.clearPersistedRecordingState (RRCollector+Acceptance.swift:117)",
+    "closure:clearPersistedRecordingState — RRCollector.clearPersistedRecordingState (RRCollector+Acceptance.swift)",
     "closure:onCloudDelete — CloudKitSyncManager.deleteLiveBackup",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)"
    ],
@@ -753,7 +753,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.morningCutoff(forNightStartingAt:)": "dcf8268413b66d44",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "54265da0046fd3e1"
    }
   }
  ],

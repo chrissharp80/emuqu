@@ -6,14 +6,14 @@
   "WorkoutRecorder: extension — correlation scope"
  ],
  "state": [
-  "mem:WorkoutRecorder.logCorrelation (declared WorkoutRecorder.swift:184)"
+  "mem:WorkoutRecorder.logCorrelation (declared WorkoutRecorder.swift)"
  ],
  "toplevel": "None.",
  "units": [
   {
    "key": "func WorkoutRecorder.beginWorkoutCorrelation()",
    "hash": "482b0891345b96dc",
-   "does": "Closes any open workout correlation then begins a new \"workout\" LogCorrelation token and stores it. Called from WorkoutSessionLifecycle.start (WorkoutRecorder+Start.swift:66).",
+   "does": "Closes any open workout correlation then begins a new \"workout\" LogCorrelation token and stores it. Called from WorkoutSessionLifecycle.start (WorkoutRecorder+Start.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.endWorkoutCorrelation()",
@@ -25,14 +25,14 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.endWorkoutCorrelation()": "84f7c4caabadee5f",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.endWorkoutCorrelation()": "29326906a4674829",
     "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.begin(_:)": "947ad7cda6e5375d"
    }
   },
   {
    "key": "func WorkoutRecorder.endWorkoutCorrelation()",
    "hash": "d2e0d473345e2baf",
-   "does": "Ends the stored correlation token and clears it; no-op when none. Called at end of stop (WorkoutRecorder+Stop.swift:66) and by start's failure defer (WorkoutRecorder+Start.swift:68).",
+   "does": "Ends the stored correlation token and clears it; no-op when none. Called at end of stop (WorkoutRecorder+Stop.swift) and by start's failure defer (WorkoutRecorder+Start.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.end(_:)"

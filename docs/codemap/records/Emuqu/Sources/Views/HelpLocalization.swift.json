@@ -9,7 +9,7 @@
   "ArticleSection: extension — localized copy"
  ],
  "state": [
-  "mem:HelpLocalization.table = \"Help\" (string table name, HelpLocalization.swift:16)",
+  "mem:HelpLocalization.table = \"Help\" (string table name, HelpLocalization.swift)",
   "mem:HelpLocalization.formattedTexts OSAllocatedUnfairLock<Set<String>> — every text format() has handed out (already translated and filled), so the localized pass passes it through; grows by a handful of age-personalised strings per age and language",
   "mem:HelpLocalization.recorder OSAllocatedUnfairLock<Set<String>?> — nil in the app, a set while a test records lookups"
  ],
@@ -72,7 +72,7 @@
    "key": "func HelpLocalization.startRecording()",
    "hash": "0b2eaebed98cc805",
    "does": "Turns key recording on by setting the recorder lock's state to an empty set.",
-   "entry": "Called only from HelpLocalizationTests (EmuquTests/HelpLocalizationTests.swift:19).",
+   "entry": "Called only from HelpLocalizationTests (EmuquTests/HelpLocalizationTests.swift).",
    "calls": [
     "ext:OSAllocatedUnfairLock.withLock"
    ],
@@ -87,7 +87,7 @@
    "key": "func HelpLocalization.stopRecording()",
    "hash": "4c35286e2e34cb7f",
    "does": "Returns the set of recorded Help lookup keys and turns recording off (sets state back to nil).",
-   "entry": "Called only from HelpLocalizationTests (EmuquTests/HelpLocalizationTests.swift:23).",
+   "entry": "Called only from HelpLocalizationTests (EmuquTests/HelpLocalizationTests.swift).",
    "calls": [
     "ext:OSAllocatedUnfairLock.withLock"
    ],

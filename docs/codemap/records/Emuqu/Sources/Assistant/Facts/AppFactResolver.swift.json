@@ -292,7 +292,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileBiologicalSexEntry": "686bde7cdb9013e4",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrEntry": "87152def7055e125",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrIsUserSetEntry": "6d96d4fbb7b114fc",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrEntry": "d41ed57e0a64e602",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrEntry": "b635e53c1d2c0d8a",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrIsUserSetEntry": "29dda01f2bc9d2e3",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileRestingHrEntry": "d18b3a4c9d72ccd3",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileWeightKgEntry": "41270d72db402c8b"
@@ -349,7 +349,7 @@
   {
    "key": "var UserProfileNamespace.userProfileMaxHrEntry",
    "hash": "add784991a2760d5",
-   "does": "Fixed fact user.profile.max_hr (Int) = settings().effectiveMaxHR (override ≥80, else Tanaka from birthday, else 180).",
+   "does": "Fixed fact user.profile.max_hr (Int) = settings().effectiveMaxHR (override ≥80 capped at 240, else Tanaka from birthday, else 180).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
@@ -362,7 +362,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "71127c94fab42852"
    }
   },
   {
@@ -512,7 +512,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()": "ec83114dfa4d232f",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "838aa75e67df46a0",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "8df60a4ed262a060",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "0d01a5b2a70d1ba6",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"

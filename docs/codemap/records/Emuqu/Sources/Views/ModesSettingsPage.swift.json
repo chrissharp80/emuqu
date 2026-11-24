@@ -7,7 +7,7 @@
   "TrainingModeSwitches: @MainActor enum — setComeback / setOverreach / defaultOverreachEnd used by this page and LoadTrajectoryLoader"
  ],
  "state": [],
- "toplevel": "settingsManager defaults to AppDependencies.current.app.settingsManager at init (line 10) while telemetry goes through the @Environment dependencies; PageSnapshotTests passes SettingsManager.shared explicitly. Reached from SettingsView.swift:240 and SettingsSearchIndex.swift:172.",
+ "toplevel": "settingsManager defaults to AppDependencies.current.app.settingsManager at init while telemetry goes through the @Environment dependencies; PageSnapshotTests passes SettingsManager.shared explicitly. Reached from SettingsView.swift and SettingsSearchIndex.swift.",
  "units": [
   {
    "key": "var ModesSettingsPage.body",
@@ -47,7 +47,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackModeFooter": "eb6e337acd160905",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackToggle": "c2d7826b95cf3c2c"
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackToggle": "aa6e3d5a7758a566"
    }
   },
   {
@@ -80,8 +80,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.autoDetectPeakingFields": "7722d187d99d7a48",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.autoDetectPeakingFooter": "5aec19b56ac9451f"
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.autoDetectPeakingFields": "0c6ca6db4552cce9",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.autoDetectPeakingFooter": "5aa1ddeefa680a14"
    }
   },
   {
@@ -99,7 +99,7 @@
    "writes": [
     "mem:SettingsManager.settings.peakingDetectionEnabled",
     "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
-    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift)"
    ],
    "branches": [
     {
@@ -109,7 +109,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
@@ -117,7 +117,7 @@
   {
    "key": "var ModesSettingsPage.autoDetectPeakingFooter",
    "hash": "e4cbd0af2ac22a6f",
-   "does": "Footer text: ATL below CTL by 10% for 4+ days labels 'Peaking' on Trajectory and suppresses detraining copy (matches LoadTrajectoryLoader.peakingHeuristic, LoadTrajectoryLoader.swift:274-278).",
+   "does": "Footer text: ATL below CTL by 10% for 4+ days labels 'Peaking' on Trajectory and suppresses detraining copy (matches LoadTrajectoryLoader.peakingHeuristic, LoadTrajectoryLoader.swift).",
    "entry": "SwiftUI view composition.",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -168,7 +168,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachEndDateRow": "1588616d0f544f46",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachEndDateRow": "6c4bf5c73384659d",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachInEffect": "6f8e56d343bb15c8",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachToggle": "2702c209f1a4d0bd"
    }
@@ -206,14 +206,14 @@
     "mem:SettingsManager.settings.comebackModeStartDate",
     "ud:telemetry.modeActivationsByKind",
     "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
-    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift)"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "ad54156cccbbbb24",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setComeback(_:settings:telemetry:)": "c76abdbd19811265",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setComeback(_:settings:telemetry:)": "45332dee8f0bbe65",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.comebackToggleLabel": "b1deba95b3652ba0"
    }
   },
@@ -282,7 +282,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.setOverreach(_:)": "9bcdfd466556fc96",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.setOverreach(_:)": "3798b06f6583a122",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachInEffect": "6f8e56d343bb15c8",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var ModesSettingsPage.overreachStatusText": "5ec2f3ffaadf83ac",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
@@ -320,12 +320,12 @@
     "mem:SettingsManager.settings.intentionalOverreachEndDate",
     "ud:telemetry.modeActivationsByKind",
     "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
-    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift)"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setOverreach(_:settings:telemetry:)": "ad296f57f469d17e"
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func TrainingModeSwitches.setOverreach(_:settings:telemetry:)": "144eae5a1051c128"
    }
   },
   {
@@ -397,7 +397,7 @@
    "writes": [
     "mem:SettingsManager.settings.intentionalOverreachEndDate",
     "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
-    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift)"
    ],
    "branches": [
     {
@@ -409,7 +409,7 @@
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.overreachEndDatePicker(_:)": "dc6a0ebb39098e9e",
+    "Emuqu/Sources/Views/ModesSettingsPage.swift::func ModesSettingsPage.overreachEndDatePicker(_:)": "d75175ae47852969",
     "Emuqu/Sources/Views/ModesSettingsPage.swift::var TrainingModeSwitches.defaultOverreachEnd": "9739f876a8dce754"
    }
   },
@@ -427,7 +427,7 @@
    "writes": [
     "mem:SettingsManager.settings.intentionalOverreachEndDate",
     "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
-    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift)"
    ],
    "branches": [],
    "deps": {
@@ -450,7 +450,7 @@
     "mem:SettingsManager.settings.comebackModeStartDate",
     "ud:telemetry.modeActivationsByKind",
     "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
-    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift)"
    ],
    "branches": [
     {
@@ -480,7 +480,7 @@
     "mem:SettingsManager.settings.intentionalOverreachEndDate",
     "ud:telemetry.modeActivationsByKind",
     "file:user_settings.json (SettingsManager.settings, persisted by didSet save)",
-    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift:37)"
+    "notif:flowRecoverySettingsChanged (posted by SettingsManager.settings didSet, SettingsManager.swift)"
    ],
    "branches": [
     {

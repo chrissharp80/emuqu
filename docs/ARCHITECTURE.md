@@ -856,16 +856,18 @@ and merged monotonically on every read:
    `ubiquity-kvstore-identifier` entitlement would force the provisioning
    profile to be regenerated).
 
-`EntitlementAnchor.persist()` writes those two and `resolve()` merges those
-two — **that is the whole of what this type owns.**
+`EntitlementAnchor.update(wallClock:_:)` writes those two (`saveToDefaults`,
+`saveToKeychain`) and `resolve(wallClock:)` merges them — **that is the whole of
+what this type owns.**
 
 A third copy of `trialStartDate` exists and is deliberately *outside* the
 anchor: **`UserSettings.trialStartDate`**, which already round-trips through
 `CloudKitSettingsSync`. StoreKitManager records the App Store's start in the
 anchor first (`recordStoreTrialStart`), and `SettingsManager.adoptTrialStart(_:)`
 then mirrors the anchor's start into settings. Every reader of the trial clock
-falls back to the settings copy when the anchor has no start; nothing reads it
-back into the anchor. It backstops the trial date for a user who has iCloud
+falls back to the settings copy when the anchor has no start. A cloud restore
+(`SettingsManager.restoreFromJSON`) reads it back: the restored start is
+adopted into the anchor as a device start, which can only move it earlier. It backstops the trial date for a user who has iCloud
 Keychain switched off. Do not remove that mirror on the assumption the anchor
 covers it — the anchor does not write settings.
 

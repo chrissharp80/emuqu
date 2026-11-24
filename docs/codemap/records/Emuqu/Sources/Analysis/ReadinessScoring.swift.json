@@ -7,7 +7,7 @@
   "ReadinessScoring.WorkoutLoad: struct — hoursAgo + trimp (re-exported as RecoveryScoreCalculator.WorkoutLoad)"
  ],
  "state": [],
- "toplevel": "All constants come from RecoveryScoreConstants.Readiness / ReadinessLabels (Constants+RecoveryScore.swift:110-222). Doc comment numbers (0.30, tau 24h, CTL 3.2, breakpoints 0.8/1.0/1.3/1.5/2.0 → 85/70/50/30/10, ACWR 1.3, confidence CTL 50, rescue at recovery 70 cap 0.10, freshness 1.5x cap 20, trust CTL/40*0.55, uplift 0.30, novel 0.5 floor 10) match the constants.",
+ "toplevel": "All constants come from RecoveryScoreConstants.Readiness / ReadinessLabels (Constants+RecoveryScore.swift). Doc comment numbers (0.30, tau 24h, CTL 3.2, breakpoints 0.8/1.0/1.3/1.5/2.0 → 85/70/50/30/10, ACWR 1.3, confidence CTL 50, rescue at recovery 70 cap 0.10, freshness 1.5x cap 20, trust CTL/40*0.55, uplift 0.30, novel 0.5 floor 10) match the constants.",
  "units": [
   {
    "key": "func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
@@ -262,7 +262,7 @@
   {
    "key": "func ReadinessScoring.displayReadinessLabel(for:load:)",
    "hash": "28e66076fce67ab5",
-   "does": "Localized readinessLabel(for:load:). Called by TrainingReadinessCard.swift:26.",
+   "does": "Localized readinessLabel(for:load:). Called by TrainingReadinessCard.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.displayLabel(_:)",
@@ -334,7 +334,7 @@
   {
    "key": "func ReadinessScoring.readinessMessage(for:load:)",
    "hash": "e2ad464033a0dc37",
-   "does": "Coaching message: a load reason from TrainingAdviceGate always wins; otherwise thresholds on clamped 0-10 readiness (>=8.5, >=7, >=4.5, >=2, else). Called by TrainingReadinessCard.swift:177 and LiveReadiness.headline.",
+   "does": "Coaching message: a load reason from TrainingAdviceGate always wins; otherwise thresholds on clamped 0-10 readiness (>=8.5, >=7, >=4.5, >=2, else). Called by TrainingReadinessCard.swift and LiveReadiness.headline.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.recentLoadMessage(_:acwr:)",
@@ -401,7 +401,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Assessment.reasonLine(bundle:)": "bcfbcdac1a60f330",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.Assessment.reasonLine(bundle:)": "9193f6a0d9d9c24d",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "3e6a7f92284a44a2"
    }
   }

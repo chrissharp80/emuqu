@@ -33,24 +33,25 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "644c59c1a94a5b1f",
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "195c7a78169d9671"
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "867ac72b9cc49e72"
    }
   },
   {
    "key": "func RRCollector.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)",
    "hash": "8238dd680dcccb60",
-   "does": "Forwards to MorningSessionPipeline.processOvernightData with all parameters.",
+   "does": "Forwards to MorningSessionPipeline.processOvernightData with each of its own parameters; awaitsReview is left at the pipeline's default (true, the night awaits the user's review). Only the pause path, which calls the pipeline directly, passes false.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)"
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:awaitsReview:prefetchedSleepData:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "644c59c1a94a5b1f",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)": "0b386cb958d5c72c"
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:prefetchedSleepData:)": "0b386cb958d5c72c",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.processOvernightData(points:baseSession:dataSource:reconnectCount:streamingBeats:deviceBeats:isBackgroundRefinement:awaitsReview:prefetchedSleepData:)": "bff4b076186b5cfc"
    }
   },
   {
@@ -105,9 +106,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "eb28cd1f16567216",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "edba05fc1977bd36",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "644c59c1a94a5b1f",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "55cc69607ab6fe10"
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "36bc8f78c4f245d3"
    }
   },
   {
@@ -123,7 +124,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()": "a1f3beaeed5f01dc",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()": "d45408932af4e294",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "644c59c1a94a5b1f"
    }
   },
@@ -157,7 +158,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "0e6851d7bed686b8",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "4a5ceb4ba655d800",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "644c59c1a94a5b1f"
    }
   },
@@ -191,7 +192,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.analyze(_:window:flags:peakCapacity:)": "713ec3ae889a9ca0",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.analyze(_:window:flags:peakCapacity:)": "a87e9e9c263644cf",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "644c59c1a94a5b1f"
    }
   },
@@ -208,7 +209,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.analyze(_:peakCapacity:)": "3d23311b9ed5041e",
+    "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.analyze(_:peakCapacity:)": "022c66d31b3f53e7",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "644c59c1a94a5b1f"
    }
   },

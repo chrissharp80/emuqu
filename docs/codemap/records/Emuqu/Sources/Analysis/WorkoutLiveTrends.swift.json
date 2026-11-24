@@ -230,7 +230,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "0e13d135c0aba07e",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "5532c87d2e559fdf",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentGradeAdjustedPaces(of:)": "7db1d6eba6f4eb38"
    }
   },
@@ -252,7 +252,7 @@
   {
    "key": "func WorkoutLiveTrends.kilometreSplits(_:)",
    "hash": "7fdc4e9c8107faf4",
-   "does": "Walks samples and emits a split every time cumulative distance advances >= 1000 m from the split start: raw pace = elapsed sec / km; grade = rise over run from the split's start altitude to the last known altitude (carried forward), where the run is measured from the sample that supplied the start altitude (altDist) — the split start, or, when that had no altitude yet, the first later sample that has one.",
+   "does": "Feeds every sample in order to a SplitFold (SplitFold.add) and returns its completed splits: one each time cumulative distance advances >= 1000 m from the split start, with raw pace = elapsed sec / km and grade = rise over run from the split's start altitude to the last known altitude (carried forward), the run measured from the sample that supplied the start altitude (altDist): the split start, or, when that had no altitude yet, the first later sample that has one.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.SplitFold.add(_:)"
@@ -348,7 +348,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "15816ca3eb61e8a1",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "0e13d135c0aba07e"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "5532c87d2e559fdf"
    }
   },
   {

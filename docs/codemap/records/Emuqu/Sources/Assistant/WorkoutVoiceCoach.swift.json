@@ -11,7 +11,7 @@
   "mem:WorkoutVoiceCoach.engine (private let WorkoutTriggerEngine)",
   "mem:WorkoutVoiceCoach.watchBridge (private weak WatchConnectivityBridge; captured weakly by the default alert-haptic closure)",
   "mem:WorkoutVoiceCoach.playAlertHaptic (private let closure; phone + Watch haptic by default, injectable for tests)",
-  "mem:WorkoutVoiceCoach.conversation (weak VoiceConversationController, set by WorkoutRecorder.swift:422)",
+  "mem:WorkoutVoiceCoach.conversation (weak VoiceConversationController, set by WorkoutRecorder.swift)",
   "mem:WorkoutVoiceCoach.hasAnnouncedSubsystem (private Bool)",
   "mem:WorkoutVoiceCoach.mileMarkerState (private MileMarkerState)",
   "mem:WorkoutVoiceCoach.turnAlertState (private TurnAlertState)",
@@ -44,14 +44,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.discardPendingSpokenTriggers()": "deb2f58b411dd3e1"
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.discardPendingSpokenTriggers()": "0296ac1ad16a0013"
    }
   },
   {
    "key": "init WorkoutVoiceCoach(engine:watchBridge:alertHaptic:)",
    "hash": "4be15ebfcb11e9b4",
    "does": "Stores the given engine (or a fresh default WorkoutTriggerEngine) and the weak Watch bridge, and the alert-haptic closure: the given one, else a default that plays CoachAlertHaptic.playOnPhone(urgent:) and asks the bridge (held weakly) to send the Watch a coach-alert haptic.",
-   "entry": "Constructed by WorkoutRecorder.swift:423 with the shared Watch bridge; tests pass an engine and an alertHaptic recorder.",
+   "entry": "Constructed by WorkoutRecorder.swift with the shared Watch bridge; tests pass an engine and an alertHaptic recorder.",
    "calls": [
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)"
    ],
@@ -82,8 +82,8 @@
   {
    "key": "func WorkoutVoiceCoach.tick(context:)",
    "hash": "c49c698809d0ca11",
-   "does": "Per-recorder-tick entry (WorkoutRecorder+Ticker.swift:843): reads current UserSettings; canAlert = coachAlertsEnabled && !isMuted; always runs the trigger engine with canAlert (.silent rules record even when muted; a .spoken or .haptic rule doesn't fire while it can't be delivered), dispatches its events only when canAlert, always runs the mile-marker engine (it announces only when enabled and unmuted), and runs the route engines if either turn setting is on.",
-   "entry": "Called once per recorder tick from WorkoutRecorder+Ticker.swift:843 (app code, not a framework trigger).",
+   "does": "Per-recorder-tick entry (WorkoutRecorder+Ticker.swift): reads current UserSettings; canAlert = coachAlertsEnabled && !isMuted; always runs the trigger engine with canAlert (.silent rules record even when muted; a .spoken or .haptic rule doesn't fire while it can't be delivered), dispatches its events only when canAlert, always runs the mile-marker engine (it announces only when enabled and unmuted), and runs the route engines if either turn setting is on.",
+   "entry": "Called once per recorder tick from WorkoutRecorder+Ticker.swift (app code, not a framework trigger).",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
@@ -288,7 +288,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "d1265f1ef505d839",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
@@ -345,7 +345,7 @@
   {
    "key": "func WorkoutVoiceCoach.reset()",
    "hash": "977f2d517c3d2f40",
-   "does": "Start-of-workout reset (WorkoutRecorder+Start.swift:299): resets the trigger engine's cooldowns/history, re-arms the preamble, and replaces mile-marker, turn-alert and turn-marker state with fresh values and clears routeEngagedAt. Does not touch isMuted or audio.",
+   "does": "Start-of-workout reset (WorkoutRecorder+Start.swift): resets the trigger engine's cooldowns/history, re-arms the preamble, and replaces mile-marker, turn-alert and turn-marker state with fresh values and clears routeEngagedAt. Does not touch isMuted or audio.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.reset()"
@@ -463,7 +463,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.voiceAnnouncement": "c1f316667625bc0a",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.voiceAnnouncement": "484e1ad09626e782",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::var VoiceConversationController.isAIInFlight": "4b6231b54a13c73a"
    }
   },
@@ -487,7 +487,7 @@
   {
    "key": "func WorkoutVoiceCoach.appLanguageVoice()",
    "hash": "7d283de1b19e569d",
-   "does": "Static: returns the cached compact AVSpeechSynthesisVoice for the app language code (\"en\" fallback) without blocking; on a cache miss WorkoutStartCue.cachedCompactVoiceIfReady starts a detached prewarm and returns nil. Not called by this class; callers are VoiceConversationController+Audio.swift:734, VoiceConversationController+Control.swift:438 and BreathingAudioManager.swift:88.",
+   "does": "Static: returns the cached compact AVSpeechSynthesisVoice for the app language code (\"en\" fallback) without blocking; on a cache miss WorkoutStartCue.cachedCompactVoiceIfReady starts a detached prewarm and returns nil. Not called by this class; callers are VoiceConversationController+Audio.swift, VoiceConversationController+Control.swift and BreathingAudioManager.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",

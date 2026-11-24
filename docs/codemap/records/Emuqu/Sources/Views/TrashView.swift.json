@@ -16,13 +16,13 @@
   "mem:TrashView.pendingDeleteId (@State UUID?)",
   "mem:RRCollector (@Environment)"
  ],
- "toplevel": "#Preview (lines 264-269) renders TrashView in a NavigationStack with a fresh RRCollector() environment. SingleDeleteConfirmation stores @Binding pendingDeleteId and let onDelete closure.",
+ "toplevel": "#Preview renders TrashView in a NavigationStack with a fresh RRCollector() environment. SingleDeleteConfirmation stores @Binding pendingDeleteId and let onDelete closure.",
  "units": [
   {
    "key": "var TrashView.body",
    "hash": "ccdcec394b4d9f8e",
    "does": "Builds the Trash List (emptyTrashSection + trashStatusSection) with form background and inline title 'Trash'; on appear loads deleted sessions; attaches the 'Permanently Delete All?' confirmation dialog bound to showingClearAllConfirmation and the SingleDeleteConfirmation modifier bound to pendingDeleteId with permanentlyDelete as onDelete.",
-   "entry": "SwiftUI body; pushed from SettingsPages+Data.swift:424 (NavigationLink); also hosted by EmuquTests/PageSnapshotTests.swift:33 and #Preview. .onAppear triggers loadDeletedSessions.",
+   "entry": "SwiftUI body; pushed from SettingsPages+Data.swift (NavigationLink); also hosted by EmuquTests/PageSnapshotTests.swift and #Preview. .onAppear triggers loadDeletedSessions.",
    "calls": [
     "Emuqu/Sources/Views/TrashView.swift::var TrashView.emptyTrashSection",
     "Emuqu/Sources/Views/TrashView.swift::var TrashView.trashStatusSection",
@@ -572,7 +572,7 @@
    "does": "Dialog buttons: destructive Delete calls onDelete(pendingDeleteId) when set then clears it; Cancel clears pendingDeleteId.",
    "entry": "Confirmation dialog buttons tapped by user.",
    "calls": [
-    "closure:onDelete = TrashView.permanentlyDelete Emuqu/Sources/Views/TrashView.swift:207"
+    "closure:onDelete = TrashView.permanentlyDelete Emuqu/Sources/Views/TrashView.swift"
    ],
    "reads": [
     "mem:TrashView.pendingDeleteId"

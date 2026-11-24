@@ -10,9 +10,9 @@
   "GPXImportOutcome: private enum (Sendable) — duplicate / imported(sport, minutes, points) / failed(reason), handed from the detached GPX import to the tab"
  ],
  "state": [
-  "static RecorderBox.shared (FitnessTabView.swift:786)",
-  "mem:RecorderBox.recorder (FitnessTabView.swift:787)",
-  "ud:fitness.getMeBack.disclaimerSeenV1 — FitnessTabView.getMeBackDisclaimerSeenKey (FitnessTabView.swift:107; read/written in FitnessTabView+Sections.swift:49,61)",
+  "static RecorderBox.shared (FitnessTabView.swift)",
+  "mem:RecorderBox.recorder (FitnessTabView.swift)",
+  "ud:fitness.getMeBack.disclaimerSeenV1 — FitnessTabView.getMeBackDisclaimerSeenKey (FitnessTabView.swift; read/written in FitnessTabView+Sections.swift)",
   "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, interruptedScanGeneration (newest interrupted-recording scan wins), gpxFile (the written GPX file while its preview is up or its share is pending), gpxSendTapped (Send was tapped in the preview), gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutRoute (its decoded GPS route), latestWorkoutLoadFailed, recentWorkoutLoadFailed, workoutDeleteFailed (the summary sheet's delete alert), pendingRecentDeleteId (the Recent workout awaiting delete confirmation), recentWorkoutDeleteFailed (the tab's delete alert)"
  ],
  "toplevel": "Stored @State initialisers: planModel = WorkoutPlanModel(), all others empty/false/nil/0. Environment: dependencies, RRCollector, ArchiveSignal, VoiceConversationController, SettingsManager. RecorderBox.shared is a static singleton constructed lazily; the header and PhaseObservingStateBody comments say the recorder lives in that app-wide box and that both WorkoutRecorder and WorkoutLifecycle are @Observable.",
@@ -122,7 +122,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.captureFinishedSession(phase:)": "04f21066453b3ebf",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.listenForWatchAcknowledge()": "edab952f8ae126eb",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.listenForWatchAcknowledge()": "76fa796756024ee3",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.refreshOpenSummaryWithHRR()": "fa0be2c6c8340ba7",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withWorkoutSummarySheet(_:)": "cc7053fc1d3fdbe3",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
@@ -233,7 +233,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "72c2dde3f0758689",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "089bdae0945af447",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
@@ -282,7 +282,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "72c2dde3f0758689",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "089bdae0945af447",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
@@ -314,7 +314,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "72c2dde3f0758689",
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "089bdae0945af447",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)": "f534b33c1a58eddb",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
@@ -439,7 +439,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "5c15b4a33c0ef2e6"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "4d34469069a6ad4b"
    }
   },
   {
@@ -526,11 +526,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.heroCard(latest:)": "4d8dce03d5bc1228",
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.recentWorkoutsList(entries:)": "713e05f6e9ddbbdd",
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.summaryTileGrid(entries:)": "fabbf5465410b73b",
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.trajectoryLinkCard": "f62e6b6232a3cd2f",
-    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.interruptedRecordingCard": "d0c394caff9022b1",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.heroCard(latest:)": "56e4489816aaf2a6",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.recentWorkoutsList(entries:)": "a40a2c3a6bdb50de",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.summaryTileGrid(entries:)": "a11237aaec1fcdc4",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.trajectoryLinkCard": "348bd0d961fb2fd6",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.interruptedRecordingCard": "92ef05fc6d611eb9",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()": "1dd6c55938cd5825",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.dailyActivitySurfaces": "de2c34850d20a96b",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.heatAcclimationCard": "bd652105533ead20"
@@ -564,8 +564,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityCard": "863fca79ef707337",
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.getMeBackCard": "45aed81dcecbbc45"
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityCard": "d8bb92a269415e77",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.getMeBackCard": "d555a79d45887f24"
    }
   },
   {
@@ -671,10 +671,10 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "91671447087aacfe",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "511ba226503fa4e1",
     "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.importRecent(days:)": "55dd989a7ae30a1d",
     "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::func FitnessTabView.reloadInterruptedRecordings()": "40a1afd1a691d049",
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.loadWorkoutElevationTotals()": "0de3e28b5b9d6865",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.loadWorkoutElevationTotals()": "101951c8e27c045b",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.paintCachedFitnessSnapshot()": "7ae8010a03e06962",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.trainingCache": "48225c5ec94d9d1a"
    }
@@ -712,7 +712,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.fitnessDataMenu": "875b8b7a4e32e396"
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.fitnessDataMenu": "b22df0b32a48fab0"
    }
   },
   {
@@ -836,7 +836,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImportSheet": "324ee5335ddc8d07",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImportSheet": "a274ab3acb292d01",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.handleImportResult(_:)": "efd07f8b3775d049"
    }
   },
@@ -946,7 +946,7 @@
    "key": "func FitnessTabView.exportLatestGPX()",
    "hash": "dd011ec5942d6120",
    "does": "GPX export: finds the newest of the last 20 workouts with a GPS polyline (off-main), writes a GPX file to tmp/Exports, keeps it in gpxFile (Send not yet tapped) and opens the preview sheet; sets an Export alert message when there are no workouts, no tracked workout, or decode/write failed.",
-   "entry": "Toolbar menu button in FitnessTabView+DataMenu.swift:53",
+   "entry": "Toolbar menu button in FitnessTabView+DataMenu.swift",
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.latestTrackedWorkout(entries:)",
@@ -1025,7 +1025,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "0bbfc03c60fb225a"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "917ec504a26a996e"
    }
   },
   {
@@ -1127,7 +1127,7 @@
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
     "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "7ee167777e5501ae",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPXFile(_:archive:existingStarts:)": "422b60f6b6f463d9"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPXFile(_:archive:existingStarts:)": "a49c88c6b64c414a"
    }
   },
   {
@@ -1147,7 +1147,7 @@
    ],
    "writes": [
     "archive:SessionArchive.archive",
-    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive, Archive.swift:470)"
+    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive, Archive.swift)"
    ],
    "branches": [
     {
@@ -1188,7 +1188,7 @@
     {
      "at": "+3",
      "cond": "for each notification",
-     "effect": "clears lastCompletedSession (also closes a hero-opened sheet, see FitnessTabView+Strap.swift:196)"
+     "effect": "clears lastCompletedSession (also closes a hero-opened sheet, see FitnessTabView+Strap.swift)"
     }
    ],
    "deps": {}
@@ -1220,7 +1220,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "6ef658b176509f08",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "0929670145a15111",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",

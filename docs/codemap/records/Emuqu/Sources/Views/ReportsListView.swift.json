@@ -15,7 +15,7 @@
   "@Environment ArchiveSignal (reloads the rows on version change)",
   "file:<tmp>/emuqu-reports-<id8>-<epoch>.pdf (FileManager.temporaryDirectory; deleted when the preview sheet closes, the render fails, the render finishes after the page was left, or the page next opens)"
  ],
- "toplevel": "Presented from MainTabView.swift:542 and ReportsSettingsPage.swift:37; snapshot test ChartScreenSnapshotTests.swift:153. Header comment (lines 4-33) documents the three row kinds and the 36 h night-before rule. Report PDFs are written to tmp as emuqu-reports-<row id prefix>-<epoch>.pdf (reportFilePrefix, distinct from MainTabView's emuqu-report-<epoch>.pdf so neither page's cleanup touches the other's files); @State isOnScreen (false until the page appears and again once it is left) decides whether a finished render is shown or deleted.",
+ "toplevel": "Presented from MainTabView.swift and ReportsSettingsPage.swift; snapshot test ChartScreenSnapshotTests.swift. Header comment documents the three row kinds and the 36 h night-before rule. Report PDFs are written to tmp as emuqu-reports-<row id prefix>-<epoch>.pdf (reportFilePrefix, distinct from MainTabView's emuqu-report-<epoch>.pdf so neither page's cleanup touches the other's files); @State isOnScreen (false until the page appears and again once it is left) decides whether a finished render is shown or deleted.",
  "units": [
   {
    "key": "var ReportsListView.body",
@@ -190,7 +190,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.subtitle": "3c5aec2af9c8bb15",
-    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.title": "cd0635e1a5420213",
+    "Emuqu/Sources/Views/ReportsListView.swift::var ReportRow.title": "98da4f6dbd00a8b2",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
@@ -467,7 +467,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.generationInputs(for:)": "755dcb0a53733e7e",
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.generationInputs(for:)": "80cf5aa3eb41d42b",
     "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderAndPublish(_:)": "5a3680da04884af7"
    }
   },
@@ -666,7 +666,7 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8ad8fec17a5ea41b",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "71127c94fab42852",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule": "7f2420b682faf9cb",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
@@ -748,7 +748,7 @@
     "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderHolistic(_:track:load:)": "15d4b5d82d45653d",
     "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderRecovery(_:load:)": "257a071647a7e434",
     "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.renderWorkoutOnly(_:track:)": "c693d4573f0efc40",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.withFullSessions(_:)": "1341b3507c480eac"
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.withFullSessions(_:)": "ea56613de60bfa20"
    }
   },
   {
@@ -808,9 +808,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderDaily(workout:track:overnight:recentOvernight:profile:load:to:)": "e43162a208232dfb",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderDaily(workout:track:overnight:recentOvernight:profile:load:to:)": "689fa35cf4b14007",
     "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.load()": "25dd35bcb6196a18",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)": "e9ef4c8492c2a5b4"
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)": "6c6cef3b9177d245"
    }
   },
   {
@@ -829,7 +829,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderWorkout(_:track:profile:to:)": "1f6f321897c359a6",
-    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)": "e9ef4c8492c2a5b4"
+    "Emuqu/Sources/Views/ReportsListView.swift::func ReportsListView.profile(_:)": "6c6cef3b9177d245"
    }
   },
   {
@@ -887,7 +887,7 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "workoutSession.workoutMetadata is nil (sport itself is non-optional, WorkoutMetadata.swift:299)",
+     "cond": "workoutSession.workoutMetadata is nil (sport itself is non-optional, WorkoutMetadata.swift)",
      "effect": "sport = 'Workout'"
     },
     {

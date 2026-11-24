@@ -57,7 +57,7 @@
     "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordChipTap(_:)": "94a443709f905fd4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvState": "2aa570eee8bc1a20",
-    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvVariant": "ef4a6bea670ca2bc",
+    "Emuqu/Sources/Views/DashboardV2View+Chips.swift::var DashboardV2View.hrvVariant": "89ba169259ef8547",
     "Emuqu/Sources/Views/DashboardV2View.swift::func nightAgeLabel(for:now:)": "670457f6a3639ef5",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "b92aed75b0ecc3d2"
    }
@@ -160,7 +160,7 @@
     {
      "at": "+9",
      "cond": "latestOvernightComplete?.analysisResult non-nil",
-     "effect": "\"<rounded rmssd> ms\". latestOvernightComplete already filters analysisResult != nil (DashboardSessionPolicy.swift:177), so this fails only when there is no reliable overnight in the slice; then fallbacks"
+     "effect": "\"<rounded rmssd> ms\". latestOvernightComplete already filters analysisResult != nil (DashboardSessionPolicy.swift), so this fails only when there is no reliable overnight in the slice; then fallbacks"
     },
     {
      "at": "+12",
@@ -409,7 +409,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "49a3d7fabe5624e5",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "48ae2f1291e92d8b",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "6c7d5be6d9400201",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "42464c66774b99f3",
     "Emuqu/Sources/Models/UserSettings.swift::func TemperatureUnit.convert(_:)": "824ab0100c810122",
@@ -759,7 +759,7 @@
   {
    "key": "func DashboardV2View.shareRecapCard()",
    "hash": "ac05790072593d5d",
-   "does": "Renders a recovery RecapCard for the hero score/verdict and presents a share sheet with a dated PNG; toast on render failure.",
+   "does": "Renders a recovery RecapCard for the hero score/verdict and presents a share sheet with a dated PNG, which is deleted when the sheet closes (shared or cancelled); toast on render failure.",
    "entry": "hero context menu \"Share recovery card\"",
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore",
@@ -773,7 +773,7 @@
    ],
    "reads": [],
    "writes": [
-    "file:tmp/emuqu-<date>-score-<n>.png (via recapActivityItem)"
+    "file:tmp/RecapShare/emuqu-<date>-score-<n>.png (written by recapActivityItem; deleted by presentShareSheet's completion)"
    ],
    "branches": [
     {
@@ -803,8 +803,8 @@
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "acbdebbf6a8768d8",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "b92aed75b0ecc3d2",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.verdict": "72fa6b2b86e20486",
-    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentShareSheet(activityItem:from:)": "500b0f25ce180df6",
-    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func recapActivityItem(image:score:date:)": "7e9e9b0b927e4c39",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func presentShareSheet(activityItem:from:)": "43598692a4a42fb8",
+    "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func recapActivityItem(image:score:date:)": "6da23b0f525374f6",
     "Emuqu/Sources/Views/Utilities/RecapSharing.swift::func topmostPresenter()": "a3d510a9337700d2"
    }
   },

@@ -3,8 +3,8 @@
  "hash": "586cc1c3e826a5c3",
  "role": "SwiftUI 'Get Me Back' safety screen: shows a compass arrow pointing back to the active breadcrumb trail's origin (bearing minus true heading), an honest GPS-accuracy ribbon, distance/origin label, Talk-to-AI, SOS dialing of a location-chosen emergency number, and end/discard trail actions; plus static emergency-number helpers reused by the assistant.",
  "types": [
-  "GetMeBackView: struct (View) — the Get Me Back screen, presented as a sheet from FitnessTabView+Sections.swift:41",
-  "GetMeBackView: extension — static emergency-number selection and SOS/dial-failure message text (also used by AppFactResolver+LiveNavigation.swift:402-406)",
+  "GetMeBackView: struct (View) — the Get Me Back screen, presented as a sheet from FitnessTabView+Sections.swift",
+  "GetMeBackView: extension — static emergency-number selection and SOS/dial-failure message text (also used by AppFactResolver+LiveNavigation.swift)",
   "CompassArrow: struct (private View) — filled arrow path with blur glow scaled by fuzz",
   "CardinalLabel: struct (private View) — one N/E/S/W letter offset 110pt and rotated around the dial",
   "GPSAccuracyLevel: extension — this screen's colour/icon/arrow opacity/fuzz/ribbon label for each accuracy level"
@@ -449,7 +449,7 @@
    "key": "var GetMeBackView.body",
    "hash": "5f5a7d3aa1196c4c",
    "does": "Root body: NavigationStack wrapping trailStack with alerts and lifecycle modifiers.",
-   "entry": "SwiftUI body; GetMeBackView presented as sheet from FitnessTabView+Sections.swift:41 and in ScreenSnapshotTests",
+   "entry": "SwiftUI body; GetMeBackView presented as sheet from FitnessTabView+Sections.swift and in ScreenSnapshotTests",
    "calls": [
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withLifecycle(_:)",
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withAlerts(_:)",
@@ -575,7 +575,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()": "31b4ccd4f5fac05a",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()": "556d928e254d9dfc",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.voiceConversationController": "da8e1e7686d5de42"
    }
@@ -598,7 +598,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "7b0cb0f1c0ee5aac",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "9df569d2cf20cc52",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "a9161ec7b1d3b09c",
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.startVoiceChat()": "13bc0751cac1da8b"
@@ -749,7 +749,7 @@
    ],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()": "fe48bb6684a1010a",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()": "c794571e41a68e05",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
    }
   },
@@ -789,8 +789,8 @@
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording": "62e767b575bef76d",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.start()": "6fc36c784e1f367b",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()": "8e604da1f85b4113",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.start()": "f320523b4d558c6e",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()": "9d46d09543d8ab1f",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a",
@@ -1345,7 +1345,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "7b0cb0f1c0ee5aac",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "9df569d2cf20cc52",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",

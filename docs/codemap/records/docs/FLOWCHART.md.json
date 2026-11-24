@@ -31,7 +31,7 @@
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 1. Data Model > RRPoint",
    "hash": "335c855f075ac9f9",
-   "does": "Claims RRPoint holds t_ms (cumulative sum of prior RR, not wall time), rr_ms, optional wallClockMs (streaming only, gap-aware), optional hr (streaming only), and computed endMs = t_ms + rr_ms; beats dropped on BLE disconnect leave no gap in t_ms while wallClockMs advances. Matches RRModels.swift:4-54 and PolarManager appendStreamedBeat.",
+   "does": "Claims RRPoint holds t_ms (cumulative sum of prior RR, not wall time), rr_ms, optional wallClockMs (streaming only, gap-aware), optional hr (streaming only), and computed endMs = t_ms + rr_ms; beats dropped on BLE disconnect leave no gap in t_ms while wallClockMs advances. Matches RRModels.swift and PolarManager appendStreamedBeat.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)"
@@ -46,7 +46,7 @@
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 1. Data Model > RRSeries",
    "hash": "de7ee976708643d4",
-   "does": "Claims RRSeries = points + sessionId + startDate, and that startDate + t_ms/1000 gives cumulative time while startDate + wallClockMs/1000 gives gap-aware time. Matches RRModels.swift:71-74.",
+   "does": "Claims RRSeries = points + sessionId + startDate, and that startDate + t_ms/1000 gives cumulative time while startDate + wallClockMs/1000 gives gap-aware time. Matches RRModels.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTime(at:)",
@@ -67,7 +67,7 @@
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 1. Data Model > HRVSession",
    "hash": "c20993b3fdfad3bd",
-   "does": "Lists HRVSession fields: id/startDate/endDate/state (.collecting/.analyzing/.complete/.paused/.failed), sessionType (.overnight/.nap/.quick/.breathe/.workout), rrSeries, analysisResult, sleepStartMs/sleepEndMs, sleepSegments, linkedSessionIds, pausedDate, dataSourceSummary, sleepSnapshot and vitalsSnapshot frozen at acceptance, recoveryScore on 0-10 scale. Enum cases and fields match SessionMetadata.swift:68-73, :145-198, :384-390.",
+   "does": "Lists HRVSession fields: id/startDate/endDate/state (.collecting/.analyzing/.complete/.paused/.failed), sessionType (.overnight/.nap/.quick/.breathe/.workout), rrSeries, analysisResult, sleepStartMs/sleepEndMs, sleepSegments, linkedSessionIds, pausedDate, dataSourceSummary, sleepSnapshot and vitalsSnapshot frozen at acceptance, recoveryScore on 0-10 scale. Enum cases and fields match SessionMetadata.swift,.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
@@ -94,7 +94,7 @@
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 1. Data Model > SessionArchiveEntry (in-memory index)",
    "hash": "0e9e6becfb8b8cc9",
-   "does": "Claims SessionArchiveEntry index fields (sessionId, date, endDate, fileHash, filePath, recoveryScore, meanRMSSD, meanHR/stressIndex backfilled by migrateMetrics, meanSDNN, tags, notes, sessionType, linkedSessionIds) and that retrieveLightweight skips rrSeries for dashboard/history/paused search. Fields match SessionMetadata.swift:710-732 (doc omits later sleepEnd/sleepSegmentCount/stage-minute fields); migrateMetrics backfills meanHR/stressIndex.",
+   "does": "Claims SessionArchiveEntry index fields (sessionId, date, endDate, fileHash, filePath, recoveryScore, meanRMSSD, meanHR/stressIndex backfilled by migrateMetrics, meanSDNN, tags, notes, sessionType, linkedSessionIds) and that retrieveLightweight skips rrSeries for dashboard/history/paused search. Fields match SessionMetadata.swift (doc omits later sleepEnd/sleepSegmentCount/stage-minute fields); migrateMetrics backfills meanHR/stressIndex.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
@@ -222,7 +222,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "e43638f1b8611004"
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "df69f0bb00299e67"
    }
   },
   {
@@ -341,7 +341,7 @@
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.processOvernightData(_:)": "20ef34428b773f36",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "4efda53e781606e1",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.runAnalysisPhase(series:analyzingSession:effectiveStartDate:totalBeats:isBackgroundRefinement:settings:trainingContext:prefetchedSleepData:statusCallback:)": "86c4760980cf47bb",
-    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)": "b50ff8b96d8c5f03"
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)": "838a0c7323380daf"
    }
   },
   {
@@ -607,7 +607,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.runMergeDataLossMigrationIfNeeded()": "99d56d4fe79cd12d",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.boot()": "dabe9c6f7fcbb783",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.boot()": "706003d35108ad40",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "451afcfb546a3106",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "c8362823734fe57e",
     "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "beaafa1b2a7ae497",
@@ -616,7 +616,7 @@
     "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()": "e18158f89261a421",
     "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "aba3fe476d6810c5",
     "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "dff3bf9c3b6b0db7",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "935aa07e49488122",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "57901c6b3a0a027c",
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.runDeferredSessionMigrationsIfNeeded()": "170a4aef57348ddc",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleMigrationJobs(lowPower:)": "bf4fb3084b81f040",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resealPlainIndexIfNeeded()": "35c80740ec98eb57",
@@ -652,7 +652,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "d0b0b578fa7f7968",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "090a425376b10bfe",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "c0967d617321a35d",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadPassesDebounce()": "6d7c9e1c6b4d3542",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()": "954470e0a722865c",
     "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()": "c89b045820e7e696"
@@ -717,7 +717,7 @@
     "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "4a5ceb4ba655d800",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "f00c32e21c009175",
     "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "beaafa1b2a7ae497",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "935aa07e49488122",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "57901c6b3a0a027c",
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()": "de4cbdf433e33511",
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)": "bbeb7ba3fd95df10",
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.installRescoreListener()": "64e2ca63340dcbb0",
@@ -776,7 +776,7 @@
     "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.runTrainingRecalibrationIfNeeded()": "e18158f89261a421",
     "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "aba3fe476d6810c5",
     "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "dff3bf9c3b6b0db7",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "935aa07e49488122",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "57901c6b3a0a027c",
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "22355b317aa90b2b",
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)": "f57c7007a40c61a7",
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)": "d0a87cf67cb95395",
@@ -873,7 +873,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "f562d71e0976d991",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.buildSleepDataFromTimelineState(original:state:)": "cecb546da6b1e18b",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)": "9637915119e4cfec",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.runSleepBoundaryUpdate(sessionId:sleepData:isUserAdjustment:)": "1098b7a8ceef473c",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "bdc8d0383e8b6150",
@@ -938,7 +938,7 @@
     "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "aba3fe476d6810c5",
     "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "0027892fb9448542",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.claimRecovery(_:)": "a545ae83f0dd2f05",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "8256130028c86fa4",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "2e1f834f54821011",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.clear()": "cfd622cc48144dac",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read()": "c15f55dd92f347d8",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)": "4476c41e93b017fe",
@@ -964,9 +964,9 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "d2b12ef734f88fff",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.claimWakePush(today:sleepEnd:)": "1289ca413004b5b4",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd:)": "cc848d4c5e8a0ca0",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd:)": "3084baa064c4d48c",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.isMorningWake(_:schedule:)": "efb8145f19ecd943",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "4e8514ceace2cec7"
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "c8189ca8fa9e41ed"
    }
   },
   {
@@ -1073,7 +1073,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRRCaptureService.swift::func HRRCaptureService.captureHRR(stopDate:stopHR:)": "d3f0d88cc010d5d0",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "b34e517a8d85767b",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.ingest(points:now:)": "84b722eacd1bb8d0",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "ef22a598a8881280",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.analyze(sport:rrPoints:startDate:track:userMaxHR:userRestingHR:userLTHR:sex:splitDistanceMeters:pauses:)": "5ec13b5f22fc7b93",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodeFixTimes(track:)": "35724c94c06b61cc",
@@ -1086,11 +1086,11 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "a7d5cc61801af2cf",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.reconnectOrDisconnectSecondarySensors(sport:)": "933d41cc094bc7e5",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)": "5f56efcad87b7b36",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "34bd0ca2ce4e37f0",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "4a69af1ac5263923",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:strap:archive:sessionId:)": "2c00c6b5c6401c04",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()": "29bef757ae0c8830",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "1cb2758726692616",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "5c15b4a33c0ef2e6",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "4d34469069a6ad4b",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.tearDownLiveWorkoutServices()": "e754df9f6a31ece8",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.attemptRouteDetectionIfEligible(sport:)": "171ad0e881a6a7f5",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.incrementalBackupTick()": "aafed6cd016085f3",
@@ -1099,7 +1099,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.runSportScopedTickWork(sport:)": "5e102f1bfab539ce",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.startTicker()": "038dd3aaceaad4cc",
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.tickVoiceCoach(sport:)": "f2cc1352e19aa7e4",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "6ef658b176509f08",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "0929670145a15111",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)": "f91e54d315319ac0",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "a4c3b987ae29dd27",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)": "ef69c30f9868f827",
@@ -1245,7 +1245,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "1d32d561b3768746",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.servedDeterministically(_:)": "0ace0c4a15390e50"
    }
   },
@@ -1275,7 +1275,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.messageRequiresTools(_:)": "8432a1cca189e61c",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.providerSupportsTools(_:)": "f1b46d5c0e8c1812",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.resolveProviderForThisTurn()": "23ca3517bef7efb1",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "d023d80a71049fad"
    }
   },
   {
@@ -1319,7 +1319,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)": "8ade4d95cc21038f",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compactedPromptInput(messages:systemPromptTokens:)": "9fa545fcd7f90387",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "a9293788382bb14c",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleExchange.before(latestQuestionIn:)": "a5123dc82e5789af",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.fittingTools(_:for:budget:)": "ac49c1fa9aadd12b",
@@ -1327,7 +1327,7 @@
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.runStream(_:continuation:)": "6f0299616af568ea",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "1ccac547ae32c782",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)": "67acbf75cc7deb62",
-    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)": "7a197fc21f230ee1"
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)": "ce33e1bf0efe8226"
    }
   },
   {
@@ -1371,7 +1371,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.record(provider:input:output:cachedRead:cacheCreate:)": "428e7594139dea5d",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.buildMessageHistory(messages:toolRounds:)": "0df5d5d18ee8183d",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "07d9efd1b8137da2",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "1371821c8a3f41cd",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.spliceLiveState(_:into:systemBlocks:)": "4c6c402553ec99ee",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)": "6ed72930981424e6",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.recordUsage(provider:auditID:input:output:cached:cacheCreate:)": "6bbe0a5c848b1448",

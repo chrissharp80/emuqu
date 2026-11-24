@@ -6,16 +6,16 @@
   "HelpContent: enum (@MainActor) — categories/englishCategories plus static category constants gettingStarted, recording, recoveryScore (others in HelpContent+Articles.swift)"
  ],
  "state": [
-  "mem:HelpContent.gettingStarted (static let HelpCategory, line 40)",
-  "mem:HelpContent.recording (static let, line 163)",
-  "mem:HelpContent.recoveryScore (static let, line 292)"
+  "mem:HelpContent.gettingStarted (static let HelpCategory)",
+  "mem:HelpContent.recording (static let)",
+  "mem:HelpContent.recoveryScore (static let)"
  ],
- "toplevel": "Three static-let HelpCategory constants built once (theme colours AppTheme.softGold/primary/sage). Articles: what-is-flow-recovery, your-first-reading, building-your-baseline, devices-setup; extended-recording, quick-reading, split-sleep, data-quality; understanding-score, score-tiers, comeback-mode, vitals-and-feedback, analysis-window. Copy states numeric product rules (HRV 60/Sleep 25/Vitals 15, Tier2 70/30, comeback 80/20/0 for 21 days, SpO2 <95% 24h average = -10, merge window 4.5 h default 1-12 h custom, paused-battery <=5% finalises, Tier-1 adjustments CV<2% -5 / >12% -3, DFA +5/-5/-3, ANS -6/-3/+2, stale baseline -5 per week to -20). Spot-checked against code: merge window (UserSettings+Model.swift:40, UserSettings+Codable.swift:77), paused battery <=5 (RRCollector+Bindings.swift:203), Tier-1 constants (Constants+RecoveryScore.swift:27-75); several others are pinned by HelpScienceAccuracyTests/HelpContentAccuracyTests. Code comments at lines 376-387 and 455-460 record that the vitals sub-score is an unweighted average and there is no HR-dip sub-score.",
+ "toplevel": "Three static-let HelpCategory constants built once (theme colours AppTheme.softGold/primary/sage). Articles: what-is-flow-recovery, your-first-reading, building-your-baseline, devices-setup; extended-recording, quick-reading, split-sleep, data-quality; understanding-score, score-tiers, comeback-mode, vitals-and-feedback, analysis-window. Copy states numeric product rules (HRV 60/Sleep 25/Vitals 15, Tier2 70/30, comeback 80/20/0 for 21 days, SpO2 <95% 24h average = -10, merge window 4.5 h default 1-12 h custom, paused-battery <=5% finalises, Tier-1 adjustments CV<2% -5 / >12% -3, DFA +5/-5/-3, ANS -6/-3/+2, stale baseline -5 per week to -20). Spot-checked against code: merge window (UserSettings+Model.swift, UserSettings+Codable.swift), paused battery <=5 (RRCollector+Bindings.swift), Tier-1 constants (Constants+RecoveryScore.swift); several others are pinned by HelpScienceAccuracyTests/HelpContentAccuracyTests. Code comments and 455-460 record that the vitals sub-score is an unweighted average and there is no HR-dip sub-score.",
  "units": [
   {
    "key": "func HelpContent.categories(forAge:)",
    "hash": "ca10eb07950725af",
-   "does": "Returns englishCategories(forAge:) with every category passed through HelpCategory.localized (translated into the app language); the only production caller is HelpCenterView.categories (HelpCenterView.swift:19), which re-runs it on every access including every search keystroke.",
+   "does": "Returns englishCategories(forAge:) with every category passed through HelpCategory.localized (translated into the app language); the only production caller is HelpCenterView.categories (HelpCenterView.swift), which re-runs it on every access including every search keystroke.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HelpContent+Science.swift::func HelpContent.englishCategories(forAge:)",

@@ -384,7 +384,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.computeRecoveryScore(for:from:)": "c27b6b07c2f621b9",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "dadaaf0287118899"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "d8e64f81229b2336"
    }
   },
   {
@@ -463,7 +463,7 @@
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "3e39c6c577e76332",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "614d193cfe0e5d19",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "21b007298e4d2136",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
@@ -975,7 +975,7 @@
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.end(_:)": "c100d9b82589a259",
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "3e39c6c577e76332",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "21b007298e4d2136",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)": "b46f35d8396e05f2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -1354,7 +1354,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.strapReadyForAutoRecovery()": "5786c4436e7f70bf",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.strapReadyForAutoRecovery()": "f480aa559ae16aad",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "1cf85a75d85e2e34",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -1362,7 +1362,7 @@
   {
    "key": "func SessionRecoveryCoordinator.strapReadyForAutoRecovery()",
    "hash": "bff00a2590ee2cae",
-   "does": "Begins a transfer, reconnects, refreshes the strap's recording status within the feature-ready window and returns whether it is still recording on device.",
+   "does": "Begins a transfer, reconnects, refreshes the strap's recording status within the feature-ready window (result discarded) and returns PolarManager.isRecordingOnDevice: the fresh reading, or the flag's last value when the status could not be read in the window.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()",
@@ -1382,6 +1382,11 @@
      "at": "+3",
      "cond": "reconnectForTransfer failed",
      "effect": "returns false"
+    },
+    {
+     "at": "+4",
+     "cond": "refreshRecordingState could not read the status (returns false, ignored)",
+     "effect": "isRecordingOnDevice keeps its last value and that is returned"
     }
    ],
    "deps": {
@@ -1389,7 +1394,7 @@
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()": "95932245f074f12c",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "ba196d3ce7f16574",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.refreshRecordingState(until:)": "6abe502b8835f3db"
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.refreshRecordingState(until:)": "abc5528e8c1bfe1e"
    }
   },
   {

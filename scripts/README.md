@@ -94,8 +94,10 @@ measures whether it is **reachable**.
 
 ### `check_fixed_font_budget.sh`
 
-Counts raw `.font(.system(size:))` in the view layer against
-`.ci/fixed_font_budget.txt`. Those ignore Dynamic Type;
+Counts `.system(size:)` calls with a numeric-literal size (with or without the
+`Font` prefix) across the `Emuqu/` app target against
+`.ci/fixed_font_budget.txt`, and those in the watch app against
+`.ci/fixed_font_watch_budget.txt`. Those ignore Dynamic Type;
 `View.scaledFont(size:)` is the migration target. Stands in for XCTest's
 `.dynamicType` accessibility audit, which cannot see through `@ScaledMetric` and
 flags correctly-scaling call sites.

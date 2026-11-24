@@ -25,12 +25,12 @@
   "PauseTimeline.spans / openPause",
   "PausedMotionLedger.pedometerAtPause/footPodAtPause/pedometerExcluded/footPodExcluded"
  ],
- "toplevel": "Stored defaults: phase .idle, elapsedSeconds 0, activeHRSource .strap, isPaused/autoPaused false, fresh PausedMotionLedger and PauseTimeline. Instance is WorkoutRecorder.lifecycle (WorkoutRecorder.swift:39). WorkoutStrapNotice is set by HRArbitration per tick.",
+ "toplevel": "Stored defaults: phase .idle, elapsedSeconds 0, activeHRSource .strap, isPaused/autoPaused false, fresh PausedMotionLedger and PauseTimeline. Instance is WorkoutRecorder.lifecycle (WorkoutRecorder.swift). WorkoutStrapNotice is set by HRArbitration per tick.",
  "units": [
   {
    "key": "func PauseTimeline.pause(atElapsed:now:)",
    "hash": "d615e0195927c329",
-   "does": "Records an open pause at the given elapsed second and wall-clock time (overwrites any already-open pause). Called from WorkoutSessionLifecycle.pause (WorkoutRecorder+Start.swift:734).",
+   "does": "Records an open pause at the given elapsed second and wall-clock time (overwrites any already-open pause). Called from WorkoutSessionLifecycle.pause (WorkoutRecorder+Start.swift).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -43,7 +43,7 @@
   {
    "key": "func PauseTimeline.resume(now:)",
    "hash": "d3a026db426a42de",
-   "does": "Closes the open pause, appending a Span(atElapsed, max(0, now-startedAt)); no-op when no pause is open. Called from WorkoutSessionLifecycle.resume (WorkoutRecorder+Start.swift:746).",
+   "does": "Closes the open pause, appending a Span(atElapsed, max(0, now-startedAt)); no-op when no pause is open. Called from WorkoutSessionLifecycle.resume (WorkoutRecorder+Start.swift).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -87,7 +87,7 @@
   {
    "key": "func PauseTimeline.wallClock(forOffset:sessionStart:)",
    "hash": "3f326a84483ac53a",
-   "does": "Returns sessionStart + offsetSec + sum of span seconds whose atElapsed < offsetSec. A still-open pause is not counted. Used by WorkoutFinalizer.backfillWorkoutHRFromHealthKit (WorkoutRecorder+Lifecycle.swift:556).",
+   "does": "Returns sessionStart + offsetSec + sum of span seconds whose atElapsed < offsetSec. A still-open pause is not counted. Used by WorkoutFinalizer.backfillWorkoutHRFromHealthKit (WorkoutRecorder+Lifecycle.swift).",
    "entry": null,
    "calls": [],
    "reads": [
@@ -130,7 +130,7 @@
   {
    "key": "func PausedMotionLedger.pedometerDistance(_:)",
    "hash": "74ed968bf0365df7",
-   "does": "Returns max(0, raw pedometer distance - excluded - movement in a still-open pause). Read by the ticker and finalize (WorkoutRecorder+Ticker.swift:502,579; WorkoutRecorder+Lifecycle.swift:149).",
+   "does": "Returns max(0, raw pedometer distance - excluded - movement in a still-open pause). Read by the ticker and finalize (WorkoutRecorder+Ticker.swift; WorkoutRecorder+Lifecycle.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.moved(since:now:)"

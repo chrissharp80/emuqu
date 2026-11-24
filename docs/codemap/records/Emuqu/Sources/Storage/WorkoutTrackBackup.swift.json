@@ -15,16 +15,16 @@
   "WorkoutSample: extension — finiteValuesOnly (non-finite values cleared)"
  ],
  "state": [
-  "mem:WorkoutTrackBackup.shared (static singleton, :32)",
-  "file:<AppGroup>/WorkoutBackup/ directory (:172, created with completeUntilFirstUserAuthentication; recreated by purgeAll)",
-  "file:<uuid>_workout_header.json (:201)",
-  "file:<uuid>_workout_track.jsonl (:205)",
-  "file:<uuid>_workout_samples.jsonl (:209)",
-  "file:<uuid>_workout_baro.jsonl (:213)",
-  "file:<uuid>_workout_hkhr.jsonl (:217)",
-  "file:<stream>.corrupted_<epoch> set-aside copies (:520)",
-  "mem:WorkoutTrackBackup.trackCursor/sampleCursor/baroCursor/healthKitHRCursor/sampleLastKey/healthKitHRLastKey/headerWritten (in-memory per-session cursors under lock, :126-139)",
-  "DispatchQueue com.emuqu.workouttrackbackup.append (:123)",
+  "mem:WorkoutTrackBackup.shared (static singleton)",
+  "file:<AppGroup>/WorkoutBackup/ directory (created with completeUntilFirstUserAuthentication; recreated by purgeAll)",
+  "file:<uuid>_workout_header.json",
+  "file:<uuid>_workout_track.jsonl",
+  "file:<uuid>_workout_samples.jsonl",
+  "file:<uuid>_workout_baro.jsonl",
+  "file:<uuid>_workout_hkhr.jsonl",
+  "file:<stream>.corrupted_<epoch> set-aside copies",
+  "mem:WorkoutTrackBackup.trackCursor/sampleCursor/baroCursor/healthKitHRCursor/sampleLastKey/healthKitHRLastKey/headerWritten (in-memory per-session cursors under lock)",
+  "DispatchQueue com.emuqu.workouttrackbackup.append",
   "mem:WorkoutTrackBackup.unlockObservers (NotificationTokens: protectedDataDidBecomeAvailable / didBecomeActive observers, removed in deinit)",
   "mem:WorkoutTrackBackup.notificationCenter (where the unlock and activation observers are added; NotificationCenter.default for init(directory:) and init())",
   "mem:WorkoutTrackBackup.resealQueued (OSAllocatedUnfairLock<Bool>: a re-seal queued and not yet started)"
@@ -80,7 +80,7 @@
   {
    "key": "init WorkoutTrackBackup()",
    "hash": "732c4b00c7ca0e8f",
-   "does": "Convenience init: the app's backup, in <shared container>/WorkoutBackup (init(directory:)).",
+   "does": "Convenience init: the app's backup, in <shared container>/WorkoutBackup (init(directory:)), observing unlock and activation on NotificationCenter.default.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
@@ -88,11 +88,12 @@
    ],
    "reads": [],
    "writes": [
-    "file:WorkoutBackup/ directory"
+    "file:WorkoutBackup/ directory",
+    "mem:WorkoutTrackBackup.unlockObservers"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "22e176d3c141b5aa",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "b0bf24dc1620001d",
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586"
    }
   },
@@ -134,7 +135,7 @@
    "deps": {
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.createDirectoryIfNeeded()": "642908bcc6906478",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.observeUnlock()": "25349c1d4cb34747",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "dcf99dbebe765d9d"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "8449be48b2a3ef16"
    }
   },
   {
@@ -175,7 +176,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "dcf99dbebe765d9d",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "8449be48b2a3ef16",
     "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
    }
   },

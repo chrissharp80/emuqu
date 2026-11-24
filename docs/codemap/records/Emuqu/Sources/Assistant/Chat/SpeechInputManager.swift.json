@@ -59,7 +59,7 @@
    "key": "func SpeechInputManager.start()",
    "hash": "d385273a2a3d89dd",
    "does": "Ignores a tap while recording or while an earlier start() is still waiting on permissions (isStarting); requests speech+mic permission, requires isAvailable (recognizer available AND on-device recognition supported, since the request sets requiresOnDeviceRecognition), builds an on-device partial-results buffer request, claims the audio session and starts the engine, resets transcript/lastError, sets isRecording and starts the recognition task.",
-   "entry": "mic button tap in ChatInputBar.toggleDictation (AssistantChatSupport.swift:264)",
+   "entry": "mic button tap in ChatInputBar.toggleDictation (AssistantChatSupport.swift)",
    "calls": [
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.requestPermissions()",
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::var SpeechInputManager.isAvailable",
@@ -126,7 +126,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.releaseSessionIfIdle()": "6c0254444e6494ee",
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.startEngine(appendingTo:)": "36a0cae302ef6d90",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "3ff6db18fe48072d",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "247cec658bd1b336",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }
@@ -168,10 +168,10 @@
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.removeTapAndFail(_:)": "d4b00a347c218905",
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.resetEngineAndReadFormat(_:)": "f1e6e9cff1d1009f",
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.tapBlock(appendingTo:)": "0c26aa40abb29da1",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeInstallTap": "7e6c68b98e72edff",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafePrepareAudioEngine": "22735babeeafa906",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeInstallTap": "dac72e39e9a66b0a",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafePrepareAudioEngine": "f3b791cc4b22ab18",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeRemoveTap": "8ecf514bc5109cd5",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStartAudioEngine": "2fd985820cf7bd86"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStartAudioEngine": "8cc102d429626fc8"
    }
   },
   {
@@ -422,8 +422,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()": "b8c5445601085093",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "37f8c4633bbb78c6",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()": "a7407db66803c68b",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "c963016adc44705e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }

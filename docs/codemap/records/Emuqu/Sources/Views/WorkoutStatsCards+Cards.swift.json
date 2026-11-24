@@ -7,7 +7,7 @@
   "WorkoutStatsCards: extension — static pure helpers elevationSeries / hrrProvenanceLabel"
  ],
  "state": [
-  "static let WorkoutStatsCards.hrrCaptureWindowSec = 120 (also read by AppFactResolver+LiveNavigation.swift:818)",
+  "static let WorkoutStatsCards.hrrCaptureWindowSec = 120 (also read by AppFactResolver+LiveNavigation.swift)",
   "static let WorkoutStatsCards.hrrWriteGraceSec = 30",
   "static let WorkoutStatsCards.hrAtStopWindowSec = 15"
  ],
@@ -27,7 +27,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "903803b5c4ac8e80"
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "2ab0c1cf6cea2ea6"
    }
   },
   {
@@ -54,7 +54,7 @@
   {
    "key": "var WorkoutStatsCards.activeDurationDisplay",
    "hash": "d82fbf4549f1f551",
-   "does": "activeDuration formatted by formatDuration; nil without a duration. Not yet called by production (the summary hero still formats wall-clock duration itself).",
+   "does": "activeDuration formatted by formatDuration (h:mm:ss from an hour, else mm:ss); nil without a duration. Read by FitnessPostSummaryView.heroCard for the post-workout hero card's duration label.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration",
@@ -70,8 +70,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatDuration(sec:)": "e3ee164f6171edaf",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration": "27db5f08943554ab"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.formatDuration(sec:)": "af029099b9d7d913",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration": "208ef758c0fa413f"
    }
   },
   {
@@ -98,8 +98,8 @@
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(elapsedSec:distanceMeters:)": "9f6523aed76afcae",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration": "27db5f08943554ab",
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "b3fa35078b8e01b2"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDuration": "208ef758c0fa413f",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "eb590b0e459fbdc5"
    }
   },
   {
@@ -237,7 +237,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "71127c94fab42852",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "48c3e48825a0a915",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.emptyChartText(_:)": "9bfa4c55c4d67420",
@@ -328,7 +328,7 @@
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.chartShell(title:content:)": "48c3e48825a0a915",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartBody(points:samples:)": "c1ff28da4cde9e74",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.paceChartPoints(samples:)": "d163ca6fea5bcfd3",
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "b3fa35078b8e01b2"
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "eb590b0e459fbdc5"
    }
   },
   {
@@ -400,7 +400,7 @@
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.paceDisplayMinutes(from:)": "4ec32243a2bcfa38",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.sportSpeedCeiling": "37f55730d8a0f9de",
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "b3fa35078b8e01b2"
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "eb590b0e459fbdc5"
    }
   },
   {
@@ -706,7 +706,7 @@
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationChart(_:maxX:xLabel:yLabel:)": "26707ecabf57e7db",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.elevationPoints(imperial:)": "18481ec7865fc5fa",
     "Emuqu/Sources/Views/WorkoutStatsCards.swift::func LocalizedUnit.symbol(_:)": "10a37cb330f286a9",
-    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "b3fa35078b8e01b2"
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::var WorkoutStatsCards.units": "eb590b0e459fbdc5"
    }
   },
   {
@@ -933,7 +933,7 @@
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrativeBlock(_:captureFinished:)": "a203dcec4cccabae",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNeverCaptured(at:)": "4f8942a710b6bfc0",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrValueRow(_:captureFinished:)": "fbbbd42a3f98c89c",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "02d6297f0ee528e3",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "3d0c3a0aebb40dcb",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.stopHRReferenceRow": "1874799cfacca250"
    }
   },
@@ -981,7 +981,7 @@
   {
    "key": "func WorkoutStatsCards.stopReferencedDrop(_:)",
    "hash": "2571d88ce9394181",
-   "does": "Displayed drop for one HRR reading: hrAtStop − sample.hr, except healthKitComputed readings or when hrAtStop is nil, which return the stored sample.drop (itself stopHR − hr, computed from the recorder's currentHR at Stop, HRRCaptureService.swift:183).",
+   "does": "Displayed drop for one HRR reading: hrAtStop − sample.hr, except healthKitComputed readings or when hrAtStop is nil, which return the stored sample.drop (itself stopHR − hr, computed from the recorder's currentHR at Stop, HRRCaptureService.swift).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.hrAtStop"
@@ -1084,7 +1084,7 @@
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var [HRRSample].bestAtOneMinute": "673b069aae9d0cec",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrNarrative(drop:)": "29f2ba9edfeda1ac",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "02d6297f0ee528e3",
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "3d0c3a0aebb40dcb",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func hrrNarrativeText(_:)": "2c73757e4d06a3b7"
    }
   },
@@ -1257,7 +1257,7 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrColor(drop:good:ok:)": "0bd65631a3fcf89d",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.hrrProvenanceLabel(_:)": "e9901cceb00f32e9",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "02d6297f0ee528e3"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.stopReferencedDrop(_:)": "3d0c3a0aebb40dcb"
    }
   },
   {

@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Utilities/CrashSignalHandler.c",
  "hash": "2a5114b93747964a",
- "role": "Async-signal-safe fatal-signal handler for the iOS app: on SIGABRT/SIGSEGV/SIGBUS/SIGFPE/SIGILL/SIGTRAP writes a raw-address crash log to the path given at install (CrashLogManager.crashLogURL = <app group container>/crash_log.txt), then re-raises with default disposition. Compiled into the iOS app target (project.pbxproj:4150).",
+ "role": "Async-signal-safe fatal-signal handler for the iOS app: on SIGABRT/SIGSEGV/SIGBUS/SIGFPE/SIGILL/SIGTRAP writes a raw-address crash log to the path given at install (CrashLogManager.crashLogURL = <app group container>/crash_log.txt), then re-raises with default disposition. Compiled into the iOS app target (project.pbxproj).",
  "types": [],
  "state": [
   "mem:g_crash_path (static char[PATH_MAX], crash file path copy)",
@@ -10,9 +10,9 @@
   "mem:g_code_image_base / g_code_image_name / g_code_image_name_len (dladdr result for the image containing app code)",
   "mem:g_handling (volatile sig_atomic_t, claimed with an atomic exchange) and g_handling_thread (pthread_t of the thread that claimed it)",
   "mem:kFatalSignals (const list of 6 signals)",
-  "file:crash_log.txt (path passed in by CrashLogManager.installSignalHandlers, CrashLogManager.swift:457)"
+  "file:crash_log.txt (path passed in by CrashLogManager.installSignalHandlers, CrashLogManager.swift)"
  ],
- "toplevel": "Static globals lines 19-30 (g_crash_path, g_frames, g_image_slide, g_code_image_*, g_handling, g_handling_thread); kFatalSignals lines 32-39 (SIGABRT,SIGSEGV,SIGBUS,SIGFPE,SIGILL,SIGTRAP) and count line 41; macro safe_write_lit writes a string literal with compile-time length.",
+ "toplevel": "Static globals (g_crash_path, g_frames, g_image_slide, g_code_image_*, g_handling, g_handling_thread); kFatalSignals (SIGABRT,SIGSEGV,SIGBUS,SIGFPE,SIGILL,SIGTRAP) and their count; macro safe_write_lit writes a string literal with compile-time length.",
  "units": [
   {
    "key": "c safe_write",

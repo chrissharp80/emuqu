@@ -19,7 +19,7 @@
   "mem:StreamingLifecycle.claimsMade (0, private, @ObservationIgnored)",
   "StreamingLifecycle.staleEndingClaimAge (static, 30 min): how old a claim must be before a starting night may drop it"
  ],
- "toplevel": "Seven observable stored properties with default initialisers, plus overnightEndingClaim (private(set)) and the claim counter, changed only through claimOvernightEnding(now:) / releaseOvernightEnding(_:) / clearEndingForNewNight(now:) by the overnight Stop, Pause and Discard and a starting night; and the 30-minute staleEndingClaimAge. Owned by RRCollector (RRCollector.swift:187, created at 703) and read through @Environment(StreamingLifecycle.self) in RecordView and passed to StreamingLiveView/RecordingStatusViews/RecordPanels.",
+ "toplevel": "Seven observable stored properties with default initialisers, plus overnightEndingClaim (private(set)) and the claim counter, changed only through claimOvernightEnding(now:) / releaseOvernightEnding(_:) / clearEndingForNewNight(now:) by the overnight Stop, Pause and Discard and a starting night; and the 30-minute staleEndingClaimAge. Owned by RRCollector (RRCollector.swift, created at 703) and read through @Environment(StreamingLifecycle.self) in RecordView and passed to StreamingLiveView/RecordingStatusViews/RecordPanels.",
  "units": [
   {
    "key": "var StreamingLifecycle.isEndingOvernight",

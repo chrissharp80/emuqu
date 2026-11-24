@@ -10,13 +10,13 @@
   "PolarManager: extension — PolarBleApiLogger"
  ],
  "state": [],
- "toplevel": "Whole file is inside `#if canImport(PolarBleSdk)`; without the SDK none of the conformances exist. The deprecated `deviceDisconnected(_:pairingError:)` callback is deliberately not implemented (comment at :29-32).",
+ "toplevel": "Whole file is inside `#if canImport(PolarBleSdk)`; without the SDK none of the conformances exist. The deprecated `deviceDisconnected(_:pairingError:)` callback is deliberately not implemented (comment).",
  "units": [
   {
    "key": "func PolarManager.deviceConnecting(_:)",
    "hash": "e5def61ab82ded48",
    "does": "Sends StrapEvent.connecting(deviceId) into the event pump.",
-   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift:538-542)",
+   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift)",
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)"
    ],
@@ -26,14 +26,14 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "75f76dc214cb3c1e"
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "c1aaede3e377ec0a"
    }
   },
   {
    "key": "func PolarManager.deviceConnected(_:)",
    "hash": "758fa426882432c1",
    "does": "Sends StrapEvent.connected(deviceId, name, peripheralId: address) into the event pump.",
-   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift:538-542)",
+   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift)",
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)"
    ],
@@ -43,14 +43,14 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "75f76dc214cb3c1e"
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "c1aaede3e377ec0a"
    }
   },
   {
    "key": "func PolarManager.deviceDisconnected(_:info:)",
    "hash": "ae7ca8d70f9ddf8b",
    "does": "SDK 8.3 disconnect callback: maps PolarBleDisconnectInfo to a StrapLinkLoss via linkLoss(from:) and sends StrapEvent.disconnected into the pump.",
-   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift:538-542)",
+   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift)",
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.linkLoss(from:)",
     "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)"
@@ -61,8 +61,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.linkLoss(from:)": "350451747f2cf471",
-    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "75f76dc214cb3c1e"
+    "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.linkLoss(from:)": "d85d33142fde1d2e",
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "c1aaede3e377ec0a"
    }
   },
   {
@@ -77,7 +77,7 @@
     {
      "at": "+2",
      "cond": "recoveryAction is .removePairingAndPairAgain or .retryPairing",
-     "effect": "returns .pairingLost(reason: String(describing: info.reason)) — StrapLinkCoordinator then sets lastError .pairingLost (StrapLinkCoordinator.swift:213)"
+     "effect": "returns .pairingLost(reason: String(describing: info.reason)) — StrapLinkCoordinator then sets lastError .pairingLost (StrapLinkCoordinator.swift)"
     },
     {
      "at": "+4",
@@ -96,7 +96,7 @@
    "key": "func PolarManager.batteryLevelReceived(_:batteryLevel:)",
    "hash": "057cf41aa398d6b0",
    "does": "Sends StrapEvent.battery(deviceId, level) into the pump; applied later by PolarManager.applyBatteryLevelUpdate.",
-   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift:538-542)",
+   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift)",
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)"
    ],
@@ -107,14 +107,14 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.battery": "a52ba003af22d560",
-    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "75f76dc214cb3c1e"
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "c1aaede3e377ec0a"
    }
   },
   {
    "key": "func PolarManager.batteryChargingStatusReceived(_:chargingStatus:)",
    "hash": "a286a0d62120eabd",
    "does": "Empty: the strap's charging-state callback is ignored.",
-   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift:538-542)",
+   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift)",
    "calls": [],
    "reads": [],
    "writes": [],
@@ -125,7 +125,7 @@
    "key": "func PolarManager.disInformationReceived(_:uuid:value:)",
    "hash": "84b65da9fde4b258",
    "does": "Sends StrapEvent.deviceInformation(deviceId, uuid string, value) for a DIS characteristic; applied by PolarManager.applyFirmwareRevisionUpdate(from:uuid:value:).",
-   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift:538-542)",
+   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift)",
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)"
    ],
@@ -135,14 +135,14 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "75f76dc214cb3c1e"
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "c1aaede3e377ec0a"
    }
   },
   {
    "key": "func PolarManager.disInformationReceivedWithKeysAsStrings(_:key:value:)",
    "hash": "8924b8c2ca31e4e4",
    "does": "Sends StrapEvent.deviceInformationKey(deviceId, key, value); applied by PolarManager.applyFirmwareRevisionUpdate(from:key:value:).",
-   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift:538-542)",
+   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift)",
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)"
    ],
@@ -152,14 +152,14 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "75f76dc214cb3c1e"
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "c1aaede3e377ec0a"
    }
   },
   {
    "key": "func PolarManager.bleSdkFeatureReady(_:feature:)",
    "hash": "a7214229db32d4c9",
    "does": "Maps the SDK feature to a StrapFeature; unmapped features (battery, device info, etc.) are only logged via PolarSDKLogBridge.noteFeatureReady, mapped ones sent as StrapEvent.featureReady.",
-   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift:538-542)",
+   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift)",
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.strapFeature(_:)",
     "Emuqu/Sources/Collection/PolarSDKLogBridge.swift::func PolarSDKLogBridge.noteFeatureReady(_:)",
@@ -179,14 +179,14 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.strapFeature(_:)": "8e071fd09c6b84fd",
     "Emuqu/Sources/Collection/PolarSDKLogBridge.swift::func PolarSDKLogBridge.noteFeatureReady(_:)": "a3c75b35b12eca4c",
-    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "75f76dc214cb3c1e"
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "c1aaede3e377ec0a"
    }
   },
   {
    "key": "func PolarManager.bleSdkFeaturesReadiness(_:ready:unavailable:)",
    "hash": "3ba328ea24d9d663",
    "does": "Sends StrapEvent.readinessSummary with the ready and unavailable feature sets (unmapped features dropped via compactMap).",
-   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift:538-542)",
+   "entry": "Polar SDK callback on the SDK's serial queue (com.emuqu.polarsdk); registered as observer in PolarManager.setupPolarApi (PolarManager.swift)",
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.strapFeature(_:)",
     "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)"
@@ -198,7 +198,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.strapFeature(_:)": "8e071fd09c6b84fd",
-    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "75f76dc214cb3c1e"
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "c1aaede3e377ec0a"
    }
   },
   {
@@ -252,7 +252,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "75f76dc214cb3c1e"
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "c1aaede3e377ec0a"
    }
   },
   {
@@ -269,14 +269,14 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "75f76dc214cb3c1e"
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.send(_:)": "c1aaede3e377ec0a"
    }
   },
   {
    "key": "func PolarManager.message(_:)",
    "hash": "2158332bf99ec8b8",
    "does": "Forwards one SDK log line to PolarSDKLogBridge.message (filtering + debug log).",
-   "entry": "PolarBleApiLogger callback from the SDK queue (api.logger = self, PolarManager.swift:542)",
+   "entry": "PolarBleApiLogger callback from the SDK queue (api.logger = self, PolarManager.swift)",
    "calls": [
     "Emuqu/Sources/Collection/PolarSDKLogBridge.swift::func PolarSDKLogBridge.message(_:)"
    ],

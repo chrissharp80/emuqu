@@ -7,12 +7,11 @@
 # what calls it, what it calls, what state it reads and writes, what each branch does. Each record
 # stores a hash of the code it describes and of what each certain callee's record said. This gate
 # fails when a unit or file has no record, a record says nothing, a record is older than its code,
-# or, where the local findings overlay (do_not_ship/codemap) exists, the open high/medium findings
-# differ from its budgets. It also counts, without
-# failing, the records to re-check: a callee now describes different behaviour than when the
-# caller was checked, or a record names a callee that no longer exists (`codemap.py status`
-# lists them). It cannot tell whether a description is right; it proves only that someone wrote
-# it after the last change to the code.
+# a record was checked against an older description of a callee and has not been re-read since
+# (a re-check line), a record names a callee that no longer exists, or, where the local findings
+# overlay (do_not_ship/codemap) exists, the open high/medium findings differ from its budgets
+# (`codemap.py status` lists every problem). It cannot tell whether a description is right; it
+# proves only that someone wrote it after the last change to the code and to what it calls.
 #
 # The inventory needs tree-sitter. `make codemap-setup` installs the pinned, hash-checked wheels
 # into .venv-codemap; CODEMAP_PYTHON points this script at that interpreter. Without tree-sitter

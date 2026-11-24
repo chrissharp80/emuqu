@@ -53,7 +53,7 @@
   {
    "key": "§ Runbook: Hotfix Deployment > 4. Run the verification checklist",
    "hash": "f976f5e2732dbcfe",
-   "does": "Claims make ci must pass (lint, budget, infoplist-guard, sendable-guard, test-coverage, with values in .ci/*.txt), the budget gate fails on new .shared or ObservableObject, a Release build command against the committed package versions (xcodebuild -onlyUsePackageVersionsFromResolvedFile ... -configuration Release build), cold-start os_signpost 'init.*' events in EmuquApp.swift. Verified: Makefile:272 ci target includes these; EmuquApp.swift:129-159 emits init.collector, init.cloudKitSyncManager etc. via signpostStart/End.",
+   "does": "Claims make ci must pass (lint, budget, infoplist-guard, sendable-guard, test-coverage, with values in .ci/*.txt), the budget gate fails on new .shared or ObservableObject, a Release build command against the committed package versions (xcodebuild -onlyUsePackageVersionsFromResolvedFile ... -configuration Release build), cold-start os_signpost 'init.*' events in EmuquApp.swift. Verified: Makefile ci target includes these; EmuquApp.swift emits init.collector, init.cloudKitSyncManager etc. via signpostStart/End.",
    "entry": null,
    "calls": [
     "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
@@ -74,7 +74,7 @@
   {
    "key": "§ Runbook: Hotfix Deployment > 5. Bump versions",
    "hash": "f9b357dfb9bfee36",
-   "does": "Claims MARKETING_VERSION is bumped manually in every configuration; CI build number is run_number.run_attempt passed as CURRENT_PROJECT_VERSION; agvtool unusable because VERSIONING_SYSTEM is not set. Verified: testflight.yml:150-159; project.pbxproj has 0 VERSIONING_SYSTEM lines.",
+   "does": "Claims MARKETING_VERSION is bumped manually in every configuration; CI build number is run_number.run_attempt passed as CURRENT_PROJECT_VERSION; agvtool unusable because VERSIONING_SYSTEM is not set. Verified: testflight.yml; project.pbxproj has 0 VERSIONING_SYSTEM lines.",
    "entry": null,
    "calls": [
     ".github/workflows/testflight.yml::step deploy/Build archive"
@@ -155,7 +155,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".githooks/pre-commit::fn fail": "29cfd9e1cadbdba1",
+    ".githooks/pre-commit::fn fail": "4ec1709ea1471bb7",
     "Makefile::target ci": "cf2e840175bcfc4b",
     "Makefile::target setup-hooks": "4bd20d645743a401"
    }

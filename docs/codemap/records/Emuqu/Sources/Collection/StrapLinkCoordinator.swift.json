@@ -3,7 +3,7 @@
  "hash": "c764e44618c3a7bb",
  "role": "The strap link state machine: applies ordered SDK events (connect, drop, readiness, power, battery, device info), waits for feature readiness, reconnects after unexpected drops with a 20-min session window, reads recording status on connect, and watches HR-feed health (resubscribe / link reset).",
  "types": [
-  "StrapLinkCoordinator: struct (@MainActor) — stateless, built on demand by PolarManager.link (PolarManager.swift:101); state lives in PolarManager and StrapLinkRuntime"
+  "StrapLinkCoordinator: struct (@MainActor) — stateless, built on demand by PolarManager.link (PolarManager.swift); state lives in PolarManager and StrapLinkRuntime"
  ],
  "state": [
   "static readinessSettleSec = 30",
@@ -40,7 +40,7 @@
    "key": "func StrapLinkCoordinator.startEventDelivery()",
    "hash": "f3ec4421e7c0ad2f",
    "does": "Starts (once) a Task that iterates the StrapEventPump stream and applies each event via manager.link.apply; captures the manager weakly so events after it is gone are dropped.",
-   "entry": "Called from PolarManager.setupPolarApi (PolarManager.swift:536) when the SDK is first initialised.",
+   "entry": "Called from PolarManager.setupPolarApi (PolarManager.swift) when the SDK is first initialised.",
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link",
@@ -220,8 +220,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarDeviceType.from(deviceName:)": "8eb680097670d3c5",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.start(generation:)": "a72fa36db125e906",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.adoptConnectedDevice(deviceId:name:deviceType:)": "a2bc43e529afa844",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.start(generation:)": "09166d599a8540ba",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.adoptConnectedDevice(deviceId:name:deviceType:)": "55698342b7bf3d91",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.clearPreviousLink()": "d5cf369d8f1d88ce",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.scheduleReadinessSettle(generation:)": "0c76e05ea22b16bf",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.startHealthWatch(generation:)": "956f20401a56d717",
@@ -274,7 +274,7 @@
   {
    "key": "func StrapLinkCoordinator.adoptConnectedDevice(deviceId:name:deviceType:)",
    "hash": "c6bdf27915619200",
-   "does": "Records the connected device on the manager (id, type, pending cleared, .connected, lastConnectedTime=now persisted), moves it to the front of known devices (persisted), and restores its battery-usage counters before any battery callback.",
+   "does": "Records the connected device on the manager (id, type, pending cleared, .connected, lastConnectedTime=now persisted), moves it to the front of known devices (persisted), and restores its battery-usage counters, and the battery-reading staleness flag computed from them, before any battery callback.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.saveLastConnectedTime()",
@@ -282,7 +282,9 @@
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.loadBatteryUsageStateIfNeeded(for:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [],
+   "reads": [
+    "ud:polar.batteryUsage.value/changedAt/hours.<deviceId> (standard)"
+   ],
    "writes": [
     "mem:PolarManager.connectedDeviceId",
     "mem:PolarManager.connectedDeviceType",
@@ -291,12 +293,15 @@
     "mem:PolarManager.lastConnectedTime",
     "ud:PolarManager.lastConnectedTime (App Group)",
     "ud:PolarManager.knownDevices (App Group)",
-    "mem:PolarManager.batteryLastReportedValue"
+    "mem:PolarManager.batteryLastReportedValue",
+    "mem:PolarManager.batteryLastChangedAt",
+    "mem:PolarManager.hoursRecordedSinceBatteryChanged",
+    "mem:PolarManager.isBatteryReadingStale"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.addKnownDevice(id:name:deviceType:)": "52f3f6eb3e73bfc7",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.loadBatteryUsageStateIfNeeded(for:)": "847d8cbe46301a57",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.loadBatteryUsageStateIfNeeded(for:)": "6e43360794ba91d1",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.saveLastConnectedTime()": "086e973f2f8bc6fc",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
@@ -345,7 +350,7 @@
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.respondToDrop(deviceId:loss:wasLinked:wasStreaming:)": "654a91314a5c4b9a",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::var StrapLinkCoordinator.runtime": "5706d991548a3cf1",
     "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapLinkRuntime.cancelLinkTasks()": "f3d594628585b563",
-    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::var StrapLinkLoss.needsUserRepair": "cb6986f110bf293f",
+    "Emuqu/Sources/Collection/StrapLinkRuntime.swift::var StrapLinkLoss.needsUserRepair": "585d5678970b31df",
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkLost()": "e470627be0861db8",
     "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()": "944276f00f2596e0"
    }
@@ -517,7 +522,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI",
-    "dyn:StrapRadio.connectToDevice → Emuqu/Sources/Collection/StrapRadio.swift:81|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.connectToDevice(_:)",
+    "dyn:StrapRadio.connectToDevice → Emuqu/Sources/Collection/StrapRadio.swift|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.connectToDevice(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -583,7 +588,7 @@
    "key": "func StrapLinkCoordinator.sessionEnded()",
    "hash": "074845b356243396",
    "does": "Cancels and clears the reconnect deadline task and fires the signal.",
-   "entry": "Called from PolarManager.stopStreamingInternal (PolarManager+Streaming.swift:47).",
+   "entry": "Called from PolarManager.stopStreamingInternal (PolarManager+Streaming.swift).",
    "calls": [
     "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.fire()"
    ],
@@ -601,7 +606,7 @@
    "key": "func StrapLinkCoordinator.noteUserDisconnect()",
    "hash": "693f7c5a36668b5e",
    "does": "Marks a user disconnect: sets userDisconnectRequested, clears reconnect target and deadline, cancels link tasks, releases the standard HR link, marks readiness lost, feedStatus waitingForStrap, clears currentHeartRate and fires the signal.",
-   "entry": "Called from StrapDiscoveryCoordinator.disconnect (:169) and cancelConnection (:191).",
+   "entry": "Called from StrapDiscoveryCoordinator.disconnect and cancelConnection.",
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapLinkRuntime.cancelLinkTasks()",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.releaseStandardHeartRate()",
@@ -787,7 +792,7 @@
    "key": "func StrapLinkCoordinator.awaitFeature(_:until:while:)",
    "hash": "d021be26853ee2fb",
    "does": "Loops until readiness gives an outcome for `feature` (ready/unavailable/unconfirmed), keepWaiting turns false or the task is cancelled (→ .timedOut), or the deadline passes (→ .timedOut); otherwise waits on the signal up to the remaining time (no timeout when deadline is nil). Spans disconnects.",
-   "entry": "Called from StrapHeartRateFeed.resolveKind, StrapRecordingCoordinator+Transfer.swift:413, awaitUsable; tests PolarConnectionLifecycleTests.",
+   "entry": "Called from StrapHeartRateFeed.resolveKind, StrapRecordingCoordinator+Transfer.swift, awaitUsable; tests PolarConnectionLifecycleTests.",
    "calls": [
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)",
     "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)",
@@ -829,7 +834,7 @@
    "key": "func StrapLinkCoordinator.awaitConnection(until:)",
    "hash": "2eecbd807e20970d",
    "does": "Waits on the signal until connectionState is .connected (true) or the deadline passes / task cancelled (false).",
-   "entry": "Called from StrapRecordingCoordinator+Transfer.swift:183.",
+   "entry": "Called from StrapRecordingCoordinator+Transfer.swift.",
    "calls": [
     "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)"
    ],
@@ -859,7 +864,7 @@
    "key": "func StrapLinkCoordinator.awaitDisconnection(until:)",
    "hash": "d12c83c5e4916bb7",
    "does": "Waits on the signal until the link is down (true) or the deadline passes / task cancelled (false).",
-   "entry": "Called from StrapRecordingCoordinator+Transfer.swift:411.",
+   "entry": "Called from StrapRecordingCoordinator+Transfer.swift.",
    "calls": [
     "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)"
    ],
@@ -888,7 +893,7 @@
    "key": "func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)",
    "hash": "dd43d5551a866a33",
    "does": "Waits until `feature` may be attempted (awaitUsable), runs `operation`; on success confirms the feature for that generation and returns; retries only 'not ready yet' errors (StrapErrorClassifier: featureNotReady, notificationNotEnabled, gattDisconnected) with 1/2/3/5 s pauses until the deadline; any other error is thrown. keepWaiting and Task cancellation are consulted inside awaitFeature while readiness has no outcome and before every retry (pauseBeforeRetrying), so a caller's Cancel or a cancelled task ends the retries with the last refusal.",
-   "entry": "Called from RRCollector+OvernightArming.swift:123 (until: nil), WorkoutRecorder+DeviceBackup.swift:56 (until: nil), StrapRecordingCoordinator+Transfer.swift:193,227,260,366, checkStatusAndStoredExercises; tests.",
+   "entry": "Called from RRCollector+OvernightArming.swift (until: nil), WorkoutRecorder+DeviceBackup.swift (until: nil), StrapRecordingCoordinator+Transfer.swift, checkStatusAndStoredExercises; tests.",
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitUsable(_:until:while:)",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.confirm(_:onGeneration:)",
@@ -913,7 +918,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapErrorClassifier.swift::func StrapErrorClassifier.isNotReadyYet(_:)": "bf8a5ae9c922782f",
+    "Emuqu/Sources/Collection/StrapErrorClassifier.swift::func StrapErrorClassifier.isNotReadyYet(_:)": "b9be10c7ff5e9044",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitUsable(_:until:while:)": "089911e485fd75dc",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.confirm(_:onGeneration:)": "4d83b1f58c8235e5",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.pauseBeforeRetrying(after:refusals:deadline:while:)": "f8685e76b577c7f3"
@@ -972,7 +977,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "ad034f12378b9f3a"
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "0cdd2abab2b6c5a5"
    }
   },
   {
@@ -1000,7 +1005,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.resubscribeDelay(afterFailures:)": "23ef8ecbfdba4b48",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.resubscribeDelay(afterFailures:)": "a86c90ecad102ded",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::var StrapLinkCoordinator.runtime": "5706d991548a3cf1",
     "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "fde0bbdf2808590a"
    }
@@ -1009,7 +1014,7 @@
    "key": "func StrapLinkCoordinator.isUsable(_:)",
    "hash": "acfac578f436102f",
    "does": "True when readiness says ready or unconfirmed for `feature` on the current link.",
-   "entry": "Called from PolarManager+Recording.swift:250,380; tests.",
+   "entry": "Called from PolarManager+Recording.swift; tests.",
    "calls": [
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)"
    ],
@@ -1037,7 +1042,7 @@
    "key": "func StrapLinkCoordinator.requireUsable(_:)",
    "hash": "377ba053ca3e8d07",
    "does": "Throws featureNotReady unless readiness is ready or unconfirmed for `feature` now.",
-   "entry": "Called from PolarManager+Recording.swift:87,142,342,423 and PolarManager+VeritySense.swift:22.",
+   "entry": "Called from PolarManager+Recording.swift and PolarManager+VeritySense.swift.",
    "calls": [
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.waitOutcome(for:)"
    ],
@@ -1154,7 +1159,7 @@
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.checkForStoredExercises(deviceId:)": "df371c273582dd17",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.checkRecordingStatus(deviceId:)": "964cd3c9e117b6f1",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "5a60bfd2b75ae207"
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "c7864efc7e1ea4be"
    }
   },
   {
@@ -1183,7 +1188,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.evaluateFeedHealth(now:)": "00c466add17d99b9",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.evaluateFeedHealth(now:)": "e3533fe4895e4d37",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.healthCheckDue()": "9954de995987a766",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::var StrapLinkCoordinator.runtime": "5706d991548a3cf1"
    }
@@ -1213,7 +1218,7 @@
    "key": "func StrapLinkCoordinator.evaluateFeedHealth(now:)",
    "hash": "de071f92bfada951",
    "does": "Decides feed health from a snapshot; updates feedStatus if it changed; on resubscribe stamps lastResubscribeAt and restarts the feed; on resetLink resets the link.",
-   "entry": "Called every 5 s by the health watch task; test PolarConnectionLifecycleTests.swift:399.",
+   "entry": "Called every 5 s by the health watch task; test PolarConnectionLifecycleTests.swift.",
    "calls": [
     "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.feedHealthInputs(now:)",
@@ -1253,8 +1258,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "66ef119559727cfe",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "f8dec8c6901491d8",
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.decide(_:)": "a0213cc00dd50596",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.restart()": "3a1d8079f5adfa93",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.feedHealthInputs(now:)": "c093c305639b26d6",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.resetLink(now:)": "faf77f07e27eef23",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::var StrapLinkCoordinator.feed": "96cbb96c570e364b",
@@ -1299,7 +1304,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.beginLinkReset()": "dc7f2d9a27ed2ae9",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.beginLinkReset()": "ad81b1cfe395ece7",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::var StrapLinkCoordinator.runtime": "5706d991548a3cf1",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -1308,11 +1313,11 @@
    "key": "func StrapLinkCoordinator.beginLinkReset()",
    "hash": "08768ba7ee9bf10e",
    "does": "If linked with an SDK handle and device id: sets linkResetInProgress, releases the standard HR link and asks the SDK to disconnect; returns true; on refusal clears the flag, logs and returns false; false without a link or SDK.",
-   "entry": "Called from resetLink and StrapRecordingCoordinator+Transfer.swift:410.",
+   "entry": "Called from resetLink and StrapRecordingCoordinator+Transfer.swift.",
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI",
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.releaseStandardHeartRate()",
-    "dyn:StrapRadio.disconnectFromDevice → Emuqu/Sources/Collection/StrapRadio.swift:82|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.disconnectFromDevice(_:)",
+    "dyn:StrapRadio.disconnectFromDevice → Emuqu/Sources/Collection/StrapRadio.swift|EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.disconnectFromDevice(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -1346,7 +1351,7 @@
    "key": "func StrapLinkCoordinator.noteSample(at:)",
    "hash": "b38236cdd922455c",
    "does": "Records lastSampleAt; if feedStatus was not live sets it live, and when it was settingUp logs seconds from link to first sample.",
-   "entry": "Called from PolarManager.ingestHeartRate (PolarManager+Streaming.swift:106) and ingestPpi (:122).",
+   "entry": "Called from PolarManager.ingestHeartRate (PolarManager+Streaming.swift) and ingestPpi.",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
