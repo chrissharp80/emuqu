@@ -417,13 +417,13 @@ struct ReportsListView: View {
     /// Refresh + capture training load inside the task so the
     /// report reflects archive writes since the last cache refresh (plain
     /// `live()` could freeze a stale TSB/ACWR). See
-    /// `TrainingLoadRegistry.liveRefreshed()`. The PDF uses that live load
+    /// `TrainingLoadRegistry.liveRefreshed(from:)`. The PDF uses that live load
     /// only for a session from today; an older one shows its frozen load.
     /// Nonisolated, with the render steps below, so the polyline decode, the
     /// drawing and the file move run off the main actor.
     nonisolated private static func renderReport(_ lightweightInputs: GenerationInputs) async throws {
         let inputs = await Task.detached { withFullSessions(lightweightInputs) }.value
-        let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed()
+        let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed(from: AppDependencies.current.analysis.trainingMetricsCache)
         let track: [CLLocation] = inputs.polyline.map {
             GPXExporter.decode(polyline: $0, startDate: inputs.startDate, duration: inputs.duration)
         } ?? []

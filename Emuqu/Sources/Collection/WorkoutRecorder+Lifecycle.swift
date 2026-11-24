@@ -491,7 +491,7 @@ extension WorkoutFinalizer {
         }
         let healthKit = recorder.core.healthKit
         guard let load = await Self.runWithTimeout(seconds: 1.5, {
-            await healthKit.calculateTrainingLoad(forMorningReading: false)
+            await healthKit.training.calculateTrainingLoad(forMorningReading: false)
         }) else {
             debugLog("[WorkoutRecorder.finalize] cache cold AND cold calculateTrainingLoad timed out at 1.5s — saving without trainingSnapshot")
             return nil
@@ -617,7 +617,7 @@ extension WorkoutFinalizer {
     ) async -> Result<[(date: Date, hr: Double)], any Error>? {
         await runWithTimeout(seconds: 3.0) { () async -> Result<[(date: Date, hr: Double)], any Error> in
             do {
-                return .success(try await healthKit.fetchHeartRateSamples(from: sessionStart, to: sessionEnd))
+                return .success(try await healthKit.heartRate.fetchHeartRateSamples(from: sessionStart, to: sessionEnd))
             } catch {
                 return .failure(error)
             }

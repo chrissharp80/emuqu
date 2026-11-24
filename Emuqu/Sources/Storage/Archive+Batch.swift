@@ -139,7 +139,7 @@ extension ArchiveStore {
     private func writeBatchSession(_ session: HRVSession) throws -> SessionArchiveEntry {
         let fileName = "\(session.id.uuidString).json"
         let filePath = archive.archiveDirectory.appendingPathComponent(fileName)
-        let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.indexEncoder)
+        let result = try SessionArchive.SessionFileCodec.encodeForDisk(session, encoder: SessionArchive.indexEncoder, encryption: archive.encryption)
         try writeArchiveBytes(result.bytes, to: filePath, format: result.format, sessionID: session.id)
         return SessionArchiveEntry.make(from: session, hash: result.hash, filePath: fileName)
     }

@@ -107,14 +107,14 @@ struct LoadTrajectoryLoader: View {
     private func healthKitOnlyRows(on day: Date) async -> [LoadTrajectoryView.RecentWorkout] {
         let calendar = Calendar.current
         guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: day) else { return [] }
-        let healthKit = await collector.healthKit.fetchWorkoutsExtended(days: 1, relativeTo: dayEnd)
+        let healthKit = await collector.healthKit.training.fetchWorkoutsExtended(days: 1, relativeTo: dayEnd)
             .filter { calendar.isDate($0.date, inSameDayAs: day) }
         guard !healthKit.isEmpty else { return [] }
         let archive = collector.archive
         let archived = await Task.detached(priority: .userInitiated) {
             HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: 1, relativeTo: dayEnd)
         }.value
-        let merged = HealthKitManager.mergeArchiveAuthoritative(archive: archived, healthKit: healthKit)
+        let merged = TrainingHealthQueries.mergeArchiveAuthoritative(archive: archived, healthKit: healthKit)
         return merged
             .filter { kept in healthKit.contains { $0.date == kept.date && $0.workoutType == kept.workoutType } }
             .map(Self.healthKitRow)

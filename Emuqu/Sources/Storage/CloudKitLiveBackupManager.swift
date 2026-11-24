@@ -29,6 +29,8 @@ final class CloudKitLiveBackupManager {
     private var schemaUnavailable = false
 
     private let settingsManager: SettingsManager
+    /// Opens live backups an older build sealed with the archive key.
+    private let archiveKey: EncryptionManager
     private let ensureZone: () async throws -> Void
     /// Whether the signed-in iCloud account is the one sync is enabled for
     /// (`CloudAccountGuard.confirmAccount`). Nothing is uploaded to, or read
@@ -51,10 +53,12 @@ final class CloudKitLiveBackupManager {
 
     init(
         settingsManager: SettingsManager,
+        archiveKey: EncryptionManager,
         ensureZone: @escaping () async throws -> Void,
         confirmAccount: @escaping () async -> Bool
     ) {
         self.settingsManager = settingsManager
+        self.archiveKey = archiveKey
         self.ensureZone = ensureZone
         self.confirmAccount = confirmAccount
     }
@@ -232,7 +236,7 @@ final class CloudKitLiveBackupManager {
             try await ensureZone()
             let newest = try await newestBackupIDs()
             let fetched = try await privateDB.records(for: newest)
-            let backups = newest.compactMap { fetched[$0] }.compactMap { Self.liveBackupSummary(from: $0) }
+            let backups = newest.compactMap { fetched[$0] }.compactMap { Self.liveBackupSummary(from: $0, archiveKey: archiveKey) }
             if !backups.isEmpty {
                 debugLog("[CloudKit] Found \(backups.count) live backup(s) in iCloud")
             }
@@ -269,7 +273,7 @@ final class CloudKitLiveBackupManager {
     /// trace; one that cannot be read is logged at error level. Either is
     /// still left out of the recovery list: there are no beats to recover
     /// from it.
-    private static func liveBackupSummary(from result: Result<CKRecord, Error>) -> LiveBackupSummary? {
+    private static func liveBackupSummary(from result: Result<CKRecord, Error>, archiveKey: EncryptionManager) -> LiveBackupSummary? {
         guard let record = fetchedRecord(result) else { return nil }
         guard let sessionIdStr = record["sessionId"] as? String,
               let sessionId = UUID(uuidString: sessionIdStr),
@@ -280,7 +284,7 @@ final class CloudKitLiveBackupManager {
             return nil
         }
         do {
-            let points = try decodePoints(at: fileURL)
+            let points = try Self.decodePoints(at: fileURL, archiveKey: archiveKey)
             guard !points.isEmpty else { return nil }
             return LiveBackupSummary(sessionId: sessionId, beatCount: points.count, captureDate: captureDate, points: points)
         } catch {
@@ -304,9 +308,9 @@ final class CloudKitLiveBackupManager {
     ///
     /// The exact inverse of `compressedPoints`, in that order. The live-backup
     /// defect in `CloudPayloadCodec`'s header was these two halves disagreeing.
-    private static func decodePoints(at fileURL: URL) throws -> [RRPoint] {
+    private static func decodePoints(at fileURL: URL, archiveKey: EncryptionManager) throws -> [RRPoint] {
         let raw = try Data(contentsOf: fileURL)
-        let jsonData = try DataCompression.decompress(CloudPayloadCodec.decode(raw))
+        let jsonData = try DataCompression.decompress(CloudPayloadCodec.decode(raw, archiveKey: archiveKey))
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode([RRPoint].self, from: jsonData)

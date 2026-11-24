@@ -129,7 +129,7 @@ extension MorningReanalysisControls {
         let startedAt = Date()
         let recordingEnd = session.endDate ?? session.startDate.addingTimeInterval(session.duration ?? 28800)
         do {
-            let stats = try await vm.healthKit.calculateHRStats(from: session.startDate, to: recordingEnd)
+            let stats = try await vm.healthKit.heartRate.calculateHRStats(from: session.startDate, to: recordingEnd)
             debugLog("[MorningResultsView] HealthKit HR fetched in \(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s: nadir=\(stats?.min ?? 0), max=\(stats?.max ?? 0)")
             return stats
         } catch {
@@ -177,7 +177,7 @@ extension MorningReanalysisControls {
             compositeScore: vm.compositeRecoveryScore,
             breakdown: MainActor.run { vm.recoveryBreakdown() },
             baselineStats: vm.baselineStats,
-            liveLoadSnapshot: TrainingLoadRegistry.liveRefreshed(),
+            liveLoadSnapshot: TrainingLoadRegistry.liveRefreshed(from: AppDependencies.current.analysis.trainingMetricsCache),
             recentSessions: recentSessions
         )
     }

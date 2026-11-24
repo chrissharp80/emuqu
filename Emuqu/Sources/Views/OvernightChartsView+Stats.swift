@@ -685,7 +685,7 @@ extension OvernightChartsView {
         let winEnd = session.startDate.addingTimeInterval(Double(win.end) / 1000.0)
         let samples: [(date: Date, hr: Double)]
         do {
-            samples = try await AppDependencies.current.collection.healthKitManager.fetchHeartRateSamples(from: winStart, to: winEnd)
+            samples = try await AppDependencies.current.collection.healthKitManager.heartRate.fetchHeartRateSamples(from: winStart, to: winEnd)
         } catch {
             // Logged, not shown: the chart degrades to the Polar data alone.
             debugLog("[ChartGate] seg[\(segIdx)] HK HR fetch failed: \(error)", level: .warning)

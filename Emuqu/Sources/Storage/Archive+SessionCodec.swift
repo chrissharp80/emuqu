@@ -4,7 +4,7 @@ import Foundation
 // The on-disk session file codec: encoding and decoding one session file and
 // its integrity hash, depending on nothing else in the archive beyond the
 // shared coders. Encryption is not the codec's own: it uses the app's
-// `EncryptionManager` (`AppDependencies.current.storage.encryptionManager`)
+// `EncryptionManager` (the archive's `encryption`)
 // and reports when that could not encrypt.
 
 extension SessionArchive {
@@ -50,7 +50,8 @@ extension SessionArchive {
 
         static func encodeForDisk(
             _ session: HRVSession,
-            encoder: JSONEncoder
+            encoder: JSONEncoder,
+            encryption: EncryptionManager
         ) throws -> (bytes: Data, hash: String, format: DiskFormat) {
             // Drain in an autoreleasepool. This is the single
             // biggest transient in the overnight-stop path: encoding an
@@ -63,7 +64,7 @@ extension SessionArchive {
             // here frees it immediately. No behavior change — same bytes, same hash.
             try autoreleasepool {
                 let plaintext = try encoder.encode(session)
-                if let encrypted = encryptOrReportFailure(plaintext) {
+                if let encrypted = encryptOrReportFailure(plaintext, with: encryption) {
                     return (encrypted, sha256Hex(encrypted), .encrypted)
                 }
                 return (plaintext, sha256Hex(plaintext), .plaintextPendingEncryption)
@@ -103,8 +104,7 @@ extension SessionArchive {
 /// An unavailable key returns nil quietly (the caller records the session for
 /// re-encryption, which logs it); a seal that throws with the key present is
 /// logged here with its error, so the two causes stay apart in the logs.
-private func encryptOrReportFailure(_ plaintext: Data) -> Data? {
-    let manager = AppDependencies.current.storage.encryptionManager
+private func encryptOrReportFailure(_ plaintext: Data, with manager: EncryptionManager) -> Data? {
     guard manager.isAvailable else { return nil }
     do {
         return try manager.encrypt(plaintext)

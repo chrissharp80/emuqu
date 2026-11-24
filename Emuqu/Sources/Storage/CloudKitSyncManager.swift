@@ -13,8 +13,6 @@ final class CloudKitSyncManager {
 
     // MARK: - Singleton
 
-    static let shared = CloudKitSyncManager(syncStateURL: resolveSyncStateURL())
-
     // MARK: - Published State
 
     private(set) var syncState: SyncState = .idle
@@ -194,6 +192,7 @@ final class CloudKitSyncManager {
     }
     @ObservationIgnored private(set) lazy var liveBackup = CloudKitLiveBackupManager(
         settingsManager: settingsManager,
+        archiveKey: archive.encryption,
         ensureZone: { [weak self] in try await self?.ensureZoneExists() ?? () },
         confirmAccount: { [weak self] in await self?.accountGuard.confirmAccount() == .confirmed }
     )
@@ -206,6 +205,9 @@ final class CloudKitSyncManager {
 
     let settingsManager: SettingsManager
     let archive: SessionArchive
+    /// The settings record's sync, whose zone and stored copy follow this
+    /// manager's resets and scrubs.
+    let settingsSync: CloudKitSettingsSync
 
     /// Serializes concurrent sync operations (upload, delete, full sync) so
     /// they can't interleave at await points and race on `state` mutations.
@@ -245,12 +247,14 @@ final class CloudKitSyncManager {
     /// settings and sync-state file, so it neither reads nor rewrites the
     /// app's sync bookkeeping.
     init(
-        settingsManager: SettingsManager = AppDependencies.current.app.settingsManager,
-        archive: SessionArchive = AppDependencies.current.storage.sessionArchive,
+        settingsManager: SettingsManager,
+        archive: SessionArchive,
+        settingsSync: CloudKitSettingsSync,
         syncStateURL: URL
     ) {
         self.settingsManager = settingsManager
         self.archive = archive
+        self.settingsSync = settingsSync
         // Cold-start: keep init lightweight — only
         // construct the URL + empty state container. The disk read of
         // sync_state.json (potentially KB of uploaded-session UUIDs) is
@@ -305,7 +309,7 @@ final class CloudKitSyncManager {
         state.resetAll()
         zoneCreated = false
         missingFromLastListing = []
-        AppDependencies.current.storage.cloudKitSettingsSync.forgetZone()
+        settingsSync.forgetZone()
         lastSyncDate = nil
         syncState = .idle
     }
@@ -486,7 +490,7 @@ final class CloudKitSyncManager {
             await healthScrub.scrubInPlace()
         }
         guard confirmed else { return }
-        await AppDependencies.current.storage.cloudKitSettingsSync.scrubStoredRecord(keepingOutHealthFilledFrom: settings)
+        await settingsSync.scrubStoredRecord(keepingOutHealthFilledFrom: settings)
     }
 
     /// Whether an error means the zone is already gone — used by tests and by
@@ -573,7 +577,7 @@ final class CloudKitSyncManager {
         await uploadSession(session)
     }
 
-    private static func resolveSyncStateURL() -> URL {
+    static func resolveSyncStateURL() -> URL {
         let fm = FileManager.default
         if let containerURL = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) {
             return containerURL.appendingPathComponent(AppConfig.archiveDirectoryName).appendingPathComponent("sync_state.json")

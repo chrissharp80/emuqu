@@ -27,13 +27,13 @@ final class WorkoutDeduplicationTests: XCTestCase {
     // MARK: - Tests
 
     func testEmptyArrayReturnsEmpty() {
-        let result = HealthKitManager.deduplicateWorkouts([])
+        let result = TrainingHealthQueries.deduplicateWorkouts([])
         XCTAssertEqual(result.count, 0)
     }
 
     func testSingleWorkoutReturnsSame() {
         let w = makeWorkout(minutesFromEpoch: 100)
-        let result = HealthKitManager.deduplicateWorkouts([w])
+        let result = TrainingHealthQueries.deduplicateWorkouts([w])
         XCTAssertEqual(result.count, 1)
     }
 
@@ -43,7 +43,7 @@ final class WorkoutDeduplicationTests: XCTestCase {
             makeWorkout(minutesFromEpoch: 200, type: .cycling),
             makeWorkout(minutesFromEpoch: 300, type: .swimming)
         ]
-        let result = HealthKitManager.deduplicateWorkouts(workouts)
+        let result = TrainingHealthQueries.deduplicateWorkouts(workouts)
         XCTAssertEqual(result.count, 3)
     }
 
@@ -52,14 +52,14 @@ final class WorkoutDeduplicationTests: XCTestCase {
             makeWorkout(minutesFromEpoch: 100, type: .running, calories: 200),
             makeWorkout(minutesFromEpoch: 102, type: .running, calories: 210)
         ]
-        let result = HealthKitManager.deduplicateWorkouts(workouts)
+        let result = TrainingHealthQueries.deduplicateWorkouts(workouts)
         XCTAssertEqual(result.count, 1)
     }
 
     func testKeepsWorkoutWithHRData() {
         let noHR = makeWorkout(minutesFromEpoch: 100, type: .running, calories: 200, avgHR: nil, maxHR: nil)
         let withHR = makeWorkout(minutesFromEpoch: 102, type: .running, calories: 180, avgHR: 145, maxHR: 172)
-        let result = HealthKitManager.deduplicateWorkouts([noHR, withHR])
+        let result = TrainingHealthQueries.deduplicateWorkouts([noHR, withHR])
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result[0].averageHR, 145)
     }
@@ -70,7 +70,7 @@ final class WorkoutDeduplicationTests: XCTestCase {
     func testOverlappingDifferentTypesCollapse() {
         let walk = makeWorkout(minutesFromEpoch: 100, type: .walking, duration: 35, avgHR: 115, maxHR: 140)
         let run = makeWorkout(minutesFromEpoch: 100, type: .running, duration: 35, avgHR: nil, maxHR: nil)
-        let result = HealthKitManager.deduplicateWorkouts([walk, run])
+        let result = TrainingHealthQueries.deduplicateWorkouts([walk, run])
         XCTAssertEqual(result.count, 1)
         // The richer entry survives.
         XCTAssertEqual(result[0].averageHR, 115)
@@ -81,7 +81,7 @@ final class WorkoutDeduplicationTests: XCTestCase {
     func testDifferentTypesNoOverlapStaySeparate() {
         let ride = makeWorkout(minutesFromEpoch: 100, type: .cycling, duration: 30)
         let run = makeWorkout(minutesFromEpoch: 135, type: .running, duration: 30) // 5 min gap after ride end
-        let result = HealthKitManager.deduplicateWorkouts([ride, run])
+        let result = TrainingHealthQueries.deduplicateWorkouts([ride, run])
         XCTAssertEqual(result.count, 2)
     }
 
@@ -93,14 +93,14 @@ final class WorkoutDeduplicationTests: XCTestCase {
         // genuinely distinct back-to-back sessions and must both survive.
         let first = makeWorkout(minutesFromEpoch: 100, type: .running)
         let second = makeWorkout(minutesFromEpoch: 120, type: .running)
-        let result = HealthKitManager.deduplicateWorkouts([first, second])
+        let result = TrainingHealthQueries.deduplicateWorkouts([first, second])
         XCTAssertEqual(result.count, 2)
     }
 
     func testExactly5MinBoundaryDeduped() {
         let first = makeWorkout(minutesFromEpoch: 100, type: .running, calories: 200)
         let second = makeWorkout(minutesFromEpoch: 105, type: .running, calories: 210) // exactly 5 min = 300s
-        let result = HealthKitManager.deduplicateWorkouts([first, second])
+        let result = TrainingHealthQueries.deduplicateWorkouts([first, second])
         XCTAssertEqual(result.count, 1)
     }
 
@@ -110,7 +110,7 @@ final class WorkoutDeduplicationTests: XCTestCase {
             makeWorkout(minutesFromEpoch: 101, type: .running, calories: 190, avgHR: 140, maxHR: nil),
             makeWorkout(minutesFromEpoch: 103, type: .running, calories: 210, avgHR: 142, maxHR: 175)
         ]
-        let result = HealthKitManager.deduplicateWorkouts(workouts)
+        let result = TrainingHealthQueries.deduplicateWorkouts(workouts)
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result[0].maxHR, 175) // richest data wins
     }
@@ -123,7 +123,7 @@ final class WorkoutDeduplicationTests: XCTestCase {
             makeWorkout(minutesFromEpoch: 500, type: .swimming, calories: 150),
             makeWorkout(minutesFromEpoch: 501, type: .swimming, calories: 160)
         ]
-        let result = HealthKitManager.deduplicateWorkouts(workouts)
+        let result = TrainingHealthQueries.deduplicateWorkouts(workouts)
         XCTAssertEqual(result.count, 3)
     }
 
@@ -132,7 +132,7 @@ final class WorkoutDeduplicationTests: XCTestCase {
             makeWorkout(minutesFromEpoch: 102, type: .running, calories: 210, avgHR: 140, maxHR: 170),
             makeWorkout(minutesFromEpoch: 100, type: .running, calories: 200, avgHR: nil, maxHR: nil)
         ]
-        let result = HealthKitManager.deduplicateWorkouts(workouts)
+        let result = TrainingHealthQueries.deduplicateWorkouts(workouts)
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result[0].averageHR, 140) // richer one kept
     }

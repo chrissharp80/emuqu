@@ -602,7 +602,7 @@ struct WearablesSettingsPage: View {
 
     private static func sleepCleanupMessage(healthKit: HealthKitManager) async -> String {
         do {
-            let count = try await healthKit.deleteAllAppWrittenSleepSamples()
+            let count = try await healthKit.writes.deleteAllAppWrittenSleepSamples()
             return count == 0
                 ? String(localized: "No Emuqu sleep samples found in Apple Health. Nothing to clean up.", bundle: LanguageManager.appBundle)
                 : String(localized: "Removed \(count) sleep samples written by Emuqu.", bundle: LanguageManager.appBundle)

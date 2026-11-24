@@ -32,10 +32,28 @@ final class HealthKitManager: HealthKitServiceProtocol {
     // shared HealthKit store and settings provider.
     let healthStore = HKHealthStore()
 
-    /// Heart-rate reads, stats and exports — and the bounded-query plumbing the
-    /// other query classes reach through the forwarders below.
+    // The queries by domain. Each is a value over this manager's store and
+    // settings, built on each access; callers name the domain they read.
+
+    /// Heart-rate reads, stats and exports, and the bounded-query plumbing the
+    /// other domains run their queries through.
     var heartRate: HeartRateHealthQueries {
         HeartRateHealthQueries(manager: self)
+    }
+
+    /// Sleep reads, naps and the HR-estimated sleep fallback.
+    var sleepQueries: SleepHealthQueries {
+        SleepHealthQueries(manager: self)
+    }
+
+    /// Recovery vitals and daily activity.
+    var vitals: VitalsHealthQueries {
+        VitalsHealthQueries(manager: self)
+    }
+
+    /// Workouts, routes and training load.
+    var training: TrainingHealthQueries {
+        TrainingHealthQueries(manager: self)
     }
 
     /// Exports, deletes and observer queries.
@@ -209,7 +227,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     private func sampleExists(type: HKSampleType?, since: Date) async -> Bool {
         guard let type else { return false }
         let predicate = Self.otherSourcesSamples(from: since, to: nil)
-        return await runBoundedQuery(timeout: Self.vitalsQueryTimeoutSec) { resolve in
+        return await heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(sampleType: type, predicate: predicate, limit: 1, sortDescriptors: nil) { _, results, _ in
                 resolve(!(results?.isEmpty ?? true))
             }
@@ -812,7 +830,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// Takes dates rather than a built `NSPredicate` so nothing non-Sendable
     /// crosses into the child task; the predicate is built where it is used.
     private func sampleCount(for type: HKSampleType, from start: Date, to end: Date) async -> Int {
-        await runBoundedQuery(timeout: Self.vitalsQueryTimeoutSec) { resolve in
+        await heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
                 predicate: Self.otherSourcesSamples(from: start, to: end),

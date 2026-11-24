@@ -62,6 +62,8 @@ final class RawRRBackup: @unchecked Sendable {
     let indexLock = NSLock()
     /// Writes one-shot files sealed or queued, and repairs queued backups.
     let sealer: RawBackupSealer
+    /// The key the backups are sealed with.
+    let encryption: EncryptionManager
     /// The unlock and activation observers (`observeUnlock`).
     private let unlockObservers = NotificationTokens()
     /// Where `observeUnlock` listens: `.default` in the app.
@@ -230,25 +232,16 @@ final class RawRRBackup: @unchecked Sendable {
 
     // MARK: - Initialization
 
-    /// The app's store, in the shared container (`resolveBackupDirectory`).
-    convenience init() {
-        self.init(directory: Self.resolveBackupDirectory())
-    }
-
-    /// A store in `directory`. The app uses the shared container; tests pass
-    /// a folder of their own, so backups other tests left behind are never
-    /// listed in theirs.
-    convenience init(directory: URL) {
-        self.init(directory: directory, notificationCenter: .default)
-    }
-
-    /// A store in `directory` that observes unlock and activation on
-    /// `notificationCenter`.
-    init(directory: URL, notificationCenter: NotificationCenter) {
+    /// A store in `directory`, sealed with `encryption`, that observes unlock
+    /// and activation on `notificationCenter`. The app's store is in the
+    /// shared container (`resolveBackupDirectory`); tests pass a folder of
+    /// their own, so backups other tests left behind are never listed in theirs.
+    init(directory: URL, notificationCenter: NotificationCenter, encryption: EncryptionManager) {
         backupDirectory = directory
         self.notificationCenter = notificationCenter
+        self.encryption = encryption
         indexFile = backupDirectory.appendingPathComponent("backup_index.json")
-        sealer = RawBackupSealer(directory: directory)
+        sealer = RawBackupSealer(directory: directory, encryption: encryption)
 
         createBackupDirectoryIfNeeded()
         loadIndex()
@@ -288,7 +281,7 @@ final class RawRRBackup: @unchecked Sendable {
     /// `AppConfig.sharedContainerURL()`'s rule, which logs a fallback. The
     /// running store and the lockless termination forensics both use this, so
     /// they always look in the same place.
-    private static func resolveBackupDirectory() -> URL {
+    static func resolveBackupDirectory() -> URL {
         AppConfig.sharedContainerURL().appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)
     }
 
@@ -576,7 +569,7 @@ final class RawRRBackup: @unchecked Sendable {
         // Legacy single-file format
         guard let fileName = indexEntry.fileName else { return nil }
         let entry = try Self.decodeLegacyBackup(
-            at: backupDirectory.appendingPathComponent(fileName)
+            at: backupDirectory.appendingPathComponent(fileName), encryption: encryption
         )
         guard entry.hash == indexEntry.hash else {
             throw BackupError.hashMismatch
@@ -587,11 +580,11 @@ final class RawRRBackup: @unchecked Sendable {
     /// Detect encrypted format via the same
     /// 0x46 0x52 magic prefix Archive.swift uses. Legacy plaintext
     /// backups still decode unchanged.
-    static func decodeLegacyBackup(at filePath: URL) throws -> BackupEntry {
+    static func decodeLegacyBackup(at filePath: URL, encryption: EncryptionManager) throws -> BackupEntry {
         let rawBytes = try Data(contentsOf: filePath)
         let plaintext: Data
         if rawBytes.count >= 2, rawBytes[0] == 0x46, rawBytes[1] == 0x52 {
-            plaintext = try AppDependencies.current.storage.encryptionManager.decrypt(rawBytes)
+            plaintext = try encryption.decrypt(rawBytes)
         } else {
             plaintext = rawBytes
         }
@@ -745,7 +738,7 @@ extension RawRRBackup: SealableBackupStore {
             name == existing?.fileName || fileManager.fileExists(atPath: backupDirectory.appendingPathComponent(name).path)
         }
         let url = backupDirectory.appendingPathComponent(fileName)
-        try RawBackupSealer.writeEntry(entry, to: url, sessionId: entry.id)
+        try sealer.writeEntry(entry, to: url, sessionId: entry.id)
         do {
             try reindex(sessionId: entry.id, entry: entry, fileName: fileName, beatCount: entry.points.count, replacing: existing)
         } catch {

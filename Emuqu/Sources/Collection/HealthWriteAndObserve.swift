@@ -37,7 +37,7 @@ struct HealthWriteAndObserve {
         let removals: [(String, @MainActor () async throws -> Void)] = [
             ("HRV", { try await removeExportedHRV(sessionId: sessionId, from: start, to: end) }),
             ("heart rate", { try await manager.heartRate.removeExportedHeartRate(sessionId: sessionId, from: start, to: end) }),
-            ("resting heart rate", { try await manager.removeExportedRestingHeartRate(at: end, sessionId: sessionId) }),
+            ("resting heart rate", { try await manager.heartRate.removeExportedRestingHeartRate(at: end, sessionId: sessionId) }),
             ("sleep", { try await removeExportedSleep(sessionId: sessionId) }),
             ("workout", { try await HealthKitWorkoutExport.removeExports(sessionId: sessionId, startDate: start, healthKit: manager) })
         ]
@@ -122,11 +122,11 @@ final class HealthKitSampleStore: HealthSampleStore {
 
     /// The bounded, fail-closed read both lookups run.
     private func ownSamples(of type: HKSampleType, matching predicate: NSPredicate, timeout: TimeInterval, label: String) async throws -> [HKSample] {
-        try await requireManager().runBoundedThrowingQuery(
+        try await requireManager().heartRate.runBoundedThrowingQuery(
             timeout: timeout,
             makeQuery: { resolve in
                 HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, results, error in
-                    resolve(HealthKitManager.sampleResult(results, error))
+                    resolve(HeartRateHealthQueries.sampleResult(results, error))
                 }
             },
             onTimeout: { .failure(HealthKitManager.HealthKitError.queryTimedOut(label)) }

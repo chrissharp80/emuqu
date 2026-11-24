@@ -169,8 +169,8 @@ extension OvernightStreamingCoordinator {
     /// SleepDetail card stays empty for "most nights" until the next
     /// launch happens to coincide with the Watch having synced.
     private func startOvernightHealthKitObservers() {
-        collector.healthKit.startObservingSleepData()
-        collector.healthKit.startObservingVitalsData()
+        collector.healthKit.writes.startObservingSleepData()
+        collector.healthKit.vitals.startObservingVitalsData()
     }
 
     private func logOvernightStreamingStart(session: HRVSession, sessionType: SessionType) {

@@ -420,7 +420,7 @@ extension DeviceRecordingSession {
         // activity today. The dashboard uses forMorningReading: false (live, includes
         // today) so ATL visibly updates throughout the day as workouts sync.
         // History keeps the frozen morning value permanently.
-        collector.cachedTrainingLoad = await collector.healthKit.calculateTrainingLoad(forMorningReading: true)
+        collector.cachedTrainingLoad = await collector.healthKit.training.calculateTrainingLoad(forMorningReading: true)
         if let load = collector.cachedTrainingLoad {
             debugLog("[RRCollector] Training load: weeklyScore=\(String(format: "%.1f", load.weeklyLoadScore)), daysSinceHard=\(load.daysSinceHardWorkout ?? -1)")
         }

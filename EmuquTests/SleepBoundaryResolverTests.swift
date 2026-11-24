@@ -289,7 +289,7 @@ final class SleepBoundaryResolverTests: XCTestCase {
             t += 1090
         }
 
-        let result = HealthKitManager.estimateSleepFromHR(rrPoints: points, recordingStart: recordingStart)
+        let result = SleepHealthQueries.estimateSleepFromHR(rrPoints: points, recordingStart: recordingStart)
 
         let sleepStart = try XCTUnwrap(result?.sleepStart, "Should detect sleep for a fast sleeper")
         // Onset should be near the beginning, not hours later
@@ -315,7 +315,7 @@ final class SleepBoundaryResolverTests: XCTestCase {
             t += 1090
         }
 
-        let result = HealthKitManager.estimateSleepFromHR(rrPoints: points, recordingStart: recordingStart)
+        let result = SleepHealthQueries.estimateSleepFromHR(rrPoints: points, recordingStart: recordingStart)
 
         // The first sleep window is 32.5 min in, past the 20-min onset
         // ceiling: onset is undetermined, so sleep starts at the recording

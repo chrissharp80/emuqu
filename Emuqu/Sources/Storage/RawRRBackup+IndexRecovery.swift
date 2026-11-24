@@ -93,7 +93,7 @@ extension RawRRBackup {
     private func recoveredEntry(fromOneShotNamed name: String) -> BackupIndex? {
         guard OneShotBackupName.parse(name) != nil else { return nil }
         let url = backupDirectory.appendingPathComponent(name)
-        guard let entry = attempt("RawRRBackup.decodeOneShot", { try Self.decodeLegacyBackup(at: url) }) else { return nil }
+        guard let entry = attempt("RawRRBackup.decodeOneShot", { try Self.decodeLegacyBackup(at: url, encryption: encryption) }) else { return nil }
         return BackupIndex(
             id: entry.id, captureDate: entry.captureDate, fileName: name, beatCount: entry.points.count,
             hash: entry.hash, archived: false, lastBackupTime: nil, backedUpCount: nil
@@ -181,12 +181,12 @@ extension OneShotBackupName {
     /// write time or beat count is unknown (a row rebuilt from a header),
     /// whose uncounted points file `backup()` would replace. One decoded
     /// candidate is held at a time beside the fullest so far.
-    static func fullerUnindexedBackup(than entry: RawRRBackup.BackupIndex, in directory: URL) throws -> RawRRBackup.BackupEntry? {
+    static func fullerUnindexedBackup(than entry: RawRRBackup.BackupIndex, in directory: URL, encryption: EncryptionManager) throws -> RawRRBackup.BackupEntry? {
         let indexedBeats = entry.backedUpCount ?? (entry.fileName != nil ? entry.beatCount : nil)
         guard indexedMs(entry) > 0, let indexedBeats else { return nil }
         var fullest: RawRRBackup.BackupEntry?
         for url in try files(of: entry.id, in: directory) where url.lastPathComponent != entry.fileName {
-            guard let found = attempt("RawRRBackup.readUnindexedFile", { try RawRRBackup.decodeLegacyBackup(at: url) }),
+            guard let found = attempt("RawRRBackup.readUnindexedFile", { try RawRRBackup.decodeLegacyBackup(at: url, encryption: encryption) }),
                   found.id == entry.id, found.points.count > (fullest?.points.count ?? indexedBeats) else { continue }
             fullest = found
         }
@@ -199,10 +199,10 @@ extension OneShotBackupName {
     /// killed between a newer write and its index save leaves a file that is
     /// later, and may hold the most of the night; that one, one without a row
     /// or a date to compare, and one that does not decode are not replaced.
-    static func isSuperseded(_ url: URL, by entry: RawRRBackup.BackupIndex?) -> Bool {
+    static func isSuperseded(_ url: URL, by entry: RawRRBackup.BackupIndex?, encryption: EncryptionManager) -> Bool {
         guard let entry else { return false }
         guard writtenMs(url.lastPathComponent) < indexedMs(entry),
-              let beats = attempt("RawRRBackup.readReplacedFile", { try RawRRBackup.decodeLegacyBackup(at: url).points.count })
+              let beats = attempt("RawRRBackup.readReplacedFile", { try RawRRBackup.decodeLegacyBackup(at: url, encryption: encryption).points.count })
         else { return false }
         return beats <= (entry.backedUpCount ?? entry.beatCount)
     }

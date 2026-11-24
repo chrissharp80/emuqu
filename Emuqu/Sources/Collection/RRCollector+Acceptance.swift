@@ -92,7 +92,7 @@ extension MorningSessionPipeline {
         collector.recordingPhase = .idle
         collector.verificationResult = nil
         collector.recoveryWindow = nil
-        collector.healthKit.stopObservingSleepData()
+        collector.healthKit.writes.stopObservingSleepData()
     }
 
     /// Reject the current session: clears the persisted recording state, the

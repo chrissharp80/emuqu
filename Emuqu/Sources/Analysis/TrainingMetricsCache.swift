@@ -17,7 +17,6 @@ import Foundation
 @Observable
 @MainActor
 final class TrainingMetricsCache {
-    static let shared = TrainingMetricsCache()
 
     private(set) var current: TrainingMetrics?
     /// When the last compute was published — the dirty flag too:
@@ -86,13 +85,13 @@ final class TrainingMetricsCache {
     private let seal: JSONFileSeal
 
     /// A cache over `archive` and `settings`, persisted at `persistenceURL`
-    /// sealed with `seal`. The defaults are the app's: the archive and
-    /// settings of `AppDependencies.current`, `TrainingMetricsCache.json` in
-    /// Application Support, the app's key. A test builds one entirely from
-    /// its own, so it never reads or writes the app's stores.
+    /// sealed with `seal`. The app's (`TrainingMetricsCache.shared`) reads
+    /// the app's archive and settings, `TrainingMetricsCache.json` in
+    /// Application Support, sealed with the app's key. A test builds one
+    /// entirely from its own, so it never reads or writes the app's stores.
     init(
-        archive: @escaping @Sendable () -> SessionArchive = { AppDependencies.current.storage.sessionArchive },
-        settings: @escaping @MainActor () -> UserSettings = { AppDependencies.current.app.settingsManager.settings },
+        archive: @escaping @Sendable () -> SessionArchive,
+        settings: @escaping @MainActor () -> UserSettings,
         persistenceURL: URL? = TrainingMetricsCache.defaultPersistenceURL,
         seal: JSONFileSeal = .app
     ) {
@@ -464,14 +463,14 @@ final class TrainingMetricsCache {
         // The archived workouts this compute starts from; a workout archived
         // while it awaits HealthKit is not in it.
         let startFingerprint = workoutFingerprint()
-        guard let hkWorkouts = await hk.fetchWorkoutsExtendedIfAnswered(
+        guard let hkWorkouts = await hk.training.fetchWorkoutsExtendedIfAnswered(
             days: lookbackDays + replayWarmUpDays, relativeTo: reference
         ) else {
             debugLog("[TrainingMetricsCache] HealthKit workout query failed or timed out — the published load is kept and the next refresh asks again", level: .warning)
             return releaseRefreshTaskUnlessCancelled()
         }
-        let anchors = await hk.trainingHeartRateAnchors()
-        let metrics = await hk.calculateTrainingMetrics(
+        let anchors = await hk.training.trainingHeartRateAnchors()
+        let metrics = await hk.training.calculateTrainingMetrics(
             restingHR: anchors.restingHR, userMaxHR: anchors.maxHR, forMorningReading: forMorningReading,
             relativeTo: reference, preloadedHealthKitWorkouts: hkWorkouts
         )
@@ -627,7 +626,7 @@ final class TrainingMetricsCache {
         let archiveWorkouts = HealthKitManager.WorkoutSummary.fromAppArchive(
             archive: archive, days: lookbackDays, relativeTo: reference
         )
-        return HealthKitManager.mergeArchiveAuthoritative(archive: archiveWorkouts, healthKit: healthKitWorkouts)
+        return TrainingHealthQueries.mergeArchiveAuthoritative(archive: archiveWorkouts, healthKit: healthKitWorkouts)
     }
 
     /// Invalidate the cache so the next `snapshot()` or `refresh()`

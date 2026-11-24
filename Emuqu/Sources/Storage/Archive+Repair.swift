@@ -93,7 +93,7 @@ extension SessionArchive {
         } catch {
             return preserved(existing[sessionId], filename: filename, error: error, verb: "read")
         }
-        guard let session = Self.decodeRepairable(fileData, id: sessionId) else {
+        guard let session = Self.decodeRepairable(fileData, id: sessionId, encryption: encryption) else {
             return preserved(existing[sessionId], filename: filename, error: nil, verb: "decrypt")
         }
         return SessionArchiveEntry.make(
@@ -119,9 +119,9 @@ extension SessionArchive {
     /// Always hash the bytes-as-stored, matching the
     /// write-path contract in `_archive` / `batchArchive` /
     /// `relinkSameNightSessions`.
-    private static func decodeRepairable(_ fileData: Data, id: UUID) -> HRVSession? {
+    private static func decodeRepairable(_ fileData: Data, id: UUID, encryption: EncryptionManager) -> HRVSession? {
         do {
-            return try sessionDecoder.decode(HRVSession.self, from: ArchiveStore.plaintextBytes(fileData, id: id))
+            return try sessionDecoder.decode(HRVSession.self, from: ArchiveStore.plaintextBytes(fileData, id: id, encryption: encryption))
         } catch {
             debugLog("[Archive] Repair: \(id.uuidString.prefix(8)) does not decode: \(error)", level: .warning)
             return nil
@@ -163,9 +163,9 @@ extension SessionArchive {
         guard let idx = index.firstIndex(where: { $0.sessionId == sessionId }) else { return .notNow }
         let entry = index[idx]
         let fileURL = resolveFileURL(for: entry)
-        guard let fileData = Self.bytesForRepair(at: fileURL, id: sessionId) else { return .notNow }
+        guard let fileData = Self.bytesForRepair(at: fileURL, id: sessionId, encryption: encryption) else { return .notNow }
         // Only re-hash a file that decodes to a real session.
-        guard let session = Self.decodeRepairable(fileData, id: sessionId) else {
+        guard let session = Self.decodeRepairable(fileData, id: sessionId, encryption: encryption) else {
             debugLog("[Archive] Repair: session \(sessionId.uuidString.prefix(8)) will not decode — NOT re-hashing (genuine corruption, caller should quarantine)", level: .warning)
             return .undecodable
         }
@@ -188,7 +188,7 @@ extension SessionArchive {
 
     /// The stored bytes, or nil (logged) while they cannot be judged: the
     /// read fails, or they are encrypted and the key is unreachable.
-    private static func bytesForRepair(at fileURL: URL, id: UUID) -> Data? {
+    private static func bytesForRepair(at fileURL: URL, id: UUID, encryption: EncryptionManager) -> Data? {
         let fileData: Data
         do {
             fileData = try Data(contentsOf: fileURL)
@@ -196,7 +196,7 @@ extension SessionArchive {
             debugLog("[Archive] Repair: \(id.uuidString.prefix(8)) cannot be read now: \(error) — will retry", level: .warning)
             return nil
         }
-        guard !ArchiveStore.looksEncrypted(fileData) || AppDependencies.current.storage.encryptionManager.isAvailable else {
+        guard !ArchiveStore.looksEncrypted(fileData) || encryption.isAvailable else {
             debugLog("[Archive] Repair: \(id.uuidString.prefix(8)) is encrypted and the key is unavailable — will retry", level: .warning)
             return nil
         }

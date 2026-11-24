@@ -72,7 +72,7 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
         let now = Date()
         return await FactResolveTimeout.withTimeout(seconds: 3) {
             do {
-                return .success(try await AppDependencies.current.collection.healthKitManager.fetchHeartRateSamplesDetailed(from: dayAgo, to: now))
+                return .success(try await AppDependencies.current.collection.healthKitManager.heartRate.fetchHeartRateSamplesDetailed(from: dayAgo, to: now))
             } catch {
                 return .failure(error)
             }
@@ -103,7 +103,7 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
         // 3 s ceiling; nil on timeout (or no day returned).
         let summary: HealthKitManager.DailyActivity? =
             await FactResolveTimeout.withTimeout(seconds: 3) {
-                await AppDependencies.current.collection.healthKitManager.fetchDailyActivity(days: 1).first
+                await AppDependencies.current.collection.healthKitManager.vitals.fetchDailyActivity(days: 1).first
             }
         guard let summary else {
             return .missing(reason: .notYetComputed, detail: "today's activity rollup didn't come back within 3 s — try again")

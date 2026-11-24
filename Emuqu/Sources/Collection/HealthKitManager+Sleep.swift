@@ -181,8 +181,8 @@ extension SleepHealthQueries {
         predicate: NSPredicate,
         sort: NSSortDescriptor
     ) async throws -> [HKCategorySample] {
-        try await manager.runBoundedThrowingQuery(
-            timeout: HealthKitManager.sleepQueryTimeoutSec,
+        try await manager.heartRate.runBoundedThrowingQuery(
+            timeout: HeartRateHealthQueries.sleepQueryTimeoutSec,
             makeQuery: { resolve in
                 HKSampleQuery(
                     sampleType: sleepType,
@@ -190,7 +190,7 @@ extension SleepHealthQueries {
                     limit: HKObjectQueryNoLimit,
                     sortDescriptors: [sort]
                 ) { _, results, error in
-                    resolve(HealthKitManager.categoryResult(results, error))
+                    resolve(HealthWriteAndObserve.categoryResult(results, error))
                 }
             },
             onTimeout: { .failure(HealthKitManager.HealthKitError.queryTimedOut("sleep samples")) }
@@ -379,7 +379,7 @@ extension SleepHealthQueries {
     ) async -> [(date: Date, hr: Double)]? {
         let samples: [(date: Date, hr: Double)]
         do {
-            samples = try await manager.fetchHeartRateSamples(from: windowStart, to: windowEnd)
+            samples = try await manager.heartRate.fetchHeartRateSamples(from: windowStart, to: windowEnd)
         } catch {
             debugLog("[HealthKitManager] HealthKit HR sleep estimation failed to fetch samples: \(error)")
             return nil
