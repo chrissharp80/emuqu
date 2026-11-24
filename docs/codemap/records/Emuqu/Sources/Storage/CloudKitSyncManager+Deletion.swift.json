@@ -39,8 +39,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performDeleteAllRemoteData()": "8c22f319e9f40749",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performDeleteAllRemoteData()": "9eee42a07c852b78",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "87ebb108c8eeaec5"
    }
   },
   {
@@ -61,28 +61,17 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.mayDeleteInSignedInAccount()"
    ],
    "reads": [
-    "ud:cloudkit.accountIdentity",
-    "ud:cloudkit.syncStoppedReason",
     "net:CloudKit userRecordID"
    ],
    "writes": [
-    "file:<archiveDir>/sync_state.json (removed)",
     "file:<archiveDir>/pending_uploads.json (removed)",
     "file:<archiveDir>/quarantined_uploads.json (removed)",
     "file:<archiveDir>/local_only_sessions.json (removed)",
     "file:<archiveDir>/record_versions.json (removed)",
-    "ud:UserDefaultsKeys.cloudKitChangeToken (removed)",
-    "ud:cloudkit.confirmedTombstones",
     "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.* and v2/v3 legacy keys",
     "mem:CloudKitSyncState (all sets cleared)",
     "mem:CloudKitSyncManager.zoneCreated",
-    "mem:CloudKitSyncManager.lastSyncDate",
-    "mem:CloudKitSyncManager.syncState",
-    "ck:zone HRVSessions (deleted)",
-    "ck:zone UserSettings (deleted)",
-    "mem:SettingsManager.settings.iCloudSyncEnabled",
-    "ud:cloudkit.accountIdentity (removed)",
-    "ud:cloudkit.settingsZoneCreated (removed)"
+    "mem:SettingsManager.settings.iCloudSyncEnabled"
    ],
    "branches": [
     {
@@ -97,16 +86,16 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.forget()": "71320cd8cae44080",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.clearSanitizeDripState()": "8bea89edbf885d82",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteCustomZonesOnce()": "0ca9454789a3ebee",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.forgetConfirmedTombstones()": "6e67030078e53c4c",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.mayDeleteInSignedInAccount()": "0e40963c396ef1ac",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.remoteDeletionSucceeded(_:)": "b94d95176527d91f",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::var CloudDeletionCoordinator.allCustomZoneIDs": "9b59a27b5aa83580",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.withTimeoutResult(seconds:operation:)": "b5172466721ddbd0",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "0750c9995bad9e7d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.forget()": "615204b4e12a6422",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.clearSanitizeDripState()": "778c6fb54210821b",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteCustomZonesOnce()": "0d66293f52d25d48",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.forgetConfirmedTombstones()": "c77ebf9482c5635c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.mayDeleteInSignedInAccount()": "51ac7e10febb5c2c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.remoteDeletionSucceeded(_:)": "1758763511695da5",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::var CloudDeletionCoordinator.allCustomZoneIDs": "d57aa4e3f4f38bd8",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.withTimeoutResult(seconds:operation:)": "25e61ae4d10722e6",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "9c44155d541f201f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -121,13 +110,10 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "ud:cloudkit.accountIdentity",
-    "ud:cloudkit.syncStoppedReason",
     "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)",
     "net:CloudKit userRecordID"
    ],
    "writes": [
-    "ud:cloudkit.accountIdentity (adopted, or forgotten by a stop)",
     "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)"
    ],
    "branches": [
@@ -148,10 +134,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.stopReason": "51e9a5028ec44682",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "c9bc389cc9f05fcd",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.stopReason": "e8704b773ec84205",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "ff6f2b53a5acb720",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -201,8 +187,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "687c1c6537cbbac4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "e196e678d2e5c305",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -235,10 +221,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "687c1c6537cbbac4",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::var CloudDeletionCoordinator.allCustomZoneIDs": "9b59a27b5aa83580",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.isZoneAlreadyGoneError(_:)": "e196e678d2e5c305",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::var CloudDeletionCoordinator.allCustomZoneIDs": "d57aa4e3f4f38bd8",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "b08ea4f9e9608aac",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -252,14 +238,12 @@
    ],
    "reads": [],
    "writes": [
-    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.remaining",
-    "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v4.initialized",
     "ud:FlowRecovery.cloudkit.hkSanitizeReupload.v2/v3.remaining/initialized (legacyKeys)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clear()": "6f9c9fc8c7894a0f",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.healthScrub": "d17f690cce688c93"
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clear()": "526ea025cf56a91d",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.healthScrub": "77e1db665afc192c"
    }
   },
   {
@@ -300,7 +284,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "91bd7fe2369504e5"
    }
   },
   {
@@ -322,17 +306,7 @@
    "reads": [
     "mem:CloudKitSyncManager.schemaUnavailable"
    ],
-   "writes": [
-    "ud:cloudkit.confirmedTombstones",
-    "mem:CloudKitSyncState.uploadedSessionIds",
-    "mem:CloudKitSyncState.pendingUploadIds",
-    "mem:CloudKitSyncState.recordVersions",
-    "file:<archiveDir>/sync_state.json",
-    "file:<archiveDir>/record_versions.json",
-    "ck:HRVSession/HRVSessions",
-    "archive:deletedIds",
-    "mem:SettingsManager.settings.iCloudSyncEnabled (when the zone is gone)"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -361,16 +335,16 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "733581b41076e82a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.flagRecordDeleted(_:)": "748de443eb227101",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.noteDeletionConfirmed(_:)": "c4e9fad4178a6565",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.yieldToRestore(_:)": "11942c62f7c61056",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "abab41edf9cbe471",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)": "6fe5c2e2d14e16e4",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "74297ef5c534df6c",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "91bd7fe2369504e5",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "c3167bb834dd0f09",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.flagRecordDeleted(_:)": "aa6b7fcf2d2c698d",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.noteDeletionConfirmed(_:)": "4576694d37e0b6b1",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.yieldToRestore(_:)": "824108711355d465",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "4200b99b6e17e622",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)": "193c3a786bdc73e9",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "002388a053346ed2",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "ff6f2b53a5acb720",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -382,9 +356,7 @@
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids",
     "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.adoptFromAnotherDevice(_:)"
    ],
-   "reads": [
-    "ud:sessionRecovery.forgottenBackupIds"
-   ],
+   "reads": [],
    "writes": [
     "archive:deletedIds",
     "archive:trash file"
@@ -397,9 +369,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "1c0f4f2c06999790",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.adoptFromAnotherDevice(_:)": "9b5041fd0a0e0090"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "bfda65a4f5ad2088",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "2139ba6deebaef99",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.adoptFromAnotherDevice(_:)": "0fd32d1da18059de"
    }
   },
   {
@@ -415,19 +387,12 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.forgetDeletedSession(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [
-    "ud:sessionRecovery.forgottenBackupIds"
-   ],
+   "reads": [],
    "writes": [
-    "ud:cloudkit.confirmedTombstones",
-    "mem:CloudKitSyncState.uploadedSessionIds",
-    "mem:CloudKitSyncState.pendingUploadIds",
-    "mem:CloudKitSyncState.recordVersions",
     "file:<archiveDir>/sync_state.json",
     "file:<archiveDir>/record_versions.json",
     "archive:deletedIds",
-    "ud:archive.deletionTimes",
-    "file:<archiveDirectory>/deleted.json"
+    "ud:archive.deletionTimes"
    ],
    "branches": [
     {
@@ -442,12 +407,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.forgetDeletedSession(_:)": "a68e35519de79b28",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "1c0f4f2c06999790",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.noteTombstoneConfirmed(_:)": "344b8204155ec2fb",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "8a446a48eda5e5d6",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()": "09c730da3b3dcafc",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.forgetDeletedSession(_:)": "0ba5d509297bca35",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "bfda65a4f5ad2088",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.noteTombstoneConfirmed(_:)": "af54b6b0d2f4e703",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "5131cec4310132ca",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()": "ef970181d70d50b9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -461,15 +426,13 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated"
    ],
    "reads": [
-    "ud:cloudkit.confirmedTombstones",
-    "ud:UserDefaultsKeys.cloudKitLastSyncDate",
-    "ud:UserDefaultsKeys.cloudKitZoneCreated"
+    "ud:cloudkit.confirmedTombstones"
    ],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "2d613940641c274b",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "fe4da675f906b2cd"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "a642ea28d13c9783",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "56689b371293ae2a"
    }
   },
   {
@@ -486,7 +449,6 @@
     "ext:CKDatabase.save"
    ],
    "reads": [
-    "ck:HRVSession/HRVSessions",
     "ud:archive.deletionTimes"
    ],
    "writes": [
@@ -511,12 +473,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "cbe5cd4ccaecc694",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deletionTime(of:)": "b55b78716df66353",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.saveNewTombstone(_:recordID:)": "60ffc0179ff6c9d8",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
-    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.restoreIsNewer(_:thanDeletionAt:)": "c1cf0346294fe1af"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "91bd7fe2369504e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "14e0131dacacf8c5",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deletionTime(of:)": "7334f734377eb9af",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.saveNewTombstone(_:recordID:)": "2346779ef8f0a3a5",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "b08ea4f9e9608aac",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.restoreIsNewer(_:thanDeletionAt:)": "7fed7a62ae824060"
    }
   },
   {
@@ -534,7 +496,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "b08ea4f9e9608aac"
    }
   },
   {
@@ -554,18 +516,12 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "mem:SessionArchive.deletedSessionIds",
-    "ud:cloudkit.confirmedTombstones",
-    "ud:sessionRecovery.forgottenBackupIds",
     "ud:cloudkit.liveBackup.awaitingDeletion",
-    "mem:UserSettings.iCloudSyncEnabled",
-    "mem:UserSettings.hasCompletedOnboarding",
     "mem:CloudKitSyncState.uploadedSessionIds",
     "archive:SessionArchive.index",
     "mem:PurgeGate.state"
    ],
    "writes": [
-    "mem:CloudKitSyncManager.lastSyncProgressAt",
     "ck:live backup delete",
     "ud:cloudkit.liveBackup.awaitingDeletion"
    ],
@@ -592,15 +548,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "7177e9e74ed5798e",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "1c0f4f2c06999790",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.retryAwaitingDeletion(among:)": "c1d83c956d30d0ed",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.addDeletionTask(to:from:)": "64050c114571ded0",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.tombstonesDue(among:)": "40d85bbf53613096",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "230cd5464dd541a4",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "16db834861f36e85",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "a317b0d616317bd6",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "bfda65a4f5ad2088",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.retryAwaitingDeletion(among:)": "03eb0532f289e557",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.addDeletionTask(to:from:)": "1b9f398a3906f684",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.tombstonesDue(among:)": "436b3668e55c1904",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "d2a5d70cb0b0f5f0",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "1605607555dc72b9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -614,8 +570,7 @@
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed"
    ],
    "reads": [
-    "mem:CloudAccountIdentity.launch",
-    "ud:cloudkit.accountIdentity"
+    "mem:CloudAccountIdentity.launch"
    ],
    "writes": [],
    "branches": [
@@ -626,9 +581,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "80bbf49d58eb35ac",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performUploadDeletion(sessionId:)": "4a085168eb2a07c5",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.deletion": "3b5fbf88f40204e7"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "9aa0b491c47ab924",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performUploadDeletion(sessionId:)": "dba3f36458ac1698",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.deletion": "5d43533d1da3b481"
    }
   },
   {

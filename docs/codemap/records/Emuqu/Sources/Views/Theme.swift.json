@@ -34,26 +34,23 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "9f614dd0065f8b49",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "a6a0c97cb407b211"
    }
   },
   {
    "key": "var AppTheme.primary",
    "hash": "557fcb55f9af131d",
-   "does": "Primary accent colour: picks an RGB per colour theme (blue/teal/indigo/purple/rose/orange), the brighter variant when appearance is .dark, the light variant for .light and .dim.",
+   "does": "Primary accent colour: picks an RGB per colour theme (blue/teal/indigo/purple/rose/orange), the brighter variant when appearance is .dark, the light variant for .light and .dim. Main actor only (`@MainActor`; the compiler enforces it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForLightAppearance"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -118,10 +115,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "57619190525d5a05",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForLightAppearance": "520aaf614215480c"
-   }
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "99b2a87724903668",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForLightAppearance": "2913180642c832b7"
+   },
+   "contract": "Returns the primary accent colour for the selected colour theme (blue, teal, indigo, purple, rose or orange): the dark-appearance variant when the appearance is .dark, the light variant for .light and .dim."
   },
   {
    "key": "var AppTheme.primaryForDarkAppearance",
@@ -131,9 +129,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -143,7 +139,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "bbe2c1dcd8fe4139"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "12297f9224e28190"
    }
   },
   {
@@ -154,9 +150,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -166,7 +160,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "bbe2c1dcd8fe4139"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "12297f9224e28190"
    }
   },
   {
@@ -178,10 +172,7 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -246,8 +237,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "bbe2c1dcd8fe4139",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "12297f9224e28190",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -260,10 +251,7 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -303,9 +291,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "57619190525d5a05"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0f0df4b0f509e92a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "99b2a87724903668"
    }
   },
   {
@@ -317,10 +305,7 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -385,8 +370,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "bbe2c1dcd8fe4139",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "12297f9224e28190",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -398,10 +383,7 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -466,8 +448,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "bbe2c1dcd8fe4139",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "12297f9224e28190",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -478,9 +460,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -490,7 +470,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -501,9 +481,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -513,7 +491,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -524,9 +502,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -536,7 +512,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -547,9 +523,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -559,7 +533,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -570,9 +544,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -582,8 +554,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
-   }
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
+   },
+   "contract": "Main actor. Returns a darkened green (0.126, 0.491, 0.302) when the current theme is light, otherwise sage."
   },
   {
    "key": "var AppTheme.softGoldText",
@@ -593,9 +566,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -605,7 +576,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -616,9 +587,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -628,7 +597,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -639,9 +608,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -651,7 +618,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -662,9 +629,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -674,7 +639,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -685,15 +650,13 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
-   }
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0f0df4b0f509e92a"
+   },
+   "contract": "Always returns AppTheme.primary, so fitness surfaces follow the chosen colour theme."
   },
   {
    "key": "var AppTheme.currentTheme",
@@ -711,23 +674,22 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
-   }
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "9f614dd0065f8b49",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "a6a0c97cb407b211"
+   },
+   "contract": "Returns the user's AppearanceTheme (light, dim or dark) from SettingsManager.settings."
   },
   {
    "key": "var AppTheme.background",
    "hash": "21c2d8c06a4cb8c7",
-   "does": "Page background: #F5F5F7 for light, #292930 for dim, #111114 for dark.",
+   "does": "Page background: #F5F5F7 for light, #292930 for dim, #111114 for dark. Main actor only (`@MainActor`; the compiler enforces it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -747,20 +709,19 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
-   }
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
+   },
+   "contract": "Returns the page background colour for the current theme: #F5F5F7 for light, #292930 for dim, #111114 for dark."
   },
   {
    "key": "var AppTheme.cardBackground",
    "hash": "43d6f2694190e55b",
-   "does": "Card background: white for light, #33333D for dim, #1C1C22 for dark.",
+   "does": "Card background: white for light, #33333D for dim, #1C1C22 for dark. Main actor only (`@MainActor`; the compiler enforces it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -780,8 +741,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
-   }
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
+   },
+   "contract": "Returns the card background colour for the current theme: white for light, #33333D for dim, #1C1C22 for dark."
   },
   {
    "key": "var AppTheme.cardElevated",
@@ -791,9 +753,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -813,20 +773,18 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
    "key": "var AppTheme.sectionTint",
-   "hash": "8713e943fbe1fe78",
+   "hash": "adcc4321755fc929",
    "does": "Section tint: #EDEDF2 for light, #2E2E36 for dim, #17171B for dark.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -846,8 +804,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
-   }
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
+   },
+   "contract": "Returns the section tint colour for the current appearance theme: #EDEDF2 for light, #2E2E36 for dim, #17171B for dark."
   },
   {
    "key": "var AppTheme.textPrimary",
@@ -857,9 +816,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -879,8 +836,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
-   }
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
+   },
+   "contract": "Returns the primary text colour for the current appearance theme: #1A1A21 for light, #EAEAF0 for dim, #F0F0F5 for dark."
   },
   {
    "key": "var AppTheme.textSecondary",
@@ -890,9 +848,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -912,20 +868,19 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
-   }
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
+   },
+   "contract": "Returns the secondary text colour for the current appearance theme: #5C5C6B for light, #A8A8B8 for dim, #9E9EB3 for dark."
   },
   {
    "key": "var AppTheme.textTertiary",
    "hash": "cb6e902a177ead03",
-   "does": "Tertiary text (contrast-corrected): #6E6E7D for light, #A8A8BE for dim, #8D8DA3 for dark.",
+   "does": "Tertiary text (contrast-corrected): #6E6E7D for light, #A8A8BE for dim, #8D8DA3 for dark. Main actor only (`@MainActor`; the compiler enforces it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -945,8 +900,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
-   }
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
+   },
+   "contract": "Returns the tertiary text colour for the current theme: #6E6E7D for light, #A8A8BE for dim, #8D8DA3 for dark."
   },
   {
    "key": "var AppTheme.primaryGradient",
@@ -957,15 +913,12 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "ec0aeab80e909cde"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0f0df4b0f509e92a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "12c43854d1d42d2c"
    }
   },
   {
@@ -977,15 +930,12 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "140811f9fa591035"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0f0df4b0f509e92a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "ff43b316e408c732"
    }
   },
   {
@@ -996,9 +946,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -1013,7 +961,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -1049,7 +997,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "ce864bb2c19d8f10"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "59acdcdcca320461"
    }
   },
   {
@@ -1065,8 +1013,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "44c36cfa15477f52",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "a0f14cd5e49b9046"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "eadf7773943763aa",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "55c339f8469b7767"
    }
   },
   {
@@ -1097,14 +1045,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)": "24e59ec10781caad",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)": "91e3cd0cbeee9702",
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "f58c07f55431753c",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "caf342fdad38031b",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)": "712148dda9137519",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)": "3cf7c5a0a793853a",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "e650a79e57cc674f",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "9f614dd0065f8b49",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "176c5790330ac9f6",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "3a09d7e40e6581c6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a"
    }
   },
   {
@@ -1120,8 +1068,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel": "4400fe81fd8f4785",
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "3cd4aa76dcac5807"
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel": "14a4e4908a204676",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "1da1024807106770"
    }
   },
   {
@@ -1142,7 +1090,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "3cd4aa76dcac5807"
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "1da1024807106770"
    }
   },
   {
@@ -1157,9 +1105,7 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.dustyRoseText"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -1169,11 +1115,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "3cd4aa76dcac5807",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.dustyRoseText": "37b90c32116807c8",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "b4125545ddd3d313",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "9e2a35c994be8066",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "a97b4b25212e5466"
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "1da1024807106770",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.dustyRoseText": "1b495153ceb74c72",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "22c20f7b6a05adb1",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "1d9e29a3d785c727",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "237c95586bf9cc54"
    }
   },
   {
@@ -1185,10 +1131,7 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -1213,8 +1156,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0f0df4b0f509e92a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "f17bb2dd18cce655"
    }
   },
   {
@@ -1250,7 +1193,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -1281,7 +1224,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -1293,9 +1236,7 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -1305,8 +1246,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "cbee109cd2303648",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "ad61ae8c1566a2eb"
    }
   },
   {
@@ -1321,7 +1262,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "81ca5a153c41bd44"
    }
   },
   {
@@ -1332,9 +1273,7 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -1354,7 +1293,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "2c42e4b257d94eaf"
    }
   },
   {
@@ -1366,14 +1305,12 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow": "d90942c73dc9068c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "246b6c08df02d281",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow": "a9c18dbec20d48d9"
    }
   },
   {
@@ -1385,15 +1322,12 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.heroGradient",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.heroGradient": "cf89d83f7aee0507",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.heroGradient": "7f14e306d08ab033",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0f0df4b0f509e92a"
    }
   },
   {
@@ -1404,31 +1338,28 @@
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "403dfbab3b7908c3"
    }
   },
   {
    "key": "func View.zenFormBackground()",
    "hash": "87c9da8d542e4cfe",
-   "does": "Hides List/Form scroll background and puts AppTheme.background behind it.",
+   "does": "Hides List/Form scroll background and puts AppTheme.background behind it. Main actor only (`@MainActor`; the compiler enforces it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
-   }
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "403dfbab3b7908c3"
+   },
+   "contract": "Returns the view with its List/Form scroll background hidden and AppTheme.background placed behind it."
   },
   {
    "key": "func ZenButtonStyle.makeBody(configuration:)",
@@ -1439,9 +1370,7 @@
     "Emuqu/Sources/Views/Theme.swift::var ZenButtonStyle.labelColor",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -1466,9 +1395,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
-    "Emuqu/Sources/Views/Theme.swift::var ZenButtonStyle.labelColor": "4dfb0749df5591bf",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "ad61ae8c1566a2eb",
+    "Emuqu/Sources/Views/Theme.swift::var ZenButtonStyle.labelColor": "abac2aa5a4ecc666",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "10b2942ca44e6be5"
    }
   },
   {
@@ -1490,7 +1419,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.whiteClearsContrast(on:)": "9cd0eab382de0bab"
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.whiteClearsContrast(on:)": "d605062ecb9386d9"
    }
   },
   {
@@ -1505,7 +1434,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.linearized(_:)": "b786f618b5d9c8eb"
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.linearized(_:)": "6955930e12e6cbbd"
    }
   },
   {
@@ -1535,10 +1464,7 @@
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -1563,34 +1489,32 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "246b6c08df02d281",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0f0df4b0f509e92a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "ad61ae8c1566a2eb"
    }
   },
   {
    "key": "func ButtonStyle.zen(_:)",
    "hash": "affe92a4c9b8acdd",
-   "does": "Factory for ZenButtonStyle with the given colour, defaulting to AppTheme.primaryFilled (the accent darkened for a white label) when nil.",
+   "does": "Factory for ZenButtonStyle with the given colour, defaulting to AppTheme.primaryFilled (the accent darkened for a white label) when nil. Main actor only (`@MainActor`; the compiler enforces it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled"
    ],
-   "reads": [
-    "mem:SettingsManager.settings.appearanceTheme",
-    "mem:SettingsManager.settings.colorTheme"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "color ?? AppTheme.primary",
-     "effect": "explicit colour when passed; AppTheme.primary when nil — reached by HistoryView.swift `.zen()`"
+     "cond": "color ?? AppTheme.primaryFilled",
+     "effect": "the explicit colour when passed; AppTheme.primaryFilled when nil (HistoryView's `.zen()`)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled": "aa5d37d4074a1e06"
-   }
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled": "2f27f37b718ccd95"
+   },
+   "contract": "Returns a ZenButtonStyle filled with the given colour, or with AppTheme.primaryFilled (the accent darkened for a white label) when the colour is nil."
   },
   {
    "key": "var ButtonStyle.zenSecondary",

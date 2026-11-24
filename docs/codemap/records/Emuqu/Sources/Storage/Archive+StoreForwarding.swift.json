@@ -21,9 +21,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "92f6b2132190f7b5",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
-   }
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "7f77e8023e4837de",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
+   },
+   "delegates": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)"
+   ]
   },
   {
    "key": "func SessionArchive._retrieve(_:)",
@@ -38,8 +41,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)": "24c88f25992eca37",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)": "ad9dca3b14454a79",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -55,8 +58,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.archiveBatch(_:)": "a08200cbe68a6541",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Batch.swift::func ArchiveStore.archiveBatch(_:)": "146dcd138e419eca",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -72,8 +75,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.delete(_:)": "968506fcadf1c0ab",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.delete(_:)": "45d92fec1ffa3132",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -88,8 +91,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deleteWithoutTrash(_:)": "557946d15c97d650",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deleteWithoutTrash(_:)": "d853ddefc045ea13",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -101,17 +104,12 @@
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)"
    ],
-   "reads": [
-    "mem:SessionArchive.index",
-    "mem:SessionArchive.sessionIdLookup"
-   ],
-   "writes": [
-    "mem:SessionArchive.sessionIdLookup"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "703c2a2085c25cdf",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "a1cec07dd37a4d5c",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -127,9 +125,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.exists(_:)": "7fefe37e1a295e3a",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
-   }
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.exists(_:)": "c53fb081501cfcc1",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
+   },
+   "contract": "Returns ArchiveStore.exists for the id."
   },
   {
    "key": "func SessionArchive.forgetDeletedSession(_:)",
@@ -144,8 +143,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)": "78f64381b08dea19",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)": "51f70209d43e118d",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -161,8 +160,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashedSession(_:)": "5a0afeef50a55166",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashedSession(_:)": "fba1d691b3e364d4",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -178,8 +177,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.discardTrashed(_:)": "d0d23bbec7587b31",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.discardTrashed(_:)": "854374b0a58bd2c4",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -194,8 +193,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "834af333d59ad9d7",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "d499c7cbc613f303",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -211,8 +210,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashedIds": "641541460b98c8fa",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashedIds": "34e4d61f0cb0e1eb",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -228,8 +227,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.markAsDeleted(_:)": "4086081b77cf3b77",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.markAsDeleted(_:)": "0ba525d9e3967df0",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -245,8 +244,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)": "78f64381b08dea19",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.unmarkAsDeleted(_:)": "51f70209d43e118d",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -262,8 +261,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.sessionExists(for:)": "6fc5737d867cf1d9",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.sessionExists(for:)": "aed3dc66ee48d5b1",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -279,8 +278,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.holdsCopy(of:)": "b190a9498c3c23dd",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.holdsCopy(of:)": "7ef9657375f40aef",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -296,8 +295,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.wasIntentionallyDeleted(_:)": "6198342603263401",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.wasIntentionallyDeleted(_:)": "5c35e018a9245d79",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -313,8 +312,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)": "3c8649a475c3b8ae",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deletionTime(of:)": "a5adeeec42453984",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -330,8 +329,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.linkedSegments(for:)": "63c89a4d9a4c7f45",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.linkedSegments(for:)": "aa36aa2ed9e05d32",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -347,9 +346,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.entries": "f629e88f36624942",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
-   }
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.entries": "75dc0f18fea89e5a",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
+   },
+   "contract": "Returns ArchiveStore.entries: the archive's entries, sorted."
   },
   {
    "key": "func SessionArchive.entries(from:to:)",
@@ -364,9 +364,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entries(from:to:)": "287324a725c202dd",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
-   }
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entries(from:to:)": "885944697f6fedba",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
+   },
+   "delegates": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entries(from:to:)"
+   ]
   },
   {
    "key": "func SessionArchive.entries(includingTags:excludingTags:)",
@@ -381,9 +384,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entries(includingTags:excludingTags:)": "ec811d9cdc5b0471",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
-   }
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entries(includingTags:excludingTags:)": "baa26bcf34341569",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
+   },
+   "delegates": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entries(includingTags:excludingTags:)"
+   ]
   },
   {
    "key": "var SessionArchive.deletedIds",
@@ -398,8 +404,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.deletedIds": "02e5bf363e3401d7",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::var ArchiveStore.deletedIds": "1f74d57fbdb864ae",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
    }
   },
   {
@@ -415,9 +421,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.hasSessionNear(date:toleranceMinutes:)": "9e752727795a4252",
-    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
-   }
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.hasSessionNear(date:toleranceMinutes:)": "522d7a6f74e24f09",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "5f2e1c9dddfbda89"
+   },
+   "delegates": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.hasSessionNear(date:toleranceMinutes:)"
+   ]
   },
   {
    "key": "func SessionArchive.updateTags(_:tags:notes:)",
@@ -427,20 +436,11 @@
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)"
    ],
-   "reads": [
-    "file:<archiveDirectory>/<uuid>.json",
-    "mem:SessionArchive.index"
-   ],
-   "writes": [
-    "file:<archiveDirectory>/<uuid>.json",
-    "mem:SessionArchive.index",
-    "file:<archiveDirectory>/index.json",
-    "notif:flowRecoveryArchiveChanged",
-    "notif:flowRecoveryArchiveSessionsNeedReupload"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "bfb50b051f533bbd"
    }
   },
   {
@@ -455,8 +455,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.loadAndDecodeSessionFile(at:decoder:)": "1b597f5044deb50f"
-   }
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.loadAndDecodeSessionFile(at:decoder:)": "c9e2a49f5729b30b"
+   },
+   "delegates": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.loadAndDecodeSessionFile(at:decoder:)"
+   ]
   },
   {
    "key": "func SessionArchive.looksEncrypted(_:)",
@@ -470,7 +473,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d583476cc5734253"
    }
   },
   {
@@ -485,8 +488,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "dc23461e2169905d",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "083d7e30ca95aee7"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.normalizedSplitNightSegments(currentSessionId:currentStartDate:currentEndDate:linkedSegments:)": "7de806eec58c1df3",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "2a473180cf5feeb1"
    }
   }
  ],

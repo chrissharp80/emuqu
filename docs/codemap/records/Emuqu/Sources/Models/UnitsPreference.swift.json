@@ -51,7 +51,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -74,7 +74,8 @@
      "effect": "imperial; otherwise metric (UK resolves to metric)"
     }
    ],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns the preference unchanged when it is not .auto; .auto resolves to .imperial when the device locale's measurement system is US and to .metric otherwise."
   },
   {
    "key": "func UnitsPreference.formatDistance(meters:)",
@@ -100,9 +101,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.measurement(_:_:fractionDigits:)": "0184515d669f03dc",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197"
-   }
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.measurement(_:_:fractionDigits:)": "1149e2254329c1d6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "6c5a47fd27898e2b"
+   },
+   "contract": "Returns the distance formatted with 2 decimals in the app locale: in miles when the resolved preference is imperial, otherwise in kilometres."
   },
   {
    "key": "func UnitsPreference.formatElevation(meters:)",
@@ -128,8 +130,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.measurement(_:_:fractionDigits:)": "0184515d669f03dc",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.measurement(_:_:fractionDigits:)": "1149e2254329c1d6",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "6c5a47fd27898e2b"
    }
   },
   {
@@ -162,9 +164,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.minutesSeconds(_:)": "5d8046bbeac34b66",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.minutesSeconds(_:)": "399d588386756122",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "6c5a47fd27898e2b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -190,7 +192,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "5a5114d6cfb6f747"
    }
   },
   {
@@ -211,7 +213,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "2e8c2080febb123f"
    }
   },
   {
@@ -237,7 +239,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "6c5a47fd27898e2b"
    }
   },
   {
@@ -264,8 +266,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "6c5a47fd27898e2b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -280,7 +282,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup": "61c0d2a8f0696e0b"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var SharedUserDefaults.appGroup": "932e35595283cdb1"
    }
   },
   {
@@ -311,8 +313,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.suite": "b8fe7fc49442b269"
-   }
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.suite": "0d41d54e485db463"
+   },
+   "contract": "Getter returns the stored units preference from the App Group, else a parseable legacy standard-defaults value (copying it into the App Group), else .auto. Setter writes the preference's raw value to the App Group under fitness.unitsPreference."
   },
   {
    "key": "var SharedUserDefaults.appGroup",

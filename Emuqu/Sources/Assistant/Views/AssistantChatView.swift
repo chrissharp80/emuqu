@@ -212,7 +212,7 @@ struct AssistantChatView: View {
     ///
     /// A session citation whose session can't be loaded (deleted, or not
     /// readable while locked) is still `.handled`: the tap does nothing
-    /// visible, and `retrieveOrLog` logs why.
+    /// visible. `retrieveOrLog` logs a read failure; a missing session is not logged.
     private func handleAssistantURL(_ url: URL) -> OpenURLAction.Result {
         if let sessionId = AssistantCitationResolver.parseSessionURL(url) {
             if let session = dependencies.storage.sessionArchive.retrieveOrLog(sessionId, caller: "AssistantChatView.citationTap") {

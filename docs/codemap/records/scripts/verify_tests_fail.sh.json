@@ -81,8 +81,7 @@
    ],
    "reads": [],
    "writes": [
-    "var:SKIP",
-    "file:<backup>/run.log (via run_suite)"
+    "var:SKIP"
    ],
    "branches": [
     {
@@ -102,7 +101,7 @@
     }
    ],
    "deps": {
-    "scripts/verify_tests_fail.sh::fn run_suite": "b8cb90b1e21631f2"
+    "scripts/verify_tests_fail.sh::fn run_suite": "b62cfce5348e31d5"
    }
   },
   {
@@ -129,11 +128,8 @@
     "scripts/verify_tests_fail.sh::fn run_suite",
     "scripts/verify_tests_fail.sh::fn mutation_broke_build"
    ],
-   "reads": [
-    "file:<backup>/run.log"
-   ],
+   "reads": [],
    "writes": [
-    "file:<backup>/run.log (via run_suite)",
     "stdout: verdict code"
    ],
    "branches": [
@@ -149,8 +145,8 @@
     }
    ],
    "deps": {
-    "scripts/verify_tests_fail.sh::fn mutation_broke_build": "1b67b4ca0cef218c",
-    "scripts/verify_tests_fail.sh::fn run_suite": "b8cb90b1e21631f2"
+    "scripts/verify_tests_fail.sh::fn mutation_broke_build": "c3064ca9357ec997",
+    "scripts/verify_tests_fail.sh::fn run_suite": "b62cfce5348e31d5"
    }
   },
   {
@@ -226,18 +222,18 @@
     }
    ],
    "deps": {
-    "scripts/verify_tests_fail.sh::fn backup": "91d1b05ae730eead",
-    "scripts/verify_tests_fail.sh::fn baseline_green": "5a93f1fb6c7fa075",
-    "scripts/verify_tests_fail.sh::fn mutated_result": "e74b96ee2d3ee8dc",
-    "scripts/verify_tests_fail.sh::fn report_mutation": "9ff7f015bcf27178",
-    "scripts/verify_tests_fail.sh::fn restore_all": "2791d57c196ad0be"
+    "scripts/verify_tests_fail.sh::fn backup": "b63e4ed153ed6ddd",
+    "scripts/verify_tests_fail.sh::fn baseline_green": "7f250856929ae03c",
+    "scripts/verify_tests_fail.sh::fn mutated_result": "bd6366a31674364d",
+    "scripts/verify_tests_fail.sh::fn report_mutation": "6ece6b8d14df1058",
+    "scripts/verify_tests_fail.sh::fn restore_all": "bc7e29fcadc63361"
    }
   }
  ],
  "deps": {
   "scripts/select_simulator_destination.sh::": "95f5ed7251fc98ca",
-  "scripts/verify_tests_fail.sh::fn backup": "91d1b05ae730eead",
-  "scripts/verify_tests_fail.sh::fn mutate": "b17da90a86fc42d2",
-  "scripts/verify_tests_fail.sh::fn restore_all": "2791d57c196ad0be"
+  "scripts/verify_tests_fail.sh::fn backup": "b63e4ed153ed6ddd",
+  "scripts/verify_tests_fail.sh::fn mutate": "5500821ac68a2601",
+  "scripts/verify_tests_fail.sh::fn restore_all": "bc7e29fcadc63361"
  }
 }

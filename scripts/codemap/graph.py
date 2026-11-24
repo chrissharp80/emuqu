@@ -198,11 +198,16 @@ def build(inv: dict, records: dict, root: Path) -> dict:
 
     edges = collections.defaultdict(dict)
 
-    def add(a, b, kind):
+    why = collections.defaultdict(set)
+
+    def add(a, b, kind, reason):
+        """Record an edge; for a certain one, also why it is certain (`why`)."""
         if a == b or b not in units:
             return
         if edges[a].get(b) != "certain":
             edges[a][b] = kind
+        if kind == "certain":
+            why[(a, b)].add(reason)
 
     # recorded calls (reader-resolved) are certain
     for f, rec in records.items():
@@ -212,7 +217,7 @@ def build(inv: dict, records: dict, root: Path) -> dict:
                 continue
             for c in u.get("calls") or []:
                 if isinstance(c, str) and "::" in c and not c.startswith(("ext:", "dyn:", "closure:")):
-                    add(src, c, "certain")
+                    add(src, c, "certain", "recorded")
 
     # ---- Swift
     swift_files = [f for f in inv if f.endswith(".swift")]
@@ -284,20 +289,24 @@ def build(inv: dict, records: dict, root: Path) -> dict:
                 cs = [k for k in by_name.get("init", ()) if short(units[k]["type"]) == name
                       and _labels_match(all_params.get(k), labels or [], trailing)]
                 for k in cs:
-                    add(src, k, "certain" if len(cs) == 1 else "possible")
+                    add(src, k, "certain" if len(cs) == 1 else "possible", "initializer")
                 continue
             unresolved = False  # the receiver's type is unknown, or a framework type
             if rkind in ("self", "super", "implicit"):
+                reason = "own type"
                 cs = candidates(name, kind, labels or [], trailing, types=own)
                 if not cs and rkind == "implicit":
                     # a unit whose type is unknown (parse fallback) or a file-private helper
                     same_file = [k for k in candidates(name, kind, labels or [], trailing)
                                  if k.split("::")[0] == src.split("::")[0]]
+                    reason = "same file" if same_file else "global function"
                     cs = same_file or candidates(name, kind, labels or [], trailing, global_only=True)
             elif rkind == "type" and rtype in repo_types:
+                reason = "typed receiver"
                 cs = candidates(name, kind, labels or [], trailing, types=family(rtype))
             else:
                 unresolved = True
+                reason = "unique name"
                 cs = candidates(name, kind, labels or [], trailing)
             # Certainty is judged on every unit the name could mean. The filters below drop
             # candidates the reference cannot mean; they never promote what is left, so they only
@@ -315,10 +324,10 @@ def build(inv: dict, records: dict, root: Path) -> dict:
             if kind == "prop" and rkind == "implicit" and not cs:
                 continue
             for k in cs:
-                add(src, k, "certain" if sole else "possible")
+                add(src, k, "certain" if sole else "possible", reason)
             if kind == "call" and not cs and name in closure_assigns:
                 for k in closure_assigns[name]:
-                    add(src, k, "possible")
+                    add(src, k, "possible", "stored closure")
 
     # protocol requirement -> implementations
     for k, u in units.items():
@@ -330,7 +339,7 @@ def build(inv: dict, records: dict, root: Path) -> dict:
             v = units[c]
             if c != k and v["kind"] in FUNC_KINDS and v["kind"] != "protocol_function_declaration" \
                     and short(v["type"]) in impl_types and _labels_match(all_params.get(c), [p[0] for p in all_params.get(k, [])], 0):
-                add(k, c, "certain")
+                add(k, c, "certain", "protocol requirement")
 
     # ---- scripts, Makefile, workflows
     targets = {u["name"].split()[0]: k for k, u in units.items() if u["kind"] == "ns-target"}
@@ -361,22 +370,22 @@ def build(inv: dict, records: dict, root: Path) -> dict:
                 pre = lines[u["start"] - 1].split(":", 1)[1] if ":" in lines[u["start"] - 1] else ""
                 for t in pre.split():
                     if t in targets:
-                        add(src, targets[t], "certain")
+                        add(src, targets[t], "certain", "build wiring")
             if u["kind"] in ("ns-target", "ns-step", "ns-job"):
                 for m in re.finditer(r"\b(?:make|\$\(MAKE\))\s+([\w .-]+)", body):
                     for t in m.group(1).split():
                         if t in targets:
-                            add(src, targets[t], "certain")
+                            add(src, targets[t], "certain", "build wiring")
                 for m in re.finditer(r"((?:scripts|Tools)/[\w/.+-]+\.(?:sh|py))", body):
-                    add(src, f"{m.group(1)}::", "certain")
+                    add(src, f"{m.group(1)}::", "certain", "build wiring")
             if u["kind"] == "ns-job":
                 for v in d["units"]:
                     if v["kind"] == "ns-step" and v["type"] == u["name"]:
-                        add(src, f"{f}::{v['key']}", "certain")
+                        add(src, f"{f}::{v['key']}", "certain", "build wiring")
             if u["kind"] in ("ns-pydef", "ns-shfunc"):
                 for name, k in local.items():
                     if name != u["name"] and re.search(rf"(?<![\w.]){re.escape(name)}\b", body):
-                        add(src, k, "certain")
+                        add(src, k, "certain", "build wiring")
         # file-level code of a script calls its own functions and the scripts it runs
         src = f"{f}::"
         outside = set(range(1, len(lines) + 1))
@@ -385,11 +394,12 @@ def build(inv: dict, records: dict, root: Path) -> dict:
         top = "\n".join(lines[i - 1] for i in sorted(outside))
         for name, k in local.items():
             if re.search(rf"(?<![\w.]){re.escape(name)}\b", top):
-                add(src, k, "certain")
+                add(src, k, "certain", "build wiring")
         for m in re.finditer(r"((?:scripts|Tools)/[\w/.+-]+\.(?:sh|py))", top):
-            add(src, f"{m.group(1)}::", "certain")
+            add(src, f"{m.group(1)}::", "certain", "build wiring")
 
-    return {"edges": {k: dict(v) for k, v in edges.items()}, "units": units}
+    return {"edges": {k: dict(v) for k, v in edges.items()}, "units": units,
+            "why": {k: sorted(v) for k, v in why.items()}}
 
 
 def callers(graph: dict) -> dict[str, dict[str, str]]:

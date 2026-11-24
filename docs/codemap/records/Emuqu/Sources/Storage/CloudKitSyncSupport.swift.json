@@ -53,7 +53,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -101,15 +101,13 @@
     "notif:flowRecoverySettingsChanged"
    ],
    "writes": [
-    "mem:CloudKitSettingsSync.changeObserver",
-    "ud:cloudkit.settingsEditFingerprint",
-    "ud:cloudkit.settingsLocalEditedAt (on a settings change that alters a user-edited setting)"
+    "mem:CloudKitSettingsSync.changeObserver"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.noteSettingsChange()": "a8bce635a1deaba5",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.scheduleDebouncedPush()": "0af5c0e455d4ddb5",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.takeEditFingerprint(stampingAChange:)": "b8c0f95fd2eca1df"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.noteSettingsChange()": "c351cd5a1224604a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.scheduleDebouncedPush()": "4a5953aba6e7a25f",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.takeEditFingerprint(stampingAChange:)": "2eefe8d2d2c5c220"
    }
   },
   {
@@ -120,16 +118,11 @@
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.takeEditFingerprint(stampingAChange:)"
    ],
-   "reads": [
-    "ud:cloudkit.settingsEditFingerprint"
-   ],
-   "writes": [
-    "ud:cloudkit.settingsEditFingerprint",
-    "ud:cloudkit.settingsLocalEditedAt"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.takeEditFingerprint(stampingAChange:)": "b8c0f95fd2eca1df"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.takeEditFingerprint(stampingAChange:)": "2eefe8d2d2c5c220"
    }
   },
   {
@@ -174,11 +167,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.currentSettingsJSON()": "e5f73e52eee3c919",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.editFingerprint(_:)": "2d33b29b6cb09681",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.currentSettingsJSON()": "69c08f6b0df7a9ff",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.editFingerprint(_:)": "6776e2531b220b70",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -202,13 +195,8 @@
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.takeEditFingerprint(stampingAChange:)"
    ],
-   "reads": [
-    "ud:cloudkit.settingsEditFingerprint"
-   ],
-   "writes": [
-    "ud:cloudkit.settingsEditFingerprint",
-    "ud:cloudkit.settingsLocalEditedAt"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
@@ -217,7 +205,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.takeEditFingerprint(stampingAChange:)": "b8c0f95fd2eca1df"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.takeEditFingerprint(stampingAChange:)": "2eefe8d2d2c5c220"
    }
   },
   {
@@ -250,7 +238,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush(replacingNewerCloudCopy:)": "f51b427f02efc53f"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush(replacingNewerCloudCopy:)": "84b780266a1db81f"
    }
   },
   {
@@ -273,9 +261,7 @@
     "mem:SettingsManager.settings"
    ],
    "writes": [
-    "file:user_settings.json (via SettingsManager.restoreFromJSON)",
-    "ud:cloudkit.settingsEditFingerprint",
-    "ud:cloudkit.settingsLocalEditedAt"
+    "file:user_settings.json (via SettingsManager.restoreFromJSON)"
    ],
    "branches": [
     {
@@ -295,16 +281,16 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "cbe5cd4ccaecc694",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.restoreFromJSON(_:)": "8e05daecb181bb22",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "ce3859c45e532228",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.noteRestored(editedAt:)": "3a8e2b222f7baa93",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.requireConfirmedAccount()": "52e260391dade738",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.restorable(_:keepingProfileOf:)": "8c9fa4951f64d8c6",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "ea385178c3d9bbad",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "4ce4f9874bc8e29f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "14e0131dacacf8c5",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.restoreFromJSON(_:)": "df82681802e62f32",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "bf6a963ac14329ea",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.noteRestored(editedAt:)": "a269a3e856d303e9",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.requireConfirmedAccount()": "00d0929c5302b47d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.restorable(_:keepingProfileOf:)": "ad1daffd9b05c537",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "63cc8d26ba96a26e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "de33b90d814be904",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a"
    }
   },
   {
@@ -318,9 +304,7 @@
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.syncOffMessage"
    ],
-   "reads": [
-    "net:CloudKit userRecordID"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -340,12 +324,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.syncOffMessage": "b9291462fb93729f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "71598a6e60000bb7"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "c9bc389cc9f05fcd",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "ff6f2b53a5acb720",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.syncOffMessage": "97ed675c841c3a66",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "4d03b0eea509c149"
    }
   },
   {
@@ -358,9 +342,7 @@
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "ud:cloudkit.syncStoppedReason"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -370,9 +352,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message": "fc75f12bef78c376",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.stopReason": "51e9a5028ec44682"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.StopReason.message": "e77d62439d7d4b91",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.stopReason": "e8704b773ec84205"
    }
   },
   {
@@ -408,7 +390,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -445,8 +427,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush(replacingNewerCloudCopy:)": "f51b427f02efc53f",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.performPush(replacingNewerCloudCopy:)": "84b780266a1db81f",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "977c5bbf1d9004f1"
    }
   },
   {
@@ -462,8 +444,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushNow(replacingNewerCloudCopy:)": "5bd9b9e58e150a31",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushNow(replacingNewerCloudCopy:)": "c28e8df884992a72",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "87ebb108c8eeaec5"
    }
   },
   {
@@ -479,8 +461,7 @@
    ],
    "reads": [
     "mem:UserSettings.iCloudSyncEnabled",
-    "mem:UserSettings.hasCompletedOnboarding",
-    "mem:CloudKitSettingsSync.schemaUnavailable"
+    "mem:UserSettings.hasCompletedOnboarding"
    ],
    "writes": [
     "mem:CloudKitSettingsSync.status"
@@ -508,10 +489,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushSkipReason()": "199f3f097b4951af",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.requireConfirmedAccount()": "52e260391dade738",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.save(_:replacingNewerCloudCopy:)": "dd9553ec4ee7a3b1",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.sealedLocalSettings()": "68ffe3321b5a93af"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushSkipReason()": "7cd4839d75507471",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.requireConfirmedAccount()": "00d0929c5302b47d",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.save(_:replacingNewerCloudCopy:)": "dd78fbf3ff239acd",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.sealedLocalSettings()": "6f25e9e2393f83be"
    }
   },
   {
@@ -529,9 +510,7 @@
    ],
    "reads": [],
    "writes": [
-    "mem:CloudKitSettingsSync.status",
-    "ck:UserSettings record \"primary\"",
-    "ck:UserSettings zone"
+    "mem:CloudKitSettingsSync.status"
    ],
    "branches": [
     {
@@ -556,13 +535,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()": "93f044e488f53018",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.handlePushFailure(_:)": "c1c98629b4ecb56a",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.saveSettingsRecord(_:replacingNewer:)": "5cf0812af7ad4a30",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.zoneWasDeleted(_:)": "008296b59491649d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "91bd7fe2369504e5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.ensureZoneExists()": "406867d34977ec49",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.handlePushFailure(_:)": "6113a60d243184e0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.saveSettingsRecord(_:replacingNewer:)": "884ba9815e1f58d5",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.zoneWasDeleted(_:)": "d2fe55b5f8d833de",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -589,14 +568,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "733581b41076e82a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.syncOffMessage": "b9291462fb93729f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "71598a6e60000bb7",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "91bd7fe2369504e5",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "c3167bb834dd0f09",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "ff6f2b53a5acb720",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.syncOffMessage": "97ed675c841c3a66",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "4d03b0eea509c149",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -628,10 +607,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.schemaPausedMessage": "a7ddefd9ebf1d2c5",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.schemaPausedMessage": "4cf106a4e719a75a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a"
    }
   },
   {
@@ -646,7 +625,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -663,8 +642,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "file:user_settings.json (via SettingsManager.currentSettingsJSON)",
-    "kc:com.chrissharp.flowrecovery.cloud"
+    "file:user_settings.json (via SettingsManager.currentSettingsJSON)"
    ],
    "writes": [
     "mem:CloudKitSettingsSync.status"
@@ -682,13 +660,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.currentSettingsJSON()": "e5f73e52eee3c919",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.uploadable(_:)": "4c24b41735228125",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:mayCreateKey:in:)": "1b9b10fca04d42bf",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.currentSettingsJSON()": "69c08f6b0df7a9ff",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.uploadable(_:)": "f01018b8e2d03d38",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:mayCreateKey:in:)": "c8dd3def863f7e45",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -733,11 +711,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "cbe5cd4ccaecc694",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt:localEditedAt:)": "8cedcb649d95f305",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "feed3afb796d51b4",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "4ce4f9874bc8e29f"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "91bd7fe2369504e5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "14e0131dacacf8c5",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.cloudCopyIsNewer(cloudEditedAt:localEditedAt:)": "74db0d446e9309d2",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "dfcf94498176ccc3",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "de33b90d814be904"
    }
   },
   {
@@ -764,9 +742,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "74297ef5c534df6c",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.schemaPausedMessage": "a7ddefd9ebf1d2c5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "002388a053346ed2",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.schemaPausedMessage": "4cf106a4e719a75a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -786,13 +764,11 @@
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.noteUnrewritableRecord(_:)"
    ],
    "reads": [
-    "ud:FlowRecovery.cloudkit.settingsHealthScrub.v1.done",
     "mem:CloudKitSettingsSync.schemaUnavailable",
     "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)"
    ],
    "writes": [
-    "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)",
-    "ud:FlowRecovery.cloudkit.settingsHealthScrub.v1.done"
+    "ck:UserSettings record \"primary\" in zone UserSettings (private DB, container AppConfig.iCloudContainerIdentifier)"
    ],
    "branches": [
     {
@@ -822,15 +798,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "cbe5cd4ccaecc694",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "ce3859c45e532228",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.noteUnrewritableRecord(_:)": "87d0dde474e3e8bd",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "ea385178c3d9bbad",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "feed3afb796d51b4",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "4ce4f9874bc8e29f",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:mayCreateKey:in:)": "1b9b10fca04d42bf",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "14e0131dacacf8c5",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "bf6a963ac14329ea",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.noteUnrewritableRecord(_:)": "ea3d97f2076fec71",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "16d93574ea75d9a5",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "63cc8d26ba96a26e",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "dfcf94498176ccc3",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "de33b90d814be904",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:mayCreateKey:in:)": "c8dd3def863f7e45",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -858,7 +834,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -875,7 +851,6 @@
    ],
    "reads": [
     "ud:cloudkit.settingsZoneCreated",
-    "ud:UserDefaultsKeys.cloudKitZoneCreated",
     "mem:CloudKitSyncManager.lastSyncDate",
     "ck:zone HRVSessions (existence)"
    ],
@@ -901,13 +876,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "2d613940641c274b",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "fe4da675f906b2cd",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.zoneExists(_:)": "4c1c5bcb619f6522",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "4ce4f9874bc8e29f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "71598a6e60000bb7"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "a642ea28d13c9783",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "56689b371293ae2a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.zoneExists(_:)": "a4c62a4ece6e5270",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "de33b90d814be904",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "4d03b0eea509c149"
    }
   },
   {
@@ -930,8 +905,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "4ce4f9874bc8e29f"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "91bd7fe2369504e5",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "de33b90d814be904"
    }
   },
   {
@@ -970,9 +945,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.withoutHealthFilledProfile()": "5b51a11a990dd22d",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder": "3b40d1d8ba63dc37",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder": "0db410e2bb73ed9a"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.withoutHealthFilledProfile()": "3041af5c48e23ae7",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder": "7ee4cca1636cade0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder": "831d7417506f0b2b"
    }
   },
   {
@@ -998,7 +973,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.uploadable(_:)": "4c24b41735228125"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.uploadable(_:)": "f01018b8e2d03d38"
    }
   },
   {
@@ -1031,12 +1006,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.withoutHealthFilledProfile()": "5b51a11a990dd22d",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder": "3b40d1d8ba63dc37",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder": "0db410e2bb73ed9a"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.withoutHealthFilledProfile()": "3041af5c48e23ae7",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "3a09d7e40e6581c6",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "fe4a69c21a86a7a2",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "37ce3bbe2e84f03c",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder": "7ee4cca1636cade0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder": "831d7417506f0b2b"
    }
   },
   {
@@ -1053,9 +1028,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.keepingHealthFilledProfile(of:)": "e82e92f156dc19f5",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder": "3b40d1d8ba63dc37",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder": "0db410e2bb73ed9a"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.keepingHealthFilledProfile(of:)": "694f2a9625019e80",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.decoder": "7ee4cca1636cade0",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSettingsRecord.encoder": "831d7417506f0b2b"
    }
   },
   {
@@ -1102,8 +1077,7 @@
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)"
    ],
    "reads": [
-    "ck:UserSettings settingsJSON/settingsPayload",
-    "kc:com.chrissharp.flowrecovery.cloud"
+    "ck:UserSettings settingsJSON/settingsPayload"
    ],
    "writes": [],
    "branches": [
@@ -1124,7 +1098,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "07a8c15768d32cfc"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "32b82e5bb0cfabb9"
    }
   },
   {
@@ -1139,7 +1113,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -1172,7 +1146,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn": "66d184af0832c017"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn": "c141dec27dcf6815"
    }
   },
   {
@@ -1187,7 +1161,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -1202,7 +1176,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -1217,7 +1191,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -1238,7 +1212,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   }
  ],

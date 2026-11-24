@@ -59,9 +59,7 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
-   "writes": [
-    "mem:DebugLogger.pendingLines"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+10",
@@ -70,8 +68,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
+   },
+   "contract": "Runs the throwing closure and returns its value, or nil if it threw; it never rethrows. On a throw it logs '[operation] failed' at warning level attributed to the caller's file and line, so the failure lands in Recent Problems."
   },
   {
    "key": "func sleepQuietly(_:context:file:line:)",
@@ -92,9 +91,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
-   }
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "c4e591e5a95faad4"
+   },
+   "contract": "Sleeps for the given nanoseconds and never throws. If the task is cancelled during the sleep it logs and returns normally, so the caller continues as if the sleep had completed and must check cancellation itself if it needs to stop."
   }
  ],
  "deps": {}

@@ -28,8 +28,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "3599ff0cc93f0144"
-   }
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "068c1e499682f9c5"
+   },
+   "contract": "Returns the same bundle as LanguageManager.shared.bundle. Reading it registers observation of the language revision, so a SwiftUI view that reads it re-renders when the language changes."
   },
   {
    "key": "var LanguageManager.appLocale",
@@ -45,8 +46,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "ad7886997b3438ae"
-   }
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "de1d957e09586350"
+   },
+   "contract": "Returns LanguageManager.shared.locale, the app's current locale. Callable from any isolation."
   },
   {
    "key": "var LanguageManager.locale",
@@ -60,7 +62,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "dafc68364aaed5a6"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "82df3692c0655c91"
    }
   },
   {
@@ -75,7 +77,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "dafc68364aaed5a6"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "82df3692c0655c91"
    }
   },
   {
@@ -103,7 +105,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "ad7886997b3438ae"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "de1d957e09586350"
    }
   },
   {
@@ -124,7 +126,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "ad7886997b3438ae"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "de1d957e09586350"
    }
   },
   {
@@ -136,16 +138,14 @@
     "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)",
     "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current"
    ],
-   "reads": [
-    "ud:AppleLanguages (app persistent domain)"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "40b91b35656ce492",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "3599ff0cc93f0144",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "ad7886997b3438ae",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "f757a06ccf19fb1d"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "89ead28e5bc99f8c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "068c1e499682f9c5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.locale": "de1d957e09586350",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "dc510929fba23cfc"
    }
   },
   {
@@ -172,8 +172,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "a34cc9a161a26762",
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.systemLanguage()": "b78f671217b3a5c8"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "b0d71d2dcbf1006b",
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.systemLanguage()": "90bb6bf02a0151c4"
    }
   },
   {
@@ -207,8 +207,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "a34cc9a161a26762",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "3599ff0cc93f0144"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.lprojBundle(for:)": "b0d71d2dcbf1006b",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "068c1e499682f9c5"
    }
   },
   {
@@ -223,7 +223,6 @@
    ],
    "reads": [],
    "writes": [
-    "ud:AppleLanguages",
     "mem:LanguageManager.locale",
     "mem:LanguageManager.bundle",
     "mem:LanguageManager.revision",
@@ -231,9 +230,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "40b91b35656ce492",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "dafc68364aaed5a6",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "88c930a700ca5930"
+    "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.resolve(_:)": "89ead28e5bc99f8c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.revision": "82df3692c0655c91",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "fc27baeb37e93da9"
    }
   },
   {
@@ -264,7 +263,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "3599ff0cc93f0144"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.bundle": "068c1e499682f9c5"
    }
   }
  ],

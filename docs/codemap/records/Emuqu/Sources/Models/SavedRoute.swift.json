@@ -41,10 +41,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "40d04f34ec0697be",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "f037f4bc54a92314",
-    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "e226df4b619cd0ca"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "c27692fe2c7dc235",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "c60ac8b3dd7ef340",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "b85b1c695f2dc344",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "ed9711338ae082de"
    }
   },
   {
@@ -76,9 +76,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "40d04f34ec0697be",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea",
-    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "e226df4b619cd0ca"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "c27692fe2c7dc235",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "c60ac8b3dd7ef340",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "ed9711338ae082de"
    }
   },
   {
@@ -96,8 +96,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "d7e6ba844750c90b",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "8a5be1add32f14b3",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "f760959478fbb133"
    }
   },
   {
@@ -129,11 +129,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.installProtectedDataObserver()": "39f32751713cd669",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()": "728fd1ae892e8277",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.migrateLegacyStoreIfNeeded(to:)": "5af40efa317de231",
-    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:retryDelays:seal:)": "2194b0c246cd5121",
-    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.installProtectedDataObserver()": "e68b6349d80e379f",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()": "4e9087cb0e04469d",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.migrateLegacyStoreIfNeeded(to:)": "b28b52a6e3e8879c",
+    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:retryDelays:seal:)": "d11b3ac62773b538",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "a581e331ec0b88b2"
    }
   },
   {
@@ -157,7 +157,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.retryLoadAfterUnlock()": "ac0a360e45a9b36d"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.retryLoadAfterUnlock()": "1e654d833ad61acc"
    }
   },
   {
@@ -169,13 +169,8 @@
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.recoverBlockedLoad()",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()"
    ],
-   "reads": [
-    "file:<AppGroup>/saved_routes.json"
-   ],
-   "writes": [
-    "mem:SavedRouteStore.routes",
-    "file:<AppGroup>/saved_routes.json"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+1",
@@ -184,8 +179,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.recoverBlockedLoad()": "df982475b3c1615d",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "81e0655a6ab22a9c"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.recoverBlockedLoad()": "b7f75a44080b93eb",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "52678e6acce5eb68"
    }
   },
   {
@@ -197,15 +192,12 @@
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.recoverBlockedLoad()"
    ],
    "reads": [
-    "mem:SavedRouteStore.loadFailed",
     "file:<appGroup>/saved_routes.json (on retry)"
    ],
-   "writes": [
-    "mem:SavedRouteStore.routes (on a successful retry)"
-   ],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.recoverBlockedLoad()": "df982475b3c1615d"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.recoverBlockedLoad()": "b7f75a44080b93eb"
    }
   },
   {
@@ -218,7 +210,6 @@
     "ext:NotificationCenter.removeObserver"
    ],
    "reads": [
-    "file:<AppGroup>/saved_routes.json",
     "mem:SavedRouteStore.loadFailed"
    ],
    "writes": [
@@ -243,8 +234,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()": "728fd1ae892e8277",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()": "4e9087cb0e04469d",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "f760959478fbb133"
    }
   },
   {
@@ -281,8 +272,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -299,8 +290,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "81e0655a6ab22a9c"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "f760959478fbb133",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "52678e6acce5eb68"
    }
   },
   {
@@ -329,9 +320,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()": "67d78c19651e692b",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "81e0655a6ab22a9c"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()": "fb515a47deb37aad",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "f760959478fbb133",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "52678e6acce5eb68"
    }
   },
   {
@@ -347,9 +338,7 @@
     "mem:SavedRouteStore.routes"
    ],
    "writes": [
-    "mem:SavedRouteStore.routes",
-    "file:<AppGroup>/saved_routes.json",
-    "file:<AppGroup>/saved_routes.undecodable.json (removed)"
+    "mem:SavedRouteStore.routes"
    ],
    "branches": [
     {
@@ -364,9 +353,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)": "db0e03828a3d6d3e",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()": "67d78c19651e692b",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)": "18e4785fe00be088",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()": "fb515a47deb37aad",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "f760959478fbb133"
    }
   },
   {
@@ -408,10 +397,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "f9797bf1cd911e58",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.applyEnrichedClimbs(_:to:)": "bddccd59258cc431",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.climbsWithRoadNames(on:)": "ebf4d21bb4255d48",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "d884b961774e9fc0",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.applyEnrichedClimbs(_:to:)": "02d9ef4a6b2befe0",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.climbsWithRoadNames(on:)": "4d0490d17f6fcd9f",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "f760959478fbb133"
    }
   },
   {
@@ -435,10 +424,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/Route.swift::init Route.Climb(startDistanceMeters:endDistanceMeters:gainMeters:averageGradePercent:roadName:)": "7e7ef844786ae484",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.coordinate(atDistanceMeters:on:)": "2a46d2ff35fa4064",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.roadName(at:)": "e99ca9c1d16bca83",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
+    "Emuqu/Sources/Models/Route.swift::init Route.Climb(startDistanceMeters:endDistanceMeters:gainMeters:averageGradePercent:roadName:)": "c9ee876bb05eaa1a",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.coordinate(atDistanceMeters:on:)": "6b5d87332635dd79",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.roadName(at:)": "437cacf1b69bb4d6",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "977c5bbf1d9004f1"
    }
   },
   {
@@ -465,11 +454,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.coordinate(atDistanceMeters:on:)": "2a46d2ff35fa4064",
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reverseGeocodeQueued(_:)": "554165478236818d",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "a0b74e1dad19f7ab"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.coordinate(atDistanceMeters:on:)": "6b5d87332635dd79",
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.reverseGeocodeQueued(_:)": "e916486004340096",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "f9c2af9d0c6252fa",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "ffe7e253e727c48f"
    }
   },
   {
@@ -492,8 +481,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "81e0655a6ab22a9c"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "f760959478fbb133",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "52678e6acce5eb68"
    }
   },
   {
@@ -522,7 +511,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "f037f4bc54a92314"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "b85b1c695f2dc344"
    }
   },
   {
@@ -549,8 +538,7 @@
     "ext:Data(contentsOf:)"
    ],
    "reads": [
-    "file:<AppGroup>/saved_routes.json",
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+    "file:<AppGroup>/saved_routes.json"
    ],
    "writes": [
     "mem:SavedRouteStore.routes",
@@ -570,8 +558,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.adoptStoredLibrary(_:)": "89ea1f791e80d622",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.adoptStoredLibrary(_:)": "21b5f3f0088196c9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -585,9 +573,7 @@
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.setAsideUndecodable(_:reason:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
-   ],
+   "reads": [],
    "writes": [
     "mem:SavedRouteStore.routes",
     "mem:SavedRouteStore.loadFailed",
@@ -606,11 +592,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.setAsideUndecodable(_:reason:)": "8666c407bee1cce0",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)": "7c29c0d5a06f281b",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "f760959478fbb133",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.setAsideUndecodable(_:reason:)": "f1ac3af289cc66ec",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)": "814152c2f067c287",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "20d8d937ea60f4f4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -643,8 +629,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -657,11 +643,8 @@
     "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [
-    "file:<AppGroup>/saved_routes.json"
-   ],
+   "reads": [],
    "writes": [
-    "file:<AppGroup>/saved_routes.json",
     "mem:SavedRouteStore.routes"
    ],
    "branches": [
@@ -672,10 +655,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "1cecd48171fbd501",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.recoverBlockedLoad()": "df982475b3c1615d",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "b681b8beddae6da1",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.recoverBlockedLoad()": "b7f75a44080b93eb",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "f760959478fbb133",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -715,8 +698,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)": "3ebfd283c79d53e7",
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()": "55bf492d45792d2e"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)": "6cb6d722419b1165",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()": "a9eabb86fec75107"
    }
   },
   {
@@ -730,13 +713,12 @@
    ],
    "reads": [],
    "writes": [
-    "mem:LatestWinsFileWriter.state",
-    "file:<label file>"
+    "mem:LatestWinsFileWriter.state"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)": "3ebfd283c79d53e7",
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeFile()": "dd0d470c3049071b"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)": "6cb6d722419b1165",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeFile()": "aa601f7f828d8fbe"
    }
   },
   {
@@ -766,9 +748,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)": "3ebfd283c79d53e7",
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeIfPresent(_:label:)": "51a9bcf71432dac3",
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)": "43a232c378aade76"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.State.supersede(with:)": "6cb6d722419b1165",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeIfPresent(_:label:)": "0e024b08d32d64cc",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)": "8d42aa6084208261"
    }
   },
   {
@@ -785,7 +767,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeIfPresent(_:label:)": "51a9bcf71432dac3"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeIfPresent(_:label:)": "0e024b08d32d64cc"
    }
   },
   {
@@ -810,7 +792,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   },
   {
@@ -826,8 +808,7 @@
     "mem:LatestWinsFileWriter.state"
    ],
    "writes": [
-    "mem:LatestWinsFileWriter.state",
-    "file:<label file>"
+    "mem:LatestWinsFileWriter.state"
    ],
    "branches": [
     {
@@ -842,8 +823,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.retryLater(_:generation:)": "1fa580df1d741430",
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)": "43a232c378aade76"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.retryLater(_:generation:)": "a6eef03fae89b479",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)": "8d42aa6084208261"
    }
   },
   {
@@ -880,8 +861,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()": "55bf492d45792d2e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()": "a9eabb86fec75107",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -908,8 +889,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "06051ad11eb1ce2f",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "79656e26ed901005"
    }
   }
  ],

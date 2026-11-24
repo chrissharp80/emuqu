@@ -23,12 +23,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "16ff37e02f061463",
-    ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
-    ".github/workflows/ci.yml::job tests": "495c14a3c33d4d31",
-    ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
-    ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
-    ".github/workflows/gates.yml::step script-gates/Code map is current": "2f4be6cce93f3d96"
+    ".github/workflows/ci.yml::job lint-and-budgets": "bc62ec09ef55e5fc",
+    ".github/workflows/ci.yml::job strict-concurrency": "676b240592ee26f0",
+    ".github/workflows/ci.yml::job tests": "850318f8205a14c4",
+    ".github/workflows/ci.yml::job thread-sanitizer": "c13ca06c4edc07a0",
+    ".github/workflows/gates.yml::job script-gates": "dd08a98b187f9f63",
+    ".github/workflows/gates.yml::step script-gates/Code map is current": "4c752b83aa5d6a89"
    }
   },
   {
@@ -49,13 +49,16 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target budget-monotonicity": "3f2b4858f1a3dead",
-    "Makefile::target ci": "cf2e840175bcfc4b",
-    "Makefile::target release-build": "8569be24c7eb1de6",
-    "Makefile::target test-coverage": "c1919f9fcb7887a7",
-    "Makefile::target thread-sanitizer": "adfca9b867c6ab56",
-    "Makefile::target verify-gates": "a1ef2dd0c44fbc10",
-    "scripts/evidence_report.sh::fn budget": "a927bad97b8838e4"
+    "Makefile::target budget-monotonicity": "3155a1de4b369058",
+    "Makefile::target ci": "07e4ee3a4246b192",
+    "Makefile::target release-build": "9e94ed18e31bf8ad",
+    "Makefile::target test-coverage": "19d713a2793d3f8d",
+    "Makefile::target thread-sanitizer": "b2bfc5d4f5776075",
+    "Makefile::target verify-gates": "80ab21666c1b0c08",
+    "scripts/evidence_report.sh::fn budget": "fea4921664af714d",
+    "scripts/check_thread_sanitizer.sh::": "99742adcfcfb8d94",
+    "scripts/run_tests_with_coverage.sh::": "768cb177fd4ba5ba",
+    "scripts/verify_gates_fail.sh::": "5c60d1a4b9f6ae94"
    }
   },
   {
@@ -73,10 +76,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target ci-local": "e2b0391dda4db254",
-    "Makefile::target ci-local-unit": "8e51d93d38811f72",
-    "scripts/simulate_ci.sh::fn print": "5719f9e45c441417",
-    "scripts/simulate_ci.sh::fn print #2": "b3fe2b74876c096a"
+    "Makefile::target ci-local": "bef1e45de062e9ce",
+    "Makefile::target ci-local-unit": "753b2ed3729d5354",
+    "scripts/simulate_ci.sh::fn print": "c1da06fa327bdd40",
+    "scripts/simulate_ci.sh::fn print #2": "ae04bcb232ecfe7e",
+    "scripts/simulate_ci.sh::": "dd7599c8c86e7201"
    }
   },
   {
@@ -107,23 +111,26 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "ec96a86dca7e7d98",
-    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "b220bed7db5626a6",
-    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "881cc6b476cb58aa",
-    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "99a2c1935f08f8cb",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
-    "EmuquTests/ThreadSanitizerCanaryTests.swift::func ThreadSanitizerCanaryTests.testUnsynchronizedWritesRaceWhenTheCanaryIsRequested()": "8204202826b96076",
-    "Makefile::target budget-monotonicity": "3f2b4858f1a3dead",
-    "Makefile::target codemap-guard": "31a759d3fd34483c",
-    "scripts/check_budget_monotonicity.sh::fn no_baseline": "fc658970d2a0e744",
-    "scripts/check_thread_sanitizer.sh::fn run_sanitized": "82b631abdc683244",
-    "scripts/codemap/codemap.py::def budget_problems": "4b5252320a3020b3",
-    "scripts/codemap/codemap.py::def dependency_problems": "bd259b7be6811115",
-    "scripts/enforce_tech_debt_budgets.sh::fn measure_debt": "da2320eb626a809c",
-    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "0b214d0ad20888fb",
-    "scripts/verify_gates_fail.sh::fn backup": "7d768c7178d9b770",
-    "scripts/verify_gates_fail.sh::fn check": "628cb3d9d277ffae",
-    "scripts/verify_gates_fail.sh::fn restore_all": "b419892056a17dde"
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "bc33c1542856bd46",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "918a6980a0df7abb",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "fdc9bd3d54194eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "218c71cd2d3f8bb1",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "ee1978ffd0463dc7",
+    "EmuquTests/ThreadSanitizerCanaryTests.swift::func ThreadSanitizerCanaryTests.testUnsynchronizedWritesRaceWhenTheCanaryIsRequested()": "b0daaee71c3ddc7c",
+    "Makefile::target budget-monotonicity": "3155a1de4b369058",
+    "Makefile::target codemap-guard": "4a06f650cb356cc9",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "e1ca9cb6a5d991db",
+    "scripts/check_thread_sanitizer.sh::fn run_sanitized": "fd270f9143449506",
+    "scripts/codemap/codemap.py::def budget_problems": "e5a11d6e8e9be5cb",
+    "scripts/codemap/codemap.py::def dependency_problems": "ab045892f64feee1",
+    "scripts/enforce_tech_debt_budgets.sh::fn measure_debt": "c96f51ff52e0decd",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "15451ca98262086c",
+    "scripts/verify_gates_fail.sh::fn backup": "88d1811314f067b4",
+    "scripts/verify_gates_fail.sh::fn check": "88a230e01e1400dd",
+    "scripts/verify_gates_fail.sh::fn restore_all": "7c9339020e625f41",
+    "scripts/check_gate_preflight.sh::": "50d2bc54de2f5eb5",
+    "scripts/check_gates_wired.sh::": "16a4971f63a61cc9",
+    "scripts/verify_gates_fail.sh::": "5c60d1a4b9f6ae94"
    }
   },
   {
@@ -141,10 +148,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "ec96a86dca7e7d98",
-    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "b220bed7db5626a6",
-    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "881cc6b476cb58aa",
-    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "53ebc5503c521d01"
+    ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "bc33c1542856bd46",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "918a6980a0df7abb",
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "fdc9bd3d54194eb5",
+    ".github/workflows/ci.yml::step lint-and-budgets/No leaked test mutations": "3d28dd4829325c30",
+    "scripts/check_gate_preflight.sh::": "50d2bc54de2f5eb5",
+    "scripts/check_gates_wired.sh::": "16a4971f63a61cc9",
+    "scripts/check_no_leaked_mutations.sh::": "1d0616035c6dbf6a",
+    "scripts/verify_gates_fail.sh::": "5c60d1a4b9f6ae94"
    }
   },
   {
@@ -163,11 +174,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "1eefdbbc8287980c",
-    "scripts/lib/preflight.sh::fn gate_release_tree_lock": "59418dd1be593444",
-    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "9b85fbe8e85c7fef",
-    "scripts/verify_gates_fail.sh::fn restore_all": "b419892056a17dde",
-    "scripts/verify_tests_fail.sh::fn restore_all": "2791d57c196ad0be"
+    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "50371b5ddc2afa96",
+    "scripts/lib/preflight.sh::fn gate_release_tree_lock": "60d42a087a242024",
+    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "ef51a9aab668e4d8",
+    "scripts/verify_gates_fail.sh::fn restore_all": "7c9339020e625f41",
+    "scripts/verify_tests_fail.sh::fn restore_all": "bc7e29fcadc63361"
    }
   },
   {
@@ -184,9 +195,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)": "b13b474b5cc191a9",
-    "scripts/verify_tests_fail.sh::fn mutate": "b17da90a86fc42d2",
-    "scripts/verify_tests_fail.sh::fn run_suite": "b8cb90b1e21631f2"
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)": "a5f372c7a936175c",
+    "scripts/verify_tests_fail.sh::fn mutate": "5500821ac68a2601",
+    "scripts/verify_tests_fail.sh::fn run_suite": "b62cfce5348e31d5"
    }
   },
   {
@@ -207,13 +218,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "8d7b213b174bf680",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.storedHRStatistics(series:flags:windowStart:windowEnd:)": "00e7407acbc2dbbe",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "bf899a6178762308",
-    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.notReplacedBySync(_:by:)": "0edb6f4d08bbc411",
-    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "0415c974b73264d3",
-    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "a8da2c0c85eb9d03",
-    "scripts/verify_tests_fail.sh::fn mutate": "b17da90a86fc42d2"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "22ccce0c1a14c29e",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.storedHRStatistics(series:flags:windowStart:windowEnd:)": "530a892a3147ab2b",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "063043f5a30aecd6",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.notReplacedBySync(_:by:)": "93b69dda86bf239a",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "07a432d0fd32c211",
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "cf40d23c9f6c9e99",
+    "scripts/verify_tests_fail.sh::fn mutate": "5500821ac68a2601"
    }
   },
   {
@@ -229,8 +240,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "16ff37e02f061463",
-    ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e"
+    ".github/workflows/ci.yml::job lint-and-budgets": "bc62ec09ef55e5fc",
+    ".github/workflows/testflight.yml::job quality-gate": "5a37e7dcdea80c95"
    }
   },
   {
@@ -247,9 +258,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "13438c24dcea9cc9",
-    "scripts/check_budget_monotonicity.sh::fn is_allowed": "76309c9411982f50",
-    "scripts/run_tests_with_coverage.sh::fn run_tests": "c53fe7cc88c339f7"
+    ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "6aae4ff2c8c540ca",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "e9c905a963e0a00b",
+    "scripts/run_tests_with_coverage.sh::fn run_tests": "e7c50c3b9be56e7f",
+    "scripts/check_refactor_spec_conformance.sh::": "962eb73645f5e686"
    }
   },
   {
@@ -272,15 +284,15 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job tests": "495c14a3c33d4d31",
-    ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
-    ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
-    ".github/workflows/security.yml::job codeql": "64078fc4677fac05",
-    ".github/workflows/security.yml::job dependency-review": "f544cc3ea5ca4098",
-    ".github/workflows/security.yml::step dependency-review/Require the Swift packages in the dependency graph": "8b05cdb3a8f6d6ea",
-    ".github/workflows/testflight.yml::job deploy": "02e6016611ab02e4",
-    ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e",
-    ".github/workflows/testflight.yml::step deploy/Remove signing material": "6e9a08daf6efeb80"
+    ".github/workflows/ci.yml::job tests": "850318f8205a14c4",
+    ".github/workflows/ci.yml::job thread-sanitizer": "c13ca06c4edc07a0",
+    ".github/workflows/gates.yml::job script-gates": "dd08a98b187f9f63",
+    ".github/workflows/security.yml::job codeql": "12c5fcd9c835e50b",
+    ".github/workflows/security.yml::job dependency-review": "fbfc145d344bfbfd",
+    ".github/workflows/security.yml::step dependency-review/Require the Swift packages in the dependency graph": "50e7ef048699ffff",
+    ".github/workflows/testflight.yml::job deploy": "632782b3019daf95",
+    ".github/workflows/testflight.yml::job quality-gate": "5a37e7dcdea80c95",
+    ".github/workflows/testflight.yml::step deploy/Remove signing material": "ebabc63a4ca254a2"
    }
   },
   {
@@ -299,11 +311,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "16ff37e02f061463",
-    ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
-    ".github/workflows/ci.yml::job tests": "495c14a3c33d4d31",
-    ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
-    ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64"
+    ".github/workflows/ci.yml::job lint-and-budgets": "bc62ec09ef55e5fc",
+    ".github/workflows/ci.yml::job strict-concurrency": "676b240592ee26f0",
+    ".github/workflows/ci.yml::job tests": "850318f8205a14c4",
+    ".github/workflows/ci.yml::job thread-sanitizer": "c13ca06c4edc07a0",
+    ".github/workflows/gates.yml::job script-gates": "dd08a98b187f9f63"
    }
   },
   {
@@ -322,11 +334,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::step tests/Write the result to the run summary": "6e28e0a89505b30b",
-    ".github/workflows/ci.yml::step thread-sanitizer/Write the result to the run summary": "4c12a1bdce7dc65e",
-    ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
-    "Makefile::target sbom-check": "9a099cd017dba69b",
-    "scripts/evidence_report.sh::fn budget": "a927bad97b8838e4"
+    ".github/workflows/ci.yml::step tests/Write the result to the run summary": "43266b97603bc885",
+    ".github/workflows/ci.yml::step thread-sanitizer/Write the result to the run summary": "efcfa2fe86fa0bbc",
+    ".github/workflows/gates.yml::job script-gates": "dd08a98b187f9f63",
+    "Makefile::target sbom-check": "f94d7ba6d4d9d6ad",
+    "scripts/evidence_report.sh::fn budget": "fea4921664af714d",
+    "scripts/generate_sbom.py::": "5b067133926b429f"
    }
   }
  ],

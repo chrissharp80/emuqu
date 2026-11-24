@@ -28,7 +28,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns a new UtilityServices value on every access, sharing this container's Overrides box."
   },
   {
    "key": "var AppDependencies.analysis",
@@ -50,7 +51,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns a new AssistantServices value that shares this container's Overrides box."
   },
   {
    "key": "var AppDependencies.collection",
@@ -61,7 +63,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns a new CollectionServices value that shares this container's Overrides box."
   },
   {
    "key": "var AppDependencies.location",
@@ -72,7 +75,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns a new LocationServices value that shares this container's Overrides box."
   },
   {
    "key": "var AppDependencies.providers",
@@ -83,7 +87,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns a new ProviderServices value on every access that shares this container's Overrides box, so it resolves the same overrides as the container."
   },
   {
    "key": "var AppDependencies.services",
@@ -94,7 +99,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns a new AppServices value that shares this container's Overrides box."
   },
   {
    "key": "var AppDependencies.storage",
@@ -105,7 +111,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns a new StorageServices value on every access that shares this container's Overrides box, so it resolves the same overrides as the container."
   },
   {
    "key": "init AppDependencies()",
@@ -130,8 +137,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
-   }
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4"
+   },
+   "contract": "Returns a copy of the dependency container in force, sharing the same Overrides box: the live container AppDependencies() unless a container installed by install(_:) is in force. Read-only; it changes nothing. Safe to read from any thread: the container is held in an OSAllocatedUnfairLock."
   },
   {
    "key": "func AppDependencies.install(_:)",
@@ -149,7 +157,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4"
    }
   },
   {
@@ -166,7 +174,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4"
    }
   },
   {
@@ -1452,7 +1460,8 @@
      "effect": "true: return the substitute — never happens, no code in the repo assigns any override; false (always): return SettingsManager.shared."
     }
    ],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns the SettingsManager the app uses: the substitute in overrides.settingsManager when one is set, otherwise the SettingsManager.shared singleton (created on first access)."
   },
   {
    "key": "var UtilityServices.systemDiagnosticsManager",
@@ -1894,7 +1903,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.baselineTracker": "dd4b05a0205a5a26"
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.baselineTracker": "d1522e1d4d02d902"
    }
   },
   {
@@ -1937,7 +1946,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.scoring": "72a870dc0e6ba4a6"
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.scoring": "2a120bd4f1e1fc27"
    }
   },
   {
@@ -1960,7 +1969,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.reanalysis": "167a710f23ca950f"
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.reanalysis": "26353664a7cdfc46"
    }
   },
   {
@@ -1975,7 +1984,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis": "7e7eff2d9ea401f1"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis": "96a44b84216d9963"
    }
   },
   {
@@ -2100,8 +2109,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "fa9202dd1d9f813f",
-    "Emuqu/Sources/Services/RoadGraphService.swift::init RoadGraphService(overpass:)": "85c3c1ad83d71c52"
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "df8f66905ae66e1b",
+    "Emuqu/Sources/Services/RoadGraphService.swift::init RoadGraphService(overpass:)": "f7edca409f33afa6"
    }
   },
   {
@@ -2166,8 +2175,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "fa9202dd1d9f813f",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::init TrailDiscoveryService(overpass:)": "28f721d98e09b182"
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "df8f66905ae66e1b",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::init TrailDiscoveryService(overpass:)": "564b62830a6b7e0f"
    }
   },
   {
@@ -2714,17 +2723,17 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "e5e40dd422fc07ac",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.analysis": "a5881eae472ecfb2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler": "507098363688faff",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.powerStatePolicy": "30251ece00d6643c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "a0b74e1dad19f7ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "058b3dca3f8937e8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "04778df48b6e9a44",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "59f6a0baabb8c1c8"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "4141423e7c1d6b8f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.analysis": "5d39a9d383bdafaa",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "f9c2af9d0c6252fa",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "a51b2bd0dfe5054f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler": "58783ddd53aed996",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.powerStatePolicy": "40ce53f4082a47f8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "ffe7e253e727c48f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "97a576c0e0c5b615",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "8bf807e0dea96e95",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "9b1d4e6a35007216"
    }
   },
   {
@@ -2745,11 +2754,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeAssistantStores": "68bcd4938de0bea1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeDeviceStores": "242432151a06c505",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeLocationStores": "a945b07df8e2df70",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "59f6a0baabb8c1c8"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeAssistantStores": "e894105c3795ff30",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeDeviceStores": "0f12119a40388bdc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeLocationStores": "2fef670a09401784",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "9b1d4e6a35007216"
    }
   },
   {
@@ -2773,16 +2782,16 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore": "ca6a95a9c987140f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "a9161ec7b1d3b09c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.conversationStore": "cae704a30a9efb87",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.userFactsStore": "05bda0e1f9522c3e",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9644ad4752275337",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmCacheTelemetry": "2ce4b1e123543ddc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit": "dd8becf2e8a4332a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker": "c3caff64d81005e4"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "74b42b01be472259",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "098656334b393691",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore": "a6b69c45d36220a2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "40b71c4701cad4e4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.conversationStore": "062a437ba44afe60",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.userFactsStore": "b97ecd9ab6bcdbac",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "29706399259c0c48",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmCacheTelemetry": "cbd636f7ffbf1771",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit": "fc3e63f294a22f36",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker": "d196f29e6646fb1f"
    }
   },
   {
@@ -2805,15 +2814,15 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.activeRouteSession": "afc55a2a74fa184f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder": "e00d57ceebe4cddc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "a0b74e1dad19f7ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "058b3dca3f8937e8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.surroundingsPOIService": "cca5dc6312ad5573",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.weatherService": "98384ed6372e94c0"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "f9c2af9d0c6252fa",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.activeRouteSession": "54f8bae197d14c55",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "a5a816dc798adb19",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder": "b70ce97fd13e49ce",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "f5ae1380b2ac95ce",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "ffe7e253e727c48f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "97a576c0e0c5b615",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.surroundingsPOIService": "745187fc0b337e8c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.weatherService": "6ed768abba57bc06"
    }
   },
   {
@@ -2840,19 +2849,19 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.heatAcclimationCache": "584281893599d0ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "e5e40dd422fc07ac",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.analysis": "a5881eae472ecfb2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler": "507098363688faff",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.recoveryScoreFeedbackStore": "d5d87c28d34a07cc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.uiStateCache": "1734474b85a93236",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.workoutTrackBackup": "0d1b11f8c8845325",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "d874529ff05bd756",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "7a67c7397d8585c2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "6ccff086e88d7a89"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.heatAcclimationCache": "b501c8b6d5e047cd",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "4141423e7c1d6b8f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.analysis": "5d39a9d383bdafaa",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "a51b2bd0dfe5054f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "53cee893306d72f4",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler": "58783ddd53aed996",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.recoveryScoreFeedbackStore": "657c1b4a6c4d5d30",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.uiStateCache": "83d266ba0dfbb5d7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.workoutTrackBackup": "00a5219df0f22f2b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "fa7e1e021762b594",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "3ef8729586e0798d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "91b80302c82cfe1e"
    }
   },
   {
@@ -2869,7 +2878,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a"
    }
   },
   {
@@ -2887,9 +2896,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue": "2ac01458964f7b92"
-   }
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue": "ec6d93ad8f76b0ca"
+   },
+   "contract": "Returns the AppDependencies container set for this subtree, or AppDependencies.current at the time of the read when none was set. Setting it stores an override for the subtree."
   }
  ],
  "deps": {}

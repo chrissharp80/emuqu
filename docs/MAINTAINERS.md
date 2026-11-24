@@ -1365,7 +1365,12 @@ fails when:
 
 `codemap.py status` lists every problem. A change to what one function does
 sends every certain caller back to be re-read, and onward while behaviour
-keeps changing.
+keeps changing. Tests are not sent back (running them checks them); a caller
+is checked against what a callee returns and writes (`does` or its
+`contract`, `entry`, `writes`), not what it reads; records list only the
+state their own code touches (`impact` shows the whole reach); and a wrapper
+names what it runs in `delegates`, so its callers are checked against that
+instead.
 
 For a change: run `make codemap-impact` first and read what it lists; make the
 change (carry a moved file or renamed unit over with `codemap.py move`); rewrite

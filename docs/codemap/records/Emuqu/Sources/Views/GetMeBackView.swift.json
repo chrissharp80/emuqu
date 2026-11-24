@@ -41,8 +41,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder": "e00d57ceebe4cddc"
-   }
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder": "b70ce97fd13e49ce"
+   },
+   "contract": "Returns the BreadcrumbRecorder from the environment's AppDependencies location services: BreadcrumbRecorder.shared unless overridden."
   },
   {
    "key": "var GetMeBackView.locationDenied",
@@ -69,7 +70,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "92013732df2b2a52"
    }
   },
   {
@@ -86,7 +87,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "92013732df2b2a52"
    }
   },
   {
@@ -97,13 +98,11 @@
    "calls": [
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail"
    ],
-   "reads": [
-    "mem:BreadcrumbRecorder.activeTrail"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "cd2b5876c2fd11cf"
    }
   },
   {
@@ -116,8 +115,7 @@
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail"
    ],
    "reads": [
-    "mem:BreadcrumbRecorder.latestLocation",
-    "mem:BreadcrumbRecorder.activeTrail"
+    "mem:BreadcrumbRecorder.latestLocation"
    ],
    "writes": [],
    "branches": [
@@ -133,8 +131,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "92013732df2b2a52",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "cd2b5876c2fd11cf"
    }
   },
   {
@@ -151,7 +149,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "92013732df2b2a52"
    }
   },
   {
@@ -170,9 +168,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "a0b74e1dad19f7ab",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "84a1ad6f830929e0",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "c47783c430463c31"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "ffe7e253e727c48f",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.countryCode(of:at:)": "2fe2ee53f87fc480",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "2faeba64d49bbe91"
    }
   },
   {
@@ -188,8 +186,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)": "b6cb0168ed202706",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentCountryCode": "ce92db9ab04ce663"
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(currentCountry:region:)": "6af70fe4d25695b3",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentCountryCode": "6cdc680827cccf3f"
    }
   },
   {
@@ -212,9 +210,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "96a4392555411a9b",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "c47783c430463c31",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "0393ae2b67c144b2"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.asCLLocation": "78afab81f7ddbf41",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "2faeba64d49bbe91",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "4a1c35cb01cd2451"
    }
   },
   {
@@ -238,10 +236,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "5e3b153088f74923",
-    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "f95a14580c002772",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "c47783c430463c31",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "0393ae2b67c144b2"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "84ef101f2bc8307f",
+    "Emuqu/Sources/Services/RoadGeocodingSupport.swift::func bearingDegrees(from:to:)": "ba98ca910334fd93",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "2faeba64d49bbe91",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "4a1c35cb01cd2451"
    }
   },
   {
@@ -262,7 +260,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestHeading": "3254ffb88803d105"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestHeading": "f4d7e1c1d68517aa"
    }
   },
   {
@@ -290,9 +288,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees": "30e0d11d0575861f",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading": "1576657fb8b9ca89",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestHeading": "3254ffb88803d105"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees": "384d81512ffba1a5",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading": "4c9b489494fee050",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestHeading": "f4d7e1c1d68517aa"
    }
   },
   {
@@ -311,7 +309,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.continuousAngle(from:to:)": "ab1e551eb3e5f056"
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.continuousAngle(from:to:)": "21c2744f1d971544"
    }
   },
   {
@@ -348,7 +346,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "c47783c430463c31"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.latestLocation": "2faeba64d49bbe91"
    }
   },
   {
@@ -364,8 +362,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)": "4ac56938632b99ae",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentAccuracyMeters": "2078a044c780e2f1"
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)": "8f5ca06185ecf0b1",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentAccuracyMeters": "5688b05aa5ec3a4b"
    }
   },
   {
@@ -382,9 +380,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "a9410f0b3419ac85",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees": "30e0d11d0575861f",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading": "1576657fb8b9ca89"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "6ae6275d8f3d0100",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees": "384d81512ffba1a5",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading": "4c9b489494fee050"
    }
   },
   {
@@ -403,8 +401,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "mem:BreadcrumbRecorder.activeTrail",
-    "ud:fitness.unitsPreference (App Group suite, standard fallback)"
+    "mem:BreadcrumbRecorder.activeTrail"
    ],
    "writes": [],
    "branches": [
@@ -435,14 +432,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "a9410f0b3419ac85",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.distanceToOriginMeters": "ba77b46fefa8ae18",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "0393ae2b67c144b2",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "2069ec6f02c16e5b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "6c5a47fd27898e2b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "744466bfb6f72e53",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "6ae6275d8f3d0100",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.distanceToOriginMeters": "4b6c9cc5d7e86c60",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "4a1c35cb01cd2451",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "92013732df2b2a52"
    }
   },
   {
@@ -459,9 +456,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withAlerts(_:)": "a6408f55d82d2d27",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withLifecycle(_:)": "9a5389d4e525d263",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trailStack": "0d996b24b1c9815e"
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withAlerts(_:)": "73652774575e2dd0",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withLifecycle(_:)": "9769b68dfb2f2a5d",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trailStack": "7f9bf794ae9fca98"
    }
   },
   {
@@ -495,15 +492,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyRibbon": "9cb1dc817fc952f3",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.actionsRow": "715f58c3147b0324",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowDial": "43dea8e0d3b42e54",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.headline": "66e2f0cdd4cc27e0",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDenied": "7698590f7618c971",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDeniedBanner": "7d52631ceaa4ef76",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsPanel": "cb7d82d09bdab8a5",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trailToolbar": "2a0d3a1fb190e9d2"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyRibbon": "0a045aa09dec20b0",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.actionsRow": "1e68c72b69ef57a6",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowDial": "1246a0c20a4f0bab",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.headline": "fba815a4eb557b1f",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDenied": "768fcf1d1bae8a25",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDeniedBanner": "6084852939535fb0",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsPanel": "f73323c116919794",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trailToolbar": "30a0fc49cb7fbdd7"
    }
   },
   {
@@ -519,8 +516,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsToolbarItem": "61ab5b7e24f4a14e"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsToolbarItem": "8051ad30e551b5f9"
    }
   },
   {
@@ -535,7 +532,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsToggleButton": "33c29c99829798c5"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsToggleButton": "009bcc9c562a6c4a"
    }
   },
   {
@@ -556,8 +553,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "68c93599f5f89301"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "d17731c82fcff78c"
    }
   },
   {
@@ -570,14 +567,12 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()"
    ],
    "reads": [],
-   "writes": [
-    "mem:VoiceConversationController.state"
-   ],
+   "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()": "556d928e254d9dfc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.voiceConversationController": "da8e1e7686d5de42"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()": "9e11e80b3e7f021b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "74b42b01be472259",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.voiceConversationController": "907b8c0b09e0c7be"
    }
   },
   {
@@ -598,10 +593,10 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "9df569d2cf20cc52",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "a9161ec7b1d3b09c",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.startVoiceChat()": "13bc0751cac1da8b"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "614344213f66bb58",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "74b42b01be472259",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "40b71c4701cad4e4",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.startVoiceChat()": "f7a0596071609163"
    }
   },
   {
@@ -621,12 +616,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialEmergencyServices()": "902a4d6b69324d1d",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialFailedMessage(dialling:canPlaceCalls:)": "1bbca4914a9a0d30",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.sosConfirmMessage(dialling:canPlaceCalls:)": "de051630ff62adf5",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withEndTrailAlert(_:)": "6acb637bd3463840",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.aiDisclaimerSheet": "ef7e37cb471a23b3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialEmergencyServices()": "a0f67094a7664741",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialFailedMessage(dialling:canPlaceCalls:)": "1a0f28cbb778c85f",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.sosConfirmMessage(dialling:canPlaceCalls:)": "28277b860ea4ad2a",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withEndTrailAlert(_:)": "b6ead9516d9d98c3",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.aiDisclaimerSheet": "cda9013c733261b2"
    }
   },
   {
@@ -645,8 +640,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.endTrailAlertActions": "96da43106ede4cd1"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.endTrailAlertActions": "5270fc95062b849c"
    }
   },
   {
@@ -663,17 +658,15 @@
    ],
    "reads": [],
    "writes": [
-    "file:breadcrumb active trail / archive (BreadcrumbStore.archiveActive / clear)",
-    "mem:BreadcrumbRecorder.activeTrail",
-    "mem:GetMeBackView.showTrailChangeFailed (via finishTrailChange)"
+    "file:breadcrumb active trail / archive (BreadcrumbStore.archiveActive / clear)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.clearTrail()": "828cff3b4dafd785",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.endAndArchive()": "81f5fc860425851f",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.finishTrailChange(_:)": "83469a9b7346bb22",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.clearTrail()": "4a5d9258bcad8487",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.endAndArchive()": "171a2781254a755d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.finishTrailChange(_:)": "1f97497a34f59334",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "92013732df2b2a52"
    }
   },
   {
@@ -711,9 +704,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.handleScenePhase(_:)": "59e474de5eab7ece",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.prepareScreenState()": "7487c7436a3baee9",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.resetScreenState()": "ea53a0fcd6b7abf5"
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.handleScenePhase(_:)": "3b8844acc350b2ec",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.prepareScreenState()": "da9cc2c60bd315af",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.resetScreenState()": "7ea3040381fbd6e3"
    }
   },
   {
@@ -748,9 +741,9 @@
     }
    ],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()": "c794571e41a68e05",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "3590b680dc36bd97",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()": "dacf092dec81216a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "a5a816dc798adb19"
    }
   },
   {
@@ -776,8 +769,7 @@
    "writes": [
     "mem:UIApplication.isIdleTimerDisabled",
     "mem:GetMeBackView.didDisableIdleTimer",
-    "mem:AmbientLocationService.startRequested",
-    "mem:BreadcrumbRecorder.isEngaged"
+    "mem:AmbientLocationService.startRequested"
    ],
    "branches": [
     {
@@ -787,14 +779,14 @@
     }
    ],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording": "62e767b575bef76d",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.start()": "f320523b4d558c6e",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()": "9d46d09543d8ab1f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "3590b680dc36bd97",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.shouldKeepScreenOnDuringRecording": "4ae79e6f3811ee16",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.start()": "3c49556c3241f05d",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()": "291a99d49ee1e7c7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "a5a816dc798adb19",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "a6a0c97cb407b211",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "92013732df2b2a52"
    }
   },
   {
@@ -827,7 +819,7 @@
     }
    ],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "3590b680dc36bd97"
    }
   },
   {
@@ -844,10 +836,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationIsOffSection": "a98c9f02a6774172",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.openSettingsSection": "d4a312385149066c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationIsOffSection": "cbd4fd0ad14d402f",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.openSettingsSection": "78f469e310ddd10e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "f17bb2dd18cce655"
    }
   },
   {
@@ -862,7 +854,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -884,8 +876,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "68c93599f5f89301"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "d17731c82fcff78c"
    }
   },
   {
@@ -912,15 +904,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "68c93599f5f89301",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GPSAccuracyLevel.color": "152f9f535b563a83",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GPSAccuracyLevel.icon": "ee023d6dd126fc96",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "a9410f0b3419ac85",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentAccuracyMeters": "2078a044c780e2f1",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "d17731c82fcff78c",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GPSAccuracyLevel.color": "b0c0fe547dc7a8b4",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GPSAccuracyLevel.icon": "5e616df6985a4c1f",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "6ae6275d8f3d0100",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.currentAccuracyMeters": "5688b05aa5ec3a4b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "cd2b5876c2fd11cf",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "f17bb2dd18cce655",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "14ed236219121998"
    }
   },
   {
@@ -936,9 +928,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "68c93599f5f89301",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var CardinalLabel.body": "95b1b2fd43425604",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.cardinalLetters": "d1f3f4ad0de8d802"
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "d17731c82fcff78c",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var CardinalLabel.body": "bf6d94ded9ffe037",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.cardinalLetters": "eae7f6c9fdb8366b"
    }
   },
   {
@@ -959,7 +951,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -1002,20 +994,20 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.turnArrow(to:)": "c647d8ff1b5bf23e",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var CompassArrow.body": "fc60721a0be273f7",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GPSAccuracyLevel.arrowOpacity": "1c50f7fadd54a9a0",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GPSAccuracyLevel.fuzzRadius": "b9f2ee36217a2cc5",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "a9410f0b3419ac85",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowAccessibilityLabel": "b2e2d7402b59cd3b",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowRotationDegrees": "39038d44d0fc1d81",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableNote": "521c14995b6bdddf",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading": "1576657fb8b9ca89",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "0393ae2b67c144b2",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.roseRing": "897cd39af30f6af6",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.showsArrow": "d0c25e00072cc14a",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305",
-    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)": "67c4f04010924c05"
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.turnArrow(to:)": "500df175e5729854",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var CompassArrow.body": "a8e656cd602ff3c3",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GPSAccuracyLevel.arrowOpacity": "8fdc70cede569d2c",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GPSAccuracyLevel.fuzzRadius": "eaa45103a6021612",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "6ae6275d8f3d0100",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowAccessibilityLabel": "bf8833e77501f300",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowRotationDegrees": "91d5b49576f97e1e",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableNote": "6c368154ec2facc8",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading": "4c9b489494fee050",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originFix": "4a1c35cb01cd2451",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.roseRing": "739c3e441a550018",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.showsArrow": "ad63736797a6485e",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "cd2b5876c2fd11cf",
+    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)": "bf6cddbe92dc7cac"
    }
   },
   {
@@ -1030,8 +1022,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableText": "f0a5ca41bf640c1f",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableText": "0c70ece8950f2031",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "f17bb2dd18cce655"
    }
   },
   {
@@ -1053,8 +1045,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees": "30e0d11d0575861f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees": "384d81512ffba1a5"
    }
   },
   {
@@ -1074,9 +1066,7 @@
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.relativeDirectionLabel(distance:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "ud:fitness.unitsPreference (App Group suite)"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -1101,16 +1091,16 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.relativeDirectionLabel(distance:)": "515ee8ef2396467c",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "a9410f0b3419ac85",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees": "30e0d11d0575861f",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableText": "f0a5ca41bf640c1f",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.distanceToOriginMeters": "ba77b46fefa8ae18",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading": "1576657fb8b9ca89"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "2069ec6f02c16e5b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "6c5a47fd27898e2b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "744466bfb6f72e53",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.relativeDirectionLabel(distance:)": "1345873878ef869c",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyState": "6ae6275d8f3d0100",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.bearingToOriginDegrees": "384d81512ffba1a5",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableText": "0c70ece8950f2031",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.distanceToOriginMeters": "4b6c9cc5d7e86c60",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.hasValidHeading": "4c9b489494fee050"
    }
   },
   {
@@ -1142,8 +1132,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowRotationDegrees": "39038d44d0fc1d81"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowRotationDegrees": "91d5b49576f97e1e"
    }
   },
   {
@@ -1162,9 +1152,7 @@
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "ud:fitness.unitsPreference (App Group suite)"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [
     {
@@ -1174,17 +1162,17 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "f5564c3178c03d2d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.headlineText": "26955b4e38656e38",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originLabel": "824aeeafb4bc10fa",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
-    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "4e7344dc27d7bd85"
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "2069ec6f02c16e5b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "6c5a47fd27898e2b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "744466bfb6f72e53",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbTrail.walkedTrailLengthMeters()": "a50286863e124a6d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.headlineText": "3d38d19618da6436",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.originLabel": "53104bbe78492505",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "cd2b5876c2fd11cf",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "288f61a297f15018",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "f17bb2dd18cce655",
+    "EmuquTests/WorkoutRecoveryResolversTests.swift::func WorkoutRecoveryResolversTests.fixes(count:everySec:)": "14ed236219121998"
    }
   },
   {
@@ -1206,8 +1194,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.originLabelText(_:)": "52bcc4bec4ad94fa",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305"
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.originLabelText(_:)": "bb413c71fa1908af",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "cd2b5876c2fd11cf"
    }
   },
   {
@@ -1240,12 +1228,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "5e3b153088f74923",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "68c93599f5f89301",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.formatCoord(_:)": "21cdd60a732f0566",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "84ef101f2bc8307f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "d17731c82fcff78c",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.formatCoord(_:)": "5b0c350bc1263e38",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "cd2b5876c2fd11cf",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "f17bb2dd18cce655"
    }
   },
   {
@@ -1261,8 +1249,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosAndClearRow": "9bc4b9c52563735f",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.talkToAIButton": "09c4b3e095ede303"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosAndClearRow": "9cfa1a88356486ac",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.talkToAIButton": "74109805ce40ece8"
    }
   },
   {
@@ -1278,8 +1266,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.clearTrailButton": "91639594247dea7a",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosButton": "2e0850b32d785c08"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.clearTrailButton": "94a66ae93700d3f2",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosButton": "8159c6ffe32afa13"
    }
   },
   {
@@ -1296,9 +1284,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "68c93599f5f89301"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "fc52d94033c1cd10",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "d17731c82fcff78c"
    }
   },
   {
@@ -1316,10 +1304,10 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "68c93599f5f89301",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosNumber": "b4a8f3ab36b96375"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "fc52d94033c1cd10",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "d17731c82fcff78c",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.sosNumber": "f2b87edd68701f21"
    }
   },
   {
@@ -1345,13 +1333,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "9df569d2cf20cc52",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "a9161ec7b1d3b09c",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "68c93599f5f89301",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.startVoiceChat()": "13bc0751cac1da8b"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "614344213f66bb58",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "fc52d94033c1cd10",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "74b42b01be472259",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "40b71c4701cad4e4",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "d17731c82fcff78c",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.startVoiceChat()": "f7a0596071609163"
    }
   },
   {
@@ -1367,8 +1355,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackBrightnessPanel.swift::var GetMeBackBrightnessPanel.body": "f4a089a2b56baa11",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.applyBrightness(_:)": "b2b5281bc8818de9"
+    "Emuqu/Sources/Views/GetMeBackBrightnessPanel.swift::var GetMeBackBrightnessPanel.body": "bfc7db852258da22",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.applyBrightness(_:)": "68a7dfed5278a4a4"
    }
   },
   {
@@ -1387,7 +1375,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "3590b680dc36bd97"
    }
   },
   {
@@ -1402,7 +1390,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "5a5114d6cfb6f747"
    }
   },
   {
@@ -1508,7 +1496,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)": "e3c549fb83c32402"
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)": "2e0e8c48705b1e40"
    }
   },
   {
@@ -1529,7 +1517,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.RoadContext.isValid(at:maxDistanceMeters:)": "be862c4fa37d4157"
+    "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.RoadContext.isValid(at:maxDistanceMeters:)": "7c2a8705d5a98d6f"
    }
   },
   {
@@ -1570,10 +1558,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.callFromAPhoneMessage(dialling:)": "df8011aa100d336c",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "deab42bedf9382f0",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.deviceCanPlaceCalls": "f3e6e30342288d2a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.callFromAPhoneMessage(dialling:)": "c5dfbea993f4d129",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "88adb597c26e51c9",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.deviceCanPlaceCalls": "3d7152fb6d5ff196"
    }
   },
   {
@@ -1597,10 +1585,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.callFromAPhoneMessage(dialling:)": "df8011aa100d336c",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "deab42bedf9382f0",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.deviceCanPlaceCalls": "f3e6e30342288d2a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.callFromAPhoneMessage(dialling:)": "c5dfbea993f4d129",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "88adb597c26e51c9",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.deviceCanPlaceCalls": "3d7152fb6d5ff196"
    }
   },
   {
@@ -1616,8 +1604,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "deab42bedf9382f0"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumbersShown(dialling:)": "88adb597c26e51c9"
    }
   },
   {
@@ -1646,8 +1634,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var CompassArrow.arrowShape": "e604fee6ab49b8fb",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var CompassArrow.arrowShape": "9c2f541a3b96ae6c",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "10b2942ca44e6be5"
    }
   },
   {
@@ -1671,8 +1659,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "68c93599f5f89301",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GPSAccuracyLevel.label(meters:)": "d17731c82fcff78c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "f17bb2dd18cce655"
    }
   },
   {
@@ -1767,8 +1755,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.displayMetres(_:)": "9948708fd012a3fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced",
+    "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift::func GPSAccuracyLevel.displayMetres(_:)": "c75dfdce81cecab7"
    }
   }
  ],

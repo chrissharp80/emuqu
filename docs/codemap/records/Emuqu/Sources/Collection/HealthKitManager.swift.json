@@ -83,8 +83,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "66deca7cec58c939",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "6480a66476ab713a"
    }
   },
   {
@@ -98,7 +98,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {},
+   "contract": "Returns whether HealthKit health data is available on this device (HKHealthStore.isHealthDataAvailable())."
   },
   {
    "key": "var HealthKitManager.isAccessSkipped",
@@ -135,7 +136,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()": "ca23804bb0027817"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()": "93433401ec065e05"
    }
   },
   {
@@ -160,7 +161,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.performAuthorization()": "3d37c92c6100e5cb"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.performAuthorization()": "f190a735a2211c0b"
    }
   },
   {
@@ -176,9 +177,6 @@
    "reads": [
     "hk:sleepAnalysis",
     "hk:heartRate",
-    "hk:respiratoryRate",
-    "hk:oxygenSaturation",
-    "hk:appleSleepingWristTemperature",
     "hk:workoutType"
    ],
    "writes": [],
@@ -210,10 +208,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.anyVitalsSampleExists(since:)": "29bb1c4429f9e1e7",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleExists(type:since:)": "b0d8df59ea2bf5b3",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "97da094fdb3bd6b8",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.anyVitalsSampleExists(since:)": "b01ecfd12870ea3c",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleExists(type:since:)": "df944e6d52a480f6",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "935a8b67e637ac6a",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7be3a6a55a4658d7"
    }
   },
   {
@@ -238,8 +236,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleExists(type:since:)": "b0d8df59ea2bf5b3",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "dafc9cf51cf35041"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleExists(type:since:)": "df944e6d52a480f6",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "59a3a392034584f5"
    }
   },
   {
@@ -275,9 +273,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "7229bd19595282d2",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "b6970e85fc1556b8",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.otherSourcesSamples(from:to:)": "044c92766385247c"
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "b249b86513083a0c",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "b49da9fdb4615a05",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.otherSourcesSamples(from:to:)": "eceee2e3e3808ef9",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.runBoundedQuery(timeout:makeQuery:)": "6a89d88a7fa6569e"
    }
   },
   {
@@ -308,9 +307,7 @@
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isAccessSkipped"
    ],
-   "reads": [
-    "ud:UserDefaultsKeys.healthAccessSkipped"
-   ],
+   "reads": [],
    "writes": [
     "mem:HealthKitManager.authorizationRequested"
    ],
@@ -332,11 +329,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.probeableWriteTypes()": "d3b9faf5ba824bb8",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()": "ca23804bb0027817",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isAccessSkipped": "5a0897fe4ca03863",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.probeableWriteTypes()": "61387ce268c6d188",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()": "93433401ec065e05",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isAccessSkipped": "b130792e60331453",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7be3a6a55a4658d7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -349,7 +346,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "97da094fdb3bd6b8"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "935a8b67e637ac6a"
    }
   },
   {
@@ -374,8 +371,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()": "ca23804bb0027817",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.runCoalescedAuthorization()": "93433401ec065e05",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -411,10 +408,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.status(_:)": "84f2e4993fb04bd0",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "97da094fdb3bd6b8",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.status(_:)": "880984046b0c664a",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "935a8b67e637ac6a",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7be3a6a55a4658d7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "61ce9bcce9965ced"
    }
   },
   {
@@ -453,12 +450,10 @@
    "reads": [
     "archive:SessionArchive.entries",
     "ud:hkBackfillExportedWatermark",
-    "ud:hkPendingWorkoutReplacements (through PendingWorkoutReplacements.finish)",
     "mem:HealthKitManager.sampleReplacer.store"
    ],
    "writes": [
     "ud:hkBackfillExportedWatermark",
-    "ud:hkPendingWorkoutReplacements (through PendingWorkoutReplacements.finish)",
     "hk:earlier copies of workouts saved while locked (deleted, through PendingWorkoutReplacements.finish)"
    ],
    "branches": [
@@ -489,14 +484,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillOne(entry:archive:bodyWeightKg:tally:)": "a2bdc68c13e04573",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillWatermark(_:)": "e15882f31532db5b",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.reportDeniedWorkoutSampleTypes()": "c00038bbbe4b856f",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.workoutWriteAuthorized": "6cd54d7ef07fe4d2",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.finish(in:)": "a25bd6799a51feda",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "48667315e3fffa7a",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillOne(entry:archive:bodyWeightKg:tally:)": "1fea65188221a1bc",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillWatermark(_:)": "9c80bce0fc47948f",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.reportDeniedWorkoutSampleTypes()": "a254799c726da8a6",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7be3a6a55a4658d7",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.workoutWriteAuthorized": "0aac98f8f5ac54db",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.finish(in:)": "3023f9b6cc642bf1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -527,7 +522,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -554,7 +549,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -603,8 +598,7 @@
    ],
    "reads": [
     "archive:SessionArchive.retrieve",
-    "mem:HealthExportClaims.claimed",
-    "ud:hkExportedUnstampedSessions"
+    "mem:HealthExportClaims.claimed"
    ],
    "writes": [
     "mem:HealthExportClaims.claimed"
@@ -632,13 +626,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)": "03333a6e4aa73724",
-    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)": "1b5b0fdc46896c07",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportClaimed(_:entry:archive:bodyWeightKg:tally:)": "49636636567f0680",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportedUnstamped()": "3e2b46892d4222d0",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "9647545097272cf3",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.readableSession(_:archive:)": "feb7c78fe94f7e63",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.stampAlreadyExported(_:archive:tally:)": "f3c36b16a217dbdb"
+    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)": "13644d776247e351",
+    "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)": "f623b6ea313cce3a",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportClaimed(_:entry:archive:bodyWeightKg:tally:)": "31de7e7a1a13462d",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportedUnstamped()": "96f87219aa83813b",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.needsBackfill(_:)": "a74b0f32800ab375",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.readableSession(_:archive:)": "51457758bbd87468",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.stampAlreadyExported(_:archive:tally:)": "ea59f9ef4a6a611c"
    }
   },
   {
@@ -672,9 +666,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "dafc9cf51cf35041",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "59a3a392034584f5",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "88f1292bc11cc9a4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -689,8 +683,7 @@
    ],
    "reads": [],
    "writes": [
-    "archive:SessionArchive.update(healthKitExportedAt)",
-    "ud:hkExportedUnstampedSessions"
+    "archive:SessionArchive.update(healthKitExportedAt)"
    ],
    "branches": [
     {
@@ -700,10 +693,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.noteExportedUnstamped(_:pending:)": "c06716167689b3b3",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeExportStamp(_:at:archive:)": "6f56c6433a484251",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "dafc9cf51cf35041",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.noteExportedUnstamped(_:pending:)": "3788edbdecaf526e",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeExportStamp(_:at:archive:)": "1ae1ee4011f55a78",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "59a3a392034584f5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -727,9 +720,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportAndStamp(_:archive:bodyWeightKg:)": "8408a1ef0ca3eb48",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.recordBackfillFailure(_:session:archive:sessionId:)": "b867e9b5aa060d95",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportAndStamp(_:archive:bodyWeightKg:)": "2f6ca321a29850ec",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.recordBackfillFailure(_:session:archive:sessionId:)": "4046ae9ac8fef5ac",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "7cb48f6937f0b9f5"
    }
   },
   {
@@ -747,8 +740,7 @@
    "reads": [],
    "writes": [
     "hk:workoutType",
-    "archive:SessionArchive.update(healthKitExportedAt)",
-    "ud:hkExportedUnstampedSessions"
+    "archive:SessionArchive.update(healthKitExportedAt)"
    ],
    "branches": [
     {
@@ -758,11 +750,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.noteExportedUnstamped(_:pending:)": "c06716167689b3b3",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeExportStamp(_:at:archive:)": "6f56c6433a484251",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "cd6403f788fa4edb",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.noteExportedUnstamped(_:pending:)": "3788edbdecaf526e",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeExportStamp(_:at:archive:)": "1ae1ee4011f55a78",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "4065452ab54c236d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "977c5bbf1d9004f1"
    }
   },
   {
@@ -779,8 +771,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "dafc9cf51cf35041",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "59a3a392034584f5",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "bfb50b051f533bbd"
    }
   },
   {
@@ -804,12 +796,8 @@
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportedUnstamped()"
    ],
-   "reads": [
-    "ud:hkExportedUnstampedSessions"
-   ],
-   "writes": [
-    "ud:hkExportedUnstampedSessions"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
@@ -818,8 +806,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportedUnstamped()": "3e2b46892d4222d0",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "dafc9cf51cf35041"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.exportedUnstamped()": "96f87219aa83813b",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "59a3a392034584f5"
    }
   },
   {
@@ -871,9 +859,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.logBackfillFailure(_:sessionId:attempt:)": "b540f58f02ca42ca",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.logBackfillFailure(_:sessionId:attempt:)": "841a797368b54701",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "bfb50b051f533bbd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -904,8 +892,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "91bd7fe2369504e5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -940,12 +928,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.coreAuthorizationTypes()": "04384e67495b48cb",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.probeAuthorizationGranted(sleepType:hrvType:)": "a3af0d4ad4a1671d",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.readTypes(core:)": "1fdeeee9f5f9ed37",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeTypes(core:)": "e5abd6fd0689f6b2",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.coreAuthorizationTypes()": "f8b4743d89b82aa4",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.probeAuthorizationGranted(sleepType:hrvType:)": "5868eace291717f1",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.readTypes(core:)": "2e6cb7b841996b91",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeTypes(core:)": "492437b7518893ac",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7be3a6a55a4658d7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -983,12 +971,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.coreAuthorizationTypes()": "04384e67495b48cb",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.readTypes(core:)": "1fdeeee9f5f9ed37",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.status(_:)": "84f2e4993fb04bd0",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeTypes(core:)": "e5abd6fd0689f6b2",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.coreAuthorizationTypes()": "f8b4743d89b82aa4",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.readTypes(core:)": "2e6cb7b841996b91",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.status(_:)": "880984046b0c664a",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.writeTypes(core:)": "492437b7518893ac",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7be3a6a55a4658d7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -1007,7 +995,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "97da094fdb3bd6b8"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.heartRate": "935a8b67e637ac6a"
    }
   },
   {
@@ -1022,7 +1010,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.optionalReadTypes()": "341a559db05d4d39"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.optionalReadTypes()": "ea7af536f480ce81"
    }
   },
   {
@@ -1066,9 +1054,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "dafc9cf51cf35041",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "f667e9c830dac994"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "59a3a392034584f5",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "3a09d7e40e6581c6",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "d36887b874ddbf9b"
    }
   },
   {
@@ -1092,7 +1080,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "dafc9cf51cf35041"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.WritePermission.id": "59a3a392034584f5"
    }
   },
   {
@@ -1124,8 +1112,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "45d5fec7bbf69622",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "265fd147ce8bea40",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -1156,9 +1144,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "7229bd19595282d2",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "b6970e85fc1556b8",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.otherSourcesSamples(from:to:)": "044c92766385247c"
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "b249b86513083a0c",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.vitalsQueryTimeoutSec": "b49da9fdb4615a05",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.otherSourcesSamples(from:to:)": "eceee2e3e3808ef9",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.runBoundedQuery(timeout:makeQuery:)": "6a89d88a7fa6569e"
    }
   },
   {

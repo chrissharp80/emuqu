@@ -18,13 +18,18 @@ two large string catalogs also has a file-level record.
 | `role`, `types`, `state`, `toplevel` | What the file is for, the types it declares, the stored state it declares, and what any code outside the units does. |
 | `units[].key` | Stable name of the unit: kind, enclosing type, name and argument labels, e.g. `func HRVSession.isValidForAnalysis(minimumBeats:)`. Overloads that share labels add parameter types; identical signatures add `#2`. A unit's full name is `<path>::<key>`; a file's top-level code is `<path>::`. |
 | `units[].does` | What the unit does, concretely. |
-| `units[].contract` | Optional. What callers may rely on: results, errors and effects, without the how. When present, callers are checked against it (with `entry`, `reads` and `writes`) instead of the whole description. |
+| `units[].contract` | Optional. What callers may rely on: results, errors and effects, without the how. When present, callers are checked against it (with `entry` and `writes`) instead of the whole description. |
 | `units[].entry` | What triggers it when app code does not call it directly (SwiftUI, a delegate, a notification, a timer, XCTest, CI). |
 | `units[].calls` | Units it calls, as `path::key`, plus `ext:` framework calls and `dyn:` / `closure:` dispatch. |
-| `units[].reads`, `writes` | Persistent or shared state, prefixed `ud:` `file:` `archive:` `hk:` `ck:` `kc:` `kvs:` `mem:` `notif:` `net:` `ble:` `wc:`. |
+| `units[].reads`, `writes` | Persistent or shared state the unit's own code touches, prefixed `ud:` `file:` `archive:` `hk:` `ck:` `kc:` `kvs:` `mem:` `notif:` `net:` `ble:` `wc:`. Not the state it reaches through its callees: those list their own, and `impact` shows the whole reach. |
+| `units[].delegates` | Optional. The units it only runs or forwards to (a Makefile target that runs one script, a workflow step that runs one target, a forwarder). Such a record states nothing about what they do, so it is not re-checked against them, and its callers are checked against them instead. |
 | `units[].branches` | Every branch point, `at` as an offset from the unit's first line, with its condition and effect. |
 | `hash` | Hash of the code the record was written against. |
 | `deps` | For each unit it certainly calls: a hash of what that callee's record said when this record was last checked. Written by `stamp`. |
+
+A record describes its own unit and nothing more: not what its callees do, not the state they
+touch. Text copied from a callee goes wrong whenever the callee changes, and every copy then has
+to be found and fixed.
 
 Records name units, targets and files, never line numbers: a `file:line` citation goes wrong
 with every edit above that line while the record's own code is unchanged, so nothing would flag it.
@@ -57,6 +62,10 @@ cannot be what they look like, and they only ever remove edges: a property-style
 receiver of unknown or framework type (`x.name`) is not a call to a function that needs
 arguments, and app code is never linked with a test target, so a match there is a name collision.
 
+Each certain edge also records why it is certain (a recorded call, the caller's own type, a
+typed receiver, a same-file or global function, a name that matches one unit, a protocol
+requirement, build wiring), so how much each kind of resolution is worth can be measured.
+
 Certain edges drive the re-check rule below. Possible edges are listed by `impact` and the report,
 so a change can be checked against them by hand.
 
@@ -73,7 +82,9 @@ when:
   different from when the unit was last checked, or the unit now resolves a call to a unit it was
   not checked against (a "re-check" line). The unit must be re-read. If its own behaviour changed
   too, its record changes, and its callers are sent back in turn, so a behaviour change is
-  followed up the graph as far as it reaches;
+  followed up the graph as far as it reaches. Test units are never sent back: a test is checked
+  by running it, and its record is kept current with its own code only. A caller of a unit that
+  `delegates` is checked against what it delegates to as well;
 - a record names a callee that no longer exists;
 - a record cites a line number (`file:line`);
 - with the local findings overlay present, the number of open high- or medium-severity findings
@@ -97,8 +108,9 @@ overlay (a public clone, GitHub Actions) the ratchet does not run.
 
 The code hash leaves out whole-line comments and the lines of units nested inside a unit, so
 editing a comment or a nested function does not make the outer record stale. What a caller is
-checked against is the callee's `does`, `entry`, `reads`, `writes` and branches; for a callee
-whose record has a `contract`, it is the contract, `entry`, `reads` and `writes` only. Without a
+checked against is the callee's `does`, `entry`, `writes` and branches; for a callee whose
+record has a `contract`, it is the contract, `entry` and `writes` only. `reads` is never part of
+it: a caller depends on what a callee returns and writes, not on what it reads to get there. Without a
 contract, rewording a record sends its callers back, so change a record only when the behaviour
 changed. With one, `does` and the branches can be corrected or reworded freely; change the
 contract only when what callers get changes (a different result, error or effect), and that change
@@ -125,6 +137,7 @@ differs from `<ref>` (default `origin/main`), or for units named as `path::key`:
   it through certain callers;
 - the tests and doc sections that reach it;
 - the shared state it reads and writes, and every other unit that reads or writes the same state;
+- the state it reaches through its certain callees, transitively, and which callee touches each;
 - with the overlay present, the open findings on it and on its direct callers.
 
 On a pull request, `gates.yml` writes the same list to the job summary, even when the check
@@ -146,9 +159,10 @@ failed. `codemap.py callers <path::key>` lists one unit's direct callers.
    name as a sentence, and its XCTest trigger); read it against the test before stamping, as any
    record.
 6. Re-read the code and rewrite each listed record so it describes the code as it now is: `does`,
-   `contract` where the record has one, `entry`, `calls`, `reads`, `writes` and every branch. With
-   the overlay, delete the flags the change fixed and lower the matching `codemap_open_*.txt`
-   budget.
+   `contract` where the record has one, `entry`, `calls`, `reads`, `writes` and every branch. Keep
+   it to the unit's own code: its own state, not its callees'; a unit that only runs or forwards
+   to another says so and names it in `delegates`. With the overlay, delete the flags the change
+   fixed and lower the matching `codemap_open_*.txt` budget.
 7. For each "re-check" line, re-read that unit against the callee's new behaviour
    (`codemap.py status --by-callee` shows the callee's change with its callers). If the unit still
    behaves as its record says, acknowledge it: `codemap.py ack <callee> [<caller> ...]` clears the

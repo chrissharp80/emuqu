@@ -28,14 +28,10 @@
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.startStreamingTimer()"
    ],
    "reads": [
-    "mem:StreamingLifecycle.isPaused",
-    "mem:StreamingLifecycle.isEndingOvernight",
-    "mem:PolarManager.connectionState",
     "mem:PolarManager.isStreaming",
     "mem:PolarManager.isRecordingOnDevice"
    ],
    "writes": [
-    "ud:UserDefaultsKeys.persistedRecordingState",
     "ble:Polar HR/RR stream"
    ],
    "branches": [
@@ -61,16 +57,16 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreaming()": "d153b9f71804fe63",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "819342ac0cbfaaea",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.requireConnectedWithNoNightHeld(starting:)": "a91decde2547df2c",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.resetStateForQuickStreaming(_:durationSeconds:)": "2eb5ee3e2aa163d8",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.startStreamingTimer()": "f1659827baaf2718",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreaming()": "4f00373f6f9e4e6d",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "d3e0a549f5686972",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.requireConnectedWithNoNightHeld(starting:)": "878adc24e3b65e9f",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.resetStateForQuickStreaming(_:durationSeconds:)": "7a815659a02a46e5",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.startStreamingTimer()": "571a48131733f4e8",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "836efa30d0856207",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "79123b27f5d1b213",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "c5e70b514976ac5b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "ad2eb582449857dd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -93,13 +89,13 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "afead9ad3142686a",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "66ead1532c972b74",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedBeatCount": "981597ffe5f37737",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "3e1c60d3226afa65"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "ae73487dbdbe7fa4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "94d877dee16ca13f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "bb08bef22af4bb29",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedBeatCount": "89757fce53aa326f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "aa7cc85c066e4d06",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "e850d31a670f5780",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "6fc25c21caf6f220"
    }
   },
   {
@@ -120,10 +116,10 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.streamingCountdownTick()": "0659fc20d3af11f9",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "59d78adaf5521ecb"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "3590b680dc36bd97",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.streamingCountdownTick()": "3d78b0be9e368206",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "c3b823333b613d32",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "de93c56d94c475d3"
    }
   },
   {
@@ -168,15 +164,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "66ead1532c972b74",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "3e1c60d3226afa65",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.playCompletionAlert()": "89ec477d591b3352",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.quickReadingComplete()": "6b677b5af25d78dc",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.runQuickStreamingBackup(session:)": "d12bb18a7854c25a",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingElapsedNow": "c2ab86f85e4002bc",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "59d78adaf5521ecb",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "bb08bef22af4bb29",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "e850d31a670f5780",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "6fc25c21caf6f220",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.playCompletionAlert()": "15445048b66e6dbf",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.quickReadingComplete()": "d1476fb76293b777",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.runQuickStreamingBackup(session:)": "f8c834580bc7b5d2",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingElapsedNow": "b4d8c86b96ef3064",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "de93c56d94c475d3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -204,9 +200,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "3e1c60d3226afa65"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "b179bd6411d5633b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "e850d31a670f5780",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "6fc25c21caf6f220"
    }
   },
   {
@@ -233,9 +229,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "d2802997c20c5bc6",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.uploadLiveBackup(sessionId:points:deviceId:force:)": "51564be5a07a1300",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "f4c95388828a8c5a"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.streamedRRPoints": "b179bd6411d5633b",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.uploadLiveBackup(sessionId:points:deviceId:force:)": "e3b6f5fba58d5d94",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "dec4bcf929fecbc6"
    }
   },
   {
@@ -253,7 +249,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "3590b680dc36bd97"
    }
   },
   {
@@ -268,7 +264,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "59d78adaf5521ecb"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "de93c56d94c475d3"
    }
   },
   {
@@ -292,7 +288,6 @@
     "mem:StreamingLifecycle.isStreamingMode",
     "mem:StreamingLifecycle.isOvernightStreaming",
     "mem:SessionState.currentSession",
-    "mem:StreamingLifecycle.streamingElapsedSeconds",
     "mem:RRCollector.sessionStartTime"
    ],
    "writes": [
@@ -322,19 +317,21 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "06bd1b7d86805579",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "66ead1532c972b74",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.backupStreamingData(_:sessionId:)": "1378c2f96c149e3f",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()": "ee06838a39537c65",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.disconnectVeritySenseAfterQuickSession()": "1d4a6ebbfc5f62b3",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.finalizeQuickStreamingSession(rrPoints:baseSession:)": "28da8fe7433d2f36",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.handleInsufficientStreamingData(baseSession:)": "23f2ce596df4a53b",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.publishQuickStreamingStopped(rrPoints:elapsedHours:)": "980ab60f43b47b80",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingTimer()": "4acb9058f01c8117",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingHoursForBattery": "69a5a33ca359c57b",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "2752f846f8d0df8a",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "35d6b7414f438371",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "bb08bef22af4bb29",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.backupStreamingData(_:sessionId:)": "f34ea6ee32521105",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()": "9cdc5d3a640c9faa",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.disconnectVeritySenseAfterQuickSession()": "856e25f5592fbd24",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.finalizeQuickStreamingSession(rrPoints:baseSession:)": "b1de8e8538329700",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.handleInsufficientStreamingData(baseSession:)": "e38a1549bfdd046a",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.publishQuickStreamingStopped(rrPoints:elapsedHours:)": "dffb987213ab228d",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingTimer()": "ea59f7b56d7cdceb",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingHoursForBattery": "cc5d3c4161cf391a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "ad2eb582449857dd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.backupStreamingData(_:sessionId:)": "698f7f40ae71ecbb",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "5013913785b852c0"
    }
   },
   {
@@ -351,9 +348,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.analyzeStreamingData(rrPoints:baseSession:)": "ce0005815f9c27e2",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.archiveAndFinalizeStreamingSession(_:)": "e289d10929d5306e",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.disconnectVeritySenseAfterQuickSession()": "1d4a6ebbfc5f62b3"
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.analyzeStreamingData(rrPoints:baseSession:)": "54bab983c98c4c21",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.archiveAndFinalizeStreamingSession(_:)": "2a337b1c367aa7a4",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.disconnectVeritySenseAfterQuickSession()": "856e25f5592fbd24"
    }
   },
   {
@@ -378,9 +375,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "42e43b3d408dd061",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.disconnect()": "1e19553378e66a4d",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "836efa30d0856207",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -402,11 +399,11 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.recordRecordingHours(_:)": "568275b6e254e507",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "afead9ad3142686a",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.recordRecordingHours(_:)": "cc8a6b09bbf2ec9d",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "ae73487dbdbe7fa4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "94d877dee16ca13f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "aa7cc85c066e4d06",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "e850d31a670f5780"
    }
   },
   {
@@ -420,7 +417,6 @@
    ],
    "reads": [],
    "writes": [
-    "ud:UserDefaultsKeys.persistedRecordingState",
     "mem:SessionState.currentSession",
     "mem:SessionState.lastError",
     "mem:RRCollector.sessionStartTime",
@@ -428,12 +424,12 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()": "9f284ba000ca8236",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()": "7f455132bb0f1176",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "48667315e3fffa7a",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "1983f85e56e55b60",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "aa7cc85c066e4d06",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "9b41a84892f09331",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "cdc80e964ca1bc0b"
    }
   },
   {
@@ -472,18 +468,20 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "58bfe64fc444721d",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "d3f1eca5cb52fae2",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Analysis/Verification.swift::func Verification.verify(_:flags:)": "5c3bd1ee32ce0a10",
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingLoad(days:forMorningReading:relativeTo:)": "454029951431a011",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.publishStreamingResult(_:verifyResult:)": "f4868de4bd8eeafb",
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func publishAnalyzingSession(on:baseSession:series:)": "e0526fac49db2bbf",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "a2a0450c3e64531b",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)": "172606fca8ff4092",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "ea202af0787d5031",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSeries(series:flags:windowStart:windowEnd:trainingContext:ansConfig:daytimeRestingHR:)": "a58ae2c8df6cce3d",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "48667315e3fffa7a",
+    "Emuqu/Sources/Analysis/Verification.swift::func Verification.verify(_:flags:)": "534a4164f10ece9f",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingLoad(days:forMorningReading:relativeTo:)": "789bb518068a1db7",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.publishStreamingResult(_:verifyResult:)": "c3e191b9c5bee7b6",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func publishAnalyzingSession(on:baseSession:series:)": "f974afdf2878ce43",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "63d4963c4fd65795",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)": "a880e95d3b8e30f8",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.cachedTrainingLoad": "f237d0bd1b51fbc2",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "cdc80e964ca1bc0b",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "e66c300807aefc94",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(for:)": "8c40d16f9e2c2546",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.createTrainingContext(relativeTo:)": "b1465085470cceed"
    }
   },
   {
@@ -506,10 +504,10 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)": "60a8c943f3184959",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "c178ef092653f880"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(for:)": "1f360eeec3e030cb",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "22a5b237aef875bf",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "aa7cc85c066e4d06",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "008575569beaba4e"
    }
   },
   {
@@ -529,8 +527,6 @@
    "writes": [
     "archive:SessionArchive.archive",
     "file:RawRRBackup index (archived flag)",
-    "ud:UserDefaultsKeys.persistedRecordingState",
-    "notif:flowRecoveryArchiveChanged",
     "ck:session upload",
     "mem:SessionState.lastError"
    ],
@@ -547,14 +543,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "a468796746c73ee7",
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "55bc57d654968cf9",
-    "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.markAsArchived(_:)": "bd07a0cd0d67f397",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "0186adacfdbe6156",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "d9275715fe6d6d32",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "1983f85e56e55b60",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "9b41a84892f09331",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "24f214109cb69703",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "78dcfa250d571dfe",
+    "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.markAsArchived(_:)": "8b66f90ebaba68eb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "8c97fb88b2ee0e1a"
    }
   },
   {
@@ -571,8 +567,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "48667315e3fffa7a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "cdc80e964ca1bc0b"
    }
   },
   {
@@ -596,7 +592,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "e850d31a670f5780"
    }
   },
   {
@@ -620,7 +616,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "e850d31a670f5780"
    }
   }
  ],

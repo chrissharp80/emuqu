@@ -58,7 +58,7 @@
     }
    ],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def _is_artifact_beat": "2f6049a28cd9da27"
+    "Tools/validation/port_live_dfa_clean.py::def _is_artifact_beat": "86b75f65460cadb1"
    }
   },
   {
@@ -121,7 +121,7 @@
   {
    "key": "def clean_rr_for_dfa",
    "hash": "01567d936c0ef6c7",
-   "does": "cleanRRForDFA: series shorter than 8 returned unchanged with 0 corrections; else (interpolated values, number flagged).",
+   "does": "cleanRRForDFA: series shorter than 8 returned unchanged with 0 corrections; else (interpolated values, number flagged). The input is always copied to floats first, so the caller never gets its own list back; artifact_mask flags the beats and _interpolate replaces them.",
    "entry": null,
    "calls": [
     "Tools/validation/port_live_dfa_clean.py::def artifact_mask",
@@ -137,9 +137,10 @@
     }
    ],
    "deps": {
-    "Tools/validation/port_live_dfa_clean.py::def _interpolate": "7907eedf3ee30ccd",
-    "Tools/validation/port_live_dfa_clean.py::def artifact_mask": "44524cb22922ba2a"
-   }
+    "Tools/validation/port_live_dfa_clean.py::def _interpolate": "dadb5179d6576bce",
+    "Tools/validation/port_live_dfa_clean.py::def artifact_mask": "ea6feb51b3f2bbe2"
+   },
+   "contract": "Returns a pair: the cleaned series as a new list of floats, and the number of beats flagged. A series shorter than 8 comes back as a float copy with 0 corrections; otherwise the beats artifact_mask flags are replaced by _interpolate's values."
   },
   {
    "key": "def corrected_fraction",
