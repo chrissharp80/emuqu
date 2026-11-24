@@ -244,7 +244,7 @@ extension AssistantViewModel {
     /// logged when it stops it: Flo is on, `provider` can take a turn and is
     /// not switched off, and it has data-sharing consent.
     private func mayExtractFacts(with provider: AIProvider) -> Bool {
-        guard Self.aiIsAllowed(disclaimerAccepted: hasAcceptedDisclaimer, settings: services.settingsManager.settings), ProviderRegistry.canSend(to: provider) else {
+        guard Self.aiIsAllowed(disclaimerAccepted: hasAcceptedDisclaimer, settings: services.settingsManager.settings), registry.canSend(to: provider) else {
             debugLog("[Assistant] fact extraction skipped — Flo is off or \(provider.id.rawValue) can't take a turn")
             return false
         }

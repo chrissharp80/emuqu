@@ -63,6 +63,7 @@ EXPLICIT_PATTERNS=(
     "Emuqu/Sources/Assistant/VoiceAudioPipeline*.swift"
     "Emuqu/Sources/Assistant/VoiceServices.swift"
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift"
 )
 APP_DIRS=("Emuqu" "EmuquWatch Watch App")
 

@@ -75,6 +75,11 @@ extension BreadcrumbRecorder {
     static let shared = BreadcrumbRecorder(services: BreadcrumbServices(.current))
 }
 
+extension ProviderRegistry {
+    /// The app's AI providers and the one in use.
+    static let shared = ProviderRegistry(services: ProviderRegistryServices(.current))
+}
+
 extension AssistantViewModel {
     /// The app's chat: one transcript, one provider choice.
     static let shared = AssistantViewModel(services: ChatServices(.current))

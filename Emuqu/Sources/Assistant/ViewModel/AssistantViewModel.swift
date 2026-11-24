@@ -390,8 +390,8 @@ final class AssistantViewModel {
         guard !trimmed.isEmpty else { return .rejectedEmpty }
         if refusedWhileFloIsOff() { return .rejectedNoProvider }
         if medicalGuardRefused(trimmed) { return .dispatched }
-        guard ProviderRegistry.canSend(to: registry.activeProvider) else {
-            errorMessage = Self.unavailableMessage(for: registry.activeProvider.id)
+        guard registry.canSend(to: registry.activeProvider) else {
+            errorMessage = Self.unavailableMessage(for: registry.activeProvider.id, in: registry)
             return .rejectedNoProvider
         }
         if fromVoice, !isStreaming, servedDeterministically(trimmed) { return .dispatched }
@@ -409,12 +409,12 @@ final class AssistantViewModel {
     /// Settings or without a key, or Apple Intelligence, which has no key and
     /// is unavailable on this device (unsupported, turned off, or its model
     /// not downloaded yet).
-    static func unavailableMessage(for id: ProviderID) -> String {
+    static func unavailableMessage(for id: ProviderID, in registry: ProviderRegistry) -> String {
         let bundle = LanguageManager.appBundle
         if id == .apple {
             return String(localized: "Apple Intelligence isn't available on this device right now. Choose another model in Settings → Flo.", bundle: bundle)
         }
-        if !ProviderRegistry.isEnabled(id) {
+        if !registry.isEnabled(id) {
             return String(localized: "\(id.displayName) is switched off. Turn it on or choose another model in Settings → Flo.", bundle: bundle)
         }
         return String(localized: "\(id.displayName) has no API key configured. Add one in Settings → Flo.", bundle: bundle)

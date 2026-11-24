@@ -154,7 +154,7 @@ enum TierProviderMapper {
     /// the caller fall through cleanly.
     private static func userChosenMapping(_ registry: ProviderRegistry) -> (AIProvider, ModelOption)? {
         let provider = registry.activeProvider
-        guard provider.id != .apple, provider.isAvailable, ProviderRegistry.isEnabled(provider.id) else { return nil }
+        guard provider.id != .apple, provider.isAvailable, registry.isEnabled(provider.id) else { return nil }
         return (provider, registry.activeModel)
     }
 
@@ -182,7 +182,7 @@ enum TierProviderMapper {
         _ id: ProviderID,
         in registry: ProviderRegistry
     ) -> (provider: AIProvider, model: ModelOption)? {
-        guard ProviderRegistry.isEnabled(id),
+        guard registry.isEnabled(id),
               !AppDependencies.current.providers.providerConsentTracker.requiresConsent(id),
               let provider = registry.allProviders.first(where: { $0.id == id && $0.isAvailable }),
               let model = provider.availableModels.first(where: { $0.isDefault })
