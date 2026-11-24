@@ -193,8 +193,9 @@ samples, or another session's — a property that extends itself to any metric
 added later, rather than to the pairs someone happened to think about.
 
 `verify_tests_fail.sh` needs a build and a simulator per mutation, so it is not
-in `make ci`. Run
-it when the analysis or storage code changes.
+in `make ci` or on pull requests. It is its own workflow, `mutations.yml`: every
+TestFlight deploy waits for it, and it can be dispatched by hand. Run it when
+the analysis or storage code changes.
 
 ### Runs are scoped, because a full one is expensive
 
@@ -236,9 +237,9 @@ fails a raise that has no written justification.
 ## Where GitHub Actions is still used
 
 - Every pull request and push to `main`: `gates.yml` and `ci.yml` (`unit`).
-- `testflight.yml` calls `ci.yml` as a reusable workflow at scope `full`, so a
-  release cannot be cut without the full suite, UI target included, passing
-  first. Its deploy job runs in the `testflight` environment: only `main` can
+- `testflight.yml` calls `ci.yml` as a reusable workflow at scope `full`, and
+  `mutations.yml`, so a release cannot be cut without the full suite, UI target
+  included, passing and every mutation caught first. Its deploy job runs in the `testflight` environment: only `main` can
   deploy to it, the owner has to approve each run, and the signing and App
   Store Connect secrets live there. The deploy job's own `if:` requires `main`
   too, and its last step removes the signing keychain and keys whatever the

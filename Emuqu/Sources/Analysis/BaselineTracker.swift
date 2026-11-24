@@ -634,6 +634,13 @@ final class BaselineTracker: @unchecked Sendable {
         onBaselineUpdated?(baseline.rmssd, baseline.meanHR)
     }
 
+    /// Whether a reading of the session `id` is among the stored nights.
+    func holdsReading(of id: UUID) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return historicalData.contains { $0.sessionId == id }
+    }
+
     /// Calculate deviation from baseline for a session
     /// - Parameter session: Session to compare against baseline
     /// - Returns: Deviation metrics, or nil if no baseline

@@ -154,7 +154,9 @@ extension SessionRecoveryService {
         if let vitals = result.vitalsSnapshot { session.vitalsSnapshot = vitals }
     }
 
-    /// Archive, mark the raw backup consumed, and kick off the cloud upload.
+    /// Archive, mark the raw backup consumed, mirror the night to Apple Health
+    /// (when the export is on), and kick off the cloud upload. The baseline
+    /// takes the night in from the archive change (`BaselineArchiveSync`).
     ///
     /// Reports failure honestly. Returning the session on an archive failure
     /// would count it as recovered and let the UI announce "Recovered N of N"
@@ -165,6 +167,7 @@ extension SessionRecoveryService {
         do {
             try archive.archive(session)
             rawBackup.markAsArchived(sessionId)
+            exportToHealth(session)
             Task { await cloudSyncManager.uploadSession(session) }
             debugLog("[SessionRecoveryService] Successfully recovered and archived session \(sessionId) — frozenScore=\(session.recoveryScore.map { String(format: "%.2f", $0) } ?? "nil")")
             return true

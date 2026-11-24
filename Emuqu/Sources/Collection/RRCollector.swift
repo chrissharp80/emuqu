@@ -90,6 +90,12 @@ final class RRCollector {
     /// observers are not released with the collector — they must be
     /// removed explicitly.
     @ObservationIgnored let notificationObservers = NotificationTokens()
+    /// Rebuilds the baseline when the archive changes by a path that does not
+    /// update it (`BaselineArchiveSync`); observing from `setupBindings`.
+    @ObservationIgnored private(set) lazy var baselineArchiveSync = BaselineArchiveSync(
+        archive: archive, baseline: baselineTracker,
+        rebuild: { [weak self] in self?.rebuildBaselineFromArchive() }
+    )
     var lastSeenReconnectCount: Int = 0
     var lastEmergencyFlush: Date?
 

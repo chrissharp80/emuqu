@@ -69,7 +69,7 @@ extension MorningProcessingService {
         for entry in sameNightEntries(of: newSession, sleepSchedule: sleepSchedule) {
             guard !existingLinkedIds.contains(entry.sessionId),
                   Self.gapBetween(newSpan, Self.span(of: entry)) <= gap,
-                  Self.newSessionMayClaimNight(over: entry, newBeatCount: newBeatCount)
+                  Self.newSessionMayClaimNight(over: entry, newBeatCount: newBeatCount, newSpan: newSpan)
             else { continue }
             var links = newSession.linkedSessionIds ?? []
             links.append(entry.sessionId)
@@ -97,13 +97,26 @@ extension MorningProcessingService {
     ///
     /// A new session with no beats at all (no series) is below that floor
     /// too: it cannot claim a real overnight.
+    ///
+    /// A link says the linked recording's beats are inside this session
+    /// (`sameNightSegments` and `mergeTarget` read it so). So over a real
+    /// overnight the new session also has to span it, as a resumed night
+    /// re-anchored to its first segment's start does; a recovered fragment
+    /// from earlier or later in the night holds none of its beats and stays a
+    /// sibling instead of absorbing it. `coverSlackSeconds` allows for the
+    /// whole-second clocks the two spans are stamped with.
     static func newSessionMayClaimNight(
-        over entry: SessionArchiveEntry, newBeatCount: Int
+        over entry: SessionArchiveEntry, newBeatCount: Int, newSpan: DateInterval
     ) -> Bool {
         let entryIsRealOvernight = entry.recoveryScore != nil && entry.meanRMSSD != nil
         guard entryIsRealOvernight else { return true }
-        return newBeatCount >= 1_000
+        let entrySpan = span(of: entry)
+        let covers = newSpan.start <= entrySpan.start.addingTimeInterval(coverSlackSeconds)
+            && newSpan.end >= entrySpan.end.addingTimeInterval(-coverSlackSeconds)
+        return newBeatCount >= 1_000 && covers
     }
+
+    static let coverSlackSeconds: TimeInterval = 60
 
     // MARK: - Private Helpers
 
