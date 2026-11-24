@@ -246,7 +246,7 @@ This section is the short version; read the spec before any non-trivial change.
 
 | Convention | What it looks like | Why |
 |---|---|---|
-| **Extension file-splitting** | `Foo.swift` + `Foo+Bar.swift`, `Foo+Baz.swift` | Keep each file readable in one sitting; one concern per file. Big objects (RRCollector, HealthKitManager, AppFactResolver, PDFReportGenerator, Archive) are split this way. |
+| **Extension file-splitting** | `Foo.swift` + `Foo+Bar.swift`, `Foo+Baz.swift` | Keep each file readable in one sitting; one concern per file. Big objects (RRCollector, HealthKitManager, PDFReportGenerator, Archive) are split this way. |
 | **Centralized constants** | `Constants.swift` namespaced enums (`RecoveryScoreConstants`, `ScoringWeights`, `FeatureFlags`, …) | No magic numbers in logic; scoring thresholds auditable in one place. |
 | **Centralized theme** | `Utilities`/`Views` `AppTheme` / `Theme.swift` | Colors, typography, accent themes in one surface. |
 | **Per-screen archive subscription** | each screen owns its own `recentSessionsAsync(...)` refresh `Task` | Load limits are per-screen, not tab-routing-dependent (see [`ARCHITECTURE.md` → UI Session Load Contract](ARCHITECTURE.md#ui-session-load-contract)). |
@@ -400,7 +400,7 @@ Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 
 - **root:** `VoiceConversationController.swift` (+`+Audio`) — app-wide voice chat; `VoiceEchoHeuristics` — the token-overlap rules that decide whether recognised speech is the mic hearing the app's own TTS (three call sites shared this comparison and one carried its own drifting copy of the tokeniser); `WorkoutVoiceCoach`, `WorkoutTriggerEngine`, `WorkoutMileMarkerEngine`, `TurnAlertEngine`, `TurnMarkerEngine` — mid-workout spoken coaching; `CoachCueSpeech` — the coach lines the voice controller speaks, each claiming the workout-cue audio session before it is spoken, and the scripted line an AI-worded interjection falls back to; `MedicalQueryGuard`, `CoachVoiceGuard`, `MetricsVerifier` — safety guards; `TTSTextNormalizer`, `SpokenTextChunker`, `PhoneticOverrides` — speech prep.
 - **`Providers/`:** `AIProvider.swift` (protocol + ToolSpec + stream event) + `AppleFoundationProvider` (on-device) and its `AppleFoundationToolAdapter`/`AppleToolDispatcher`, `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`, `GrokProvider`, `DeepSeekProvider`, `OpenAICompatibleStreamer`, `ProviderStream`, `ProviderRegistry`.
-- **`Facts/`:** `AppFactResolver.swift` (+`+Live`, `+Settings`, `+Sleep`, `+Workout`) — resolves app data into facts; `FactCatalog`, `FactKey`, `FactValue`, `CompactToolRouter`, `SmartProviderRouter`, `TierProviderMapper`, `CapabilityClassifier`, `DeterministicIntent`, `AppleContextCompactor`, `LLMCacheTelemetry`.
+- **`Facts/`:** `AppFactResolver.swift` (the factory) and one `*Facts.swift` file per group of namespaces (`SleepFacts`, `WorkoutFacts`, `LiveNavigationFacts`, …), which read services only through `FactServices`; `FactCatalog`, `FactKey`, `FactValue`, `CompactToolRouter`, `SmartProviderRouter`, `TierProviderMapper`, `CapabilityClassifier`, `DeterministicIntent`, `AppleContextCompactor`, `LLMCacheTelemetry`.
 - **`Chat/`:** `ConversationStore`, `AssistantInbox`, `SpeechInputManager`, `WhisperKitSTTBridge`/`STTProvider`, `UserFactsStore`, `AssistantEmailBridge`, `AssistantCitationResolver`, `PrefabQuestions`, `AnalysisSummaryCache`, `AssistantContextSource`.
 - **`Context/`:** `AssistantContext`, `ContextBuilder`, `AppKnowledgeBase`, `LiveWorkoutBroker`.
 - **`ViewModel/`:** `AssistantViewModel.swift` and its `+*` extensions (`+Tools`, `+Routing`, …).
@@ -762,7 +762,7 @@ doc. Use this to decide *where to read next*.
 - **Owns:** chat + continuous voice, provider routing, tool-use over the Fact
   Catalog, on-device Apple Intelligence, safety/medical guards, memory.
 - **Code:** `Assistant/` (all subdirs). Provider-agnostic; the only app-specific
-  seam is the fact resolvers in `Facts/AppFactResolver*`.
+  seam is the fact namespaces in `Facts/*Facts.swift`.
 - **Naming:** the **chat tab is "Flo"** (`Tab.coach`); the **mid-workout voice is
   "Coach"** (`WorkoutVoiceCoach`); the **auto-email is "Flo Report"** — three
   subsystems, one model picker, distinct bubble badges (`AssistantSubsystem`,
@@ -899,8 +899,10 @@ by layer (`app`, `analysis`, `assistant`, `collection`, `location`,
 `providers`, `services`, `storage`). Every accessor resolves lazily, so no
 service is built until asked for and no initialiser can recurse into the
 container. Views read `@Environment(\.dependencies)`; static helpers read
-`AppDependencies.current`; the launch work and `DataPurgeService` are handed
-exactly the services they use (`launchServices`, `purgeStores`) and read no
+`AppDependencies.current`; the launch work, `DataPurgeService`, reanalysis,
+the assistant's fact namespaces and the workout recorder are handed exactly
+the services they use (`launchServices`, `purgeStores`,
+`makeSessionReanalysis`, `FactServices`, `WorkoutServices`) and read no
 container. `current` has no setter: a test makes a fresh container, sets the
 substitute on its `overrides`, puts it in force with
 `AppDependencies.install(_:)`, and ends the returned scope in teardown
@@ -1190,11 +1192,11 @@ zero on both counters:
 | `HistoryView` | a `List` of grouped sections, plus swipe/context actions lifted into `withEntryActions(_:entry:)` |
 | `GetMeBackView` | `withAlerts(_:)` / `withLifecycle(_:)` peeling three alerts and three lifecycle hooks off one body |
 | `LoadTrajectoryView` | `some ChartContent` helpers — the mark builders are not `some View` |
-| `AppFactResolver+LiveNavigation` | non-view code: a 58-line array element split into an entry, a hoisted `static let` description and three resolver steps |
+| `LiveNavigationFacts` | non-view code: a 58-line array element split into an entry, a hoisted `static let` description and three resolver steps |
 | `AnalysisSummaryGenerator+Interpretation` | a 98-line `switch` over score categories, one string-builder per case behind an `Inputs` struct |
 | `MorningResultsViewModel` | statistics: averages, baselines and the 7-day trend each computed by their own function |
-| `AppFactResolver+WorkoutDetail` | the fact catalogue: one property per entry, `description:` hoisted to a `static let`, the resolve closure lifted to a method |
-| `AppFactResolver+LiveCoaching` | a 173-line `location.situation` resolver split into fix / address / POI / journey record builders |
+| `WorkoutDetailFacts` | the fact catalogue: one property per entry, `description:` hoisted to a `static let`, the resolve closure lifted to a method |
+| `LiveCoachingFacts` | a 173-line `location.situation` resolver split into fix / address / POI / journey record builders |
 | `AnalysisSummaryGenerator+Steps` | pure logic: a 236-line `[String]` builder turned into `append…(&steps, gates:)` steps over one `PushGates` value |
 | `SettingsPages+DiagnosticActions` | a `Group` of `Section`s where every `Button { } label: { }` became `Button { action() } label: { … }` |
 | `MorningResultsView` | the widest one: `withSheets` / `withDialogs` / `withLifecycle` peel 3 sheets, 3 dialogs and 4 lifecycle hooks off a 325-line body |

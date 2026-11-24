@@ -322,7 +322,7 @@ extension WorkoutTicker {
         let baroSnapshot = recorder.trackBackupRows.baro
         let samplesSnapshot = recorder.workoutSamples
         let wristOffsetsSnapshot = recorder.wristHROffsets
-        let trackBackup = AppDependencies.current.storage.workoutTrackBackup
+        let trackBackup = recorder.services.workoutTrackBackup
         Task.detached(priority: .utility) {
             trackBackup.appendIncremental(
                 sessionId: sessionId,
@@ -550,7 +550,7 @@ extension WorkoutTicker {
     private func mirrorMotionAndPowerSensors() {
         recorder.motion.footPodActive = recorder.footPod.connectionState == .connected
         let isRow = recorder.lifecycle.currentSession?.sport == .row
-        let erg = isRow ? AppDependencies.current.collection.concept2Manager : nil
+        let erg = isRow ? recorder.services.concept2Manager : nil
         if isRow, let ergDist = erg?.distanceMeters {
             recorder.motion.distanceMeters = ergDist
         } else {
@@ -696,7 +696,7 @@ extension WorkoutTicker {
         guard let sport = recorder.lifecycle.currentSession?.sport else { return }
         let loc = recorder.startedLocation?.currentLocation
         let heading = Self.validCourse(loc)
-        AppDependencies.current.assistant.liveWorkoutBroker.publish(
+        recorder.services.liveWorkoutBroker.publish(
             buildBrokerSnapshot(
                 sport: sport,
                 loc: loc,
@@ -755,7 +755,7 @@ extension WorkoutTicker {
     /// Tick stage — the broker-snapshot struct literal; pure construction, no side effects.
     ///
     /// Resolve the geocode ONCE instead of reading
-    /// `AppDependencies.current.location.roadGeocodingService.current` seven times.
+    /// `services.roadGeocodingService.current` seven times.
     ///
     /// Both this type and `RoadGeocodingService` are `@MainActor` and this
     /// function is synchronous, so all seven reads would observe the same
@@ -776,7 +776,7 @@ extension WorkoutTicker {
         strapSilent: Double?,
         liveZoneBreakdown: WorkoutZoneBreakdown
     ) -> AssistantContext.LiveWorkoutSnapshot {
-        let (road, trends) = (AppDependencies.current.location.roadGeocodingService.current, syncedLiveTrends())
+        let (road, trends) = (recorder.services.roadGeocodingService.current, syncedLiveTrends())
         return AssistantContext.LiveWorkoutSnapshot(
             sport: sport.displayName, snapshotAt: Date(), sessionStartAt: recorder.sessionStartDate ?? Date(), elapsedSeconds: recorder.lifecycle.elapsedSeconds, heartRate: recorder.workoutHR.currentHR, peakHR: recorder.workoutHR.peakHR, userMaxHR: recorder.settingsProvider().effectiveMaxHR,
             beatCount: recorder.workoutHR.beatCount, distanceMeters: recorder.motion.distanceMeters, stepCount: recorder.motion.stepCount, cadenceStepsPerMin: recorder.motion.cadenceStepsPerMin, elevationGainMeters: recorder.motion.elevationGainMeters, alpha1: recorder.dfa.currentAlpha1,
@@ -874,7 +874,7 @@ extension WorkoutTicker {
         // Push live HR + power to the Zwift broadcaster (no-op when
         // user hasn't enabled it). One source of truth for both the
         // app's own analysis and any indoor-trainer game pairing.
-        AppDependencies.current.collection.zwiftPeripheralBroadcaster.update(
+        recorder.services.zwiftPeripheralBroadcaster.update(
             heartRate: recorder.workoutHR.currentHR,
             powerWatts: recorder.motion.powerWatts
         )
@@ -903,10 +903,10 @@ extension WorkoutTicker {
         let settings = recorder.settingsProvider()
         let location = recorder.startedLocation?.currentLocation
         if settings.enableAIAssistant || (settings.heatTrackingEnabled && sport.usesGPS) {
-            AppDependencies.current.location.weatherService.refreshIfNeeded(for: location)
+            recorder.services.weatherService.refreshIfNeeded(for: location)
         }
         guard settings.enableAIAssistant else { return }
-        AppDependencies.current.location.roadGeocodingService.refreshIfNeeded(for: location)
+        recorder.services.roadGeocodingService.refreshIfNeeded(for: location)
     }
 
     /// Tick stage — builds the AI context snapshot and lets the voice coach evaluate triggers.

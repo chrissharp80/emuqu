@@ -5,7 +5,7 @@ import os
 
 // The archived-workout `workout.*` namespace: by-date and by-ordinal
 // lookups, period lists and totals, HRR and power per workout. The live
-// `workout.live.*` facts are in `AppFactResolver+WorkoutLive.swift`.
+// `workout.live.*` facts are in `WorkoutLiveFacts.swift`.
 
 // MARK: - workout.* namespace
 //
@@ -16,6 +16,7 @@ import os
 
 struct WorkoutNamespace: FactNamespaceResolver {
     let namespace = "workout"
+    let services: FactServices
     let archive: SessionArchive
 
     func workoutEntries() -> [SessionArchiveEntry] {

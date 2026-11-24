@@ -3,7 +3,7 @@ import Foundation
 
 // The derived half of `WorkoutLiveNamespace`: the derived and
 // cross-referenced facts. The raw per-tick sensor facts are in
-// `AppFactResolver+WorkoutLive.swift`.
+// `WorkoutLiveFacts.swift`.
 //
 // Anything these entries call in the other file is internal rather than
 // `private`, because Swift's `private` does not reach across files.
@@ -346,7 +346,7 @@ extension WorkoutLiveNamespace {
         guard self.snapshot != nil else {
             return .missing(reason: .notRecorded, detail: "no workout active")
         }
-        let samples = AppDependencies.current.assistant.liveWorkoutBroker.currentSamples()
+        let samples = services.liveWorkoutBroker.currentSamples()
         guard !samples.isEmpty else {
             return .missing(reason: .notRecorded, detail: "no samples captured yet")
         }
@@ -446,7 +446,7 @@ extension WorkoutLiveNamespace {
     // burning rate budget on this one.
     private func liveRoadContext(_ s: AssistantContext.LiveWorkoutSnapshot) -> RoadGeocodingService.RoadContext? {
         MainActor.assumeIsolated {
-            let svc = AppDependencies.current.location.roadGeocodingService
+            let svc = services.roadGeocodingService
             guard let lat = s.currentLatitude, let lon = s.currentLongitude else { return nil }
             let here = CLLocation(latitude: lat, longitude: lon)
             return svc.cachedIfCloseTo(here)

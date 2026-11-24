@@ -46,7 +46,7 @@ final class GetSessionOvernightTests: XCTestCase {
         for item in stored {
             _ = try archive.archive(item, skipSameNightMerge: true)
         }
-        let registry = AppFactResolverFactory.build(archive: archive, settings: { UserSettings() })
+        let registry = AppFactResolverFactory.build(archive: archive, settings: { UserSettings() }, services: FactServices(.current))
         return Fixture(registry: registry, morningNight: morningNight, eveningNight: eveningNight, partial: partial, run: run)
     }
 

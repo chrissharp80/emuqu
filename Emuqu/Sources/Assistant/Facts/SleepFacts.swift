@@ -147,6 +147,7 @@ enum OvernightArchive {
 
 struct SleepNamespace: FactNamespaceResolver {
     let namespace = "sleep"
+    let services: FactServices
     let archive: SessionArchive
     let settings: @Sendable () -> UserSettings
 
@@ -231,20 +232,20 @@ struct SleepNamespace: FactNamespaceResolver {
             return Self.sleepRecord(for: session, userAge: userAge, typicalSleepHours: typicalSleepHours)
         }
         let live: FactValue? = await FactResolveTimeout.withTimeout(seconds: 5) {
-            await Self.liveSleepRecord(for: session, userAge: userAge, typicalSleepHours: typicalSleepHours)
+            await liveSleepRecord(for: session, userAge: userAge, typicalSleepHours: typicalSleepHours)
         }
         return live.map { OvernightArchive.labeled($0, session) }
             ?? .missing(reason: .notRecorded, detail: "no sleep snapshot and HealthKit returned no sleep for that window")
     }
 
     /// Nil on a query failure or a night HealthKit has no sleep for.
-    private static func liveSleepRecord(for session: HRVSession, userAge: Int?, typicalSleepHours: Double) async -> FactValue? {
+    private func liveSleepRecord(for session: HRVSession, userAge: Int?, typicalSleepHours: Double) async -> FactValue? {
         do {
-            let data = try await AppDependencies.current.collection.healthKitManager.fetchSleepData(
+            let data = try await services.healthKitManager.fetchSleepData(
                 for: session.startDate, recordingEnd: session.endDate ?? Date()
             )
             guard data.nightSleepMinutes > 0 else { return nil }
-            return sleepRecordFromData(data, date: session.startDate, userAge: userAge, typicalSleepHours: typicalSleepHours, live: true)
+            return Self.sleepRecordFromData(data, date: session.startDate, userAge: userAge, typicalSleepHours: typicalSleepHours, live: true)
         } catch {
             return nil
         }
@@ -525,6 +526,7 @@ struct HRVNamespace: FactNamespaceResolver {
 
 struct VitalsNamespace: FactNamespaceResolver {
     let namespace = "vitals"
+    let services: FactServices
     let archive: SessionArchive
 
     private static func vitalsRecordFromData(_ v: RecoveryVitals, date: Date, live: Bool) -> FactValue {
@@ -568,7 +570,7 @@ struct VitalsNamespace: FactNamespaceResolver {
         }
         let ref = session.endDate ?? session.startDate
         let live: FactValue? = await FactResolveTimeout.withTimeout(seconds: 5) {
-            let v = await AppDependencies.current.collection.healthKitManager.fetchRecoveryVitals(relativeTo: ref)
+            let v = await services.healthKitManager.fetchRecoveryVitals(relativeTo: ref)
             return v.isEmpty ? nil : Self.vitalsRecordFromData(v, date: session.startDate, live: true)
         }
         return live.map { OvernightArchive.labeled($0, session) }
@@ -621,7 +623,7 @@ struct VitalsNamespace: FactNamespaceResolver {
             """,
             valueType: "Record"
         ) {
-            let result = await Self.latestHeartRateSample()
+            let result = await latestHeartRateSample()
             guard let result else {
                 return .missing(reason: .notRecorded, detail: "no HR sample in the last 10 minutes — wear your Apple Watch or start a workout to get a live reading")
             }
@@ -638,16 +640,16 @@ struct VitalsNamespace: FactNamespaceResolver {
     /// bridge (which would park the calling thread for up to 5 s). 5 s ceiling;
     /// thrown HealthKit errors are swallowed, because absence
     /// is what `notRecorded` means to the caller.
-    private static func latestHeartRateSample() async -> (bpm: Double, at: Date, source: String)? {
+    private func latestHeartRateSample() async -> (bpm: Double, at: Date, source: String)? {
         await FactResolveTimeout.withTimeout(seconds: 5) { await newestHeartRateInLastTenMinutes() }
     }
 
     /// nil on any failure. A thrown HealthKit error is swallowed on purpose:
     /// absence is exactly what `notRecorded` means to the caller.
-    private static func newestHeartRateInLastTenMinutes() async -> (bpm: Double, at: Date, source: String)? {
+    private func newestHeartRateInLastTenMinutes() async -> (bpm: Double, at: Date, source: String)? {
         let now = Date()
         do {
-            let samples = try await AppDependencies.current.collection.healthKitManager
+            let samples = try await services.healthKitManager
                 .heartRate.fetchHeartRateSamplesDetailed(from: now.addingTimeInterval(-600), to: now)
             guard let latest = samples.max(by: { $0.date < $1.date }) else { return nil }
             return (bpm: latest.hr, at: latest.date, source: latest.source)

@@ -102,19 +102,12 @@ final class WorkoutRecorder {
 
     func pause(isAuto: Bool = false) { session.pause(isAuto: isAuto) }
 
-    /// Two overloads rather than a defaulted parameter: repeating the default
-    /// here would be a second `AppDependencies.current.app.settingsManager` reference for a value the
-    /// called function already supplies.
-    /// Both return the render task; its value says whether the PDF was
-    /// attached.
+    /// Returns the render task; its value says whether the PDF was attached.
     @discardableResult
-    static func scheduleCoachReportEmail(for session: HRVSession) -> Task<Bool, Never> {
-        WorkoutSessionLifecycle.scheduleCoachReportEmail(for: session)
-    }
-
-    @discardableResult
-    static func scheduleCoachReportEmail(for session: HRVSession, settings: UserSettings) -> Task<Bool, Never> {
-        WorkoutSessionLifecycle.scheduleCoachReportEmail(for: session, settings: settings)
+    static func scheduleCoachReportEmail(
+        for session: HRVSession, settings: UserSettings, services: WorkoutServices
+    ) -> Task<Bool, Never> {
+        WorkoutSessionLifecycle.scheduleCoachReportEmail(for: session, settings: settings, services: services)
     }
 
     typealias HRSource = WorkoutSessionLifecycle.HRSource
@@ -378,38 +371,38 @@ final class WorkoutRecorder {
 
     // MARK: Init
 
-    /// Reads user settings. Defaults to the shared store so behaviour is
-    /// unchanged; injecting lets a test drive this class without mutating
-    /// global state. Same shape `HealthKitManager` uses. Used instead of direct
-    /// `AppDependencies.current.app.settingsManager.settings` reads.
+    /// Reads user settings: the settings store in `services` unless a test
+    /// hands in its own, so a test can drive this class without mutating
+    /// global state.
     let settingsProvider: @MainActor () -> UserSettings
+
+    /// Everything a workout reads beyond its constructor arguments.
+    let services: WorkoutServices
 
     /// `location` keeps the test-injection seam but defers the
     /// production allocation. When the test passes a manager we honour it;
     /// otherwise the lazy getter constructs one on first access (typically
     /// inside `start()`).
     ///
-    /// `AppDependencies.current.collection.footPodManager` is main-actor-isolated, so resolving the default
-    /// inside the body (where the init is also MainActor) avoids Swift 6's
-    /// "default-arg evaluates in nonisolated context" error that would fire if
-    /// we wrote `= AppDependencies.current.collection.footPodManager` directly in the parameter list.
-    ///
-    /// `AppDependencies.current.services.watchConnectivityBridge` is a shared singleton: WCSession has
-    /// one process-wide delegate, so we must not construct a fresh bridge here
-    /// — that would replace the delegate installed at app boot (and kill the
-    /// Watch → phone Talk trigger for any subsequent chat).
+    /// The foot-pod manager and the Watch bridge come from `services`. The
+    /// bridge must be the shared one: WCSession has one process-wide delegate,
+    /// so a fresh bridge here would replace the delegate installed at launch
+    /// and cut the Watch's Talk trigger for every later chat.
     init(
         core: RecordingCore,
         conversation: VoiceConversationController,
+        services: WorkoutServices,
         location: WorkoutLocationManager? = nil,
         footPod: FootPodManager? = nil,
-        settingsProvider: @escaping @MainActor () -> UserSettings = { AppDependencies.current.app.settingsManager.settings }
+        settingsProvider: (@MainActor () -> UserSettings)? = nil
     ) {
-        self.settingsProvider = settingsProvider
+        self.services = services
+        let settingsManager = services.settingsManager
+        self.settingsProvider = settingsProvider ?? { settingsManager.settings }
         self.core = core
         self._injectedLocation = location
-        self.footPod = footPod ?? AppDependencies.current.collection.footPodManager
-        let bridge = AppDependencies.current.services.watchConnectivityBridge
+        self.footPod = footPod ?? services.footPodManager
+        let bridge = services.watchConnectivityBridge
         self.watchBridge = bridge
         let coach = WorkoutVoiceCoach(watchBridge: bridge)
         self.voiceCoach = coach

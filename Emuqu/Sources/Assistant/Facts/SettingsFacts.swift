@@ -90,7 +90,7 @@ struct AppSettingsNamespace: FactNamespaceResolver {
 //     callable RIGHT NOW (toggle on + key set). Saves a wasted action
 //     call when the user hasn't enabled it.
 //   • `web.search` — the action. Multi-param (query + intent), routes
-//     through `AppDependencies.current.providers.webSearchService` which gates on the Settings
+//     through `services.webSearchService` which gates on the Settings
 //     toggle, the keychain'd Tavily key, and the curated domain
 //     whitelists.
 //
@@ -102,6 +102,7 @@ struct AppSettingsNamespace: FactNamespaceResolver {
 // (no medical-protocol synthesis, always cite source URLs).
 struct WebSearchNamespace: FactNamespaceResolver {
     let namespace = "web"
+    let services: FactServices
 
     var entries: [FactEntry] {
         [
@@ -116,13 +117,13 @@ struct WebSearchNamespace: FactNamespaceResolver {
             description: Self.webAvailableDescription,
             valueType: "Bool"
         ) {
-            let enabled = AppDependencies.current.app.settingsManager.settingsSnapshot.enableWebSearch
-            let hasTavilyKey = AppDependencies.current.providers.apiKeyStore.hasServiceKey(for: .tavilyWebSearch)
+            let enabled = services.settingsManager.settingsSnapshot.enableWebSearch
+            let hasTavilyKey = services.apiKeyStore.hasServiceKey(for: .tavilyWebSearch)
             // The resolver is invoked on the main actor by the
             // AssistantViewModel tool-use loop; `assumeIsolated`
             // satisfies the actor-isolation check on
             // `ProviderRegistry.activeProvider`.
-            let providerHasNativeSearch = MainActor.assumeIsolated { Self.providerHasNativeSearch() }
+            let providerHasNativeSearch = MainActor.assumeIsolated { providerHasNativeSearch() }
             return .boolean(enabled && (hasTavilyKey || providerHasNativeSearch))
         }
     }
@@ -130,8 +131,8 @@ struct WebSearchNamespace: FactNamespaceResolver {
     /// Anthropic's `web_search_20250305` server-side tool is wired into the
     /// request body in `AnthropicProvider` and needs no Tavily key, so on
     /// that provider the model can search without the `web.search` action.
-    @MainActor private static func providerHasNativeSearch() -> Bool {
-        AppDependencies.current.providers.providerRegistry.activeProvider.id == .anthropic
+    @MainActor private func providerHasNativeSearch() -> Bool {
+        services.providerRegistry.activeProvider.id == .anthropic
     }
 
     private static let webAvailableDescription = """
@@ -213,7 +214,7 @@ struct WebSearchNamespace: FactNamespaceResolver {
     ) async -> Result<[WebSearchService.Result], WebSearchService.SearchError>? {
         await FactResolveTimeout.withTimeout(seconds: 15) {
             do {
-                let results = try await AppDependencies.current.providers.webSearchService.search(
+                let results = try await services.webSearchService.search(
                     query: q, intent: intent, maxResults: maxResults
                 )
                 return .success(results)
@@ -286,7 +287,7 @@ struct WebSearchNamespace: FactNamespaceResolver {
     /// search it does have rather than told search is unavailable.
     @MainActor private func missingKeyAnswer(elapsed: String) -> FactValue {
         debugLog("[WebSearch] FAIL .missingKey in \(elapsed)s — Tavily API key isn't in Keychain. Settings → Flo → Web Search.", level: .warning)
-        guard Self.providerHasNativeSearch() else {
+        guard providerHasNativeSearch() else {
             return .missing(reason: .notRecorded, detail: "no Tavily API key configured in Settings → Flo")
         }
         return .missing(

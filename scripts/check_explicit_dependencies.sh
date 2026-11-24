@@ -8,7 +8,9 @@
 # does not show. The files listed below are handed exactly the services they
 # use by the composition root (`AppDependencies.launchServices`,
 # `AppDependencies.purgeStores`, and `AppDependencies.makeSessionReanalysis`
-# for the reanalysis service, its coordinator and the scoring context), and
+# for the reanalysis service, its coordinator and the scoring context; fact
+# namespaces get a `FactServices` from `AppFactResolverFactory.build`, and the
+# workout recorder and its parts a `WorkoutServices` from `RecorderBox`), and
 # their tests construct them with substitutes. One new
 # `AppDependencies.current` read in them hides an edge again and puts the
 # tests back on the live services.
@@ -39,6 +41,16 @@ EXPLICIT_PATTERNS=(
     "Emuqu/Sources/Storage/*.swift"
     "Emuqu/Sources/Analysis/*.swift"
     "Emuqu/Sources/Analysis/*/*.swift"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift"
+    "Emuqu/Sources/Assistant/Facts/*Facts.swift"
+    "Emuqu/Sources/Assistant/Facts/FactNumericArguments.swift"
+    "Emuqu/Sources/Assistant/Facts/FactServices.swift"
+    "Emuqu/Sources/Collection/WorkoutRecorder*.swift"
+    "Emuqu/Sources/Collection/WorkoutTicker.swift"
+    "Emuqu/Sources/Collection/WorkoutSessionLifecycle.swift"
+    "Emuqu/Sources/Collection/WorkoutFinalizer.swift"
+    "Emuqu/Sources/Collection/WorkoutAIContextBuilder.swift"
+    "Emuqu/Sources/Collection/WorkoutServices.swift"
 )
 APP_DIRS=("Emuqu" "EmuquWatch Watch App")
 

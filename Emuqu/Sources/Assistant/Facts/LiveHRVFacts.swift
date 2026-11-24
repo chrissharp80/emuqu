@@ -21,12 +21,12 @@ import os
 // active" detail.
 struct HRVLiveNamespace: FactNamespaceResolver {
     // "hrv", the first token of every hrv.live.* key: the registry's primary
-    // dispatch matches a key's head against this, so "hrv.live" never matched
-    // and these keys resolved only through the fallback scan.
+    // dispatch matches a key's head against this.
     let namespace = "hrv"
+    let services: FactServices
 
     private var snapshot: AssistantContext.LiveHRVSnapshot? {
-        AppDependencies.current.assistant.liveHRVBroker.currentSnapshot()
+        services.liveHRVBroker.currentSnapshot()
     }
 
     private func missing(_ detail: String = "no HRV recording active") -> FactValue {

@@ -33,7 +33,7 @@ final class ZwiftPeripheralBroadcaster: NSObject {
     // MARK: Public state
 
     // NOTE: `isAdvertising` / `subscriberCount` are read by AI live-state
-    // resolution (AppFactResolver+Live) even when the Zwift broadcaster
+    // resolution (LiveHRVFacts) even when the Zwift broadcaster
     // feature is OFF. Their getters MUST NOT touch `peripheralManager`, or
     // they'd force-create the CBPeripheralManager and trigger the iOS
     // bluetooth-peripheral permission prompt on users who never enabled the

@@ -28,7 +28,8 @@ final class FactCatalogValidationTests: XCTestCase {
     private func makeRegistry() -> FactResolverRegistry {
         AppFactResolverFactory.build(
             archive: .shared,
-            settings: { SettingsManager.shared.settingsSnapshot }
+            settings: { SettingsManager.shared.settingsSnapshot },
+            services: FactServices(.current)
         )
     }
 

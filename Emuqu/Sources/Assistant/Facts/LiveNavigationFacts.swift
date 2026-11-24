@@ -3,7 +3,7 @@ import Foundation
 
 // The navigation half of `WorkoutLiveCoachingNamespace`. The workout's
 // reverse-geocoded location and the location.current / location.situation
-// actions are in `AppFactResolver+LiveCoaching.swift`; the journey,
+// actions are in `LiveCoachingFacts.swift`; the journey,
 // roads-ahead, directions, thresholds, interval and HRR facts live here.
 //
 // Anything these entries call in the other file is internal rather than
@@ -60,10 +60,10 @@ extension WorkoutLiveCoachingNamespace {
         // an active workout (roads_ahead returns the user's
         // snapped road + lat/lon-derived geometry).
         guard self.workoutActive() else { return self.locationGatedOffMessage() }
-        guard let cachedLoc = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60) else {
+        guard let cachedLoc = services.ambientLocationService.cachedLocation(maxAgeSec: 60) else {
             return .missing(reason: .notRecorded, detail: "no fresh GPS fix — open the app foreground or start a workout")
         }
-        let neighborhoodFallback = AppDependencies.current.location.ambientLocationService.cachedResolvedAddress(maxAgeSec: 300)?.subdivision
+        let neighborhoodFallback = services.ambientLocationService.cachedResolvedAddress(maxAgeSec: 300)?.subdivision
         guard let result = await roadAwareness(at: cachedLoc, neighborhoodFallback: neighborhoodFallback) else {
             return noRoadGraphMissing
         }
@@ -192,13 +192,13 @@ extension WorkoutLiveCoachingNamespace {
         // permissions, GPS pipelines, or timeouts. The address cache is
         // refreshed by distance and rate limit, not by time, so a fresh
         // fix is still returned when the address is older than 300 s.
-        guard let cachedLoc = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60) else {
+        guard let cachedLoc = services.ambientLocationService.cachedLocation(maxAgeSec: 60) else {
             return .missing(
                 reason: .notRecorded,
                 detail: "location cache not warm yet — ask the user to open Emuqu for a moment, then ask again"
             )
         }
-        let cachedRoad = AppDependencies.current.location.ambientLocationService.cachedResolvedAddress(maxAgeSec: 300)
+        let cachedRoad = services.ambientLocationService.cachedResolvedAddress(maxAgeSec: 300)
         return .record(detailedLocationRecord(cachedLoc, road: cachedRoad))
     }
 
@@ -301,12 +301,12 @@ extension WorkoutLiveCoachingNamespace {
         else {
             return .missing(reason: .invalidParameter, detail: "address is required")
         }
-        if let unconfirmed = Self.addressUnconfirmed(query) { return unconfirmed }
+        if let unconfirmed = addressUnconfirmed(query) { return unconfirmed }
         switch await geocodedRoadContext(query) {
         case let .matched(context)?:
             // Apply the override on MainActor so the published
             // `current` propagates correctly.
-            AppDependencies.current.location.roadGeocodingService.overrideContext(context)
+            services.roadGeocodingService.overrideContext(context)
             return .record(roadContextRecord(context))
         case .unmatched?:
             return .missing(reason: .invalidParameter, detail: "geocoder couldn't match '\(query)' or couldn't be reached — if it already names a street and city, try again shortly; otherwise ask for a more specific address (street + city)")
@@ -319,8 +319,8 @@ extension WorkoutLiveCoachingNamespace {
     /// latest message (`DestructiveActionContext.gateUnlessUserStated`), else
     /// nil. An address the model took from what it read (a web page, a route
     /// or road name) would move every later location answer.
-    @MainActor private static func addressUnconfirmed(_ query: String) -> FactValue? {
-        AssistantMemoryNamespace.DestructiveActionContext.live.gateUnlessUserStated(
+    @MainActor private func addressUnconfirmed(_ query: String) -> FactValue? {
+        AssistantMemoryNamespace.DestructiveActionContext.live(services).gateUnlessUserStated(
             [query], action: "location.set_address", target: query,
             question: "Set your location to \"\(query)\"? Reply yes to confirm."
         )
@@ -411,7 +411,7 @@ extension WorkoutLiveCoachingNamespace {
         case let .resolved(value): destination = value
         case let .failed(value): return value
         }
-        let safetyFirst = Self.medicalSafetyNotice(for: destination)
+        let safetyFirst = medicalSafetyNotice(for: destination)
         guard let userLoc = await routingUserLocation() else {
             let noFix = FactValue.missing(reason: .notRecorded, detail: "couldn't get a current location fix to route from — open the app foreground or start a workout to warm up the GPS pipeline")
             return Self.withSafetyNotice(noFix, safetyFirst)
@@ -427,8 +427,8 @@ extension WorkoutLiveCoachingNamespace {
     /// For a medical destination the result tells the model to send the user
     /// to the local emergency number first, with the same numbers the Get Me
     /// Back SOS button shows. Nil for every other destination.
-    @MainActor static func medicalSafetyNotice(for destination: DirectionsService.Destination) -> String? {
-        guard case let .poi(query) = destination, query == medicalPOIQuery else { return nil }
+    @MainActor func medicalSafetyNotice(for destination: DirectionsService.Destination) -> String? {
+        guard case let .poi(query) = destination, query == Self.medicalPOIQuery else { return nil }
         return """
         Say this first, before any route detail, in the user's language: if they are injured, unwell or in danger, call the local emergency number \
         (\(emergencyNumbersHere())) now instead of walking or driving to a hospital. This route is only for reaching care on their own \
@@ -439,8 +439,8 @@ extension WorkoutLiveCoachingNamespace {
     /// The numbers the Get Me Back SOS button would show right now: the
     /// country the user is in when the last reverse geocode vouches for it,
     /// otherwise the handset-wide fallback.
-    @MainActor private static func emergencyNumbersHere() -> String {
-        let location = AppDependencies.current.location
+    @MainActor private func emergencyNumbersHere() -> String {
+        let location = services
         let country = GetMeBackView.countryCode(
             of: location.roadGeocodingService.current,
             at: location.ambientLocationService.cachedLocation(maxAgeSec: 300)
@@ -538,7 +538,7 @@ extension WorkoutLiveCoachingNamespace {
     // notRecorded with a clear hint so the AI can tell
     // the user to set it.
     private func homeDestination() -> DestinationResolution {
-        let saved = (AppDependencies.current.app.settingsManager.settingsSnapshot.homeAddress ?? "")
+        let saved = (services.settingsManager.settingsSnapshot.homeAddress ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !saved.isEmpty else {
             return .failed(.missing(reason: .notRecorded, detail: "no home address saved — tell the user to set it in Settings → Biometrics → Home Address, then ask again"))
@@ -549,11 +549,11 @@ extension WorkoutLiveCoachingNamespace {
     // Fast-path the cache. Workout running
     // with phone locked = AmbientLocationService /
     // WorkoutLocationManager have been keeping fresh fixes
-    // in `AppDependencies.current.location.roadGeocodingService.current` and
-    // `AppDependencies.current.location.ambientLocationService.latestLocation`. No
+    // in `services.roadGeocodingService.current` and
+    // `services.ambientLocationService.latestLocation`. No
     // reason to cold-fetch.
     @MainActor private func routingUserLocation() async -> CLLocation? {
-        if let cached = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60) {
+        if let cached = services.ambientLocationService.cachedLocation(maxAgeSec: 60) {
             return cached
         }
         return await coldGPSFix()
@@ -654,13 +654,13 @@ extension WorkoutLiveCoachingNamespace {
     }
 
     private func resolveDirectionsNextStep() -> FactValue {
-        guard let session = AppDependencies.current.location.activeRouteSession.snapshot() else {
+        guard let session = services.activeRouteSession.snapshot() else {
             return .missing(reason: .notRecorded, detail: "no active route — call directions.routeTo to engage one first")
         }
-        guard let currentLoc = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60) else {
+        guard let currentLoc = services.ambientLocationService.cachedLocation(maxAgeSec: 60) else {
             return .missing(reason: .notRecorded, detail: "no current location fix — open the app foreground or start a workout to warm up the GPS pipeline")
         }
-        guard let step = AppDependencies.current.location.activeRouteSession.peekStep(for: currentLoc) else {
+        guard let step = services.activeRouteSession.peekStep(for: currentLoc) else {
             return .missing(reason: .notRecorded, detail: "route engaged but step lookup returned nothing — try directions.routeTo again")
         }
         return .record(nextStepRecord(session: session, step: step))
@@ -694,7 +694,7 @@ extension WorkoutLiveCoachingNamespace {
             """,
             parameters: []
         ) { _ in
-            AppDependencies.current.location.activeRouteSession.disengage()
+            services.activeRouteSession.disengage()
             return .record([
                 "status": .string("cleared")
             ])
@@ -849,7 +849,7 @@ extension WorkoutLiveCoachingNamespace {
             // coarse signal: the live-workout broker has a snapshot while a
             // workout runs, and the archive shows the post-Stop window.
             let open = MainActor.assumeIsolated {
-                AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot() != nil || Self.postStopHRRWindowOpen()
+                services.liveWorkoutBroker.currentSnapshot() != nil || postStopHRRWindowOpen()
             }
             return .string(open ? "capturing_or_active" : "idle")
         }
@@ -859,9 +859,9 @@ extension WorkoutLiveCoachingNamespace {
     /// (plus the write grace the summary allows) and its drops have not been
     /// written yet. The broker is cleared at Stop, before the capture starts,
     /// so it cannot show this window.
-    @MainActor private static func postStopHRRWindowOpen(now: Date = Date()) -> Bool {
+    @MainActor private func postStopHRRWindowOpen(now: Date = Date()) -> Bool {
         let window = Double(WorkoutStatsCards.hrrCaptureWindowSec + WorkoutStatsCards.hrrWriteGraceSec)
-        let archive = AppDependencies.current.storage.sessionArchive
+        let archive = services.sessionArchive
         guard let entry = archive.store.entries.filter({ $0.sessionType == .workout }).max(by: { $0.date < $1.date }),
               let end = entry.endDate, now.timeIntervalSince(end) <= window,
               let session = archive.retrieveLightweightOrLog(entry.sessionId, caller: "WorkoutLiveCoachingNamespace.hrrCaptureStatus")
@@ -888,7 +888,7 @@ extension WorkoutLiveCoachingNamespace {
     }
 
     private func resolveJourney() -> FactValue {
-        let trail = MainActor.assumeIsolated { AppDependencies.current.location.breadcrumbStore.load() }
+        let trail = MainActor.assumeIsolated { services.breadcrumbStore.load() }
         guard let trail else {
             return .missing(reason: .notRecorded, detail: "no active breadcrumb trail — journey intelligence runs on a Get Me Back trail; engage Get Me Back from the Fitness tab (a workout alone does not record one)")
         }
@@ -900,7 +900,7 @@ extension WorkoutLiveCoachingNamespace {
         // historical patterns. Only emitted when >= 2 prior matching trails
         // exist in the bucket; otherwise the model gets nothing for this slot
         // and shouldn't fabricate a "your usual route" claim.
-        if let recurrence = Self.journeyRecurrence(for: trail) {
+        if let recurrence = journeyRecurrence(for: trail) {
             rec["recurrence"] = recurrence
         }
         return .record(rec)
@@ -926,8 +926,8 @@ extension WorkoutLiveCoachingNamespace {
     }
 
     /// nil when the trail does not match a historical cluster.
-    static func journeyRecurrence(for trail: BreadcrumbTrail) -> FactValue? {
-        let archive = MainActor.assumeIsolated { AppDependencies.current.location.breadcrumbStore.loadArchive() }
+    func journeyRecurrence(for trail: BreadcrumbTrail) -> FactValue? {
+        let archive = MainActor.assumeIsolated { services.breadcrumbStore.loadArchive() }
         guard let recurrence = RecurrenceClassifier.match(current: trail, archive: archive) else { return nil }
         return .record([
             "label": .string(recurrence.label),

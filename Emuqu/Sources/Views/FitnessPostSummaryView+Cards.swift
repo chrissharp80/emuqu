@@ -624,6 +624,8 @@ enum CoachReportProgress: Equatable {
 /// once the draft is staged the button works again and the line under it
 /// says whether the PDF made it in, so a failed render can be retried.
 private struct CoachReportButton: View {
+    @Environment(SettingsManager.self) private var settingsManager
+    @Environment(\.dependencies) private var dependencies
     let session: HRVSession
     @Binding var progress: CoachReportProgress
 
@@ -647,7 +649,9 @@ private struct CoachReportButton: View {
     private func request() {
         guard progress != .preparing else { return }
         progress = .preparing
-        let render = WorkoutRecorder.scheduleCoachReportEmail(for: session)
+        let render = WorkoutRecorder.scheduleCoachReportEmail(
+            for: session, settings: settingsManager.settingsSnapshot, services: WorkoutServices(dependencies)
+        )
         Task {
             progress = .staged(withPDF: await render.value)
         }

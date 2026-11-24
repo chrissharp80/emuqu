@@ -60,7 +60,7 @@ extension WorkoutFinalizer {
         applyPowerAggregates(to: &metadata, sport: analysis.sport, startDate: startDate, stopDate: stopDate)
         applyRouteTRIMPEstimate(to: &metadata, sport: analysis.sport)
         applyRowingTelemetry(to: &metadata, sport: analysis.sport)
-        attachWeatherSnapshot(to: &metadata, sport: analysis.sport)
+        attachWeatherSnapshot(to: &metadata, sport: analysis.sport, weather: recorder.services.weatherService)
         attachAnalysisSnapshot(
             to: &metadata, sport: analysis.sport, rrPoints: rrPoints,
             startDate: startDate, stopDate: stopDate, userMaxHR: analysis.userMaxHR
@@ -138,7 +138,7 @@ extension WorkoutFinalizer {
     /// out of the GPS distance, and the pedometer and foot-pod readings drop
     /// what accrued while paused.
     private func finalDistanceMeters(sport: Sport, computed: WorkoutMetadata) -> Double {
-        if sport == .row, let ergDistance = AppDependencies.current.collection.concept2Manager.distanceMeters {
+        if sport == .row, let ergDistance = recorder.services.concept2Manager.distanceMeters {
             return ergDistance
         }
         let paused = recorder.lifecycle.pausedMotion
@@ -320,7 +320,7 @@ extension WorkoutFinalizer {
             recordedTRIMP: metadata.luciaTRIMP,
             recordedDistance: metadata.distanceMeters,
             archive: recorder.core.archive,
-            savedRouteStore: AppDependencies.current.location.savedRouteStore
+            savedRouteStore: recorder.services.savedRouteStore
         ) else { return }
         metadata.extrapolatedTRIMP = estimate.estimatedTRIMP
         metadata.extrapolationConfidence = estimate.confidence
@@ -338,7 +338,7 @@ extension WorkoutFinalizer {
         // numbers (split pace, total strokes, drag setting they used)
         // would evaporate the moment they tap Stop.
         if sport == .row {
-            let erg = AppDependencies.current.collection.concept2Manager
+            let erg = recorder.services.concept2Manager
             metadata.strokeCount = erg.strokeCount
             metadata.dragFactor = erg.dragFactor
             metadata.averageSplitSecPer500m = Self.averageSplitSecPer500m(
@@ -486,7 +486,7 @@ extension WorkoutFinalizer {
     /// calculateTrainingLoad) gets a fresh one. Strictly better than the user
     /// losing the workout entirely.
     private func resolveFinalizeTrainingContext(stopDate: Date) async -> TrainingContext? {
-        if let live = AppDependencies.current.analysis.trainingMetricsCache.current, live.atl > 0 || live.ctl > 0 {
+        if let live = recorder.services.trainingMetricsCache.current, live.atl > 0 || live.ctl > 0 {
             return Self.trainingContext(fromCached: live, relativeTo: stopDate)
         }
         let healthKit = recorder.core.healthKit
@@ -671,12 +671,12 @@ private func applyFTPAnchoredMetrics(
 @MainActor
 /// Finalize stage — persist the live weather snapshot for the
 /// heat-acclimatization model. The weather is already in memory
-/// (`AppDependencies.current.location.weatherService.current`, refreshed each ~30 min during the
+/// (`WeatherService.current`, refreshed each ~30 min during the
 /// workout); this is purely wiring it into the archived record before
 /// it evaporates. Outdoor sports only — indoor sessions carry no heat
 /// stimulus and would otherwise capture stale ambient weather.
-private func attachWeatherSnapshot(to metadata: inout WorkoutMetadata, sport: Sport) {
-    guard sport.usesGPS, let live = AppDependencies.current.location.weatherService.current else { return }
+private func attachWeatherSnapshot(to metadata: inout WorkoutMetadata, sport: Sport, weather: WeatherService) {
+    guard sport.usesGPS, let live = weather.current else { return }
     metadata.weatherSnapshot = WorkoutWeatherSnapshot(
         temperatureC: live.temperatureC,
         apparentTemperatureC: live.apparentTemperatureC,

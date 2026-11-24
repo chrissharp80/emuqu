@@ -712,7 +712,7 @@ extension AssistantContext {
     /// Serializer: one optional-unwrap per workout field. The field count IS
     /// the branch count, so the tables below are data rather than control flow
     /// — the same reasoning already recorded on `WorkoutAIContext.asFactSheet`
-    /// and `AppFactResolver+WorkoutLive`.
+    /// and `WorkoutLiveFacts`.
     private func workoutBits(_ w: WorkoutHistoryEntry, dateFormatter: DateFormatter) -> [String] {
         var bits = [dateFormatter.string(from: w.date), w.sport]
         if let dur = w.durationSec {

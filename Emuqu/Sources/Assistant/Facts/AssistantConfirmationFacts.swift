@@ -20,8 +20,8 @@ extension AssistantMemoryNamespace {
         let turns: [ChatTurn]
         var now = Date()
 
-        static var live: DestructiveActionContext {
-            let viewModel = AppDependencies.current.assistant.assistantViewModel
+        static func live(_ services: FactServices) -> DestructiveActionContext {
+            let viewModel = services.assistantViewModel
             return DestructiveActionContext(confirmations: viewModel.actionConfirmations, turns: viewModel.turns)
         }
 

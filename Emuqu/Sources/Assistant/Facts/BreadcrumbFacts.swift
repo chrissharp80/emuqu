@@ -22,6 +22,7 @@ import Foundation
 // recent trails and GPS workouts (recent).
 struct BreadcrumbNamespace: FactNamespaceResolver {
     let namespace = "breadcrumb"
+    let services: FactServices
 
     private static func tripleFromTrail(
         _ trail: BreadcrumbTrail
@@ -73,7 +74,7 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
             """,
             valueType: "Record"
         ) {
-            guard let trail = AppDependencies.current.location.breadcrumbStore.load() else {
+            guard let trail = services.breadcrumbStore.load() else {
                 return .missing(reason: .notRecorded, detail: "no active Get Me Back trail — engage one from Fitness tab → Get Me Back to drop a pin where you start")
             }
             return .record(Self.tripleFromTrail(trail))
@@ -86,7 +87,7 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
             description: Self.breadcrumbRecentDescription,
             valueType: "List"
         ) {
-            let trails = AppDependencies.current.location.breadcrumbStore.loadArchive().prefix(10)
+            let trails = services.breadcrumbStore.loadArchive().prefix(10)
             if trails.isEmpty {
                 return .missing(reason: .notRecorded, detail: "no archived trails — every workout with GPS auto-archives a trail; record a walk/run/bike or engage Get Me Back to populate this")
             }
@@ -110,7 +111,7 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
             description: "Number of trails currently archived (excluding the active one). Cheap; returns 0 when the archive is empty. Useful as a guard before calling `breadcrumb.recent` so the AI doesn't ask a question it knows has no answer.",
             valueType: "Int"
         ) {
-            .integer(AppDependencies.current.location.breadcrumbStore.loadArchive().count)
+            .integer(services.breadcrumbStore.loadArchive().count)
         }
     }
 
@@ -126,7 +127,7 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
     }
 
     private func resolveBreadcrumbArchiveSummary() -> FactValue {
-        let archive = AppDependencies.current.location.breadcrumbStore.loadArchive()
+        let archive = services.breadcrumbStore.loadArchive()
         guard !archive.isEmpty else {
             return .missing(reason: .notRecorded, detail: "no archived trails — trails are auto-saved at the end of every GPS-bearing workout, plus any Get-Me-Back trails you explicitly save. Record a walk/run/bike to populate.")
         }
@@ -184,7 +185,7 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
     }
 
     private func resolveBreadcrumbCurrentFix() -> FactValue {
-        let trail = MainActor.assumeIsolated { AppDependencies.current.location.breadcrumbRecorder.activeTrail }
+        let trail = MainActor.assumeIsolated { services.breadcrumbRecorder.activeTrail }
         guard let last = trail?.fixes.last else {
             return .missing(reason: .notRecorded, detail: "no active breadcrumb trail")
         }
@@ -218,7 +219,7 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
     }
 
     private func resolveBreadcrumbRecentTrack() -> FactValue {
-        let trail = MainActor.assumeIsolated { AppDependencies.current.location.breadcrumbRecorder.activeTrail }
+        let trail = MainActor.assumeIsolated { services.breadcrumbRecorder.activeTrail }
         let fixes = (trail?.fixes ?? []).suffix(20)
         guard fixes.count >= 2 else {
             return .missing(reason: .notRecorded, detail: "fewer than 2 breadcrumb fixes — start moving or engage Get Me Back")
@@ -238,7 +239,7 @@ struct BreadcrumbNamespace: FactNamespaceResolver {
     }
 
     private func resolveBreadcrumbDerivedGradePercent() -> FactValue {
-        let trail = MainActor.assumeIsolated { AppDependencies.current.location.breadcrumbRecorder.activeTrail }
+        let trail = MainActor.assumeIsolated { services.breadcrumbRecorder.activeTrail }
         let fixes = trail?.fixes ?? []
         guard fixes.count >= 2 else {
             return .missing(reason: .notRecorded, detail: "need at least 2 fixes for a grade estimate")

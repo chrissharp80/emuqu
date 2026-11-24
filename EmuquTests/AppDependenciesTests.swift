@@ -11,7 +11,7 @@ import XCTest
 @MainActor
 final class AppDependenciesTests: XCTestCase {
     func testAnInstalledContainerIsInForceUntilItsScopeEnds() {
-        let box = RecorderBox()
+        let box = RecorderBox(services: WorkoutServices(.current))
         let dependencies = AppDependencies()
         dependencies.overrides.recorderBox = box
 
@@ -24,21 +24,21 @@ final class AppDependenciesTests: XCTestCase {
 
     /// Ending an inner scope restores the outer container, not the live one.
     func testScopesRestoreTheContainerThatWasInForceBeforeThem() {
-        let outerBox = RecorderBox()
+        let outerBox = RecorderBox(services: WorkoutServices(.current))
         let outer = AppDependencies()
         outer.overrides.recorderBox = outerBox
         let outerScope = AppDependencies.install(outer)
         defer { outerScope.end() }
 
         let inner = AppDependencies()
-        inner.overrides.recorderBox = RecorderBox()
+        inner.overrides.recorderBox = RecorderBox(services: WorkoutServices(.current))
         AppDependencies.install(inner).end()
 
         XCTAssertTrue(AppDependencies.current.app.recorderBox === outerBox, "The inner scope did not restore the outer container")
     }
 
     func testLaunchServicesResolveTheContainersSubstitutes() {
-        let box = RecorderBox()
+        let box = RecorderBox(services: WorkoutServices(.current))
         let dependencies = AppDependencies()
         dependencies.overrides.recorderBox = box
 

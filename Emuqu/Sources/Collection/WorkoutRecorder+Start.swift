@@ -62,7 +62,7 @@ extension WorkoutSessionLifecycle {
         thresholds: [WorkoutThreshold] = [],
         route: Route? = nil
     ) throws {
-        AppDependencies.current.collection.workoutStartLatencyTracker.recordStartEntry()
+        recorder.services.workoutStartLatencyTracker.recordStartEntry()
         recorder.beginWorkoutCorrelation()
         var startCompleted = false
         defer { if !startCompleted { abandonFailedStart() } }
@@ -78,7 +78,7 @@ extension WorkoutSessionLifecycle {
         stamps.mark("polarStream")
         bringUpRecording(session: session, sport: sport, effectiveSource: effectiveSource, intervalPlan: intervalPlan, stamps: &stamps)
         debugLog("[Recorder.start] sync-breakdown " + stamps.breakdown())
-        AppDependencies.current.collection.workoutStartLatencyTracker.recordStartReturned()
+        recorder.services.workoutStartLatencyTracker.recordStartReturned()
         startCompleted = true
     }
 
@@ -86,7 +86,7 @@ extension WorkoutSessionLifecycle {
     /// stamps, so neither tags nor measures a later start.
     private func abandonFailedStart() {
         recorder.endWorkoutCorrelation()
-        AppDependencies.current.collection.workoutStartLatencyTracker.recordStartAbandoned()
+        recorder.services.workoutStartLatencyTracker.recordStartAbandoned()
     }
 
     /// Per-block timing inside the synchronous body of `start()`, so a
@@ -233,7 +233,7 @@ extension WorkoutSessionLifecycle {
             strapIsRecordingOnDevice: recorder.core.polarManager.isRecordingOnDevice,
             strapIsConnected: recorder.core.polarManager.connectionState == .connected,
             hasKnownDevices: !recorder.core.polarManager.knownDevices.isEmpty,
-            isWatchPaired: AppDependencies.current.services.watchConnectivityBridge.isWatchPaired
+            isWatchPaired: recorder.services.watchConnectivityBridge.isWatchPaired
         )
     }
 
@@ -379,7 +379,7 @@ extension WorkoutSessionLifecycle {
     /// another thread gets no samples instead of an isolation trap. Cleared
     /// at stop via broker.clear().
     private func installLiveWorkoutSamplesProvider() {
-        AppDependencies.current.assistant.liveWorkoutBroker.registerSamplesProvider { [weak recorder] in
+        recorder.services.liveWorkoutBroker.registerSamplesProvider { [weak recorder] in
             guard Thread.isMainThread else { return [] }
             return MainActor.assumeIsolated {
                 recorder?.samplesView ?? []
@@ -404,7 +404,7 @@ extension WorkoutSessionLifecycle {
         Self.probeMainActorLatency(label: "probe-pre")
         recorder.lifecycle.phase = .recording
         debugLog("[Recorder.start] step=phase=.recording")
-        AppDependencies.current.collection.workoutStartLatencyTracker.recordPhaseFlip()
+        recorder.services.workoutStartLatencyTracker.recordPhaseFlip()
         Self.probeMainActorLatency(label: "probe-post (after phase=.recording)")
     }
 
@@ -449,7 +449,7 @@ extension WorkoutSessionLifecycle {
         if effectiveSource == .strap {
             recorder.ticker.observeHeartRate()
         }
-        AppDependencies.current.collection.workoutStartLatencyTracker.recordAnnounceFire()
+        recorder.services.workoutStartLatencyTracker.recordAnnounceFire()
     }
 
     /// start() — queues the announceStart Task (sync-breakdown `announceQueue` span).
@@ -470,7 +470,7 @@ extension WorkoutSessionLifecycle {
     /// start() — owns `step=zwiftBroadcaster.start (deferred)` and the deferred geocoding reset (sync-breakdown `geocodingReset` span).
     func deferZwiftBroadcastAndGeocodingReset() {
         deferZwiftBroadcast()
-        deferGeocodingReset()
+        deferGeocodingReset(recorder.services.roadGeocodingService)
     }
 
     /// Start advertising HR + power as a BLE peripheral if the user opted in.
@@ -495,7 +495,7 @@ extension WorkoutSessionLifecycle {
         Task { @MainActor [weak recorder] in
             guard let recorder, case .recording = recorder.lifecycle.phase else { return }
             let t0 = Date()
-            AppDependencies.current.collection.zwiftPeripheralBroadcaster.startBroadcasting()
+            recorder.services.zwiftPeripheralBroadcaster.startBroadcasting()
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
             debugLog("[Recorder.start] step=zwiftBroadcaster.start deferred done (\(ms)ms)")
         }
@@ -617,15 +617,15 @@ extension WorkoutSessionLifecycle {
     /// power-capable trainer (KICKR, Tacx Neo, Zwift Hub) is kept and
     /// reconnected for `.bike` / `.indoorBike` (see `manageFootPod`).
     func reconnectOrDisconnectSecondarySensors(sport: Sport) {
-        manageFootPod(for: sport)
-        AppDependencies.current.collection.concept2Manager.holdLinkForWorkout(sport == .row)
+        manageFootPod(for: sport, pod: recorder.services.footPodManager)
+        recorder.services.concept2Manager.holdLinkForWorkout(sport == .row)
         guard sport == .row,
-              !AppDependencies.current.collection.concept2Manager.knownDevices.isEmpty,
-              AppDependencies.current.collection.concept2Manager.connectionState == .disconnected
+              !recorder.services.concept2Manager.knownDevices.isEmpty,
+              recorder.services.concept2Manager.connectionState == .disconnected
         else { return }
         debugLog("[Recorder.start] step=concept2.reconnectLast (deferred)")
         Task { @MainActor in
-            AppDependencies.current.collection.concept2Manager.reconnectLast()
+            recorder.services.concept2Manager.reconnectLast()
             debugLog("[Recorder.start] step=concept2.reconnectLast done")
         }
     }
@@ -697,7 +697,7 @@ extension WorkoutSessionLifecycle {
             guard let recorder else { return }
             guard case .recording = recorder.lifecycle.phase else { return }
             var stamps = StartStamps()
-            AppDependencies.current.app.systemDiagnosticsManager.startSamplingDuringRecording()
+            recorder.services.systemDiagnosticsManager.startSamplingDuringRecording()
             stamps.mark("diag")
             // Kick the paired Watch into its own HKWorkoutSession so the wrist
             // HR is dense (1 Hz) and forwarded back here if the strap drops.
@@ -810,10 +810,10 @@ extension WorkoutSessionLifecycle {
 /// to the @MainActor-isolated state of the service; if MainActor is
 /// contended, even a quick property setter can wait. Deferring removes the
 /// dependency.
-private func deferGeocodingReset() {
+private func deferGeocodingReset(_ geocoding: RoadGeocodingService) {
     Task { @MainActor in
         let t0 = Date()
-        AppDependencies.current.location.roadGeocodingService.reset()
+        geocoding.reset()
         let ms = Int(Date().timeIntervalSince(t0) * 1000)
         if ms > 50 {
             debugLog("[Recorder.start] step=geocodingReset deferred done (\(ms)ms) — slower than expected", level: .warning)
@@ -834,8 +834,7 @@ private func deferGeocodingReset() {
 /// heart rate only. Anywhere else the linked device is DISCONNECTED so it
 /// doesn't deliver stale cadence/pace into the workout context (a bike's
 /// pedal cadence ≠ run cadence).
-private func manageFootPod(for sport: Sport) {
-    let pod = AppDependencies.current.collection.footPodManager
+private func manageFootPod(for sport: Sport, pod: FootPodManager) {
     let usesPod = footPodManagerServes(sport, pod: pod)
     pod.holdLinkForWorkout(usesPod)
     if usesPod {
@@ -843,14 +842,14 @@ private func manageFootPod(for sport: Sport) {
               pod.connectionState == .disconnected else { return }
         debugLog("[Recorder.start] step=footpod.reconnect (deferred, sport=\(sport.rawValue))")
         Task { @MainActor in
-            AppDependencies.current.collection.footPodManager.connect(deviceId: device.id)
+            pod.connect(deviceId: device.id)
             debugLog("[Recorder.start] step=footpod.reconnect done")
         }
     } else {
         guard pod.connectionState == .connected else { return }
         debugLog("[Recorder.start] step=footpod.disconnect (deferred, sport=\(sport.rawValue) doesn't use foot pod)")
         Task { @MainActor in
-            AppDependencies.current.collection.footPodManager.disconnect()
+            pod.disconnect()
             debugLog("[Recorder.start] step=footpod.disconnect done")
         }
     }
