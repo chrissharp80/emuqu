@@ -575,6 +575,11 @@ check "explicit_dependencies/planted_reanalysis_lookup" \
     "Emuqu/Sources/Services/ReanalysisService.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/ReanalysisService.swift');p.write_text(p.read_text()+chr(10)+'private let plantedLookup = AppDependencies.current.app'+chr(10))"
 
+check "explicit_dependencies/planted_service_list" \
+    "./scripts/check_explicit_dependencies.sh" \
+    "Emuqu/Sources/Assistant/Facts/SleepFacts.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/SleepFacts.swift');p.write_text(p.read_text()+chr(10)+'private let plantedLookup = FactServices(.current)'+chr(10))"
+
 check "explicit_dependencies/planted_install" \
     "./scripts/check_explicit_dependencies.sh" \
     "Emuqu/Sources/Views/DeleteAllDataPage.swift" \
