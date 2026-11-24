@@ -39,7 +39,7 @@ enum CSVExporter {
 
         init(imperial: Bool = UnitsPreferenceStore.current.resolved == .imperial) {
             self.imperial = imperial
-            metresToDist = { m in imperial ? m / 1609.344 : m / 1000.0 }
+            metresToDist = { m in imperial ? m / UnitConstants.metersPerMile : m / 1000.0 }
             metresToElev = { m in imperial ? m * UnitConstants.feetPerMeter : m }
             secPerKmToSecPerUnit = { p in imperial ? p * 1.609_344 : p }
             distUnit = imperial ? "mi" : "km"

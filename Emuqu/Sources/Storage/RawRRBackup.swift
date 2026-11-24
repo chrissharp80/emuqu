@@ -262,15 +262,9 @@ final class RawRRBackup: @unchecked Sendable {
         unlockObservers.removeAll(from: notificationCenter)
     }
 
-    /// Runs `repairAfterUnlock` when protected data becomes available and
-    /// when the app becomes active (a suspended app can miss the unlock), as
-    /// `ConversationStore` retries a held save.
+    /// Runs `repairAfterUnlock` once the backups may be readable.
     private func observeUnlock() {
-        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
-            unlockObservers.add(notificationCenter.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
-                self?.repairAfterUnlock()
-            })
-        }
+        unlockObservers.observeProtectedDataMayBeAvailable(on: notificationCenter) { [weak self] in self?.repairAfterUnlock() }
     }
 
     /// Queued on `appendQueue`, behind any append in flight, so neither step

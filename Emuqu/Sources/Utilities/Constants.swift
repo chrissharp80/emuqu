@@ -141,12 +141,8 @@ enum SessionConstants {
 enum HRVConstants {
     /// Minimum/maximum physiologically valid RR intervals (ms)
     enum RRInterval {
-        // Physiological RR floor = 300 ms (~200 bpm): a shorter interval is a
-        // technical artifact, not a real beat. 300 ms (not 200) is the literature
-        // floor — Kubios artifact handling; Lipponen &
-        // Tarvainen, J Med Eng Technol 2019;43:173-181.
-        static let minimum: Int = 300 // ~200 bpm
-        static let maximum: Int = 2000 // ~30 bpm
+        static let minimum: Int = HRVThresholds.minimumRRIntervalMs
+        static let maximum: Int = HRVThresholds.maximumRRIntervalMs
 
         static let range: ClosedRange<Int> = minimum ... maximum
 
@@ -229,8 +225,8 @@ enum HRVConstants {
     ///   series. The floor is now unified with the strap gate; the ceiling is
     ///   the sole remaining, deliberate difference.
     enum RRValidity {
-        static let polarStreamRange: ClosedRange<Int> = 300 ... 2000
-        static let watchSynthesisMinExclusive: Int = 300
+        static let polarStreamRange: ClosedRange<Int> = HRVConstants.RRInterval.range
+        static let watchSynthesisMinExclusive: Int = HRVThresholds.minimumRRIntervalMs
         static let watchSynthesisMaxExclusive: Int = 2500
     }
 }

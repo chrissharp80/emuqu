@@ -112,7 +112,7 @@ extension WorkoutFinalizer {
     /// splits unconditionally gets them mislabelled as "mi" on imperial —
     /// a 6.35 km walk shows "mi 1..mi 6" for a 3.95 mi walk.
     private static func splitDistanceMeters() -> Double {
-        UnitsPreferenceStore.current.resolved == .imperial ? 1609.344 : 1000.0
+        UnitsPreferenceStore.current.resolved == .imperial ? UnitConstants.metersPerMile : 1000.0
     }
 
     /// Banister's original work gave different exponents for men vs

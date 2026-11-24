@@ -263,7 +263,7 @@ private extension MileMarkerUnit {
     /// intervals return 0; the engine handles that branch separately.
     var metersPerMarker: Double {
         switch self {
-        case .mile: return 1609.344
+        case .mile: return UnitConstants.metersPerMile
         case .kilometer: return 1000.0
         case .twoKilometers: return 2_000.0
         case .fiveKilometers: return 5_000.0

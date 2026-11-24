@@ -125,14 +125,10 @@ final class AssistantArtifactStore {
         wireRecoveryOnUnlock()
     }
 
-    /// Unlock (and becoming active, since a suspended app can miss the
-    /// unlock notification) runs `recoverAfterUnlock()` on the main actor.
+    /// Runs `recoverAfterUnlock()` on the main actor once the artifacts may
+    /// be readable.
     private func wireRecoveryOnUnlock() {
-        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
-            unlockObservers.add(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
-                self?.scheduleRecoveryAfterUnlock()
-            })
-        }
+        unlockObservers.observeProtectedDataMayBeAvailable { [weak self] in self?.scheduleRecoveryAfterUnlock() }
     }
 
     nonisolated private func scheduleRecoveryAfterUnlock() {

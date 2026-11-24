@@ -1,20 +1,7 @@
-//
-//  CoachVoiceGuardTests.swift
-//  EmuquTests
-//
-//  CoachVoiceGuard is the runtime half of the FDA
-//  perimeter — the control that stands between a third-party language model and
-//  a regulated medical claim reaching the user. It had no test file at all, and
-//  its class doc described a wiring that did not exist (`AIProvider` calling it,
-//  partial-stream interception in a `ChatViewModel` that is not a type in this
-//  codebase). This file asserts the guard's behaviour and the sentence-split
-//  contract `StreamTextBuffer` publishes through
-//  (`testProhibitedPhraseIsNeverPublishedDuringStreaming` replays that loop
-//  with the guard's own functions). It does not drive the call sites
-//  themselves (`StreamTextBuffer.flush`, `VoiceConversationController.speak`,
-//  `AssistantViewModel.applyPostStreamEffects`), so removing one of those
-//  calls would not fail this suite.
-//
+// CoachVoiceGuard is the runtime half of the regulated-claim perimeter: it
+// stands between a third-party language model and a medical claim reaching the
+// user. This file asserts the guard's behaviour and that the streaming buffer
+// (`StreamTextBuffer`) publishes only text the guard has already scrubbed.
 
 @testable import Emuqu
 import XCTest
@@ -659,30 +646,41 @@ final class CoachVoiceGuardTests: XCTestCase {
         XCTAssertEqual(split.complete, "", "a trailing digit-dot may still be a decimal point")
     }
 
-    /// Replay a token stream the way `StreamTextBuffer` does — publish only
-    /// complete sentences, scrub them, keep the tail — and assert the
-    /// prohibited phrase is never present in what has been published so far.
-    /// Appending every delta to the visible turn and rewriting the message at
-    /// the end publishes the phrase mid-stream.
-    func testProhibitedPhraseIsNeverPublishedDuringStreaming() {
-        let deltas = ["Your HRV is low", ". You may ", "have atrial fib", "rillation", ". Rest today", "."]
-        var pending = ""
-        var published = ""
-        for delta in deltas {
-            pending += delta
-            let split = CoachVoiceGuard.splitAtLastSentenceBoundary(pending)
-            guard !split.complete.isEmpty else { continue }
-            pending = split.tail
-            published += CoachVoiceGuard.scrub(split.complete).scrubbed
-            XCTAssertFalse(
-                published.lowercased().contains("atrial fib"),
-                "Prohibited phrase became visible mid-stream: \(published)"
-            )
+    /// The real streaming buffer publishes only complete, scrubbed sentences:
+    /// after every delta, the text visible in the turn never holds the
+    /// prohibited phrase, and the round's end publishes the clean remainder.
+    @MainActor
+    func testProhibitedPhraseIsNeverPublishedDuringStreaming() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CoachVoiceGuardTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the directory is temporary.
+            }
         }
-        published += CoachVoiceGuard.scrub(pending).scrubbed
-        XCTAssertFalse(published.lowercased().contains("atrial fib"))
-        XCTAssertTrue(published.contains("Your HRV is low."))
-        XCTAssertTrue(published.contains("Rest today."))
+        let viewModel = AssistantViewModel(
+            store: ConversationStore(fileURL: directory.appendingPathComponent("chat.json")),
+            factsStore: UserFactsStore(fileURL: directory.appendingPathComponent("facts.json"))
+        )
+        let turn = ChatTurn(role: .assistant, text: "")
+        viewModel.turns.append(turn)
+        let buffer = StreamTextBuffer(owner: viewModel, turnID: turn.id)
+        func visible() -> String { viewModel.turns.first { $0.id == turn.id }?.text ?? "" }
+
+        for delta in ["Your HRV is low", ". You may ", "have atrial fib", "rillation", ". Rest today", "."] {
+            // Past the 33 ms publish throttle, so every delta can publish.
+            try await Task.sleep(for: .milliseconds(40))
+            buffer.append(chunk: delta, thisRoundIsEmpty: true)
+            XCTAssertFalse(visible().lowercased().contains("atrial fib"), "Visible mid-stream: \(visible())")
+        }
+        buffer.flush(force: true, thisRoundIsEmpty: true)
+
+        XCTAssertFalse(visible().lowercased().contains("atrial fib"))
+        XCTAssertTrue(visible().contains("Your HRV is low."), visible())
+        XCTAssertTrue(visible().contains("Rest today."), visible())
     }
 
     // MARK: - Performance envelope

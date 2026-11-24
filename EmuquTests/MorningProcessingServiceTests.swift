@@ -194,27 +194,9 @@ final class MorningProcessingServiceTests: XCTestCase {
             "Short-series processing should preserve the input beat count"
         )
 
-        if result.session.state == .complete {
-            XCTAssertNotNil(
-                result.session.analysisResult,
-                "Complete short-series sessions must include analysis output"
-            )
-            XCTAssertEqual(
-                result.session.analysisResult?.cleanBeatCount,
-                10,
-                "Analysis result should reflect the short input size"
-            )
-        } else {
-            XCTAssertEqual(
-                result.session.state,
-                .failed,
-                "Short-series processing should end in either complete or failed state"
-            )
-            XCTAssertNil(
-                result.session.analysisResult,
-                "Failed short-series sessions should not include analysis output"
-            )
-        }
+        XCTAssertEqual(result.session.state, .failed, "Ten beats are not a night that can be scored")
+        XCTAssertNil(result.session.analysisResult)
+        XCTAssertNil(result.session.recoveryScore)
     }
 
     func testProcessOvernightData_withHighArtifactRate_handlesGracefully() async {
@@ -247,12 +229,10 @@ final class MorningProcessingServiceTests: XCTestCase {
             )
         )
 
-        // Assert: should not crash and should produce a session (likely failed)
-        XCTAssertNotNil(
-            result.session,
-            "Service should return a session even with high artifact data"
-        )
+        // Every interval is outside the valid range, so nothing can be scored.
         XCTAssertEqual(result.session.id, baseSession.id)
+        XCTAssertNotEqual(result.session.state, .complete, "A night of artifacts was accepted as complete")
+        XCTAssertNil(result.session.recoveryScore, "A night of artifacts was given a recovery score")
         // The verification result should exist
         XCTAssertNotNil(
             result.verificationResult,

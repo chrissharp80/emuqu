@@ -499,7 +499,7 @@ extension FitnessSummaryCards {
         }
         let recomputed = track.isEmpty ? [] : WorkoutAnalyzer.computeSplits(
             track: track, rrPoints: rrPoints, startDate: startDate,
-            splitDistanceMeters: wantsMile ? 1609.344 : 1000.0
+            splitDistanceMeters: wantsMile ? UnitConstants.metersPerMile : 1000.0
         )
         if !recomputed.isEmpty { return ResolvedSplits(splits: recomputed, isMile: wantsMile) }
         return storedSplits.map { ResolvedSplits(splits: $0, isMile: storedSplitsAreMiles($0) ?? wantsMile) }

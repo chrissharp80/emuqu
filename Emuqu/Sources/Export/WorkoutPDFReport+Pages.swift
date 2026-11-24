@@ -315,7 +315,7 @@ extension WorkoutPDFRenderer {
         let recomputed = Self.splitsFromSamples(
             report.session.workoutMetadata?.samples ?? [],
             startDate: report.session.startDate,
-            splitDistanceMeters: wantsMile ? 1609.344 : 1000.0
+            splitDistanceMeters: wantsMile ? UnitConstants.metersPerMile : 1000.0
         )
         return recomputed.isEmpty ? stored : recomputed
     }

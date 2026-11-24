@@ -436,7 +436,7 @@ extension WorkoutTriggerEngine {
     private static func climbLengthLabel(_ lengthMeters: Double, imperial: Bool) -> String? {
         guard lengthMeters > 0 else { return nil }
         if imperial {
-            let mi = lengthMeters / 1609.344
+            let mi = lengthMeters / UnitConstants.metersPerMile
             let feet = Int((lengthMeters * UnitConstants.feetPerMeter).rounded())
             guard mi >= 0.1 else { return String(localized: "\(feet) feet", bundle: LanguageManager.appBundle) }
             return String(localized: "\(String(format: "%.1f", locale: .current, mi)) miles", bundle: LanguageManager.appBundle)

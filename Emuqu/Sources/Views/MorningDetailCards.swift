@@ -23,7 +23,6 @@ struct MorningDetailCards {
     let session: HRVSession
     let result: HRVAnalysisResult
     let recentSessions: [HRVSession]
-    let collector: RRCollector
     let linkedSegments: [LinkedSegmentInfo]?
     let onUnlinkSegment: ((UUID) -> Bool)?
     let onToggleTag: (ReadingTag) -> Void

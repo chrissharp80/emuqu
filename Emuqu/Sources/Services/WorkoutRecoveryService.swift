@@ -56,7 +56,7 @@ enum WorkoutRecoveryService {
             userRestingHR: settings.effectiveRestingHR,
             userLTHR: settings.effectiveLTHR,
             sex: banisterSex,
-            splitDistanceMeters: unitsPreference == .imperial ? 1609.344 : 1000.0
+            splitDistanceMeters: unitsPreference == .imperial ? UnitConstants.metersPerMile : 1000.0
         )
     }
 
