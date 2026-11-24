@@ -381,8 +381,8 @@ extension TurnRouterTests {
 
     func testAllowedFallbacksFollowThePolicy() {
         let chain: [(AIProvider, ModelOption)] = [
-            (DeepSeekProvider(), model(.deepseek, "deepseek-chat")),
-            (AppleFoundationProvider(), AppleFoundationProvider.model)
+            (DeepSeekProvider(services: AIProviderServices(.current)), model(.deepseek, "deepseek-chat")),
+            (AppleFoundationProvider(services: AIProviderServices(.current)), AppleFoundationProvider.model)
         ]
         XCTAssertTrue(TurnRouter.allowedFallbacks(chain, under: .none).isEmpty)
         XCTAssertEqual(TurnRouter.allowedFallbacks(chain, under: .onDeviceOnly).map(\.0.id), [.apple])

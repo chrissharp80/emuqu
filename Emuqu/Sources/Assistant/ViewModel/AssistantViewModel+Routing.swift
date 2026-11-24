@@ -674,6 +674,7 @@ extension AssistantTurnRouter {
             .filter { $0.role == .user && !$0.localOnly }
             .map(\.text)
         let systemPrompt = await AssistantSystemPrompt.compose(
+            services: owner.services.prompt,
             userFacts: snapshotUserFacts(),
             priorSummary: owner.priorSummary,
             contextRendered: rendered,

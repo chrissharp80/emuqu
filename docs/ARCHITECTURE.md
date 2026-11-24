@@ -1117,8 +1117,9 @@ the production object, built on first use. `current` has no setter: a test puts 
 substitutes in force with `AppDependencies.install(_:)` and ends the returned scope afterwards,
 which restores the container before it. The models, storage, analysis, launch work
 (`AppLaunchTasks.swift`), data purge, saved-session reanalysis, assistant fact namespaces, chat view model,
-assistant context builder, voice conversation and live workout recorder read no container: each is handed exactly the services it uses (`launchServices`,
-`purgeStores`, `makeSessionReanalysis`, `FactServices`, `WorkoutServices`, `ChatServices`, `ContextServices`, `VoiceServices`), and
+assistant context builder, AI providers and system prompt, voice conversation and live
+workout recorder read no container: each is handed exactly the services it uses (`launchServices`,
+`purgeStores`, `makeSessionReanalysis`, `FactServices`, `WorkoutServices`, `ChatServices`, `ContextServices`, `VoiceServices`, `AIProviderServices`, `PromptServices`), and
 `scripts/check_explicit_dependencies.sh` keeps `AppDependencies.current` out of those files and
 `install` out of app code. Views read it through
 `@Environment(\.dependencies)`, classes through an `init` parameter defaulting to `.current`, and

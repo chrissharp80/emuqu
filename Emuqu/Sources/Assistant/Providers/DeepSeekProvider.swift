@@ -39,6 +39,11 @@ final class DeepSeekProvider: OpenAICompatibleProvider {
     ]
 
     let id: ProviderID = .deepseek
+    let services: AIProviderServices
+
+    init(services: AIProviderServices) {
+        self.services = services
+    }
     static let endpoint = OpenAICompatibleStreamer.Endpoint.deepSeek
 
     /// Thinking off; see the type comment.

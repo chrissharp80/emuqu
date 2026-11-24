@@ -47,30 +47,11 @@ enum OpenAICompatibleStreamer {
         case thinkingDisabled
     }
 
-    /// `endpoint` is optional because the provider constants above are parsed,
-    /// not force-unwrapped. A URL that does not parse reports the same
-    /// "bad endpoint" the Anthropic path reports, instead of trapping.
-    static func send(
-        providerID: ProviderID,
-        endpoint: URL?,
-        reasoning: Reasoning,
-        messages: [ChatTurn],
-        model: ModelOption,
-        contextRendered: String,
-        systemPrompt: String,
-        tools: [ToolSpec] = [],
-        toolRounds: [[ToolExchange]] = []
-    ) -> AsyncThrowingStream<AIStreamEvent, Error> {
-        guard let endpoint else {
-            return AsyncThrowingStream { $0.finish(throwing: ProviderHTTP.badEndpoint) }
-        }
-        let call = StreamCall(
-            providerID: providerID, endpoint: endpoint, reasoning: reasoning, messages: messages,
-            model: model, contextRendered: contextRendered, systemPrompt: systemPrompt,
-            tools: tools, toolRounds: toolRounds
-        )
-        return ProviderStream.make { continuation in
-            try await stream(call, continuation: continuation)
+    /// Streams `call`, reading the provider's key from `keys` when the
+    /// stream starts.
+    static func send(_ call: StreamCall, keys: APIKeyStore) -> AsyncThrowingStream<AIStreamEvent, Error> {
+        ProviderStream.make { continuation in
+            try await stream(call, keys: keys, continuation: continuation)
         }
     }
 
@@ -272,9 +253,10 @@ enum OpenAICompatibleStreamer {
 
     private static func stream(
         _ call: StreamCall,
+        keys: APIKeyStore,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws {
-        guard let apiKey = AppDependencies.current.providers.apiKeyStore.key(for: call.providerID) else {
+        guard let apiKey = keys.key(for: call.providerID) else {
             throw AIProviderError.missingKey(call.providerID)
         }
         let request = try requestFor(call, apiKey: apiKey)
@@ -536,16 +518,17 @@ extension OpenAICompatibleProvider {
         tools: [ToolSpec],
         toolRounds: [[ToolExchange]]
     ) -> AsyncThrowingStream<AIStreamEvent, Error> {
-        OpenAICompatibleStreamer.send(
-            providerID: id,
-            endpoint: Self.endpoint,
-            reasoning: Self.reasoning,
-            messages: messages,
-            model: model,
-            contextRendered: contextRendered,
-            systemPrompt: systemPrompt,
-            tools: tools,
-            toolRounds: toolRounds
+        // `endpoint` is optional because the provider constants are parsed,
+        // not force-unwrapped. A URL that does not parse reports the same
+        // "bad endpoint" the Anthropic path reports, instead of trapping.
+        guard let endpoint = Self.endpoint else {
+            return AsyncThrowingStream { $0.finish(throwing: ProviderHTTP.badEndpoint) }
+        }
+        let call = OpenAICompatibleStreamer.StreamCall(
+            providerID: id, endpoint: endpoint, reasoning: Self.reasoning, messages: messages,
+            model: model, contextRendered: contextRendered, systemPrompt: systemPrompt,
+            tools: tools, toolRounds: toolRounds
         )
+        return OpenAICompatibleStreamer.send(call, keys: services.apiKeyStore)
     }
 }

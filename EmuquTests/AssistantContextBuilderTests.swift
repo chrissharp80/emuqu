@@ -421,7 +421,7 @@ final class AssistantContextBuilderTests: XCTestCase {
     @MainActor
     func testToolModePromptInjectsCapabilityIndex() {
         let composed = AssistantSystemPrompt.composeSplit(
-            userFacts: "", priorSummary: nil, contextRendered: "", toolMode: true
+            services: PromptServices(.current), userFacts: "", priorSummary: nil, contextRendered: "", toolMode: true
         )
         XCTAssertTrue(composed.stable.contains("# What you can retrieve (data tools)"),
                       "tool-mode system prompt must include the generated capability index")
@@ -432,7 +432,7 @@ final class AssistantContextBuilderTests: XCTestCase {
     @MainActor
     func testNonToolModePromptOmitsDataToolIndex() {
         let composed = AssistantSystemPrompt.composeSplit(
-            userFacts: "", priorSummary: nil, contextRendered: "", toolMode: false
+            services: PromptServices(.current), userFacts: "", priorSummary: nil, contextRendered: "", toolMode: false
         )
         XCTAssertFalse(composed.stable.contains("# What you can retrieve (data tools)"),
                        "non-tool providers shouldn't get the data-tool index")
@@ -445,9 +445,9 @@ final class AssistantContextBuilderTests: XCTestCase {
     @MainActor
     func testApplePromptFitsTheOnDeviceWindow() {
         let composed = AssistantSystemPrompt.compose(
-            userFacts: "", priorSummary: nil, contextRendered: "", voiceMode: true, toolMode: true
+            services: PromptServices(.current), userFacts: "", priorSummary: nil, contextRendered: "", voiceMode: true, toolMode: true
         )
-        let apple = AssistantSystemPrompt.appleInstructions(fromComposed: composed)
+        let apple = AssistantSystemPrompt.appleInstructions(fromComposed: composed, settings: UserSettings())
         XCTAssertLessThan(AppleContextCompactor.estimateTokens(apple), 1_400, "Apple's fixed prompt must stay small — got \(apple.count) chars")
         XCTAssertTrue(apple.contains("findahelpline.com"), "the crisis reply must survive the condensing")
         XCTAssertFalse(apple.contains(AssistantSystemPrompt.toolOverlay), "the cloud tool overlay says no data is loaded, which is false for Apple")

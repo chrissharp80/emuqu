@@ -13,6 +13,9 @@ struct ChatServices: Sendable {
     /// The services the fact registry this view model builds is handed.
     var facts: FactServices { FactServices(container) }
 
+    /// The services the system prompt this view model sends is composed from.
+    var prompt: PromptServices { PromptServices(container) }
+
     var analysisSummaryCache: AnalysisSummaryCache { container.assistant.analysisSummaryCache }
     @MainActor
     var appleToolDispatcher: AppleToolDispatcher { container.providers.appleToolDispatcher }
