@@ -3,7 +3,7 @@ import Foundation
 // The projection half of `TrainingLoadNamespace`: the forward-looking
 // facts (recovery hours, days-until-fresh, race predictions, pace zones).
 // The load snapshot facts — CTL / ATL / TSB / ACWR and the per-period
-// rollups — are in `AppFactResolver+Sessions.swift`.
+// rollups — are in `SessionFacts.swift`.
 
 extension TrainingLoadNamespace {
     /// Forward-looking projections derived from the same load model.
@@ -54,7 +54,7 @@ extension TrainingLoadNamespace {
                 guard let cutoff = cal.date(byAdding: .day, value: -7, to: Date()) else {
                     return .missing(reason: .internalError)
                 }
-                let samples = MainActor.assumeIsolated { AppDependencies.current.analysis.trainingMetricsCache.samplesSince(cutoff) }
+                let samples = MainActor.assumeIsolated { services.trainingMetricsCache.samplesSince(cutoff) }
                 guard !samples.isEmpty else {
                     return .missing(reason: .notRecorded, detail: "cache cold — no daily samples")
                 }
@@ -82,7 +82,7 @@ extension TrainingLoadNamespace {
             return .missing(reason: .internalError)
         }
         let samples = MainActor.assumeIsolated {
-            AppDependencies.current.analysis.trainingMetricsCache.samplesSince(start)
+            services.trainingMetricsCache.samplesSince(start)
         }
         guard !samples.isEmpty else {
             return .missing(reason: .notRecorded, detail: "cache cold — no daily samples")

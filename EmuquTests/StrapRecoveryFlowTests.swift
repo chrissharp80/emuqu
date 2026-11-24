@@ -380,7 +380,7 @@ extension XCTestCase {
         let savedDismissed = UserDefaults.standard.stringArray(forKey: hostDismissedInterruptionsKey)
         PersistedRecordingState.clear()
         let dependencies = AppDependencies()
-        dependencies.overrides.recorderBox = RecorderBox()
+        dependencies.overrides.recorderBox = RecorderBox(services: WorkoutServices(.current))
         let installed = AppDependencies.install(dependencies)
         addTeardownBlock { @MainActor in
             installed.end()

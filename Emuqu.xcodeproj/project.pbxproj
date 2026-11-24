@@ -29,7 +29,7 @@
 		A18F3C70001 /* CloudPullRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = P23F3C70001 /* CloudPullRecordTests.swift */; };
 		A18F3C70002 /* LostSessionRecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = P23F3C70002 /* LostSessionRecoveryTests.swift */; };
 		CK283898000 /* AssistantActionConfirmationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF315765000 /* AssistantActionConfirmationTests.swift */; };
-		RF312566001 /* AppFactResolver+AssistantConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1491602000 /* AppFactResolver+AssistantConfirmation.swift */; };
+		RF312566001 /* AssistantConfirmationFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1491602000 /* AssistantConfirmationFacts.swift */; };
 		EF296437001 /* AssistantActionConfirmations.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF254689000 /* AssistantActionConfirmations.swift */; };
 		A1880229001 /* SessionDataMigrations+TimeInBedRepairMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC841575000 /* SessionDataMigrations+TimeInBedRepairMigration.swift */; };
 		CK361030001 /* StrapArmingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK825689000 /* StrapArmingTests.swift */; };
@@ -79,7 +79,7 @@
 		EF315748001 /* WatchPayloadBounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF494843001 /* WatchPayloadBounds.swift */; };
 		RF215594001 /* HealthSampleFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK421162001 /* HealthSampleFactory.swift */; };
 		OB112744000 /* MedicalTermLexicon+Injury.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF600008000 /* MedicalTermLexicon+Injury.swift */; };
-		RF566734000 /* AppFactResolver+NumericArguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF140840000 /* AppFactResolver+NumericArguments.swift */; };
+		RF566734000 /* FactNumericArguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF140840000 /* FactNumericArguments.swift */; };
 		CK671546001 /* ACWRBandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB173897001 /* ACWRBandTests.swift */; };
 		RF476397001 /* HelpContentAccuracyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF296057000 /* HelpContentAccuracyTests.swift */; };
 		CK551947000 /* CloudSessionPayloadHealthReadingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF455483000 /* CloudSessionPayloadHealthReadingsTests.swift */; };
@@ -225,7 +225,7 @@
 		A1345167000 /* RouteTRIMPEstimatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK534312001 /* RouteTRIMPEstimatorTests.swift */; };
 		A1365904001 /* RecoveredWorkoutControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB658026000 /* RecoveredWorkoutControls.swift */; };
 		A1378013001 /* RoadGeocodingSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK207188000 /* RoadGeocodingSupport.swift */; };
-		A1394328001 /* AppFactResolver+WorkoutLive.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF852282001 /* AppFactResolver+WorkoutLive.swift */; };
+		A1394328001 /* WorkoutLiveFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF852282001 /* WorkoutLiveFacts.swift */; };
 		A1416978001 /* CloudDeletionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC447992000 /* CloudDeletionCoordinator.swift */; };
 		CK492357633 /* CloudAccountChangeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK419005568 /* CloudAccountChangeHandler.swift */; };
 		A1424096000 /* LocalizedDuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB984214000 /* LocalizedDuration.swift */; };
@@ -254,15 +254,15 @@
 		ACB00100 /* WorkoutAIContextBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACB00101 /* WorkoutAIContextBuilder.swift */; };
 		ACVSEC0770 /* AssistantChatView+Sections.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACVSEC0771 /* AssistantChatView+Sections.swift */; };
 		ADC00001001 /* AdvancedDataControlsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC00001000 /* AdvancedDataControlsPage.swift */; };
-		AFR00TRAJ01 /* AppFactResolver+Trajectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFR00TRAJ00 /* AppFactResolver+Trajectory.swift */; };
-		AFRG000010 /* AppFactResolver+Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRG000000 /* AppFactResolver+Settings.swift */; };
-		AFRL000010 /* AppFactResolver+Live.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRL000000 /* AppFactResolver+Live.swift */; };
-		AFRLNV0770 /* AppFactResolver+LiveNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRLNV0771 /* AppFactResolver+LiveNavigation.swift */; };
-		AFRS000010 /* AppFactResolver+Sleep.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRS000000 /* AppFactResolver+Sleep.swift */; };
-		AFRTPJ0770 /* AppFactResolver+TrainingProjections.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRTPJ0771 /* AppFactResolver+TrainingProjections.swift */; };
-		AFRW000010 /* AppFactResolver+Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRW000000 /* AppFactResolver+Workout.swift */; };
-		AFRWKD0770 /* AppFactResolver+WorkoutDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRWKD0771 /* AppFactResolver+WorkoutDetail.swift */; };
-		AFRWLD0770 /* AppFactResolver+WorkoutLiveDerived.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRWLD0771 /* AppFactResolver+WorkoutLiveDerived.swift */; };
+		AFR00TRAJ01 /* TrajectoryFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFR00TRAJ00 /* TrajectoryFacts.swift */; };
+		AFRG000010 /* SettingsFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRG000000 /* SettingsFacts.swift */; };
+		AFRL000010 /* LiveHRVFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRL000000 /* LiveHRVFacts.swift */; };
+		AFRLNV0770 /* LiveNavigationFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRLNV0771 /* LiveNavigationFacts.swift */; };
+		AFRS000010 /* SleepFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRS000000 /* SleepFacts.swift */; };
+		AFRTPJ0770 /* TrainingProjectionFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRTPJ0771 /* TrainingProjectionFacts.swift */; };
+		AFRW000010 /* WorkoutFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRW000000 /* WorkoutFacts.swift */; };
+		AFRWKD0770 /* WorkoutDetailFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRWKD0771 /* WorkoutDetailFacts.swift */; };
+		AFRWLD0770 /* WorkoutLiveDerivedFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFRWLD0771 /* WorkoutLiveDerivedFacts.swift */; };
 		AITCDC0770 /* ArchiveIntegrityTests+Codec.swift in Sources */ = {isa = PBXBuildFile; fileRef = AITCDC0771 /* ArchiveIntegrityTests+Codec.swift */; };
 		AKB00001001 /* AppKnowledgeBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AKB00001000 /* AppKnowledgeBase.swift */; };
 		AMBL0001001 /* AmbientLocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AMBL0001000 /* AmbientLocationService.swift */; };
@@ -325,7 +325,7 @@
 		CK556801000 /* Animation+ReduceMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK353678001 /* Animation+ReduceMotion.swift */; };
 		CK558204001 /* WatchConnectivityBridge+Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF455912000 /* WatchConnectivityBridge+Session.swift */; };
 		WCT6795526E /* WatchConnectivityBridge+Transport.swift in Sources */ = {isa = PBXBuildFile; fileRef = WCT2D4CA4C1 /* WatchConnectivityBridge+Transport.swift */; };
-		CK574979001 /* AppFactResolver+HealthKitFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB455902000 /* AppFactResolver+HealthKitFacts.swift */; };
+		CK574979001 /* HealthKitFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB455902000 /* HealthKitFacts.swift */; };
 		CK586895000 /* SettingsDiagnosticsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = P2877277000 /* SettingsDiagnosticsViews.swift */; };
 		CK597095001 /* WorkoutThreshold.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1623480000 /* WorkoutThreshold.swift */; };
 		CK613296000 /* TrainingHealthQueries+Queries.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF530018001 /* TrainingHealthQueries+Queries.swift */; };
@@ -417,7 +417,7 @@
 		EF549941001 /* ModesSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = P2771813001 /* ModesSettingsPage.swift */; };
 		EF554277001 /* BigScreenSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC610977000 /* BigScreenSnapshotTests.swift */; };
 		EF559332000 /* Constants+RecoveryScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF610122000 /* Constants+RecoveryScore.swift */; };
-		EF564177000 /* AppFactResolver+Baseline.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK205998000 /* AppFactResolver+Baseline.swift */; };
+		EF564177000 /* BaselineFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK205998000 /* BaselineFacts.swift */; };
 		EF565234001 /* ScoreRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF342365000 /* ScoreRing.swift */; };
 		EF574138001 /* OnboardingValuePropPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = P2735157001 /* OnboardingValuePropPage.swift */; };
 		EF585289001 /* DemoSessionSeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = P2153196001 /* DemoSessionSeeder.swift */; };
@@ -464,6 +464,7 @@
 		FAC01001001 /* FactValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC01001000 /* FactValue.swift */; };
 		FAC02001001 /* FactKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC02001000 /* FactKey.swift */; };
 		FAC03001001 /* FactCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC03001000 /* FactCatalog.swift */; };
+		B1834553833 /* FactServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = P1686210301 /* FactServices.swift */; };
 		FAC04001001 /* AppFactResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC04001000 /* AppFactResolver.swift */; };
 		FAC10001001 /* FactCatalogValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC10001000 /* FactCatalogValidationTests.swift */; };
 		FAC20001001 /* TrainingMetricsCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC20001000 /* TrainingMetricsCache.swift */; };
@@ -612,7 +613,7 @@
 		OB175579001 /* GPXMalformedInputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK488944000 /* GPXMalformedInputTests.swift */; };
 		OB176368001 /* MorningResultsPopovers.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF502132001 /* MorningResultsPopovers.swift */; };
 		OB179290001 /* AdaptiveMaterial.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC867050001 /* AdaptiveMaterial.swift */; };
-		OB243607000 /* AppFactResolver+AssistantEmail.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC126651001 /* AppFactResolver+AssistantEmail.swift */; };
+		OB243607000 /* AssistantEmailFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC126651001 /* AssistantEmailFacts.swift */; };
 		OB268790001 /* HRVReferenceValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC282638000 /* HRVReferenceValidationTests.swift */; };
 		OB286545001 /* AssistantContext+Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB559578000 /* AssistantContext+Types.swift */; };
 		OB306240000 /* FitnessPostSummaryView+Feeling.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC810809000 /* FitnessPostSummaryView+Feeling.swift */; };
@@ -626,7 +627,7 @@
 		OB494826000 /* WorkoutKeyStatsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB262592001 /* WorkoutKeyStatsCard.swift */; };
 		OB498937001 /* EntitlementAnchor.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB986843001 /* EntitlementAnchor.swift */; };
 		OB548147000 /* LoadTrajectoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1153278000 /* LoadTrajectoryView.swift */; };
-		OB555411001 /* AppFactResolver+Sessions.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF723027000 /* AppFactResolver+Sessions.swift */; };
+		OB555411001 /* SessionFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF723027000 /* SessionFacts.swift */; };
 		OB557376001 /* WorkoutRecorderSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF937712001 /* WorkoutRecorderSettingsTests.swift */; };
 		OB613426000 /* NotificationsSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1253281000 /* NotificationsSettingsPage.swift */; };
 		OB650612000 /* JSONOrderingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF346298001 /* JSONOrderingTests.swift */; };
@@ -701,7 +702,7 @@
 		P2874055001 /* CloudRetryProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF549785001 /* CloudRetryProgressTests.swift */; };
 		P2919686000 /* HRVChartSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB895740001 /* HRVChartSnapshotTests.swift */; };
 		P2976155000 /* AudioGraphHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK554216001 /* AudioGraphHelpers.swift */; };
-		P2995482001 /* AppFactResolver+Breadcrumbs.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC585729000 /* AppFactResolver+Breadcrumbs.swift */; };
+		P2995482001 /* BreadcrumbFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC585729000 /* BreadcrumbFacts.swift */; };
 		P2T002001 /* MockHealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P2T002000 /* MockHealthKitService.swift */; };
 		P2T004001 /* CloudKitSyncManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = P2T004000 /* CloudKitSyncManagerTests.swift */; };
 		P2T005001 /* RRCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = P2T005000 /* RRCollectorTests.swift */; };
@@ -781,7 +782,7 @@
 		B7301253446 /* FitnessPostSummaryView+Parts.swift in Sources */ = {isa = PBXBuildFile; fileRef = P3274143770 /* FitnessPostSummaryView+Parts.swift */; };
 		RF403077001 /* LiveBackupSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF617024001 /* LiveBackupSummary.swift */; };
 		RF423261001 /* AppleToolDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF847800000 /* AppleToolDispatcher.swift */; };
-		RF457444000 /* AppFactResolver+LiveCoaching.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1240440001 /* AppFactResolver+LiveCoaching.swift */; };
+		RF457444000 /* LiveCoachingFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1240440001 /* LiveCoachingFacts.swift */; };
 		RF514781001 /* PreScorePromptTelemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB157250000 /* PreScorePromptTelemetry.swift */; };
 		RF519388000 /* WorkoutAlpha1Reanalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC241410001 /* WorkoutAlpha1Reanalyzer.swift */; };
 		RF528128001 /* MedicalQueryGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF277803001 /* MedicalQueryGuard.swift */; };
@@ -968,7 +969,7 @@
 		UC550250001 /* ReanalysisService+Sleep.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC955473001 /* ReanalysisService+Sleep.swift */; };
 		UC569144001 /* HealthKitManager+SleepTrends.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF857424001 /* HealthKitManager+SleepTrends.swift */; };
 		UC569977001 /* ChartCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF631160000 /* ChartCard.swift */; };
-		UC599080000 /* AppFactResolver+AssistantMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF760798000 /* AppFactResolver+AssistantMemory.swift */; };
+		UC599080000 /* AssistantMemoryFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF760798000 /* AssistantMemoryFacts.swift */; };
 		UC638319000 /* HealthWorkoutImporter+Rebuild.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF842171001 /* HealthWorkoutImporter+Rebuild.swift */; };
 		UC645144001 /* ReadingTagSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = P2311182001 /* ReadingTagSelector.swift */; };
 		UC665509000 /* ChatBubbleEquatableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UC640055001 /* ChatBubbleEquatableTests.swift */; };
@@ -976,7 +977,7 @@
 		2BDC034D5005396F6DF49315 /* ArchiveDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 085A04E78F3281E72E98531D /* ArchiveDiagnosticsView.swift */; };
 		UC738904001 /* FitnessPostSummaryView+Share.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB777596001 /* FitnessPostSummaryView+Share.swift */; };
 		UC797060000 /* Archive+SessionCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF148877001 /* Archive+SessionCodec.swift */; };
-		UC811302000 /* AppFactResolver+RoutesAndDevices.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF775538001 /* AppFactResolver+RoutesAndDevices.swift */; };
+		UC811302000 /* RoutesAndDevicesFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = RF775538001 /* RoutesAndDevicesFacts.swift */; };
 		UC812821001 /* EvalUtterances.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK395091001 /* EvalUtterances.swift */; };
 		UC823448001 /* TrainingHealthQueries.swift in Sources */ = {isa = PBXBuildFile; fileRef = CK188571000 /* TrainingHealthQueries.swift */; };
 		UC872621001 /* ModeToggleCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = P2538432000 /* ModeToggleCard.swift */; };
@@ -1082,6 +1083,7 @@
 		WTE00RULES1 /* WorkoutTriggerEngine+Rules.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTE00RULES0 /* WorkoutTriggerEngine+Rules.swift */; };
 		WTH00001001 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTH00001000 /* WeatherService.swift */; };
 		WTK00100 /* WorkoutTicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTK00101 /* WorkoutTicker.swift */; };
+		B1745776160 /* WorkoutServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = P4731868080 /* WorkoutServices.swift */; };
 		WTT001001 /* WorkoutTickStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTT001000 /* WorkoutTickStateTests.swift */; };
 		ZWB00001001 /* ZwiftPeripheralBroadcaster.swift in Sources */ = {isa = PBXBuildFile; fileRef = ZWB00001000 /* ZwiftPeripheralBroadcaster.swift */; };
 /* End PBXBuildFile section */
@@ -1147,7 +1149,7 @@
 		P23F3C70001 /* CloudPullRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloudPullRecordTests.swift"; sourceTree = "<group>"; };
 		P23F3C70002 /* LostSessionRecoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LostSessionRecoveryTests.swift"; sourceTree = "<group>"; };
 		RF315765000 /* AssistantActionConfirmationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AssistantActionConfirmationTests.swift"; sourceTree = "<group>"; };
-		A1491602000 /* AppFactResolver+AssistantConfirmation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+AssistantConfirmation.swift"; sourceTree = "<group>"; };
+		A1491602000 /* AssistantConfirmationFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantConfirmationFacts.swift; sourceTree = "<group>"; };
 		RF254689000 /* AssistantActionConfirmations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AssistantActionConfirmations.swift"; sourceTree = "<group>"; };
 		UC841575000 /* SessionDataMigrations+TimeInBedRepairMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionDataMigrations+TimeInBedRepairMigration.swift"; sourceTree = "<group>"; };
 		CK825689000 /* StrapArmingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StrapArmingTests.swift"; sourceTree = "<group>"; };
@@ -1197,13 +1199,13 @@
 		RF494843001 /* WatchPayloadBounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchPayloadBounds.swift"; sourceTree = "<group>"; };
 		CK421162001 /* HealthSampleFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthSampleFactory.swift"; sourceTree = "<group>"; };
 		EF600008000 /* MedicalTermLexicon+Injury.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MedicalTermLexicon+Injury.swift"; sourceTree = "<group>"; };
-		EF140840000 /* AppFactResolver+NumericArguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+NumericArguments.swift"; sourceTree = "<group>"; };
+		EF140840000 /* FactNumericArguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactNumericArguments.swift; sourceTree = "<group>"; };
 		OB173897001 /* ACWRBandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ACWRBandTests.swift"; sourceTree = "<group>"; };
 		EF296057000 /* HelpContentAccuracyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HelpContentAccuracyTests.swift"; sourceTree = "<group>"; };
 		RF455483000 /* CloudSessionPayloadHealthReadingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloudSessionPayloadHealthReadingsTests.swift"; sourceTree = "<group>"; };
 		A1344602001 /* CloudHealthScrubCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloudHealthScrubCoordinator.swift"; sourceTree = "<group>"; };
 		A1724886001 /* ScoreFactorFactsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ScoreFactorFactsTests.swift"; sourceTree = "<group>"; };
-		CK955435000 /* ScoreFactorFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ScoreFactorFacts.swift"; sourceTree = "<group>"; };
+		CK955435000 /* ScoreFactorFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreFactorFacts.swift; sourceTree = "<group>"; };
 		UC880034001 /* ConversationVoicePickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ConversationVoicePickerTests.swift"; sourceTree = "<group>"; };
 		A1937226001 /* CueSessionIdleDeactivationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CueSessionIdleDeactivationTests.swift"; sourceTree = "<group>"; };
 		UC236954000 /* EmergencyNumberTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EmergencyNumberTests.swift"; sourceTree = "<group>"; };
@@ -1326,7 +1328,7 @@
 		A1192873000 /* VitalsScoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalsScoring.swift; sourceTree = "<group>"; };
 		A1213832001 /* UserSettingsDecodeContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettingsDecodeContractTests.swift; sourceTree = "<group>"; };
 		A1220222000 /* RecoveryScoreDetailView+Panels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RecoveryScoreDetailView+Panels.swift"; sourceTree = "<group>"; };
-		A1240440001 /* AppFactResolver+LiveCoaching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+LiveCoaching.swift"; sourceTree = "<group>"; };
+		A1240440001 /* LiveCoachingFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveCoachingFacts.swift; sourceTree = "<group>"; };
 		A1253281000 /* NotificationsSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsSettingsPage.swift; sourceTree = "<group>"; };
 		A1328930000 /* SleepSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepSchedule.swift; sourceTree = "<group>"; };
 		A1336697001 /* SnapshotTesting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotTesting.swift; sourceTree = "<group>"; };
@@ -1376,15 +1378,15 @@
 		ACB00101 /* WorkoutAIContextBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutAIContextBuilder.swift; sourceTree = "<group>"; };
 		ACVSEC0771 /* AssistantChatView+Sections.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AssistantChatView+Sections.swift"; sourceTree = "<group>"; };
 		ADC00001000 /* AdvancedDataControlsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedDataControlsPage.swift; sourceTree = "<group>"; };
-		AFR00TRAJ00 /* AppFactResolver+Trajectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+Trajectory.swift"; sourceTree = "<group>"; };
-		AFRG000000 /* AppFactResolver+Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+Settings.swift"; sourceTree = "<group>"; };
-		AFRL000000 /* AppFactResolver+Live.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+Live.swift"; sourceTree = "<group>"; };
-		AFRLNV0771 /* AppFactResolver+LiveNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+LiveNavigation.swift"; sourceTree = "<group>"; };
-		AFRS000000 /* AppFactResolver+Sleep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+Sleep.swift"; sourceTree = "<group>"; };
-		AFRTPJ0771 /* AppFactResolver+TrainingProjections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+TrainingProjections.swift"; sourceTree = "<group>"; };
-		AFRW000000 /* AppFactResolver+Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+Workout.swift"; sourceTree = "<group>"; };
-		AFRWKD0771 /* AppFactResolver+WorkoutDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+WorkoutDetail.swift"; sourceTree = "<group>"; };
-		AFRWLD0771 /* AppFactResolver+WorkoutLiveDerived.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+WorkoutLiveDerived.swift"; sourceTree = "<group>"; };
+		AFR00TRAJ00 /* TrajectoryFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrajectoryFacts.swift; sourceTree = "<group>"; };
+		AFRG000000 /* SettingsFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFacts.swift; sourceTree = "<group>"; };
+		AFRL000000 /* LiveHRVFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveHRVFacts.swift; sourceTree = "<group>"; };
+		AFRLNV0771 /* LiveNavigationFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveNavigationFacts.swift; sourceTree = "<group>"; };
+		AFRS000000 /* SleepFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepFacts.swift; sourceTree = "<group>"; };
+		AFRTPJ0771 /* TrainingProjectionFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingProjectionFacts.swift; sourceTree = "<group>"; };
+		AFRW000000 /* WorkoutFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutFacts.swift; sourceTree = "<group>"; };
+		AFRWKD0771 /* WorkoutDetailFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailFacts.swift; sourceTree = "<group>"; };
+		AFRWLD0771 /* WorkoutLiveDerivedFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLiveDerivedFacts.swift; sourceTree = "<group>"; };
 		AITCDC0771 /* ArchiveIntegrityTests+Codec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ArchiveIntegrityTests+Codec.swift"; sourceTree = "<group>"; };
 		AKB00001000 /* AppKnowledgeBase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKnowledgeBase.swift; sourceTree = "<group>"; };
 		AMBL0001000 /* AmbientLocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmbientLocationService.swift; sourceTree = "<group>"; };
@@ -1430,7 +1432,7 @@
 		CK188571000 /* TrainingHealthQueries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingHealthQueries.swift; sourceTree = "<group>"; };
 		CK191335001 /* WorkoutHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHeroCard.swift; sourceTree = "<group>"; };
 		CK191341000 /* ImportSleepWindowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportSleepWindowTests.swift; sourceTree = "<group>"; };
-		CK205998000 /* AppFactResolver+Baseline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+Baseline.swift"; sourceTree = "<group>"; };
+		CK205998000 /* BaselineFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaselineFacts.swift; sourceTree = "<group>"; };
 		CK207188000 /* RoadGeocodingSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoadGeocodingSupport.swift; sourceTree = "<group>"; };
 		CK217464000 /* SessionRecoveryCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRecoveryCoordinator.swift; sourceTree = "<group>"; };
 		CK248080001 /* StrapAudioRouteWatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrapAudioRouteWatch.swift; sourceTree = "<group>"; };
@@ -1536,7 +1538,7 @@
 		EF673540001 /* MoreMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreMenuView.swift; sourceTree = "<group>"; };
 		EF673827001 /* AvatarPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarPickerView.swift; sourceTree = "<group>"; };
 		EF680616001 /* BiometricsSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricsSettingsPage.swift; sourceTree = "<group>"; };
-		EF760798000 /* AppFactResolver+AssistantMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+AssistantMemory.swift"; sourceTree = "<group>"; };
+		EF760798000 /* AssistantMemoryFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantMemoryFacts.swift; sourceTree = "<group>"; };
 		EF842171001 /* HealthWorkoutImporter+Rebuild.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthWorkoutImporter+Rebuild.swift"; sourceTree = "<group>"; };
 		EF847800000 /* AppleToolDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleToolDispatcher.swift; sourceTree = "<group>"; };
 		EF857424001 /* HealthKitManager+SleepTrends.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthKitManager+SleepTrends.swift"; sourceTree = "<group>"; };
@@ -1569,6 +1571,7 @@
 		FAC01001000 /* FactValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactValue.swift; sourceTree = "<group>"; };
 		FAC02001000 /* FactKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactKey.swift; sourceTree = "<group>"; };
 		FAC03001000 /* FactCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactCatalog.swift; sourceTree = "<group>"; };
+		P1686210301 /* FactServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactServices.swift; sourceTree = "<group>"; };
 		FAC04001000 /* AppFactResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFactResolver.swift; sourceTree = "<group>"; };
 		FAC10001000 /* FactCatalogValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactCatalogValidationTests.swift; sourceTree = "<group>"; };
 		FAC20001000 /* TrainingMetricsCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingMetricsCache.swift; sourceTree = "<group>"; };
@@ -1721,7 +1724,7 @@
 		OB397031000 /* RRCollector+BackupRecovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RRCollector+BackupRecovery.swift"; sourceTree = "<group>"; };
 		OBMRG000001 /* RRCollector+MergeRepair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RRCollector+MergeRepair.swift"; sourceTree = "<group>"; };
 		OB433536001 /* RecoveryScoreDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryScoreDetailView.swift; sourceTree = "<group>"; };
-		OB455902000 /* AppFactResolver+HealthKitFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+HealthKitFacts.swift"; sourceTree = "<group>"; };
+		OB455902000 /* HealthKitFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitFacts.swift; sourceTree = "<group>"; };
 		OB455982001 /* SessionMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionMetadata.swift; sourceTree = "<group>"; };
 		OB455982901 /* SessionMetadata+RecoveryPeriod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionMetadata+RecoveryPeriod.swift"; sourceTree = "<group>"; };
 		OB455982902 /* SessionMetadata+ArchiveEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionMetadata+ArchiveEntry.swift"; sourceTree = "<group>"; };
@@ -1906,13 +1909,13 @@
 		RF705043001 /* DeterministicIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeterministicIntent.swift; sourceTree = "<group>"; };
 		RF709692001 /* RecoveryScoreCalculator+Tiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RecoveryScoreCalculator+Tiers.swift"; sourceTree = "<group>"; };
 		RF713101000 /* ReadinessScoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessScoring.swift; sourceTree = "<group>"; };
-		RF723027000 /* AppFactResolver+Sessions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+Sessions.swift"; sourceTree = "<group>"; };
-		RF775538001 /* AppFactResolver+RoutesAndDevices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+RoutesAndDevices.swift"; sourceTree = "<group>"; };
+		RF723027000 /* SessionFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionFacts.swift; sourceTree = "<group>"; };
+		RF775538001 /* RoutesAndDevicesFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutesAndDevicesFacts.swift; sourceTree = "<group>"; };
 		RF804758000 /* HRRMonotonicDropTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRRMonotonicDropTests.swift; sourceTree = "<group>"; };
 		RF805507000 /* Alpha1ReportCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Alpha1ReportCards.swift; sourceTree = "<group>"; };
 		RF815093000 /* HealthKitManager+Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthKitManager+Store.swift"; sourceTree = "<group>"; };
 		RF828632000 /* PolarSDKFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolarSDKFactory.swift; sourceTree = "<group>"; };
-		RF852282001 /* AppFactResolver+WorkoutLive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+WorkoutLive.swift"; sourceTree = "<group>"; };
+		RF852282001 /* WorkoutLiveFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLiveFacts.swift; sourceTree = "<group>"; };
 		RF934715000 /* MorningResultsCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningResultsCards.swift; sourceTree = "<group>"; };
 		RF947844001 /* VitalsHealthQueries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalsHealthQueries.swift; sourceTree = "<group>"; };
 		RF949007001 /* SettingsPages+Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SettingsPages+Data.swift"; sourceTree = "<group>"; };
@@ -2057,7 +2060,7 @@
 		UC001009000 /* SleepCauseDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepCauseDetector.swift; sourceTree = "<group>"; };
 		UC001010000 /* MetricBasedCauseDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricBasedCauseDetector.swift; sourceTree = "<group>"; };
 		UC001011000 /* PatternCauseDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternCauseDetector.swift; sourceTree = "<group>"; };
-		UC126651001 /* AppFactResolver+AssistantEmail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+AssistantEmail.swift"; sourceTree = "<group>"; };
+		UC126651001 /* AssistantEmailFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantEmailFacts.swift; sourceTree = "<group>"; };
 		UC139430000 /* FitnessTabView+DataMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FitnessTabView+DataMenu.swift"; sourceTree = "<group>"; };
 		UC169627001 /* MillisecondOffset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MillisecondOffset.swift; sourceTree = "<group>"; };
 		UC181525001 /* CapabilityClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapabilityClassifier.swift; sourceTree = "<group>"; };
@@ -2085,7 +2088,7 @@
 		UC560108001 /* RoadGeocodingService+Lookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RoadGeocodingService+Lookup.swift"; sourceTree = "<group>"; };
 		UC568174001 /* CloudPullCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudPullCoordinator.swift; sourceTree = "<group>"; };
 		CA731906001 /* CloudAccountIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudAccountIdentity.swift; sourceTree = "<group>"; };
-		UC585729000 /* AppFactResolver+Breadcrumbs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppFactResolver+Breadcrumbs.swift"; sourceTree = "<group>"; };
+		UC585729000 /* BreadcrumbFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreadcrumbFacts.swift; sourceTree = "<group>"; };
 		UC601267000 /* ReportSectionRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportSectionRenderer.swift; sourceTree = "<group>"; };
 		UC610977000 /* BigScreenSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BigScreenSnapshotTests.swift; sourceTree = "<group>"; };
 		UC625355001 /* ActivityBoutResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityBoutResolverTests.swift; sourceTree = "<group>"; };
@@ -2206,6 +2209,7 @@
 		WTE00RULES0 /* WorkoutTriggerEngine+Rules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutTriggerEngine+Rules.swift"; sourceTree = "<group>"; };
 		WTH00001000 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		WTK00101 /* WorkoutTicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTicker.swift; sourceTree = "<group>"; };
+		P4731868080 /* WorkoutServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutServices.swift; sourceTree = "<group>"; };
 		WTT001000 /* WorkoutTickStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTickStateTests.swift; sourceTree = "<group>"; };
 		ZWB00001000 /* ZwiftPeripheralBroadcaster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZwiftPeripheralBroadcaster.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -2903,6 +2907,7 @@
 				ACB00101 /* WorkoutAIContextBuilder.swift */,
 				WFZ00101 /* WorkoutFinalizer.swift */,
 				WTK00101 /* WorkoutTicker.swift */,
+				P4731868080 /* WorkoutServices.swift */,
 				WSL00101 /* WorkoutSessionLifecycle.swift */,
 				SHQ00101 /* SleepHealthQueries.swift */,
 				HWO00101 /* HealthWriteAndObserve.swift */,
@@ -3388,23 +3393,23 @@
 		FAC00000999 /* Facts */ = {
 			isa = PBXGroup;
 			children = (
-								A1491602000 /* AppFactResolver+AssistantConfirmation.swift */,
-				EF140840000 /* AppFactResolver+NumericArguments.swift */,
-				UC126651001 /* AppFactResolver+AssistantEmail.swift */,
-				EF760798000 /* AppFactResolver+AssistantMemory.swift */,
-				CK205998000 /* AppFactResolver+Baseline.swift */,
+								A1491602000 /* AssistantConfirmationFacts.swift */,
+				EF140840000 /* FactNumericArguments.swift */,
+				UC126651001 /* AssistantEmailFacts.swift */,
+				EF760798000 /* AssistantMemoryFacts.swift */,
+				CK205998000 /* BaselineFacts.swift */,
 				UC880755000 /* CompactToolRouter+Resolvers.swift */,
-				A1240440001 /* AppFactResolver+LiveCoaching.swift */,
-				AFRLNV0771 /* AppFactResolver+LiveNavigation.swift */,
-				RF723027000 /* AppFactResolver+Sessions.swift */,
-				AFRTPJ0771 /* AppFactResolver+TrainingProjections.swift */,
-				AFR00TRAJ00 /* AppFactResolver+Trajectory.swift */,
+				A1240440001 /* LiveCoachingFacts.swift */,
+				AFRLNV0771 /* LiveNavigationFacts.swift */,
+				RF723027000 /* SessionFacts.swift */,
+				AFRTPJ0771 /* TrainingProjectionFacts.swift */,
+				AFR00TRAJ00 /* TrajectoryFacts.swift */,
 				RF674055001 /* FactResolverRegistry.swift */,
-				OB455902000 /* AppFactResolver+HealthKitFacts.swift */,
-				RF775538001 /* AppFactResolver+RoutesAndDevices.swift */,
-				UC585729000 /* AppFactResolver+Breadcrumbs.swift */,
-				RF852282001 /* AppFactResolver+WorkoutLive.swift */,
-				AFRWLD0771 /* AppFactResolver+WorkoutLiveDerived.swift */,
+				OB455902000 /* HealthKitFacts.swift */,
+				RF775538001 /* RoutesAndDevicesFacts.swift */,
+				UC585729000 /* BreadcrumbFacts.swift */,
+				RF852282001 /* WorkoutLiveFacts.swift */,
+				AFRWLD0771 /* WorkoutLiveDerivedFacts.swift */,
 				UC254330001 /* AppleContextCompactor.swift */,
 				RF211931000 /* LLMCacheTelemetry.swift */,
 				LMRA0515000 /* LLMRequestAudit.swift */,
@@ -3414,15 +3419,16 @@
 				FAC01001000 /* FactValue.swift */,
 				FAC02001000 /* FactKey.swift */,
 				FAC03001000 /* FactCatalog.swift */,
+				P1686210301 /* FactServices.swift */,
 				CMP05040001 /* CompactToolRouter.swift */,
 				SPR05050001 /* SmartProviderRouter.swift */,
 				TPM05050001 /* TierProviderMapper.swift */,
 				FAC04001000 /* AppFactResolver.swift */,
-				AFRS000000 /* AppFactResolver+Sleep.swift */,
-				AFRW000000 /* AppFactResolver+Workout.swift */,
-				AFRWKD0771 /* AppFactResolver+WorkoutDetail.swift */,
-				AFRL000000 /* AppFactResolver+Live.swift */,
-				AFRG000000 /* AppFactResolver+Settings.swift */,
+				AFRS000000 /* SleepFacts.swift */,
+				AFRW000000 /* WorkoutFacts.swift */,
+				AFRWKD0771 /* WorkoutDetailFacts.swift */,
+				AFRL000000 /* LiveHRVFacts.swift */,
+				AFRG000000 /* SettingsFacts.swift */,
 			);
 			path = Facts;
 			sourceTree = "<group>";
@@ -3787,7 +3793,7 @@
 				OB454423001 /* CoachCueSpeech.swift in Sources */,
 				RF173725000 /* RawRRBackup+Reconciliation.swift in Sources */,
 				OB810163001 /* BaselineTracker+NightReplacement.swift in Sources */,
-				RF312566001 /* AppFactResolver+AssistantConfirmation.swift in Sources */,
+				RF312566001 /* AssistantConfirmationFacts.swift in Sources */,
 				EF296437001 /* AssistantActionConfirmations.swift in Sources */,
 				A1880229001 /* SessionDataMigrations+TimeInBedRepairMigration.swift in Sources */,
 				CK477102000 /* RRCollector+OvernightArming.swift in Sources */,
@@ -3808,7 +3814,7 @@
 				EF315748001 /* WatchPayloadBounds.swift in Sources */,
 				RF215594001 /* HealthSampleFactory.swift in Sources */,
 				OB112744000 /* MedicalTermLexicon+Injury.swift in Sources */,
-				RF566734000 /* AppFactResolver+NumericArguments.swift in Sources */,
+				RF566734000 /* FactNumericArguments.swift in Sources */,
 				OB117645001 /* CloudHealthScrubCoordinator.swift in Sources */,
 				P2716259000 /* ScoreFactorFacts.swift in Sources */,
 				CK102966000 /* NarrativeLanguage.swift in Sources */,
@@ -3901,6 +3907,7 @@
 				ACB00100 /* WorkoutAIContextBuilder.swift in Sources */,
 				WFZ00100 /* WorkoutFinalizer.swift in Sources */,
 				WTK00100 /* WorkoutTicker.swift in Sources */,
+				B1745776160 /* WorkoutServices.swift in Sources */,
 				WSL00100 /* WorkoutSessionLifecycle.swift in Sources */,
 				SHQ00100 /* SleepHealthQueries.swift in Sources */,
 				HWO00100 /* HealthWriteAndObserve.swift in Sources */,
@@ -3947,11 +3954,11 @@
 				A1134851000 /* DiscoverTrailsView+Filters.swift in Sources */,
 				EF590535000 /* GPXPreviewSheet.swift in Sources */,
 				OB347422000 /* SettingsView+Appearance.swift in Sources */,
-				OB243607000 /* AppFactResolver+AssistantEmail.swift in Sources */,
+				OB243607000 /* AssistantEmailFacts.swift in Sources */,
 				UC144599000 /* SessionHRVDetailView+Metrics.swift in Sources */,
 				UC879195000 /* RecoveryScoreDetailView+Panels.swift in Sources */,
-				UC599080000 /* AppFactResolver+AssistantMemory.swift in Sources */,
-				EF564177000 /* AppFactResolver+Baseline.swift in Sources */,
+				UC599080000 /* AssistantMemoryFacts.swift in Sources */,
+				EF564177000 /* BaselineFacts.swift in Sources */,
 				A1103907001 /* AIAssistantSettingsPage+Sections.swift in Sources */,
 				OB498937001 /* EntitlementAnchor.swift in Sources */,
 				OB306240000 /* FitnessPostSummaryView+Feeling.swift in Sources */,
@@ -3968,8 +3975,8 @@
 				A1637959000 /* RecoveryScoreCalculator+Tiers.swift in Sources */,
 				OB749920001 /* HelpContent+Science.swift in Sources */,
 				HC0SCIA0770 /* HelpContent+ScienceArticles.swift in Sources */,
-				RF457444000 /* AppFactResolver+LiveCoaching.swift in Sources */,
-				AFRLNV0770 /* AppFactResolver+LiveNavigation.swift in Sources */,
+				RF457444000 /* LiveCoachingFacts.swift in Sources */,
+				AFRLNV0770 /* LiveNavigationFacts.swift in Sources */,
 				CK930156001 /* SessionMetadata.swift in Sources */,
 				CK930156901 /* SessionMetadata+RecoveryPeriod.swift in Sources */,
 				CK930156902 /* SessionMetadata+ArchiveEntry.swift in Sources */,
@@ -3978,9 +3985,9 @@
 				PDFSUM0000000000000000BF /* PDFReportGenerator+Summary.swift in Sources */,
 				UC738904001 /* FitnessPostSummaryView+Share.swift in Sources */,
 				CK306247001 /* OvernightStats.swift in Sources */,
-				OB555411001 /* AppFactResolver+Sessions.swift in Sources */,
-				AFRTPJ0770 /* AppFactResolver+TrainingProjections.swift in Sources */,
-				AFR00TRAJ01 /* AppFactResolver+Trajectory.swift in Sources */,
+				OB555411001 /* SessionFacts.swift in Sources */,
+				AFRTPJ0770 /* TrainingProjectionFacts.swift in Sources */,
+				AFR00TRAJ01 /* TrajectoryFacts.swift in Sources */,
 				CK265293000 /* Archive+IndexIO.swift in Sources */,
 				UC550250001 /* ReanalysisService+Sleep.swift in Sources */,
 				P2484168000 /* FitnessRecordingView+Tiles.swift in Sources */,
@@ -4004,7 +4011,7 @@
 				UC667772000 /* ExportAndArchiveViews.swift in Sources */,
 				2BDC034D5005396F6DF49315 /* ArchiveDiagnosticsView.swift in Sources */,
 				A1365904001 /* RecoveredWorkoutControls.swift in Sources */,
-				CK574979001 /* AppFactResolver+HealthKitFacts.swift in Sources */,
+				CK574979001 /* HealthKitFacts.swift in Sources */,
 				RF867863000 /* UserSettings+Model.swift in Sources */,
 				US0CODA0770 /* UserSettings+Codable.swift in Sources */,
 				OB757628001 /* Constants+SleepAndDisplay.swift in Sources */,
@@ -4027,12 +4034,12 @@
 				OB973008001 /* VoiceConversationController+Control.swift in Sources */,
 				UC300246000 /* ReportSectionRenderer+Sections.swift in Sources */,
 				CK719276000 /* GrokQuirkPolicy.swift in Sources */,
-				UC811302000 /* AppFactResolver+RoutesAndDevices.swift in Sources */,
+				UC811302000 /* RoutesAndDevicesFacts.swift in Sources */,
 				P2607647001 /* CloudKitSyncSupport.swift in Sources */,
 				CS518204000 /* CloudSessionPayload.swift in Sources */,
-				P2995482001 /* AppFactResolver+Breadcrumbs.swift in Sources */,
-				A1394328001 /* AppFactResolver+WorkoutLive.swift in Sources */,
-				AFRWLD0770 /* AppFactResolver+WorkoutLiveDerived.swift in Sources */,
+				P2995482001 /* BreadcrumbFacts.swift in Sources */,
+				A1394328001 /* WorkoutLiveFacts.swift in Sources */,
+				AFRWLD0770 /* WorkoutLiveDerivedFacts.swift in Sources */,
 				CK586895000 /* SettingsDiagnosticsViews.swift in Sources */,
 				EF109786000 /* AIProvider+SystemPrompt.swift in Sources */,
 				SPT00TEXT001 /* AIProvider+SystemPromptText.swift in Sources */,
@@ -4460,6 +4467,7 @@
 				BCPC525001 /* BeatConsistencyPriorsCache.swift in Sources */,
 				FAC02001001 /* FactKey.swift in Sources */,
 				FAC03001001 /* FactCatalog.swift in Sources */,
+				B1834553833 /* FactServices.swift in Sources */,
 				CMP05040000 /* CompactToolRouter.swift in Sources */,
 				SPR05050000 /* SmartProviderRouter.swift in Sources */,
 				TPM05050000 /* TierProviderMapper.swift in Sources */,
@@ -4467,11 +4475,11 @@
 				OHP05050000 /* OnboardingHealthPage.swift in Sources */,
 				MIS05050000 /* MetricInfoSheets.swift in Sources */,
 				FAC04001001 /* AppFactResolver.swift in Sources */,
-				AFRS000010 /* AppFactResolver+Sleep.swift in Sources */,
-				AFRW000010 /* AppFactResolver+Workout.swift in Sources */,
-				AFRWKD0770 /* AppFactResolver+WorkoutDetail.swift in Sources */,
-				AFRL000010 /* AppFactResolver+Live.swift in Sources */,
-				AFRG000010 /* AppFactResolver+Settings.swift in Sources */,
+				AFRS000010 /* SleepFacts.swift in Sources */,
+				AFRW000010 /* WorkoutFacts.swift in Sources */,
+				AFRWKD0770 /* WorkoutDetailFacts.swift in Sources */,
+				AFRL000010 /* LiveHRVFacts.swift in Sources */,
+				AFRG000010 /* SettingsFacts.swift in Sources */,
 				P2001009001 /* SessionAcceptanceService.swift in Sources */,
 				B7573922509 /* ArchivedSessions.swift in Sources */,
 				B6160731538 /* SessionDeletion.swift in Sources */,

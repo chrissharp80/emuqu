@@ -870,12 +870,18 @@ private struct PhaseObservingStateBody<Recording: View, Default: View>: View {
 /// Watch can start a workout cold.
 @Observable
 final class RecorderBox {
-    static let shared = RecorderBox()
+    static let shared = RecorderBox(services: WorkoutServices(.current))
     var recorder: WorkoutRecorder?
+    /// What the recorder it binds is handed.
+    private let services: WorkoutServices
+
+    init(services: WorkoutServices) {
+        self.services = services
+    }
 
     func bind(core: RecordingCore, conversation: VoiceConversationController) {
         guard recorder == nil else { return }
-        recorder = WorkoutRecorder(core: core, conversation: conversation)
+        recorder = WorkoutRecorder(core: core, conversation: conversation, services: services)
     }
 }
 

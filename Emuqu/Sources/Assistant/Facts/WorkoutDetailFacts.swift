@@ -6,7 +6,7 @@ import os
 // The bulk of `WorkoutNamespace`'s fact catalog: the per-metric detail
 // facts, the live-workout facts and the timeline downsampler. The
 // namespace's own plumbing — the archive lookups and the by-date / history
-// entries — is in `AppFactResolver+Workout.swift`.
+// entries — is in `WorkoutFacts.swift`.
 //
 // The plumbing these entries call is internal rather than `private`
 // because Swift's `private` does not reach across files.
@@ -82,7 +82,7 @@ extension WorkoutNamespace {
     }
 
     private func resolveWorkoutLiveRouteTopology() -> FactValue {
-        guard let snap = AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot() else {
+        guard let snap = services.liveWorkoutBroker.currentSnapshot() else {
             return .missing(reason: .notRecorded, detail: "no live workout")
         }
         guard let topo = snap.routeTopology else {
@@ -155,7 +155,7 @@ extension WorkoutNamespace {
     }
 
     private func resolveWorkoutLiveWeather() -> FactValue {
-        guard let snap = AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot() else {
+        guard let snap = services.liveWorkoutBroker.currentSnapshot() else {
             return .missing(reason: .notRecorded, detail: "no live workout")
         }
         guard let w = snap.weather else {
@@ -183,7 +183,7 @@ extension WorkoutNamespace {
     }
 
     private func resolveWorkoutLiveRecognizedRoute() -> FactValue {
-        guard let snap = AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot() else {
+        guard let snap = services.liveWorkoutBroker.currentSnapshot() else {
             return .missing(reason: .notRecorded, detail: "no live workout")
         }
         // Matched path — return the same fields as before.
@@ -237,7 +237,7 @@ extension WorkoutNamespace {
             RouteLibrary.detectionTriggerMeters
         }
         let savedCount: Int = MainActor.assumeIsolated {
-            AppDependencies.current.location.savedRouteStore.routes.count
+            services.savedRouteStore.routes.count
         }
         let (status, detail) = recognizerStatus(
             coveredMeters: coveredMeters,
@@ -387,7 +387,7 @@ extension WorkoutNamespace {
         ) {
             // `effectiveRunningFTP` is MainActor
             // (touches FTPAutoEstimator's UserDefaults cache).
-            let ftp = MainActor.assumeIsolated { AppDependencies.current.app.settingsManager.settings.effectiveRunningFTP }
+            let ftp = MainActor.assumeIsolated { services.settingsManager.settings.effectiveRunningFTP }
             return .from(ftp, detail: "running FTP not set; no archived ≥20 min Stryd workout to auto-estimate from")
         }
     }
@@ -398,7 +398,7 @@ extension WorkoutNamespace {
             description: "User's cycling FTP in watts (CPS / FTMS bike power meter FTP). Anchors power-based training load, intensity factor, and power zones for bike / indoor bike sports. Nil when the user hasn't set it.",
             valueType: "Int"
         ) {
-            .from(AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveCyclingFTP, detail: "cycling FTP not set in Biometrics settings")
+            .from(services.settingsManager.settingsSnapshot.effectiveCyclingFTP, detail: "cycling FTP not set in Biometrics settings")
         }
     }
 

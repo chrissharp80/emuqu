@@ -506,6 +506,7 @@ struct WalksNamespace: FactNamespaceResolver {
 
 struct TrainingLoadNamespace: FactNamespaceResolver {
     let namespace = "training"
+    let services: FactServices
     let archive: SessionArchive
     let settings: @Sendable () -> UserSettings
 
@@ -521,7 +522,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
         // numbers. See TrainingLoadRegistry.swift's header for the
         // surface→source map. Don't give this function its own
         // fallback chain: a local copy drifts from the dashboard's.
-        guard let load = MainActor.assumeIsolated({ TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache) }) else {
+        guard let load = MainActor.assumeIsolated({ TrainingLoadRegistry.live(from: services.trainingMetricsCache) }) else {
             return nil
         }
         return TrainingLoadState(atl: load.atl, ctl: load.ctl, tsb: load.tsb, acwr: load.acwr)
@@ -531,7 +532,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
     /// `TrainingMetricsCache`'s cached range — available once the cache
     /// has been refreshed at least once (app foreground, dashboard open).
     func historicalAvailability() -> Availability {
-        guard let range = MainActor.assumeIsolated({ AppDependencies.current.analysis.trainingMetricsCache.dataAvailabilityRange }) else {
+        guard let range = MainActor.assumeIsolated({ services.trainingMetricsCache.dataAvailabilityRange }) else {
             return .unavailable
         }
         return Availability(hasData: true, validRange: range, lastUpdated: range.upperBound)
@@ -667,7 +668,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
                 guard let date = FactLocalDay.formatter().date(from: param) else {
                     return .missing(reason: .invalidParameter, detail: "expected yyyy-MM-dd, got '\(param)'")
                 }
-                guard let sample = MainActor.assumeIsolated({ AppDependencies.current.analysis.trainingMetricsCache.sampleOn(date: date) }) else {
+                guard let sample = MainActor.assumeIsolated({ services.trainingMetricsCache.sampleOn(date: date) }) else {
                     return .missing(reason: .outOfRange, detail: "no training sample for \(param) — outside cached window or pre-data")
                 }
                 return Self.loadRecord(for: sample)
@@ -689,7 +690,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
                 guard let interval = PeriodParser.interval(for: param) else {
                     return .missing(reason: .invalidParameter, detail: "unknown period '\(param)' — accepts 7d/14d/30d/60d/90d/180d/365d, last_week/this_week, last_month, last_quarter, last_year, all_time")
                 }
-                let samples = Self.loadSamples(in: interval)
+                let samples = loadSamples(in: interval)
                 guard !samples.isEmpty else {
                     return .missing(reason: .notRecorded, detail: "no daily samples in period — cache may be cold")
                 }
@@ -699,9 +700,9 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
     }
 
     /// Cached daily load samples inside `interval`, newest first.
-    private static func loadSamples(in interval: DateInterval) -> [TrainingMetricsCache.DaySample] {
+    private func loadSamples(in interval: DateInterval) -> [TrainingMetricsCache.DaySample] {
         MainActor.assumeIsolated {
-            AppDependencies.current.analysis.trainingMetricsCache.samplesSince(interval.start)
+            services.trainingMetricsCache.samplesSince(interval.start)
         }.filter { interval.containsBeforeEnd($0.date) }
     }
 
@@ -712,7 +713,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             description: "CTL (chronic training load, fitness proxy) on a specific historical date.",
             availability: { self.historicalAvailability() },
             resolve: { param, _ in
-                guard let sample = Self.sampleOnDate(param) else {
+                guard let sample = sampleOnDate(param) else {
                     return .missing(reason: .outOfRange, detail: "no training sample for \(param)")
                 }
                 return .double(sample.ctl)
@@ -727,7 +728,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             description: "ATL (acute training load, fatigue proxy) on a specific historical date.",
             availability: { self.historicalAvailability() },
             resolve: { param, _ in
-                guard let sample = Self.sampleOnDate(param) else {
+                guard let sample = sampleOnDate(param) else {
                     return .missing(reason: .outOfRange, detail: "no training sample for \(param)")
                 }
                 return .double(sample.atl)
@@ -742,7 +743,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             description: "TSB (CTL − ATL, freshness) on a specific historical date.",
             availability: { self.historicalAvailability() },
             resolve: { param, _ in
-                guard let sample = Self.sampleOnDate(param) else {
+                guard let sample = sampleOnDate(param) else {
                     return .missing(reason: .outOfRange, detail: "no training sample for \(param)")
                 }
                 return .double(sample.tsb)
@@ -757,7 +758,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
             description: "Total training load on a specific historical date (sum across all workouts that day) — the power-aware load CTL/ATL use, which the dashboard labels LOAD; not raw heart-rate TRIMP.",
             availability: { self.historicalAvailability() },
             resolve: { param, _ in
-                guard let sample = Self.sampleOnDate(param) else {
+                guard let sample = sampleOnDate(param) else {
                     return .missing(reason: .outOfRange, detail: "no training sample for \(param)")
                 }
                 return .double(sample.trimp)
@@ -803,9 +804,9 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
 
     /// Parse "yyyy-MM-dd" and look up the corresponding TrainingMetricsCache
     /// sample. Wrapped for reuse by the per-scalar by_date facts above.
-    private static func sampleOnDate(_ iso: String) -> TrainingMetricsCache.DaySample? {
+    private func sampleOnDate(_ iso: String) -> TrainingMetricsCache.DaySample? {
         guard let date = FactLocalDay.formatter().date(from: iso) else { return nil }
-        return MainActor.assumeIsolated { AppDependencies.current.analysis.trainingMetricsCache.sampleOn(date: date) }
+        return MainActor.assumeIsolated { services.trainingMetricsCache.sampleOn(date: date) }
     }
 }
 
@@ -817,6 +818,7 @@ struct TrainingLoadNamespace: FactNamespaceResolver {
 /// renders, so the AI and the UI can never disagree.
 struct HeatAcclimationNamespace: FactNamespaceResolver {
     let namespace = "heat"
+    let services: FactServices
 
     /// A finished compute: its readout, nil when there is nothing to score.
     private struct Computed {
@@ -835,7 +837,7 @@ struct HeatAcclimationNamespace: FactNamespaceResolver {
     /// in time.
     private func readout() async -> Computed? {
         await FactResolveTimeout.withTimeout(seconds: 8) {
-            Computed(readout: await AppDependencies.current.analysis.heatAcclimationCache.currentAwaitingRefresh())
+            Computed(readout: await services.heatAcclimationCache.currentAwaitingRefresh())
         }
     }
 
@@ -896,7 +898,7 @@ struct HeatAcclimationNamespace: FactNamespaceResolver {
     /// "no outdoor workouts" would be a false answer; say what is actually
     /// stopping it and where the user can change that.
     private func missing(otherwise detail: String) -> FactValue {
-        guard AppDependencies.current.app.settingsManager.settingsSnapshot.heatTrackingEnabled else {
+        guard services.settingsManager.settingsSnapshot.heatTrackingEnabled else {
             return .missing(
                 reason: .notRecorded,
                 detail: "heat tracking is turned off — the user can turn it on from the Heat acclimatization card on the Fitness tab"

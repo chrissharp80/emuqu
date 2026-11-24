@@ -4,7 +4,7 @@ import Foundation
 // The live-coaching namespace: the workout's reverse-geocoded location and
 // the location.current / location.situation actions. Thresholds, intervals,
 // HRR, journey, roads-ahead and directions are in
-// `AppFactResolver+LiveNavigation.swift`.
+// `LiveNavigationFacts.swift`.
 //
 // Lives in a separate namespace from `WorkoutLiveNamespace` so the
 // existing one stays focused on per-tick sensor metrics and these
@@ -13,11 +13,12 @@ import Foundation
 // dispatch.
 struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     let namespace = "workout"
+    let services: FactServices
 
     // The broker is a lock-guarded Sendable class, so this reads it from
     // whatever context the resolve runs on; no main-actor assumption.
     func snapshot() -> AssistantContext.LiveWorkoutSnapshot? {
-        AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot()
+        services.liveWorkoutBroker.currentSnapshot()
     }
 
     /// Privacy: the `location.*` action family
@@ -70,7 +71,7 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
 
     /// The workout's reverse-geocoded location and the location actions. The
     /// thresholds, intervals, HRR and navigation facts are in
-    /// `AppFactResolver+LiveNavigation.swift`.
+    /// `LiveNavigationFacts.swift`.
     private var coachingEntries: [FactEntry] {
         [
             locationFieldEntries,
@@ -177,7 +178,7 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         // AmbientLocationService keeps the cache warm while the app is in the
         // foreground and a workout pushes fixes too, so this only reads: no
         // cold fetch, no permission prompt.
-        guard let cached = AppDependencies.current.location.ambientLocationService.cachedResolvedAddress(maxAgeSec: 300) else {
+        guard let cached = services.ambientLocationService.cachedResolvedAddress(maxAgeSec: 300) else {
             return .missing(
                 reason: .notRecorded,
                 detail: "location cache not warm yet — the app populates it automatically on foreground; ask the user to open Emuqu for a moment, then ask again"
@@ -232,7 +233,7 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
         guard self.workoutActive() else { return self.locationGatedOffMessage() }
         // The freshest cached fix; the address bundle and the POI search
         // both anchor on its coordinate. Already on the MainActor here.
-        let cached = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60)
+        let cached = services.ambientLocationService.cachedLocation(maxAgeSec: 60)
         guard let cached else {
             return .missing(reason: .notRecorded, detail: "no current location fix in the last 60 s — open the app foreground or start a workout to warm the GPS pipeline")
         }
@@ -252,7 +253,7 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     // nil (address_status "pending") when the cached address was resolved
     // too far from this fix. See workout.live.location_bundle.
     @MainActor private func roadContext(near cached: CLLocation) -> RoadGeocodingService.RoadContext? {
-        AppDependencies.current.location.roadGeocodingService.cachedIfCloseTo(cached)
+        services.roadGeocodingService.cachedIfCloseTo(cached)
     }
 
     // A suspending timeout race with a 3 s budget. A timeout means no
@@ -262,7 +263,7 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     // the watchdog.
     @MainActor private func nearbyPOIs(_ coord: CLLocationCoordinate2D) async -> SurroundingsPOIService.SearchResult {
         await FactResolveTimeout.withTimeout(seconds: 3) {
-            await AppDependencies.current.location.surroundingsPOIService.searchWithStatus(
+            await services.surroundingsPOIService.searchWithStatus(
                 near: coord,
                 radiusMeters: 500,
                 topPerCategory: 3
@@ -361,8 +362,8 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     }
 
     @MainActor private func addActiveRouteField(_ rec: inout [String: FactValue], at cached: CLLocation) {
-        guard AppDependencies.current.location.activeRouteSession.snapshot() != nil,
-              let route = AppDependencies.current.location.activeRouteSession.peekStep(for: cached)
+        guard services.activeRouteSession.snapshot() != nil,
+              let route = services.activeRouteSession.peekStep(for: cached)
         else { return }
         rec["active_route"] = .record([
             "destination_label": .string(route.destinationLabel),
@@ -379,11 +380,11 @@ struct WorkoutLiveCoachingNamespace: FactNamespaceResolver {
     // just this slice, built by the same `journeyRecord(from:)` and
     // `journeyRecurrence(for:)`.
     private func addJourneyField(_ rec: inout [String: FactValue]) {
-        guard let journeyTrail = AppDependencies.current.location.breadcrumbStore.load(),
+        guard let journeyTrail = services.breadcrumbStore.load(),
               let journey = JourneyIntelligenceService.snapshot(for: journeyTrail)
         else { return }
         var jrec = Self.journeyRecord(from: journey)
-        jrec["recurrence"] = Self.journeyRecurrence(for: journeyTrail)
+        jrec["recurrence"] = journeyRecurrence(for: journeyTrail)
         rec["journey"] = .record(jrec)
     }
 

@@ -134,7 +134,7 @@ extension WorkoutRecorder {
         pedometer.stop()
         // Stop the BLE peripheral advertisement so we don't continue to
         // appear as a sensor for trainer apps after the workout ends.
-        AppDependencies.current.collection.zwiftPeripheralBroadcaster.stopBroadcasting()
+        services.zwiftPeripheralBroadcaster.stopBroadcasting()
         // End the Watch's parallel HKWorkoutSession so the ring on the wrist
         // closes (no duplicate workout — the Watch never finalises a
         // standalone HKWorkout; the phone writes the canonical one).
@@ -142,7 +142,7 @@ extension WorkoutRecorder {
         // Clear the live-workout broker so the AI context no longer includes
         // stale "you're still running" state after the workout ends. Its last
         // snapshot is kept first for the session's `aiContext`.
-        let broker = AppDependencies.current.assistant.liveWorkoutBroker
+        let broker = services.liveWorkoutBroker
         liveSnapshotAtStop = broker.currentSnapshot()
         broker.clear()
         releaseWorkoutCueAudioAndDiagnostics()
@@ -154,8 +154,8 @@ extension WorkoutRecorder {
     /// finishes. Then stop the diagnostics sampler started in `start()` so it
     /// doesn't keep sampling memory in the foreground app indefinitely.
     private func releaseWorkoutCueAudioAndDiagnostics() {
-        AppDependencies.current.collection.backgroundAudioManager.stopBackgroundAudio()
-        AppDependencies.current.app.systemDiagnosticsManager.stopSamplingAfterRecording()
+        services.backgroundAudioManager.stopBackgroundAudio()
+        services.systemDiagnosticsManager.stopSamplingAfterRecording()
     }
 
     /// stop() — RR snapshot: streaming buffer + Watch-routed merge (sorted by t_ms).
@@ -251,7 +251,7 @@ extension WorkoutRecorder {
         // below tears it down when the +120 s window completes.
         // The recorder's own foot-pod manager (injected at init), the one
         // the workout read from.
-        AppDependencies.current.collection.concept2Manager.holdLinkForWorkout(false)
+        services.concept2Manager.holdLinkForWorkout(false)
         footPod.holdLinkForWorkout(false)
         if footPod.connectionState == .connected || footPod.connectionState == .connecting {
             debugLog("[Recorder.stop] step=footpod.disconnect (post-workout)")
@@ -434,7 +434,7 @@ extension WorkoutRecorder {
         // auto-fire; on-demand generation from the post-summary
         // button always works regardless.
         guard settingsProvider().enableAutoCoachReport else { return }
-        Self.scheduleCoachReportEmail(for: finalSession, settings: settingsProvider())
+        Self.scheduleCoachReportEmail(for: finalSession, settings: settingsProvider(), services: services)
     }
 
     /// Voice path enqueues if chat is busy (the trigger queue). Skipped

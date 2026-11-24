@@ -24,6 +24,7 @@ import os
 
 struct BaselineNamespace: FactNamespaceResolver {
     let namespace = "baseline"
+    let services: FactServices
     let archive: SessionArchive
 
     private struct Sample {
@@ -109,7 +110,7 @@ struct BaselineNamespace: FactNamespaceResolver {
     /// `BaselineTracker` keys its one point per night
     /// (`SleepSchedule.nightKey`), so two recordings of one night count once.
     private func usableNightCount() -> Int {
-        let schedule = AppDependencies.current.app.settingsManager.settingsSnapshot.sleepSchedule
+        let schedule = services.settingsManager.settingsSnapshot.sleepSchedule
         return Set(samples().map { schedule.nightKey(for: $0.date) }).count
     }
 

@@ -2,7 +2,7 @@ import CoreLocation
 import Foundation
 
 // The address-book and email-composer half of the assistant namespace; the
-// memory facts are in `AppFactResolver+AssistantMemory.swift`.
+// memory facts are in `AssistantMemoryFacts.swift`.
 
 extension AssistantMemoryNamespace {
 
@@ -22,7 +22,7 @@ extension AssistantMemoryNamespace {
     }
 
     private func resolveAssistantContactsList() -> FactValue {
-        let contacts = MainActor.assumeIsolated { AppDependencies.current.app.emailContactStore.contacts }
+        let contacts = MainActor.assumeIsolated { services.emailContactStore.contacts }
         if contacts.isEmpty {
             return .missing(reason: .notRecorded, detail: "user has no saved email contacts")
         }
@@ -58,14 +58,14 @@ extension AssistantMemoryNamespace {
         let name = args["name"]?.trimmingCharacters(in: .whitespaces) ?? ""
         let email = args["email"]?.trimmingCharacters(in: .whitespaces) ?? ""
         if let problem = Self.contactInputProblem(name: name, email: email) { return problem }
-        guard Self.latestUserMessageContains(args["user_quote"]) else {
+        guard latestUserMessageContains(args["user_quote"]) else {
             return Self.userRequestRequired("add a contact")
         }
         let notes = args["notes"]
         return MainActor.assumeIsolated {
             Self.addContact(
                 name: name, email: email, notes: notes,
-                store: AppDependencies.current.app.emailContactStore, context: .live
+                store: services.emailContactStore, context: .live(services)
             )
         }
     }
@@ -147,11 +147,11 @@ extension AssistantMemoryNamespace {
         else {
             return .missing(reason: .invalidParameter, detail: "name is required")
         }
-        guard Self.latestUserMessageContains(args["user_quote"]) else {
+        guard latestUserMessageContains(args["user_quote"]) else {
             return Self.userRequestRequired("remove a contact")
         }
         return MainActor.assumeIsolated {
-            Self.removeContact(named: name, store: AppDependencies.current.app.emailContactStore, context: .live)
+            Self.removeContact(named: name, store: services.emailContactStore, context: .live(services))
         }
     }
 
@@ -227,7 +227,7 @@ extension AssistantMemoryNamespace {
         // names, so it is staged only on the user's own request, as contacts
         // and memories are: never on an instruction in a web page, a pasted
         // email or a tool result.
-        guard Self.latestUserMessageContains(args["user_quote"]) else {
+        guard latestUserMessageContains(args["user_quote"]) else {
             return Self.userRequestRequired("draft an email")
         }
         return stagedEmail(subject: subject, body: body, args: args)
@@ -257,7 +257,7 @@ extension AssistantMemoryNamespace {
     // are skipped (`UserSettings.firstAddress`), and the composer still
     // fills when only the legacy generic address is set.
     private func emailDefaults(for category: String) -> (to: String, cc: String) {
-        let settings = AppDependencies.current.app.settingsManager.settingsSnapshot
+        let settings = services.settingsManager.settingsSnapshot
         let isRecovery = category == "recovery"
         let to = isRecovery ? settings.resolvedDefaultEmailRecipient : settings.resolvedTrainingEmailRecipient
         let cc = isRecovery ? settings.resolvedDefaultEmailCC : settings.resolvedTrainingEmailCC
@@ -271,7 +271,7 @@ extension AssistantMemoryNamespace {
     // can fail clean.
     private func resolveContacts(_ raw: String?) -> (resolved: [String], unknown: [String], ambiguous: [String]) {
         let arg = raw?.trimmingCharacters(in: .whitespaces) ?? ""
-        return MainActor.assumeIsolated { AppDependencies.current.app.emailContactStore.resolveNames(arg) }
+        return MainActor.assumeIsolated { services.emailContactStore.resolveNames(arg) }
     }
 
     // Bail early if any name was unknown or ambiguous — the
@@ -316,7 +316,7 @@ extension AssistantMemoryNamespace {
 
     private func stageEmail(subject: String, body: String, to resolvedTo: [String], cc resolvedCC: [String]) {
         MainActor.assumeIsolated {
-            AppDependencies.current.assistant.assistantEmailBridge.stage(
+            services.assistantEmailBridge.stage(
                 AssistantEmailDraft(
                     subject: subject,
                     body: body,

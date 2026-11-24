@@ -26,16 +26,17 @@ import Foundation
 // action, which adds the route to the library.
 struct RoutesLibraryNamespace: FactNamespaceResolver {
     let namespace = "routes"
+    let services: FactServices
     let archive: SessionArchive
 
     private func currentRoutes() -> [SavedRoute] {
-        MainActor.assumeIsolated { AppDependencies.current.location.savedRouteStore.routes }
+        MainActor.assumeIsolated { services.savedRouteStore.routes }
     }
 
     /// The answer while the saved-route library cannot be read: its list
     /// would read as empty and a change would not be saved. Nil when readable.
     private func libraryUnreadable() -> FactValue? {
-        let readable = MainActor.assumeIsolated { AppDependencies.current.location.savedRouteStore.isLibraryReadable() }
+        let readable = MainActor.assumeIsolated { services.savedRouteStore.isLibraryReadable() }
         guard !readable else { return nil }
         return .missing(
             reason: .notRecorded,
@@ -168,7 +169,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
     /// is shown to the user before it replaces theirs.
     private func renameUnconfirmed(_ target: SavedRoute, to new: String) -> FactValue? {
         MainActor.assumeIsolated {
-            AssistantMemoryNamespace.DestructiveActionContext.live.gateUnlessUserStated(
+            AssistantMemoryNamespace.DestructiveActionContext.live(services).gateUnlessUserStated(
                 [new], action: "routes.library.rename", target: "\(target.id.uuidString) \(new)",
                 question: "Rename your route \"\(target.name)\" to \"\(new)\"? Reply yes to confirm."
             )
@@ -177,7 +178,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
 
     private func renamed(_ target: SavedRoute, to new: String) -> FactValue {
         let saved = MainActor.assumeIsolated {
-            AppDependencies.current.location.savedRouteStore.rename(id: target.id, to: new)
+            services.savedRouteStore.rename(id: target.id, to: new)
         }
         guard saved else {
             return libraryUnreadable() ?? .missing(reason: .notRecorded, detail: "the rename could not be saved; nothing was changed")
@@ -236,7 +237,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
             ])
         }
         MainActor.assumeIsolated {
-            AppDependencies.current.location.savedRouteStore.add(route)
+            services.savedRouteStore.add(route)
         }
         return .record(savedRouteRecord(route, from: entry))
     }
@@ -281,7 +282,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         }
         // Need a current location fix to infer direction
         // and to engage the session.
-        guard let userLoc = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60) else {
+        guard let userLoc = services.ambientLocationService.cachedLocation(maxAgeSec: 60) else {
             return .missing(reason: .notRecorded, detail: "couldn't get a current location fix to engage the route — open the app foreground or start a workout to warm up the GPS pipeline")
         }
         return await engageSavedRoute(matches[0], from: userLoc)
@@ -315,7 +316,7 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
 
     @MainActor private func engage(_ result: SavedRouteStepBuilder.BuildResult) {
         // Already on the MainActor (awaitable resolver body).
-        AppDependencies.current.location.activeRouteSession.engageSyntheticRoute(
+        services.activeRouteSession.engageSyntheticRoute(
             steps: result.steps,
             totalDistance: result.totalDistanceMeters,
             totalDuration: result.totalDurationSeconds,
@@ -456,6 +457,7 @@ struct AppNowNamespace: FactNamespaceResolver {
 // broadcaster come from their existing singletons.
 struct AppDevicesNamespace: FactNamespaceResolver {
     let namespace = "app"
+    let services: FactServices
 
     private func polar() -> PolarManager? {
         MainActor.assumeIsolated { RRCollector.current?.polarManager }
@@ -593,7 +595,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             description: "Whether a Stryd-style foot pod (or any FTMS-spec bike trainer) is currently connected over BLE. Source for running power and FTMS bike power.",
             valueType: "Bool"
         ) {
-            .boolean(MainActor.assumeIsolated { AppDependencies.current.collection.footPodManager.connectionState == .connected })
+            .boolean(MainActor.assumeIsolated { services.footPodManager.connectionState == .connected })
         }
     }
 
@@ -603,7 +605,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             description: "Number of paired foot pods / FTMS devices in the user's library.",
             valueType: "Int"
         ) {
-            .integer(MainActor.assumeIsolated { AppDependencies.current.collection.footPodManager.knownDevices.count })
+            .integer(MainActor.assumeIsolated { services.footPodManager.knownDevices.count })
         }
     }
 
@@ -620,7 +622,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
 
     private func resolveAppDevicesFootPodSnapshot() -> FactValue {
         MainActor.assumeIsolated {
-            let m = AppDependencies.current.collection.footPodManager
+            let m = services.footPodManager
             return .record([
                 "connection_state": .string(String(describing: m.connectionState)),
                 "is_connected": .boolean(m.connectionState == .connected),
@@ -641,7 +643,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             description: "Whether a Concept2 PM5 rower is currently connected over BLE.",
             valueType: "Bool"
         ) {
-            .boolean(MainActor.assumeIsolated { AppDependencies.current.collection.concept2Manager.connectionState == .connected })
+            .boolean(MainActor.assumeIsolated { services.concept2Manager.connectionState == .connected })
         }
     }
 
@@ -651,7 +653,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             description: "Number of paired Concept2 PM5 rowers in the user's library.",
             valueType: "Int"
         ) {
-            .integer(MainActor.assumeIsolated { AppDependencies.current.collection.concept2Manager.knownDevices.count })
+            .integer(MainActor.assumeIsolated { services.concept2Manager.knownDevices.count })
         }
     }
 
@@ -662,7 +664,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             description: "Whether Emuqu is currently advertising itself as a BLE Heart Rate + Cycling Power peripheral so Zwift / TrainerRoad / Rouvy can pair to it. Off by default; gated on the Settings → Broadcast as BLE sensor toggle.",
             valueType: "Bool"
         ) {
-            .boolean(MainActor.assumeIsolated { AppDependencies.current.collection.zwiftPeripheralBroadcaster.isAdvertising })
+            .boolean(MainActor.assumeIsolated { services.zwiftPeripheralBroadcaster.isAdvertising })
         }
     }
 
@@ -672,7 +674,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             description: "How many BLE centrals (Zwift / TrainerRoad / etc.) are currently subscribed to the Emuqu broadcast.",
             valueType: "Int"
         ) {
-            .integer(MainActor.assumeIsolated { AppDependencies.current.collection.zwiftPeripheralBroadcaster.subscriberCount })
+            .integer(MainActor.assumeIsolated { services.zwiftPeripheralBroadcaster.subscriberCount })
         }
     }
 }

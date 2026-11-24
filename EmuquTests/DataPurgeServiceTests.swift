@@ -100,7 +100,7 @@ final class DataPurgeServiceTests: XCTestCase {
         dependencies.overrides.conversationStore = conversationStore
         dependencies.overrides.userFactsStore = userFactsStore
         dependencies.overrides.breadcrumbStore = breadcrumbStore
-        dependencies.overrides.recorderBox = RecorderBox()
+        dependencies.overrides.recorderBox = RecorderBox(services: WorkoutServices(.current))
         dependencies.overrides.apiKeyStore = apiKeyStore
         dependencies.overrides.workoutTrackBackup = WorkoutTrackBackup(
             directory: root.appendingPathComponent("WorkoutBackup", isDirectory: true), notificationCenter: NotificationCenter()
@@ -721,7 +721,7 @@ final class DataPurgeServiceTests: XCTestCase {
     /// A workout counts while it records (paused included, which keeps the
     /// phase) and while it is being finalised, not once it has finished.
     func testAnActiveWorkoutCounts() {
-        let recorder = WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared)
+        let recorder = WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
         XCTAssertFalse(DataPurgeService.isRecordingInProgress(collector: nil, workout: recorder), "idle workout")
 
         recorder.lifecycle.phase = .recording

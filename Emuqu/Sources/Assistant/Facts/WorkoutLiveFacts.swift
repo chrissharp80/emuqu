@@ -25,13 +25,14 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     /// "workout" (shared with `WorkoutNamespace`) is what reaches these
     /// `workout.live.*` entries on the primary path.
     let namespace = "workout"
+    let services: FactServices
     /// Needed by the per-route history baseline tool
     /// (`workout.live.route_history_baseline`) to look up past
     /// sessions tagged with the same `recognizedRouteName`.
     let archive: SessionArchive
 
     var snapshot: AssistantContext.LiveWorkoutSnapshot? {
-        AppDependencies.current.assistant.liveWorkoutBroker.currentSnapshot()
+        services.liveWorkoutBroker.currentSnapshot()
     }
 
     func missing(_ detail: String = "no workout active") -> FactValue {
@@ -51,7 +52,7 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     /// through the registry makes `workout.live.today_readiness`,
     /// `training.load.*`, and the Dashboard share one source of truth.
     func liveTrainingLoad() -> (atl: Double, ctl: Double, tsb: Double)? {
-        guard let load = MainActor.assumeIsolated({ TrainingLoadRegistry.live(from: AppDependencies.current.analysis.trainingMetricsCache) }) else {
+        guard let load = MainActor.assumeIsolated({ TrainingLoadRegistry.live(from: services.trainingMetricsCache) }) else {
             return nil
         }
         return (load.atl, load.ctl, load.tsb)

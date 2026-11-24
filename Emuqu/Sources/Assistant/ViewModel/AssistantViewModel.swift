@@ -153,16 +153,11 @@ final class AssistantViewModel {
     /// enough to hit this.
     var streamGeneration: Int = 0
 
-    /// Cached because building the fact registry from
-    /// scratch on every `dispatch()` (every send) is expensive — `AppFactResolverFactory.build`
-    /// allocates ~25 namespace resolvers and their entries, all on the
-    /// main thread. The output is a stateless lookup table (entries close
-    /// over their data sources); rebuilding per-send is pure waste. Cache
-    /// it on the view-model and invalidate via `invalidateFactRegistry()`
-    /// only when the schema would actually change (none of the current
-    /// inputs do — entries close over capturing closures that re-resolve
-    /// `AppDependencies.current.app.settingsManager` on every read). The companion `cachedTools`
-    /// avoids re-walking the schema for the LLM payload.
+    /// The fact registry and its tool schema, built once. Building them
+    /// allocates every namespace and its entries on the main actor, and
+    /// neither changes between sends: entries read the settings and services
+    /// they were handed each time they resolve. `invalidateFactRegistry()`
+    /// drops both.
     var cachedFactRegistry: FactResolverRegistry?
     var cachedFactTools: [ToolSpec]?
 
@@ -172,7 +167,8 @@ final class AssistantViewModel {
         }
         let registry = AppFactResolverFactory.build(
             archive: AppDependencies.current.storage.sessionArchive,
-            settings: { AppDependencies.current.app.settingsManager.settingsSnapshot }
+            settings: { AppDependencies.current.app.settingsManager.settingsSnapshot },
+            services: FactServices(.current)
         )
         // CompactToolRouter exposes 21 read tools + up to 18 action
         // tools instead of one tool per fact-catalog entry (~212).

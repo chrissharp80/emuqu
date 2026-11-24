@@ -7,6 +7,7 @@ import Foundation
 // MARK: - app.healthkit.* namespace
 struct AppHealthKitNamespace: FactNamespaceResolver {
     let namespace = "app"
+    let services: FactServices
 
     var entries: [FactEntry] {
         [
@@ -23,7 +24,7 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
             description: "Whether HealthKit is available on this device. False on the simulator and on devices where Apple's framework is missing.",
             valueType: "Bool"
         ) {
-            .boolean(AppDependencies.current.collection.healthKitManager.isHealthKitAvailable)
+            .boolean(services.healthKitManager.isHealthKitAvailable)
         }
     }
 
@@ -42,7 +43,7 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
     }
 
     @MainActor private func resolveAppHealthkitHeartRateLatest() async -> FactValue {
-        guard AppDependencies.current.collection.healthKitManager.isHealthKitAvailable else {
+        guard services.healthKitManager.isHealthKitAvailable else {
             return .missing(reason: .notRecorded, detail: "HealthKit not available on this device")
         }
         let now = Date()
@@ -72,7 +73,7 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
         let now = Date()
         return await FactResolveTimeout.withTimeout(seconds: 3) {
             do {
-                return .success(try await AppDependencies.current.collection.healthKitManager.heartRate.fetchHeartRateSamplesDetailed(from: dayAgo, to: now))
+                return .success(try await services.healthKitManager.heartRate.fetchHeartRateSamplesDetailed(from: dayAgo, to: now))
             } catch {
                 return .failure(error)
             }
@@ -97,13 +98,13 @@ struct AppHealthKitNamespace: FactNamespaceResolver {
     }
 
     @MainActor private func resolveAppHealthkitTodayActivity() async -> FactValue {
-        guard AppDependencies.current.collection.healthKitManager.isHealthKitAvailable else {
+        guard services.healthKitManager.isHealthKitAvailable else {
             return .missing(reason: .notRecorded, detail: "HealthKit not available on this device")
         }
         // 3 s ceiling; nil on timeout (or no day returned).
         let summary: HealthKitManager.DailyActivity? =
             await FactResolveTimeout.withTimeout(seconds: 3) {
-                await AppDependencies.current.collection.healthKitManager.vitals.fetchDailyActivity(days: 1).first
+                await services.healthKitManager.vitals.fetchDailyActivity(days: 1).first
             }
         guard let summary else {
             return .missing(reason: .notYetComputed, detail: "today's activity rollup didn't come back within 3 s — try again")

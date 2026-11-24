@@ -959,15 +959,15 @@ fail(1) if gaps else pass
 | Key grammar | `Emuqu/Sources/Assistant/Facts/FactKey.swift` |
 | Value union, absence taxonomy, availability, envelope | `Emuqu/Sources/Assistant/Facts/FactValue.swift` |
 | Registry, rails, schema, hash, composites, time budget | `Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift` |
-| Numeric argument ranges | `Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift` |
-| Namespace registration; entries | `Emuqu/Sources/Assistant/Facts/AppFactResolver.swift` and the `AppFactResolver+` extensions beside it |
-| Provenance fields (`data_source`, `comparison_safe`) | `Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift`, `Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLiveDerived.swift`, `Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift` |
+| Numeric argument ranges | `Emuqu/Sources/Assistant/Facts/FactNumericArguments.swift` |
+| Namespace registration; entries | `Emuqu/Sources/Assistant/Facts/AppFactResolver.swift` and the `*Facts.swift` namespace files beside it |
+| Provenance fields (`data_source`, `comparison_safe`) | `Emuqu/Sources/Assistant/Facts/TrainingProjectionFacts.swift`, `Emuqu/Sources/Assistant/Facts/WorkoutLiveDerivedFacts.swift`, `Emuqu/Sources/Assistant/Facts/SleepFacts.swift` |
 | Compact tools, allow-list, capability index | `Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift`, `Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift` |
 | BM25 ranking | `Emuqu/Sources/Assistant/Facts/ToolRetriever.swift` |
 | xAI Grok schema cap | `Emuqu/Sources/Assistant/Providers/GrokProvider.swift` |
 | Tool loop, call budget, chat verification, fallback, mutating-tool rule | `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift`; routing-mode fallback limits `Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift` |
 | Provider check (available and switched on) | `Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift` |
-| Action confirmation | `Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift`, `Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift` |
+| Action confirmation | `Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift`, `Emuqu/Sources/Assistant/Facts/AssistantConfirmationFacts.swift` |
 | On-device dispatcher | `Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift` |
 | Number verifier, correction buffer | `Emuqu/Sources/Assistant/MetricsVerifier.swift` |
 | Voice verification and scrub order | `Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift` |

@@ -245,7 +245,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     /// what the user sees in the first seconds of a workout, before any sample
     /// has landed.
     private func recordingRecorder() -> WorkoutRecorder {
-        WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared)
+        WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
     }
 
     /// A strap mid-recording, so the status views draw their populated state

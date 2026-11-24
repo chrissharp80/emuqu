@@ -215,7 +215,7 @@ extension WorkoutSessionLifecycle {
     /// check and clear run on `recordingStateQueue` after the start's save.
     private func retireRedundantBackups(for session: HRVSession) {
         recorder.core.rawBackup.markAsArchived(session.id)
-        AppDependencies.current.storage.workoutTrackBackup.discard(session.id)
+        recorder.services.workoutTrackBackup.discard(session.id)
         let sessionId = session.id
         Self.recordingStateQueue.async {
             guard PersistedRecordingState.load()?.sessionId == sessionId else { return }
@@ -314,17 +314,17 @@ extension WorkoutSessionLifecycle {
     /// Returns the render task, whose value says whether the staged draft
     /// carries the PDF: the post-summary button waits on it to show the
     /// outcome and offer a retry; the auto path ignores it.
-    /// `settings` defaults to the shared store, for the view's call site;
-    /// the recorder passes its own injected provider.
+    /// The view passes the settings it reads; the recorder passes its
+    /// injected provider's.
     @MainActor
     @discardableResult
     static func scheduleCoachReportEmail(
-        for session: HRVSession,
-        settings: UserSettings = AppDependencies.current.app.settingsManager.settingsSnapshot
+        for session: HRVSession, settings: UserSettings, services: WorkoutServices
     ) -> Task<Bool, Never> {
-        let inputs = coachReportInputs(for: session, settings: settings)
+        let inputs = coachReportInputs(for: session, settings: settings, archive: services.sessionArchive)
+        let (metrics, emailBridge) = (services.trainingMetricsCache, services.assistantEmailBridge)
         return Task.detached(priority: .userInitiated) {
-            await renderAndStageCoachReport(inputs)
+            await renderAndStageCoachReport(inputs, metrics: metrics, emailBridge: emailBridge)
         }
     }
 
@@ -375,8 +375,9 @@ extension WorkoutSessionLifecycle {
     /// and general defaults, blank fields skipped
     /// (`UserSettings.resolvedTrainingEmailRecipient` / `resolvedTrainingEmailCC`).
     @MainActor
-    private static func coachReportInputs(for session: HRVSession, settings: UserSettings) -> CoachReportInputs {
-        let archive = AppDependencies.current.storage.sessionArchive
+    private static func coachReportInputs(
+        for session: HRVSession, settings: UserSettings, archive: SessionArchive
+    ) -> CoachReportInputs {
         let dayCutoff = Calendar.current.date(byAdding: .hour, value: -36, to: Date()) ?? Date.distantPast
         let recentOvernight = recentOvernightSessions(archive: archive, reportedNightCutoff: dayCutoff, sleepSchedule: settings.sleepSchedule)
         return CoachReportInputs(
@@ -463,8 +464,10 @@ extension WorkoutSessionLifecycle {
     /// the conversational body is then a pure function of them. Returns
     /// whether the PDF was attached (false: the draft was staged with the
     /// summary only, because the render failed).
-    private static func renderAndStageCoachReport(_ inputs: CoachReportInputs) async -> Bool {
-        let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed(from: AppDependencies.current.analysis.trainingMetricsCache)
+    private static func renderAndStageCoachReport(
+        _ inputs: CoachReportInputs, metrics: TrainingMetricsCache, emailBridge: AssistantEmailBridge
+    ) async -> Bool {
+        let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed(from: metrics)
         let (archive, ids) = (inputs.archive, inputs.pastWorkoutIds)
         let pastWorkouts = await Task.detached(priority: .userInitiated) {
             ids.compactMap { archive.retrieveLightweightOrLog($0, caller: "CoachReport.pastWorkouts") }
@@ -476,7 +479,7 @@ extension WorkoutSessionLifecycle {
         let attachment = await renderCoachReportPDF(inputs, liveLoadSnapshot: liveLoadSnapshot)
         await MainActor.run {
             let emailBody = attachment == nil ? body : body + "\n\n" + CoachReportGenerator.pdfFootnote
-            AppDependencies.current.assistant.assistantEmailBridge.stage(AssistantEmailDraft(
+            emailBridge.stage(AssistantEmailDraft(
                 subject: inputs.subject, body: emailBody, recipient: inputs.recipient,
                 ccRecipients: inputs.ccRecipients, attachmentURL: attachment
             ))

@@ -1115,10 +1115,12 @@ as `AppDependencies.current.{app,storage,collection,analysis,location,services,p
 Each accessor returns the substitute on the container's `overrides`, if one is set, and otherwise
 the production object, built on first use. `current` has no setter: a test puts a container with
 substitutes in force with `AppDependencies.install(_:)` and ends the returned scope afterwards,
-which restores the container before it. The launch work (`AppLaunchTasks.swift`) and the data purge
-(`DataPurgeService`) read no container; the root hands them exactly the services they use
-(`launchServices`, `purgeStores`), and `scripts/check_explicit_dependencies.sh` keeps
-`AppDependencies.current` out of those files and `install` out of app code. Views read it through
+which restores the container before it. The models, storage, analysis, launch work
+(`AppLaunchTasks.swift`), data purge, saved-session reanalysis, assistant fact namespaces and live
+workout recorder read no container: each is handed exactly the services it uses (`launchServices`,
+`purgeStores`, `makeSessionReanalysis`, `FactServices`, `WorkoutServices`), and
+`scripts/check_explicit_dependencies.sh` keeps `AppDependencies.current` out of those files and
+`install` out of app code. Views read it through
 `@Environment(\.dependencies)`, classes through an `init` parameter defaulting to `.current`, and
 static helpers and `EmuquApp` through `AppDependencies.current`. `.shared` is read only in this
 file and in the Watch target's root, `WatchDependencies`, which

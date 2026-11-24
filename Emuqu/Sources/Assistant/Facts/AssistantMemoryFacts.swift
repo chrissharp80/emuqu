@@ -10,6 +10,7 @@ import Foundation
 // me?" instead of users having to dig through Settings.
 struct AssistantMemoryNamespace: FactNamespaceResolver {
     let namespace = "assistant"
+    let services: FactServices
 
     var entries: [FactEntry] {
         [
@@ -40,7 +41,7 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
             description: "How many cross-session memory facts the user has saved for the AI to remember.",
             valueType: "Int"
         ) {
-            .integer(AppDependencies.current.assistant.userFactsStore.factsSnapshot.count)
+            .integer(services.userFactsStore.factsSnapshot.count)
         }
     }
 
@@ -50,7 +51,7 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
             description: "Every cross-session memory fact, newest first. Each entry has id, text, created_at. These are also injected into every system prompt — listing them lets you transparently answer 'what do you remember about me?'.",
             valueType: "List"
         ) {
-            let facts = AppDependencies.current.assistant.userFactsStore.factsSnapshot
+            let facts = services.userFactsStore.factsSnapshot
             if facts.isEmpty {
                 return .missing(reason: .notRecorded, detail: "user has no saved memory facts")
             }
@@ -73,7 +74,7 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
             description: "Whether the AI may save memory facts the user did not ask it to remember. When false, entries come only from the user tapping 'Remember this' or explicitly asking you to remember something (assistant.memory.add enforces this).",
             valueType: "Bool"
         ) {
-            .boolean(MainActor.assumeIsolated { AppDependencies.current.assistant.userFactsStore.autoExtractEnabled })
+            .boolean(MainActor.assumeIsolated { services.userFactsStore.autoExtractEnabled })
         }
     }
 
@@ -112,13 +113,13 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
             return .missing(reason: .invalidParameter, detail: "text is \(text.count) characters; keep a memory fact to \(Self.maxFactLength) or fewer — shorten it and call again")
         }
         let autoMemoryOn: Bool = MainActor.assumeIsolated {
-            AppDependencies.current.assistant.userFactsStore.autoExtractEnabled
+            services.userFactsStore.autoExtractEnabled
         }
-        guard autoMemoryOn || Self.latestUserMessageContains(args["user_quote"]) else {
+        guard autoMemoryOn || latestUserMessageContains(args["user_quote"]) else {
             return Self.userRequestRequired("save a memory fact while auto-memory is off")
         }
         return MainActor.assumeIsolated {
-            Self.saveMemoryFact(text, store: AppDependencies.current.assistant.userFactsStore, context: .live)
+            Self.saveMemoryFact(text, store: services.userFactsStore, context: .live(services))
         }
     }
 
@@ -181,11 +182,11 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
     /// be the whole message (a short confirmation such as "yes") or a span of
     /// at least three words and twelve characters: a fragment like "the"
     /// appears in almost any message and proves nothing.
-    static func latestUserMessageContains(_ quote: String?) -> Bool {
+    func latestUserMessageContains(_ quote: String?) -> Bool {
         let latest: String? = MainActor.assumeIsolated {
-            AppDependencies.current.assistant.assistantViewModel.turns.last { $0.role == .user }?.text
+            services.assistantViewModel.turns.last { $0.role == .user }?.text
         }
-        return isQuote(quote, from: latest)
+        return Self.isQuote(quote, from: latest)
     }
 
     /// The check itself, on a given message: true when `quote` is the whole
@@ -252,11 +253,11 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         guard let idStr = args["id"], let id = UUID(uuidString: idStr) else {
             return .missing(reason: .invalidParameter, detail: "id must be a UUID")
         }
-        guard Self.latestUserMessageContains(args["user_quote"]) else {
+        guard latestUserMessageContains(args["user_quote"]) else {
             return Self.userRequestRequired("remove a memory fact")
         }
         return MainActor.assumeIsolated {
-            Self.removeMemoryFact(id: id, store: AppDependencies.current.assistant.userFactsStore, context: .live)
+            Self.removeMemoryFact(id: id, store: services.userFactsStore, context: .live(services))
         }
     }
 
@@ -272,17 +273,17 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
             parameters: [
                 ActionParam("user_quote", "The user's words from their latest message asking to clear memory, copied verbatim.")
             ]
-        ) { args in Self.clearAllMemory(userQuote: args["user_quote"]) }
+        ) { args in clearAllMemory(userQuote: args["user_quote"]) }
     }
 
     /// Checks the user's words, then hands over to `clearAllMemory(store:context:)`,
     /// which wipes only once the user has confirmed.
-    private static func clearAllMemory(userQuote: String?) -> FactValue {
+    private func clearAllMemory(userQuote: String?) -> FactValue {
         guard latestUserMessageContains(userQuote) else {
-            return userRequestRequired("clear memory")
+            return Self.userRequestRequired("clear memory")
         }
         return MainActor.assumeIsolated {
-            Self.clearAllMemory(store: AppDependencies.current.assistant.userFactsStore, context: .live)
+            Self.clearAllMemory(store: services.userFactsStore, context: .live(services))
         }
     }
 
@@ -296,15 +297,15 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
             parameters: [
                 ActionParam("user_quote", "The user's words from their latest message asking to restore memory, copied verbatim.")
             ]
-        ) { args in Self.restoreMemory(userQuote: args["user_quote"]) }
+        ) { args in restoreMemory(userQuote: args["user_quote"]) }
     }
 
-    private static func restoreMemory(userQuote: String?) -> FactValue {
+    private func restoreMemory(userQuote: String?) -> FactValue {
         guard latestUserMessageContains(userQuote) else {
-            return userRequestRequired("restore memory")
+            return Self.userRequestRequired("restore memory")
         }
         return MainActor.assumeIsolated {
-            Self.restoreClearedMemory(store: AppDependencies.current.assistant.userFactsStore)
+            Self.restoreClearedMemory(store: services.userFactsStore)
         }
     }
 
@@ -325,7 +326,7 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
     }
 
     private func openArtifactCount() -> Int {
-        MainActor.assumeIsolated { AppDependencies.current.assistant.assistantArtifactStore.artifacts.filter { $0.status == .open }.count }
+        MainActor.assumeIsolated { services.assistantArtifactStore.artifacts.filter { $0.status == .open }.count }
     }
 
     private var assistantArtifactsListEntry: FactEntry {
@@ -338,7 +339,7 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
 
     private func resolveAssistantArtifactsList() -> FactValue {
         let items = MainActor.assumeIsolated {
-            AppDependencies.current.assistant.assistantArtifactStore.list(includeResolved: false)
+            services.assistantArtifactStore.list(includeResolved: false)
         }
         if items.isEmpty {
             return .missing(reason: .notRecorded, detail: "no open artifacts")
@@ -378,7 +379,7 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
 
     private func resolveAssistantArtifactsListAll() -> FactValue {
         let items = MainActor.assumeIsolated {
-            AppDependencies.current.assistant.assistantArtifactStore.list(includeResolved: true)
+            services.assistantArtifactStore.list(includeResolved: true)
         }
         if items.isEmpty {
             return .missing(reason: .notRecorded, detail: "no artifacts")
@@ -405,11 +406,11 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         guard let body = args["body"]?.trimmingCharacters(in: .whitespacesAndNewlines), !body.isEmpty else {
             return .missing(reason: .invalidParameter, detail: "body required")
         }
-        guard Self.latestUserMessageContains(args["user_quote"]) else {
+        guard latestUserMessageContains(args["user_quote"]) else {
             return Self.userRequestRequired("save an artifact")
         }
         let added = MainActor.assumeIsolated {
-            AppDependencies.current.assistant.assistantArtifactStore.add(kind: kind, body: body)
+            services.assistantArtifactStore.add(kind: kind, body: body)
         }
         return .record([
             "id": .string(added.id.uuidString),
@@ -449,11 +450,11 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         guard let statusStr = args["status"], let status = AssistantArtifactStore.Status(rawValue: statusStr) else {
             return .missing(reason: .invalidParameter, detail: "status must be one of: open, resolved, shipped, archived")
         }
-        guard Self.latestUserMessageContains(args["user_quote"]) else {
+        guard latestUserMessageContains(args["user_quote"]) else {
             return Self.userRequestRequired("change an artifact's status")
         }
         let updated = MainActor.assumeIsolated {
-            AppDependencies.current.assistant.assistantArtifactStore.updateStatus(id: id, status: status)
+            services.assistantArtifactStore.updateStatus(id: id, status: status)
         }
         guard let updated else {
             return .missing(reason: .notRecorded, detail: "no artifact with id \(idStr)")

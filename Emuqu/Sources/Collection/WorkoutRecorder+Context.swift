@@ -33,7 +33,7 @@ extension WorkoutAIContextBuilder {
             heading: WorkoutTicker.validCourse(loc),
             grade: computeCurrentGradePercent(),
             lastSample: recorder.samplesView.last,
-            road: AppDependencies.current.location.roadGeocodingService.current,
+            road: recorder.services.roadGeocodingService.current,
             zones: recorder.ticker.liveZoneBreakdown()
         )
     }
@@ -68,7 +68,7 @@ extension WorkoutAIContextBuilder {
             band: recorder.dfa.currentBand, alpha1FitQuality: recorder.dfa.fitQuality, alpha1Status: recorder.dfa.status, distanceMeters: motion.distanceMeters, currentPaceSecPerKm: recorder.currentPaceSecPerKm,
             currentSpeedMS: recorder.currentSpeedMS, cadenceStepsPerMin: motion.cadenceStepsPerMin, powerWatts: motion.powerWatts, footPodActive: motion.footPodActive, currentMETs: inputs.lastSample?.mets, recentSplitPaces: recentSplitPacesSecPerKm(),
             currentLatitude: inputs.loc?.coordinate.latitude, currentLongitude: inputs.loc?.coordinate.longitude, currentAltitudeMeters: inputs.loc?.altitude, currentHeadingDegrees: inputs.heading, gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy,
-            elevationGainMeters: motion.elevationGainMeters, currentGradePercent: inputs.grade, upcomingClimb: computeUpcomingClimb(currentLocation: inputs.loc), routeTopology: computeRouteTopology(currentLocation: inputs.loc), weather: AppDependencies.current.location.weatherService.current,
+            elevationGainMeters: motion.elevationGainMeters, currentGradePercent: inputs.grade, upcomingClimb: computeUpcomingClimb(currentLocation: inputs.loc), routeTopology: computeRouteTopology(currentLocation: inputs.loc), weather: recorder.services.weatherService.current,
             strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: recorder.ticker.strapSilentSeconds(), wristHeartRateLive: recorder.ticker.freshWristHR(now: Date()) != nil,
             currentRoadName: inputs.road?.road, currentLocality: inputs.road?.locality, currentAdministrativeArea: inputs.road?.administrativeArea,
             currentCountryCode: inputs.road?.countryCode, currentCompactAddress: inputs.road?.compactAddress, currentNearestCrossStreet: inputs.road?.nearestCrossStreet, currentNearestIntersection: inputs.road?.nearestIntersection, sessionAverageHR: trends.sessionAverageHR,
@@ -107,7 +107,7 @@ extension WorkoutAIContextBuilder {
         guard let match = RouteLibrary.findMatch(
             currentTrack: recorder.location.track,
             sport: sport,
-            store: AppDependencies.current.location.savedRouteStore
+            store: recorder.services.savedRouteStore
         ) else {
             return
         }
@@ -309,7 +309,7 @@ extension WorkoutAIContextBuilder {
     }
 
     func liveWeatherSnapshot() -> AssistantContext.LiveWorkoutSnapshot.WeatherSnapshot? {
-        guard let w = AppDependencies.current.location.weatherService.current else { return nil }
+        guard let w = recorder.services.weatherService.current else { return nil }
         return AssistantContext.LiveWorkoutSnapshot.WeatherSnapshot(
             temperatureC: w.temperatureC,
             apparentTemperatureC: w.apparentTemperatureC,
@@ -472,7 +472,7 @@ extension WorkoutAIContextBuilder {
             label: Self.breadcrumbLabel(sport: sport, start: start), resolvedOriginLabel: nil,
             isWorkoutTrack: true, sessionId: sessionId
         )
-        AppDependencies.current.location.breadcrumbStore.archive(trail)
+        recorder.services.breadcrumbStore.archive(trail)
         debugLog("[Recorder] auto-archived workout track as breadcrumb trail (\(fixes.count) fixes, label=\"\(trail.label ?? "")\")")
     }
 

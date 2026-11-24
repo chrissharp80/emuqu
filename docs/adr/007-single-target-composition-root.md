@@ -68,8 +68,13 @@ services they use, `AppDependencies.launchServices` and
 `AppDependencies.purgeStores`, and their tests build those sets from a fresh
 container with substitutes. Each member of a set is a resolver that reads the
 root's accessor when it is called, so nothing is built earlier than when the
-code reaches it, the same timing as the accessors themselves. The same
-script fails on an `AppDependencies.current` read in those files.
+code reaches it, the same timing as the accessors themselves. The assistant's
+fact namespaces and the live workout recorder follow the same shape:
+`AppFactResolverFactory.build` hands each namespace a `FactServices`, and
+`RecorderBox` hands the recorder a `WorkoutServices`, each a list of the
+services that code may reach, resolved on use. The same script fails on an
+`AppDependencies.current` read in any of those files, and in the models,
+storage and analysis layers.
 
 Views read the container through the `\.dependencies` environment key. Its
 default value is computed, `AppDependencies.current` at the moment of the

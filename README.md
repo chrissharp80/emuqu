@@ -8,7 +8,7 @@ score in plain language. It reports only what it measured.
 [![Gates](https://github.com/chrissharp80/emuqu/actions/workflows/gates.yml/badge.svg)](https://github.com/chrissharp80/emuqu/actions/workflows/gates.yml)
 ![Swift](https://img.shields.io/badge/Swift-6%20language%20mode-orange)
 ![iOS](https://img.shields.io/badge/iOS-17%2B-blue)
-![Tests](https://img.shields.io/badge/unit%20tests-3%2C000%2B-brightgreen)
+![Tests](https://img.shields.io/badge/unit%20tests-4%2C000%2B-brightgreen)
 ![Locales](https://img.shields.io/badge/locales-17-informational)
 ![License](https://img.shields.io/badge/license-PolyForm--Strict--1.0.0-lightgrey)
 
@@ -95,7 +95,7 @@ The repository is set up so that a regression cannot land quietly.
 - **The gates are tested.** One script plants a violation for each gate and
   proves it goes red. Another proves each gate fails closed on a missing
   input. A third proves each is wired into CI.
-- **Tests.** Over 3,000 unit tests and 100 UI tests, including snapshot tests for
+- **Tests.** Over 4,000 unit tests and 100 UI tests, including snapshot tests for
   the score views, characterization tests for the collector's observable
   surface, and negative tests for the gates. Coverage floors are measured and
   ratcheted, and are never restated in prose, so they cannot drift.

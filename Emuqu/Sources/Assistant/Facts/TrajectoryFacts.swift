@@ -18,7 +18,7 @@ extension TrainingLoadNamespace {
     /// last stored day until the daily series has today's bucket, while
     /// current_ctl/atl/tsb are always live.
     func trajectoryRecord() -> FactValue {
-        let seriesDict = MainActor.assumeIsolated { AppDependencies.current.analysis.trainingMetricsCache.dailySeries }
+        let seriesDict = MainActor.assumeIsolated { services.trainingMetricsCache.dailySeries }
         guard let live = liveOrCached() else {
             return .missing(reason: .notYetComputed, detail: "not enough training history to judge a trajectory yet")
         }
