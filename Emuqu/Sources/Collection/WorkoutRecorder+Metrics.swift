@@ -186,11 +186,11 @@ extension WorkoutSessionLifecycle {
             return
         }
         do {
-            _ = try recorder.core.archive.archive(session)
+            _ = try core.archive.archive(session)
             debugLog("[WorkoutRecorder] archived session id=\(session.id.uuidString.prefix(8)) sport=\(session.workoutMetadata?.sport.rawValue ?? "?") type=\(session.sessionType.rawValue)")
-            recorder.core.notifyArchiveChanged()
+            core.notifyArchiveChanged()
             retireRedundantBackups(for: session)
-            let cloudSync = recorder.core.cloudSyncManager
+            let cloudSync = core.cloudSyncManager
             Task(priority: .utility) {
                 await cloudSync.uploadSession(session)
             }
@@ -214,8 +214,8 @@ extension WorkoutSessionLifecycle {
     /// quick recordings, so it is cleared only when it is this workout's; the
     /// check and clear run on `recordingStateQueue` after the start's save.
     private func retireRedundantBackups(for session: HRVSession) {
-        recorder.core.rawBackup.markAsArchived(session.id)
-        recorder.services.workoutTrackBackup.discard(session.id)
+        core.rawBackup.markAsArchived(session.id)
+        services.workoutTrackBackup.discard(session.id)
         let sessionId = session.id
         Self.recordingStateQueue.async {
             guard PersistedRecordingState.load()?.sessionId == sessionId else { return }
@@ -229,9 +229,9 @@ extension WorkoutSessionLifecycle {
     /// Best-effort — if auth isn't granted or the API call fails,
     /// the in-app session is canonical and unaffected.
     private func exportToHealthKitIfAvailable(_ session: HRVSession) {
-        let healthKit = recorder.core.healthKit
-        let weight = recorder.settingsProvider().effectiveBodyWeightKg
-        let archive = recorder.core.archive
+        let healthKit = core.healthKit
+        let weight = settingsProvider().effectiveBodyWeightKg
+        let archive = core.archive
         Task(priority: .utility) {
             await Self.exportWorkoutToHealthKit(
                 session: session, healthKit: healthKit, bodyWeightKg: weight, archive: archive

@@ -282,7 +282,7 @@ extension WorkoutFinalizer {
         if let np, np > 0, avgPower > 0 {
             metadata.variabilityIndex = np / avgPower
         }
-        guard let ftp = WorkoutRecorder.sportFTP(for: sport, settings: settings), ftp > 0, let np else { return }
+        guard let ftp = WorkoutAIContextBuilder.sportFTP(for: sport, settings: settings), ftp > 0, let np else { return }
         applyFTPAnchoredMetrics(
             to: &metadata, ftp: ftp, np: np,
             durationSeconds: activeDurationSeconds(startDate: startDate, stopDate: stopDate)

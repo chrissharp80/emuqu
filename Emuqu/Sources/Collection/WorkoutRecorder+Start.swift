@@ -2,8 +2,8 @@ import CoreMotion
 import Foundation
 import UIKit
 
-// `start()` and its helpers. The recorder's stored state, sub-observables and
-// pause/resume live in `WorkoutRecorder.swift`.
+// `start()` and its helpers. The state it resets lives in the recorder's
+// owned pieces; pause and resume live in `WorkoutPauseControl`.
 
 extension WorkoutSessionLifecycle {
     // MARK: - Public control
@@ -62,8 +62,8 @@ extension WorkoutSessionLifecycle {
         thresholds: [WorkoutThreshold] = [],
         route: Route? = nil
     ) throws {
-        recorder.services.workoutStartLatencyTracker.recordStartEntry()
-        recorder.beginWorkoutCorrelation()
+        services.workoutStartLatencyTracker.recordStartEntry()
+        lifecycle.beginWorkoutCorrelation()
         var startCompleted = false
         defer { if !startCompleted { abandonFailedStart() } }
         debugLog("[Recorder.start] entry sport=\(sport.rawValue) source=\(source.rawValue) hasPlan=\(intervalPlan != nil) thresholds=\(thresholds.count) hasRoute=\(route != nil)")
@@ -78,15 +78,15 @@ extension WorkoutSessionLifecycle {
         stamps.mark("polarStream")
         bringUpRecording(session: session, sport: sport, effectiveSource: effectiveSource, intervalPlan: intervalPlan, stamps: &stamps)
         debugLog("[Recorder.start] sync-breakdown " + stamps.breakdown())
-        recorder.services.workoutStartLatencyTracker.recordStartReturned()
+        services.workoutStartLatencyTracker.recordStartReturned()
         startCompleted = true
     }
 
     /// A start that threw: close its correlation scope and drop its latency
     /// stamps, so neither tags nor measures a later start.
     private func abandonFailedStart() {
-        recorder.endWorkoutCorrelation()
-        recorder.services.workoutStartLatencyTracker.recordStartAbandoned()
+        lifecycle.endWorkoutCorrelation()
+        services.workoutStartLatencyTracker.recordStartAbandoned()
     }
 
     /// Per-block timing inside the synchronous body of `start()`, so a
@@ -139,7 +139,7 @@ extension WorkoutSessionLifecycle {
         stamps.mark("resets+providers")
         flipPhaseToRecordingWithProbes()
         stamps.mark("phaseFlip")
-        // HR subscription sits immediately after `recorder.phase = .recording`
+        // HR subscription sits immediately after `lifecycle.phase = .recording`
         // so it survives slow cold-start work. For watch / none sources the Polar publisher has no
         // data anyway; `currentHR` is driven from the Watch bridge in the tick
         // loop.
@@ -154,7 +154,7 @@ extension WorkoutSessionLifecycle {
     }
 
     private func launchDeferredStartWork(session: HRVSession, sport: Sport, intervalPlan: IntervalPlan?) {
-        recorder.resetCachedBaselinesAndLaunchBaselineTask(sport: sport)
+        resetCachedBaselinesAndLaunchBaselineTask(sport: sport)
         deferLocationTrackingStart(sport: sport)
         requestMotionAccessIfUndetermined(sport: sport)
         deferPedometerStart(sport: sport)
@@ -172,11 +172,11 @@ extension WorkoutSessionLifecycle {
     /// `applyStartParameters` clears the old summary once the start can no
     /// longer fail.
     func guardStartablePhase() throws {
-        switch recorder.lifecycle.phase {
+        switch lifecycle.phase {
         case .idle, .finished, .failed:
             return
         case .recording, .finalizing:
-            debugLog("[Recorder.start] BAIL — already recording (phase=\(recorder.lifecycle.phase))", level: .warning)
+            debugLog("[Recorder.start] BAIL — already recording (phase=\(lifecycle.phase))", level: .warning)
             throw WorkoutRecorderError.alreadyRecording
         }
     }
@@ -185,13 +185,13 @@ extension WorkoutSessionLifecycle {
     /// refused start (busy strap, a Polar throw) leaves the recorder's
     /// thresholds, route and last summary as they were.
     func applyStartParameters(thresholds: [WorkoutThreshold], route: Route?) {
-        recorder.lifecycle.finishedSession = nil
-        recorder.thresholds = WorkoutThresholdWatch(thresholds: thresholds)
-        recorder.route.planned = route
-        recorder.route.savedRouteId = nil
-        recorder.route.wasAutoDetected = false
-        recorder.route.nextDetectionAtMeters = 0
-        recorder.gradeMemo = nil
+        lifecycle.finishedSession = nil
+        coaching.thresholds = WorkoutThresholdWatch(thresholds: thresholds)
+        routeGuidance.planned = route
+        routeGuidance.savedRouteId = nil
+        routeGuidance.wasAutoDetected = false
+        routeGuidance.nextDetectionAtMeters = 0
+        coaching.gradeMemo = nil
     }
 
     /// start() — source-conditional pre-flight + strap downgrade cascade (sync-breakdown `preflight` span).
@@ -220,7 +220,7 @@ extension WorkoutSessionLifecycle {
             throw WorkoutRecorderError.strapBusy
         }
         if case .reconnectThenUseStrap = resolution {
-            recorder.core.polarManager.discovery.connectToLastDevice()
+            core.polarManager.discovery.connectToLastDevice()
         }
         return resolved
     }
@@ -230,10 +230,10 @@ extension WorkoutSessionLifecycle {
     private func currentSourceResolution(requested source: HRSource) -> WorkoutHRSourceResolver.Resolution {
         WorkoutHRSourceResolver.resolve(
             requested: source,
-            strapIsRecordingOnDevice: recorder.core.polarManager.isRecordingOnDevice,
-            strapIsConnected: recorder.core.polarManager.connectionState == .connected,
-            hasKnownDevices: !recorder.core.polarManager.knownDevices.isEmpty,
-            isWatchPaired: recorder.services.watchConnectivityBridge.isWatchPaired
+            strapIsRecordingOnDevice: core.polarManager.isRecordingOnDevice,
+            strapIsConnected: core.polarManager.connectionState == .connected,
+            hasKnownDevices: !core.polarManager.knownDevices.isEmpty,
+            isWatchPaired: services.watchConnectivityBridge.isWatchPaired
         )
     }
 
@@ -249,9 +249,9 @@ extension WorkoutSessionLifecycle {
     /// has rendered). Any other stream refuses the start with `strapBusy`
     /// rather than discard that session's buffered beats.
     private func stopOwnStaleStreamOrRefuse() throws {
-        let polar = recorder.core.polarManager
+        let polar = core.polarManager
         guard polar.isStreaming else { return }
-        guard let ownStart = recorder.ownedStrapStreamStart, polar.streamingStartTime == ownStart else {
+        guard let ownStart = lifecycle.ownedStrapStreamStart, polar.streamingStartTime == ownStart else {
             debugLog("[Recorder.start] BAIL — the strap is buffering for another session", level: .warning)
             throw WorkoutRecorderError.strapBusy
         }
@@ -271,8 +271,8 @@ extension WorkoutSessionLifecycle {
         switch effectiveSource {
         case .strap:
             identity = (
-                recorder.core.polarManager.connectedDeviceId ?? "unknown",
-                recorder.core.polarManager.connectedDeviceType?.displayName ?? "Polar device"
+                core.polarManager.connectedDeviceId ?? "unknown",
+                core.polarManager.connectedDeviceType?.displayName ?? "Polar device"
             )
         case .watch:
             identity = ("apple-watch", "Apple Watch")
@@ -297,49 +297,49 @@ extension WorkoutSessionLifecycle {
     /// the strap is ready. If it never comes, the tick's `HRArbitration` tells
     /// the user why there is no heart rate; the workout is never blocked.
     func beginPolarStreamingOrDefer(effectiveSource: HRSource, workoutId: UUID) throws {
-        recorder.lifecycle.strapNotice = nil
+        lifecycle.strapNotice = nil
         guard effectiveSource == .strap else { return }
-        debugLog("[Recorder.start] step=polar.startStreaming (link: \(recorder.core.polarManager.connectionState))")
-        try recorder.core.polarManager.startStreaming()
-        recorder.ownedStrapStreamStart = recorder.core.polarManager.streamingStartTime
+        debugLog("[Recorder.start] step=polar.startStreaming (link: \(core.polarManager.connectionState))")
+        try core.polarManager.startStreaming()
+        lifecycle.ownedStrapStreamStart = core.polarManager.streamingStartTime
         debugLog("[Recorder.start] step=polar.startStreaming done")
-        recorder.startDeviceInternalBackupIfPossible(workoutId: workoutId)
+        startDeviceInternalBackupIfPossible(workoutId: workoutId)
     }
 
     /// start() — per-workout state resets (sync-breakdown `resets+providers` span).
     func resetPerWorkoutState(session: HRVSession, startDate: Date, effectiveSource: HRSource) {
-        recorder.lifecycle.activeHRSource = effectiveSource
+        lifecycle.activeHRSource = effectiveSource
 
-        recorder.lifecycle.currentSession = session
-        recorder.sessionStartDate = startDate
-        recorder.collectedPoints = []
+        lifecycle.currentSession = session
+        lifecycle.sessionStartDate = startDate
+        capture.collectedPoints = []
         resetClockAndPauseState()
-        recorder.workoutHR.reset()
-        recorder.lastIngestedPointCount = 0
-        recorder.workoutSamples = []
-        recorder.livePace.reset()
-        recorder.footPodOdometer = FootPodOdometer()
-        recorder.power = WorkoutPowerTally()
-        recorder.motion.powerWatts = nil
-        recorder.motion.footPodActive = false
-        recorder.lastStrapHRAt = nil
-        recorder.dfa.reset(sessionStart: startDate)
-        recorder.voiceCoach.reset()
+        workoutHR.reset()
+        capture.lastIngestedPointCount = 0
+        capture.workoutSamples = []
+        signals.livePace.reset()
+        sensors.footPodOdometer = FootPodOdometer()
+        capture.power = WorkoutPowerTally()
+        motion.powerWatts = nil
+        motion.footPodActive = false
+        signals.lastStrapHRAt = nil
+        dfa.reset(sessionStart: startDate)
+        voiceCoach.reset()
     }
 
     /// The pause flags too: a workout stopped while paused left them set, and
     /// the next one started paused, its clock frozen.
     private func resetClockAndPauseState() {
-        recorder.lifecycle.elapsedSeconds = 0
-        recorder.lifecycle.isPaused = false
-        recorder.lifecycle.autoPaused = false
-        recorder.lifecycle.pausedMotion = PausedMotionLedger()
-        recorder.lifecycle.pauseTimeline = PauseTimeline()
-        recorder.deviceBackupArmedAt = nil
-        recorder.liveSnapshotAtStop = nil
+        lifecycle.elapsedSeconds = 0
+        lifecycle.isPaused = false
+        lifecycle.autoPaused = false
+        lifecycle.pausedMotion = PausedMotionLedger()
+        lifecycle.pauseTimeline = PauseTimeline()
+        lifecycle.deviceBackupArmedAt = nil
+        lifecycle.liveSnapshotAtStop = nil
         // A workout that ended standing still must not carry its stationary
         // count into this one and auto-pause on the first still tick.
-        recorder.autoPause.reset()
+        pauseControl.autoPause.reset()
     }
 
     /// start() — installs the AI snapshot/samples providers (sync-breakdown `resets+providers` span).
@@ -357,13 +357,13 @@ extension WorkoutSessionLifecycle {
     /// uses this to cross-check numeric claims against authoritative
     /// values before TTS speaks the line.
     private func installConversationContextProviders() {
-        recorder.conversation.contextSnapshotProvider = { [weak recorder] in
-            guard let recorder, let sport = recorder.lifecycle.currentSession?.sport else { return nil }
-            return recorder.aiContext.buildContext(sport: sport).asFactSheet()
+        conversation.contextSnapshotProvider = { [weak self] in
+            guard let self, let sport = lifecycle.currentSession?.sport else { return nil }
+            return aiContext.buildContext(sport: sport).asFactSheet()
         }
-        recorder.conversation.liveWorkoutSnapshotProvider = { [weak recorder] in
-            guard let recorder, let sport = recorder.lifecycle.currentSession?.sport else { return nil }
-            return recorder.aiContext.buildContext(sport: sport)
+        conversation.liveWorkoutSnapshotProvider = { [weak self] in
+            guard let self, let sport = lifecycle.currentSession?.sport else { return nil }
+            return aiContext.buildContext(sport: sport)
         }
     }
 
@@ -371,21 +371,21 @@ extension WorkoutSessionLifecycle {
     /// the broker so the AI's `workout.live.timeline` tool can pull
     /// recent correlated HR / elevation / pace / power samples on
     /// demand without us shipping the buffer through the broker every
-    /// tick. `recorder.samplesView` is @MainActor-isolated and the broker
+    /// tick. `capture.workoutSamples` is @MainActor-isolated and the broker
     /// may be asked from any thread (the fact resolver and the system-prompt
     /// builder), so the buffer is read only on the main thread; a caller on
     /// another thread gets no samples instead of an isolation trap. Cleared
     /// at stop via broker.clear().
     private func installLiveWorkoutSamplesProvider() {
-        recorder.services.liveWorkoutBroker.registerSamplesProvider { [weak recorder] in
+        services.liveWorkoutBroker.registerSamplesProvider { [weak capture] in
             guard Thread.isMainThread else { return [] }
             return MainActor.assumeIsolated {
-                recorder?.samplesView ?? []
+                capture?.workoutSamples ?? []
             }
         }
     }
 
-    /// start() — owns `step=recorder.phase=.recording` and the probe-pre / probe-post main-actor latency probes (sync-breakdown `phaseFlip` span).
+    /// start() — owns `step=phase=.recording` and the probe-pre / probe-post main-actor latency probes (sync-breakdown `phaseFlip` span).
     ///
     /// Main-actor responsiveness probes. Every observable side effect of
     /// start() runs off the synchronous path, yet user debug logs have shown
@@ -400,9 +400,9 @@ extension WorkoutSessionLifecycle {
     /// the cause and we have a concrete number to target.
     func flipPhaseToRecordingWithProbes() {
         Self.probeMainActorLatency(label: "probe-pre")
-        recorder.lifecycle.phase = .recording
+        lifecycle.phase = .recording
         debugLog("[Recorder.start] step=phase=.recording")
-        recorder.services.workoutStartLatencyTracker.recordPhaseFlip()
+        services.workoutStartLatencyTracker.recordPhaseFlip()
         Self.probeMainActorLatency(label: "probe-post (after phase=.recording)")
     }
 
@@ -445,9 +445,9 @@ extension WorkoutSessionLifecycle {
     /// comparable to historical logs.
     func wireEarlyHRObservationAndStampAnnounce(effectiveSource: HRSource) {
         if effectiveSource == .strap {
-            recorder.ticker.observeHeartRate()
+            ticker.observeHeartRate()
         }
-        recorder.services.workoutStartLatencyTracker.recordAnnounceFire()
+        services.workoutStartLatencyTracker.recordAnnounceFire()
     }
 
     /// start() — queues the announceStart Task (sync-breakdown `announceQueue` span).
@@ -468,7 +468,7 @@ extension WorkoutSessionLifecycle {
     /// start() — owns `step=zwiftBroadcaster.start (deferred)` and the deferred geocoding reset (sync-breakdown `geocodingReset` span).
     func deferZwiftBroadcastAndGeocodingReset() {
         deferZwiftBroadcast()
-        deferGeocodingReset(recorder.services.roadGeocodingService)
+        deferGeocodingReset(services.roadGeocodingService)
     }
 
     /// Start advertising HR + power as a BLE peripheral if the user opted in.
@@ -488,18 +488,18 @@ extension WorkoutSessionLifecycle {
     /// backup on a new device, where the disclosure was never shown. Only a
     /// device that accepted it (`BroadcasterDisclosure`) broadcasts.
     private func deferZwiftBroadcast() {
-        guard BroadcasterDisclosure.allowsBroadcast(settingEnabled: recorder.settingsProvider().enableZwiftBroadcast) else { return }
+        guard BroadcasterDisclosure.allowsBroadcast(settingEnabled: settingsProvider().enableZwiftBroadcast) else { return }
         debugLog("[Recorder.start] step=zwiftBroadcaster.start (deferred)")
-        Task { @MainActor [weak recorder] in
-            guard let recorder, case .recording = recorder.lifecycle.phase else { return }
+        Task { @MainActor [weak self] in
+            guard let self, case .recording = lifecycle.phase else { return }
             let t0 = Date()
-            recorder.services.zwiftPeripheralBroadcaster.startBroadcasting()
+            services.zwiftPeripheralBroadcaster.startBroadcasting()
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
             debugLog("[Recorder.start] step=zwiftBroadcaster.start deferred done (\(ms)ms)")
         }
     }
 
-    /// start() — owns `step=recorder.location.startTracking (deferred)` (sync-breakdown `tail` span).
+    /// start() — owns `step=sensors.location.startTracking (deferred)` (sync-breakdown `tail` span).
     ///
     /// Deferred by exactly one run-loop hop, and no further. A deferral that
     /// waits until SwiftUI has finished mounting `FitnessRecordingView`
@@ -511,7 +511,7 @@ extension WorkoutSessionLifecycle {
     /// hang at exactly the setter that blocks.
     ///
     /// The one hop exists because inline,
-    /// `recorder.location.startTracking` can take about 3 s on a walk start,
+    /// `sensors.location.startTracking` can take about 3 s on a walk start,
     /// main-thread block between the user's tap and the recording UI that
     /// makes the workout feel slow to start. `CLLocationManager.startUpdatingLocation` is
     /// documented as non-blocking, but its first call after an authorization
@@ -519,7 +519,7 @@ extension WorkoutSessionLifecycle {
     /// accuracy + delivery cadence with locationd, which is what eats the 3 s.
     /// The first location fix doesn't arrive for ~5-15 s anyway, so a one-hop
     /// deferral loses no data — it just unblocks the user-tap path.
-    /// `recorder.phase.recording` is already flipped, so the UI renders immediately and
+    /// `lifecycle.phase` is already `.recording`, so the UI renders immediately and
     /// the GPS metrics tile fills in whenever the first fix lands.
     ///
     /// The hop re-checks that the workout is still recording (a stop in
@@ -528,11 +528,11 @@ extension WorkoutSessionLifecycle {
     func deferLocationTrackingStart(sport: Sport) {
         guard sport.usesGPS else { return }
         debugLog("[Recorder.start] step=location.startTracking (deferred)")
-        Task { @MainActor [weak recorder] in
-            guard let recorder, case .recording = recorder.lifecycle.phase else { return }
+        Task { @MainActor [weak self] in
+            guard let self, case .recording = lifecycle.phase else { return }
             let lt0 = Date()
-            recorder.location.startTracking()
-            recorder.location.isPaused = recorder.lifecycle.isPaused
+            sensors.location.startTracking()
+            sensors.location.isPaused = lifecycle.isPaused
             let ltMs = Int(Date().timeIntervalSince(lt0) * 1000)
             debugLog("[Recorder.start] step=location.startTracking deferred done (\(ltMs)ms)")
         }
@@ -562,7 +562,7 @@ extension WorkoutSessionLifecycle {
     /// Sports whose distance and cadence come from the pedometer.
     static let pedometerSports: Set<Sport> = [.walk, .run, .trailRun, .hike, .treadmill]
 
-    /// start() — owns `step=recorder.pedometer.start (deferred)` (sync-breakdown `tail` span).
+    /// start() — owns `step=sensors.pedometer.start (deferred)` (sync-breakdown `tail` span).
     ///
     /// Pedometer runs for every motion-based sport. CMPedometer works
     /// indoors (no GPS) and is the source of truth for walk/run distance
@@ -581,10 +581,10 @@ extension WorkoutSessionLifecycle {
     func deferPedometerStart(sport: Sport) {
         guard Self.pedometerSports.contains(sport) else { return }
         debugLog("[Recorder.start] step=pedometer.start (deferred)")
-        Task { @MainActor [weak recorder] in
-            guard let recorder, case .recording = recorder.lifecycle.phase else { return }
+        Task { @MainActor [weak self] in
+            guard let self, case .recording = lifecycle.phase else { return }
             let pt0 = Date()
-            recorder.pedometer.start()
+            sensors.pedometer.start()
             let ptMs = Int(Date().timeIntervalSince(pt0) * 1000)
             debugLog("[Recorder.start] step=pedometer.start deferred done (\(ptMs)ms)")
             if ptMs > 100 {
@@ -615,15 +615,16 @@ extension WorkoutSessionLifecycle {
     /// power-capable trainer (KICKR, Tacx Neo, Zwift Hub) is kept and
     /// reconnected for `.bike` / `.indoorBike` (see `manageFootPod`).
     func reconnectOrDisconnectSecondarySensors(sport: Sport) {
-        manageFootPod(for: sport, pod: recorder.services.footPodManager)
-        recorder.services.concept2Manager.holdLinkForWorkout(sport == .row)
+        manageFootPod(for: sport, pod: services.footPodManager)
+        services.concept2Manager.holdLinkForWorkout(sport == .row)
         guard sport == .row,
-              !recorder.services.concept2Manager.knownDevices.isEmpty,
-              recorder.services.concept2Manager.connectionState == .disconnected
+              !services.concept2Manager.knownDevices.isEmpty,
+              services.concept2Manager.connectionState == .disconnected
         else { return }
         debugLog("[Recorder.start] step=concept2.reconnectLast (deferred)")
+        let concept2 = services.concept2Manager
         Task { @MainActor in
-            recorder.services.concept2Manager.reconnectLast()
+            concept2.reconnectLast()
             debugLog("[Recorder.start] step=concept2.reconnectLast done")
         }
     }
@@ -691,22 +692,22 @@ extension WorkoutSessionLifecycle {
     /// is slow; it bails early on phase if the user already stopped the
     /// workout before the Task got to run.
     func launchStartTailTask(sport: Sport, startDate: Date, intervalPlan: IntervalPlan?) {
-        Task { @MainActor [weak recorder] in
-            guard let recorder else { return }
-            guard case .recording = recorder.lifecycle.phase else { return }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            guard case .recording = lifecycle.phase else { return }
             var stamps = StartStamps()
-            recorder.services.systemDiagnosticsManager.startSamplingDuringRecording()
+            services.systemDiagnosticsManager.startSamplingDuringRecording()
             stamps.mark("diag")
             // Kick the paired Watch into its own HKWorkoutSession so the wrist
             // HR is dense (1 Hz) and forwarded back here if the strap drops.
             // No-op if no Watch is paired or reachable.
-            if !recorder.settingsProvider().watchDisplayOnlyMode {
-                recorder.watchBridge.startWatchWorkoutSession(sport: sport)
+            if !settingsProvider().watchDisplayOnlyMode {
+                watchBridge.startWatchWorkoutSession(sport: sport)
             }
             stamps.mark("watch")
-            recorder.session.loadIntervalPlan(intervalPlan, startAt: startDate)
+            loadIntervalPlan(intervalPlan, startAt: startDate)
             stamps.mark("intervals")
-            recorder.ticker.startTicker()
+            ticker.startTicker()
             stamps.mark("ticker")
             debugLog("[Recorder.start] tail-task " + stamps.breakdown())
         }
@@ -720,22 +721,22 @@ extension WorkoutSessionLifecycle {
     @MainActor
     private func loadIntervalPlan(_ plan: IntervalPlan?, startAt startDate: Date) {
         guard let plan else {
-            recorder.intervalController.clear()
+            intervalController.clear()
             return
         }
-        recorder.intervalController.onStepChange = { [weak recorder] step, stepNum, total in
-            guard let recorder else { return }
-            Self.announceStep(step, number: stepNum, of: total, on: recorder.conversation)
+        intervalController.onStepChange = { [weak self] step, stepNum, total in
+            guard let self else { return }
+            Self.announceStep(step, number: stepNum, of: total, on: conversation)
         }
-        recorder.intervalController.onFinish = { [weak recorder] in
-            guard let recorder else { return }
+        intervalController.onFinish = { [weak self] in
+            guard let self else { return }
             Self.announce(
-                on: recorder.conversation,
+                on: conversation,
                 prompt: "Tell the runner their structured interval block is complete in one brief calm sentence.",
                 fallback: IntervalSpokenCue.blockComplete
             )
         }
-        recorder.intervalController.load(plan: plan, startAt: startDate)
+        intervalController.load(plan: plan, startAt: startDate)
     }
     @MainActor
     private static func announceStep(_ step: IntervalStep, number: Int, of total: Int, on conversation: VoiceConversationController) {
@@ -755,42 +756,6 @@ extension WorkoutSessionLifecycle {
     @MainActor
     private static func announce(on conversation: VoiceConversationController, prompt: String, fallback: String) {
         conversation.speakAIResponse(toPrompt: prompt, fallback: fallback)
-    }
-
-    // MARK: - Pause / resume
-    //
-    // The recorder stays in `.recording` while paused — pause is a soft
-    // gate inside the ticker, not a separate phase. This keeps every
-    // other subsystem (strap, GPS, broker, Watch bridge) running so
-    // samples are ready to flow the instant we resume; a hard phase
-    // transition would force those to tear down + re-init each time,
-    // which would lose the first few seconds of the resumed segment.
-
-    /// Pause the active workout. No-op if not currently recording, or
-    /// already paused. `isAuto = true` flags this pause as system-
-    /// initiated so the auto-resume path knows it may re-enable the
-    /// clock; user-initiated pauses can only be resumed by the user.
-    func pause(isAuto: Bool = false) {
-        guard case .recording = recorder.lifecycle.phase, !recorder.lifecycle.isPaused else { return }
-        recorder.lifecycle.isPaused = true
-        recorder.lifecycle.autoPaused = isAuto
-        recorder.lifecycle.pausedMotion.pause(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())
-        recorder.lifecycle.pauseTimeline.pause(atElapsed: recorder.lifecycle.elapsedSeconds, now: Date())
-        recorder.startedLocation?.isPaused = true
-        recorder.autoPause.reset()
-        debugLog("[WorkoutRecorder] paused (auto=\(isAuto))")
-    }
-
-    /// Resume the active workout. No-op if not paused.
-    func resume() {
-        guard case .recording = recorder.lifecycle.phase, recorder.lifecycle.isPaused else { return }
-        recorder.lifecycle.isPaused = false
-        recorder.lifecycle.autoPaused = false
-        recorder.lifecycle.pausedMotion.resume(pedometer: recorder.pedometer.distanceMeters, footPod: recorder.footPodDistanceMeters())
-        recorder.lifecycle.pauseTimeline.resume(now: Date())
-        recorder.startedLocation?.isPaused = false
-        recorder.autoPause.reset()
-        debugLog("[WorkoutRecorder] resumed")
     }
 }
 

@@ -6,7 +6,7 @@ import Foundation
 /// bridge's queue of them (`drainPendingWatchStrapRR`).
 struct WatchRoutedBeats {
     /// When this path last produced beats. Separate from the iPhone strap's
-    /// own freshness (`WorkoutRecorder.lastStrapHRAt`), so the wrist-HR
+    /// own freshness (`WorkoutLiveSignals.lastStrapHRAt`), so the wrist-HR
     /// fallback can tell "the iPhone's strap dropped and the Watch carries
     /// it" from "both dropped, fall through to wrist".
     var lastAt: Date?

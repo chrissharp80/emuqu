@@ -5,9 +5,10 @@ import CoreLocation
 import Foundation
 import UIKit
 
-// AI context builders (workout, route topology, weather, interval
-// progress), route auto-detection, climb/turn computation, threshold
-// breach evaluation, breadcrumb archival, split paces, and grade.
+// AI context builders (workout, route topology, weather), route
+// auto-detection, climb/turn computation, threshold breach evaluation,
+// breadcrumb archival, split paces, and grade; and the interval controller's
+// progress snapshot for the live broker.
 
 extension WorkoutAIContextBuilder {
     /// The per-turn locals `buildContext` derives before assembling the snapshot.
@@ -24,17 +25,17 @@ extension WorkoutAIContextBuilder {
     }
 
     private func contextInputs() -> ContextInputs {
-        let loc = recorder.startedLocation?.currentLocation
-        let userMaxHR = recorder.settingsProvider().effectiveMaxHR
+        let loc = sensors.startedLocation?.currentLocation
+        let userMaxHR = settingsProvider().effectiveMaxHR
         return ContextInputs(
             userMaxHR: userMaxHR,
-            startDate: recorder.sessionStartDate ?? Date(),
+            startDate: lifecycle.sessionStartDate ?? Date(),
             loc: loc,
             heading: WorkoutTicker.validCourse(loc),
             grade: computeCurrentGradePercent(),
-            lastSample: recorder.samplesView.last,
-            road: recorder.services.roadGeocodingService.current,
-            zones: recorder.ticker.liveZoneBreakdown()
+            lastSample: capture.workoutSamples.last,
+            road: services.roadGeocodingService.current,
+            zones: capture.liveZoneBreakdown(userMaxHR: userMaxHR)
         )
     }
 
@@ -59,37 +60,33 @@ extension WorkoutAIContextBuilder {
     /// workout start (see `start()`), so the numbers match what the user saw on
     /// the dashboard ring. Days-until-fresh is the rest forecast (zero added
     /// load); steady-state TSB is the "if I do today's load every day" forecast.
-    /// The live trends come from the recorder's tally (`syncedLiveTrends`),
+    /// The live trends come from the capture's tally (`syncedLiveTrends`),
     /// read after `contextInputs` updated its zone fold.
     func buildContext(sport: Sport) -> WorkoutAIContext {
-        let (inputs, trends, motion) = (contextInputs(), recorder.ticker.syncedLiveTrends(), recorder.motion)
+        let (inputs, trends, start) = (contextInputs(), capture.syncedLiveTrends(), coaching.startContext)
         return WorkoutAIContext(
-            sport: sport, nowAt: Date(), sessionStart: inputs.startDate, elapsedSeconds: recorder.lifecycle.elapsedSeconds, heartRate: recorder.workoutHR.currentHR, peakHR: recorder.workoutHR.peakHR, userMaxHR: inputs.userMaxHR, hrDriftPercent: nil, alpha1: recorder.dfa.currentAlpha1,
-            band: recorder.dfa.currentBand, alpha1FitQuality: recorder.dfa.fitQuality, alpha1Status: recorder.dfa.status, distanceMeters: motion.distanceMeters, currentPaceSecPerKm: recorder.currentPaceSecPerKm,
-            currentSpeedMS: recorder.currentSpeedMS, cadenceStepsPerMin: motion.cadenceStepsPerMin, powerWatts: motion.powerWatts, footPodActive: motion.footPodActive, currentMETs: inputs.lastSample?.mets, recentSplitPaces: recentSplitPacesSecPerKm(),
-            currentLatitude: inputs.loc?.coordinate.latitude, currentLongitude: inputs.loc?.coordinate.longitude, currentAltitudeMeters: inputs.loc?.altitude, currentHeadingDegrees: inputs.heading, gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy,
-            elevationGainMeters: motion.elevationGainMeters, currentGradePercent: inputs.grade, upcomingClimb: computeUpcomingClimb(currentLocation: inputs.loc), routeTopology: computeRouteTopology(currentLocation: inputs.loc), weather: recorder.services.weatherService.current,
-            strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: recorder.ticker.strapSilentSeconds(), wristHeartRateLive: recorder.ticker.freshWristHR(now: Date()) != nil,
-            currentRoadName: inputs.road?.road, currentLocality: inputs.road?.locality, currentAdministrativeArea: inputs.road?.administrativeArea,
-            currentCountryCode: inputs.road?.countryCode, currentCompactAddress: inputs.road?.compactAddress, currentNearestCrossStreet: inputs.road?.nearestCrossStreet, currentNearestIntersection: inputs.road?.nearestIntersection, sessionAverageHR: trends.sessionAverageHR,
-            reverseSplitDeltaSecPerKm: trends.reverseSplitDeltaSecPerKm, liveHRDriftPercent: trends.hrDriftPercent, recentHRSlopeBpm: trends.recentHRSlopeBpm, aerobicDecouplingPercent: trends.aerobicDecouplingPercent,
-            cadenceDriftSpm: trends.cadenceDriftSpm, gradeAdjustedPaceSecPerKm: WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: recorder.currentPaceSecPerKm, gradePercent: inputs.grade),
-            recentSplitGradeAdjustedPaces: trends.recentSplitGradeAdjustedPaces, projectedMinutesUntilFade: trends.projectedMinutesUntilFade, historicalSportAvgPaceSecPerKm: recorder.startContext.historicalBaselines.avgPaceSecPerKm,
-            historicalSportAvgHR: recorder.startContext.historicalBaselines.avgHR, historicalSportAvgAlpha1: recorder.startContext.historicalBaselines.avgAlpha1, historicalSportSampleCount: recorder.startContext.historicalBaselines.sampleCount,
-            todayRecoveryScore: recorder.startContext.todayReadiness.recoveryScore, todayTrainingReadiness: recorder.startContext.todayReadiness.trainingReadiness,
-            todayATL: recorder.startContext.todayReadiness.atl, todayCTL: recorder.startContext.todayReadiness.ctl, todayTSB: recorder.startContext.todayReadiness.tsb,
-            projectedDaysUntilFresh: recorder.startContext.trainingProjection.daysUntilFresh, projectedTSBTomorrowSteadyState: recorder.startContext.trainingProjection.tsbTomorrowSteadyState, recoveryHoursNeeded: recorder.ticker.liveRecoveryHoursNeeded(), zone1Sec: inputs.zones.z1Sec,
-            zone2Sec: inputs.zones.z2Sec, zone3Sec: inputs.zones.z3Sec, zone4Sec: inputs.zones.z4Sec, zone5Sec: inputs.zones.z5Sec, dominantZone: inputs.zones.dominantZone, predictedRaceTime5KSec: recorder.startContext.racePredictionsByDistance[5_000],
-            predictedRaceTime10KSec: recorder.startContext.racePredictionsByDistance[10_000], predictedRaceTimeHalfSec: recorder.startContext.racePredictionsByDistance[21_097.5],
-            predictedRaceTimeMarathonSec: recorder.startContext.racePredictionsByDistance[42_195], userUnits: UnitsPreferenceStore.current,
-            targetZone: recorder.targetZone, activeThresholds: recorder.thresholds.thresholds, thresholdBreachSec: recorder.thresholds.breachSec
+            sport: sport, nowAt: Date(), sessionStart: inputs.startDate, elapsedSeconds: lifecycle.elapsedSeconds, heartRate: workoutHR.currentHR, peakHR: workoutHR.peakHR, userMaxHR: inputs.userMaxHR, hrDriftPercent: nil, alpha1: dfa.currentAlpha1, band: dfa.currentBand,
+            alpha1FitQuality: dfa.fitQuality, alpha1Status: dfa.status, distanceMeters: motion.distanceMeters, currentPaceSecPerKm: signals.currentPaceSecPerKm, currentSpeedMS: signals.currentSpeedMS, cadenceStepsPerMin: motion.cadenceStepsPerMin, powerWatts: motion.powerWatts,
+            footPodActive: motion.footPodActive, currentMETs: inputs.lastSample?.mets, recentSplitPaces: recentSplitPacesSecPerKm(), currentLatitude: inputs.loc?.coordinate.latitude, currentLongitude: inputs.loc?.coordinate.longitude, currentAltitudeMeters: inputs.loc?.altitude,
+            currentHeadingDegrees: inputs.heading, gpsAccuracyMeters: sensors.startedLocation?.lastHorizontalAccuracy, elevationGainMeters: motion.elevationGainMeters, currentGradePercent: inputs.grade, upcomingClimb: computeUpcomingClimb(currentLocation: inputs.loc),
+            routeTopology: computeRouteTopology(currentLocation: inputs.loc), weather: services.weatherService.current, strapConnected: core.polarManager.connectionState == .connected, strapSilentSec: signals.strapSilentSeconds(source: lifecycle.activeHRSource),
+            wristHeartRateLive: services.watchConnectivityBridge.freshWristHR(now: Date()) != nil, currentRoadName: inputs.road?.road, currentLocality: inputs.road?.locality, currentAdministrativeArea: inputs.road?.administrativeArea, currentCountryCode: inputs.road?.countryCode,
+            currentCompactAddress: inputs.road?.compactAddress, currentNearestCrossStreet: inputs.road?.nearestCrossStreet, currentNearestIntersection: inputs.road?.nearestIntersection, sessionAverageHR: trends.sessionAverageHR, reverseSplitDeltaSecPerKm: trends.reverseSplitDeltaSecPerKm,
+            liveHRDriftPercent: trends.hrDriftPercent, recentHRSlopeBpm: trends.recentHRSlopeBpm, aerobicDecouplingPercent: trends.aerobicDecouplingPercent, cadenceDriftSpm: trends.cadenceDriftSpm,
+            gradeAdjustedPaceSecPerKm: WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: signals.currentPaceSecPerKm, gradePercent: inputs.grade), recentSplitGradeAdjustedPaces: trends.recentSplitGradeAdjustedPaces, projectedMinutesUntilFade: trends.projectedMinutesUntilFade,
+            historicalSportAvgPaceSecPerKm: start.historicalBaselines.avgPaceSecPerKm, historicalSportAvgHR: start.historicalBaselines.avgHR, historicalSportAvgAlpha1: start.historicalBaselines.avgAlpha1, historicalSportSampleCount: start.historicalBaselines.sampleCount,
+            todayRecoveryScore: start.todayReadiness.recoveryScore, todayTrainingReadiness: start.todayReadiness.trainingReadiness, todayATL: start.todayReadiness.atl, todayCTL: start.todayReadiness.ctl, todayTSB: start.todayReadiness.tsb,
+            projectedDaysUntilFresh: start.trainingProjection.daysUntilFresh, projectedTSBTomorrowSteadyState: start.trainingProjection.tsbTomorrowSteadyState, recoveryHoursNeeded: start.recoveryHoursNeeded, zone1Sec: inputs.zones.z1Sec, zone2Sec: inputs.zones.z2Sec,
+            zone3Sec: inputs.zones.z3Sec, zone4Sec: inputs.zones.z4Sec, zone5Sec: inputs.zones.z5Sec, dominantZone: inputs.zones.dominantZone, predictedRaceTime5KSec: start.racePredictionsByDistance[5_000], predictedRaceTime10KSec: start.racePredictionsByDistance[10_000],
+            predictedRaceTimeHalfSec: start.racePredictionsByDistance[21_097.5], predictedRaceTimeMarathonSec: start.racePredictionsByDistance[42_195], userUnits: UnitsPreferenceStore.current,
+            targetZone: lifecycle.targetZone, activeThresholds: coaching.thresholds.thresholds, thresholdBreachSec: coaching.thresholds.breachSec
         )
     }
 
     /// Recognise a route the user has explicitly saved to their library.
     /// Match is direction-agnostic: a saved "Daily 1" loop matches whether
     /// the user is walking it the same way as the day they saved it OR in
-    /// reverse. Sets `recorder.route.planned` + the direction flag so the banner +
+    /// reverse. Sets `routeGuidance.planned` + the direction flag so the banner +
     /// AI coach speak about it correctly. Runs first at
     /// `RouteLibrary.detectionTriggerMeters` of GPS distance, then, while
     /// nothing matches, after each further stretch of that length, so a loop
@@ -102,30 +99,30 @@ extension WorkoutAIContextBuilder {
     /// workouts created false positives in earlier iterations and made
     /// the "what is the app doing right now" question harder to answer.
     func attemptAutoRouteDetection(sport: Sport) {
-        let traveled = recorder.location.distanceMeters
-        guard traveled >= max(RouteLibrary.detectionTriggerMeters, recorder.route.nextDetectionAtMeters) else { return }
+        let traveled = sensors.location.distanceMeters
+        guard traveled >= max(RouteLibrary.detectionTriggerMeters, routeGuidance.nextDetectionAtMeters) else { return }
 
-        recorder.route.nextDetectionAtMeters = traveled + RouteLibrary.detectionTriggerMeters
+        routeGuidance.nextDetectionAtMeters = traveled + RouteLibrary.detectionTriggerMeters
         guard let match = RouteLibrary.findMatch(
-            currentTrack: recorder.location.track,
+            currentTrack: sensors.location.track,
             sport: sport,
-            store: recorder.services.savedRouteStore
+            store: services.savedRouteStore
         ) else {
             return
         }
-        recorder.route.planned = match.route
-        recorder.route.savedRouteId = match.savedRoute.id
-        recorder.route.wasAutoDetected = true
-        recorder.route.direction = match.direction
+        routeGuidance.planned = match.route
+        routeGuidance.savedRouteId = match.savedRoute.id
+        routeGuidance.wasAutoDetected = true
+        routeGuidance.direction = match.direction
         debugLog("[WorkoutRecorder] auto-bound saved route \(match.savedRoute.id.uuidString.prefix(8)) \(match.direction == .reverse ? "(reverse)" : "") fit \(Int(match.meanFitMeters.rounded())) m")
     }
 
     /// Projects `location` onto `route`, continuing from the last tick's point.
     func routeProgress(at location: CLLocation, on route: Route) -> RouteProgress? {
         let progress = RouteProgress.compute(
-            currentLocation: location, route: route, previousIndex: recorder.route.lastProgressIndex
+            currentLocation: location, route: route, previousIndex: routeGuidance.lastProgressIndex
         )
-        if let progress { recorder.route.lastProgressIndex = progress.nearestPointIndex }
+        if let progress { routeGuidance.lastProgressIndex = progress.nearestPointIndex }
         return progress
     }
 
@@ -136,7 +133,7 @@ extension WorkoutAIContextBuilder {
     /// which the trigger engine (and the LLM context) can read to fire
     /// pre-emptive cues like "big climb in 400 m, save power".
     func computeUpcomingClimb(currentLocation: CLLocation?) -> WorkoutAIContext.UpcomingClimb? {
-        guard let route = recorder.route.planned, let loc = currentLocation else { return nil }
+        guard let route = routeGuidance.planned, let loc = currentLocation else { return nil }
         guard let progress = routeProgress(at: loc, on: route) else { return nil }
         guard let next = progress.nextClimb,
               let distance = progress.metersToNextClimb,
@@ -159,7 +156,7 @@ extension WorkoutAIContextBuilder {
     /// Turns ahead walk the polyline from the user's current position and flag
     /// bearing changes ≥30° within ~30 m windows, capped at 5.
     func computeRouteTopology(currentLocation: CLLocation?) -> WorkoutAIContext.RouteTopology? {
-        guard let route = recorder.route.planned, let loc = currentLocation,
+        guard let route = routeGuidance.planned, let loc = currentLocation,
               let progress = routeProgress(at: loc, on: route)
         else { return nil }
         let climbsAhead = Self.climbsAhead(on: route, pastDistance: progress.distanceAlongMeters)
@@ -312,7 +309,7 @@ extension WorkoutAIContextBuilder {
     }
 
     func liveWeatherSnapshot() -> AssistantContext.LiveWorkoutSnapshot.WeatherSnapshot? {
-        guard let w = recorder.services.weatherService.current else { return nil }
+        guard let w = services.weatherService.current else { return nil }
         return AssistantContext.LiveWorkoutSnapshot.WeatherSnapshot(
             temperatureC: w.temperatureC,
             apparentTemperatureC: w.apparentTemperatureC,
@@ -321,29 +318,6 @@ extension WorkoutAIContextBuilder {
             humidityPercent: w.humidityPercent,
             conditions: w.conditions,
             observedAt: w.observedAt
-        )
-    }
-
-    /// Snapshot the IntervalController's current state for the AI broker
-    /// each tick. Returns nil when no plan is bound or the plan has
-    /// finished (so the AI doesn't see a stale step from a prior plan).
-    /// `nextStepLabel` peeks one ahead so the assistant can answer "what's
-    /// after this?" without needing the whole plan.
-    func liveIntervalProgressSnapshot() -> AssistantContext.LiveWorkoutSnapshot.IntervalProgressSnapshot? {
-        let ic = recorder.intervalController
-        guard let step = ic.currentStep, !ic.isFinished else { return nil }
-        let stepLabel = step.intervalAILabel
-        // The next step's label, or nil after the last step.
-        let nextLabel: String? = ic.peekNextStep()?.intervalAILabel
-        let remaining: Int? = step.durationSec.map { max(0, $0 - ic.stepElapsedSec) }
-        return AssistantContext.LiveWorkoutSnapshot.IntervalProgressSnapshot(
-            currentStepNumber: ic.stepNumber,
-            totalSteps: ic.totalSteps,
-            currentStepLabel: stepLabel,
-            stepElapsedSec: ic.stepElapsedSec,
-            stepRemainingSec: remaining,
-            nextStepLabel: nextLabel,
-            isFinished: ic.isFinished
         )
     }
 
@@ -357,9 +331,9 @@ extension WorkoutAIContextBuilder {
     /// (see `evaluateNaturalLanguageThresholds`); the per-tick breach state
     /// machine ignores them entirely.
     func updateThresholdBreaches(sport: Sport) {
-        guard !recorder.thresholds.thresholds.isEmpty else { return }
+        guard !coaching.thresholds.thresholds.isEmpty else { return }
         let signals = thresholdSignals(sport: sport)
-        for threshold in recorder.thresholds.thresholds where threshold.metric != .naturalLanguage {
+        for threshold in coaching.thresholds.thresholds where threshold.metric != .naturalLanguage {
             applyBreachTick(threshold, signals: signals)
         }
     }
@@ -380,9 +354,9 @@ extension WorkoutAIContextBuilder {
         let gradePercent: Double?
     }
 
-    /// Distance comes from the recorder's authoritative `recorder.distanceMeters`
+    /// Distance comes from the recorder's authoritative `motion.distanceMeters`
     /// (max of GPS / pedometer / foot-pod / PM5). Elapsed is the workout
-    /// clock the user sees (`recorder.elapsedSeconds`, stopped while paused),
+    /// clock the user sees (`lifecycle.elapsedSeconds`, stopped while paused),
     /// nil before the session has a start date.
     ///
     /// Elevation uses the recorder's canonical motion-side accumulator
@@ -393,19 +367,19 @@ extension WorkoutAIContextBuilder {
     /// threshold fire on numbers the user can't see in the UI.
     /// `currentGrade` is the same trailing ~100 m delta the AI context uses.
     private func thresholdSignals(sport: Sport) -> ThresholdSignals {
-        let settings = recorder.settingsProvider()
-        let hr = recorder.workoutHR.currentHR
+        let settings = settingsProvider()
+        let hr = workoutHR.currentHR
         return ThresholdSignals(
             hrBPM: hr,
             hrZone: WorkoutGeometry.hrMaxZone(hr: hr, maxHR: settings.effectiveMaxHR),
-            powerWatts: recorder.motion.powerWatts,
-            ftpWatts: Self.sportFTP(for: sport, settings: recorder.settingsProvider()),
-            paceSecPerKm: recorder.currentPaceSecPerKm,
-            alpha1: recorder.dfa.currentAlpha1,
-            cadenceSPM: recorder.motion.cadenceStepsPerMin,
-            distanceMeters: recorder.motion.distanceMeters,
-            elapsedSec: recorder.sessionStartDate.map { _ in recorder.lifecycle.elapsedSeconds },
-            elevationGainMeters: recorder.motion.elevationGainMeters,
+            powerWatts: motion.powerWatts,
+            ftpWatts: Self.sportFTP(for: sport, settings: settingsProvider()),
+            paceSecPerKm: signals.currentPaceSecPerKm,
+            alpha1: dfa.currentAlpha1,
+            cadenceSPM: motion.cadenceStepsPerMin,
+            distanceMeters: motion.distanceMeters,
+            elapsedSec: lifecycle.sessionStartDate.map { _ in lifecycle.elapsedSeconds },
+            elevationGainMeters: motion.elevationGainMeters,
             gradePercent: computeCurrentGradePercent()
         )
     }
@@ -438,7 +412,7 @@ extension WorkoutAIContextBuilder {
             elapsedSec: signals.elapsedSec, elevationGainMeters: signals.elevationGainMeters,
             gradePercent: signals.gradePercent
         )
-        recorder.thresholds.record(threshold, breached: breached)
+        coaching.thresholds.record(threshold, breached: breached)
     }
 
     /// Auto-archive a finished GPS-bearing workout's track
@@ -468,7 +442,7 @@ extension WorkoutAIContextBuilder {
             label: Self.breadcrumbLabel(sport: sport, start: start), resolvedOriginLabel: nil,
             isWorkoutTrack: true, sessionId: sessionId
         )
-        recorder.services.breadcrumbStore.archive(trail)
+        services.breadcrumbStore.archive(trail)
         debugLog("[Recorder] auto-archived workout track as breadcrumb trail (\(fixes.count) fixes, label=\"\(trail.label ?? "")\")")
     }
 
@@ -491,7 +465,7 @@ extension WorkoutAIContextBuilder {
     /// pace of the last up-to-3 completed chunks is returned. The chunks are
     /// kept as the buffer grows (`WorkoutLiveTrends.Tally.kilometreChunks`).
     func recentSplitPacesSecPerKm() -> [Double] {
-        recorder.ticker.syncedLiveTrends().kilometreChunks.suffix(3).reversed().compactMap { chunk in
+        capture.syncedLiveTrends().kilometreChunks.suffix(3).reversed().compactMap { chunk in
             let dist = chunk.distEnd - chunk.distStart
             let dur = Double(chunk.tEnd - chunk.tStart)
             guard dist > 0, dur > 0 else { return nil }
@@ -510,18 +484,18 @@ extension WorkoutAIContextBuilder {
     ///
     /// A tick reads the grade several times (the coach context, the live
     /// snapshot, the threshold signals, the grade-adjusted pace); it is worked
-    /// out once per new fix or barometer sample (`recorder.gradeMemo`) and
+    /// out once per new fix or barometer sample (`coaching.gradeMemo`) and
     /// read back until the next.
     func computeCurrentGradePercent() -> Double? {
-        guard let location = recorder.startedLocation else { return nil }
-        let key = WorkoutRecorder.GradeMemo.Key(
+        guard let location = sensors.startedLocation else { return nil }
+        let key = WorkoutCoachingInputs.GradeMemo.Key(
             fixCount: location.track.count,
             lastFixAt: location.track.last?.timestamp,
             baroCount: location.barometricSamples.count
         )
-        if let memo = recorder.gradeMemo, memo.key == key { return memo.grade }
+        if let memo = coaching.gradeMemo, memo.key == key { return memo.grade }
         let grade = gradeFromTrack(location)
-        recorder.gradeMemo = WorkoutRecorder.GradeMemo(key: key, grade: grade)
+        coaching.gradeMemo = WorkoutCoachingInputs.GradeMemo(key: key, grade: grade)
         return grade
     }
 
@@ -545,7 +519,7 @@ extension WorkoutAIContextBuilder {
     /// Otherwise from the two GPS fixes, whose altitude swings ±5–10 m each,
     /// so a single noisy fix would read as several percent of grade.
     private func gradeWindowRise(from startFix: CLLocation, to endFix: CLLocation) -> Double {
-        let baro = recorder.location.barometricSamples
+        let baro = sensors.location.barometricSamples
         guard let startBaro = baro.last(where: { $0.timestamp <= startFix.timestamp }),
               let endBaro = baro.last else { return endFix.altitude - startFix.altitude }
         return endBaro.altitudeMeters - startBaro.altitudeMeters
@@ -565,5 +539,29 @@ extension WorkoutRecorder {
         route.wasAutoDetected = false
         route.direction = .forward
         debugLog("[WorkoutRecorder] saved route \(id.uuidString.prefix(8)) deleted during the workout — no longer followed")
+    }
+}
+
+extension IntervalController {
+    /// Snapshot the IntervalController's current state for the AI broker
+    /// each tick. Returns nil when no plan is bound or the plan has
+    /// finished (so the AI doesn't see a stale step from a prior plan).
+    /// `nextStepLabel` peeks one ahead so the assistant can answer "what's
+    /// after this?" without needing the whole plan.
+    func liveProgressSnapshot() -> AssistantContext.LiveWorkoutSnapshot.IntervalProgressSnapshot? {
+        guard let step = currentStep, !isFinished else { return nil }
+        let stepLabel = step.intervalAILabel
+        // The next step's label, or nil after the last step.
+        let nextLabel: String? = peekNextStep()?.intervalAILabel
+        let remaining: Int? = step.durationSec.map { max(0, $0 - stepElapsedSec) }
+        return AssistantContext.LiveWorkoutSnapshot.IntervalProgressSnapshot(
+            currentStepNumber: stepNumber,
+            totalSteps: totalSteps,
+            currentStepLabel: stepLabel,
+            stepElapsedSec: stepElapsedSec,
+            stepRemainingSec: remaining,
+            nextStepLabel: nextLabel,
+            isFinished: isFinished
+        )
     }
 }

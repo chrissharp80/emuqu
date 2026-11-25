@@ -2,15 +2,15 @@ import Foundation
 
 /// Correlation-scope plumbing for a workout.
 ///
-/// A self-contained concern: it touches one stored property and nothing
-/// else in the recorder.
+/// A self-contained concern: it touches one stored property of the
+/// lifecycle and nothing else.
 ///
 /// The scope spans `start()` to the end of `stop()` — minutes to hours — so it
 /// uses the explicit `begin`/`end` pair rather than `LogCorrelation.scope`. The
 /// log lines that most need the tag come from `CBPeripheralDelegate` callbacks,
 /// `CLLocationManager` updates, and pedometer ticks, none of which are children
 /// of the call that opened the scope, so no lexical scope would cover them.
-extension WorkoutRecorder {
+extension WorkoutLifecycle {
 
     /// Opens the workout-wide correlation scope.
     ///
