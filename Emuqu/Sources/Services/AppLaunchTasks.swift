@@ -725,7 +725,7 @@ extension EmuquApp {
     /// types, and the restart after a successful request picks up anything the
     /// sheet grants.
     func requestHealthKitAuthorizationWithRetry(collector: RRCollector) async {
-        collector.healthKit.writes.startObservingSleepData()
+        collector.healthKit.writes.startObservingSleepData(morningNotifications: launchServices.morningNotificationScheduler())
         collector.healthKit.vitals.startObservingVitalsData()
         for attempt in 1 ... 2 {
             if await authorizeHealthKitOnce(collector: collector, attempt: attempt) { return }
@@ -740,7 +740,7 @@ extension EmuquApp {
         do {
             try await collector.healthKit.requestAuthorization()
             NSLog("[App][hk] authorization request returned (attempt \(attempt))")
-            collector.healthKit.writes.startObservingSleepData()
+            collector.healthKit.writes.startObservingSleepData(morningNotifications: launchServices.morningNotificationScheduler())
             collector.healthKit.vitals.startObservingVitalsData()
             return true
         } catch {

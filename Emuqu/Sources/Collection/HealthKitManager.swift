@@ -13,23 +13,14 @@ import Foundation
 @Observable
 @MainActor
 final class HealthKitManager: HealthKitServiceProtocol {
-    /// Canonical shared instance used across the app.
-    ///
-    /// A second `HealthKitManager()` would allocate its own
-    /// `HKHealthStore`, hold its own anchor tokens, and publish its own
-    /// observed state; views downstream of it would never see updates
-    /// the shared one picked up (and vice versa). Route through this
-    /// accessor so every consumer sees the
-    /// same store, the same anchors, and the same observer notifications.
-    /// `nonisolated` so default arguments can name it — Swift evaluates those
-    /// in the caller's isolation. The isolation protects state, not the pointer.
-    nonisolated static let shared = HealthKitManager()
-
     // MARK: - Properties
 
     /// The Health store, the user's settings and the bounded executors every
     /// query runs through.
     nonisolated let access: HealthKitAccess
+
+    /// The archive whose workouts the training queries merge with HealthKit's.
+    nonisolated let archiveProvider: @Sendable () -> SessionArchive
 
     /// The observer queries and the sleep and vitals data versions.
     let observation = HealthObservation()
@@ -54,7 +45,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
 
     /// Workouts, routes and training load.
     var training: TrainingHealthQueries {
-        TrainingHealthQueries(access: access, heartRate: heartRate)
+        TrainingHealthQueries(access: access, heartRate: heartRate, archive: archiveProvider)
     }
 
     /// Exports, deletes and observer queries.
@@ -107,11 +98,16 @@ final class HealthKitManager: HealthKitServiceProtocol {
 
     // MARK: - Init
 
+    /// Only one manager runs in the app (`shared`, built in the composition
+    /// root): a second would allocate its own `HKHealthStore`, hold its own
+    /// anchor tokens and publish its own observed state.
     nonisolated init(
-        settingsProvider: @escaping @Sendable () -> UserSettings = { AppDependencies.current.app.settingsManager.settingsSnapshot },
+        settingsProvider: @escaping @Sendable () -> UserSettings,
+        archiveProvider: @escaping @Sendable () -> SessionArchive,
         sampleStore: (any HealthSampleStore)? = nil
     ) {
         self.access = HealthKitAccess(store: HKHealthStore(), settingsProvider: settingsProvider)
+        self.archiveProvider = archiveProvider
         self.givenSampleStore = sampleStore
     }
 
@@ -531,7 +527,10 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// sustained without throwing, so a 1 s pause after each export keeps
     /// the batch at or below that.
     private func exportAndStamp(_ session: inout HRVSession, archive: SessionArchive, bodyWeightKg: Double) async throws {
-        try await HealthKitWorkoutExport.export(session: session, healthKit: self, bodyWeightKg: bodyWeightKg)
+        try await HealthKitWorkoutExport.export(
+            session: session, healthKit: self, bodyWeightKg: bodyWeightKg,
+            writesHeartRate: HealthKitWorkoutExport.writesHeartRate(with: access.settingsProvider())
+        )
         let exportedAt = Date()
         session.healthKitExportedAt = exportedAt
         session.healthKitExportFailureCount = nil

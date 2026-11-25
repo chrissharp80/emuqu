@@ -657,7 +657,7 @@ struct MainTabView: View {
     private var recordTab: some View {
         LazyView(
             NavigationStack(path: $recordPath) {
-                RecordView(selectedTab: $selectedTab, scrollToTopToken: scrollToTopToken)
+                RecordView(selectedTab: $selectedTab, scrollToTopToken: scrollToTopToken, breathingAudio: BreathingAudioManager(dependencies: dependencies))
             }
         )
         .tabItem {
@@ -758,7 +758,7 @@ struct DashboardLoadTiming: Sendable {
 
 #Preview {
     MainTabView()
-        .environment(RRCollector())
+        .environment(RRCollector(dependencies: AppDependencies()))
         .environment(AppDependencies.current.storage.cloudKitSyncManager)
         .environment(AppDependencies.current.services.languageManager)
 }

@@ -348,5 +348,5 @@ func openAppSettings() {
 
 #Preview {
     OnboardingHealthPage(advance: {})
-        .environment(RRCollector())
+        .environment(RRCollector(dependencies: AppDependencies()))
 }

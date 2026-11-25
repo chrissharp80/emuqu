@@ -408,6 +408,6 @@ struct LostSessionsView: View {
 #Preview {
     NavigationStack {
         LostSessionsView()
-            .environment(RRCollector())
+            .environment(RRCollector(dependencies: AppDependencies()))
     }
 }

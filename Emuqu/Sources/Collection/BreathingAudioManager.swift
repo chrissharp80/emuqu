@@ -30,6 +30,27 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
         return synthesizer
     }()
 
+    /// Where the guide claims and releases the audio session, resolved when
+    /// the guide starts or stops.
+    @ObservationIgnored private let audioSession: @MainActor () -> AudioSessionCoordinator
+    /// Activates and deactivates the session on its transition queue.
+    @ObservationIgnored private let cueAudio: @MainActor () -> BackgroundAudioManager
+
+    init(
+        audioSession: @escaping @MainActor () -> AudioSessionCoordinator,
+        cueAudio: @escaping @MainActor () -> BackgroundAudioManager
+    ) {
+        self.audioSession = audioSession
+        self.cueAudio = cueAudio
+        super.init()
+    }
+
+    /// A guide over the audio session coordinator and cue manager of `dependencies`.
+    convenience init(dependencies: AppDependencies) {
+        let (services, collection) = (dependencies.services, dependencies.collection)
+        self.init(audioSession: { services.audioSessionCoordinator }, cueAudio: { collection.backgroundAudioManager })
+    }
+
     // Phase tracking — detect transitions to trigger speech
     private var lastSpokenCue: BreathCue = .none
     private var isActive = false
@@ -102,8 +123,8 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
     /// normally finds it cached.
     private func start() {
         WorkoutStartCue.prewarm(forLanguage: LanguageManager.appLocale.language.languageCode?.identifier ?? "en")
-        AppDependencies.current.services.audioSessionCoordinator.claim(.breathingGuide, mode: .playback)
-        AppDependencies.current.collection.backgroundAudioManager.activateForClaimant { error in
+        audioSession().claim(.breathingGuide, mode: .playback)
+        cueAudio().activateForClaimant { error in
             guard let error else { return }
             debugLog("[BreathingAudio] Audio session error: \(error.localizedDescription)")
         }
@@ -122,8 +143,8 @@ final class BreathingAudioManager: NSObject, AVSpeechSynthesizerDelegate {
         // only when nothing else (voice chat, a workout cue) holds it, decided
         // on the cue manager's transition queue: checked here on the main
         // actor, a workout cue activating the session in between would be cut off.
-        AppDependencies.current.services.audioSessionCoordinator.release(.breathingGuide)
-        AppDependencies.current.collection.backgroundAudioManager.deactivateIfIdle { error in
+        audioSession().release(.breathingGuide)
+        cueAudio().deactivateIfIdle { error in
             guard let error else { return }
             debugLog("[BreathingAudio] Failed to deactivate audio session: \(error)")
         }

@@ -367,7 +367,7 @@ extension FitnessSummaryCards {
             let report = WorkoutPDFReport(
                 session: snapshotSession, track: snapshotTrack,
                 userMaxHR: s.effectiveMaxHR, userRestingHR: s.effectiveRestingHR,
-                userLTHR: s.effectiveLTHR, units: snapshotUnits
+                userLTHR: s.effectiveLTHR, userBodyWeightKg: s.effectiveBodyWeightKg, units: snapshotUnits
             )
             do {
                 try await report.generate(to: url)

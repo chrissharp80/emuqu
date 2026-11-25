@@ -38,10 +38,14 @@ final class WorkoutSensors {
     /// `location` keeps the test-injection seam but defers the production
     /// allocation: an injected manager is used as is, otherwise the getter
     /// constructs one on first access.
-    init(location: WorkoutLocationManager?, footPod: FootPodManager) {
+    init(location: WorkoutLocationManager?, footPod: FootPodManager, ambientLocation: AmbientLocationService) {
         self.injectedLocation = location
         self.footPod = footPod
+        self.ambientLocation = ambientLocation
     }
+
+    /// Where a location stack built here forwards its fixes.
+    private let ambientLocation: AmbientLocationService
 
     /// The location stack if something has built it (start() for a GPS
     /// sport, or a view that read `location`); nil otherwise. Pause, stop and
@@ -52,7 +56,7 @@ final class WorkoutSensors {
     var location: WorkoutLocationManager {
         if let injectedLocation { return injectedLocation }
         if let lazyLocation { return lazyLocation }
-        let fresh = WorkoutLocationManager()
+        let fresh = WorkoutLocationManager(ambientLocation: ambientLocation)
         lazyLocation = fresh
         return fresh
     }

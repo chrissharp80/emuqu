@@ -64,6 +64,8 @@ final class HolisticDailyReport: Sendable {
     let userMaxHR: Int
     let userRestingHR: Int
     let userLTHR: Int
+    /// The body weight the workout pages' calorie estimate uses.
+    let userBodyWeightKg: Double
     let units: UnitsPreference
     /// The user's temperature unit, for the score factor lines rebuilt from
     /// their stored numbers.
@@ -96,6 +98,7 @@ final class HolisticDailyReport: Sendable {
         userMaxHR: Int,
         userRestingHR: Int,
         userLTHR: Int,
+        userBodyWeightKg: Double,
         units: UnitsPreference,
         sleepSchedule: SleepSchedule,
         temperatureUnit: TemperatureUnit = .regionDefault,
@@ -109,12 +112,12 @@ final class HolisticDailyReport: Sendable {
         self.userMaxHR = userMaxHR
         self.userRestingHR = userRestingHR
         self.userLTHR = userLTHR
+        self.userBodyWeightKg = userBodyWeightKg
         self.units = units
         self.temperatureUnit = temperatureUnit
         // Today's live load only belongs on today's report; a past day's
         // report keeps the load frozen with that day's sessions.
-        let isToday = Calendar.current.isDateInToday(workoutSession.endDate ?? workoutSession.startDate)
-        let reportLoad = isToday ? liveLoadSnapshot : nil
+        let reportLoad = Calendar.current.isDateInToday(workoutSession.endDate ?? workoutSession.startDate) ? liveLoadSnapshot : nil
         self.liveLoadSnapshot = reportLoad
         self.config = config
         self.loopAnalysis = Self.makeLoopAnalysis(
@@ -159,6 +162,7 @@ final class HolisticDailyReport: Sendable {
             userMaxHR: userMaxHR,
             userRestingHR: userRestingHR,
             userLTHR: userLTHR,
+            userBodyWeightKg: userBodyWeightKg,
             units: units
         )
         do {

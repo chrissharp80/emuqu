@@ -232,9 +232,11 @@ extension WorkoutSessionLifecycle {
         let healthKit = core.healthKit
         let weight = settingsProvider().effectiveBodyWeightKg
         let archive = core.archive
+        let writesHeartRate = HealthKitWorkoutExport.writesHeartRate(with: services.settingsManager.settings)
         Task(priority: .utility) {
             await Self.exportWorkoutToHealthKit(
-                session: session, healthKit: healthKit, bodyWeightKg: weight, archive: archive
+                session: session, healthKit: healthKit,
+                options: (bodyWeightKg: weight, writesHeartRate: writesHeartRate), archive: archive
             )
         }
     }
@@ -258,14 +260,15 @@ extension WorkoutSessionLifecycle {
     private static func exportWorkoutToHealthKit(
         session: HRVSession,
         healthKit: HealthKitManager,
-        bodyWeightKg: Double,
+        options: (bodyWeightKg: Double, writesHeartRate: Bool),
         archive: SessionArchive
     ) async {
         guard HealthExportClaims.claim(session.id) else { return }
         defer { HealthExportClaims.release(session.id) }
         do {
             try await HealthKitWorkoutExport.export(
-                session: session, healthKit: healthKit, bodyWeightKg: bodyWeightKg
+                session: session, healthKit: healthKit,
+                bodyWeightKg: options.bodyWeightKg, writesHeartRate: options.writesHeartRate
             )
             stampHealthKitExport(sessionId: session.id, archive: archive)
         } catch {
@@ -341,6 +344,7 @@ extension WorkoutSessionLifecycle {
         let maxHR: Int
         let restingHR: Int
         let lthr: Int
+        let bodyWeightKg: Double
         let temperatureUnit: TemperatureUnit
         /// Assigns overnights to nights for the daily report's baseline.
         let sleepSchedule: SleepSchedule
@@ -386,7 +390,7 @@ extension WorkoutSessionLifecycle {
             ccRecipients: settings.resolvedTrainingEmailCC,
             units: UnitsPreferenceStore.current.resolved, maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR, lthr: settings.effectiveLTHR,
-            temperatureUnit: settings.temperatureUnit, sleepSchedule: settings.sleepSchedule,
+            bodyWeightKg: settings.effectiveBodyWeightKg, temperatureUnit: settings.temperatureUnit, sleepSchedule: settings.sleepSchedule,
             pdfURL: coachReportPDFURL(for: session),
             todayOvernight: todaysOvernight(in: recentOvernight, reportedNightCutoff: dayCutoff),
             recentOvernight: recentOvernight,
@@ -519,7 +523,8 @@ extension WorkoutSessionLifecycle {
             } else {
                 try await WorkoutPDFReport(
                     session: inputs.session, track: track, userMaxHR: inputs.maxHR,
-                    userRestingHR: inputs.restingHR, userLTHR: inputs.lthr, units: inputs.units
+                    userRestingHR: inputs.restingHR, userLTHR: inputs.lthr,
+                    userBodyWeightKg: inputs.bodyWeightKg, units: inputs.units
                 ).generate(to: inputs.pdfURL)
                 debugLog("[CoachReport] generated standalone workout PDF (no overnight session for today)")
             }
@@ -539,7 +544,7 @@ extension WorkoutSessionLifecycle {
             workoutSession: inputs.session, workoutTrack: track,
             overnightSession: inputs.todayOvernight, recentOvernightSessions: inputs.recentOvernight,
             userMaxHR: inputs.maxHR, userRestingHR: inputs.restingHR, userLTHR: inputs.lthr,
-            units: inputs.units, sleepSchedule: inputs.sleepSchedule,
+            userBodyWeightKg: inputs.bodyWeightKg, units: inputs.units, sleepSchedule: inputs.sleepSchedule,
             temperatureUnit: inputs.temperatureUnit, liveLoadSnapshot: liveLoadSnapshot
         )
     }

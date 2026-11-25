@@ -618,8 +618,10 @@ final class BaselineTrackerTests: XCTestCase {
         let archiveDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("BaselineCallers-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: archiveDirectory) }
         let collector = RRCollector(
-            polarManager: PolarManager(), healthKit: HealthKitManager(),
-            archive: SessionArchive(directory: archiveDirectory), baselineTracker: tracker
+            polarManager: PolarManager(), healthKit: HealthKitManager.forTests(),
+            archive: SessionArchive(directory: archiveDirectory), baselineTracker: tracker,
+            settingsManager: AppDependencies.current.app.settingsManager,
+            services: CollectorServices(.current)
         )
         let schedule = collector.settingsManager.settings.sleepSchedule
         for day in 1 ... 3 {

@@ -147,7 +147,7 @@ final class PDFReportGenerator {
 
     init(
         config: Config = Config(),
-        settingsProvider: @escaping () -> UserSettings = { AppDependencies.current.app.settingsManager.settingsSnapshot }
+        settingsProvider: @escaping () -> UserSettings
     ) {
         self.config = config
         self.settingsProvider = settingsProvider

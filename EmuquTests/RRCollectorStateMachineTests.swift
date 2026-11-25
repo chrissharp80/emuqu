@@ -18,7 +18,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
     /// Constructed on first use rather than assigned in `setUp` as an
     /// implicitly-unwrapped optional. XCTest builds the test class once per
     /// test method, so this is still fresh for every test.
-    lazy var collector = RRCollector()
+    lazy var collector = RRCollector(dependencies: .current)
 
     /// Hermetic store for the session-archive tests below. `collector.archive`
     /// is a default-constructed `SessionArchive`, which resolves to the shared
@@ -242,7 +242,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
         UserDefaults.standard.set(sessionType.rawValue, forKey: "RRCollector.activeRecordingSessionType")
 
         // Create new collector (simulates app restart)
-        let recovered = RRCollector()
+        let recovered = RRCollector(dependencies: .current)
 
         // Should detect persisted state
         XCTAssertTrue(recovered.recordingStore.hasRecording)
@@ -268,7 +268,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
         UserDefaults.standard.set("overnight", forKey: "RRCollector.activeRecordingSessionType")
 
         // On restart, new collector should detect persisted state
-        let newCollector = RRCollector()
+        let newCollector = RRCollector(dependencies: .current)
         XCTAssertTrue(newCollector.recordingStore.hasRecording)
     }
 
@@ -277,7 +277,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
     // These write to `testArchive`, a hermetic SessionArchive over a per-test
     // temp directory, NOT `collector.archive`.
     //
-    // `RRCollector()` takes the default
+    // `RRCollector(dependencies: .current)` takes the default
     // `archive: SessionArchive = SessionArchive()`, and a default-constructed
     // SessionArchive resolves to the shared App Group container, so every suite
     // in the process writes to one store. Tests that archive into it fail

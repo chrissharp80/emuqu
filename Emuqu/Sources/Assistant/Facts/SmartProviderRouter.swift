@@ -23,7 +23,12 @@ import NaturalLanguage
 /// every tier maps to Apple.
 @MainActor
 final class SmartProviderRouter {
-    static let shared = SmartProviderRouter()
+    /// What proposes each turn's tier.
+    private let classifier: @MainActor () -> CapabilityClassifier
+
+    init(classifier: @escaping @MainActor () -> CapabilityClassifier) {
+        self.classifier = classifier
+    }
 
     enum Tier: Int, Comparable {
         /// On-device. Free, fast, private. For lookups, summaries,
@@ -61,7 +66,7 @@ final class SmartProviderRouter {
     ///   • two or more flags      → `.deep` (see `Tier.deep`)
     /// See `CapabilityClassifier` and docs/FLO_ARCHITECTURE.md §8.
     func route(message: String, in session: RoutingSessionState) -> Tier {
-        let requirement = AppDependencies.current.providers.capabilityClassifier.classify(message)
+        let requirement = classifier().classify(message)
         let proposed = requirement.requiredTier
         let chosen = stickyTier(proposed: proposed, requirement: requirement, session: session)
         debugLog("[SmartRouter] capabilities=\(requirement.debugSummary) proposed=\(proposed) → chosen=\(chosen) (turn \(session.turnCount))", level: .info)

@@ -517,7 +517,7 @@ extension RRCollector {
     /// shared one never count as this collector's, and its baseline in a file
     /// of its own, so an accepted night never joins the host's baseline.
     static func withoutCloudAcceptance(polarManager: PolarManager, archive: SessionArchive) -> RRCollector {
-        let healthKit = HealthKitManager()
+        let healthKit = HealthKitManager.forTests()
         let storage = FileManager.default.temporaryDirectory.appendingPathComponent("RRBackup-\(UUID().uuidString)", isDirectory: true)
         let rawBackup = RawRRBackup(directory: storage)
         let baselineTracker = BaselineTracker(baselineFile: storage.deletingLastPathComponent()
@@ -528,7 +528,9 @@ extension RRCollector {
         )
         return RRCollector(
             polarManager: polarManager, healthKit: healthKit, archive: archive, rawBackup: rawBackup,
-            baselineTracker: baselineTracker, acceptanceService: acceptance
+            baselineTracker: baselineTracker,
+            settingsManager: AppDependencies.current.app.settingsManager, acceptanceService: acceptance,
+            services: CollectorServices(.current)
         )
     }
 }

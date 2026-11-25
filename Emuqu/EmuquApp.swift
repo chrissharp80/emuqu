@@ -87,7 +87,7 @@ struct InterruptedSessionInfo {
 // `AppDependencies.current`, so a substitute a test installs there is the one
 // the app holds.
 struct EmuquApp: App {
-    @State var collector = launchStep("collector", "init.collector") { RRCollector.makeDefault() }
+    @State var collector = launchStep("collector", "init.collector") { RRCollector.makeDefault(dependencies: .current) }
     /// Saved-session reanalysis, built at launch so its rescore, CloudKit
     /// backfill and HealthKit-sleep listeners are installed before any
     /// notification they answer can arrive. It shares the collector's

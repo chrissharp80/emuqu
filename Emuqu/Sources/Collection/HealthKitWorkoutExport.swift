@@ -58,8 +58,8 @@ enum HealthKitWorkoutExport {
     /// the app (`PendingWorkoutReplacements`).
     ///
     /// Heart rate goes with the workout only when `writesHeartRate` is true,
-    /// which by default is the Apple Health export setting with its heart-rate
-    /// switch (`writesWorkoutHeartRate`), as the Health permission text and
+    /// which callers take from the Apple Health export setting with its
+    /// heart-rate switch (`writesHeartRate(with:)`), as the Health permission text and
     /// the privacy policy say. Data that came from Apple Health is never
     /// written back, because a copy would carry Emuqu as its source
     /// (`sampleOptions(for:bodyWeightKg:writesHeartRate:)`):
@@ -80,7 +80,7 @@ enum HealthKitWorkoutExport {
         session: HRVSession,
         healthKit: HealthKitManager,
         bodyWeightKg: Double,
-        writesHeartRate: Bool = writesWorkoutHeartRate
+        writesHeartRate: Bool
     ) async throws {
         guard let metadata = session.workoutMetadata, let endDate = session.endDate else {
             throw ExportError.missingRequiredFields
@@ -322,11 +322,6 @@ enum HealthKitWorkoutExport {
 
     /// Whether a saved workout carries its heart rate: Apple Health export on,
     /// with its heart-rate switch on.
-    @MainActor
-    static var writesWorkoutHeartRate: Bool {
-        writesHeartRate(with: AppDependencies.current.app.settingsManager.settings)
-    }
-
     static func writesHeartRate(with settings: UserSettings) -> Bool {
         settings.enableHealthKitExport && settings.exportHeartRate
     }

@@ -139,6 +139,7 @@ final class WorkoutReportSmokeTests: XCTestCase {
             userMaxHR: 190,
             userRestingHR: 50,
             userLTHR: 168,
+            userBodyWeightKg: AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveBodyWeightKg,
             units: units
         )
     }
@@ -219,6 +220,7 @@ final class WorkoutReportSmokeTests: XCTestCase {
             userMaxHR: 190,
             userRestingHR: 50,
             userLTHR: 168,
+            userBodyWeightKg: AppDependencies.current.app.settingsManager.settingsSnapshot.effectiveBodyWeightKg,
             units: .metric,
             sleepSchedule: SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
         )

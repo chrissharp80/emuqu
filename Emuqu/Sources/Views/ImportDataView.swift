@@ -173,5 +173,5 @@ struct ImportInfoRow: View {
 
 #Preview {
     ImportDataView()
-        .environment(RRCollector())
+        .environment(RRCollector(dependencies: AppDependencies()))
 }

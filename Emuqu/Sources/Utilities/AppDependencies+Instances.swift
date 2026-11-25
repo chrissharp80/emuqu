@@ -97,3 +97,33 @@ extension TrainingMetricsCache {
         settings: { AppDependencies.current.app.settingsManager.settings }
     )
 }
+
+extension HealthKitManager {
+    /// The app's one HealthKit manager, so every consumer sees the same
+    /// store, the same anchors and the same observer notifications. Its
+    /// settings and archive are read when a query runs. `nonisolated` so
+    /// default arguments can name it — Swift evaluates those in the caller's
+    /// isolation. The isolation protects state, not the pointer.
+    nonisolated static let shared = HealthKitManager(
+        settingsProvider: { AppDependencies.current.app.settingsManager.settingsSnapshot },
+        archiveProvider: { AppDependencies.current.storage.sessionArchive }
+    )
+}
+
+extension BackgroundAudioManager {
+    /// The app's cue session, its categories applied through the app's
+    /// coordinator.
+    static let shared = BackgroundAudioManager(
+        session: SystemCueAudioSession { AppDependencies.current.services.audioSessionCoordinator }
+    )
+}
+
+extension SmartProviderRouter {
+    /// The app's router, its tiers proposed by the app's classifier.
+    static let shared = SmartProviderRouter { AppDependencies.current.providers.capabilityClassifier }
+}
+
+extension CapabilityClassifier {
+    /// The app's classifier, matching with the app's router's embedder.
+    static let shared = CapabilityClassifier { AppDependencies.current.providers.smartProviderRouter.embed($0) }
+}

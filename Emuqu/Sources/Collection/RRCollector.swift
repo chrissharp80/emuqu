@@ -311,16 +311,13 @@ final class RRCollector {
 
     // MARK: - Initialization
 
-    /// Wiring-layer factory: resolves the app's shared managers and returns a
-    /// fully-configured collector. This is the canonical production entry
-    /// point — the explicit-dependency-wiring principle calls for a
-    /// single wiring layer that is allowed to touch `.shared` instances,
-    /// rather than business logic reaching for the world inside its own init.
-    /// The main app scene calls this; every other layer receives the collector
-    /// through the environment or initializer injection so tests and previews
-    /// can swap dependencies without monkey-patching singletons.
-    static func makeDefault() -> RRCollector {
-        let collector = RRCollector(defaultsFromShared: ())
+    /// Wiring-layer factory: a fully-configured collector over the services
+    /// of `dependencies`, the container the app scene hands in. This is the
+    /// canonical production entry point; every other layer receives the
+    /// collector through the environment or initializer injection so tests
+    /// and previews can swap dependencies without monkey-patching singletons.
+    static func makeDefault(dependencies: AppDependencies) -> RRCollector {
+        let collector = RRCollector(dependencies: dependencies)
         // Register as the canonical "current" collector so read-only
         // surfaces (the AI fact resolver, in particular) can reach live
         // device state — Polar battery, connection, recording-hours,
@@ -371,19 +368,11 @@ final class RRCollector {
     /// the contract.
     static weak var current: RRCollector?
 
-    /// Preview / test convenience. SwiftUI `#Preview` blocks and lightweight
-    /// tests that don't care about dependencies use `RRCollector()`; real
-    /// runtime wiring prefers `RRCollector.makeDefault()` so the dependency
-    /// on shared singletons is visible at the call site.
-    convenience init() {
-        self.init(defaultsFromShared: ())
-    }
-
-    /// Single source of truth for "real production dependencies". Both the
-    /// public factory and the convenience init funnel through here so the
-    /// `.shared` lookups live in exactly one place. Callers that need a
-    /// different wiring (tests, UI previews with stubs) go through the
-    /// designated `init(polarManager:healthKit:...)` below instead.
+    /// A collector over the services of `dependencies`. `makeDefault` builds
+    /// the app's with it; SwiftUI `#Preview` blocks and tests that don't care
+    /// about individual dependencies build one directly. Callers that need a
+    /// different wiring (tests with stubs) go through the designated
+    /// `init(polarManager:healthKit:...)` below instead.
     /// Baseline rebuild from CloudKit-restored archive entries is deferred
     /// to boot() (called from RootView.task after first frame). Done
     /// synchronously here it would walk every archive entry from disk — on
@@ -397,19 +386,20 @@ final class RRCollector {
     /// (`SessionReanalysisCoordinator`) is built with, so a rescore updates
     /// the baseline this collector scores against and bumps the signal its
     /// views observe.
-    private convenience init(defaultsFromShared _: Void) {
-        let collection = AppDependencies.current.collection
+    convenience init(dependencies: AppDependencies) {
+        let collection = dependencies.collection
         self.init(
             polarManager: PolarManager(),
             healthKit: collection.healthKitManager,
-            archive: AppDependencies.current.storage.sessionArchive,
+            archive: dependencies.storage.sessionArchive,
             rawBackup: RawRRBackup.app(),
             artifactDetector: ArtifactDetector(),
             windowSelector: WindowSelector(),
             baselineTracker: collection.baselineTracker,
-            settingsManager: AppDependencies.current.app.settingsManager,
+            settingsManager: dependencies.app.settingsManager,
             archiveSignal: collection.archiveSignal,
-            scoring: collection.sessionScoring
+            scoring: collection.sessionScoring,
+            services: CollectorServices(dependencies)
         )
     }
 
@@ -421,20 +411,21 @@ final class RRCollector {
     // every stored property is initialized, so the body cannot be split even
     // mechanically. Post-assignment wiring already lives in
     // `wireCollaborators()`.
-    /// Create an RRCollector with injected dependencies (for testing). Any
-    /// left out resolve to the app's own: the settings and CloudKit sync
-    /// managers are the shared instances, so a test that must not touch them
-    /// injects its own. An injected `scoring` must hold the same baseline
-    /// tracker and settings manager; left out, one is built from them.
+    /// Create an RRCollector with injected dependencies (for testing). The
+    /// archive, settings manager and `services` are always the caller's; the
+    /// CloudKit sync manager left out is the one `services` resolves, so a
+    /// test that must not touch it injects its own. An injected `scoring`
+    /// must hold the same baseline tracker and settings manager; left out,
+    /// one is built from them.
     init(
         polarManager: PolarManager,
         healthKit: HealthKitManager,
-        archive: SessionArchive = AppDependencies.current.storage.sessionArchive,
+        archive: SessionArchive,
         rawBackup: RawRRBackup = RawRRBackup.app(),
         artifactDetector: ArtifactDetector = ArtifactDetector(),
         windowSelector: WindowSelector = WindowSelector(),
         baselineTracker: BaselineTracker = BaselineTracker(),
-        settingsManager: SettingsManager = AppDependencies.current.app.settingsManager,
+        settingsManager: SettingsManager,
         cloudSyncManager: CloudKitSyncManager? = nil,
         reconciliation: ReconciliationManager? = nil,
         analysisPipeline: HRVAnalysisPipeline? = nil,
@@ -447,7 +438,7 @@ final class RRCollector {
         morningCoordination: MorningCoordination? = nil,
         sessionState: SessionState? = nil,
         scoring: SessionScoringContext? = nil,
-        services: CollectorServices = CollectorServices(.current)
+        services: CollectorServices
     ) {
         self.services = services
         self.polarManager = polarManager
@@ -676,6 +667,8 @@ struct CollectorServices: Sendable {
     @MainActor
     var cloudKitSyncManager: CloudKitSyncManager { container.storage.cloudKitSyncManager }
     var liveHRVBroker: LiveHRVBroker { container.assistant.liveHRVBroker }
+    @MainActor
+    var morningNotificationScheduler: MorningNotificationScheduler { container.services.morningNotificationScheduler }
     @MainActor
     var recorderBox: RecorderBox { container.app.recorderBox }
     var systemDiagnosticsManager: SystemDiagnosticsManager { container.app.systemDiagnosticsManager }

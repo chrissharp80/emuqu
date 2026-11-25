@@ -134,7 +134,7 @@ extension AssistantTurnRouter {
         if proposedTier == .deep { candidateTiers.append(.auto) }
         var mappings: [SmartProviderRouter.Tier: TurnRouter.MappingSnapshot] = [:]
         for tier in candidateTiers {
-            mappings[tier] = enabledMappingSnapshot(TierProviderMapper.mapping(for: tier, registry: owner.registry))
+            mappings[tier] = enabledMappingSnapshot(TierProviderMapper.mapping(for: tier, registry: owner.registry, consent: owner.services.providerConsentTracker))
         }
         return mappings
     }

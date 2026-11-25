@@ -11,7 +11,7 @@ import XCTest
 final class RemainingScreenSnapshotTests: XCTestCase {
     private func hosted(_ view: some View) -> some View {
         NavigationStack { view }
-            .environment(RRCollector())
+            .environment(RRCollector(dependencies: .current))
             .environment(SettingsManager.shared)
             .environment(StoreKitManager.shared)
             .environment(LanguageManager.shared)

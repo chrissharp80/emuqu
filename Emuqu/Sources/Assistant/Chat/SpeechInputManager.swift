@@ -45,7 +45,11 @@ final class SpeechInputManager {
     /// recognizer usually delivers it within a few hundred milliseconds.
     static let finalResultTimeout: TimeInterval = 1.5
 
-    init() {
+    /// Where dictation claims and releases the audio session.
+    @ObservationIgnored private let audioSession: AudioSessionCoordinator
+
+    init(audioSession: AudioSessionCoordinator) {
+        self.audioSession = audioSession
         // Recognizer instantiation is cheap — just a wrapper around
         // on-device speech framework state. Keep eager. The app's chosen
         // language, not the device's: a German speaker who set the app to
@@ -101,7 +105,7 @@ final class SpeechInputManager {
     /// Claims the audio session for dictation and starts the engine, handing
     /// the claim back if either step fails.
     private func claimSessionAndStartEngine(appendingTo request: SFSpeechAudioBufferRecognitionRequest) throws {
-        AppDependencies.current.services.audioSessionCoordinator.claim(.dictation, mode: .voiceRecord)
+        audioSession.claim(.dictation, mode: .voiceRecord)
         do {
             try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
             try startEngine(appendingTo: request)
@@ -272,8 +276,8 @@ final class SpeechInputManager {
     /// session would cut their audio off. When we ARE the last
     /// claimant, deactivation is correct — it frees the mic and un-ducks.
     private func releaseSessionIfIdle() {
-        AppDependencies.current.services.audioSessionCoordinator.release(.dictation)
-        guard !AppDependencies.current.services.audioSessionCoordinator.hasActiveClaims() else { return }
+        audioSession.release(.dictation)
+        guard !audioSession.hasActiveClaims() else { return }
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 

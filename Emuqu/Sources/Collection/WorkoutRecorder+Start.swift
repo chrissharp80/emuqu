@@ -456,12 +456,12 @@ extension WorkoutSessionLifecycle {
         // was free or contended after phase=.recording. A "1 minute"
         // start would show this Task delayed N seconds, naming the cause.
         let _announceScheduledAt = Date()
-        Task { @MainActor in
+        Task { @MainActor [services] in
             let delayMs = Int(Date().timeIntervalSince(_announceScheduledAt) * 1000)
             if delayMs > 250 {
                 debugLog("[Recorder.start] ⚠️ announceStart Task delayed \(delayMs)ms after schedule — MainActor was contended", level: .warning)
             }
-            WorkoutStartCue.announceStart(sport: sport)
+            WorkoutStartCue.announceStart(sport: sport, audio: services.backgroundAudioManager)
         }
     }
 

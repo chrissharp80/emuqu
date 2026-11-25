@@ -294,12 +294,13 @@ extension HealthWriteAndObserve {
     /// incremented so views can reactively re-fetch, the night's cache is
     /// warmed and the wake-triggered push is considered. Starting again
     /// replaces the running query and reads nothing twice: one read per
-    /// anchor runs at a time, the next from the anchor it kept.
-    func startObservingSleepData() {
+    /// anchor runs at a time, the next from the anchor it kept. The wake push
+    /// goes through `morningNotifications`.
+    func startObservingSleepData(morningNotifications: MorningNotificationScheduler) {
         guard access.isAvailable else { return }
         stopObservingSleepData()
         guard let sleepType = HKTypes.category(.sleepAnalysis) else { return }
-        let query = makeSleepObserverQuery(for: sleepType, owner: self)
+        let query = makeSleepObserverQuery(for: sleepType, owner: self, morningNotifications: morningNotifications)
         observation.sleepObserverQuery = query
         access.store.execute(query)
         // A failed registration (entitlement missing, access denied) means
@@ -316,7 +317,8 @@ extension HealthWriteAndObserve {
     /// never reach here (`HealthSampleWatch.othersSamples`) — they are not
     /// new data, and must not fire the wake push.
     fileprivate static func handleSleepSamplesArrived(
-        _ samples: [HKSample], observation: HealthObservation, sleepQueries: SleepHealthQueries
+        _ samples: [HKSample], observation: HealthObservation, sleepQueries: SleepHealthQueries,
+        morningNotifications: MorningNotificationScheduler
     ) {
         let categorySamples = samples.compactMap { $0 as? HKCategorySample }
         guard let freshestEnd = categorySamples.map(\.endDate).max() else { return }
@@ -329,7 +331,7 @@ extension HealthWriteAndObserve {
         // observer fires can safely call this — repeated calls on the same
         // morning are cheap no-ops.
         Task { @MainActor in
-            await AppDependencies.current.services.morningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd: freshestEnd)
+            await morningNotifications.deliverWakeTriggeredPushIfAppropriate(sleepEnd: freshestEnd)
         }
     }
 
@@ -389,7 +391,8 @@ extension HealthWriteAndObserve {
 @MainActor
 private func makeSleepObserverQuery(
     for sleepType: HKCategoryType,
-    owner: HealthWriteAndObserve
+    owner: HealthWriteAndObserve,
+    morningNotifications: MorningNotificationScheduler
 ) -> HKObserverQuery {
     // `HealthObservation` holds this query, so the handler holds it weakly,
     // and takes the sleep queries rather than `owner`, which holds it too:
@@ -400,7 +403,9 @@ private func makeSleepObserverQuery(
         guard let observation else { return }
         Task { @MainActor in
             observation.sleepDataVersion += 1
-            HealthWriteAndObserve.handleSleepSamplesArrived(samples, observation: observation, sleepQueries: sleepQueries)
+            HealthWriteAndObserve.handleSleepSamplesArrived(
+                samples, observation: observation, sleepQueries: sleepQueries, morningNotifications: morningNotifications
+            )
         }
     }
 }

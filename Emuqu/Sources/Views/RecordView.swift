@@ -53,7 +53,7 @@ struct RecordView: View {
     /// Why the recovered-workout card's last Save or Discard stored nothing;
     /// shown on the card, cleared by the next tap.
     @State var recoveredWorkoutFailure: String?
-    @State var breathingAudio = BreathingAudioManager()
+    @State var breathingAudio: BreathingAudioManager
 
     /// Captures session + result at presentation time so the fullScreenCover content
     /// never reads a stale/nil sessionState.currentSession. Eliminates the race condition
