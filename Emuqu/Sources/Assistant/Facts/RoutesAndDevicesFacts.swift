@@ -359,7 +359,8 @@ struct RoutesLibraryNamespace: FactNamespaceResolver {
         await FactResolveTimeout.withTimeout(seconds: 3) {
             await SavedRouteStepBuilder.build(
                 savedRoute: saved,
-                currentLocation: userLoc.coordinate
+                currentLocation: userLoc.coordinate,
+                roadGraph: services.roadGraphService
             )
         }
     }

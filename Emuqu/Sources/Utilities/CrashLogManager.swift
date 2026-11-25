@@ -6,7 +6,6 @@ import UIKit
 /// Works in Release builds - users can share crash logs via Settings
 /// Stateless: paths are computed and the log lives on disk, so it is `Sendable`.
 final class CrashLogManager: Sendable {
-    static let shared = CrashLogManager()
 
     private let crashLogFileName = "crash_log.txt"
     private let exceptionLogFileName = "exception_log.txt"
@@ -53,7 +52,12 @@ final class CrashLogManager: Sendable {
     /// crash time.
     private static let installedInstance = OSAllocatedUnfairLock<CrashLogManager?>(initialState: nil)
 
-    private init() {}
+    /// The memory and thermal trace a termination report quotes.
+    private let systemDiagnostics: SystemDiagnosticsManager
+
+    init(systemDiagnostics: SystemDiagnosticsManager) {
+        self.systemDiagnostics = systemDiagnostics
+    }
 
     /// Call this once at app startup to install crash handlers
     func install() {
@@ -237,8 +241,13 @@ final class CrashLogManager: Sendable {
     /// state, memory warning count, and the last few minutes of
     /// memory trace so the user / developer can see whether the
     /// app was approaching a memory limit at termination.
+    ///
+    /// The most recent ~30 samples are read (~2.5 minutes at 5 s cadence —
+    /// enough to see a memory-pressure ramp).
     private func diagnosticContextBlock() -> String {
-        let diagnostics = Self.formatDiagnosticContext(launchedAt: launchDate)
+        let diagnostics = Self.formatDiagnosticContext(
+            systemDiagnostics.readRecentMemoryTrace(limit: 31), launchedAt: launchDate
+        )
         return """
         --------------------------------------------------------------------------------
         DIAGNOSTIC CONTEXT (last sampled before termination)
@@ -301,17 +310,12 @@ final class CrashLogManager: Sendable {
     // MARK: - Private
 
     /// Build the diagnostic-context block included in
-    /// termination reports. Reads the most recent samples from
-    /// `SystemDiagnosticsManager`'s memory_trace.jsonl and surfaces
+    /// termination reports from `recent`, the latest samples of
+    /// `SystemDiagnosticsManager`'s memory_trace.jsonl, and surfaces
     /// the trailing window so the user can see what the app's
     /// memory + thermal state was right before iOS killed it.
-    private static func formatDiagnosticContext(launchedAt launch: Date) -> String {
-        // Read the most recent ~30 samples (~2.5 minutes at 5 s
-        // cadence — enough to see a memory-pressure ramp).
-        let trace = previousProcessTrace(
-            AppDependencies.current.app.systemDiagnosticsManager.readRecentMemoryTrace(limit: 31),
-            launchedAt: launch
-        )
+    private static func formatDiagnosticContext(_ recent: [[String: Any]], launchedAt launch: Date) -> String {
+        let trace = previousProcessTrace(recent, launchedAt: launch)
         guard !trace.isEmpty else {
             return "No memory/thermal samples recorded for this session."
         }

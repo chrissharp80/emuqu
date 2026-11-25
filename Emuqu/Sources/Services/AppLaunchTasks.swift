@@ -19,6 +19,8 @@ struct LaunchServices: Sendable {
     let morningNotificationScheduler: @MainActor @Sendable () -> MorningNotificationScheduler
     let roadGeocodingService: @MainActor @Sendable () -> RoadGeocodingService
     let savedRouteStore: @MainActor @Sendable () -> SavedRouteStore
+    let crashLogManager: @MainActor @Sendable () -> CrashLogManager
+    let workoutTrackBackup: @MainActor @Sendable () -> WorkoutTrackBackup
 }
 
 extension EmuquApp {

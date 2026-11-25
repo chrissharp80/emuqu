@@ -15,6 +15,8 @@ extension SessionRecoveryCoordinator {
             windowSelector: windowSelector,
             cloudSyncManager: cloudSyncManager,
             baselineTracker: baselineTracker,
+            settingsManager: settingsManager,
+            breadcrumbStore: services.breadcrumbStore,
             exportToHealth: Self.healthExport(healthKit: healthKit, settingsManager: settingsManager)
         )
         cachedRecoveryService = service

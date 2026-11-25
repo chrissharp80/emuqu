@@ -109,9 +109,11 @@ enum SavedRouteStepBuilder {
     /// `hasUnnamedTurns` is true when any turn has no road name; a
     /// missing start or end name only drops the name from that
     /// instruction.
+    /// Road names come from `roadGraph`'s tiles.
     static func build(
         savedRoute: SavedRoute,
-        currentLocation: CLLocationCoordinate2D
+        currentLocation: CLLocationCoordinate2D,
+        roadGraph: RoadGraphService
     ) async -> BuildResult? {
         let route = await MainActor.run { savedRoute.toRoute() }
         let originalCoords: [CLLocationCoordinate2D] = route.trackpoints.map {
@@ -126,7 +128,8 @@ enum SavedRouteStepBuilder {
         let turnIndices = detectTurns(in: coords)
         debugLog("[SavedRouteStepBuilder] route \(savedRoute.id.uuidString.prefix(8)) \(direction.rawValue) — \(coords.count) trackpoints, \(turnIndices.count) turns detected", level: .info)
         return await result(
-            coords: coords, turnIndices: turnIndices, direction: direction, routeName: savedRoute.name
+            coords: coords, turnIndices: turnIndices, direction: direction, routeName: savedRoute.name,
+            roadGraph: roadGraph
         )
     }
 
@@ -136,9 +139,10 @@ enum SavedRouteStepBuilder {
     /// "purposeful" walking. Future improvement: pull the user's median pace
     /// from past walks of this saved route via SessionArchive.
     private static func result(
-        coords: [CLLocationCoordinate2D], turnIndices: [Int], direction: Direction, routeName: String
+        coords: [CLLocationCoordinate2D], turnIndices: [Int], direction: Direction, routeName: String,
+        roadGraph: RoadGraphService
     ) async -> BuildResult {
-        let names = await resolveNames(coords: coords, turnIndices: turnIndices)
+        let names = await resolveNames(coords: coords, turnIndices: turnIndices, roadGraph: roadGraph)
         let steps = buildSteps(
             coords: coords,
             boundaries: stepBoundaries(turnIndices: turnIndices, lastIndex: coords.count - 1),
@@ -177,15 +181,17 @@ enum SavedRouteStepBuilder {
     /// respect the 1.1 s throttle. A per-turn nil result is fine: the
     /// formatter degrades.
     private static func resolveNames(
-        coords: [CLLocationCoordinate2D], turnIndices: [Int]
+        coords: [CLLocationCoordinate2D], turnIndices: [Int], roadGraph: RoadGraphService
     ) async -> ResolvedNames {
         // Start segment name (used for "Head north on <name>")
-        let startName = await roadName(at: coords[0], coords: coords, index: 0)
-        let endName = await roadName(at: coords[coords.count - 1], coords: coords, index: coords.count - 1)
+        let startName = await roadName(at: coords[0], coords: coords, index: 0, roadGraph: roadGraph)
+        let endName = await roadName(
+            at: coords[coords.count - 1], coords: coords, index: coords.count - 1, roadGraph: roadGraph
+        )
         var byIndex: [Int: String] = [:]
         var unnamedCount = 0
         for idx in turnIndices {
-            if let name = await roadName(at: coords[idx], coords: coords, index: idx) {
+            if let name = await roadName(at: coords[idx], coords: coords, index: idx, roadGraph: roadGraph) {
                 byIndex[idx] = name
             } else {
                 unnamedCount += 1
@@ -353,9 +359,10 @@ enum SavedRouteStepBuilder {
     private static func roadName(
         at coord: CLLocationCoordinate2D,
         coords: [CLLocationCoordinate2D],
-        index: Int
+        index: Int,
+        roadGraph: RoadGraphService
     ) async -> String? {
-        guard let tile = await AppDependencies.current.location.roadGraphService.tile(for: coord) else {
+        guard let tile = await roadGraph.tile(for: coord) else {
             return nil
         }
         let prevIdx = max(0, index - 1)

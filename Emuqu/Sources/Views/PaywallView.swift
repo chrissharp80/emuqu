@@ -25,7 +25,7 @@ struct PaywallView: View {
             hasPurchasedProduct: storeKit.hasPurchasedProduct,
             canStartTrial: PaywallGatePolicy.canStartTrial(
                 storeKitHasTrialTransaction: storeKit.hasTrialTransaction,
-                hasLocalTrialStart: StoreKitManager.hasTrialStarted,
+                hasLocalTrialStart: storeKit.hasTrialStarted,
                 hasPermanentAccess: storeKit.hasPermanentAccess))
     }
 
@@ -630,7 +630,7 @@ private extension PaywallView {
 
     /// The trial ran out and nothing else lets this person in.
     private var trialHasEnded: Bool {
-        !storeKit.hasActiveAccess && StoreKitManager.hasTrialStarted
+        !storeKit.hasActiveAccess && storeKit.hasTrialStarted
     }
 
     private func trialTermsText(price: String) -> String {
@@ -715,8 +715,8 @@ struct PurchaseStatusView: View {
     @ViewBuilder
     private var trialRemainingNote: some View {
         if PaywallGatePolicy.showsTrialClock(
-            hasPermanentAccess: storeKit.hasPermanentAccess, isTrialActive: StoreKitManager.isTrialActive) {
-            let days = StoreKitManager.trialDaysRemaining
+            hasPermanentAccess: storeKit.hasPermanentAccess, isTrialActive: storeKit.isTrialActive) {
+            let days = storeKit.trialDaysRemaining
             Text(
                 String(localized: "Free Trial", bundle: LanguageManager.appBundle)
                     + " · "

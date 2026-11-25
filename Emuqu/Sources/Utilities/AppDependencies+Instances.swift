@@ -97,3 +97,44 @@ extension TrainingMetricsCache {
         settings: { AppDependencies.current.app.settingsManager.settings }
     )
 }
+
+extension MorningNotificationScheduler {
+    /// The app's morning push, gated by the app's settings and scored from
+    /// the app's archive.
+    static let shared = MorningNotificationScheduler(settingsManager: .shared, archive: .shared)
+}
+
+extension WatchConnectivityBridge {
+    /// Shared instance — the WCSession itself is process-wide, so the delegate
+    /// must be too. Creating a second bridge would replace the delegate and
+    /// silently break whichever subsystem set up first. All consumers use this
+    /// singleton.
+    static let shared = WatchConnectivityBridge(
+        settingsManager: .shared,
+        assistantViewModel: { AssistantViewModel.shared },
+        voiceConversation: { VoiceConversationController.shared }
+    )
+}
+
+extension AmbientLocationService {
+    /// The app's ambient location cache, its fixes piped through the app's
+    /// geocoder.
+    static let shared: AmbientLocationService = AmbientLocationService(roadGeocoding: { RoadGeocodingService.shared })
+}
+
+extension StoreKitManager {
+    /// The app's entitlements, its trial clock falling back to the app's
+    /// settings.
+    static let shared = StoreKitManager(settingsManager: .shared)
+}
+
+extension WebSearchService {
+    /// The app's Tavily client, behind the app's settings and keychain.
+    static let shared = WebSearchService(settingsManager: .shared, apiKeyStore: .shared)
+}
+
+extension CrashLogManager {
+    /// The app's crash log, its termination reports quoting the app's
+    /// memory trace.
+    static let shared = CrashLogManager(systemDiagnostics: .shared)
+}

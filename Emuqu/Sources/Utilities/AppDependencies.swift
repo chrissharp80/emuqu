@@ -699,6 +699,14 @@ private enum OverpassServices {
     static let trailDiscovery = TrailDiscoveryService(overpass: client)
 }
 
+extension RoadGeocodingService {
+    /// The app's geocoder, mirroring into the app's ambient location cache
+    /// and finding cross-streets in the app's road graph.
+    static let shared: RoadGeocodingService = RoadGeocodingService(
+        ambientLocationService: .shared, roadGraph: OverpassServices.roadGraph
+    )
+}
+
 /// AI providers, keys, routing and their telemetry.
 struct ProviderServices: Sendable {
     let overrides: AppDependencies.Overrides
@@ -850,7 +858,7 @@ struct StorageServices: Sendable {
 extension AppDependencies {
     /// What `EmuquApp`'s launch work (`AppLaunchTasks.swift`) uses.
     var launchServices: LaunchServices {
-        let (app, analysis, location, services) = (self.app, self.analysis, self.location, self.services)
+        let (app, analysis, location, services, storage) = (self.app, self.analysis, self.location, self.services, self.storage)
         return LaunchServices(
             recorderBox: { app.recorderBox },
             launchCoordinator: { app.launchCoordinator },
@@ -858,7 +866,9 @@ extension AppDependencies {
             trainingMetricsCache: { analysis.trainingMetricsCache },
             morningNotificationScheduler: { services.morningNotificationScheduler },
             roadGeocodingService: { location.roadGeocodingService },
-            savedRouteStore: { location.savedRouteStore }
+            savedRouteStore: { location.savedRouteStore },
+            crashLogManager: { app.crashLogManager },
+            workoutTrackBackup: { storage.workoutTrackBackup }
         )
     }
 

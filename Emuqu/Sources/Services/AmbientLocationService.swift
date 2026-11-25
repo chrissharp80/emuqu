@@ -15,7 +15,7 @@ import Foundation
 // earbuds, voice chat from a Bluetooth tap". In that scenario the
 // workout's `WorkoutLocationManager` is already streaming GPS fixes
 // at `Best` accuracy under the `location` background
-// mode, AND piping them into `AppDependencies.current.location.roadGeocodingService`. The AI's
+// mode, AND piping them into `RoadGeocodingService`. The AI's
 // location tools just need to READ that cache (instead of triggering
 // a fresh fetch). That's what makes the voice query instant — see
 // the cache fast-path in `location.current` / `location.current_detailed`
@@ -61,9 +61,11 @@ import Foundation
 // and nothing else.
 
 final class AmbientLocationService: NSObject, @unchecked Sendable {
-    static let shared = AmbientLocationService()
-
     private let manager = CLLocationManager()
+    /// The geocoder this manager's own fixes are piped through. A resolver,
+    /// read when a fix arrives: the geocoder is built holding this service,
+    /// which it mirrors every resolved address into.
+    private let roadGeocoding: @MainActor @Sendable () -> RoadGeocodingService
     private let lock = NSLock()
     private var _isRunning = false
     /// Whether some caller has asked for updates since the last `stop()`.
@@ -98,7 +100,8 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
     /// foreground. The stream runs only in the foreground (`stop()` on
     /// background), at a hundred metres' accuracy behind a 50 m filter, so a
     /// still user costs little.
-    override private init() {
+    init(roadGeocoding: @escaping @MainActor @Sendable () -> RoadGeocodingService) {
+        self.roadGeocoding = roadGeocoding
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
@@ -230,7 +233,7 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
     /// enrichment via its own `refreshIfNeeded(...)` default.
     private func refreshRoadContext(for location: CLLocation) {
         Task { @MainActor in
-            AppDependencies.current.location.roadGeocodingService.refreshIfNeeded(for: location, enrichCrossStreet: false)
+            self.roadGeocoding().refreshIfNeeded(for: location, enrichCrossStreet: false)
         }
     }
 

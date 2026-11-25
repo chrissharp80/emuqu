@@ -164,11 +164,9 @@ extension SessionRecoveryCoordinator {
     private func recoverWorkoutFromBackup(_ sessionId: UUID) async -> HRVSession? {
         let strap = await strapRecordingForWorkoutRecovery(sessionId: sessionId)
         let outcome = await WorkoutRecoveryService.recover(
-            sessionId: sessionId,
-            reason: .appCrashed,
-            archive: archive,
-            rawBackup: rawBackup,
-            cloudSyncManager: cloudSyncManager,
+            sessionId: sessionId, reason: .appCrashed,
+            archive: archive, rawBackup: rawBackup, cloudSyncManager: cloudSyncManager,
+            workoutTrackBackup: services.workoutTrackBackup, savedRouteStore: services.savedRouteStore, settingsManager: settingsManager,
             strapRRPoints: strap?.points
         )
         guard let outcome, outcome.wasArchived else {
@@ -276,6 +274,7 @@ extension SessionRecoveryCoordinator {
         let outcome = await WorkoutRecoveryService.recover(
             sessionId: sessionId, reason: .appCrashed,
             archive: archive, rawBackup: rawBackup, cloudSyncManager: cloudSyncManager,
+            workoutTrackBackup: services.workoutTrackBackup, savedRouteStore: services.savedRouteStore, settingsManager: settingsManager,
             overrideRRPoints: clipped,
             discardBackupsOnAccept: true // user confirmed — safe to clean up
         )
@@ -374,6 +373,7 @@ extension SessionRecoveryCoordinator {
             archive: archive,
             rawBackup: rawBackup,
             cloudSyncManager: cloudSyncManager,
+            workoutTrackBackup: services.workoutTrackBackup, savedRouteStore: services.savedRouteStore, settingsManager: settingsManager,
             overrideRRPoints: points,
             discardBackupsOnAccept: track != nil,
             overrideTrack: track,
@@ -407,6 +407,7 @@ extension SessionRecoveryCoordinator {
         guard let outcome = await WorkoutRecoveryService.recover(
             sessionId: sessionId, reason: .appCrashed,
             archive: archive, rawBackup: rawBackup, cloudSyncManager: cloudSyncManager,
+            workoutTrackBackup: services.workoutTrackBackup, savedRouteStore: services.savedRouteStore, settingsManager: settingsManager,
             overrideRRPoints: merged, autoTrimOverride: true
         ), outcome.wasArchived else {
             keepUnsavedDownload(strap.recording)

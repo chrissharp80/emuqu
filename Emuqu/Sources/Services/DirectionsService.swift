@@ -47,6 +47,16 @@ enum DirectionsService {
         }
     }
 
+    /// What a route is resolved and engaged with.
+    struct Services: Sendable {
+        /// The session a resolved route is engaged on.
+        let activeRouteSession: ActiveRouteSession
+        /// The Get Me Back trail whose origin `.origin` routes to.
+        let breadcrumbStore: BreadcrumbStore
+        /// The forward geocoder an `.address` destination is resolved with.
+        let roadGeocodingService: RoadGeocodingService
+    }
+
     /// Resolved route ready for the AI to read out. All fields plain
     /// scalars + small step list so the JSON envelope stays small.
     struct RouteResult {
@@ -73,14 +83,15 @@ enum DirectionsService {
     static func resolveRoute(
         from origin: CLLocationCoordinate2D,
         to destination: Destination,
-        mode: Mode
+        mode: Mode,
+        services: Services
     ) async throws -> RouteResult {
         // 1) Resolve destination coordinate + label.
-        let (destLabel, destCoord) = try await resolveDestination(destination, near: origin)
+        let (destLabel, destCoord) = try await resolveDestination(destination, near: origin, services: services)
         // 2) Ask MapKit for a route.
         let route = try await mapKitRoute(from: origin, to: destCoord, mode: mode)
         try Task.checkCancellation()
-        AppDependencies.current.location.activeRouteSession.engage(
+        services.activeRouteSession.engage(
             route: route, destinationLabel: destLabel, destinationCoord: destCoord
         )
         // First N step instructions for the AI to narrate.
@@ -115,22 +126,25 @@ enum DirectionsService {
 
     private static func resolveDestination(
         _ destination: Destination,
-        near origin: CLLocationCoordinate2D
+        near origin: CLLocationCoordinate2D,
+        services: Services
     ) async throws -> (label: String, coord: CLLocationCoordinate2D) {
         switch destination {
         case .origin:
-            return try breadcrumbOrigin()
+            return try breadcrumbOrigin(services.breadcrumbStore)
         case let .poi(query):
             return try await nearestPOI(matching: query, near: origin)
         case let .address(text):
-            return try await geocodedAddress(text)
+            return try await geocodedAddress(text, geocoding: services.roadGeocodingService)
         }
     }
 
     /// Read the breadcrumb origin off disk so this works whether or not the
     /// recorder is currently engaged.
-    private static func breadcrumbOrigin() throws -> (label: String, coord: CLLocationCoordinate2D) {
-        guard let trail = AppDependencies.current.location.breadcrumbStore.load(), let originFix = trail.origin else {
+    private static func breadcrumbOrigin(
+        _ breadcrumbStore: BreadcrumbStore
+    ) throws -> (label: String, coord: CLLocationCoordinate2D) {
+        guard let trail = breadcrumbStore.load(), let originFix = trail.origin else {
             throw DirectionsError.noBreadcrumbOrigin
         }
         let label = trail.label ?? trail.resolvedOriginLabel
@@ -176,9 +190,9 @@ enum DirectionsService {
     /// as `location.set_address` — same Apple CLGeocoder, same
     /// loose-natural-language acceptance.
     private static func geocodedAddress(
-        _ text: String
+        _ text: String, geocoding: RoadGeocodingService
     ) async throws -> (label: String, coord: CLLocationCoordinate2D) {
-        guard let resolved = await RoadGeocodingService.geocodeAddress(text) else {
+        guard let resolved = await geocoding.geocodeAddress(text) else {
             debugLog("[DirectionsService] address geocode returned no result (network boundary)", level: .warning)
             throw DirectionsError.geocoderFailed(query: text)
         }
