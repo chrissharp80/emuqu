@@ -36,10 +36,11 @@ final class ThreadSanitizerCanaryTests: XCTestCase {
     /// the first thread's writes before the second's, which is no race. So each
     /// writer waits, on a relaxed atomic, until both are running, and only
     /// then writes; neither has exited when the other starts writing.
-    func testUnsynchronizedWritesRaceWhenTheCanaryIsRequested() throws {
+    func testUnsynchronizedWritesRaceWhenTheCanaryIsRequested() {
         guard ProcessInfo.processInfo.environment["EMUQU_TSAN_CANARY"] == "1" else { return }
+        // A failure with no race report fails the gate, as a missed race does.
         guard #available(iOS 18.0, *) else {
-            throw XCTSkip("The canary needs Synchronization.Atomic, iOS 18 and later.")
+            return XCTFail("The canary needs Synchronization.Atomic, iOS 18 and later.")
         }
         let counter = UnsynchronizedCounter()
         let arrivals = Arrivals()
