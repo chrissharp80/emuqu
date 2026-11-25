@@ -1,7 +1,7 @@
 import Foundation
 import HealthKit
 
-extension HealthKitManager {
+extension TrainingHealthQueries {
     /// One outdoor workout reduced to what the heat-acclimatization model
     /// needs: when it happened, how long it lasted, and the weather saved
     /// with it. The weather is the temperature and humidity Apple Watch
@@ -24,14 +24,14 @@ extension HealthKitManager {
     /// indoor when its `HKMetadataKeyIndoorWorkout` flag is true, or when its
     /// activity type isn't one that's normally done outdoors.
     func fetchOutdoorWorkoutsForHeat(days: Int) async -> [HeatWorkoutInput] {
-        guard isHealthKitAvailable else { return [] }
+        guard access.isAvailable else { return [] }
         let calendar = Calendar.current
         let end = Date()
         let startOfToday = calendar.startOfDay(for: end)
         guard let start = calendar.date(byAdding: .day, value: -days, to: startOfToday) else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,

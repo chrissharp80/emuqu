@@ -374,6 +374,22 @@ check "budget_monotonicity/ceiling_made_decimal" \
     ".ci/shared_usage_budget.txt" \
     "import pathlib;p=pathlib.Path('.ci/shared_usage_budget.txt');p.write_text(p.read_text().strip()+'.0'+chr(10))"
 
+# A value holding a whole hub is the shape the coupling gate exists to stop.
+check "coupling_budget/hub_back_reference" \
+    "./scripts/check_coupling_budget.sh" \
+    "Emuqu/Sources/Collection/HealthObservation.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HealthObservation.swift');p.write_text(p.read_text()+chr(10)+'struct PlantedHolder { let collector: RRCollector }'+chr(10))"
+
+check "coupling_budget/locator_read" \
+    "./scripts/check_coupling_budget.sh" \
+    "Emuqu/Sources/Collection/HealthObservation.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HealthObservation.swift');p.write_text(p.read_text()+chr(10)+'let plantedLocator = AppDependencies.current'+chr(10))"
+
+check "coupling_budget/below_budget" \
+    "./scripts/check_coupling_budget.sh" \
+    ".ci/hub_back_reference_budget.txt" \
+    "import pathlib;p=pathlib.Path('.ci/hub_back_reference_budget.txt');p.write_text(str(int(p.read_text().strip())+1)+chr(10))"
+
 check "tech_debt_budgets/below_budget" \
     "./scripts/enforce_tech_debt_budgets.sh" \
     ".ci/shared_usage_budget.txt" \

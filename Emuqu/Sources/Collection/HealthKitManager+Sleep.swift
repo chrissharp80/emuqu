@@ -29,14 +29,14 @@ extension SleepHealthQueries {
     /// - Parameter referenceDate: Anchor date for "last night" lookup. Defaults to now (today's morning).
     ///   For historical sessions, pass the session's end date so the correct night is queried.
     func fetchLastNightSleep(relativeTo referenceDate: Date = Date()) async throws -> SleepData {
-        guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
+        guard access.isAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
         guard let sleepType = HKTypes.category(.sleepAnalysis) else {
             throw HealthKitManager.HealthKitError.typeUnavailable("sleepAnalysis")
         }
         let morning = Calendar.current.startOfDay(for: referenceDate)
         let window = DateInterval(
-            start: manager.sleepSchedule.overnightWindowStart(relativeTo: morning),
-            end: manager.sleepSchedule.overnightWindowEnd(relativeTo: morning)
+            start: access.sleepSchedule.overnightWindowStart(relativeTo: morning),
+            end: access.sleepSchedule.overnightWindowEnd(relativeTo: morning)
         )
         let allSamples = try await lastNightSamples(
             sleepType: sleepType, windowStart: window.start, windowEnd: min(window.end, Date())
@@ -112,7 +112,7 @@ extension SleepHealthQueries {
         autoSleepExtension: SleepResolver.AutoSleepExtension? = nil,
         rrStart: Date? = nil
     ) async throws -> SleepData {
-        guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
+        guard access.isAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
         // When an AutoSleep extension is present, pull samples through the
         // extension's end so post-session stages are available to the resolver.
         let queryEnd = autoSleepExtension.map { max(recordingEnd, $0.bounds.end) } ?? recordingEnd
@@ -157,9 +157,9 @@ extension SleepHealthQueries {
         guard let sleepType = HKTypes.category(.sleepAnalysis) else {
             throw HealthKitManager.HealthKitError.typeUnavailable("sleepAnalysis")
         }
-        let searchStart = manager.sleepSchedule.overnightWindowStart(relativeTo: recordingStart)
-        let scheduleEnd = manager.sleepSchedule.overnightWindowEnd(relativeTo: recordingStart)
-        let mergeBasedEnd = recordingEnd.addingTimeInterval(manager.settingsProvider().effectiveMergeGapSeconds)
+        let searchStart = access.sleepSchedule.overnightWindowStart(relativeTo: recordingStart)
+        let scheduleEnd = access.sleepSchedule.overnightWindowEnd(relativeTo: recordingStart)
+        let mergeBasedEnd = recordingEnd.addingTimeInterval(access.settingsProvider().effectiveMergeGapSeconds)
         let searchEnd = max(scheduleEnd, mergeBasedEnd)
         let datePredicate = HKQuery.predicateForSamples(withStart: searchStart, end: searchEnd, options: [])
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
@@ -181,8 +181,8 @@ extension SleepHealthQueries {
         predicate: NSPredicate,
         sort: NSSortDescriptor
     ) async throws -> [HKCategorySample] {
-        try await manager.heartRate.runBoundedThrowingQuery(
-            timeout: HeartRateHealthQueries.sleepQueryTimeoutSec,
+        try await access.runBoundedThrowingQuery(
+            timeout: HealthKitAccess.sleepQueryTimeoutSec,
             makeQuery: { resolve in
                 HKSampleQuery(
                     sampleType: sleepType,
@@ -217,8 +217,8 @@ extension SleepHealthQueries {
     /// unavailable, or the query failed), so a caller that records "checked"
     /// can tell "no nap" (0) from "don't know".
     func fetchDaytimeNapMinutesIfReadable(nightAnchoredAt nightAnchor: Date) async -> Int? {
-        guard manager.isHealthKitAvailable, let sleepType = HKTypes.category(.sleepAnalysis) else { return nil }
-        let window = manager.sleepSchedule.daytimeNapWindow(relativeTo: nightAnchor)
+        guard access.isAvailable, let sleepType = HKTypes.category(.sleepAnalysis) else { return nil }
+        let window = access.sleepSchedule.daytimeNapWindow(relativeTo: nightAnchor)
         guard window.end > window.start else { return 0 }
         guard let samples = await napSamples(sleepType: sleepType, window: window) else { return nil }
         let intervals = Self.asleepIntervals(samples, clippedTo: window)
@@ -338,7 +338,7 @@ extension SleepHealthQueries {
         minimumSamples: Int = 12,
         minimumSleepMinutes: Int = 120
     ) async -> SleepData? {
-        guard manager.isHealthKitAvailable else { return nil }
+        guard access.isAvailable else { return nil }
         guard let smoothed = await smoothedOvernightHR(
             windowStart: windowStart, windowEnd: windowEnd,
             minimumSamples: minimumSamples, minimumSleepMinutes: minimumSleepMinutes
@@ -371,7 +371,7 @@ extension SleepHealthQueries {
     ) async -> [(date: Date, hr: Double)]? {
         let samples: [(date: Date, hr: Double)]
         do {
-            samples = try await manager.heartRate.fetchHeartRateSamples(from: windowStart, to: windowEnd)
+            samples = try await heartRate.fetchHeartRateSamples(from: windowStart, to: windowEnd)
         } catch {
             debugLog("[HealthKitManager] HealthKit HR sleep estimation failed to fetch samples: \(error)")
             return nil

@@ -21,7 +21,12 @@ final class SessionReanalysisCoordinator {
     /// it directly (`AppDependencies.collection.reanalysisService`).
     let service: ReanalysisService
     let archive: SessionArchive
-    let healthKit: HealthKitManager
+    /// Sleep and vitals re-reads for a night whose Health data changed.
+    let healthKit: any HealthKitServiceProtocol
+    /// The sleep-data version a new Watch sleep sync bumps.
+    let healthObservation: HealthObservation
+    /// The nap read the one-shot nap repair makes (`SessionDataMigrations`).
+    let sleepQueries: SleepHealthQueries
     let scoring: SessionScoringContext
     let archiveSignal: ArchiveSignal
     /// Resolved when a reanalysis first warms it, not at launch: building the
@@ -52,7 +57,9 @@ final class SessionReanalysisCoordinator {
     init(
         service: ReanalysisService,
         archive: SessionArchive,
-        healthKit: HealthKitManager,
+        healthKit: any HealthKitServiceProtocol,
+        healthObservation: HealthObservation,
+        sleepQueries: SleepHealthQueries,
         scoring: SessionScoringContext,
         archiveSignal: ArchiveSignal,
         trainingMetricsCache: @escaping @MainActor () -> TrainingMetricsCache
@@ -60,6 +67,8 @@ final class SessionReanalysisCoordinator {
         self.service = service
         self.archive = archive
         self.healthKit = healthKit
+        self.healthObservation = healthObservation
+        self.sleepQueries = sleepQueries
         self.scoring = scoring
         self.archiveSignal = archiveSignal
         self.trainingMetricsCache = trainingMetricsCache
@@ -198,6 +207,7 @@ final class SessionReanalysisCoordinator {
         await SessionDataMigrations(
             archive: archive,
             healthKit: healthKit,
+            sleepQueries: sleepQueries,
             settingsManager: scoring.settingsManager,
             baselineTracker: scoring.baselineTracker,
             reanalysisService: service

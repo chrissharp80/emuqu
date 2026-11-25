@@ -386,7 +386,7 @@ extension EmuquApp {
     /// migrations and the iCloud sync still run. `shouldSkipPeriodicRefresh`
     /// is only logged here.
     private func scheduleLaunchHousekeeping() {
-        launchServices.trainingMetricsCache().configure(healthKit: collector.healthKit)
+        launchServices.trainingMetricsCache().configure(training: collector.healthKit.training)
         let powerPolicy = launchServices.powerStatePolicy()
         let powerMultiplier = powerPolicy.launchDelayMultiplier
         let skipPeriodic = powerPolicy.shouldSkipPeriodicRefresh

@@ -108,7 +108,7 @@ extension HeatAcclimationCache {
     convenience init(archive: SessionArchive) {
         self.init(
             archive: archive, settingsManager: AppDependencies.current.app.settingsManager,
-            healthKit: AppDependencies.current.collection.healthKitManager
+            training: AppDependencies.current.collection.healthKitManager.training
         )
     }
 }

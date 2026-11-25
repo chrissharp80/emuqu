@@ -75,6 +75,8 @@ extension AppDependencies {
             service: makeReanalysisService(parts),
             archive: parts.archive,
             healthKit: parts.healthKit,
+            healthObservation: parts.healthKit.observation,
+            sleepQueries: parts.healthKit.sleepQueries,
             scoring: parts.scoring,
             archiveSignal: parts.archiveSignal,
             trainingMetricsCache: parts.trainingMetricsCache

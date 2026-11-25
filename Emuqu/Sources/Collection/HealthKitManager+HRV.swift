@@ -28,12 +28,12 @@ extension HealthWriteAndObserve {
     /// beside the new one, and a failed save leaves the earlier export in
     /// place.
     func exportHRV(session: HRVSession, result: HRVAnalysisResult) async throws {
-        guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
+        guard access.isAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
         guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN),
               let samples = Self.hrvExportSamples(
                   session: session, result: result, sdnnType: sdnnType, version: HealthExportIdentity.nextSyncVersion()
               ) else { return }
-        try await manager.sampleReplacer.replace(
+        try await sampleReplacer.replace(
             samples, hrvReplacement(sdnnType: sdnnType, sessionId: session.id, span: Self.hrvSearchSpan(session: session, samples: samples))
         )
     }
@@ -102,10 +102,10 @@ extension HealthWriteAndObserve {
     /// in `span` that `isOurHRVExport` matches, under the session's key.
     private func hrvReplacement(sdnnType: HKQuantityType, sessionId: UUID, span: DateInterval) -> HealthSampleReplacement {
         HealthSampleReplacement(
-            type: sdnnType, span: span, timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec,
+            type: sdnnType, span: span, timeout: HealthKitAccess.vitalsQueryTimeoutSec,
             label: "HRV export", serialKey: sessionId.uuidString,
             matches: { Self.isOurHRVExport($0, sessionId: sessionId) },
-            writeTimeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
+            writeTimeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec
         )
     }
 
@@ -219,10 +219,10 @@ extension HealthWriteAndObserve {
     /// delete. Errors propagate, so the caller can say the samples are still
     /// in Health.
     func removeExportedHRV(sessionId: UUID, from start: Date, to end: Date) async throws {
-        guard manager.isHealthKitAvailable, let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return }
+        guard access.isAvailable, let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return }
         let padding: TimeInterval = 25 * 3600
         let span = DateInterval(start: start.addingTimeInterval(-padding), end: end.addingTimeInterval(padding))
-        try await manager.sampleReplacer.replace([], hrvReplacement(sdnnType: sdnnType, sessionId: sessionId, span: span))
+        try await sampleReplacer.replace([], hrvReplacement(sdnnType: sdnnType, sessionId: sessionId, span: span))
     }
 
     /// Whether an ExternalUUID is one of the session's HRV exports: the SDNN
