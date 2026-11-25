@@ -149,7 +149,7 @@ extension RecordView {
     /// for the alert and the Retry card's reason.
     @MainActor
     private func stopInternalRecording() async {
-        await RecordingKeepAwake.during {
+        await RecordingKeepAwake.during(settings: settingsManager.settings) {
             do {
                 let session = try await collector.deviceRecording.stopSession()
                 applyStopOutcome(session, navigateOnSuccess: true)
@@ -181,7 +181,7 @@ extension RecordView {
     @MainActor
     private func performRetryFetch() async {
         isRetrying = true
-        await RecordingKeepAwake.during {
+        await RecordingKeepAwake.during(settings: settingsManager.settings) {
             do {
                 let session = try await collector.recovery.retryFetchRecording()
                 finishRetry(session)
@@ -287,11 +287,11 @@ extension RecordView {
     NavigationStack {
         RecordView(selectedTab: .constant(.record))
             .environment(RRCollector())
-            .environment(AppDependencies.current.app.settingsManager)
+            .environment(AppDependencies().app.settingsManager)
     }
 }
 
-/// Keeps the screen on around a strap download when the user opted in
+/// Keeps the screen on around a strap download when `settings` opt in
 /// (`shouldKeepScreenOnDuringRecording`: the toggle, on by default, and
 /// off in Low Power Mode). It takes the hold only when
 /// nothing else holds it, and gives back only a hold it took, so a flow that
@@ -300,8 +300,8 @@ extension RecordView {
 /// Shared by Stop, Retry and Recover.
 enum RecordingKeepAwake {
     @MainActor
-    static func during(_ work: () async -> Void) async {
-        let keepAwake = AppDependencies.current.app.settingsManager.settings.shouldKeepScreenOnDuringRecording
+    static func during(settings: UserSettings, _ work: () async -> Void) async {
+        let keepAwake = settings.shouldKeepScreenOnDuringRecording
         let takesHold = keepAwake && !UIApplication.shared.isIdleTimerDisabled
         if takesHold { UIApplication.shared.isIdleTimerDisabled = true }
         await work()

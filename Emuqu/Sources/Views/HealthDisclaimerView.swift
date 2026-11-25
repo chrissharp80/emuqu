@@ -281,7 +281,7 @@ struct HealthDisclaimerView: View {
 
 #Preview {
     HealthDisclaimerView()
-        .environment(AppDependencies.current.app.settingsManager)
+        .environment(AppDependencies().app.settingsManager)
 }
 
 /// Accessibility fallback. The scroll-to-bottom gate relies on a

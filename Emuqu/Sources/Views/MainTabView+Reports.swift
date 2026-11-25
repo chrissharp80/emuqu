@@ -44,8 +44,9 @@ extension MainTabView {
     /// overnights strictly before the reported night (`ReportBaselineNights`),
     /// as Reports → Browse builds them, not the reliable overnights of the
     /// dashboard's 35-session slice, which includes the reported night itself.
-    nonisolated static func withFullSessions(_ inputs: SendReportInputs, kind: SendReportKind) -> SendReportInputs {
-        let archive = AppDependencies.current.storage.sessionArchive
+    nonisolated static func withFullSessions(
+        _ inputs: SendReportInputs, kind: SendReportKind, archive: SessionArchive
+    ) -> SendReportInputs {
         let full: (HRVSession) -> HRVSession = { archive.retrieveOrLog($0.id) ?? $0 }
         let night: Date? = switch kind {
         case .recovery: inputs.recovery?.startDate

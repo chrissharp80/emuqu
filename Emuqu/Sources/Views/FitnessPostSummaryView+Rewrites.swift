@@ -155,7 +155,7 @@ extension FitnessSummaryCards {
         elevResmoothing = true
         defer { elevResmoothing = false }
         let (id, archive) = (session.id, self.archive)
-        let settings = UserSettingsBridge.snapshot()
+        let settings = UserSettingsBridge.snapshot(of: settingsManager)
         let outcome = await Task.detached(priority: .userInitiated) {
             Self.writeResmoothedElevation(id, gain: gain, loss: loss, archive: archive, settings: settings)
         }.value
@@ -330,7 +330,7 @@ extension FitnessSummaryCards {
         let id = session.id
         let enrichedSplits = alpha1EnrichedSplits(samples: refreshedSamples)
         let archive = self.archive
-        let settings = UserSettingsBridge.snapshot()
+        let settings = UserSettingsBridge.snapshot(of: settingsManager)
         return await Task.detached(priority: .userInitiated) {
             Self.writeReanalyzedSamples(id, refreshedSamples, splits: enrichedSplits, archive: archive, settings: settings)
         }.value

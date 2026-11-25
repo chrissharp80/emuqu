@@ -84,7 +84,7 @@ struct DebugLogView: View {
     /// The same export as Settings › Diagnostics: the log file is written when
     /// the button is tapped and deleted when the share sheet closes.
     private var exportLogsButton: some View {
-        FileShareButton(title: DiagnosticLogExport.title, makeFile: { try await DiagnosticLogExport.makeFile() }, label: {
+        FileShareButton(title: DiagnosticLogExport.title, makeFile: { [logger] in try await DiagnosticLogExport.makeFile(logger: logger) }, label: {
             Label(String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
         })
     }

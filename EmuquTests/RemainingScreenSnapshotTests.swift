@@ -36,6 +36,8 @@ final class RemainingScreenSnapshotTests: XCTestCase {
         assertSnapshot(
             of: hosted(
                 HistoryView(
+                    archive: AppDependencies.current.storage.sessionArchive,
+                    settingsManager: AppDependencies.current.app.settingsManager,
                     onDelete: { _ in },
                     onUpdateTags: { _, _, _ in },
                     onReanalyze: nil,

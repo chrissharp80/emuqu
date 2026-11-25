@@ -98,8 +98,11 @@ struct EmuquApp: App {
     @State var syncManager = launchStep("syncManager", "init.cloudKitSyncManager") {
         AppDependencies.current.storage.cloudKitSyncManager
     }
+    /// The palette (`AppTheme`) follows this settings manager's themes.
     @State var settingsManager = launchStep("settingsManager", "init.settingsManager") {
-        AppDependencies.current.app.settingsManager
+        let settingsManager = AppDependencies.current.app.settingsManager
+        AppTheme.follow(settingsManager)
+        return settingsManager
     }
     @State var storeKitManager = launchStep("storeKitManager", "init.storeKitManager") {
         AppDependencies.current.services.storeKitManager

@@ -246,6 +246,6 @@ struct OnboardingFillingScroll<Content: View>: View {
 
 #Preview {
     OnboardingView()
-        .environment(AppDependencies.current.app.settingsManager)
+        .environment(AppDependencies().app.settingsManager)
         .environment(RRCollector())
 }

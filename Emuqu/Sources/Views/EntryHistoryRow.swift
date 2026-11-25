@@ -275,8 +275,11 @@ private var quickBadge: some View {
 }
 
 #Preview {
+    let dependencies = AppDependencies()
     NavigationStack {
         HistoryView(
+            archive: dependencies.storage.sessionArchive,
+            settingsManager: dependencies.app.settingsManager,
             onDelete: { _ in },
             onUpdateTags: { _, _, _ in },
             onReanalyze: nil

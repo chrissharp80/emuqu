@@ -6,9 +6,19 @@ import SwiftUI
 enum AppTheme {
     // MARK: - Core Palette (color-theme aware)
 
+    /// The settings manager whose colour and appearance themes the palette
+    /// follows, handed over by the composition root (`EmuquApp`) at launch.
+    /// Without one (SwiftUI previews) the palette uses the default themes.
+    @MainActor private static var themeSource: SettingsManager?
+
+    /// Makes the palette follow `settingsManager`'s colour and appearance themes.
+    @MainActor static func follow(_ settingsManager: SettingsManager) {
+        themeSource = settingsManager
+    }
+
     /// The active color theme (read from user settings)
     @MainActor static var currentColorTheme: ColorTheme {
-        AppDependencies.current.app.settingsManager.settings.colorTheme
+        themeSource?.settings.colorTheme ?? .blue
     }
 
     /// Primary accent — adapts to color theme and appearance
@@ -249,7 +259,7 @@ enum AppTheme {
 
     /// The active appearance theme (read from user settings)
     @MainActor static var currentTheme: AppearanceTheme {
-        AppDependencies.current.app.settingsManager.settings.appearanceTheme
+        themeSource?.settings.appearanceTheme ?? .light
     }
 
     // MARK: - Backgrounds (theme-aware)
@@ -390,12 +400,11 @@ enum AppTheme {
     /// The night's HRV tier, by the rule "What This Means"
     /// (`AnalysisSummaryGenerator.hrvCategory`) rates it with: against a
     /// non-nil, positive `baseline` when one is given, else by the user's age
-    /// and sex from settings, so the label and that card agree.
-    @MainActor static func hrvCategory(_ hrv: Double, baseline: Double? = nil) -> RMSSDCategory {
+    /// and sex from `settings`, so the label and that card agree.
+    @MainActor static func hrvCategory(_ hrv: Double, baseline: Double? = nil, settings: UserSettings) -> RMSSDCategory {
         if let baseline, baseline > 0 {
             return AnalysisSummaryGenerator.personalCategory(ratio: hrv / baseline)
         }
-        let settings = AppDependencies.current.app.settingsManager.settings
         let sex: AgeAdjustedHRV.Sex? = switch settings.biologicalSex {
         case .male: .male
         case .female: .female
@@ -405,14 +414,14 @@ enum AppTheme {
     }
 
     /// The `hrvCategory` tier's name in the app language.
-    @MainActor static func hrvLabel(_ hrv: Double, baseline: Double? = nil) -> String {
-        hrvCategory(hrv, baseline: baseline).localizedLabel
+    @MainActor static func hrvLabel(_ hrv: Double, baseline: Double? = nil, settings: UserSettings) -> String {
+        hrvCategory(hrv, baseline: baseline, settings: settings).localizedLabel
     }
 
     /// The `hrvCategory` tier's colour. Good must not share Excellent's
     /// colour, or the two read the same.
-    @MainActor static func hrvColor(_ hrv: Double, baseline: Double? = nil) -> Color {
-        switch hrvCategory(hrv, baseline: baseline) {
+    @MainActor static func hrvColor(_ hrv: Double, baseline: Double? = nil, settings: UserSettings) -> Color {
+        switch hrvCategory(hrv, baseline: baseline, settings: settings) {
         case .excellent: sage
         case .good: softGold
         case .fair: terracotta
@@ -421,8 +430,8 @@ enum AppTheme {
     }
 
     /// `hrvColor` for words: the same tiers, in the readable text shades.
-    @MainActor static func hrvTextColor(_ hrv: Double, baseline: Double? = nil) -> Color {
-        switch hrvCategory(hrv, baseline: baseline) {
+    @MainActor static func hrvTextColor(_ hrv: Double, baseline: Double? = nil, settings: UserSettings) -> Color {
+        switch hrvCategory(hrv, baseline: baseline, settings: settings) {
         case .excellent: sageText
         case .good: softGoldText
         case .fair: terracottaText

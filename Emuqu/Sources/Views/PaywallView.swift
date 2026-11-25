@@ -730,14 +730,14 @@ struct PurchaseStatusView: View {
 
 #Preview("Paywall") {
     PaywallView()
-        .environment(AppDependencies.current.services.storeKitManager)
+        .environment(AppDependencies().services.storeKitManager)
 }
 
 #Preview("Status - Active") {
     NavigationStack {
         List {
             PurchaseStatusView()
-                .environment(AppDependencies.current.services.storeKitManager)
+                .environment(AppDependencies().services.storeKitManager)
         }
     }
 }

@@ -653,7 +653,7 @@ extension RecordPanels {
     /// does not), and raises the error alert: a refusal or a failed download
     /// has set `lastError`; a recording too short to assemble only throws.
     private func performDeviceRecovery() async {
-        await RecordingKeepAwake.during {
+        await RecordingKeepAwake.during(settings: settingsManager.settings) {
             do {
                 _ = try await collector.recovery.recoverFromDevice()
             } catch {

@@ -248,10 +248,11 @@ extension MainTabView {
         preparingReportKind = kind
         reportPrepError = nil
         let (inputs, metrics) = (sendReportInputs(for: kind), dependencies.analysis.trainingMetricsCache)
+        let archive = dependencies.storage.sessionArchive
         Task.detached(priority: .userInitiated) {
             let outcome = await Self.renderReport(
                 kind: kind,
-                inputs: Self.withFullSessions(inputs, kind: kind),
+                inputs: Self.withFullSessions(inputs, kind: kind, archive: archive),
                 liveLoadSnapshot: await TrainingLoadRegistry.liveRefreshed(from: metrics)
             )
             await MainActor.run { finishReportPreparation(outcome) }

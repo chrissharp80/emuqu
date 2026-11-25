@@ -12,4 +12,6 @@ import SwiftUI
 @MainActor
 struct ThresholdCards {
     let session: HRVSession
+    /// The user's max HR and body weight the cards compute with.
+    let settings: UserSettingsBridge
 }

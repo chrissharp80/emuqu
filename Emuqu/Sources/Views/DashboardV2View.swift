@@ -525,6 +525,8 @@ struct DashboardV2View: View {
 
     private var historyDestination: some View {
         HistoryView(
+            archive: dependencies.storage.sessionArchive,
+            settingsManager: settingsManager,
             onDelete: onDeleteSession,
             onUpdateTags: onUpdateSessionTags,
             onReanalyze: onReanalyzeSession,

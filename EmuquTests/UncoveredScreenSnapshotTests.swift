@@ -69,7 +69,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     }
 
     func testModesSettingsRenders() {
-        assertSnapshot(of: hosted(ModesSettingsPage()), named: "uncovered-settings-modes")
+        assertSnapshot(of: hosted(ModesSettingsPage(settingsManager: AppDependencies.current.app.settingsManager)), named: "uncovered-settings-modes")
     }
 
     func testPrivacyPolicyRenders() {

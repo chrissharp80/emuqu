@@ -238,7 +238,7 @@ struct SettingsView: View {
                 Label(String(localized: "Training", bundle: LanguageManager.appBundle), systemImage: "figure.run")
             }
             .accessibilityIdentifier("settings.training")
-            NavigationLink { ModesSettingsPage() } label: {
+            NavigationLink { ModesSettingsPage(settingsManager: settingsManager) } label: {
                 Label(String(localized: "Modes", bundle: LanguageManager.appBundle), systemImage: "arrow.triangle.2.circlepath")
             }
             .accessibilityIdentifier("settings.modes")
@@ -491,7 +491,7 @@ struct SettingsView: View {
 #Preview {
     NavigationStack {
         SettingsView()
-            .environment(AppDependencies.current.app.settingsManager)
+            .environment(AppDependencies().app.settingsManager)
     }
 }
 

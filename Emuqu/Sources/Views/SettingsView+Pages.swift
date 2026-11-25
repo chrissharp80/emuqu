@@ -40,7 +40,7 @@ struct ProfileSettingsPage: View {
     /// JPEG on UserSettings.avatarImageData.
     private var avatarSection: some View {
         Section {
-            AvatarPickerView()
+            AvatarPickerView(settingsManager: settingsManager)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
         }

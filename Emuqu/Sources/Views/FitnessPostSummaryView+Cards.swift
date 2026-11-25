@@ -208,9 +208,10 @@ extension FitnessSummaryCards {
     nonisolated static func routeHistorySummary(
         routeName: String,
         session: HRVSession,
-        unitsResolved: UnitsPreference
+        unitsResolved: UnitsPreference,
+        archive: SessionArchive
     ) -> RouteHistorySummary? {
-        let candidates = priorRuns(ofRoute: routeName, excluding: session.id)
+        let candidates = priorRuns(ofRoute: routeName, excluding: session.id, archive: archive)
         guard !candidates.isEmpty else { return nil }
         let baseline = RouteBaseline(priorRuns: candidates)
         return RouteHistorySummary(
@@ -223,9 +224,8 @@ extension FitnessSummaryCards {
     /// The most recent 20 other workouts the route recogniser matched to the
     /// same named route. `entries` is newest first and the walk is lazy, so
     /// decoding stops once 20 matches are found.
-    nonisolated private static func priorRuns(ofRoute routeName: String, excluding sessionId: UUID) -> [HRVSession] {
-        let archive = AppDependencies.current.storage.sessionArchive
-        return archive.store.entries.lazy
+    nonisolated private static func priorRuns(ofRoute routeName: String, excluding sessionId: UUID, archive: SessionArchive) -> [HRVSession] {
+        archive.store.entries.lazy
             .filter { $0.sessionType == .workout && $0.sessionId != sessionId }
             .compactMap { try? archive.retrieveLightweight($0.sessionId) }
             .filter { $0.workoutMetadata?.recognizedRouteName == routeName }

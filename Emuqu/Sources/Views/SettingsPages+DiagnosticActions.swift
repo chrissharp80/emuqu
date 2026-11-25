@@ -47,7 +47,8 @@ extension TroubleshootingPage {
     }
 
     private var exportLogButton: some View {
-        FileShareButton(title: DiagnosticLogExport.title, makeFile: { try await DiagnosticLogExport.makeFile() }, label: {
+        let logger = dependencies.app.debugLogger
+        return FileShareButton(title: DiagnosticLogExport.title, makeFile: { try await DiagnosticLogExport.makeFile(logger: logger) }, label: {
             Label(
                 String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle),
                 systemImage: "square.and.arrow.up"
@@ -77,6 +78,7 @@ extension TroubleshootingPage {
 
     private func copyLogToClipboard() {
         let logger = dependencies.app.debugLogger
+        let settingsManager = dependencies.app.settingsManager
         Task {
             let text = await Task.detached(priority: .userInitiated) {
                 logger.exportLogs()
@@ -85,7 +87,7 @@ extension TroubleshootingPage {
                 // The export scrubs health values (`DebugLogger.scrubPHI`),
                 // but still carries session ids and what was said to the
                 // assistant, so the copy is local-only and expiring.
-                PasteboardWriter.copy(text)
+                PasteboardWriter.copy(text, preserveForPaste: settingsManager.settings.preserveClipboardForPaste)
                 logCopiedConfirmation = true
             }
         }
@@ -453,9 +455,9 @@ enum DiagnosticLogExport {
         String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle)
     }
 
-    /// Writes the scrubbed log to the export folder; throws when it cannot.
-    static func makeFile() async throws -> URL {
-        guard let url = await AppDependencies.current.app.debugLogger.exportToFileAsync() else {
+    /// Writes `logger`'s scrubbed log to the export folder; throws when it cannot.
+    static func makeFile(logger: DebugLogger) async throws -> URL {
+        guard let url = await logger.exportToFileAsync() else {
             throw CocoaError(.fileWriteUnknown)
         }
         return url

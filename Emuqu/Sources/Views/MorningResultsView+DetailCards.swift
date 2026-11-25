@@ -346,9 +346,9 @@ extension MorningDetailCards {
             hrvValue
             // Against the scoring baseline, as "What This Means" rates it;
             // fixed millisecond cut-offs would give a third answer for the night.
-            Text(AppTheme.hrvLabel(vm.displayResult.timeDomain.rmssd, baseline: hrvBaseline))
+            Text(AppTheme.hrvLabel(vm.displayResult.timeDomain.rmssd, baseline: hrvBaseline, settings: settingsManager.settings))
                 .font(.caption)
-                .foregroundColor(AppTheme.hrvTextColor(vm.displayResult.timeDomain.rmssd, baseline: hrvBaseline))
+                .foregroundColor(AppTheme.hrvTextColor(vm.displayResult.timeDomain.rmssd, baseline: hrvBaseline, settings: settingsManager.settings))
         }
     }
 

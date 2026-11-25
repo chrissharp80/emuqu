@@ -42,7 +42,9 @@ extension FitnessPostSummaryView {
     }
 
     /// The threshold-card builders for the session currently rendered.
-    var thresholds: ThresholdCards { ThresholdCards(session: session) }
+    var thresholds: ThresholdCards {
+        ThresholdCards(session: session, settings: .snapshot(of: settingsManager))
+    }
 
     typealias Alpha1Stats = Alpha1ReportCards.Alpha1Stats
 
@@ -82,10 +84,12 @@ extension FitnessPostSummaryView {
             routeHistory = nil
             return
         }
-        let sessionSnapshot = session
+        let (sessionSnapshot, archive) = (session, dependencies.storage.sessionArchive)
         let unitsResolved = units.resolved
         let baseline = await Task.detached(priority: .userInitiated) {
-            FitnessSummaryCards.routeHistorySummary(routeName: routeName, session: sessionSnapshot, unitsResolved: unitsResolved)
+            FitnessSummaryCards.routeHistorySummary(
+                routeName: routeName, session: sessionSnapshot, unitsResolved: unitsResolved, archive: archive
+            )
         }.value
         guard generation == routeHistoryGeneration else { return }
         routeHistory = baseline

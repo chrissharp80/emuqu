@@ -66,22 +66,22 @@ final class ViewSnapshotTests: XCTestCase {
     // MARK: - ThresholdCards
 
     func testAlpha1LT1EstimateCardRenders() {
-        let cards = ThresholdCards(session: makeSession())
+        let cards = ThresholdCards(session: makeSession(), settings: .snapshot(of: AppDependencies.current.app.settingsManager))
         assertSnapshot(of: cards.alpha1LT1EstimateCard, named: "thresholds-lt1-estimate")
     }
 
     func testAlpha1CrossingsCardRenders() {
-        let cards = ThresholdCards(session: makeSession())
+        let cards = ThresholdCards(session: makeSession(), settings: .snapshot(of: AppDependencies.current.app.settingsManager))
         assertSnapshot(of: cards.alpha1CrossingsCard, named: "thresholds-crossings")
     }
 
     func testDerivedMetricsCardRenders() {
-        let cards = ThresholdCards(session: makeSession())
+        let cards = ThresholdCards(session: makeSession(), settings: .snapshot(of: AppDependencies.current.app.settingsManager))
         assertSnapshot(of: cards.derivedMetricsCard, named: "thresholds-derived-metrics")
     }
 
     func testHRZoneDistributionCardRenders() {
-        let cards = ThresholdCards(session: makeSession())
+        let cards = ThresholdCards(session: makeSession(), settings: .snapshot(of: AppDependencies.current.app.settingsManager))
         assertSnapshot(of: cards.hrZoneDistributionCard, named: "thresholds-hr-zones")
     }
 
@@ -98,7 +98,7 @@ final class ViewSnapshotTests: XCTestCase {
         empty.state = .complete
         empty.workoutMetadata = WorkoutMetadata(sport: .run)
 
-        let rows = ThresholdCards(session: empty).derivedMetricRows(samples: [])
+        let rows = ThresholdCards(session: empty, settings: .snapshot(of: AppDependencies.current.app.settingsManager)).derivedMetricRows(samples: [])
         XCTAssertTrue(
             rows.isEmpty,
             "A session with no samples must produce no derived-metric rows; "
@@ -107,7 +107,7 @@ final class ViewSnapshotTests: XCTestCase {
     }
 
     func testDerivedMetricsArePresentWithSamples() {
-        let rows = ThresholdCards(session: makeSession())
+        let rows = ThresholdCards(session: makeSession(), settings: .snapshot(of: AppDependencies.current.app.settingsManager))
             .derivedMetricRows(samples: makeSamples())
         XCTAssertFalse(
             rows.isEmpty,

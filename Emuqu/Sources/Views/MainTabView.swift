@@ -759,6 +759,6 @@ struct DashboardLoadTiming: Sendable {
 #Preview {
     MainTabView()
         .environment(RRCollector())
-        .environment(AppDependencies.current.storage.cloudKitSyncManager)
-        .environment(AppDependencies.current.services.languageManager)
+        .environment(AppDependencies().storage.cloudKitSyncManager)
+        .environment(AppDependencies().services.languageManager)
 }

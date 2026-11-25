@@ -297,7 +297,7 @@ extension AssistantChatView {
         // The screen-capture check above is a decision about WHETHER to copy and
         // stays here; the `.localOnly` + expiry policy is about HOW and lives in
         // `PasteboardWriter`.
-        PasteboardWriter.copy(text)
+        PasteboardWriter.copy(text, preserveForPaste: dependencies.app.settingsManager.settings.preserveClipboardForPaste)
     }
 
     /// A turn's text without phonetic markup — what its bubble shows.

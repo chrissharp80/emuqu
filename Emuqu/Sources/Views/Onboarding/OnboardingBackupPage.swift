@@ -108,5 +108,5 @@ struct OnboardingBackupPage: View {
 
 #Preview {
     OnboardingBackupPage(advance: {})
-        .environment(AppDependencies.current.app.settingsManager)
+        .environment(AppDependencies().app.settingsManager)
 }

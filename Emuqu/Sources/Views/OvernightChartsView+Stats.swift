@@ -12,6 +12,8 @@ struct OvernightStatsComputer: Sendable {
     let session: HRVSession
     let result: HRVAnalysisResult
     let healthKitSleep: SleepData?
+    /// The in-memory organized-zones cache the on-demand scan reads and fills.
+    let zonesCache: OrganizedZonesCache
 
     func computeOvernightStats() -> OvernightStats {
         guard let series = session.rrSeries, !series.points.isEmpty,
@@ -232,7 +234,7 @@ struct OvernightStatsComputer: Sendable {
     ) -> [HRVAnalysisResult.TimeRange] {
         result.organizedRecoveryZones ?? Self.computeOrganizedZonesOnDemand(
             sessionId: session.id, series: series, flags: flags,
-            sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs
+            sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs, cache: zonesCache
         )
     }
 
@@ -260,9 +262,9 @@ struct OvernightStatsComputer: Sendable {
         series: RRSeries,
         flags: [ArtifactFlags],
         sleepStartMs: Int64,
-        sleepEndMs: Int64
+        sleepEndMs: Int64,
+        cache: OrganizedZonesCache
     ) -> [HRVAnalysisResult.TimeRange] {
-        let cache = AppDependencies.current.app.organizedZonesCache
         if let cached = cache.get(sessionId, sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs) {
             return cached
         }
@@ -284,7 +286,7 @@ struct OvernightStatsComputer: Sendable {
     func willScanOrganizedZones() -> Bool {
         guard result.organizedRecoveryZones == nil, let series = session.rrSeries, !series.points.isEmpty else { return false }
         let (start, end) = resolveSleepBoundaries(series: series)
-        return AppDependencies.current.app.organizedZonesCache.get(session.id, sleepStartMs: start, sleepEndMs: end) == nil
+        return zonesCache.get(session.id, sleepStartMs: start, sleepEndMs: end) == nil
     }
 
     /// Persist computed zones back to the session's analysisResult so future
@@ -294,10 +296,11 @@ struct OvernightStatsComputer: Sendable {
     /// the zones next launch and try again).
     static func backfillZonesToArchive(
         sessionId: UUID,
-        zones: [HRVAnalysisResult.TimeRange]
+        zones: [HRVAnalysisResult.TimeRange],
+        archive: SessionArchive
     ) {
         Task.detached(priority: .background) {
-            writeZonesIfStillEmpty(sessionId: sessionId, zones: zones)
+            writeZonesIfStillEmpty(sessionId: sessionId, zones: zones, archive: archive)
         }
     }
 
@@ -310,10 +313,10 @@ struct OvernightStatsComputer: Sendable {
     /// archive-changed broadcast) when there is nothing to fill.
     private static func writeZonesIfStillEmpty(
         sessionId: UUID,
-        zones: [HRVAnalysisResult.TimeRange]
+        zones: [HRVAnalysisResult.TimeRange],
+        archive: SessionArchive
     ) {
         guard !zones.isEmpty else { return }
-        let archive = AppDependencies.current.storage.sessionArchive
         do {
             guard let stored = try archive.retrieve(sessionId), Self.zonesMissing(in: stored) else { return }
             try archive.update(sessionId, requestingReupload: false) { Self.fillMissingZones(zones, in: &$0) }
