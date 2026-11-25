@@ -25,4 +25,17 @@
 /// Returns true if every handler was installed.
 bool emuqu_install_crash_signal_handlers(const char *crash_file_path);
 
+#include <stdint.h>
+
+/// Up to `max` return addresses from the frame-pointer chain whose first
+/// record is at `fp`, written to `out`; returns how many. Each record is two
+/// words (the caller's record, then the return address). The walk stops at
+/// a record outside [stack_low, stack_high), a misaligned one, a zero return
+/// address, or a link that does not lead up the stack, so a corrupt chain
+/// ends it instead of faulting or looping. Signal-safe: it reads memory and
+/// nothing else.
+int emuqu_walk_frame_chain(
+    uintptr_t fp, uintptr_t stack_low, uintptr_t stack_high, uintptr_t *out, int max
+);
+
 #endif /* CrashSignalHandler_h */

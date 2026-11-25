@@ -112,6 +112,7 @@ extension WorkoutAIContextBuilder {
             return
         }
         recorder.plannedRoute = match.route
+        recorder.plannedSavedRouteId = match.savedRoute.id
         recorder.plannedRouteWasAutoDetected = true
         recorder.plannedRouteDirection = match.direction
         debugLog("[WorkoutRecorder] auto-bound saved route \(match.savedRoute.id.uuidString.prefix(8)) \(match.direction == .reverse ? "(reverse)" : "") fit \(Int(match.meanFitMeters.rounded())) m")
@@ -555,4 +556,19 @@ extension WorkoutAIContextBuilder {
         return endBaro.altitudeMeters - startBaro.altitudeMeters
     }
 
+}
+
+extension WorkoutRecorder {
+    /// The user deleted the saved route `id`: when it is the one this
+    /// workout is following, the workout stops following it, so the coach
+    /// no longer names it and the session is not stamped with it ("the coach
+    /// stops recognising it on your workouts").
+    func forgetDeletedSavedRoute(_ id: UUID) {
+        guard plannedSavedRouteId == id else { return }
+        plannedRoute = nil
+        plannedSavedRouteId = nil
+        plannedRouteWasAutoDetected = false
+        plannedRouteDirection = .forward
+        debugLog("[WorkoutRecorder] saved route \(id.uuidString.prefix(8)) deleted during the workout — no longer followed")
+    }
 }

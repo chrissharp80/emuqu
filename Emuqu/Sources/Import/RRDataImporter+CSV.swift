@@ -10,7 +10,7 @@ extension RRDataImporter {
     /// from and has always returned them empty. Preserved rather than changed,
     /// because the signature is shared.
     func parseCSV(_ content: String) throws -> ([Int], [String: String], Date?) {
-        let lines = content.components(separatedBy: .newlines)
+        let lines = csvRecords(content)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         guard let headerLine = lines.first else {
@@ -33,7 +33,7 @@ extension RRDataImporter {
             // Skip comment lines
             .filter { !$0.hasPrefix("#") && !$0.hasPrefix("//") }
             .compactMap { line -> Int? in
-                let columns = line.split(separator: separator).map { String($0).trimmingCharacters(in: .whitespaces) }
+                let columns = Self.fields(of: line, separator: separator)
                 return Self.rrValue(fromColumns: columns, rrColumnIndex: rrColumn, convert: convertToMilliseconds)
             }
             // Zero, negative or absurd values ("1e30") are not beats, and
@@ -59,11 +59,10 @@ extension RRDataImporter {
     }
 
     /// Index of the column holding RR intervals, or nil when no header column
-    /// names one.
+    /// names one. Read with `fields(of:separator:)`, as the rows are, so
+    /// the index means the same column in both.
     static func rrColumnIndex(inHeaderLine line: String, separator: Character) -> Int? {
-        let headers = line.split(separator: separator)
-            .map { String($0).lowercased().trimmingCharacters(in: .whitespaces) }
-        return headers.firstIndex(where: namesRRColumn)
+        fields(of: line.lowercased(), separator: separator).firstIndex(where: namesRRColumn)
     }
 
     /// Whether a lowercased header names the RR column: one of its words is
@@ -93,13 +92,15 @@ extension RRDataImporter {
     ///  • The first-column fallback fires only when column 1 failed to parse
     ///    as a finite number at all — NOT when it parsed and then failed the
     /// range check: the fallback branches on the parse, not on validity.
+    ///  • A row too short to reach the header's RR column is skipped, not
+    ///    guessed at: its other columns are not RR.
     static func rrValue(
         fromColumns columns: [String],
         rrColumnIndex: Int?,
         convert: (Double) -> Int
     ) -> Int? {
-        if let colIndex = rrColumnIndex, colIndex < columns.count {
-            guard let value = Double(columns[colIndex]), value.isFinite else { return nil }
+        if let colIndex = rrColumnIndex {
+            guard colIndex < columns.count, let value = Double(columns[colIndex]), value.isFinite else { return nil }
             return convert(value)
         }
         if columns.count == 1 {
@@ -161,14 +162,20 @@ extension RRDataImporter {
     }
 
     func parseCSVLine(_ line: String) -> [String] {
+        Self.fields(of: line, separator: ",")
+    }
+
+    /// One record's fields, trimmed. Empty fields are kept, so a field's
+    /// index is its column ("a,,b" has three), and `separator` inside
+    /// double quotes is part of the field.
+    static func fields(of line: String, separator: Character) -> [String] {
         var result: [String] = []
         var current = ""
         var inQuotes = false
-
         for char in line {
             if char == "\"" {
                 inQuotes.toggle()
-            } else if char == ",", !inQuotes {
+            } else if char == separator, !inQuotes {
                 result.append(current.trimmingCharacters(in: .whitespaces))
                 current = ""
             } else {

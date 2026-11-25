@@ -315,6 +315,7 @@ struct MorningResultsView: View {
         }
     }
 
+    @ViewBuilder
     private var primaryMetricsSections: some View {
         // MARK: - Primary Metrics Row (HRV + Sleep side-by-side)
 
@@ -322,6 +323,7 @@ struct MorningResultsView: View {
             hrvDetailLink
             sleepDetailLink
         }
+        partialHistoryNotice
 
         // Sleep detail is accessible via the compact sleep card above.
         // The full-width sleep card belongs in SleepDetailView only.

@@ -79,14 +79,14 @@ final class AssistantContextSource: Sendable {
         baselineTracker: BaselineTracker?
     ) -> AssistantContext {
         let settings = services.settingsManager.settingsSnapshot
-        let recentSessions = recentLightweightSessions()
+        let (recentSessions, unreadable) = recentLightweightSessions()
         let overnightSessions = recentSessions.filter { $0.sessionType == .overnight }
         let latestSession = overnightSessions.first ?? recentSessions.first
         let yesterdaySession = previousOvernight(after: latestSession, in: overnightSessions)
         let scoringBaseline = { (session: HRVSession?) in
             session.flatMap { baselineTracker?.recoveryBaselineStats(excludingNightOf: $0, sleepSchedule: settings.sleepSchedule) }
         }
-        return ContextBuilder.build(
+        return noting(unreadable, in: ContextBuilder.build(
             services: services, latestSession: latestSession, yesterdaySession: yesterdaySession, recentSessions: recentSessions,
             sleepInput: AnalysisSleepInput(from: latestSession?.sleepSnapshot),
             sleepTrend: .recentNights(before: latestSession, in: recentSessions),
@@ -97,18 +97,25 @@ final class AssistantContextSource: Sendable {
             trends7Day: TrendAnalyzer.analyze(sessions: recentSessions, period: .week),
             trends30Day: TrendAnalyzer.analyze(sessions: recentSessions, period: .month),
             liveLoadSnapshot: liveLoadSnapshot
-        )
+        ))
+    }
+
+    private func noting(_ unreadable: Int, in context: AssistantContext) -> AssistantContext {
+        var context = context
+        context.unreadableRecentSessions = unreadable
+        return context
     }
 
     /// Lightweight sessions (no rrSeries blob) for the last ~30 days,
-    /// newest first.
-    private func recentLightweightSessions() -> [HRVSession] {
+    /// newest first, and how many of them could not be read.
+    private func recentLightweightSessions() -> (sessions: [HRVSession], unreadable: Int) {
         let archive = services.sessionArchive
         let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date.distantPast
-        return archive.store.entries
+        let entries = archive.store.entries
             .filter { $0.date >= cutoff }
             .sorted { $0.date > $1.date }
-            .compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "AssistantContextSource.build") }
+        let sessions = entries.compactMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "AssistantContextSource.build") }
+        return (sessions, entries.count - sessions.count)
     }
 
     /// Yesterday = the next overnight session before today's anchor. Skipping

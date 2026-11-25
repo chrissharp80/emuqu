@@ -117,7 +117,18 @@ final class FactResolverRegistry: Sendable {
     /// is "user"). We scan the remaining namespaces for an entry that
     /// matches the full key; first hit wins. O(N) across namespaces
     /// but N is small (<15) and composites are cheap to check.
+    ///
+    /// A key resolved outside another resolve counts the session files that
+    /// could not be read on the way (`SessionReadWatch`), and its answer says
+    /// so (`accountingFor(unreadSessions:)`).
     func resolve(_ rawKey: String) -> FactValue {
+        if SessionReadWatch.failures != nil { return resolveKey(rawKey) }
+        let failures = SessionReadFailures()
+        let value = SessionReadWatch.$failures.withValue(failures) { resolveKey(rawKey) }
+        return value.accountingFor(unreadSessions: failures.count)
+    }
+
+    private func resolveKey(_ rawKey: String) -> FactValue {
         if let prefetched = prefetchedChildren.withLock({ $0[rawKey] }) { return prefetched }
         guard let key = FactKey.parse(rawKey) else {
             return .missing(reason: .invalidParameter, detail: "malformed key")
@@ -143,6 +154,14 @@ final class FactResolverRegistry: Sendable {
     /// bodies suspend the actor instead of blocking it.
     @MainActor
     func resolveAsync(_ rawKey: String) async -> FactValue {
+        if SessionReadWatch.failures != nil { return await resolveKeyAsync(rawKey) }
+        let failures = SessionReadFailures()
+        let value = await SessionReadWatch.$failures.withValue(failures) { await resolveKeyAsync(rawKey) }
+        return value.accountingFor(unreadSessions: failures.count)
+    }
+
+    @MainActor
+    private func resolveKeyAsync(_ rawKey: String) async -> FactValue {
         guard let key = FactKey.parse(rawKey) else {
             return .missing(reason: .invalidParameter, detail: "malformed key")
         }

@@ -187,14 +187,15 @@ final class RRCollector {
     }
 
     /// Every archived session (lightweight), for a screen that charts the
-    /// whole history. Cancelling the calling task cancels the load: no new
-    /// read starts, and nil comes back rather than part of the history, so a
-    /// caller never shows or acts on an incomplete list.
-    func allSessionsAsync() async -> [HRVSession]? {
+    /// whole history, with the sessions that could not be read marked as
+    /// such (`SessionLoad`). Cancelling the calling task cancels the load:
+    /// no new read starts, and nil comes back rather than part of the
+    /// history, so a caller never shows or acts on an incomplete list.
+    func allSessionsAsync() async -> SessionLoad? {
         let entries = archive.store.entries
         let archive = self.archive
         let work = Task.detached(priority: .userInitiated) {
-            await Self.decodeInParallel(entries, archive: archive)
+            await Self.decodeMarkingFailures(entries, archive: archive)
         }
         let sessions = await withTaskCancellationHandler {
             await work.value
@@ -219,35 +220,41 @@ final class RRCollector {
     /// decode are left out. Also the decode of
     /// `recentSessionsAsync(limit:before:type:)`.
     nonisolated static func decodeInParallel(_ entries: [SessionArchiveEntry], archive: SessionArchive) async -> [HRVSession] {
+        await decodeMarkingFailures(entries, archive: archive).sessions
+    }
+
+    /// `decodeInParallel` that keeps a nil in place of each session that
+    /// could not be read.
+    nonisolated static func decodeMarkingFailures(_ entries: [SessionArchiveEntry], archive: SessionArchive) async -> SessionLoad {
         await withTaskGroup(of: (Int, HRVSession?).self) { group in
             let first = min(decodeWidth, entries.count)
             for index in 0 ..< first {
                 addDecodeTask(&group, index: index, entry: entries[index], archive: archive)
             }
-            return await drainRefilling(&group, entries: entries, next: first, archive: archive)
+            let decoded = await drainRefilling(&group, entries: entries, next: first, archive: archive)
+            return SessionLoad(ids: entries.map(\.sessionId), decoded: decoded)
         }
     }
 
     /// Collect each finished read and start the next unread entry in its
     /// place, until every started read has finished. No new read starts
-    /// once the task is cancelled. Returns the decoded sessions in the
-    /// entries' order.
+    /// once the task is cancelled. Returns one slot per entry, in the
+    /// entries' order: the session, or nil when it failed or was never read.
     nonisolated private static func drainRefilling(
         _ group: inout TaskGroup<(Int, HRVSession?)>,
         entries: [SessionArchiveEntry],
         next start: Int,
         archive: SessionArchive
-    ) async -> [HRVSession] {
+    ) async -> [HRVSession?] {
         var next = start
-        var indexed: [(Int, HRVSession)] = []
-        indexed.reserveCapacity(entries.count)
+        var decoded = [HRVSession?](repeating: nil, count: entries.count)
         while let finished = await group.next() {
-            finished.1.map { indexed.append((finished.0, $0)) }
+            decoded[finished.0] = finished.1
             guard next < entries.count, !Task.isCancelled else { continue }
             addDecodeTask(&group, index: next, entry: entries[next], archive: archive)
             next += 1
         }
-        return indexed.sorted { $0.0 < $1.0 }.map(\.1)
+        return decoded
     }
 
     nonisolated private static func addDecodeTask(
@@ -404,7 +411,9 @@ final class RRCollector {
         rebuildBaselineOffMain(replacing: true)
     }
 
-    /// A replacing rebuild starts from an empty tracker; one whose archive
+    /// A replacing rebuild starts from a tracker holding only the readings
+    /// of the nights it could not read (a file that fails to decrypt for a
+    /// moment must not drop its night from every later score); one whose archive
     /// changed while it decoded starts over instead, so a night archived or
     /// rewritten (a newer iCloud copy under the same id) in the meantime is
     /// neither wiped from the baseline nor scored from its old copy. The pass
@@ -419,7 +428,7 @@ final class RRCollector {
     private func commitRebuiltBaseline(_ sessions: [HRVSession], decoded: [ArchivedCopy: HRVSession], copies: [ArchivedCopy], replacing: Bool) {
         if replacing {
             guard archive.store.entries.map(ArchivedCopy.init) == copies else { return restartReplacingRebuild(reusing: decoded) }
-            baselineTracker.reset()
+            baselineTracker.reset(keepingReadingsOf: Set(copies.filter { decoded[$0] == nil }.map(\.sessionId)))
         } else if baselineTracker.daysCollected > 0 {
             return
         }

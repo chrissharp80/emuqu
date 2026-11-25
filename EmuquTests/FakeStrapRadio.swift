@@ -61,6 +61,9 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
         var hanging: Set<String> = []
     }
 
+    /// Runs as each exercise fetch is served, so a test can act mid-transfer.
+    var onFetchExercise: (@Sendable () -> Void)?
+
     private let state = NSLock()
     private var value = State()
 
@@ -227,6 +230,7 @@ final class FakeStrapRadio: StrapRadio, @unchecked Sendable {
         guard let data = withState({ $0.exerciseData[entry.entryId] }) else {
             throw PolarErrors.deviceError(description: "no such exercise")
         }
+        onFetchExercise?()
         return data
     }
 

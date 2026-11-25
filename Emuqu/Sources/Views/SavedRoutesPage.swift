@@ -68,7 +68,11 @@ struct SavedRoutesPage: View {
 
     private func deleteRoute(_ route: SavedRoute) {
         deletingRoute = nil
-        if !store.remove(id: route.id) { showSaveFailed = true }
+        guard store.remove(id: route.id) else {
+            showSaveFailed = true
+            return
+        }
+        dependencies.app.recorderBox.recorder?.forgetDeletedSavedRoute(route.id)
     }
 
     private func commitRename() {

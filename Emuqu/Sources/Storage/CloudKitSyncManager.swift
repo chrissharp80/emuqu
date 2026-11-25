@@ -745,13 +745,25 @@ final class CloudKitSyncManager {
             let beforeUploaded = await MainActor.run { self.state.uploadedSessionIds.count }
             await self.pushPendingSessions()
             try Task.checkCancellation()
+            try await self.requireSyncStillOn()
             try await self.accountGuard.requireConfirmedAccount()
             await self.deletion.reconcileLocalDeletions()
             try Task.checkCancellation()
+            try await self.requireSyncStillOn()
             try await self.accountGuard.requireConfirmedAccount()
             await self.pull.pullRemoteChanges()
             let afterUploaded = await MainActor.run { self.state.uploadedSessionIds.count }
             return afterUploaded - beforeUploaded
+        }
+    }
+
+    /// Ends a sync the user switched off while it ran, before its next
+    /// phase: "When OFF: nothing new goes up or comes down" holds for the
+    /// sync already under way, not only the next one.
+    private func requireSyncStillOn() async throws {
+        guard await MainActor.run(body: { self.cloudUploadsAllowed }) else {
+            debugLog("[CloudKit] iCloud sync was switched off during a sync — stopping it", level: .info)
+            throw CancellationError()
         }
     }
 

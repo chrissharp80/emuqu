@@ -47,11 +47,11 @@ enum OpenAICompatibleStreamer {
         case thinkingDisabled
     }
 
-    /// Streams `call`, reading the provider's key from `keys` when the
-    /// stream starts.
-    static func send(_ call: StreamCall, keys: APIKeyStore) -> AsyncThrowingStream<AIStreamEvent, Error> {
+    /// Streams `call`, reading the provider's key and consent from
+    /// `services` when the stream starts.
+    static func send(_ call: StreamCall, services: AIProviderServices) -> AsyncThrowingStream<AIStreamEvent, Error> {
         ProviderStream.make { continuation in
-            try await stream(call, keys: keys, continuation: continuation)
+            try await stream(call, services: services, continuation: continuation)
         }
     }
 
@@ -253,14 +253,14 @@ enum OpenAICompatibleStreamer {
 
     private static func stream(
         _ call: StreamCall,
-        keys: APIKeyStore,
+        services: AIProviderServices,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws {
-        guard let apiKey = keys.key(for: call.providerID) else {
+        guard let apiKey = services.apiKeyStore.key(for: call.providerID) else {
             throw AIProviderError.missingKey(call.providerID)
         }
         let request = try requestFor(call, apiKey: apiKey)
-        let lines = try await ProviderHTTP.openStream(request, provider: call.providerID) { status, body in
+        let lines = try await ProviderHTTP.openStream(request, provider: call.providerID, services: services) { status, body in
             statusFailure(status, body: body, providerID: call.providerID)
         }
         try await consumeSSE(lines, providerID: call.providerID, continuation: continuation)
@@ -529,6 +529,6 @@ extension OpenAICompatibleProvider {
             model: model, contextRendered: contextRendered, systemPrompt: systemPrompt,
             tools: tools, toolRounds: toolRounds
         )
-        return OpenAICompatibleStreamer.send(call, keys: services.apiKeyStore)
+        return OpenAICompatibleStreamer.send(call, services: services)
     }
 }

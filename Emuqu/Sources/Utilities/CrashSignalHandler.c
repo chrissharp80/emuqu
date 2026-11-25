@@ -2,7 +2,6 @@
 
 #include <dlfcn.h>
 #include <errno.h>
-#include <execinfo.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <mach-o/dyld.h>
@@ -10,14 +9,18 @@
 #include <signal.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/ucontext.h>
 #include <unistd.h>
 
 #define EMUQU_MAX_FRAMES 128
+// How long a second crashing thread waits for the first to finish the log
+// before it ends the process itself.
+#define EMUQU_SECOND_THREAD_WAIT_SECONDS 3
 
 // All handler state is static and filled in at install time. The handler reads
 // it and never writes to anything that could need an allocator.
 static char g_crash_path[PATH_MAX];
-static void *g_frames[EMUQU_MAX_FRAMES];
+static uintptr_t g_frames[EMUQU_MAX_FRAMES];
 static intptr_t g_image_slide;
 // The image the app's OWN code lives in, which on a debug build is NOT the
 // main executable — see the note in the installer.
@@ -107,7 +110,83 @@ static void safe_write_signal_name(int fd, int sig) {
     }
 }
 
-static void emuqu_signal_handler(int signal_number) {
+/// A return address with any pointer-authentication bits cleared, so it is
+/// an address `atos` can read.
+static uintptr_t strip_return_address(uintptr_t address) {
+#if defined(__arm64__)
+    return address & 0x0000007FFFFFFFFFULL;
+#else
+    return address;
+#endif
+}
+
+int emuqu_walk_frame_chain(
+    uintptr_t fp, uintptr_t stack_low, uintptr_t stack_high, uintptr_t *out, int max
+) {
+    int count = 0;
+    while (count < max && fp >= stack_low && fp <= stack_high - 2 * sizeof(uintptr_t)
+           && (fp & (sizeof(uintptr_t) - 1)) == 0) {
+        const uintptr_t *record = (const uintptr_t *)fp;
+        uintptr_t next = record[0];
+        uintptr_t return_address = record[1];
+        if (return_address == 0) {
+            break;
+        }
+        out[count++] = strip_return_address(return_address);
+        if (next <= fp) {
+            break; // The stack grows down: a caller's record sits above.
+        }
+        fp = next;
+    }
+    return count;
+}
+
+/// The crashed code's pc, link register (0 where there is none) and frame
+/// pointer, from the context the kernel handed the handler.
+static void interrupted_registers(void *context, uintptr_t *pc, uintptr_t *lr, uintptr_t *fp) {
+    *pc = 0;
+    *lr = 0;
+    *fp = 0;
+    ucontext_t *uc = (ucontext_t *)context;
+    if (uc == NULL || uc->uc_mcontext == NULL) {
+        return;
+    }
+#if defined(__arm64__)
+    *pc = (uintptr_t)arm_thread_state64_get_pc(uc->uc_mcontext->__ss);
+    *lr = (uintptr_t)arm_thread_state64_get_lr(uc->uc_mcontext->__ss);
+    *fp = (uintptr_t)arm_thread_state64_get_fp(uc->uc_mcontext->__ss);
+#elif defined(__x86_64__)
+    *pc = (uintptr_t)uc->uc_mcontext->__ss.__rip;
+    *fp = (uintptr_t)uc->uc_mcontext->__ss.__rbp;
+#endif
+}
+
+/// The crashed thread's frames: its pc, its link register when the crashing
+/// function had not saved it yet, then the frame-pointer chain. Unlike
+/// `backtrace()`, which can take the unwinder's locks, this only reads the
+/// thread's own stack, within its bounds, so it cannot stall or fault.
+static int crashed_thread_frames(void *context) {
+    uintptr_t pc, lr, fp;
+    interrupted_registers(context, &pc, &lr, &fp);
+    pthread_t self = pthread_self();
+    uintptr_t stack_high = (uintptr_t)pthread_get_stackaddr_np(self);
+    uintptr_t stack_low = stack_high - (uintptr_t)pthread_get_stacksize_np(self);
+    int count = 0;
+    if (pc != 0) {
+        g_frames[count++] = strip_return_address(pc);
+    }
+    // A function that had not saved its link register yet has its caller
+    // only there; one that had has it as the chain's first return address.
+    uintptr_t first_return = 0;
+    int has_first = emuqu_walk_frame_chain(fp, stack_low, stack_high, &first_return, 1);
+    if (lr != 0 && (has_first == 0 || first_return != strip_return_address(lr))) {
+        g_frames[count++] = strip_return_address(lr);
+    }
+    return count + emuqu_walk_frame_chain(fp, stack_low, stack_high, g_frames + count, EMUQU_MAX_FRAMES - count);
+}
+
+static void emuqu_signal_handler(int signal_number, siginfo_t *info, void *context) {
+    (void)info;
     // The first signal claims the handler with an atomic exchange, so two
     // threads crashing together cannot both truncate and write the file.
     if (__atomic_exchange_n(&g_handling, 1, __ATOMIC_SEQ_CST) != 0) {
@@ -119,9 +198,14 @@ static void emuqu_signal_handler(int signal_number) {
         }
         // Another thread is still writing. Wait for it: its re-raise ends the
         // process, so the log is completed and the OS still writes its report.
-        for (;;) {
-            pause();
+        // The wait is bounded: if that thread never gets there, this one
+        // ends the process with its own signal instead of hanging it.
+        for (int waited = 0; waited < EMUQU_SECOND_THREAD_WAIT_SECONDS; waited++) {
+            sleep(1);
         }
+        signal(signal_number, SIG_DFL);
+        raise(signal_number);
+        _exit(128 + signal_number);
     }
     g_handling_thread = pthread_self();
 
@@ -156,12 +240,9 @@ static void emuqu_signal_handler(int signal_number) {
             "one. Frames outside that address range belong to system libraries.\n"
             "\nSTACK TRACE\n");
 
-        // backtrace() only walks frames into the buffer we already own. Its
-        // symbolising sibling, backtrace_symbols(), allocates — never call it
-        // here.
-        int count = backtrace(g_frames, EMUQU_MAX_FRAMES);
+        int count = crashed_thread_frames(context);
         for (int i = 0; i < count; i++) {
-            safe_write_hex_line(fd, (uintptr_t)g_frames[i]);
+            safe_write_hex_line(fd, g_frames[i]);
         }
 
         safe_write_lit(fd, "\nEND OF CRASH LOG\n");
@@ -232,19 +313,14 @@ bool emuqu_install_crash_signal_handlers(const char *crash_file_path) {
         g_code_image_name_len = sizeof(unknown) - 1;
     }
 
-    // Warm backtrace() so that the call inside the handler is never the one
-    // that has to initialise anything lazily.
-    void *warm[4];
-    (void)backtrace(warm, 4);
-
     struct sigaction action;
     memset(&action, 0, sizeof(action));
-    action.sa_handler = emuqu_signal_handler;
+    action.sa_sigaction = emuqu_signal_handler;
     sigemptyset(&action.sa_mask);
     // SA_NODEFER is deliberately NOT set: the signal being handled stays
     // blocked on the handling thread for the duration. Other threads can still
     // take a fatal signal; the guard in the handler makes them wait.
-    action.sa_flags = 0;
+    action.sa_flags = SA_SIGINFO;
 
     // All or nothing: if one sigaction fails, the handlers already installed
     // are put back to what they were, so `false` means none is installed.

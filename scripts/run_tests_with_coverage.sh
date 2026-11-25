@@ -9,8 +9,8 @@ PROJECT="${PROJECT:-Emuqu.xcodeproj}"
 RESULT_BUNDLE="${RESULT_BUNDLE:-build/TestResults.xcresult}"
 MIN_COVERAGE="${MIN_COVERAGE:-}"
 
-# TEST_SCOPE=unit runs only `EmuquTests` and gates on the Views floor alone;
-# the OVERALL and LOGIC floors are reported but not enforced (see `unit` below).
+# TEST_SCOPE=unit runs only `EmuquTests`; all three floors (overall, logic,
+# views) are enforced at either scope.
 #
 # Cost. The two targets are wildly asymmetric: the unit target runs
 # in ~25 SECONDS, the UI target in ~37 MINUTES, and macOS Actions minutes bill at
@@ -29,20 +29,9 @@ TEST_SCOPE="${TEST_SCOPE:-full}"
 case "$TEST_SCOPE" in
     unit)
         ONLY_TESTING_ARGS="-only-testing:EmuquTests"
-        # Coverage is REPORTED but not GATED for a unit-only run.
-        #
-        # Both floors in .ci/ were derived from a full-suite measurement. A
-        # unit-only run has a different numerator and the same denominator, so
-        # it produces a genuinely different number — 40.0% logic against the
-        # full suite's 43.6% on the same commit. Gating the cheap job on a floor
-        # calibrated for the expensive one would fail it for a reason unrelated
-        # to the change under test, and the obvious "fix" — adding a second,
-        # lower floor — would be a weaker number that looks like a standard.
-        #
-        # So this job proves the tests PASS, which is what fast feedback is for.
-        # The floors stay gated on the full run, which is what a release needs.
-        export SKIP_OVERALL_COVERAGE=1
-        export SKIP_LOGIC_COVERAGE=1
+        # The floors hold here too. The unit target alone already clears
+        # them (about 58% logic and 52% overall against floors of 45 and 44),
+        # so a pull request that drops coverage fails on the pull request.
         ;;
     full)
         ONLY_TESTING_ARGS=""

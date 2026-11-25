@@ -937,3 +937,21 @@ final class BaselineTracker: @unchecked Sendable {
         }
     }
 }
+
+// MARK: - Replacing rebuild
+
+extension BaselineTracker {
+    /// The start of a replacing rebuild: forgets every stored night except
+    /// the readings of `unreadable`, archived sessions the rebuild could not
+    /// read this time, and saves the result. With none, a plain `reset()`.
+    func reset(keepingReadingsOf unreadable: Set<UUID>) {
+        guard !unreadable.isEmpty else { return reset() }
+        debugLog("[Baseline] rebuild keeps the stored readings of \(unreadable.count) sessions it could not read", level: .warning)
+        defer { notifyIfChanged() }
+        lock.lock()
+        defer { lock.unlock() }
+        historicalData = historicalData.filter { point in point.sessionId.map(unreadable.contains) ?? false }
+        if saveHold == .fileNotRead { saveHold = nil }
+        commitChanges()
+    }
+}

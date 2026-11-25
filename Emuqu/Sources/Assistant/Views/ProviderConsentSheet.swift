@@ -274,7 +274,7 @@ struct ProviderConsentSheet: View {
             .font(.subheadline.bold())
 
         bulletList([
-            String(localized: "Apple Intelligence is on-device. If you'd rather not share with \(provider.vendorName), switch to Apple Intelligence in Settings.", bundle: LanguageManager.appBundle),
+            String(localized: "Apple Intelligence is on-device. To stop sharing with \(provider.vendorName), withdraw consent in Settings → Flo: choosing Apple Intelligence alone still lets Flo use it when Apple Intelligence can't answer.", bundle: LanguageManager.appBundle),
             // Softer than the
             // absolute "nothing is sent anywhere we don't show"
             // — the geo backends + Tavily are disclosed

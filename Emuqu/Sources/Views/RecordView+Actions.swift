@@ -141,8 +141,8 @@ extension RecordView {
     /// deprioritize BLE.
     ///
     /// Gated on
-    /// `settings.keepScreenOnDuringRecording` (default OFF per user request:
-    /// respects iOS auto-lock by default).
+    /// `settings.shouldKeepScreenOnDuringRecording` (the toggle, on by
+    /// default, and off in Low Power Mode).
     ///
     /// `stopSession` throws only before the download starts (strap not
     /// connected) and does not record that error itself, so it is set here
@@ -174,7 +174,7 @@ extension RecordView {
         Task { await performRetryFetch() }
     }
 
-    /// The keep-awake is gated on user preference (default off).
+    /// The keep-awake is gated on user preference (on by default, off in Low Power Mode).
     /// On failure `fetchFailed` stays true so the user can retry again. A
     /// retry that cannot start (strap disconnected between tap and call)
     /// throws without recording why, so the error is set here.
@@ -292,7 +292,8 @@ extension RecordView {
 }
 
 /// Keeps the screen on around a strap download when the user opted in
-/// (`keepScreenOnDuringRecording`, default off). It takes the hold only when
+/// (`shouldKeepScreenOnDuringRecording`: the toggle, on by default, and
+/// off in Low Power Mode). It takes the hold only when
 /// nothing else holds it, and gives back only a hold it took, so a flow that
 /// already kept the screen on (Get Me Back) is not cleared when the download
 /// ends — the same ownership rule as `GetMeBackView.resetScreenState`.

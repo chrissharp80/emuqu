@@ -28,6 +28,10 @@ enum DataSourceSelector {
             if sourceDescription.contains("streaming") { return "streaming" }
             return "internal"
         }
+
+        /// Whether the strap's recorded beats are in `points`: the internal
+        /// recording alone, or merged with the stream.
+        var usesDeviceBeats: Bool { isComposite || !sourceDescription.contains("streaming") }
     }
 
     /// Select the best data source from streaming and internal recording data.

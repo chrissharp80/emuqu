@@ -200,17 +200,18 @@ struct HealthWorkoutSummary: Codable {
     /// `.mets` tier).
     ///
     /// Lightweight decode — skips `rrSeries`, which is the expensive part. A
-    /// session that cannot be read is logged (`retrieveLightweightOrLog`), not
-    /// swallowed, and left out of the training load.
+    /// session that cannot be read is logged (`retrieveLightweightOrLog`) and
+    /// counted from its index entry instead (`summaryFromIndex`), so a file
+    /// that fails to decrypt for a moment does not drop the workout from the
+    /// load frozen into tonight's score.
     /// Workout metadata + sample buffer + meanHR are top-level fields and
     /// remain populated.
     private static func summary(
         from entry: SessionArchiveEntry,
         archive: SessionArchive
     ) -> HealthWorkoutSummary? {
-        guard let session = archive.retrieveLightweightOrLog(entry.sessionId),
-              let meta = session.workoutMetadata
-        else { return nil }
+        guard let session = archive.retrieveLightweightOrLog(entry.sessionId) else { return summaryFromIndex(entry) }
+        guard let meta = session.workoutMetadata else { return nil }
         let samples = meta.samples ?? []
         let durationSec = clampedDuration(samples: samples, entry: entry)
         guard durationSec >= minimumWorkoutDurationSec else { return nil }
@@ -226,6 +227,21 @@ struct HealthWorkoutSummary: Codable {
             precomputedLoad: preferred?.value,
             precomputedLoadSource: preferred?.source.rawValue,
             wasRecovered: meta.partialDataReason != nil
+        )
+    }
+
+    /// An unreadable workout as its index entry has it: its span and mean
+    /// heart rate, so the HR-only TRIMP estimate counts it, as it counts a
+    /// HealthKit workout with only an average. Nil without both. The sport
+    /// is not in the index; `.other` keeps it from reading as any one sport.
+    static func summaryFromIndex(_ entry: SessionArchiveEntry) -> HealthWorkoutSummary? {
+        guard let end = entry.endDate, let meanHR = entry.meanHR else { return nil }
+        let durationSec = end.timeIntervalSince(entry.date)
+        guard durationSec >= minimumWorkoutDurationSec else { return nil }
+        debugLog("[Training] workout \(entry.sessionId.uuidString.prefix(8)) unreadable — counted from its index entry (\(Int(durationSec / 60)) min, \(Int(meanHR)) bpm)", level: .warning)
+        return HealthWorkoutSummary(
+            date: entry.date, type: .other, durationMinutes: durationSec / 60.0, caloriesBurned: nil,
+            averageHR: meanHR, maxHR: nil, precomputedLoad: nil, precomputedLoadSource: nil, wasRecovered: false
         )
     }
 

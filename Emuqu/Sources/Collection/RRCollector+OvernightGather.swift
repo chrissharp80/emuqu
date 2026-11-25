@@ -48,7 +48,7 @@ extension MorningSessionPipeline {
         streamingPoints: [RRPoint],
         internalPoints: [RRPoint]?,
         baseSession: HRVSession
-    ) async -> (points: [RRPoint], source: String)? {
+    ) async -> (points: [RRPoint], source: String, usesDeviceBeats: Bool)? {
         let isResumedChild = baseSession.linkedSessionIds?.isEmpty == false
         guard OvernightStreamingCoordinator.hasSufficientOvernightData(
             streamingCount: streamingPoints.count,
@@ -64,7 +64,23 @@ extension MorningSessionPipeline {
             streamingPoints: streamingPoints, internalPoints: internalPoints,
             baseSession: baseSession, isResumedChild: isResumedChild
         )
-        if chosen == nil { await failRescuingDownload(internalPoints, baseSession: baseSession) }
+        return await keepingDownload(chosen, internalPoints: internalPoints, baseSession: baseSession)
+    }
+
+    /// The strap's beats are kept before the analysis runs, as the morning
+    /// stop keeps them: the download is already on record, and the stream's
+    /// backup alone would let the next arming clear the strap's copy. No
+    /// source chosen fails the session, rescuing the download.
+    private func keepingDownload(
+        _ chosen: (points: [RRPoint], source: String, usesDeviceBeats: Bool)?, internalPoints: [RRPoint]?, baseSession: HRVSession
+    ) async -> (points: [RRPoint], source: String, usesDeviceBeats: Bool)? {
+        guard let chosen else {
+            await failRescuingDownload(internalPoints, baseSession: baseSession)
+            return nil
+        }
+        await collector.overnightStreaming.backUpDownloadedNight(
+            internalPoints, chosen: chosen.points, usedDevice: chosen.usesDeviceBeats, baseSession: baseSession
+        )
         return chosen
     }
 
@@ -123,16 +139,16 @@ private func selectOvernightSource(
     internalPoints: [RRPoint]?,
     baseSession: HRVSession,
     isResumedChild: Bool
-) -> (points: [RRPoint], source: String)? {
+) -> (points: [RRPoint], source: String, usesDeviceBeats: Bool)? {
     if let selection = DataSourceSelector.selectBestSource(
         streamingPoints: streamingPoints,
         internalPoints: internalPoints,
         sessionId: baseSession.id,
         sessionStart: baseSession.startDate
     ) {
-        return (selection.points, selection.normalizedSource)
+        return (selection.points, selection.normalizedSource, selection.usesDeviceBeats)
     }
     guard isResumedChild, !streamingPoints.isEmpty else { return nil }
     debugLog("[RRCollector] Resumed child: using \(streamingPoints.count) new beats (parent merge pending)")
-    return (streamingPoints, "streaming")
+    return (streamingPoints, "streaming", false)
 }

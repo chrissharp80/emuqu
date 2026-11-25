@@ -328,6 +328,10 @@ final class WorkoutRecorder {
     /// the app understood the directional swap.
     var plannedRouteDirection: RouteLibrary.Direction = .forward
 
+    /// The saved route the recogniser bound as `plannedRoute`, nil for a
+    /// hand-loaded GPX, so deleting that saved route unbinds it.
+    @ObservationIgnored var plannedSavedRouteId: UUID?
+
     /// Track length at which route auto-detection next runs: it first runs
     /// at `RouteLibrary.detectionTriggerMeters` of movement, and while
     /// nothing matches, again after each further stretch of that length

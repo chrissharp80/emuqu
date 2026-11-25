@@ -83,11 +83,14 @@ final class CloudKitLiveBackupManager {
     /// re-triggers upload every minute and hammers CloudKit, floods the
     /// error catalog, and burned battery.
     ///
+    /// A session deleted forever or discarded (`ForgottenSessions`) is not
+    /// uploaded, and an upload it was discarded during is deleted again.
+    ///
     /// Same gate as session uploads (`CloudKitSyncManager.cloudUploadsAllowed`):
     /// nothing goes up before onboarding has asked about iCloud, and nothing
     /// to an iCloud account other than the one sync is enabled for.
     func upload(sessionId: UUID, points: [RRPoint], deviceId: String?, force: Bool = false) async {
-        guard isUploadDue(pointCount: points.count, force: force) else { return }
+        guard isUploadDue(pointCount: points.count, force: force), !ForgottenSessions.ids.contains(sessionId) else { return }
         lastUpload = Date()
         guard await confirmAccount() else { return }
         do {
@@ -98,6 +101,9 @@ final class CloudKitLiveBackupManager {
             try await saveWithAsset(record, compressedData: compressedData, sessionId: sessionId)
             backedUpIds.insert(sessionId.uuidString)
             debugLog("[CloudKit] Live backup: \(points.count) beats → iCloud (\(compressedData.count)B)")
+            // Discarded while this upload ran: its delete may have landed
+            // first, and this save would bring the backup back.
+            if ForgottenSessions.ids.contains(sessionId) { await delete(sessionId: sessionId) }
         } catch let error as CKError where CloudKitSyncManager.isZoneGone(error) {
             debugLog("[CloudKit] Live backup: zone gone (\(error.code.rawValue)) — iCloud data was deleted, or the account changed", level: .warning)
             await zoneGone()

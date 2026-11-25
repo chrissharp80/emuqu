@@ -95,7 +95,8 @@ extension CloudKitSyncManager {
         Self.pushCycleCounter &+= 1
         guard !pendingIds.isEmpty else { return }
         for sessionId in pendingIds {
-            if schemaUnavailable || Task.isCancelled || !CloudAccountIdentity.isConfirmed { break }
+            // Sync switched off mid-batch: nothing more goes up.
+            if schemaUnavailable || Task.isCancelled || !CloudAccountIdentity.isConfirmed || !cloudUploadsAllowed { break }
             defer { noteSyncProgress() }
             guard let prepared = await prepareUpload(sessionId) else { continue }
             if await pushOne(prepared, sessionId: sessionId) {

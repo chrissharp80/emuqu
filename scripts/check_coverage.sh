@@ -102,11 +102,9 @@ import sys
 min_overall = float(sys.argv[1])
 min_logic = float(sys.argv[2])
 report_path = sys.argv[3]
-# A unit-only run cannot execute SwiftUI view bodies, so the OVERALL floor is
-# unreachable there by construction. `run_tests_with_coverage.sh` skips the
-# LOGIC floor on a unit-only run too: both floors were measured on the full
-# suite, and a unit-only run reports a different number for the same commit.
-# Both are enforced on a full run; the VIEWS floor is enforced on either.
+# SKIP_OVERALL_COVERAGE / SKIP_LOGIC_COVERAGE=1 report a floor without
+# enforcing it, for a local run of part of the suite. CI sets neither: every
+# floor is enforced at every scope.
 skip_overall = len(sys.argv) > 4 and sys.argv[4] == "1"
 skip_logic = len(sys.argv) > 5 and sys.argv[5] == "1"
 min_views = float(sys.argv[6]) if len(sys.argv) > 6 else 0.0
@@ -140,19 +138,19 @@ print(f"Line coverage (Views only): {view_pct:.2f}% ({view_cov}/{view_all})  min
 failed = False
 if overall_pct + 1e-9 < min_overall:
     if skip_overall:
-        print("SKIP: overall floor not enforced — unit-only run cannot execute view bodies")
+        print("SKIP: overall floor not enforced (SKIP_OVERALL_COVERAGE=1)")
     else:
         print(f"FAIL: overall coverage {overall_pct:.2f}% < {min_overall:.0f}%")
         failed = True
 if logic_pct + 1e-9 < min_logic:
     if skip_logic:
-        print("SKIP: logic floor not enforced — the floors are calibrated for a full-suite run")
+        print("SKIP: logic floor not enforced (SKIP_LOGIC_COVERAGE=1)")
     else:
         print(f"FAIL: logic coverage {logic_pct:.2f}% < {min_logic:.0f}%")
         failed = True
-# The views floor is enforced on a unit-only run too: snapshot tests live in
-# EmuquTests and execute view bodies, so this number is meaningful without the
-# UI suite. It is a ratchet — raise it as screens gain snapshots.
+# Snapshot tests live in EmuquTests and execute view bodies, so the views
+# number is meaningful without the UI suite. It is a ratchet — raise it as
+# screens gain snapshots.
 if view_pct + 1e-9 < min_views:
     print(f"FAIL: views coverage {view_pct:.2f}% < {min_views:.1f}%")
     print("  Snapshot tests are what move this. See EmuquTests/ViewSnapshotTests.swift.")

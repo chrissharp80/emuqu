@@ -189,6 +189,7 @@ extension WorkoutSessionLifecycle {
         recorder.userThresholds = thresholds
         recorder.thresholdBreachSec.removeAll()
         recorder.plannedRoute = route
+        recorder.plannedSavedRouteId = nil
         recorder.plannedRouteWasAutoDetected = false
         recorder.nextRouteDetectionAtMeters = 0
         recorder.gradeMemo = nil

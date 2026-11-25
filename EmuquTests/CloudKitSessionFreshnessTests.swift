@@ -86,6 +86,38 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         XCTAssertEqual(try archive.retrieve(local.id)?.notes, "from iCloud")
     }
 
+    /// A night this device folded a second segment into, edited on another
+    /// device that had not pulled the fold: the other device's note wins,
+    /// and the beats only this device holds stay, stamped newer so they go
+    /// up again.
+    func testAnEditFromADeviceThatMissedAFoldKeepsTheFoldedBeats() throws {
+        let (archive, directory) = makeArchive()
+        defer { removeDirectory(directory) }
+        let (local, newer) = try archivedSessionWithNewerICloudCopy(in: archive)
+        var remote = newer
+        remote.rrSeries = RRSeries(points: Array(local.rrSeries?.points.prefix(120) ?? []), sessionId: local.id, startDate: local.startDate)
+
+        let result = try XCTUnwrap(try CloudKitSessionFreshness.replaceIfStillNewer(local.id, with: remote, in: archive))
+
+        XCTAssertTrue(result.keptLocalBeats)
+        let stored = try XCTUnwrap(try archive.retrieve(local.id))
+        XCTAssertEqual(stored.rrSeries?.points.count, 200, "the beats only this device held were dropped")
+        XCTAssertEqual(stored.notes, "from iCloud", "the other device's edit was lost")
+        XCTAssertGreaterThan(try XCTUnwrap(stored.modifiedAt), try XCTUnwrap(remote.modifiedAt))
+    }
+
+    /// A newer copy holding every beat replaces the local one as before.
+    func testANewerCopyWithEveryBeatIsTakenAsItIs() throws {
+        let (archive, directory) = makeArchive()
+        defer { removeDirectory(directory) }
+        let (local, remote) = try archivedSessionWithNewerICloudCopy(in: archive)
+
+        let result = try XCTUnwrap(try CloudKitSessionFreshness.replaceIfStillNewer(local.id, with: remote, in: archive))
+
+        XCTAssertFalse(result.keptLocalBeats)
+        XCTAssertEqual(try archive.retrieve(local.id)?.notes, "from iCloud")
+    }
+
     func testStampIsWholeSeconds() {
         let stamp = CloudKitSessionFreshness.stamp(at: earlier.addingTimeInterval(0.9), after: nil)
         XCTAssertEqual(stamp, earlier)

@@ -630,6 +630,7 @@ final class AssistantViewModel {
     /// not happen, and Clear can be tried again.
     func clearConversation() {
         cancel()
+        factsStore.discardPendingExtractions()
         let historyErased = store.clear()
         let exportsErased = Self.removeChatExports()
         guard historyErased, exportsErased else {

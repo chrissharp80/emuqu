@@ -74,8 +74,8 @@ extension CollectorSessionControl {
 
     /// Full analysis pause path: merge parent data, analyze, archive, update UI.
     /// A night the archive would not take is not published as paused
-    /// (`publishUnsavedPause`); the strap's beats the gather downloaded, which
-    /// the stream's backup does not hold, get a backup of their own first.
+    /// (`publishUnsavedPause`); the strap's beats the gather downloaded were
+    /// backed up by the gather, before the analysis.
     private func pauseWithFullAnalysis(data: OvernightStreamingCoordinator.OvernightDataResult) async -> HRVSession? {
         let merged = collector.overnightStreaming.mergeParentSessionData(data: data)
         let totalBeats = merged.points.count
@@ -90,7 +90,6 @@ extension CollectorSessionControl {
         pausedSession.state = .paused
         pausedSession.pausedDate = Date()
         guard await archiveAndPersistPause(pausedSession, label: "Paused") else {
-            collector.morning.rescueDownloadedBeats(data.downloadedPoints, baseSession: data.baseSession)
             publishUnsavedPause(pausedSession)
             return nil
         }

@@ -49,6 +49,11 @@ enum MissingReason: String, Codable, Sendable {
     /// `value` contains a structured `{present: [...], missing: [...]}`
     /// envelope per the composite-partial-results convention.
     case partialData
+
+    /// The user has recordings for this query, but their files could not
+    /// be read just now (the phone locked, a sync rewriting them). Never
+    /// "the user has no data".
+    case unreadable
 }
 
 // MARK: - Availability

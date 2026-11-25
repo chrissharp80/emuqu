@@ -266,7 +266,7 @@ final class GeminiProvider: KeyedCloudProvider, Sendable {
             tools: Self.toolDeclarations(for: tools)
         )
         let request = try Self.makeRequest(url: Self.streamEndpoint(for: model), apiKey: apiKey, body: body)
-        let lines = try await ProviderHTTP.openStream(request, provider: .gemini, failure: Self.statusFailure(_:body:))
+        let lines = try await ProviderHTTP.openStream(request, provider: .gemini, services: services, failure: Self.statusFailure(_:body:))
         try await Self.consumeSSE(lines, continuation: continuation)
     }
 

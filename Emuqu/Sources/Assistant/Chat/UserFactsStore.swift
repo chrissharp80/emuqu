@@ -79,7 +79,19 @@ final class UserFactsStore {
     var autoExtractEnabled: Bool {
         didSet {
             UserDefaults.standard.set(autoExtractEnabled, forKey: Self.autoExtractKey)
+            extractionEpoch += 1
         }
+    }
+
+    /// Moves on whenever an extraction already running must not store what
+    /// it finds: auto-remember switched, Forget everything, or the
+    /// conversation it read cleared (`discardPendingExtractions`). An
+    /// extraction stores its facts only under the epoch it started in.
+    @ObservationIgnored private(set) var extractionEpoch = 0
+
+    /// The conversation was cleared: an extraction reading it stores nothing.
+    func discardPendingExtractions() {
+        extractionEpoch += 1
     }
 
     nonisolated private static let autoExtractKey = "assistant.autoExtractFacts"
@@ -223,6 +235,7 @@ final class UserFactsStore {
     /// they are still stored.
     @discardableResult
     func clear() -> Bool {
+        extractionEpoch += 1
         clearedBackup = []
         let url = fileURL
         let erased = queue.sync { AssistantStoreFile.erase(url, caller: "UserFactsStore") }
