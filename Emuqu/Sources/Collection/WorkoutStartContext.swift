@@ -18,6 +18,12 @@ struct WorkoutStartContext {
     /// seconds). Empty when no comparable history exists.
     var racePredictionsByDistance: [Double: Double] = [:]
 
+    /// Hours of recovery today's training load calls for, from the morning
+    /// reading's ATL and CTL; nil without them.
+    var recoveryHoursNeeded: Double? {
+        RecoveryTimeEstimate.hoursFromTrainingLoad(atl: todayReadiness.atl, ctl: todayReadiness.ctl)
+    }
+
     struct ReadinessSnapshot: Equatable {
         let recoveryScore: Double?
         let trainingReadiness: Double?

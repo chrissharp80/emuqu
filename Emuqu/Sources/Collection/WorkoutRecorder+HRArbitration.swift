@@ -6,7 +6,7 @@ import Foundation
 extension WorkoutTicker {
     // MARK: - HR-source arbitration (pure decision core)
 
-    /// HR source priority by `recorder.activeHRSource`:
+    /// HR source priority by `lifecycle.activeHRSource`:
     ///
     ///   - .strap  : strap is primary. Watch is the silent-strap fallback.
     ///               Order: (a) iPhone-paired strap (already in workoutHR
@@ -49,7 +49,7 @@ extension WorkoutTicker {
             /// Deliberately a separate channel from `strapSilentFor` — reusing
             /// one timestamp would mask a true Polar drop with stale freshness
             /// from the Watch path and break the wrist-HR tier (see
-            /// `recorder.lastWatchRoutedHRAt`).
+            /// `capture.watchRouted.lastAt`).
             var watchRoutedSilentFor: TimeInterval
             /// Watch wrist HR (optical), if the Watch is still reporting one.
             var latestWatchHR: Int?
@@ -128,5 +128,18 @@ extension WorkoutTicker {
             case .settingUp, .live: return nil
             }
         }
+    }
+}
+
+extension WatchConnectivityBridge {
+    /// The Watch's wrist HR while it is still arriving, else nil. A reading
+    /// the Watch sent more than `wristHRMaxAgeSec` ago is what a Watch that
+    /// stopped sending leaves behind; recording it every second would write a
+    /// flat, false heart rate into the samples. A steady heart rate the Watch
+    /// keeps sending stays fresh.
+    func freshWristHR(now: Date) -> Int? {
+        guard let wrist = WatchPayloadBounds.plausibleHeartRate(latestWatchHR),
+              let receivedAt = latestWatchHRAt else { return nil }
+        return now.timeIntervalSince(receivedAt) <= WorkoutTicker.HRArbitration.wristHRMaxAgeSec ? wrist : nil
     }
 }

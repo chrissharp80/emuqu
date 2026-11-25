@@ -2,10 +2,11 @@ import Foundation
 
 // MARK: - Device-internal RR backup (H10)
 //
-// A self-contained subsystem with its own lifecycle that nothing else in
-// the recorder reaches into.
+// A self-contained subsystem: start arms it (the session lifecycle) and stop
+// fetches and merges what it recorded (the recorder); the two share only the
+// lifecycle's `deviceBackupArmedAt`.
 
-extension WorkoutRecorder {
+extension WorkoutSessionLifecycle {
     //
     // The H10 records RR continuously to internal memory once
     // `startRecording()` is called, independent of the BLE streaming
@@ -72,7 +73,7 @@ extension WorkoutRecorder {
             await manager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
             return
         }
-        deviceBackupArmedAt = Date()
+        lifecycle.deviceBackupArmedAt = Date()
     }
 
     /// `stillWanted` is asked before each destructive step, so a workout
@@ -87,7 +88,11 @@ extension WorkoutRecorder {
         try await manager.recording.startFreshRecording(while: stillWanted)
         debugLog("[Recorder.start] device-internal backup started (H10)")
     }
+}
 
+// Finalize's side: fetching the strap's recording and merging it.
+
+extension WorkoutRecorder {
     /// Result of the pure gate deciding whether workout finalize needs the
     /// H10 device-internal recording at all, or whether the BLE streaming
     /// buffer is already dense enough on its own.
@@ -183,7 +188,7 @@ extension WorkoutRecorder {
             debugLog("[Recorder.finalize] H10 fetch returned no points — using streaming only (\(streamingPoints.count) beats)")
             return streamingPoints
         }
-        let onClock = recording.points(onClockOf: startDate, fallbackStart: deviceBackupArmedAt)
+        let onClock = recording.points(onClockOf: startDate, fallbackStart: lifecycle.deviceBackupArmedAt)
         let bounded = boundedToWorkoutWindow(onClock, startDate: startDate, stopDate: stopDate)
         guard !bounded.isEmpty else {
             debugLog("[Recorder.finalize] no H10 points fell inside workout window — using streaming only (\(streamingPoints.count) beats)")
@@ -198,7 +203,7 @@ extension WorkoutRecorder {
     /// the link dropped, so it can be stopped or downloaded at all.
     private func strapHoldsThisWorkout() async -> Bool {
         let manager = core.polarManager
-        guard lifecycle.activeHRSource == .strap, deviceBackupArmedAt != nil || manager.isRecordingOnDevice else { return false }
+        guard lifecycle.activeHRSource == .strap, lifecycle.deviceBackupArmedAt != nil || manager.isRecordingOnDevice else { return false }
         manager.recording.beginTransfer()
         guard await manager.recording.reconnectForTransfer() else {
             debugLogExternal("The strap didn't come back after the workout, so its own recording couldn't be stopped or read — using the live stream. The strap keeps recording until it is next connected, when the Record screen offers to recover it.", cause: .strap)

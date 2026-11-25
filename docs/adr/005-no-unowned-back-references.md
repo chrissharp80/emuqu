@@ -24,9 +24,13 @@ with the same shape.
 ## Decision
 
 1. Every helper is a `struct` holding its owner **strongly**, built on demand
-   by the owner (`collector.control`, `manager.writes`, `recorder.ticker`, …).
+   by the owner (`collector.control`, `manager.writes`, …).
    The owner does not retain the helper, so there is no cycle; the helper
    cannot outlive what it points at, so there is nothing to trap on.
+   A part that holds no owner at all — only the owned state objects and
+   services it uses, as the workout recorder's ticker, session lifecycle and
+   coach context do — is a class the owner builds once and keeps. It has no
+   back-pointer to trap on, and its timers and tasks capture it weakly.
 2. Callbacks the owner stores — Combine sinks in its `cancellables`, timers,
    notification tokens, HealthKit query handlers — capture the **owner
    weakly** and rebuild the helper when they fire. A strong capture there

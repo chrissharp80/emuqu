@@ -5,7 +5,7 @@ import Foundation
 // the training projection), computed off-main and committed back on the main
 // actor.
 
-extension WorkoutRecorder {
+extension WorkoutSessionLifecycle {
     /// start() — baseline-cache resets + detached baselines task (runs inside the sync-breakdown `tail` span).
     ///
     /// Pre-compute historical baselines for this sport
@@ -13,7 +13,7 @@ extension WorkoutRecorder {
     /// a per-tick archive scan. Backgrounded because
     /// `recentSessions(limit:)` deserializes JSON from disk.
     func resetCachedBaselinesAndLaunchBaselineTask(sport: Sport) {
-        startContext = WorkoutStartContext()
+        coaching.startContext = WorkoutStartContext()
         resetWatchStrapFallbackState()
         // SessionArchive owns its own lock — safe to read off the main
         // actor. We just need a stable reference to the archive instance.
@@ -31,7 +31,7 @@ extension WorkoutRecorder {
     /// one's heart rate.
     private func resetWatchStrapFallbackState() {
         watchBridge.latestWatchHR = nil
-        watchRouted = WatchRoutedBeats()
+        capture.watchRouted = WatchRoutedBeats()
         // Beats the Watch forwarded while no workout was running would
         // otherwise all land in this workout's first tick.
         _ = watchBridge.drainPendingWatchStrapRR()
@@ -63,7 +63,7 @@ extension WorkoutRecorder {
     /// workout B before workout A's baseline task finishes. Without this
     /// check, a slow disk + a quick restart could land workout A's
     /// baselines (another sport's, or ones from before A was archived)
-    /// into workout B's recorder. Only commit if the workout this task was
+    /// into workout B's start context. Only commit if the workout this task was
     /// launched for is still the current one.
     private func commitStartBaselines(
         sessionId: UUID?,
@@ -73,7 +73,7 @@ extension WorkoutRecorder {
         racePredictions: [Double: Double]
     ) {
         guard let sessionId, lifecycle.currentSession?.id == sessionId else { return }
-        startContext = WorkoutStartContext(
+        coaching.startContext = WorkoutStartContext(
             historicalBaselines: baselines, todayReadiness: readiness,
             trainingProjection: projection, racePredictionsByDistance: racePredictions
         )

@@ -99,7 +99,7 @@ extension EmuquApp {
         for await _ in stream {
             guard let recorder = launchServices.recorderBox().recorder else { continue }
             if case .recording = recorder.lifecycle.phase {
-                recorder.pause(isAuto: false)
+                recorder.pauseControl.pause(isAuto: false)
             }
         }
     }
@@ -110,7 +110,7 @@ extension EmuquApp {
         for await _ in stream {
             guard let recorder = launchServices.recorderBox().recorder else { continue }
             if case .recording = recorder.lifecycle.phase {
-                recorder.session.resume()
+                recorder.pauseControl.resume()
             }
         }
     }
