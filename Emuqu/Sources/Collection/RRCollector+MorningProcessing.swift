@@ -14,8 +14,8 @@ extension MorningSessionPipeline {
     /// results to the observable sub-objects, archives the session, and handles
     /// CloudKit sync.
     ///
-    /// `collector.createTrainingContextEnsuringFresh` falls back to a live
-    /// HealthKit fetch when `collector.fetchTrainingLoadIfEnabled` didn't populate the
+    /// `scoring.createTrainingContextEnsuringFresh` falls back to a live
+    /// HealthKit fetch when `fetchTrainingLoadIfEnabled` didn't populate the
     /// cache. This prevents a Tier 2 → 3 re-freeze race: if the cache is
     /// momentarily empty, the session would be frozen as Tier 2 (89-style score),
     /// and the user's first re-analyze later would produce Tier 3 (65-style) — same
@@ -33,17 +33,17 @@ extension MorningSessionPipeline {
     ) async -> HRVSession {
         debugLog("[RRCollector] Processing \(dataSource) data for analysis...")
         // Fetch training load before delegating (updates cachedTrainingLoad on self)
-        await collector.deviceRecording.fetchTrainingLoadIfEnabled()
+        await fetchTrainingLoadIfEnabled()
         showAnalyzingSession(baseSession: baseSession, points: points, skip: isBackgroundRefinement)
-        let freshContext = await collector.scoring.createTrainingContextEnsuringFresh()
-        let result = await collector.morningProcessingService.processOvernightData(
+        let freshContext = await scoring.createTrainingContextEnsuringFresh()
+        let result = await morningProcessingService.processOvernightData(
             MorningProcessingService.OvernightRequest(
                 points: points, baseSession: baseSession, dataSource: dataSource, reconnectCount: reconnectCount,
-                streamingBeats: streamingBeats, deviceBeats: deviceBeats, deviceId: collector.polarManager.connectedDeviceId,
+                streamingBeats: streamingBeats, deviceBeats: deviceBeats, deviceId: polarManager.connectedDeviceId,
                 isBackgroundRefinement: isBackgroundRefinement, settings: settingsSnapshot(for: baseSession),
-                trainingContext: freshContext, cachedTrainingLoad: collector.scoring.cachedTrainingLoad,
+                trainingContext: freshContext, cachedTrainingLoad: scoring.cachedTrainingLoad,
                 prefetchedSleepData: prefetchedSleepData,
-                statusCallback: { [weak collector] status in collector?.morningCoordination.morningStatus = status }
+                statusCallback: { [weak self] status in self?.morningCoordination.morningStatus = status }
             )
         )
         var finalSession = result.session
@@ -69,13 +69,13 @@ extension MorningSessionPipeline {
     /// The ANS configuration is the one for this night, on the same
     /// prior-nights baseline as its recovery score.
     private func settingsSnapshot(for baseSession: HRVSession) -> MorningProcessingService.SettingsSnapshot {
-        let settings = collector.settingsManager.settings
+        let settings = settingsManager.settings
         return MorningProcessingService.SettingsSnapshot(
             sleepSchedule: settings.sleepSchedule,
             enableTrainingLoadIntegration: settings.enableTrainingLoadIntegration,
             typicalSleepHours: settings.typicalSleepHours,
-            scoringConfig: collector.scoring.currentScoringConfig,
-            ansConfig: collector.scoring.ansConfig(for: baseSession),
+            scoringConfig: scoring.currentScoringConfig,
+            ansConfig: scoring.ansConfig(for: baseSession),
             sessionMergeMode: settings.sessionMergeMode,
             mergeGapSeconds: settings.effectiveMergeGapSeconds
         )
@@ -85,7 +85,7 @@ extension MorningSessionPipeline {
     /// service works. Skipped for background refinement.
     private func showAnalyzingSession(baseSession: HRVSession, points: [RRPoint], skip: Bool) {
         guard !skip else { return }
-        collector.sessionState.currentSession = HRVSession(
+        sessionState.currentSession = HRVSession(
             id: baseSession.id,
             startDate: baseSession.startDate,
             endDate: Date(),
@@ -110,11 +110,11 @@ extension MorningSessionPipeline {
     /// (dashboard, history, export) sees the frozen ATL/CTL/TSB values
     /// regardless of which field it checks.
     private func freezeTrainingSnapshot(on finalSession: inout HRVSession, freshContext: TrainingContext?) {
-        if finalSession.trainingSnapshot == nil, let existing = collector.archive.retrieveOrLog(finalSession.id) {
+        if finalSession.trainingSnapshot == nil, let existing = archive.retrieveOrLog(finalSession.id) {
             finalSession.trainingSnapshot = existing.trainingSnapshot
         }
         if finalSession.trainingSnapshot == nil {
-            finalSession.trainingSnapshot = freshContext ?? collector.scoring.createTrainingContext()
+            finalSession.trainingSnapshot = freshContext ?? scoring.createTrainingContext()
         }
         if let frozen = finalSession.trainingSnapshot {
             finalSession.analysisResult?.trainingContext = frozen
@@ -128,17 +128,17 @@ extension MorningSessionPipeline {
         _ result: MorningProcessingService.ProcessingResult, finalSession: HRVSession, awaitsReview: Bool
     ) {
         let awaitsAcceptance = awaitsReview && finalSession.state == .complete
-        collector.sessionState.currentSession = finalSession
-        collector.sessionState.verificationResult = result.verificationResult
-        collector.sessionState.recoveryWindow = result.recoveryWindow
-        collector.sessionState.needsAcceptance = awaitsAcceptance
+        sessionState.currentSession = finalSession
+        sessionState.verificationResult = result.verificationResult
+        sessionState.recoveryWindow = result.recoveryWindow
+        sessionState.needsAcceptance = awaitsAcceptance
         if awaitsAcceptance {
-            collector.sessionState.recordingPhase = .awaitingAcceptance
+            sessionState.recordingPhase = .awaitingAcceptance
         } else if awaitsReview {
-            collector.sessionState.recordingPhase = .idle
+            sessionState.recordingPhase = .idle
         }
-        collector.sessionState.baselineDeviation = result.baselineDeviation
-        collector.streamingLifecycle.sessionStartTime = nil
+        sessionState.baselineDeviation = result.baselineDeviation
+        streamingLifecycle.sessionStartTime = nil
     }
 
     /// Save the night before the user reviews it, so a crash on the review
@@ -152,20 +152,20 @@ extension MorningSessionPipeline {
     /// (`OvernightStreamingCoordinator.clearPersistedStateIfSaved`).
     func archiveForReview(_ finalSession: HRVSession) {
         guard finalSession.state == .complete else { return }
-        let isNewEntry = !collector.archive.store.entries.contains { $0.sessionId == finalSession.id }
+        let isNewEntry = !archive.store.entries.contains { $0.sessionId == finalSession.id }
         do {
             debugLog("[RRCollector] Pre-archiving session for review: \(finalSession.id.uuidString)")
-            let entry = try collector.archive.archive(finalSession)
+            let entry = try archive.archive(finalSession)
             retireRawBackupIfSafe(finalSession)
             if entry.sessionId != finalSession.id {
-                collector.sessionState.reviewFoldedIntoSessionId = entry.sessionId
+                sessionState.reviewFoldedIntoSessionId = entry.sessionId
             } else if isNewEntry {
-                collector.sessionState.reviewArchivedSessionId = finalSession.id
-                collector.sessionState.reviewArchivedEntries = SessionState.ReviewEntries(of: finalSession)
+                sessionState.reviewArchivedSessionId = finalSession.id
+                sessionState.reviewArchivedEntries = SessionState.ReviewEntries(of: finalSession)
             }
         } catch {
             debugLog("[RRCollector] Failed to pre-archive session for review: \(error)", level: .error)
-            collector.sessionState.lastError = error
+            sessionState.lastError = error
         }
     }
 
@@ -177,12 +177,12 @@ extension MorningSessionPipeline {
     /// does not misfire on a healthy session.
     private func retireRawBackupIfSafe(_ session: HRVSession) {
         let archivedBeats = session.rrSeries?.points.count ?? 0
-        if let backupBeats = collector.rawBackup.backedUpBeatCount(session.id),
+        if let backupBeats = rawBackup.backedUpBeatCount(session.id),
            backupBeats > 0, archivedBeats > 0, archivedBeats < backupBeats / 2 {
             debugLog("[RRCollector] Archived session holds \(archivedBeats) beats but raw backup holds \(backupBeats) — keeping the backup recoverable", level: .warning)
             return
         }
-        collector.rawBackup.markAsArchived(session.id)
+        rawBackup.markAsArchived(session.id)
     }
 
     /// "Discard" on the review card: move the night saved for review to
@@ -192,26 +192,150 @@ extension MorningSessionPipeline {
     /// a night newly pre-archived for it, or a paused night finalized for
     /// review with Done. Any other night already in the archive is not.
     func discardReviewArchivedSession() {
-        let reviewId = collector.sessionState.reviewArchivedSessionId
-        collector.sessionState.reviewArchivedSessionId = nil
-        guard let reviewId, reviewId == collector.sessionState.currentSession?.id else { return }
+        let reviewId = sessionState.reviewArchivedSessionId
+        sessionState.reviewArchivedSessionId = nil
+        guard let reviewId, reviewId == sessionState.currentSession?.id else { return }
         do {
-            guard try collector.archive.delete(reviewId) else { return }
+            guard try archive.delete(reviewId) else { return }
         } catch {
             debugLog("[RRCollector] Discard: could not move session \(reviewId.uuidString.prefix(8)) to Trash: \(error)", level: .error)
             return
         }
-        collector.baselineRebuild.rebuildFromArchive()
-        let cloudSync = collector.cloudSyncManager
+        baselineRebuild.rebuildFromArchive()
+        let cloudSync = cloudSyncManager
         Task { await cloudSync.uploadDeletion(reviewId) }
     }
 
     /// Supersede same-night overnight sessions.
     func supersedeSameNightSession(newSession: inout HRVSession) {
-        let settings = collector.settingsManager.settings
-        collector.morningProcessingService.supersedeSameNightSession(
+        let settings = settingsManager.settings
+        morningProcessingService.supersedeSameNightSession(
             newSession: &newSession, sleepSchedule: settings.sleepSchedule,
             sessionMergeMode: settings.sessionMergeMode, mergeGapSeconds: settings.effectiveMergeGapSeconds
         )
+    }
+}
+
+// The strap-night helpers the morning pipeline and the overnight and device
+// endings share: which device recorded the night, backing up what was
+// downloaded, failing a night that cannot be scored, and the training load.
+extension MorningSessionPipeline {
+    /// Whether the session's device is a Verity Sense (streaming-only, no internal recording).
+    /// Checks device provenance first (persisted), falls back to live connection state.
+    func isVeritySenseDevice(_ session: HRVSession) -> Bool {
+        if let model = session.deviceProvenance?.deviceModel.lowercased() {
+            return model.contains("verity") || model.contains("sense")
+        }
+        return polarManager.connectedDeviceType == .veritySense
+    }
+
+    /// Create a failed session and publish it as the current one.
+    ///
+    /// When the strap gate has just reported that the strap still holds this
+    /// night (`reportDeviceFetchMiss`), that stays the error: it is what the
+    /// user has to act on before the next recording clears the strap, and
+    /// "not enough beats" would hide it. `lastError` is cleared when a night
+    /// or a resumed segment starts, so the error found here is this night's.
+    func failSession(from baseSession: HRVSession) async -> HRVSession {
+        let failed = HRVSession(
+            id: baseSession.id, startDate: baseSession.startDate, endDate: Date(),
+            state: .failed, sessionType: baseSession.sessionType,
+            rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        await MainActor.run {
+            sessionState.currentSession = failed
+            // Nothing is being analysed any more; the failed session is shown.
+            sessionState.recordingPhase = .idle
+            if !Self.reportsStrapStillHoldsNight(sessionState.lastError) {
+                sessionState.lastError = RRCollector.CollectorError.insufficientData
+            }
+            morningCoordination.morningStatus = nil
+        }
+        // Overnight holds no audio session (App Store 2.5.4); nothing to
+        // release on the failure path.
+        return failed
+    }
+
+    private static func reportsStrapStillHoldsNight(_ error: Error?) -> Bool {
+        guard case .strapStillHoldsNight? = error as? RRCollector.CollectorError else { return false }
+        return true
+    }
+
+    /// The strap's beats are on this device before anything else can fail.
+    /// The download is on record as soon as the beats arrive, and the stream's
+    /// own backup, dated by the night's start, would then count as holding the
+    /// strap's recording (`RRCollector.isStrapRecordingSaved`) and let the
+    /// next arming clear it. So the night's backup is replaced by the merged
+    /// beats it will be scored on. When the strap's beats were not used, or
+    /// that backup cannot be written (it would replace a larger one), they get
+    /// their own backup in Lost Sessions (`rescueDownloadedBeats`).
+    func backUpDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async {
+        guard let devicePoints, !devicePoints.isEmpty else { return }
+        if usedDevice, await backUpMergedNight(chosen, sessionId: baseSession.id) { return }
+        rescueDownloadedBeats(devicePoints, baseSession: baseSession)
+    }
+
+    /// Replaces the night's backup with `points`; false when it was not written.
+    private func backUpMergedNight(_ points: [RRPoint], sessionId: UUID) async -> Bool {
+        let backup = rawBackup
+        let did = polarManager.connectedDeviceId
+        return await Task.detached(priority: .utility) {
+            do {
+                try backup.backup(points: points, sessionId: sessionId, deviceId: did)
+                return true
+            } catch {
+                debugLog("[RRCollector] Failed to back up the merged night (\(points.count) beats): \(error)", level: .error)
+                return false
+            }
+        }.value
+    }
+
+    /// Fetch training load for readiness context (if enabled in settings)
+    func fetchTrainingLoadIfEnabled() async {
+        guard settingsManager.settings.enableTrainingLoadIntegration else { return }
+        // Use forMorningReading: true so the frozen ATL/CTL/TSB snapshot represents
+        // the training state at waking — EWMA through yesterday only, before any
+        // activity today. The dashboard uses forMorningReading: false (live, includes
+        // today) so ATL visibly updates throughout the day as workouts sync.
+        // History keeps the frozen morning value permanently.
+        scoring.cachedTrainingLoad = await healthKit.training.calculateTrainingLoad(forMorningReading: true)
+        if let load = scoring.cachedTrainingLoad {
+            debugLog("[RRCollector] Training load: weeklyScore=\(String(format: "%.1f", load.weeklyLoadScore)), daysSinceHard=\(load.daysSinceHardWorkout ?? -1)")
+        }
+    }
+
+    /// Downloaded strap beats go to their own backup, dated by the night's
+    /// start, so Lost Sessions can recover them. A pause the archive would not
+    /// take rescues the strap's beats it holds the same way.
+    func rescueDownloadedBeats(_ internalPoints: [RRPoint]?, baseSession: HRVSession) {
+        guard let internalPoints, !internalPoints.isEmpty else { return }
+        do {
+            try rawBackup.backup(
+                points: internalPoints, sessionId: UUID(),
+                deviceId: polarManager.connectedDeviceId, captureDate: baseSession.startDate
+            )
+            debugLog("[RRCollector] Backed up \(internalPoints.count) downloaded strap beats the night could not use (recoverable via Lost Sessions)")
+        } catch {
+            debugLog("[RRCollector] Failed to back up \(internalPoints.count) downloaded strap beats: \(error)", level: .error)
+        }
+    }
+
+    /// Flip every published flag to the post-stream "saving" state in one hop.
+    /// The night stays live through `StreamingLifecycle.isEndingOvernight`,
+    /// which the caller's claim holds until the night is saved or failed.
+    /// Whether the night armed the strap (`overnightDeviceBackupActive`) is
+    /// kept for the strap gate, which every ending reaches next and which
+    /// clears it.
+    func publishGatherSavingState(streamingPoints: [RRPoint], elapsedHours: Double) async {
+        await MainActor.run {
+            morningCoordination.morningStatus = .saving(beats: streamingPoints.count)
+            streamingLifecycle.isOvernightStreaming = false
+            deviceStatus.isStreaming = false
+            sessionState.recordingPhase = .analyzing
+            sessionState.isCollecting = false
+            sessionState.collectedPoints = streamingPoints
+            streamingLifecycle.streamingElapsedSeconds = 0
+            polarManager.battery.recordRecordingHours(elapsedHours)
+        }
     }
 }

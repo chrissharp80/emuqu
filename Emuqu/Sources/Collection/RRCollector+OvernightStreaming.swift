@@ -19,47 +19,6 @@ extension OvernightStreamingCoordinator {
         var downloadedPoints: [RRPoint]?
     }
 
-    /// Whether the session's device is a Verity Sense (streaming-only, no internal recording).
-    /// Checks device provenance first (persisted), falls back to live connection state.
-    func isVeritySenseDevice(_ session: HRVSession) -> Bool {
-        if let model = session.deviceProvenance?.deviceModel.lowercased() {
-            return model.contains("verity") || model.contains("sense")
-        }
-        return collector.polarManager.connectedDeviceType == .veritySense
-    }
-
-    /// Create a failed session and update collector state.
-    ///
-    /// When the strap gate has just reported that the strap still holds this
-    /// night (`reportDeviceFetchMiss`), that stays the error: it is what the
-    /// user has to act on before the next recording clears the strap, and
-    /// "not enough beats" would hide it. `lastError` is cleared when a night
-    /// or a resumed segment starts, so the error found here is this night's.
-    func failSession(from baseSession: HRVSession) async -> HRVSession {
-        let failed = HRVSession(
-            id: baseSession.id, startDate: baseSession.startDate, endDate: Date(),
-            state: .failed, sessionType: baseSession.sessionType,
-            rrSeries: nil, analysisResult: nil, artifactFlags: nil
-        )
-        await MainActor.run {
-            collector.sessionState.currentSession = failed
-            // Nothing is being analysed any more; the failed session is shown.
-            collector.sessionState.recordingPhase = .idle
-            if !Self.reportsStrapStillHoldsNight(collector.sessionState.lastError) {
-                collector.sessionState.lastError = RRCollector.CollectorError.insufficientData
-            }
-            collector.morningCoordination.morningStatus = nil
-        }
-        // Overnight holds no audio session (App Store 2.5.4); nothing to
-        // release on the failure path.
-        return failed
-    }
-
-    private static func reportsStrapStillHoldsNight(_ error: Error?) -> Bool {
-        guard case .strapStillHoldsNight? = error as? RRCollector.CollectorError else { return false }
-        return true
-    }
-
     /// Start overnight streaming. Background execution rides on the
     /// `bluetooth-central` mode (incoming Polar packets wake the app) —
     /// see the note below; no keep-alive sessions are held.
@@ -101,46 +60,46 @@ extension OvernightStreamingCoordinator {
     @MainActor
     func startOvernightStreaming(sessionType: SessionType = .overnight, useDeviceInternalBackup: Bool = true) throws {
         try refuseWhileEndingInProgress()
-        guard collector.polarManager.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }
-        guard !collector.polarManager.isStreaming else { throw RRCollector.CollectorError.alreadyRecording }
-        let session = HRVSession(sessionType: sessionType, deviceProvenance: .streaming(from: collector.polarManager))
-        collector.overnightRun.usesDeviceBackup = useDeviceInternalBackup
-        try collector.polarManager.startStreaming()  // primary data source
+        guard polarManager.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }
+        guard !polarManager.isStreaming else { throw RRCollector.CollectorError.alreadyRecording }
+        let session = HRVSession(sessionType: sessionType, deviceProvenance: .streaming(from: polarManager))
+        overnightRun.usesDeviceBackup = useDeviceInternalBackup
+        try polarManager.startStreaming()  // primary data source
         // Only once streaming started: a failed start must not leave it sampling.
-        collector.services.systemDiagnosticsManager.startSamplingDuringRecording()
-        if useDeviceInternalBackup, collector.polarManager.connectedDeviceType != .veritySense {
+        services.systemDiagnosticsManager.startSamplingDuringRecording()
+        if useDeviceInternalBackup, polarManager.connectedDeviceType != .veritySense {
             launchDeviceRecordingLoop()  // H10-only internal-recording backup
         }
         resetOvernightStreamingState(session: session)
         startOvernightHealthKitObservers()
-        collector.recordingStore.persist(sessionId: session.id, startTime: Date(), sessionType: sessionType)
+        recordingStore.persist(sessionId: session.id, startTime: Date(), sessionType: sessionType)
         logOvernightStreamingStart(session: session, sessionType: sessionType)
         startOvernightStreamingTimer()
     }
 
-    /// `collector.overnightDeviceBackupActive` is cleared here; the async backup-start Task
+    /// `overnightRun.deviceBackupActive` is cleared here; the async backup-start Task
     /// flips it true once the H10's internal recording actually begins. This runs
     /// synchronously before that Task's `startRecording` completes, so it can't
     /// clobber it.
     @MainActor
     private func resetOvernightStreamingState(session: HRVSession) {
-        collector.sessionState.currentSession = session
-        collector.sessionState.collectedPoints = []
-        collector.streamingLifecycle.sessionStartTime = Date()
-        collector.streamingLifecycle.isStreamingMode = true
-        collector.streamingLifecycle.isOvernightStreaming = true
-        collector.sessionState.recordingPhase = .overnightStreaming
-        collector.streamingLifecycle.streamingTargetSeconds = Int.max
-        collector.streamingLifecycle.streamingElapsedSeconds = 0
-        collector.sessionState.isCollecting = true
-        collector.streamingLifecycle.pausedBeatCount = 0
-        collector.streamingLifecycle.lastSeenReconnectCount = 0
-        collector.overnightRun.deviceBackupActive = false
-        collector.overnightRun.isEnding = false
+        sessionState.currentSession = session
+        sessionState.collectedPoints = []
+        streamingLifecycle.sessionStartTime = Date()
+        streamingLifecycle.isStreamingMode = true
+        streamingLifecycle.isOvernightStreaming = true
+        sessionState.recordingPhase = .overnightStreaming
+        streamingLifecycle.streamingTargetSeconds = Int.max
+        streamingLifecycle.streamingElapsedSeconds = 0
+        sessionState.isCollecting = true
+        streamingLifecycle.pausedBeatCount = 0
+        streamingLifecycle.lastSeenReconnectCount = 0
+        overnightRun.deviceBackupActive = false
+        overnightRun.isEnding = false
         // A Skip from an earlier morning never reaches this night's download,
         // and an earlier session's error is not this night's.
-        collector.overnightRun.deviceFetchPolicy = .automatic
-        collector.sessionState.lastError = nil
+        overnightRun.deviceFetchPolicy = .automatic
+        sessionState.lastError = nil
     }
 
     /// A night or a resumed segment may start only once no earlier ending
@@ -152,7 +111,7 @@ extension OvernightStreamingCoordinator {
     /// `StreamingLifecycle.staleEndingClaimAge`, is dropped and logged.
     @MainActor
     func refuseWhileEndingInProgress() throws {
-        switch collector.streamingLifecycle.clearEndingForNewNight() {
+        switch streamingLifecycle.clearEndingForNewNight() {
         case .clear:
             return
         case let .droppedStale(ageSeconds):
@@ -169,16 +128,16 @@ extension OvernightStreamingCoordinator {
     /// SleepDetail card stays empty for "most nights" until the next
     /// launch happens to coincide with the Watch having synced.
     private func startOvernightHealthKitObservers() {
-        collector.healthKit.writes.startObservingSleepData()
-        collector.healthKit.vitals.startObservingVitalsData()
+        healthKit.writes.startObservingSleepData()
+        healthKit.vitals.startObservingVitalsData()
     }
 
     private func logOvernightStreamingStart(session: HRVSession, sessionType: SessionType) {
         warnIfStrapBatteryMayRefuse()
-        debugLog("[RRCollector] ✅ Started overnight streaming (H10 internal recording, the primary source: \(collector.overnightRun.usesDeviceBackup ? "will arm" : "OFF"))")
+        debugLog("[RRCollector] ✅ Started overnight streaming (H10 internal recording, the primary source: \(overnightRun.usesDeviceBackup ? "will arm" : "OFF"))")
         debugLog("[RRCollector] Session ID: \(session.id)")
         debugLog("[RRCollector] Session type: \(sessionType.rawValue)")
-        debugLog("[RRCollector] Connected device: \(collector.polarManager.connectedDeviceId ?? "unknown")")
+        debugLog("[RRCollector] Connected device: \(polarManager.connectedDeviceId ?? "unknown")")
     }
 
     /// Timer for overnight streaming - tracks elapsed time and performs incremental backups.
@@ -186,14 +145,14 @@ extension OvernightStreamingCoordinator {
     /// Tolerance = 0.25s lets iOS coalesce this long-running 1Hz wakeup with
     /// other timers overnight, reducing CPU + battery cost without changing UX.
     func startOvernightStreamingTimer() {
-        collector.streamingLifecycle.streamingTimer?.invalidate()
-        let timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak collector] _ in
+        streamingLifecycle.streamingTimer?.invalidate()
+        let timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                collector?.overnightStreaming.overnightStreamingTick()
+                self?.overnightStreamingTick()
             }
         }
         timer.tolerance = 0.25
-        collector.streamingLifecycle.streamingTimer = timer
+        streamingLifecycle.streamingTimer = timer
     }
 
     /// One 1 Hz overnight tick: elapsed clock, strap keep-alive, and the
@@ -203,27 +162,27 @@ extension OvernightStreamingCoordinator {
     /// missed while the app was suspended skips neither.
     @MainActor
     private func overnightStreamingTick() {
-        guard collector.streamingLifecycle.isOvernightStreaming, collector.streamingLifecycle.streamingTimer != nil else { return }
-        let previousElapsed = collector.streamingLifecycle.streamingElapsedSeconds
-        collector.streamingLifecycle.streamingElapsedSeconds = collector.streamingLifecycle.streamingElapsedNow
-        if collector.streamingLifecycle.streamingElapsedSeconds / 30 != previousElapsed / 30 {
-            collector.polarManager.checkBatteryStaleness()
+        guard streamingLifecycle.isOvernightStreaming, streamingLifecycle.streamingTimer != nil else { return }
+        let previousElapsed = streamingLifecycle.streamingElapsedSeconds
+        streamingLifecycle.streamingElapsedSeconds = streamingLifecycle.streamingElapsedNow
+        if streamingLifecycle.streamingElapsedSeconds / 30 != previousElapsed / 30 {
+            polarManager.checkBatteryStaleness()
         }
-        let currentReconnectCount = collector.polarManager.streamingReconnectCount
-        let reconnectionOccurred = currentReconnectCount > collector.streamingLifecycle.lastSeenReconnectCount
+        let currentReconnectCount = polarManager.streamingReconnectCount
+        let reconnectionOccurred = currentReconnectCount > streamingLifecycle.lastSeenReconnectCount
         if reconnectionOccurred {
-            debugLog("[RRCollector] Streaming reconnection detected (\(collector.streamingLifecycle.lastSeenReconnectCount) → \(currentReconnectCount)) - forcing backup")
-            collector.streamingLifecycle.lastSeenReconnectCount = currentReconnectCount
+            debugLog("[RRCollector] Streaming reconnection detected (\(streamingLifecycle.lastSeenReconnectCount) → \(currentReconnectCount)) - forcing backup")
+            streamingLifecycle.lastSeenReconnectCount = currentReconnectCount
         }
-        guard let session = collector.sessionState.currentSession else { return }
+        guard let session = sessionState.currentSession else { return }
         runOvernightIncrementalBackup(session: session, force: reconnectionOccurred)
     }
 
     @MainActor
     private func runOvernightIncrementalBackup(session: HRVSession, force: Bool) {
-        let buffer = collector.polarManager.streamedRRPoints
-        let deviceId = collector.polarManager.connectedDeviceId
-        let didBackup = collector.rawBackup.incrementalBackup(
+        let buffer = polarManager.streamedRRPoints
+        let deviceId = polarManager.connectedDeviceId
+        let didBackup = rawBackup.incrementalBackup(
             points: buffer,
             sessionId: session.id,
             deviceId: deviceId,
@@ -231,7 +190,7 @@ extension OvernightStreamingCoordinator {
         )
         guard didBackup else { return }
         let sessionId = session.id
-        let cloudSyncManager = collector.cloudSyncManager
+        let cloudSyncManager = self.cloudSyncManager
         Task(priority: .utility) {
             await cloudSyncManager.uploadLiveBackup(sessionId: sessionId, points: buffer, deviceId: deviceId)
         }
@@ -241,7 +200,7 @@ extension OvernightStreamingCoordinator {
     func mergeParentSessionData(data: OvernightDataResult) -> (points: [RRPoint], baseSession: HRVSession) {
         guard let parentIds = data.baseSession.linkedSessionIds,
               let parentId = parentIds.first,
-              let parentSession = collector.archive.retrieveOrLog(parentId),
+              let parentSession = archive.retrieveOrLog(parentId),
               let parentSeries = parentSession.rrSeries,
               !parentSeries.points.isEmpty
         else {
@@ -336,8 +295,8 @@ extension OvernightStreamingCoordinator {
     /// brief "complete" status and the baseline update that follow run
     /// without it (`releaseEndingOnceShown`).
     func stopOvernightStreaming() async -> HRVSession? {
-        guard let claim = collector.streamingLifecycle.claimOvernightEnding() else { return nil }
-        defer { collector.streamingLifecycle.releaseOvernightEnding(claim) }
+        guard let claim = streamingLifecycle.claimOvernightEnding() else { return nil }
+        defer { streamingLifecycle.releaseOvernightEnding(claim) }
         // From the tap on, not only once analysis starts: the strap stop,
         // reconnect and download come first, and without an assertion a
         // trip to the home screen suspends the app mid-download. On expiry
@@ -347,7 +306,7 @@ extension OvernightStreamingCoordinator {
         await endDeviceRecordingArming()
         let (baseSession, streamingPoints, reconnectCount) = await stopStreamingInfrastructure()
         await backupStreamingData(streamingPoints, sessionId: baseSession.id)
-        let isVeritySense = isVeritySenseDevice(baseSession)
+        let isVeritySense = morning.isVeritySenseDevice(baseSession)
         let finalSession = await scoreStoppedNight(
             baseSession: baseSession, streamingPoints: streamingPoints,
             reconnectCount: reconnectCount, isVeritySense: isVeritySense
@@ -386,9 +345,9 @@ extension OvernightStreamingCoordinator {
     /// released once the night is scored, or has failed for too short a stream.
     /// A night started on it since the stop let go of the ending keeps it.
     private func disconnectVeritySenseAfterNight(isVeritySense: Bool) {
-        guard isVeritySense, !collector.streamingLifecycle.isOvernightStreaming else { return }
+        guard isVeritySense, !streamingLifecycle.isOvernightStreaming else { return }
         debugLog("[RRCollector] Auto-disconnecting Verity Sense after overnight session")
-        collector.polarManager.discovery.disconnect()
+        polarManager.discovery.disconnect()
     }
 
     /// The good-streaming morning: pull the strap file (and sleep) concurrently,
@@ -405,42 +364,13 @@ extension OvernightStreamingCoordinator {
         let (finalPoints, dataSource, finalDeviceBeats) = selectBestDataSource(
             streamingPoints: streamingPoints, devicePoints: fetched.devicePoints, baseSession: baseSession
         )
-        await backUpDownloadedNight(fetched.devicePoints, chosen: finalPoints, usedDevice: finalDeviceBeats != nil, baseSession: baseSession)
+        await morning.backUpDownloadedNight(fetched.devicePoints, chosen: finalPoints, usedDevice: finalDeviceBeats != nil, baseSession: baseSession)
         return await analyzeAndFinalizeOvernight(
             finalPoints: finalPoints, baseSession: baseSession,
             streamingBeats: streamingPoints.count, deviceBeats: finalDeviceBeats,
             dataSource: dataSource, reconnectCount: reconnectCount,
             prefetchedSleepData: fetched.sleep
         )
-    }
-
-    /// The strap's beats are on this device before anything else can fail.
-    /// The download is on record as soon as the beats arrive, and the stream's
-    /// own backup, dated by the night's start, would then count as holding the
-    /// strap's recording (`RRCollector.isStrapRecordingSaved`) and let the
-    /// next arming clear it. So the night's backup is replaced by the merged
-    /// beats it will be scored on. When the strap's beats were not used, or
-    /// that backup cannot be written (it would replace a larger one), they get
-    /// their own backup in Lost Sessions (`rescueDownloadedBeats`).
-    func backUpDownloadedNight(_ devicePoints: [RRPoint]?, chosen: [RRPoint], usedDevice: Bool, baseSession: HRVSession) async {
-        guard let devicePoints, !devicePoints.isEmpty else { return }
-        if usedDevice, await backUpMergedNight(chosen, sessionId: baseSession.id) { return }
-        collector.morning.rescueDownloadedBeats(devicePoints, baseSession: baseSession)
-    }
-
-    /// Replaces the night's backup with `points`; false when it was not written.
-    private func backUpMergedNight(_ points: [RRPoint], sessionId: UUID) async -> Bool {
-        let backup = collector.rawBackup
-        let did = collector.polarManager.connectedDeviceId
-        return await Task.detached(priority: .utility) {
-            do {
-                try backup.backup(points: points, sessionId: sessionId, deviceId: did)
-                return true
-            } catch {
-                debugLog("[RRCollector] Failed to back up the merged night (\(points.count) beats): \(error)", level: .error)
-                return false
-            }
-        }.value
     }
 
     /// ALWAYS pull and merge the strap's internal recording on an H10 "both"
@@ -535,7 +465,7 @@ extension OvernightStreamingCoordinator {
     /// observer re-triggers after unlock.
     private func attemptParallelSleepFetch(sessionStart: Date, attempt: Int) async -> SleepPollOutcome {
         do {
-            let sleepData = try await collector.healthKit.fetchSleepData(for: sessionStart, recordingEnd: Date())
+            let sleepData = try await healthKit.fetchSleepData(for: sessionStart, recordingEnd: Date())
             guard sleepData.nightSleepMinutes > 0 else { return .retry }
             debugLog("[RRCollector] ✅ Parallel sleep poll: found \(sleepData.nightSleepMinutes) min on attempt \(attempt)")
             return .found(sleepData)
@@ -565,15 +495,15 @@ extension OvernightStreamingCoordinator {
     /// and again when the next night starts. So is the night's arming
     /// (`overnightDeviceBackupActive`), which the gate reads and then clears.
     func fetchNightFromStrap(baseSession: HRVSession, streamingPoints: [RRPoint], isVeritySense: Bool) async -> [RRPoint]? {
-        collector.polarManager.recording.beginTransfer()
+        polarManager.recording.beginTransfer()
         defer { closeNightGate() }
         guard nightFetchAllowed(isVeritySense: isVeritySense) else {
-            await collector.polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+            await polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
             return nil
         }
-        collector.morningCoordination.morningStatus = .fetchingDevice(streamingBeats: streamingPoints.count)
+        morningCoordination.morningStatus = .fetchingDevice(streamingBeats: streamingPoints.count)
         let recording = await downloadNight(since: baseSession.startDate, streamingCount: streamingPoints.count)
-        guard collector.overnightRun.deviceFetchPolicy != .skipByUser else {
+        guard overnightRun.deviceFetchPolicy != .skipByUser else {
             await keepDownloadSkipped(recording, baseSession: baseSession)
             return nil
         }
@@ -589,15 +519,15 @@ extension OvernightStreamingCoordinator {
     /// would clear the strap's only copy. The night uses the stream.
     private func keepDownloadSkipped(_ recording: StrapRecording?, baseSession: HRVSession) async {
         debugLog("[RRCollector] Device fetch skipped by user during the download — using streaming data")
-        collector.morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)
-        await collector.polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+        morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)
+        await polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
     }
 
     /// The night's Skip and its arming are read once, by the gate: both are
     /// reset when it finishes.
     private func closeNightGate() {
-        collector.overnightRun.deviceFetchPolicy = .automatic
-        collector.overnightRun.deviceBackupActive = false
+        overnightRun.deviceFetchPolicy = .automatic
+        overnightRun.deviceBackupActive = false
     }
 
     /// The user's capture choice and the strap decide whether the night is
@@ -611,13 +541,13 @@ extension OvernightStreamingCoordinator {
     /// the night that does not exist. A recording the strap does hold stays
     /// on it, recoverable from the Record screen.
     private func nightFetchAllowed(isVeritySense: Bool) -> Bool {
-        if collector.overnightRun.deviceFetchPolicy == .skipByUser {
+        if overnightRun.deviceFetchPolicy == .skipByUser {
             debugLog("[RRCollector] Device fetch skipped by user")
-        } else if !collector.overnightRun.usesDeviceBackup {
+        } else if !overnightRun.usesDeviceBackup {
             debugLog("[RRCollector] Skipping device fetch (capture mode: streaming only)")
         } else if isVeritySense {
             debugLog("[RRCollector] Skipping device fetch (Verity Sense uses streaming only)")
-        } else if !collector.overnightRun.deviceBackupActive, !collector.polarManager.isRecordingOnDevice {
+        } else if !overnightRun.deviceBackupActive, !polarManager.isRecordingOnDevice {
             debugLog("[RRCollector] Skipping device fetch (the strap was never armed for this night)", level: .warning)
         } else {
             return true
@@ -630,12 +560,12 @@ extension OvernightStreamingCoordinator {
     /// download. The time it takes is logged against the morning's other
     /// steps.
     private func downloadNight(since start: Date, streamingCount: Int) async -> StrapRecording? {
-        guard await collector.polarManager.recording.reconnectForTransfer() else {
+        guard await polarManager.recording.reconnectForTransfer() else {
             debugLog("[RRCollector] Strap did not reconnect within \(Int(StrapRecordingPolicy.reconnectWindowSeconds))s — the strap's file is still on the H10")
             return nil
         }
         let started = Date()
-        let recording = await collector.polarManager.recording.fetchRecordingIfAvailable(recordedSince: start)
+        let recording = await polarManager.recording.fetchRecordingIfAvailable(recordedSince: start)
         debugLog("[MorningTiming] device fetch: \(Int(Date().timeIntervalSince(started) * 1000))ms (beats=\(recording?.points.count ?? -1), streamed=\(streamingCount))")
         return recording
     }
@@ -666,7 +596,7 @@ extension OvernightStreamingCoordinator {
             "Couldn't read the strap's internal recording, and the live stream is missing about \(gapMinutes) minutes of this session. The H10 still holds its own copy — recover it from the Record screen before starting anything new, which clears it.",
             cause: .strap
         )
-        collector.sessionState.lastError = RRCollector.CollectorError.strapStillHoldsNight(missingMinutes: gapMinutes)
+        sessionState.lastError = RRCollector.CollectorError.strapStillHoldsNight(missingMinutes: gapMinutes)
     }
 
     /// Minutes of wall clock the streamed beats do not account for.
@@ -705,24 +635,24 @@ extension OvernightStreamingCoordinator {
     /// starts a location session (App Store 2.5.4, see
     /// `startOvernightStreaming`).
     ///
-    /// `collector.streamingLifecycle.isStreamingMode` is cleared BEFORE stopping PolarManager streaming.
+    /// `streamingLifecycle.isStreamingMode` is cleared BEFORE stopping PolarManager streaming.
     /// `PolarManager.stopStreaming()` triggers Combine publishers that are
     /// delivered on the next main queue drain via `.receive(on: .main)`.
-    /// If `collector.streamingLifecycle.isStreamingMode` is still true when that sink fires, it
+    /// If `streamingLifecycle.isStreamingMode` is still true when that sink fires, it
     /// re-sets `isStreaming = true`, causing LiveDataPanel to flash on
     /// for one frame and permanently corrupt the parent ScrollView layout.
     /// The morning stop and the pause's gather both stop through here.
     func stopStreamingInfrastructure() async -> (HRVSession, [RRPoint], Int) {
-        collector.control.stopStreamingTimer()
-        collector.services.systemDiagnosticsManager.stopSamplingAfterRecording()
-        collector.streamingLifecycle.isStreamingMode = false
-        let baseSession = collector.sessionState.currentSession ?? HRVSession()
-        let reconnectCount = collector.polarManager.streamingReconnectCount
+        streamingLifecycle.stopStreamingTimer()
+        services.systemDiagnosticsManager.stopSamplingAfterRecording()
+        streamingLifecycle.isStreamingMode = false
+        let baseSession = sessionState.currentSession ?? HRVSession()
+        let reconnectCount = polarManager.streamingReconnectCount
         // Charge the strap's battery-usage counter with the recorded hours.
         // Captured BEFORE the publish helper zeroes the elapsed counter.
-        let elapsedHoursForBattery = collector.streamingLifecycle.streamingHoursForBattery
-        let streamingPoints = collector.polarManager.stopStreaming()
-        await collector.morning.publishGatherSavingState(streamingPoints: streamingPoints, elapsedHours: elapsedHoursForBattery)
+        let elapsedHoursForBattery = streamingLifecycle.streamingHoursForBattery
+        let streamingPoints = polarManager.stopStreaming()
+        await morning.publishGatherSavingState(streamingPoints: streamingPoints, elapsedHours: elapsedHoursForBattery)
         return (baseSession, streamingPoints, reconnectCount)
     }
 
@@ -731,8 +661,8 @@ extension OvernightStreamingCoordinator {
     /// sessions (overnight = ~1.5MB JSON).
     func backupStreamingData(_ points: [RRPoint], sessionId: UUID) async {
         guard !points.isEmpty else { return }
-        let backup = collector.rawBackup
-        let did = collector.polarManager.connectedDeviceId
+        let backup = rawBackup
+        let did = polarManager.connectedDeviceId
         await Task.detached(priority: .utility) {
             do {
                 try backup.backup(points: points, sessionId: sessionId, deviceId: did)
@@ -770,8 +700,8 @@ extension OvernightStreamingCoordinator {
             deviceBeats: deviceBeats, dataSource: dataSource, reconnectCount: reconnectCount
         ))
         let totalBeats = merged.points.count
-        await MainActor.run { collector.morningCoordination.morningStatus = .analyzing(beats: totalBeats, streamedBeats: streamingBeats, deviceBeats: deviceBeats, source: dataSource) }
-        let finalSession = await collector.morning.processOvernightData(
+        await MainActor.run { morningCoordination.morningStatus = .analyzing(beats: totalBeats, streamedBeats: streamingBeats, deviceBeats: deviceBeats, source: dataSource) }
+        let finalSession = await morning.processOvernightData(
             points: merged.points, baseSession: merged.baseSession,
             dataSource: dataSource, reconnectCount: reconnectCount,
             streamingBeats: streamingBeats, deviceBeats: deviceBeats,
@@ -791,11 +721,11 @@ extension OvernightStreamingCoordinator {
     /// whose pre-archive failed keeps it until Accept saves the night, so a
     /// crash on the review card still offers the night at launch.
     private func clearPersistedStateIfSaved(_ finalSession: HRVSession) {
-        guard finalSession.state != .complete || collector.archive.store.exists(finalSession.id) else {
+        guard finalSession.state != .complete || archive.store.exists(finalSession.id) else {
             debugLog("[RRCollector] Night \(finalSession.id.uuidString.prefix(8)) is not in the archive — keeping its recording marker until Accept", level: .warning)
             return
         }
-        collector.recordingStore.clear()
+        recordingStore.clear()
     }
 
     /// The stopped night is on the review card (or shown as failed): the
@@ -804,17 +734,17 @@ extension OvernightStreamingCoordinator {
     /// Only the stop reaches here, and it still holds the claim, so the claim
     /// held is its own; its own release on return is then a no-op.
     private func releaseEndingOnceShown() {
-        guard let claim = collector.streamingLifecycle.overnightEndingClaim else { return }
-        collector.streamingLifecycle.releaseOvernightEnding(claim)
+        guard let claim = streamingLifecycle.overnightEndingClaim else { return }
+        streamingLifecycle.releaseOvernightEnding(claim)
     }
 
     /// Show the finished status for a beat, clear it, and fold the night into
     /// the rolling baselines.
     private func settleMorningStatus(complete: RRCollector.MorningProcessingStatus, finalSession: HRVSession) async {
-        await MainActor.run { collector.morningCoordination.morningStatus = complete }
+        await MainActor.run { morningCoordination.morningStatus = complete }
         await Self.holdCompleteStatusBriefly()
-        await MainActor.run { collector.morningCoordination.morningStatus = nil }
-        collector.baselineTracker.update(with: finalSession, sleepSchedule: collector.settingsManager.settings.sleepSchedule)
+        await MainActor.run { morningCoordination.morningStatus = nil }
+        baselineTracker.update(with: finalSession, sleepSchedule: settingsManager.settings.sleepSchedule)
     }
 
     /// Let the "complete" morning status sit on screen for a beat before it's
@@ -854,8 +784,8 @@ extension OvernightStreamingCoordinator {
             baseSession: baseSession, streamingPoints: streamingPoints, isVeritySense: isVeritySense
         ), devicePoints.count >= Self.minimumUsableBeats else {
             debugLog("[RRCollector] Fallback: no usable device recording — recording failed")
-            let failed = await failSession(from: baseSession)
-            collector.recordingStore.clear()
+            let failed = await morning.failSession(from: baseSession)
+            recordingStore.clear()
             return failed
         }
         // Device data is primary on this path (it holds a usable night); the
@@ -871,21 +801,21 @@ extension OvernightStreamingCoordinator {
     }
 
     /// Merge into the parent session (resumed nights), analyse, archive, and walk
-    /// `collector.morningCoordination.morningStatus` through analyzing → complete → nil.
+    /// `morningCoordination.morningStatus` through analyzing → complete → nil.
     private func finalizeFallbackSession(data: OvernightDataResult, reconnectCount: Int) async -> HRVSession? {
         let merged = mergeParentSessionData(data: data)
         let totalBeats = merged.points.count
         let dataSource = data.dataSource
         await MainActor.run {
-            collector.morningCoordination.morningStatus = .analyzing(beats: totalBeats, streamedBeats: data.streamingBeats, deviceBeats: data.deviceBeats, source: dataSource)
+            morningCoordination.morningStatus = .analyzing(beats: totalBeats, streamedBeats: data.streamingBeats, deviceBeats: data.deviceBeats, source: dataSource)
         }
-        let finalSession = await collector.morning.processOvernightData(
+        let finalSession = await morning.processOvernightData(
             points: merged.points, baseSession: merged.baseSession,
             dataSource: dataSource, reconnectCount: reconnectCount,
             streamingBeats: data.streamingBeats, deviceBeats: data.deviceBeats
         )
         clearPersistedStateIfSaved(finalSession)
-        await MainActor.run { collector.sessionState.currentSession = finalSession }
+        await MainActor.run { sessionState.currentSession = finalSession }
         releaseEndingOnceShown()
         await settleMorningStatus(
             complete: .complete(beats: totalBeats, streamedBeats: data.streamingBeats, deviceBeats: data.deviceBeats, source: dataSource),

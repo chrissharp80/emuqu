@@ -31,7 +31,7 @@ extension MorningSessionPipeline {
         // The morning path's own fetch: frozen snapshots when the session has
         // them, else fresh sleep (with the previous day's nap credited, and a
         // failed fetch logged) and vitals with the strap's nocturnal RHR.
-        let snapshots = await collector.morningProcessingService.scoringHealthData(for: session, result: result)
+        let snapshots = await morningProcessingService.scoringHealthData(for: session, result: result)
         let training = await scoringTrainingContext(result: result, sessionEnd: sessionEnd)
         let breakdown = scoreBreakdown(session: session, result: result, sleep: snapshots.sleep, vitals: snapshots.vitals, training: training)
         return RecoveryScoreOutcome(
@@ -49,7 +49,7 @@ extension MorningSessionPipeline {
         session: HRVSession, result: HRVAnalysisResult, sleep: SleepData?, vitals: RecoveryVitals?, training: TrainingContext?
     ) -> RecoveryScoreCalculator.ScoreBreakdown {
         let sessionEnd = session.endDate ?? session.startDate
-        let baselineStats = collector.scoring.scoringBaselineStats(for: session)
+        let baselineStats = scoring.scoringBaselineStats(for: session)
         let quality = SessionAcceptanceService.classifyHRVQuality(
             result: result, sleepData: sleep, baselineStats: baselineStats,
             recordingStart: session.startDate, recordingEnd: sessionEnd
@@ -59,9 +59,9 @@ extension MorningSessionPipeline {
                 hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
                 meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
                 baselineStats: baselineStats, sleepData: sleep,
-                vitals: vitals, typicalSleepHours: collector.settingsManager.settings.typicalSleepHours
+                vitals: vitals, typicalSleepHours: settingsManager.settings.typicalSleepHours
             ),
-            trainingContext: training, config: collector.scoring.currentScoringConfig,
+            trainingContext: training, config: scoring.currentScoringConfig,
             useBaselineHRV: quality.useBaselineHRV, perceivedReadiness: session.perceivedReadiness,
             ansBalance: ReanalysisService.ansBalance(of: result), referenceDate: sessionEnd
         )
@@ -73,7 +73,7 @@ extension MorningSessionPipeline {
     /// use it.
     func scoringTrainingContext(result: HRVAnalysisResult?, sessionEnd: Date) async -> TrainingContext? {
         if let frozen = result?.trainingContext { return frozen }
-        return await collector.scoring.createTrainingContextEnsuringFresh(relativeTo: sessionEnd)
+        return await scoring.createTrainingContextEnsuringFresh(relativeTo: sessionEnd)
     }
 
     // MARK: - Analysis (delegates to HRVAnalysisPipeline)
@@ -82,31 +82,31 @@ extension MorningSessionPipeline {
     /// ANS configuration saved-session reanalysis also uses
     /// (`SessionScoringContext.analyze(_:window:flags:peakCapacity:pipeline:)`).
     func analyze(_ session: HRVSession, window: WindowSelector.RecoveryWindow, flags: [ArtifactFlags], peakCapacity: PeakCapacity? = nil) async -> HRVAnalysisResult? {
-        await collector.scoring.analyze(
-            session, window: window, flags: flags, peakCapacity: peakCapacity, pipeline: collector.analysisPipeline
+        await scoring.analyze(
+            session, window: window, flags: flags, peakCapacity: peakCapacity, pipeline: analysisPipeline
         )
     }
 
     /// Analyze full session when no organized recovery window detected
     /// (`SessionScoringContext.analyze(_:peakCapacity:pipeline:)`).
     func analyze(_ session: HRVSession, peakCapacity: PeakCapacity?) async -> HRVAnalysisResult? {
-        await collector.scoring.analyze(session, peakCapacity: peakCapacity, pipeline: collector.analysisPipeline)
+        await scoring.analyze(session, peakCapacity: peakCapacity, pipeline: analysisPipeline)
     }
 
     /// Fallback: analyze session with automatic window selection
     func analyze(_ session: HRVSession) async -> HRVAnalysisResult? {
         let boundaries = await resolvedSleepBoundaries(session)
         let sessionDate = session.endDate ?? session.startDate
-        return await collector.analysisPipeline.analyzeWithAutoWindow(
+        return await analysisPipeline.analyzeWithAutoWindow(
             session: session,
             sleepStartMs: boundaries.sleepStartMs,
             wakeTimeMs: boundaries.wakeTimeMs,
-            trainingContext: await collector.scoring.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
-            ansConfig: collector.scoring.ansConfig(for: session),
+            trainingContext: await scoring.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
+            ansConfig: scoring.ansConfig(for: session),
             // Pass the same baseline the scorer uses so window selection
             // agrees with scoring — no more "higher-RMSSD window scores lower"
             // mismatch.
-            baselineStats: collector.scoring.scoringBaselineStats(for: session)
+            baselineStats: scoring.scoringBaselineStats(for: session)
         )
     }
 
@@ -114,7 +114,7 @@ extension MorningSessionPipeline {
     /// end date has no window to resolve against, so both come back nil.
     private func resolvedSleepBoundaries(_ session: HRVSession) async -> (sleepStartMs: Int64?, wakeTimeMs: Int64?) {
         guard let endDate = session.endDate else { return (nil, nil) }
-        let boundaries = await collector.sleepBoundaryResolver.resolve(
+        let boundaries = await sleepBoundaryResolver.resolve(
             sessionStart: session.startDate,
             recordingEnd: endDate
         )

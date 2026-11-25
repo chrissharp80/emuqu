@@ -10,11 +10,67 @@ import Foundation
 /// or discards — and they call each other directly at every stage. Split
 /// individually, each of those crossings would need a forwarder.
 ///
-/// Holds its owner strongly and is built on demand by the collector — a
-/// value with no state of its own, so nothing here can outlive what it
-/// points at.
+/// Built once by the collector over the parts it uses; the overnight, device
+/// and recovery paths call it, and it calls none of them.
 @MainActor
-struct MorningSessionPipeline {
-    let collector: RRCollector
+final class MorningSessionPipeline {
+    let acceptanceService: SessionAcceptanceService
+    let analysisPipeline: HRVAnalysisPipeline
+    let archive: SessionArchive
+    let archiveSignal: ArchiveSignal
+    let baselineRebuild: BaselineRebuilder
+    let cloudSyncManager: CloudKitSyncManager
+    let deviceStatus: DeviceStatus
+    let healthKit: HealthKitManager
+    let morningCoordination: MorningCoordination
+    let morningProcessingService: MorningProcessingService
+    let polarManager: PolarManager
+    let rawBackup: RawRRBackup
+    let recordingStore: RecordingStateStore
+    let scoring: SessionScoringContext
+    let sessionState: SessionState
+    let settingsManager: SettingsManager
+    let sleepBoundaryResolver: SleepBoundaryResolver
+    let streamingLifecycle: StreamingLifecycle
+
+    init(
+        acceptanceService: SessionAcceptanceService,
+        analysisPipeline: HRVAnalysisPipeline,
+        archive: SessionArchive,
+        archiveSignal: ArchiveSignal,
+        baselineRebuild: BaselineRebuilder,
+        cloudSyncManager: CloudKitSyncManager,
+        deviceStatus: DeviceStatus,
+        healthKit: HealthKitManager,
+        morningCoordination: MorningCoordination,
+        morningProcessingService: MorningProcessingService,
+        polarManager: PolarManager,
+        rawBackup: RawRRBackup,
+        recordingStore: RecordingStateStore,
+        scoring: SessionScoringContext,
+        sessionState: SessionState,
+        settingsManager: SettingsManager,
+        sleepBoundaryResolver: SleepBoundaryResolver,
+        streamingLifecycle: StreamingLifecycle
+    ) {
+        self.acceptanceService = acceptanceService
+        self.analysisPipeline = analysisPipeline
+        self.archive = archive
+        self.archiveSignal = archiveSignal
+        self.baselineRebuild = baselineRebuild
+        self.cloudSyncManager = cloudSyncManager
+        self.deviceStatus = deviceStatus
+        self.healthKit = healthKit
+        self.morningCoordination = morningCoordination
+        self.morningProcessingService = morningProcessingService
+        self.polarManager = polarManager
+        self.rawBackup = rawBackup
+        self.recordingStore = recordingStore
+        self.scoring = scoring
+        self.sessionState = sessionState
+        self.settingsManager = settingsManager
+        self.sleepBoundaryResolver = sleepBoundaryResolver
+        self.streamingLifecycle = streamingLifecycle
+    }
 
 }

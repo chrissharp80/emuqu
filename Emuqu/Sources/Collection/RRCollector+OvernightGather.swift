@@ -9,7 +9,7 @@ import HealthKit
 // `RRCollector+OvernightStreaming.swift` and shares `publishGatherSavingState`
 // from here.
 
-extension MorningSessionPipeline {
+extension OvernightStreamingCoordinator {
     /// Wake-time gather: stop the stream, back the beats up, optionally pull the
     /// strap's internal recording, and pick the best source for the night.
     ///
@@ -21,12 +21,12 @@ extension MorningSessionPipeline {
     /// The stream is stopped and backed up exactly as the morning stop does
     /// (`stopStreamingInfrastructure`, `backupStreamingData`).
     func gatherOvernightData() async -> OvernightStreamingCoordinator.OvernightDataResult? {
-        let overnight = collector.overnightStreaming
+        let overnight = self
         let (baseSession, streamingPoints, reconnectCount) = await overnight.stopStreamingInfrastructure()
         await overnight.backupStreamingData(streamingPoints, sessionId: baseSession.id)
         let internalPoints = await overnight.fetchNightFromStrap(
             baseSession: baseSession, streamingPoints: streamingPoints,
-            isVeritySense: collector.overnightStreaming.isVeritySenseDevice(baseSession)
+            isVeritySense: morning.isVeritySenseDevice(baseSession)
         )
         guard let chosen = await resolveOvernightSource(
             streamingPoints: streamingPoints, internalPoints: internalPoints, baseSession: baseSession
@@ -78,7 +78,7 @@ extension MorningSessionPipeline {
             await failRescuingDownload(internalPoints, baseSession: baseSession)
             return nil
         }
-        await collector.overnightStreaming.backUpDownloadedNight(
+        await morning.backUpDownloadedNight(
             internalPoints, chosen: chosen.points, usedDevice: chosen.usesDeviceBeats, baseSession: baseSession
         )
         return chosen
@@ -86,43 +86,8 @@ extension MorningSessionPipeline {
 
     /// Fail the session, backing up first the strap beats no session will hold.
     private func failRescuingDownload(_ internalPoints: [RRPoint]?, baseSession: HRVSession) async {
-        rescueDownloadedBeats(internalPoints, baseSession: baseSession)
-        _ = await collector.overnightStreaming.failSession(from: baseSession)
-    }
-
-    /// Downloaded strap beats go to their own backup, dated by the night's
-    /// start, so Lost Sessions can recover them. A pause the archive would not
-    /// take rescues the strap's beats it holds the same way.
-    func rescueDownloadedBeats(_ internalPoints: [RRPoint]?, baseSession: HRVSession) {
-        guard let internalPoints, !internalPoints.isEmpty else { return }
-        do {
-            try collector.rawBackup.backup(
-                points: internalPoints, sessionId: UUID(),
-                deviceId: collector.polarManager.connectedDeviceId, captureDate: baseSession.startDate
-            )
-            debugLog("[RRCollector] Backed up \(internalPoints.count) downloaded strap beats the night could not use (recoverable via Lost Sessions)")
-        } catch {
-            debugLog("[RRCollector] Failed to back up \(internalPoints.count) downloaded strap beats: \(error)", level: .error)
-        }
-    }
-
-    /// Flip every published flag to the post-stream "saving" state in one hop.
-    /// The night stays live through `StreamingLifecycle.isEndingOvernight`,
-    /// which the caller's claim holds until the night is saved or failed.
-    /// Whether the night armed the strap (`overnightDeviceBackupActive`) is
-    /// kept for the strap gate, which every ending reaches next and which
-    /// clears it.
-    func publishGatherSavingState(streamingPoints: [RRPoint], elapsedHours: Double) async {
-        await MainActor.run {
-            collector.morningCoordination.morningStatus = .saving(beats: streamingPoints.count)
-            collector.streamingLifecycle.isOvernightStreaming = false
-            collector.deviceStatus.isStreaming = false
-            collector.sessionState.recordingPhase = .analyzing
-            collector.sessionState.isCollecting = false
-            collector.sessionState.collectedPoints = streamingPoints
-            collector.streamingLifecycle.streamingElapsedSeconds = 0
-            collector.polarManager.battery.recordRecordingHours(elapsedHours)
-        }
+        morning.rescueDownloadedBeats(internalPoints, baseSession: baseSession)
+        _ = await morning.failSession(from: baseSession)
     }
 }
 

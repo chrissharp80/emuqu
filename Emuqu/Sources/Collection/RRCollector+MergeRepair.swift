@@ -12,7 +12,7 @@ extension SessionRecoveryCoordinator {
     /// time-shifted so the two are continuous.
     ///
     /// Repairs sessions saved by builds whose background device refinement
-    /// bypassed `collector.mergeParentSessionData()`, leaving resumed
+    /// bypassed `OvernightStreamingCoordinator.mergeParentSessionData()`, leaving resumed
     /// sessions with only the child's data instead of parent + child merged.
     ///
     /// A v5-corrupted child already contains a copy of the parent's beats at
@@ -59,7 +59,7 @@ extension SessionRecoveryCoordinator {
             case .unchanged: break
             }
         }
-        if outcome.repaired > 0 { await MainActor.run { collector.archiveSignal.notifyChanged() } }
+        if outcome.repaired > 0 { await MainActor.run { archiveSignal.notifyChanged() } }
         debugLog("[Recovery] ========== END repairMergeDataLoss: \(outcome.repaired) repaired, \(outcome.failed) failed ==========")
         return outcome
     }
@@ -83,7 +83,7 @@ extension SessionRecoveryCoordinator {
     /// the index's `linkedSessionIds` — avoids loading sessions from disk just
     /// to check whether they have links (saves ~700KB per session).
     nonisolated private func linkedOvernightEntries() async -> [SessionArchiveEntry] {
-        let entries = await MainActor.run { collector.archive.store.entries }
+        let entries = await MainActor.run { archive.store.entries }
         let linkedEntries = entries.filter { entry in
             entry.sessionType == .overnight &&
                 entry.linkedSessionIds != nil &&
@@ -107,8 +107,8 @@ extension SessionRecoveryCoordinator {
     nonisolated private func repairLinkedSession(_ entry: SessionArchiveEntry) async -> LinkedRepairResult {
         guard let parentId = entry.linkedSessionIds?.first else { return .unchanged }
         // Full load needed for the rrSeries merge.
-        guard let session = await MainActor.run(resultType: HRVSession?.self, body: { collector.archive.retrieveOrLog(entry.sessionId) }),
-              let parent = await MainActor.run(resultType: HRVSession?.self, body: { collector.archive.retrieveOrLog(parentId) }),
+        guard let session = await MainActor.run(resultType: HRVSession?.self, body: { archive.retrieveOrLog(entry.sessionId) }),
+              let parent = await MainActor.run(resultType: HRVSession?.self, body: { archive.retrieveOrLog(parentId) }),
               Self.isResumedChild(session, of: parent),
               let parentSeries = parent.rrSeries, !parentSeries.points.isEmpty,
               let childSeries = session.rrSeries, !childSeries.points.isEmpty
@@ -195,7 +195,7 @@ extension SessionRecoveryCoordinator {
             deviceProvenance: session.deviceProvenance,
             linkedSessionIds: session.linkedSessionIds, pausedDate: session.pausedDate
         )
-        var repaired = await collector.morning.processOvernightData(
+        var repaired = await morning.processOvernightData(
             points: mergedPoints, baseSession: baseSession,
             dataSource: session.dataSourceSummary?.selectedSource ?? "streaming",
             reconnectCount: session.dataSourceSummary?.reconnectCount ?? 0,
@@ -223,11 +223,11 @@ extension SessionRecoveryCoordinator {
     nonisolated private func archiveRepaired(_ repairedSession: HRVSession, originalId: UUID, beatCount: Int) async -> Bool {
         do {
             let sessionToArchive = repairedSession
-            _ = try await MainActor.run { try collector.archive.archive(sessionToArchive) }
+            _ = try await MainActor.run { try archive.archive(sessionToArchive) }
             let syncSession = repairedSession
             // The sync manager is read on the main actor, so the upload Task
-            // never reaches back through the collector.
-            let cloudSync = await MainActor.run { collector.cloudSyncManager }
+            // holds only it.
+            let cloudSync = await MainActor.run { cloudSyncManager }
             Task { await cloudSync.forceReuploadSession(syncSession) }
             debugLog("[Recovery] Repaired session \(originalId.uuidString.prefix(8)): \(beatCount) beats, score \(repairedSession.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil")")
             return true

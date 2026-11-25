@@ -4,22 +4,35 @@ import Foundation
 
 extension RRCollector {
     func saveImportedSession(_ session: HRVSession) async throws {
-        try await SessionImport(collector: self).save(session)
+        try await sessionImport.save(session)
     }
 
     func saveImportedSessionsBatch(_ sessions: [HRVSession]) async throws -> Int {
-        try await SessionImport(collector: self).saveBatch(sessions)
+        try await sessionImport.saveBatch(sessions)
+    }
+}
+
+extension RRCollector {
+    /// Saving imported readings, over the parts it uses.
+    var sessionImport: SessionImport {
+        SessionImport(
+            archive: archive, archiveSignal: archiveSignal, baselineTracker: baselineTracker,
+            cloudSyncManager: cloudSyncManager, sessionState: sessionState, settingsManager: settingsManager
+        )
     }
 }
 
 /// Saving imported readings into the archive, the baseline and iCloud.
 ///
-/// Holds its owner strongly and is built on demand by the collector — a
-/// value with no state of its own, so nothing here can outlive what it
-/// points at.
+/// A value over the parts it uses.
 @MainActor
 struct SessionImport {
-    let collector: RRCollector
+    let archive: SessionArchive
+    let archiveSignal: ArchiveSignal
+    let baselineTracker: BaselineTracker
+    let cloudSyncManager: CloudKitSyncManager
+    let sessionState: SessionState
+    let settingsManager: SettingsManager
 
     /// Save an imported session to the archive. Throws `duplicateImport` when
     /// the archive already holds a copy of the same recording (same type,
@@ -31,20 +44,20 @@ struct SessionImport {
         guard session.state == .complete, session.analysisResult != nil else {
             throw RRCollector.CollectorError.importNotAnalyzed
         }
-        guard !collector.archive.store.holdsCopy(of: session) else { throw RRCollector.CollectorError.duplicateImport }
-        let entry = try collector.archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
+        guard !archive.store.holdsCopy(of: session) else { throw RRCollector.CollectorError.duplicateImport }
+        let entry = try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
         let merged = entry.sessionId != session.id
-        let saved = merged ? collector.archive.retrieveOrLog(entry.sessionId) ?? session : session
+        let saved = merged ? archive.retrieveOrLog(entry.sessionId) ?? session : session
         if !merged {
-            let cloudSync = collector.cloudSyncManager
+            let cloudSync = cloudSyncManager
             Task { await cloudSync.uploadSession(saved) }
         }
-        let sleepSchedule = collector.settingsManager.settings.sleepSchedule
-        collector.baselineTracker.update(with: saved, sleepSchedule: sleepSchedule)
+        let sleepSchedule = settingsManager.settings.sleepSchedule
+        baselineTracker.update(with: saved, sleepSchedule: sleepSchedule)
         // Against the nights before this one, not a baseline it just joined.
-        let deviation = collector.baselineTracker.deviation(for: saved, sleepSchedule: sleepSchedule)
-        if let deviation { collector.sessionState.baselineDeviation = deviation }
-        collector.archiveSignal.notifyChanged()
+        let deviation = baselineTracker.deviation(for: saved, sleepSchedule: sleepSchedule)
+        if let deviation { sessionState.baselineDeviation = deviation }
+        archiveSignal.notifyChanged()
     }
 
     /// Batch save multiple imported sessions efficiently
@@ -56,15 +69,15 @@ struct SessionImport {
             debugLog("[RRCollector] ERROR: No valid sessions to save!")
             return 0
         }
-        let savedCount = try collector.archive.store.archiveBatch(validSessions)
+        let savedCount = try archive.store.archiveBatch(validSessions)
         debugLog("[RRCollector] archiveBatch returned: \(savedCount) saved")
         updateBaseline(withImported: validSessions)
-        collector.archiveSignal.notifyChanged()
+        archiveSignal.notifyChanged()
         if savedCount > 0 {
-            let cloudSync = collector.cloudSyncManager
+            let cloudSync = cloudSyncManager
             Task { await cloudSync.performFullSync() }
         }
-        debugLog("[RRCollector] Archive now has \(collector.archive.store.entries.count) entries")
+        debugLog("[RRCollector] Archive now has \(archive.store.entries.count) entries")
         return savedCount
     }
 
@@ -73,10 +86,10 @@ struct SessionImport {
     /// reading) must not come back through the baseline. Chronological so the
     /// rolling window sees them in the order they were recorded.
     private func updateBaseline(withImported sessions: [HRVSession]) {
-        let archivedIds = Set(collector.archive.store.entries.map(\.sessionId))
+        let archivedIds = Set(archive.store.entries.map(\.sessionId))
         let written = sessions.filter { archivedIds.contains($0.id) }.sorted { $0.startDate < $1.startDate }
         for session in written {
-            collector.baselineTracker.update(with: session, sleepSchedule: collector.settingsManager.settings.sleepSchedule)
+            baselineTracker.update(with: session, sleepSchedule: settingsManager.settings.sleepSchedule)
         }
     }
 }

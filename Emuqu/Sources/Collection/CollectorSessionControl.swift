@@ -8,24 +8,100 @@ import Foundation
 /// the same state machine seen from two directions, and the bindings republish
 /// exactly what those two change.
 ///
-/// The bindings' observation handlers hold the collector weakly
-/// (`[weak owner = collector]`, and `ObservationLoop` holds its owner weakly):
+/// The bindings' observation handlers hold these controls weakly
+/// (`[weak owner = self]`, and `ObservationLoop` holds its owner weakly):
 /// they outlive the call that registers them, so a strong capture would keep
-/// the collector alive, and a weak one is exactly right — each no-ops once the
-/// collector is gone.
+/// the controls alive; each no-ops once they are gone.
 ///
-/// ## Ownership
-///
-/// This is a value, built on demand by the collector (`collector.control`),
-/// holding the collector strongly. A class with an `unowned` back-pointer
-/// is safe on every synchronous path and fatal on the asynchronous one: a
-/// Task or a resumed continuation that keeps this object alive after the
-/// collector has gone reads the reference and traps ("Attempted to read an
-/// unowned reference but object … was already destroyed"). A strong
-/// reference from a transient value cannot outlive its owner and cannot form a
-/// cycle (ADR 005).
+/// Built once by the collector over the parts it uses, and the top of the
+/// coordinators: it calls the morning pipeline, overnight streaming and
+/// recovery, and none of them calls it.
 @MainActor
-struct CollectorSessionControl {
-    let collector: RRCollector
+final class CollectorSessionControl {
+    let analysisPipeline: HRVAnalysisPipeline
+    let archive: SessionArchive
+    let archiveSignal: ArchiveSignal
+    let artifactDetector: ArtifactDetector
+    let baselineArchiveSync: BaselineArchiveSync
+    let baselineRebuild: BaselineRebuilder
+    let baselineTracker: BaselineTracker
+    let cloudSyncManager: CloudKitSyncManager
+    let deviceStatus: DeviceStatus
+    let healthKit: HealthKitManager
+    let liveHRVMirror: LiveHRVMirror
+    let morningCoordination: MorningCoordination
+    let notificationObservers: NotificationTokens
+    let overnightRun: OvernightRunState
+    let polarManager: PolarManager
+    let rawBackup: RawRRBackup
+    let recordingStore: RecordingStateStore
+    let scoring: SessionScoringContext
+    let services: CollectorServices
+    let sessionState: SessionState
+    let settingsManager: SettingsManager
+    let strapGuards: StrapRecordingGuards
+    let streamingLifecycle: StreamingLifecycle
+    let streamingVerification: Verification
+    let morning: MorningSessionPipeline
+    let overnightStreaming: OvernightStreamingCoordinator
+    let recovery: SessionRecoveryCoordinator
+
+    init(
+        analysisPipeline: HRVAnalysisPipeline,
+        archive: SessionArchive,
+        archiveSignal: ArchiveSignal,
+        artifactDetector: ArtifactDetector,
+        baselineArchiveSync: BaselineArchiveSync,
+        baselineRebuild: BaselineRebuilder,
+        baselineTracker: BaselineTracker,
+        cloudSyncManager: CloudKitSyncManager,
+        deviceStatus: DeviceStatus,
+        healthKit: HealthKitManager,
+        liveHRVMirror: LiveHRVMirror,
+        morningCoordination: MorningCoordination,
+        notificationObservers: NotificationTokens,
+        overnightRun: OvernightRunState,
+        polarManager: PolarManager,
+        rawBackup: RawRRBackup,
+        recordingStore: RecordingStateStore,
+        scoring: SessionScoringContext,
+        services: CollectorServices,
+        sessionState: SessionState,
+        settingsManager: SettingsManager,
+        strapGuards: StrapRecordingGuards,
+        streamingLifecycle: StreamingLifecycle,
+        streamingVerification: Verification,
+        morning: MorningSessionPipeline,
+        overnightStreaming: OvernightStreamingCoordinator,
+        recovery: SessionRecoveryCoordinator
+    ) {
+        self.analysisPipeline = analysisPipeline
+        self.archive = archive
+        self.archiveSignal = archiveSignal
+        self.artifactDetector = artifactDetector
+        self.baselineArchiveSync = baselineArchiveSync
+        self.baselineRebuild = baselineRebuild
+        self.baselineTracker = baselineTracker
+        self.cloudSyncManager = cloudSyncManager
+        self.deviceStatus = deviceStatus
+        self.healthKit = healthKit
+        self.liveHRVMirror = liveHRVMirror
+        self.morningCoordination = morningCoordination
+        self.notificationObservers = notificationObservers
+        self.overnightRun = overnightRun
+        self.polarManager = polarManager
+        self.rawBackup = rawBackup
+        self.recordingStore = recordingStore
+        self.scoring = scoring
+        self.services = services
+        self.sessionState = sessionState
+        self.settingsManager = settingsManager
+        self.strapGuards = strapGuards
+        self.streamingLifecycle = streamingLifecycle
+        self.streamingVerification = streamingVerification
+        self.morning = morning
+        self.overnightStreaming = overnightStreaming
+        self.recovery = recovery
+    }
 
 }

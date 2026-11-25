@@ -8,7 +8,7 @@ extension CollectorSessionControl {
     /// Forward PolarManager state changes to RRCollector's observable proxies.
     ///
     /// There is deliberately NO throttled proxy that subscribes to
-    /// `collector.polarManager.objectWillChange` (the firehose — fires on every HR/RR
+    /// `polarManager.objectWillChange` (the firehose — fires on every HR/RR
     /// update) and pushes a throttled (~3/s), BATCHED snapshot of 8
     /// DeviceStatus fields. Every one of those 8 fields is written
     /// immediately by a dedicated, targeted binder below
@@ -37,15 +37,15 @@ extension CollectorSessionControl {
         bindHealthKitSleep()
         bindBatteryAndReconnect()
         bindCloudSyncBaseline()
-        collector.notificationObservers.add(collector.baselineArchiveSync.observe())
+        notificationObservers.add(baselineArchiveSync.observe())
     }
 
     // MARK: - Binding Groups
 
     /// Forward Polar errors to RRCollector's lastError.
     private func bindPolarErrorForwarding() {
-        ObservationLoop.observe(collector, read: { $0.polarManager.lastError }, onChange: { collector, error in
-            if let error { collector.sessionState.lastError = error }
+        ObservationLoop.observe(self, read: { $0.polarManager.lastError }, onChange: { control, error in
+            if let error { control.sessionState.lastError = error }
         })
     }
 
@@ -59,30 +59,30 @@ extension CollectorSessionControl {
     /// night's. A live workout's backup recording is the workout's, not a
     /// device recording, so the phase stays idle for it.
     private func bindRecordingStateTracking() {
-        ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.isRecordingOnDevice }, onChange: { collector, isRecording in
-            collector.deviceStatus.isRecordingOnDevice = isRecording
-            if isRecording, collector.sessionState.recordingPhase == .idle, !collector.strapGuards.belongsToLiveWorkout {
-                collector.sessionState.recordingPhase = .deviceRecording
-            } else if !isRecording, collector.sessionState.recordingPhase == .deviceRecording {
-                collector.sessionState.isCollecting = false
-                collector.sessionState.recordingPhase = .idle
+        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.isRecordingOnDevice }, onChange: { control, isRecording in
+            control.deviceStatus.isRecordingOnDevice = isRecording
+            if isRecording, control.sessionState.recordingPhase == .idle, !control.strapGuards.belongsToLiveWorkout {
+                control.sessionState.recordingPhase = .deviceRecording
+            } else if !isRecording, control.sessionState.recordingPhase == .deviceRecording {
+                control.sessionState.isCollecting = false
+                control.sessionState.recordingPhase = .idle
             }
         })
     }
 
     /// Simple 1:1 property proxies: recordingState, deviceType, fetchProgress, storedExercise.
     private func bindSimplePropertyProxies() {
-        ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.recordingState }, onChange: { collector, state in
-            collector.deviceStatus.recordingState = state
+        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.recordingState }, onChange: { control, state in
+            control.deviceStatus.recordingState = state
         })
-        ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.connectedDeviceType }, onChange: { collector, type in
-            collector.deviceStatus.connectedDeviceType = type
+        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.connectedDeviceType }, onChange: { control, type in
+            control.deviceStatus.connectedDeviceType = type
         })
-        ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.fetchProgress }, onChange: { collector, progress in
-            collector.deviceStatus.fetchProgress = progress
+        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.fetchProgress }, onChange: { control, progress in
+            control.deviceStatus.fetchProgress = progress
         })
-        ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.hasStoredExercise }, onChange: { collector, stored in
-            collector.deviceStatus.hasStoredExercise = stored
+        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.hasStoredExercise }, onChange: { control, stored in
+            control.deviceStatus.hasStoredExercise = stored
         })
     }
 
@@ -99,18 +99,18 @@ extension CollectorSessionControl {
     /// scans the archive, and a reconnecting strap passes those steps over
     /// and over.
     private func bindConnectionState() {
-        ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.connectionState }, onChange: { collector, state in
-            collector.deviceStatus.isDeviceConnected = state == .connected
-            collector.deviceStatus.connectionState = state
+        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.connectionState }, onChange: { control, state in
+            control.deviceStatus.isDeviceConnected = state == .connected
+            control.deviceStatus.connectionState = state
             guard state == .connected || state == .disconnected else { return }
-            collector.control.refreshRecentPausedSession()
+            control.refreshRecentPausedSession()
         })
     }
 
     /// Streaming state: observe both polarManager.isStreaming and isStreamingMode to avoid race.
     private func bindStreamingState() {
-        ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.isStreaming }, onChange: { collector, streaming in
-            collector.deviceStatus.isStreaming = streaming || collector.streamingLifecycle.isStreamingMode
+        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.isStreaming }, onChange: { control, streaming in
+            control.deviceStatus.isStreaming = streaming || control.streamingLifecycle.isStreamingMode
         })
         armStreamingModeObservation()
     }
@@ -127,24 +127,24 @@ extension CollectorSessionControl {
     /// field so a change to any of them re-fires.
     func armSessionStateMirrorObservation() {
         withObservationTracking {
-            _ = collector.sessionState.recordingPhase
-            _ = collector.sessionState.isCollecting
-            _ = collector.sessionState.currentSession
-            _ = collector.sessionState.collectedPoints
-            _ = collector.sessionState.lastError
-            _ = collector.sessionState.verificationResult
-            _ = collector.sessionState.recoveryWindow
-            _ = collector.sessionState.needsAcceptance
-            _ = collector.sessionState.baselineDeviation
-            _ = collector.sessionState.recentPausedSession
-        } onChange: { [weak owner = collector] in
-            Task { @MainActor in owner?.control.onSessionStateChanged() }
+            _ = sessionState.recordingPhase
+            _ = sessionState.isCollecting
+            _ = sessionState.currentSession
+            _ = sessionState.collectedPoints
+            _ = sessionState.lastError
+            _ = sessionState.verificationResult
+            _ = sessionState.recoveryWindow
+            _ = sessionState.needsAcceptance
+            _ = sessionState.baselineDeviation
+            _ = sessionState.recentPausedSession
+        } onChange: { [weak owner = self] in
+            Task { @MainActor in owner?.onSessionStateChanged() }
         }
     }
 
     @MainActor
     func onSessionStateChanged() {
-        collector.liveHRVMirror.refresh(from: collector.sessionState)
+        liveHRVMirror.refresh(from: sessionState)
         armSessionStateMirrorObservation()
     }
 
@@ -153,9 +153,9 @@ extension CollectorSessionControl {
     /// `withObservationTracking` fires only on change, so no `dropFirst` needed.
     func armArchiveSignalObservation() {
         withObservationTracking {
-            _ = collector.archiveSignal.version
-        } onChange: { [weak owner = collector] in
-            Task { @MainActor in owner?.control.onArchiveSignalChanged() }
+            _ = archiveSignal.version
+        } onChange: { [weak owner = self] in
+            Task { @MainActor in owner?.onArchiveSignalChanged() }
         }
     }
 
@@ -165,30 +165,30 @@ extension CollectorSessionControl {
         armArchiveSignalObservation()
     }
 
-    /// Keep `collector.deviceStatus.isStreaming` in sync with streaming mode.
+    /// Keep `deviceStatus.isStreaming` in sync with streaming mode.
     func armStreamingModeObservation() {
         withObservationTracking {
-            _ = collector.streamingLifecycle.isStreamingMode
-        } onChange: { [weak owner = collector] in
-            Task { @MainActor in owner?.control.onStreamingModeChanged() }
+            _ = streamingLifecycle.isStreamingMode
+        } onChange: { [weak owner = self] in
+            Task { @MainActor in owner?.onStreamingModeChanged() }
         }
     }
 
     /// Observation tracking is one-shot, so every handler re-arms itself.
     @MainActor
     func onStreamingModeChanged() {
-        collector.deviceStatus.isStreaming = collector.polarManager.isStreaming || collector.streamingLifecycle.isStreamingMode
+        deviceStatus.isStreaming = polarManager.isStreaming || streamingLifecycle.isStreamingMode
         armStreamingModeObservation()
     }
 
-    /// Mirror HealthKit's sleep-data version onto `collector.morningCoordination.sleepDataVersion`,
+    /// Mirror HealthKit's sleep-data version onto `morningCoordination.sleepDataVersion`,
     /// which the morning results screen observes. The rescore of today's
     /// night when that sleep improves on its frozen snapshot is the
     /// saved-session reanalysis's own observation
     /// (`SessionReanalysisCoordinator.observeHealthKitSleep`).
     private func bindHealthKitSleep() {
-        ObservationLoop.observe(collector, read: { $0.healthKit.observation.sleepDataVersion }, onChange: { collector, version in
-            collector.morningCoordination.sleepDataVersion = version
+        ObservationLoop.observe(self, read: { $0.healthKit.observation.sleepDataVersion }, onChange: { control, version in
+            control.morningCoordination.sleepDataVersion = version
         })
         bindHealthKitVitals()
     }
@@ -199,21 +199,21 @@ extension CollectorSessionControl {
     /// `vitalsDataVersion` lets RecoveryDashboardView re-fetch and
     /// re-archive the session snapshot once the Watch's data lands.
     private func bindHealthKitVitals() {
-        ObservationLoop.observe(collector, read: { $0.healthKit.observation.vitalsDataVersion }, onChange: { collector, version in
-            collector.morningCoordination.vitalsDataVersion = version
+        ObservationLoop.observe(self, read: { $0.healthKit.observation.vitalsDataVersion }, onChange: { control, version in
+            control.morningCoordination.vitalsDataVersion = version
         })
     }
 
     /// Battery level proxy + auto-finalize on critical battery, auto-pause on reconnect exhaustion.
     private func bindBatteryAndReconnect() {
-        ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.batteryLevel }, onChange: { collector, level in
-            collector.deviceStatus.batteryLevel = level
-            guard let level, collector.streamingLifecycle.isPaused, level <= 5 else { return }
+        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.batteryLevel }, onChange: { control, level in
+            control.deviceStatus.batteryLevel = level
+            guard let level, control.streamingLifecycle.isPaused, level <= 5 else { return }
             debugLog("[RRCollector] 🪫 Battery critical (\(level)%) while paused — auto-finalizing")
-            collector.control.finalizeFromPause()
+            control.finalizeFromPause()
         })
-        ObservationLoop.observe(collector, read: { $0.polarManager.reconnectExhausted }, onChange: { collector, exhausted in
-            if exhausted { collector.control.handleReconnectExhaustedDuringOvernight() }
+        ObservationLoop.observe(self, read: { $0.polarManager.reconnectExhausted }, onChange: { control, exhausted in
+            if exhausted { control.handleReconnectExhaustedDuringOvernight() }
         })
     }
 
@@ -222,7 +222,7 @@ extension CollectorSessionControl {
     /// its own memory independently of BLE. A mid-night reconnect
     /// exhaustion — a transient iOS BLE radio reset (typically recovered
     /// in ~5s) or an out-of-range trip — must NOT pause here,
-    /// because pausing runs `collector.gatherOvernightData` → `fetchNightFromStrap`,
+    /// because pausing runs `OvernightStreamingCoordinator.gatherOvernightData` → `fetchNightFromStrap`,
     /// which STOPS the strap recording and finalizes the night 10 min
     /// in. Leave the session streaming; the strap holds everything and
     /// the morning stop reconnects and pulls the full-night file. This
@@ -232,28 +232,28 @@ extension CollectorSessionControl {
     /// strap file, so the buffered live stream is the only copy — pause
     /// to save it for resume.
     private func handleReconnectExhaustedDuringOvernight() {
-        guard collector.streamingLifecycle.isOvernightStreaming else { return }
-        if collector.overnightRun.deviceBackupActive {
+        guard streamingLifecycle.isOvernightStreaming else { return }
+        if overnightRun.deviceBackupActive {
             debugLog("[RRCollector] Reconnect exhausted, but H10 internal backup is recording the full night — NOT pausing; the strap keeps recording and the morning stop will fetch it", level: .warning)
-            collector.polarManager.reconnectExhausted = false
+            polarManager.reconnectExhausted = false
             return
         }
         debugLog("[RRCollector] Reconnect exhausted during overnight streaming (no strap backup) — auto-pausing to save buffered data")
-        // `[collector]` keeps the owner alive for the hop.
-        Task { [collector] in
+        // `[self]` keeps the controls alive for the hop.
+        Task { [self] in
             _ = await self.pauseOvernightStreaming()
-            collector.polarManager.reconnectExhausted = false
+            polarManager.reconnectExhausted = false
         }
     }
 
     /// Rebuild baseline after CloudKit pulls new sessions (e.g. after reinstall).
-    /// The collector's own off-main rebuild: its commit re-checks the tracker,
+    /// The baseline rebuilder's off-main rebuild: its commit re-checks the tracker,
     /// so a night the live path seeded during the decode is kept, and a later
     /// rebuild started by another pull leaves the first one's result alone.
     private func bindCloudSyncBaseline() {
-        ObservationLoop.observe(collector, read: { $0.cloudSyncManager.pullVersion }, onChange: { collector, _ in
-            guard collector.baselineTracker.daysCollected == 0, !collector.archive.store.entries.isEmpty else { return }
-            collector.baselineRebuild.rebuildOffMain()
+        ObservationLoop.observe(self, read: { $0.cloudSyncManager.pullVersion }, onChange: { control, _ in
+            guard control.baselineTracker.daysCollected == 0, !control.archive.store.entries.isEmpty else { return }
+            control.baselineRebuild.rebuildOffMain()
         })
     }
 
@@ -262,11 +262,11 @@ extension CollectorSessionControl {
     /// Only hops to main to publish the result.
     func refreshRecentPausedSession() {
         // Capture what we need before leaving the MainActor. `owner` is weak
-        // so a background refresh never keeps the collector alive.
-        let archive = collector.archive
-        let maxGap = collector.settingsManager.settings.effectiveMergeGapSeconds
+        // so a background refresh never keeps these controls alive.
+        let archive = self.archive
+        let maxGap = settingsManager.settings.effectiveMergeGapSeconds
 
-        Task.detached(priority: .utility) { [weak owner = collector] in
+        Task.detached(priority: .utility) { [weak owner = self] in
             let result = CollectorSessionControl.findRecentPausedSessionOffMain(archive: archive, maxGap: maxGap)
             await MainActor.run { [weak owner] in
                 owner?.sessionState.recentPausedSession = result
@@ -329,20 +329,20 @@ extension CollectorSessionControl {
     /// to update a snapshot; the AI queries the broker once per context build
     /// and gets fresh state on demand.
     ///
-    /// `weak self` — if the collector is ever released, return nil so the AI
+    /// The mirror is held weakly: once it is released, return nil so the AI
     /// cleanly reports "no live recording" instead of holding a dangling
     /// reference.
     ///
     /// A snapshot-mirror pattern, not a `DispatchQueue.main.sync`-based
     /// provider. The MainActor-isolated
     /// `LiveHRVMirror.refresh(from:)` writes a Sendable struct into the
-    /// mirror whenever `collector.sessionState` changes. The provider
+    /// mirror whenever `sessionState` changes. The provider
     /// closure below reads the mirror through the lock — no actor crossing, no
     /// deadlock risk, no `dispatchPrecondition`. Stale-by-one-runloop-tick is
     /// the tradeoff; for "what's happening right now" it's invisible.
     func publishLiveHRVSnapshotsToAssistant() {
-        collector.services.liveHRVBroker.registerProvider { [weak collector] in
-            guard let collector, let mirror = Self.currentLiveHRVSnapshotMirror(of: collector) else { return nil }
+        services.liveHRVBroker.registerProvider { [weak liveHRVMirror] in
+            guard let liveHRVMirror, let mirror = Self.currentLiveHRVSnapshotMirror(of: liveHRVMirror) else { return nil }
             return Self.liveSnapshot(from: mirror, now: Date())
         }
     }
@@ -353,8 +353,8 @@ extension CollectorSessionControl {
     /// context builds the AI's context — crossing to the main actor here is
     /// exactly the deadlock the mirror pattern exists to avoid. Safe: the
     /// property is pointer-atomic and every write is lock-protected.
-    nonisolated private static func currentLiveHRVSnapshotMirror(of collector: RRCollector) -> LiveHRVMirror.Snapshot? {
-        collector.liveHRVMirror.snapshot.withLock { $0 }
+    nonisolated private static func currentLiveHRVSnapshotMirror(of mirror: LiveHRVMirror) -> LiveHRVMirror.Snapshot? {
+        mirror.snapshot.withLock { $0 }
     }
 
     /// Clock-dependent fields are recomputed at READ time so the values
@@ -388,21 +388,21 @@ extension CollectorSessionControl {
     }
 
     /// One-time migration: repair sessions saved by builds whose background
-    /// device refinement bypassed `collector.mergeParentSessionData()`.
+    /// device refinement bypassed `OvernightStreamingCoordinator.mergeParentSessionData()`.
     ///
     /// v6 also repairs v5's 0-offset double-merge, which left sessions with
     /// overlapping timestamps. `Task.detached` keeps it off the
     /// main actor at launch.
     ///
-    /// The task holds the collector strongly, so a one-time migration keeps
+    /// The task holds the recovery coordinator strongly, so a one-time migration keeps
     /// its owner alive until it finishes. A night whose repair could not be
     /// written leaves the flag unset, so the next launch tries it again;
     /// nights already repaired read as healthy and are skipped.
     func runMergeDataLossMigrationIfNeeded() {
         guard !UserDefaults.standard.bool(forKey: UserDefaultsKeys.mergeDataLossRepaired) else { return }
-        let collector = self.collector
+        let recovery = self.recovery
         Task.detached {
-            let outcome = await collector.recovery.repairMergeDataLoss()
+            let outcome = await recovery.repairMergeDataLoss()
             debugLog("[RRCollector] Merge data loss migration: \(outcome.repaired) sessions repaired, \(outcome.failed) failed")
             guard outcome.failed == 0 else { return }
             UserDefaults.standard.set(true, forKey: UserDefaultsKeys.mergeDataLossRepaired)

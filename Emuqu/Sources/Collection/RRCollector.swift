@@ -70,9 +70,7 @@ final class RRCollector {
     // through to it. SwiftUI views read
     // `deviceStatus` directly from the environment.
 
-
     // MARK: - Internal State (accessed by extension files)
-
 
     /// Tokens for the block-based NotificationCenter observers the
     /// collector registers (app lifecycle in `+Lifecycle`, the archived-copy
@@ -90,13 +88,32 @@ final class RRCollector {
     )
     var lastEmergencyFlush: Date?
 
-    /// Backing storage for the lazy `recoveryService` computed property in +Recovery.
-    var _recoveryService: SessionRecoveryService?
+
+    /// Process → analyse → accept. Built first: every other coordinator
+    /// calls it, and it calls none of them.
+    @ObservationIgnored private(set) lazy var morning: MorningSessionPipeline = MorningSessionPipeline(
+        acceptanceService: acceptanceService, analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal, baselineRebuild: baselineRebuild, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthKit: healthKit, morningCoordination: morningCoordination, morningProcessingService: morningProcessingService, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore, scoring: scoring, sessionState: sessionState, settingsManager: settingsManager, sleepBoundaryResolver: sleepBoundaryResolver, streamingLifecycle: streamingLifecycle
+    )
+
+    /// Overnight capture in streaming mode, and the gather that ends it.
+    @ObservationIgnored private(set) lazy var overnightStreaming: OvernightStreamingCoordinator = OvernightStreamingCoordinator(
+        archive: archive, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, healthKit: healthKit, morningCoordination: morningCoordination, overnightRun: overnightRun, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore, services: services, sessionState: sessionState, settingsManager: settingsManager, streamingLifecycle: streamingLifecycle, morning: morning
+    )
+
+    /// Capture to the strap's own memory, and its download.
+    @ObservationIgnored private(set) lazy var deviceRecording: DeviceRecordingSession = DeviceRecordingSession(
+        archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker, healthKit: healthKit, polarManager: polarManager, rawBackup: rawBackup, reconciliation: reconciliation, recordingStore: recordingStore, scoring: scoring, sessionState: sessionState, strapGuards: strapGuards, streamingLifecycle: streamingLifecycle, verification: verification, windowSelector: windowSelector, morning: morning
+    )
+
+    /// Recovery of interrupted, lost and trashed recordings.
+    @ObservationIgnored private(set) lazy var recovery: SessionRecoveryCoordinator = SessionRecoveryCoordinator(
+        archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, healthKit: healthKit, morningCoordination: morningCoordination, overnightRun: overnightRun, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore, scoring: scoring, services: services, sessionState: sessionState, settingsManager: settingsManager, strapGuards: strapGuards, streamingLifecycle: streamingLifecycle, windowSelector: windowSelector, deviceRecording: deviceRecording, morning: morning
+    )
 
     /// Streaming sessions, pause/resume, and the view bindings.
-    var control: CollectorSessionControl {
-        CollectorSessionControl(collector: self)
-    }
+    @ObservationIgnored private(set) lazy var control: CollectorSessionControl = CollectorSessionControl(
+        analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineArchiveSync: baselineArchiveSync, baselineRebuild: baselineRebuild, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthKit: healthKit, liveHRVMirror: liveHRVMirror, morningCoordination: morningCoordination, notificationObservers: notificationObservers, overnightRun: overnightRun, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore, scoring: scoring, services: services, sessionState: sessionState, settingsManager: settingsManager, strapGuards: strapGuards, streamingLifecycle: streamingLifecycle, streamingVerification: streamingVerification, morning: morning, overnightStreaming: overnightStreaming, recovery: recovery
+    )
 
     func startStreamingSession(durationSeconds: Int = 180) throws {
         try control.startStreamingSession(durationSeconds: durationSeconds)

@@ -6,13 +6,13 @@ extension MorningSessionPipeline {
     /// Accept the current session - archives and updates the baseline. The
     /// H10's own copy stays on the strap as a backup until the next recording.
     func acceptSession() async throws {
-        guard let session = collector.sessionState.currentSession, session.state == .complete else {
+        guard let session = sessionState.currentSession, session.state == .complete else {
             throw RRCollector.CollectorError.noSessionToAccept
         }
         do {
             try await runAcceptance(session)
         } catch {
-            await MainActor.run { collector.sessionState.lastError = error }
+            await MainActor.run { sessionState.lastError = error }
             throw error
         }
         await MainActor.run { clearAcceptedSessionState() }
@@ -20,21 +20,21 @@ extension MorningSessionPipeline {
 
     /// Delegate the heavy work to the acceptance service.
     private func runAcceptance(_ session: HRVSession) async throws {
-        let settings = collector.settingsManager.settings
+        let settings = settingsManager.settings
         let trainingContext = await scoringTrainingContext(result: session.analysisResult, sessionEnd: session.endDate ?? session.startDate)
         let inputs = SessionAcceptanceService.AcceptanceInputs(
-            scoringConfig: collector.scoring.currentScoringConfig,
+            scoringConfig: scoring.currentScoringConfig,
             trainingContext: trainingContext,
-            baselineStats: collector.scoring.scoringBaselineStats(for: session),
+            baselineStats: scoring.scoringBaselineStats(for: session),
             typicalSleepHours: settings.typicalSleepHours,
             sleepSchedule: settings.sleepSchedule
         )
-        _ = try await collector.acceptanceService.processAcceptance(
+        _ = try await acceptanceService.processAcceptance(
             session: session,
             inputs: inputs,
             enableHealthKitExport: settings.enableHealthKitExport,
-            clearPersistedRecordingState: { [weak collector] in
-                collector?.recordingStore.clear()
+            clearPersistedRecordingState: { [weak self] in
+                self?.recordingStore.clear()
             }
         )
     }
@@ -44,7 +44,7 @@ extension MorningSessionPipeline {
     @MainActor
     private func clearAcceptedSessionState() {
         clearAcceptanceState()
-        collector.archiveSignal.notifyChanged()
+        archiveSignal.notifyChanged()
     }
 
     /// Recompute and re-archive the composite recovery score for a session.
@@ -62,14 +62,14 @@ extension MorningSessionPipeline {
     func updateCompositeRecoveryScore(for session: HRVSession, exportMetrics: Bool = false) async -> Bool {
         guard let result = session.analysisResult else { return false }
 
-        let settings = collector.settingsManager.settings
+        let settings = settingsManager.settings
         let trainingContext = await scoringTrainingContext(result: result, sessionEnd: session.endDate ?? session.startDate)
 
-        let updated = await collector.acceptanceService.updateCompositeRecoveryScore(
+        let updated = await acceptanceService.updateCompositeRecoveryScore(
             for: session,
-            scoringConfig: collector.scoring.currentScoringConfig,
+            scoringConfig: scoring.currentScoringConfig,
             trainingContext: trainingContext,
-            baselineStats: collector.scoring.scoringBaselineStats(for: session),
+            baselineStats: scoring.scoringBaselineStats(for: session),
             typicalSleepHours: settings.typicalSleepHours,
             sleepSchedule: settings.sleepSchedule,
             exportMetrics: exportMetrics,
@@ -77,7 +77,7 @@ extension MorningSessionPipeline {
         )
 
         if updated {
-            await MainActor.run { collector.archiveSignal.notifyChanged() }
+            await MainActor.run { archiveSignal.notifyChanged() }
         }
         return updated
     }
@@ -86,13 +86,13 @@ extension MorningSessionPipeline {
     /// archived. The night stays, so "Discard" no longer points at it. The
     /// one reset of the review UI: acceptance and rejection run it too.
     func clearAcceptanceState() {
-        collector.sessionState.currentSession = nil
-        collector.sessionState.forgetReviewedNight()
-        collector.sessionState.needsAcceptance = false
-        collector.sessionState.recordingPhase = .idle
-        collector.sessionState.verificationResult = nil
-        collector.sessionState.recoveryWindow = nil
-        collector.healthKit.writes.stopObservingSleepData()
+        sessionState.currentSession = nil
+        sessionState.forgetReviewedNight()
+        sessionState.needsAcceptance = false
+        sessionState.recordingPhase = .idle
+        sessionState.verificationResult = nil
+        sessionState.recoveryWindow = nil
+        healthKit.writes.stopObservingSleepData()
     }
 
     /// Reject the current session: clears the persisted recording state, the
@@ -103,10 +103,10 @@ extension MorningSessionPipeline {
     /// baseline by `discardReviewArchivedSession`, which
     /// `RRCollector.rejectSession` runs first.
     func rejectSession() async {
-        await collector.acceptanceService.processRejection(
-            sessionId: collector.sessionState.currentSession?.id,
-            clearPersistedRecordingState: { [weak collector] in
-                collector?.recordingStore.clear()
+        await acceptanceService.processRejection(
+            sessionId: sessionState.currentSession?.id,
+            clearPersistedRecordingState: { [weak self] in
+                self?.recordingStore.clear()
             }
         )
 

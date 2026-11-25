@@ -357,7 +357,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         let night = HRVSession(startDate: start)
         collector.sessionState.currentSession = night
 
-        let gathered = await collector.morning.gatherOvernightData()
+        let gathered = await collector.overnightStreaming.gatherOvernightData()
 
         XCTAssertNotNil(gathered)
         collector.rawBackup.waitForQueuedWork()

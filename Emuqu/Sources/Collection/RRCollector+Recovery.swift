@@ -5,19 +5,19 @@ import Foundation
 extension SessionRecoveryCoordinator {
     // MARK: - Recovery Service
 
-    /// Lazy-initialized recovery service with all dependencies injected from RRCollector.
+    /// The recovery service, built on first use over this coordinator's parts.
     var recoveryService: SessionRecoveryService {
-        if let existing = collector._recoveryService { return existing }
+        if let existing = cachedRecoveryService { return existing }
         let service = SessionRecoveryService(
-            archive: collector.archive,
-            rawBackup: collector.rawBackup,
-            artifactDetector: collector.artifactDetector,
-            windowSelector: collector.windowSelector,
-            cloudSyncManager: collector.cloudSyncManager,
-            baselineTracker: collector.baselineTracker,
-            exportToHealth: Self.healthExport(healthKit: collector.healthKit, settingsManager: collector.settingsManager)
+            archive: archive,
+            rawBackup: rawBackup,
+            artifactDetector: artifactDetector,
+            windowSelector: windowSelector,
+            cloudSyncManager: cloudSyncManager,
+            baselineTracker: baselineTracker,
+            exportToHealth: Self.healthExport(healthKit: healthKit, settingsManager: settingsManager)
         )
-        collector._recoveryService = service
+        cachedRecoveryService = service
         return service
     }
 
@@ -45,7 +45,7 @@ extension SessionRecoveryCoordinator {
     /// again, so the session is resolved, date-checked, dated and assembled
     /// exactly as the first attempt was.
     func retryFetchRecording() async throws -> HRVSession? {
-        try await collector.deviceRecording.stopSession()
+        try await deviceRecording.stopSession()
     }
 
     // MARK: - Recover from Device
@@ -57,15 +57,15 @@ extension SessionRecoveryCoordinator {
     func recoverFromDevice() async throws -> HRVSession? {
         debugLog("[Recovery] ========== START recoverFromDevice ==========")
         // An earlier operation's error must not stand in for this one's.
-        collector.sessionState.lastError = nil
+        sessionState.lastError = nil
         try checkRecoverable()
-        collector.polarManager.recording.beginTransfer()
+        polarManager.recording.beginTransfer()
         let recording = try await downloadForRecovery()
         let placement = await recoveryPlacement(for: recording)
-        let session = await collector.deviceRecording.assembleDownloadedSession(recording, placement: placement)
+        let session = await deviceRecording.assembleDownloadedSession(recording, placement: placement)
         debugLog("[Recovery] ========== END recoverFromDevice: \(session.id.uuidString.prefix(8)) \(session.state) ==========")
         guard session.state == .complete else {
-            throw collector.sessionState.lastError ?? RRCollector.CollectorError.insufficientData
+            throw sessionState.lastError ?? RRCollector.CollectorError.insufficientData
         }
         return session
     }
@@ -73,30 +73,30 @@ extension SessionRecoveryCoordinator {
     /// Recover needs the strap, must not stop a live session's recording, and
     /// does not offer a recording already downloaded and saved.
     private func checkRecoverable() throws {
-        let manager = collector.polarManager
+        let manager = polarManager
         guard manager.connectionState == .connected else { throw recoveryRefused(.notConnected) }
-        guard !collector.strapGuards.belongsToLiveSession, !collector.strapGuards.heldByInterruptedWorkout else {
+        guard !strapGuards.belongsToLiveSession, !strapGuards.heldByInterruptedWorkout else {
             throw recoveryRefused(.alreadyRecording)
         }
         let alreadySaved = manager.hasStoredExercise && manager.storedExerciseDate != nil
-            && !manager.isRecordingOnDevice && !collector.strapGuards.hasUnrecoveredData
+            && !manager.isRecordingOnDevice && !strapGuards.hasUnrecoveredData
         guard !alreadySaved else { throw recoveryRefused(.strapRecordingAlreadySaved) }
     }
 
     private func recoveryRefused(_ error: RRCollector.CollectorError) -> Error {
         debugLog("[Recovery] Not recovering: \(error)")
-        collector.sessionState.lastError = error
+        sessionState.lastError = error
         return error
     }
 
     private func downloadForRecovery() async throws -> StrapRecording {
         do {
-            let recording = try await collector.polarManager.recording.fetchRecording(recordedSince: nil, budget: .attended)
+            let recording = try await polarManager.recording.fetchRecording(recordedSince: nil, budget: .attended)
             debugLog("[Recovery] Got \(recording.points.count) beats from strap, started \(recording.startedAt?.description ?? "unknown")")
             return recording
         } catch {
             debugLog("[Recovery] Strap download failed: \(error)")
-            collector.sessionState.lastError = error
+            sessionState.lastError = error
             throw error
         }
     }
@@ -106,7 +106,7 @@ extension SessionRecoveryCoordinator {
     /// night's archived session when there is one.
     private func recoveryPlacement(for recording: StrapRecording) async -> DeviceRecordingSession.DownloadPlacement {
         if let tonight = persistedSessionOwning(recording) { return tonight }
-        let start = await collector.deviceRecording.recordingStart(recording)
+        let start = await deviceRecording.recordingStart(recording)
         if let existing = archivedNightToMergeInto(recording, start: start) {
             // One clock from the earlier start. A start that was only
             // estimated can't place the beats, so they stay on the night's own.
@@ -118,20 +118,20 @@ extension SessionRecoveryCoordinator {
         }
         return DeviceRecordingSession.DownloadPlacement(
             sessionId: UUID(), sessionType: .overnight, startDate: start,
-            deviceProvenance: collector.deviceRecording.deviceRecordingProvenance(), existing: nil
+            deviceProvenance: deviceRecording.deviceRecordingProvenance(), existing: nil
         )
     }
 
     private func persistedSessionOwning(_ recording: StrapRecording) -> DeviceRecordingSession.DownloadPlacement? {
-        guard let persisted = collector.recordingStore.load(), persisted.sessionType != .workout,
+        guard let persisted = recordingStore.load(), persisted.sessionType != .workout,
               let start = recording.startedAt,
               StrapRecordingPolicy.recording(startedAt: start, belongsToSessionStartedAt: persisted.startTime)
         else { return nil }
         debugLog("[Recovery] Recording started \(start), during the persisted session \(persisted.sessionId.uuidString.prefix(8))")
-        let existing = collector.archive.store.exists(persisted.sessionId) ? collector.archive.retrieveOrLog(persisted.sessionId) : nil
+        let existing = archive.store.exists(persisted.sessionId) ? archive.retrieveOrLog(persisted.sessionId) : nil
         return DeviceRecordingSession.DownloadPlacement(
             sessionId: persisted.sessionId, sessionType: persisted.sessionType, startDate: persisted.startTime,
-            deviceProvenance: existing?.deviceProvenance ?? collector.deviceRecording.deviceRecordingProvenance(),
+            deviceProvenance: existing?.deviceProvenance ?? deviceRecording.deviceRecordingProvenance(),
             existing: existing
         )
     }
@@ -146,11 +146,11 @@ extension SessionRecoveryCoordinator {
     /// earlier half) is never the target: its night is the entry that absorbed
     /// it. Recordings further apart stay separate nights.
     private func archivedNightToMergeInto(_ recording: StrapRecording, start: Date) -> HRVSession? {
-        let settings = collector.settingsManager.settings
+        let settings = settingsManager.settings
         let end = start.addingTimeInterval(StrapExerciseDecoder.durationSeconds(of: recording.points))
         let span = SessionMerger.span(start: start, end: end)
         let allowsSameSleep = settings.sessionMergeMode != .off && recording.startedAt != nil
-        let store = collector.archive.store
+        let store = archive.store
         let entries = store.entries
         let absorbed = Set(entries.flatMap { $0.linkedSessionIds ?? [] })
         let related = entries
@@ -162,7 +162,7 @@ extension SessionRecoveryCoordinator {
             }
         let target = related.first { $0.relation == .sameRecording }
             ?? (allowsSameSleep ? related.filter { $0.relation == .sameSleep }.min { $0.gap < $1.gap } : nil)
-        guard let target, let session = collector.archive.retrieveOrLog(target.entry.sessionId) else { return nil }
+        guard let target, let session = archive.retrieveOrLog(target.entry.sessionId) else { return nil }
         debugLog("[Recovery] Same-night session \(session.id.uuidString.prefix(8)) (\(session.rrSeries?.points.count ?? 0) beats, source \(session.dataSourceSummary?.selectedSource ?? "nil"))")
         return session
     }

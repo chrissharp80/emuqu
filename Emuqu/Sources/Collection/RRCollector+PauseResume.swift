@@ -20,18 +20,18 @@ extension CollectorSessionControl {
     /// touching the night. Returns nil then, and when the paused night could
     /// not be archived.
     func pauseOvernightStreaming() async -> HRVSession? {
-        guard let claim = collector.streamingLifecycle.claimOvernightEnding() else { return nil }
-        defer { collector.streamingLifecycle.releaseOvernightEnding(claim) }
+        guard let claim = streamingLifecycle.claimOvernightEnding() else { return nil }
+        defer { streamingLifecycle.releaseOvernightEnding(claim) }
         let bgTask = BackgroundTaskAssertion.forRecordingStop(named: "OvernightPause")
         defer { bgTask.end() }
-        await collector.overnightStreaming.endDeviceRecordingArming()
+        await overnightStreaming.endDeviceRecordingArming()
         debugLog("[RRCollector] ⏸ Pausing overnight streaming...")
 
         // Capture the original session before gatherOvernightData() can overwrite
         // currentSession with a failed placeholder (which drops deviceProvenance etc.)
-        let originalSession = collector.sessionState.currentSession ?? HRVSession()
+        let originalSession = sessionState.currentSession ?? HRVSession()
 
-        if let data = await collector.morning.gatherOvernightData() {
+        if let data = await overnightStreaming.gatherOvernightData() {
             return await pauseWithFullAnalysis(data: data)
         }
 
@@ -49,12 +49,12 @@ extension CollectorSessionControl {
     /// (`publishUnsavedPause`); the strap's beats the gather downloaded were
     /// backed up by the gather, before the analysis.
     private func pauseWithFullAnalysis(data: OvernightStreamingCoordinator.OvernightDataResult) async -> HRVSession? {
-        let merged = collector.overnightStreaming.mergeParentSessionData(data: data)
+        let merged = overnightStreaming.mergeParentSessionData(data: data)
         let totalBeats = merged.points.count
         await MainActor.run {
-            collector.morningCoordination.morningStatus = .analyzing(beats: totalBeats, streamedBeats: data.streamingBeats, deviceBeats: data.deviceBeats, source: data.dataSource)
+            morningCoordination.morningStatus = .analyzing(beats: totalBeats, streamedBeats: data.streamingBeats, deviceBeats: data.deviceBeats, source: data.dataSource)
         }
-        var pausedSession = await collector.morning.processOvernightData(
+        var pausedSession = await morning.processOvernightData(
             points: merged.points, baseSession: merged.baseSession, dataSource: data.dataSource,
             reconnectCount: data.reconnectCount, streamingBeats: data.streamingBeats,
             deviceBeats: data.deviceBeats, awaitsReview: false
@@ -78,9 +78,9 @@ extension CollectorSessionControl {
     /// ones, already in the stream's backup, so a night the archive would not
     /// take only goes unpublished.
     private func pauseWithShortRecording(originalSession: HRVSession) async -> HRVSession? {
-        let points = await MainActor.run { collector.sessionState.collectedPoints }
+        let points = await MainActor.run { sessionState.collectedPoints }
         debugLog("[RRCollector] ⏸ Short recording (\(points.count) beats) — saving for resume without analysis")
-        let merged = collector.overnightStreaming.mergeParentSessionData(data: OvernightStreamingCoordinator.OvernightDataResult(
+        let merged = overnightStreaming.mergeParentSessionData(data: OvernightStreamingCoordinator.OvernightDataResult(
             points: points, baseSession: originalSession, streamingBeats: points.count,
             deviceBeats: nil, dataSource: "streaming", reconnectCount: 0
         ))
@@ -116,14 +116,14 @@ extension CollectorSessionControl {
 
     private func publishPausedState(_ pausedSession: HRVSession, totalBeats: Int, clearLastError: Bool) async {
         await MainActor.run {
-            collector.sessionState.currentSession = pausedSession
-            collector.streamingLifecycle.pausedSession = pausedSession
-            collector.streamingLifecycle.pausedBeatCount = totalBeats
-            collector.streamingLifecycle.isPaused = true
-            collector.sessionState.recordingPhase = .paused(sessionId: pausedSession.id)
-            collector.sessionState.needsAcceptance = false
-            collector.morningCoordination.morningStatus = nil
-            if clearLastError, Self.isInsufficientData(collector.sessionState.lastError) { collector.sessionState.lastError = nil }
+            sessionState.currentSession = pausedSession
+            streamingLifecycle.pausedSession = pausedSession
+            streamingLifecycle.pausedBeatCount = totalBeats
+            streamingLifecycle.isPaused = true
+            sessionState.recordingPhase = .paused(sessionId: pausedSession.id)
+            sessionState.needsAcceptance = false
+            morningCoordination.morningStatus = nil
+            if clearLastError, Self.isInsufficientData(sessionState.lastError) { sessionState.lastError = nil }
         }
     }
 
@@ -135,10 +135,10 @@ extension CollectorSessionControl {
     private func publishUnsavedPause(_ session: HRVSession) {
         var unsaved = session
         unsaved.state = .failed
-        collector.sessionState.currentSession = unsaved
-        collector.sessionState.needsAcceptance = false
-        collector.sessionState.recordingPhase = .idle
-        collector.morningCoordination.morningStatus = nil
+        sessionState.currentSession = unsaved
+        sessionState.needsAcceptance = false
+        sessionState.recordingPhase = .idle
+        morningCoordination.morningStatus = nil
         debugLog("[RRCollector] ⏸ Pause not saved — night \(session.id.uuidString.prefix(8)) left in its raw backup", level: .error)
     }
 
@@ -164,12 +164,12 @@ extension CollectorSessionControl {
     /// an id iCloud already holds, which sync would otherwise never re-send.
     private func archivePausedSession(_ session: HRVSession, label: String) async -> Bool {
         do {
-            try collector.archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
+            try archive.archive(session, skipSameNightMerge: false, requestingReupload: true)
             debugLog("[RRCollector] ✅ \(label) session archived: \(session.id.uuidString.prefix(8))")
             return true
         } catch {
             debugLog("[RRCollector] ⚠️ Failed to archive \(label.lowercased()) session: \(error)", level: .error)
-            await MainActor.run { self.collector.sessionState.lastError = error }
+            await MainActor.run { self.sessionState.lastError = error }
             return false
         }
     }
@@ -181,8 +181,8 @@ extension CollectorSessionControl {
     /// second. The reverse order (clear first, persist second) creates a
     /// window where neither marker exists and the session is orphaned.
     private func persistPauseAndClearRecording(sessionId: UUID) {
-        collector.recordingStore.persistPaused(sessionId: sessionId)
-        collector.recordingStore.clear()
+        recordingStore.persistPaused(sessionId: sessionId)
+        recordingStore.clear()
     }
 
     // MARK: - Resume
@@ -197,21 +197,21 @@ extension CollectorSessionControl {
     /// child is linked to its parent only once streaming started, so a failed
     /// resume leaves no link.
     func resumeOvernightStreaming(linkedSessionId: UUID) throws {
-        try collector.overnightStreaming.refuseWhileEndingInProgress()
-        guard collector.polarManager.connectionState == .connected else {
+        try overnightStreaming.refuseWhileEndingInProgress()
+        guard polarManager.connectionState == .connected else {
             throw RRCollector.CollectorError.notConnected
         }
-        guard !collector.polarManager.isStreaming else {
+        guard !polarManager.isStreaming else {
             throw RRCollector.CollectorError.alreadyRecording
         }
         debugLog("[RRCollector] ▶ Resuming overnight streaming, linked to \(linkedSessionId.uuidString.prefix(8))")
         var session = HRVSession(
-            sessionType: parentSessionType(of: linkedSessionId), deviceProvenance: .streaming(from: collector.polarManager)
+            sessionType: parentSessionType(of: linkedSessionId), deviceProvenance: .streaming(from: polarManager)
         )
         session.linkedSessionIds = [linkedSessionId]
-        collector.overnightRun.deviceBackupActive = false
-        try collector.polarManager.startStreaming()
-        if collector.overnightRun.usesDeviceBackup, collector.polarManager.connectedDeviceType != .veritySense {
+        overnightRun.deviceBackupActive = false
+        try polarManager.startStreaming()
+        if overnightRun.usesDeviceBackup, polarManager.connectedDeviceType != .veritySense {
             launchResumeDeviceBackupRecording()
         }
         linkChildToParent(childId: session.id, parentId: linkedSessionId)
@@ -222,17 +222,17 @@ extension CollectorSessionControl {
     /// drop the paused-session marker, and restart the 1 Hz overnight timer.
     private func commitResumedSession(_ session: HRVSession) {
         resetStateForResumedSession(session)
-        collector.recordingStore.persist(sessionId: session.id, startTime: Date(), sessionType: session.sessionType)
-        collector.recordingStore.clearPaused()
-        collector.overnightStreaming.startOvernightStreamingTimer()
+        recordingStore.persist(sessionId: session.id, startTime: Date(), sessionType: session.sessionType)
+        recordingStore.clearPaused()
+        overnightStreaming.startOvernightStreamingTimer()
         // The pause's gather stopped it; the resumed segment samples as a night does.
-        collector.services.systemDiagnosticsManager.startSamplingDuringRecording()
+        services.systemDiagnosticsManager.startSamplingDuringRecording()
         debugLog("[RRCollector] ▶ Resumed overnight streaming. New session: \(session.id.uuidString.prefix(8))")
     }
 
     /// Preserve the parent session's type so nap sessions stay as naps after resume.
     private func parentSessionType(of linkedSessionId: UUID) -> SessionType {
-        collector.archive.retrieveOrLog(linkedSessionId)?.sessionType ?? .overnight
+        archive.retrieveOrLog(linkedSessionId)?.sessionType ?? .overnight
     }
 
     /// Update the parent session so it knows about this child. The link is
@@ -240,8 +240,8 @@ extension CollectorSessionControl {
     /// to iCloud again so other devices see it too.
     private func linkChildToParent(childId: UUID, parentId: UUID) {
         do {
-            guard collector.archive.store.exists(parentId) else { return }
-            try collector.archive.update(parentId, requestingReupload: true) { parent in
+            guard archive.store.exists(parentId) else { return }
+            try archive.update(parentId, requestingReupload: true) { parent in
                 var links = parent.linkedSessionIds ?? []
                 links.append(childId)
                 parent.linkedSessionIds = links
@@ -257,33 +257,33 @@ extension CollectorSessionControl {
     /// downloaded to the rescue backup first, and a part that cannot be
     /// keeps the strap from being armed (`StrapStartSequence`).
     private func launchResumeDeviceBackupRecording() {
-        collector.overnightStreaming.launchDeviceRecordingLoop()
+        overnightStreaming.launchDeviceRecordingLoop()
     }
 
     /// The paused segment's beat count carries forward so the UI keeps counting
     /// the whole night rather than restarting from zero. The pause's errors
     /// were about the paused part; the segment starts without them.
     private func resetStateForResumedSession(_ session: HRVSession) {
-        let priorBeats = collector.streamingLifecycle.pausedBeatCount
+        let priorBeats = streamingLifecycle.pausedBeatCount
         debugLog("[RRCollector] Resume: carrying forward \(priorBeats) beats")
-        collector.sessionState.currentSession = session
-        collector.sessionState.collectedPoints = []
-        collector.streamingLifecycle.sessionStartTime = Date()
-        collector.streamingLifecycle.isStreamingMode = true
-        collector.streamingLifecycle.isOvernightStreaming = true
-        collector.overnightRun.isEnding = false
-        collector.streamingLifecycle.isPaused = false
-        collector.sessionState.recordingPhase = .overnightStreaming
-        collector.streamingLifecycle.pausedSession = nil
-        collector.streamingLifecycle.pausedBeatCount = priorBeats
-        collector.streamingLifecycle.streamingTargetSeconds = Int.max
-        collector.streamingLifecycle.streamingElapsedSeconds = 0
-        collector.sessionState.isCollecting = true
-        collector.streamingLifecycle.lastSeenReconnectCount = 0
-        collector.sessionState.verificationResult = nil
-        collector.sessionState.baselineDeviation = nil
-        collector.overnightRun.deviceFetchPolicy = .automatic
-        collector.sessionState.lastError = nil
+        sessionState.currentSession = session
+        sessionState.collectedPoints = []
+        streamingLifecycle.sessionStartTime = Date()
+        streamingLifecycle.isStreamingMode = true
+        streamingLifecycle.isOvernightStreaming = true
+        overnightRun.isEnding = false
+        streamingLifecycle.isPaused = false
+        sessionState.recordingPhase = .overnightStreaming
+        streamingLifecycle.pausedSession = nil
+        streamingLifecycle.pausedBeatCount = priorBeats
+        streamingLifecycle.streamingTargetSeconds = Int.max
+        streamingLifecycle.streamingElapsedSeconds = 0
+        sessionState.isCollecting = true
+        streamingLifecycle.lastSeenReconnectCount = 0
+        sessionState.verificationResult = nil
+        sessionState.baselineDeviation = nil
+        overnightRun.deviceFetchPolicy = .automatic
+        sessionState.lastError = nil
     }
 
     // MARK: - Finalize
@@ -300,21 +300,21 @@ extension CollectorSessionControl {
     /// or a rescore may have rewritten since the pause; the copy held at the
     /// pause would put the older sleep and score back.
     func finalizeFromPause() {
-        guard let session = collector.streamingLifecycle.pausedSession, session.state == .paused else {
+        guard let session = streamingLifecycle.pausedSession, session.state == .paused else {
             debugLog("[RRCollector] Cannot finalize — no paused session")
             return
         }
         debugLog("[RRCollector] Finalizing paused session \(session.id.uuidString.prefix(8))")
         guard let finalSession = rearchiveFinalized(session) else { return }
-        collector.baselineTracker.update(with: finalSession, sleepSchedule: collector.settingsManager.settings.sleepSchedule)
-        collector.sessionState.currentSession = finalSession
-        collector.sessionState.needsAcceptance = finalSession.analysisResult != nil
-        collector.sessionState.reviewArchivedSessionId = collector.sessionState.needsAcceptance ? finalSession.id : nil
-        collector.sessionState.reviewArchivedEntries = SessionState.ReviewEntries(of: finalSession)
-        collector.streamingLifecycle.isPaused = false
-        collector.sessionState.recordingPhase = collector.sessionState.needsAcceptance ? .awaitingAcceptance : .idle
-        collector.streamingLifecycle.pausedSession = nil
-        collector.recordingStore.clearPaused()
+        baselineTracker.update(with: finalSession, sleepSchedule: settingsManager.settings.sleepSchedule)
+        sessionState.currentSession = finalSession
+        sessionState.needsAcceptance = finalSession.analysisResult != nil
+        sessionState.reviewArchivedSessionId = sessionState.needsAcceptance ? finalSession.id : nil
+        sessionState.reviewArchivedEntries = SessionState.ReviewEntries(of: finalSession)
+        streamingLifecycle.isPaused = false
+        sessionState.recordingPhase = sessionState.needsAcceptance ? .awaitingAcceptance : .idle
+        streamingLifecycle.pausedSession = nil
+        recordingStore.clearPaused()
     }
 
     /// Marks the archive's copy of the paused night complete, in place, and
@@ -326,15 +326,15 @@ extension CollectorSessionControl {
         var finalSession = paused
         finalSession.state = .complete
         do {
-            guard collector.archive.store.exists(paused.id) else {
-                try collector.archive.archive(finalSession, skipSameNightMerge: false, requestingReupload: true)
+            guard archive.store.exists(paused.id) else {
+                try archive.archive(finalSession, skipSameNightMerge: false, requestingReupload: true)
                 return finalSession
             }
-            try collector.archive.update(paused.id, requestingReupload: true) { $0.state = .complete }
-            return try collector.archive.retrieve(paused.id) ?? finalSession
+            try archive.update(paused.id, requestingReupload: true) { $0.state = .complete }
+            return try archive.retrieve(paused.id) ?? finalSession
         } catch {
             debugLog("[RRCollector] ⚠️ Failed to re-archive finalized session: \(error)", level: .error)
-            collector.sessionState.lastError = error
+            sessionState.lastError = error
             return nil
         }
     }
@@ -344,22 +344,22 @@ extension CollectorSessionControl {
     /// Restore paused state on app launch so the Record tab shows Resume / Done.
     /// Session deserialization runs off the main thread to avoid blocking app startup.
     func restorePausedStateIfNeeded() {
-        guard let pausedId = collector.recordingStore.pausedSessionId() else { return }
-        let archive = collector.archive
+        guard let pausedId = recordingStore.pausedSessionId() else { return }
+        let archive = self.archive
         Task.detached(priority: .userInitiated) {
             guard let session = archive.retrieveOrLog(pausedId), session.state == .paused else { return }
-            await MainActor.run { [weak collector] in collector?.control.publishRestoredPausedSession(session, id: pausedId) }
+            await MainActor.run { [weak self] in self?.publishRestoredPausedSession(session, id: pausedId) }
         }
     }
 
     @MainActor
     private func publishRestoredPausedSession(_ session: HRVSession, id: UUID) {
         debugLog("[RRCollector] Restoring paused state for session \(id.uuidString.prefix(8))")
-        collector.streamingLifecycle.pausedSession = session
-        collector.sessionState.currentSession = session
-        collector.streamingLifecycle.isPaused = true
-        collector.streamingLifecycle.pausedBeatCount = session.rrSeries?.points.count ?? 0
-        collector.sessionState.recordingPhase = .paused(sessionId: id)
-        if let usesDeviceBackup = collector.recordingStore.pausedCaptureMode() { collector.overnightRun.usesDeviceBackup = usesDeviceBackup }
+        streamingLifecycle.pausedSession = session
+        sessionState.currentSession = session
+        streamingLifecycle.isPaused = true
+        streamingLifecycle.pausedBeatCount = session.rrSeries?.points.count ?? 0
+        sessionState.recordingPhase = .paused(sessionId: id)
+        if let usesDeviceBackup = recordingStore.pausedCaptureMode() { overnightRun.usesDeviceBackup = usesDeviceBackup }
     }
 }

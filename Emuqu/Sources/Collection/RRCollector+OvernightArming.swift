@@ -16,13 +16,13 @@ extension OvernightStreamingCoordinator {
     /// night. It is off the critical path and ends the instant the night does
     /// (`endDeviceRecordingArming`).
     func launchDeviceRecordingLoop() {
-        collector.overnightRun.isEnding = false
-        collector.overnightRun.armingTask?.cancel()
-        collector.overnightRun.armingTask = Task { [weak collector] in
-            guard let collector else { return }
-            let started = await collector.overnightStreaming.awaitDeviceRecordingStart()
+        overnightRun.isEnding = false
+        overnightRun.armingTask?.cancel()
+        overnightRun.armingTask = Task { [weak self] in
+            guard let self else { return }
+            let started = await self.awaitDeviceRecordingStart()
             // A loop cancelled by a relaunch hands the night to its successor.
-            guard !started, !collector.overnightRun.isEnding, !Task.isCancelled else { return }
+            guard !started, !overnightRun.isEnding, !Task.isCancelled else { return }
             // PRIMARY, not backup: `docs/ARCHITECTURE.md` puts H10 internal
             // recording first ("more stable, survives disconnects") and BLE
             // streaming second. A night that ran streaming-only ran on the
@@ -38,9 +38,9 @@ extension OvernightStreamingCoordinator {
     /// The loop is cancelled and waited for (bounded) before the caller goes
     /// on to stop and download the strap.
     func endDeviceRecordingArming() async {
-        collector.overnightRun.isEnding = true
-        guard let task = collector.overnightRun.armingTask else { return }
-        collector.overnightRun.armingTask = nil
+        overnightRun.isEnding = true
+        guard let task = overnightRun.armingTask else { return }
+        overnightRun.armingTask = nil
         task.cancel()
         do {
             try await Deadline.race(
@@ -57,7 +57,7 @@ extension OvernightStreamingCoordinator {
 
     /// Whether this night still wants the strap armed.
     private var nightWantsArming: Bool {
-        collector.streamingLifecycle.isOvernightStreaming && !collector.overnightRun.isEnding && !Task.isCancelled
+        streamingLifecycle.isOvernightStreaming && !overnightRun.isEnding && !Task.isCancelled
     }
 
     /// A refusal for a low battery, and the level the strap reported then.
@@ -74,7 +74,7 @@ extension OvernightStreamingCoordinator {
         var batteryRefusal: BatteryRefusal?
         while nightWantsArming {
             if let refusal = batteryRefusal, !StrapRecordingPolicy.mayRetryArming(
-                afterBatteryRefusalAt: refusal.level, batteryNow: collector.polarManager.batteryLevel
+                afterBatteryRefusalAt: refusal.level, batteryNow: polarManager.batteryLevel
             ) {
                 await waitBeforeRetrying()
                 continue
@@ -94,7 +94,7 @@ extension OvernightStreamingCoordinator {
     /// before trying again — unless the night is ending.
     private func waitBeforeRetrying() async {
         guard nightWantsArming else { return }
-        _ = await collector.polarManager.linkRuntime.signal.wait(timeout: collector.overnightRun.armingRetryInterval)
+        _ = await polarManager.linkRuntime.signal.wait(timeout: overnightRun.armingRetryInterval)
     }
 
     /// Tell the user at once about a refusal only they can fix; log the rest.
@@ -116,19 +116,19 @@ extension OvernightStreamingCoordinator {
             return nil
         case .batteryTooLow:
             surfaceArmingRefusal(error, refusal)
-            return BatteryRefusal(level: collector.polarManager.batteryLevel)
+            return BatteryRefusal(level: polarManager.batteryLevel)
         }
     }
 
     /// Once per kind, so a retry every few minutes does not repeat the alert.
     private func surfaceArmingRefusal(_ error: Error, _ refusal: StrapRecordingPolicy.StartRefusal) {
         debugLogExternal("The strap refused to record to its own memory — \(error). This night records from the live stream.", cause: .strap)
-        if let shown = collector.sessionState.lastError, StrapRecordingPolicy.startRefusal(for: shown) == refusal { return }
-        collector.sessionState.lastError = error
+        if let shown = sessionState.lastError, StrapRecordingPolicy.startRefusal(for: shown) == refusal { return }
+        sessionState.lastError = error
     }
 
     private func armWhenStrapIsReady() async throws {
-        try await collector.polarManager.link.whenFeatureUsable(
+        try await polarManager.link.whenFeatureUsable(
             .h10Recording, until: nil, while: { nightWantsArming },
             perform: attemptDeviceRecordingStart
         )
@@ -141,20 +141,20 @@ extension OvernightStreamingCoordinator {
     /// A start the strap answers only after the night stopped wanting it does
     /// not mark the night strap-backed (`settleLateArmedRecording`).
     private func attemptDeviceRecordingStart() async throws {
-        try await collector.polarManager.recording.startFreshRecording(while: { nightWantsArming })
+        try await polarManager.recording.startFreshRecording(while: { nightWantsArming })
         guard nightWantsArming else {
             await settleLateArmedRecording()
             return
         }
-        let deviceName = collector.polarManager.connectedDeviceType?.displayName ?? "device"
+        let deviceName = polarManager.connectedDeviceType?.displayName ?? "device"
         debugLog("[RRCollector] ✅ \(deviceName) internal recording started")
         // The strap is now capturing the full night to its own
         // flash memory — mark it so a mid-night BLE loss can't
         // trigger the destructive pause-and-fetch (see
         // RRCollector+Bindings reconnectExhausted handler).
-        collector.overnightRun.deviceBackupActive = true
-        if let shown = collector.sessionState.lastError, StrapRecordingPolicy.startRefusal(for: shown) != .retryable {
-            collector.sessionState.lastError = nil
+        overnightRun.deviceBackupActive = true
+        if let shown = sessionState.lastError, StrapRecordingPolicy.startRefusal(for: shown) != .retryable {
+            sessionState.lastError = nil
         }
     }
 
@@ -168,16 +168,16 @@ extension OvernightStreamingCoordinator {
     /// night started since, owns the strap and is left to it.
     private func settleLateArmedRecording() async {
         debugLog("[RRCollector] H10 internal recording started after the night stopped wanting it — not marking the night strap-backed", level: .warning)
-        guard !collector.streamingLifecycle.isOvernightStreaming, collector.polarManager.transfersInFlight == 0 else { return }
-        await collector.polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+        guard !streamingLifecycle.isOvernightStreaming, polarManager.transfersInFlight == 0 else { return }
+        await polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
     }
 
     /// Before a night that arms the H10's own recording: a strap whose last
     /// reported battery is low may refuse it. The night still starts; the
     /// Record screen shows the same warning before Start.
     func warnIfStrapBatteryMayRefuse() {
-        let manager = collector.polarManager
-        guard collector.overnightRun.usesDeviceBackup, StrapRecordingPolicy.strapMayRefuseToRecord(
+        let manager = polarManager
+        guard overnightRun.usesDeviceBackup, StrapRecordingPolicy.strapMayRefuseToRecord(
             batteryLevel: manager.batteryLevel, deviceType: manager.connectedDeviceType
         ) else { return }
         debugLogExternal("Strap battery at \(manager.batteryLevel ?? 0)% — the H10 may refuse to record to its own memory tonight; the night still records from the live stream.", cause: .strap)

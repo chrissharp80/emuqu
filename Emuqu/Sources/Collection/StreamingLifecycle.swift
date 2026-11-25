@@ -26,6 +26,12 @@ final class StreamingLifecycle {
         set { streamingTimerBox.withLockUnchecked { $0 = newValue } }
     }
 
+    /// Stops the 1 Hz tick.
+    func stopStreamingTimer() {
+        streamingTimer?.invalidate()
+        streamingTimer = nil
+    }
+
     /// The strap's reconnect count the overnight session last acted on, so
     /// each reconnect is handled once.
     var lastSeenReconnectCount: Int = 0
