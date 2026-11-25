@@ -222,14 +222,16 @@ extension PlaceHistory {
         )
     }
 
-    /// The first climb within `lookaheadMeters` past `start`: where the
-    /// ground first rises at `minimumGradePercent` over `gradeWindowMeters`,
-    /// up to its highest point before a `climbEndDropMeters` drop, kept when
-    /// it gains `minimumGainMeters` at that grade.
+    /// The first climb starting within `lookaheadMeters` past `start`: where
+    /// the ground first rises at `minimumGradePercent` over
+    /// `gradeWindowMeters`, up to its highest point before a
+    /// `climbEndDropMeters` drop (however far past the look-ahead that is),
+    /// kept when it gains `minimumGainMeters` at that grade.
     static func climb(in points: [Point], from start: Int) -> PassClimb? {
         let origin = points[start].distanceAlongMeters
-        let ahead = Array(points[start...].prefix { $0.distanceAlongMeters - origin <= lookaheadMeters })
-        guard let rising = ahead.indices.first(where: { risesAtGrade(ahead, from: $0) }) else { return nil }
+        let ahead = Array(points[start...])
+        let reach = ahead.prefix { $0.distanceAlongMeters - origin <= lookaheadMeters }.count
+        guard let rising = ahead.indices.prefix(reach).first(where: { risesAtGrade(ahead, from: $0) }) else { return nil }
         let foot = footIndex(ahead, from: rising)
         let top = topIndex(ahead, from: foot)
         guard let footAltitude = ahead[foot].altitudeMeters, let topAltitude = ahead[top].altitudeMeters else { return nil }

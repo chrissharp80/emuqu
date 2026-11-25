@@ -22,6 +22,13 @@ final class FloLiveAnswersTests: XCTestCase {
         XCTAssertEqual(climb.heartRateRise, 18, "the median of 18, 20 and 14")
     }
 
+    func testAClimbIsFollowedToItsTopPastTheLookAhead() throws {
+        let tracks = [track(daysAgo: 2, startHR: 140, topHR: 158), track(daysAgo: 5, startHR: 142, topHR: 162)]
+        let climb = try XCTUnwrap(PlaceHistory.climbAhead(in: tracks, at: location(metersBeforeFoot: 700), heading: 0))
+        XCTAssertEqual(climb.lengthMeters, 300, accuracy: 15, "the top lies 1 km on, past the 800 m look-ahead")
+        XCTAssertEqual(climb.gainMeters, 30, accuracy: 1)
+    }
+
     func testGoingTheOtherWayFindsNoClimb() {
         let tracks = [track(daysAgo: 2, startHR: 140, topHR: 158), track(daysAgo: 5, startHR: 142, topHR: 162)]
         XCTAssertNil(PlaceHistory.climbAhead(in: tracks, at: location(metersBeforeFoot: 300), heading: 180))
@@ -180,12 +187,12 @@ final class FloLiveAnswersTests: XCTestCase {
     /// A pass north: 600 m flat to the foot, 300 m at 10 % (30 m up) with
     /// the heart rate rising from `startHR` to `topHR`, then 200 m flat.
     private func track(daysAgo: Int, startHR: Int, topHR: Int) -> PlaceHistory.Track {
-        let points = stride(from: -600.0, through: 500, by: 10).map { along -> PlaceHistory.Point in
+        let points = stride(from: -800.0, through: 500, by: 10).map { along -> PlaceHistory.Point in
             let climbed = min(max(along, 0), 300)
             let heartRate = startHR + Int(Double(topHR - startHR) * climbed / 300)
             return PlaceHistory.Point(
                 latitude: foot.latitude + along / metersPerDegree, longitude: foot.longitude, altitudeMeters: 150 + climbed / 10,
-                distanceAlongMeters: along + 600, heartRate: heartRate, paceSecPerKm: 360
+                distanceAlongMeters: along + 800, heartRate: heartRate, paceSecPerKm: 360
             )
         }
         return PlaceHistory.Track(date: Date().addingTimeInterval(Double(-daysAgo) * 86_400), points: points)

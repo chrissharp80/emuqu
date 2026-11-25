@@ -206,7 +206,7 @@ extension DeterministicIntent {
         guard let next, next.length > 0 else { return nil }
         let (distance, length) = (units.formatDistance(meters: next.distance), units.formatDistance(meters: next.length))
         let ahead = String(localized: "Next climb in \(distance): \(length) at about \(Int(next.grade.rounded())) percent.", bundle: bundle)
-        guard let rise = history?.heartRateRise else { return ahead }
+        guard let rise = history?.heartRateRise, rise >= ClimbHeartRateForecast.minimumRise else { return ahead }
         return ahead + " " + String(localized: "It has taken your heart rate up \(rise) beats before.", bundle: bundle)
     }
 }
