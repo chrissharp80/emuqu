@@ -5,6 +5,10 @@ name: Mutations
 # data purge) and requires the suite to notice. A build per mutation, so it is
 # its own workflow rather than a job pull requests list as skipped: every
 # TestFlight deploy runs it (testflight.yml), and it can be run by hand.
+#
+# One job runs about 7 minutes a mutation, longer than a job may run for all
+# of them, so they are spread over six shares (MUTATION_SHARD), each about two
+# hours. Every share must pass.
 on:
   workflow_dispatch:
   workflow_call:
@@ -14,9 +18,13 @@ permissions:
 
 jobs:
   mutations:
-    name: Mutations caught
+    name: Mutations caught (${{ matrix.shard }}/6)
     runs-on: macos-26
-    timeout-minutes: 330
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -25,9 +33,11 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
 
       - name: Every mutation is caught
+        env:
+          MUTATION_SHARD: ${{ matrix.shard }}/6
         run: ./scripts/verify_tests_fail.sh
 
       - name: Write the result to the run summary
         if: always()
         run: |
-          echo "- Mutations caught: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Mutations caught, share ${{ matrix.shard }}/6: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

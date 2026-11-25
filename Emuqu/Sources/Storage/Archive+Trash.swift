@@ -134,6 +134,29 @@ extension ArchiveStore {
         return true
     }
 
+    /// A delete killed between dropping the session from the index and
+    /// moving its file leaves `<id>.json` in the archive folder, tombstoned
+    /// and unlisted: restore looks only in the Trash, and the file is not
+    /// re-encrypted there. Each such file is moved to the Trash now, as the
+    /// delete would have, unless the Trash already holds a copy. Nothing moves
+    /// while the index did not load, when an unlisted file may be live.
+    func finishInterruptedDeletes() {
+        archive.archiveLock.lock()
+        defer { archive.archiveLock.unlock() }
+        guard !archive.indexReadFailed, !archive.indexDecodeFailed,
+              let names = attempt("Archive.listForInterruptedDeletes", {
+                  try archive.fileManager.contentsOfDirectory(atPath: archive.archiveDirectory.path)
+              }) else { return }
+        for name in names where name.hasSuffix(".json") {
+            guard let id = UUID(uuidString: String(name.dropLast(".json".count))),
+                  archive.deletedSessionIds.contains(id), entryById(id) == nil,
+                  !archive.fileManager.fileExists(atPath: trashURL(for: id).path) else { continue }
+            let file = archive.archiveDirectory.appendingPathComponent(name)
+            attempt("Archive.finishInterruptedDelete") { try moveToTrash(file, id: id) }
+            debugLog("[Archive] \(id.uuidString.prefix(8)) was left in the archive folder by an interrupted delete — moved to the Trash", level: .warning)
+        }
+    }
+
     /// The `<id>.json` a failed delete left in the archive folder, removed
     /// only for a tombstoned id while the index is complete: otherwise it may
     /// be the session's live file. True when no such file remains. Caller

@@ -49,12 +49,18 @@ extension RRCollector {
 
     /// Whether the strap's recording belongs to a session the strap-only Stop
     /// and Discard must leave alone: a night being ended (its ending
-    /// downloads the strap itself) or a live workout (the recording is its
-    /// backup; `alreadyRecording` is shown). `action` names the caller in
-    /// the log.
+    /// downloads the strap itself), a workout the app died during (workout
+    /// recovery rebuilds it, `strapHeldByInterruptedWorkout`) or a
+    /// live workout (the recording is its backup). `alreadyRecording` is shown
+    /// for a workout's. `action` names the caller in the log.
     func strapRecordingIsHeldElsewhere(_ action: String) -> Bool {
         if streamingLifecycle.isEndingOvernight {
             debugLog("[RRCollector] Not \(action) the strap recording: a night's ending is in progress")
+            return true
+        }
+        if recovery.strapHeldByInterruptedWorkout {
+            debugLog("[RRCollector] Not \(action) the strap recording: it belongs to an interrupted workout, which workout recovery rebuilds", level: .warning)
+            sessionState.lastError = CollectorError.alreadyRecording
             return true
         }
         guard recovery.strapRecordingBelongsToLiveWorkout else { return false }

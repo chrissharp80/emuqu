@@ -162,15 +162,19 @@ extension SessionRecoveryCoordinator {
     /// session as recovered and saved. Its backups are kept, so it can still
     /// be recovered from Lost Sessions.
     private func recoverWorkoutFromBackup(_ sessionId: UUID) async -> HRVSession? {
+        let strap = await strapRecordingForWorkoutRecovery(sessionId: sessionId)
         let outcome = await WorkoutRecoveryService.recover(
             sessionId: sessionId,
             reason: .appCrashed,
             archive: collector.archive,
             rawBackup: collector.rawBackup,
             cloudSyncManager: collector.cloudSyncManager,
-            strapRRPoints: await strapRecordingForWorkoutRecovery(sessionId: sessionId)
+            strapRRPoints: strap?.points
         )
-        guard let outcome, outcome.wasArchived else { return nil }
+        guard let outcome, outcome.wasArchived else {
+            keepUnsavedDownload(strap?.recording)
+            return nil
+        }
         await MainActor.run {
             collector.archiveSignal.notifyChanged()
             // Surface for review/trim instead of silently keeping a
@@ -189,7 +193,7 @@ extension SessionRecoveryCoordinator {
     /// armed that evening): it is kept aside as a rescue backup, as the
     /// overnight merge does. nil → the recovery service falls back to the
     /// streamed disk backup it reads on its own.
-    private func strapRecordingForWorkoutRecovery(sessionId: UUID) async -> [RRPoint]? {
+    private func strapRecordingForWorkoutRecovery(sessionId: UUID) async -> PulledStrapRecording? {
         guard let backup = collector.services.workoutTrackBackup.retrieve(sessionId),
               !strapRecordingBelongsToLiveSession else { return nil }
         let workoutStart = backup.header.startDate
@@ -207,7 +211,24 @@ extension SessionRecoveryCoordinator {
             return nil
         }
         debugLog("[Recovery] Workout strap recovery: pulled \(recording.points.count) beats from H10")
-        return recording.points(onClockOf: workoutStart)
+        return PulledStrapRecording(recording: recording, points: recording.points(onClockOf: workoutStart))
+    }
+
+    /// A strap recording downloaded for a session, on that session's clock.
+    struct PulledStrapRecording {
+        let recording: StrapRecording
+        let points: [RRPoint]
+    }
+
+    /// The download is on record as soon as its beats arrive
+    /// (`StrapRecordingPolicy.recordingIsSaved`), so a session that could not
+    /// be saved with them must not leave them only in memory: they are kept
+    /// as a rescue backup, offered in Lost Sessions, and the strap is not
+    /// cleared over them.
+    private func keepUnsavedDownload(_ recording: StrapRecording?) {
+        guard let recording else { return }
+        let keptAside = collector.polarManager.rescueToBackup(recording)
+        debugLog("[Recovery] The session could not be saved with the strap's \(recording.points.count) beats — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed")", level: .warning)
     }
 
     /// The last moment the workout's own backup records: its newest GPS fix
@@ -378,17 +399,19 @@ extension SessionRecoveryCoordinator {
         guard collector.polarManager.connectionState == .connected else { return .notConnected }
         guard let session = collector.archive.retrieveOrLog(sessionId) else { return .failed }
         collector.polarManager.recording.beginTransfer()
-        let strapRR = await pullStrapRecording(for: session)
-        guard !strapRR.isEmpty else { return .noStrapData }
+        guard let strap = await pullStrapRecording(for: session) else { return .noStrapData }
         let merged = SessionRecoveryMath.mergedWorkoutPoints(
-            existing: session.rrSeries?.points ?? [], strapRR: strapRR,
+            existing: session.rrSeries?.points ?? [], strapRR: strap.points,
             sessionId: sessionId, sessionStart: session.startDate
         )
         guard let outcome = await WorkoutRecoveryService.recover(
             sessionId: sessionId, reason: .appCrashed,
             archive: collector.archive, rawBackup: collector.rawBackup, cloudSyncManager: collector.cloudSyncManager,
             overrideRRPoints: merged, autoTrimOverride: true
-        ), outcome.wasArchived else { return .failed }
+        ), outcome.wasArchived else {
+            keepUnsavedDownload(strap.recording)
+            return .failed
+        }
         await MainActor.run { collector.archiveSignal.notifyChanged() }
         let dur = (outcome.session.endDate ?? outcome.session.startDate).timeIntervalSince(outcome.session.startDate)
         return .merged(durationSec: dur, beats: outcome.session.rrSeries?.points.count ?? merged.count)
@@ -421,17 +444,15 @@ extension SessionRecoveryCoordinator {
             return .alreadyMerged
         }
         guard await reconnectStrapForAugment() else { return .notReachable }
-        let strapRR = await pullStrapRecording(for: session)
-        guard !strapRR.isEmpty else { return .noStrapData }
-        let existing = session.rrSeries?.points ?? []
+        guard let strap = await pullStrapRecording(for: session) else { return .noStrapData }
+        let (strapRR, existing) = (strap.points, session.rrSeries?.points ?? [])
         let selection = DataSourceSelector.selectBestSource(
             streamingPoints: existing, internalPoints: strapRR,
             sessionId: sessionId, sessionStart: session.startDate
         )
         guard let mergedPoints = overnightMergePoints(selection: selection, existing: existing, strapRR: strapRR),
               let updated = persistMergedOvernight(
-                session: session, sessionId: sessionId, mergedPoints: mergedPoints,
-                selection: selection, existingCount: existing.count, strapCount: strapRR.count
+                session: session, mergedPoints: mergedPoints, selection: selection, existingCount: existing.count, strap: strap
               ) else { return .failed }
         return await rescoreAugmentedOvernight(updated, strapCount: strapRR.count, streamedCount: existing.count, with: reanalysis)
     }
@@ -475,7 +496,7 @@ extension SessionRecoveryCoordinator {
     /// session's is not dropped: it goes to the rescue backup, and if that
     /// fails the strap's copy is not saved (`isStrapRecordingSaved`), so the
     /// next start rescues it again instead of clearing it.
-    private func pullStrapRecording(for session: HRVSession) async -> [RRPoint] {
+    private func pullStrapRecording(for session: HRVSession) async -> PulledStrapRecording? {
         let manager = collector.polarManager
         let end = session.endDate ?? session.startDate
         let storedIsThisSession = manager.storedExerciseDate.map {
@@ -485,26 +506,31 @@ extension SessionRecoveryCoordinator {
         // check after the download catches one that is not this session's.
         guard !strapRecordingBelongsToLiveSession, manager.isRecordingOnDevice || storedIsThisSession else {
             debugLog("[RRCollector] Strap's recording is not from this session — not merging it")
-            return []
+            return nil
         }
-        guard let recording = await manager.recording.fetchRecordingIfAvailable(recordedSince: session.startDate) else { return [] }
+        guard let recording = await manager.recording.fetchRecordingIfAvailable(recordedSince: session.startDate),
+              !recording.points.isEmpty else { return nil }
         guard let recordedStart = recording.startedAt, recordedStart <= end else {
             let keptAside = manager.rescueToBackup(recording)
             debugLog("[RRCollector] Downloaded recording is not from this session — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed; the strap keeps it")")
-            return []
+            return nil
         }
-        return recording.points(onClockOf: session.startDate)
+        return PulledStrapRecording(recording: recording, points: recording.points(onClockOf: session.startDate))
     }
 
     /// Persist merged points + updated provenance. This must be written BEFORE
     /// re-analysis, because `SessionReanalysisCoordinator.reanalyzeSession` re-loads the archived session
     /// from disk (and re-archives the rescored result itself).
+    ///
+    /// A night that cannot be written keeps the strap's download as a rescue
+    /// backup (`keepUnsavedDownload`).
     private func persistMergedOvernight(
-        session: HRVSession, sessionId: UUID, mergedPoints: [RRPoint],
-        selection: DataSourceSelector.SelectionResult?, existingCount: Int, strapCount: Int
+        session: HRVSession, mergedPoints: [RRPoint],
+        selection: DataSourceSelector.SelectionResult?, existingCount: Int, strap: PulledStrapRecording
     ) -> HRVSession? {
+        let strapCount = strap.points.count
         var updated = session
-        updated.rrSeries = RRSeries(points: mergedPoints, sessionId: sessionId, startDate: session.startDate)
+        updated.rrSeries = RRSeries(points: mergedPoints, sessionId: session.id, startDate: session.startDate)
         updated.dataSourceSummary = HRVSession.DataSourceSummary(
             selectedSource: selection?.normalizedSource ?? "internal",
             streamingBeats: existingCount,
@@ -519,6 +545,7 @@ extension SessionRecoveryCoordinator {
             return updated
         } catch {
             debugLog("[RRCollector] augmentOvernight: archive failed: \(error)")
+            keepUnsavedDownload(strap.recording)
             return nil
         }
     }

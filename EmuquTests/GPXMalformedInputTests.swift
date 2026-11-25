@@ -131,4 +131,30 @@ final class GPXMalformedInputTests: XCTestCase {
                       "A non-finite altitude reached a CLLocation")
         XCTAssertNotNil(WorkoutAnalyzer.encodePolyline(track: parsed.track))
     }
+
+    // MARK: - Size bounds
+
+    /// A file larger than the importer reads is refused before it is read.
+    func testAFileOverTheSizeLimitIsRefusedUnread() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("oversized-\(UUID().uuidString).gpx")
+        XCTAssertTrue(FileManager.default.createFile(atPath: url.path, contents: nil))
+        defer { try? FileManager.default.removeItem(at: url) } // swallow-ok: temporary test file
+        let handle = try FileHandle(forWritingTo: url)
+        try handle.truncate(atOffset: UInt64(GPXImporter.maxFileBytes + 1))
+        try handle.close()
+        XCTAssertThrowsError(try GPXImporter.readFile(at: url)) { error in
+            XCTAssertEqual(error as? GPXImporter.ImportError, .tooLarge)
+        }
+    }
+
+    /// A file with more points than the importer keeps stops parsing and is
+    /// reported as too large, not as broken GPX.
+    func testMorePointsThanTheLimitIsReportedAsTooLarge() {
+        let point = "<trkpt lat=\"51.5\" lon=\"-0.12\"/>"
+        let body = String(repeating: point, count: GPXImporter.maxPoints + 1)
+        let data = Data("<gpx version=\"1.1\"><trk><trkseg>\(body)</trkseg></trk></gpx>".utf8)
+        XCTAssertThrowsError(try GPXImporter.parse(data: data)) { error in
+            XCTAssertEqual(error as? GPXImporter.ImportError, .tooLarge)
+        }
+    }
 }

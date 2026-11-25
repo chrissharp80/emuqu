@@ -68,6 +68,16 @@ extension SessionRecoveryCoordinator {
         return recorder.lifecycle.phase == .recording || recorder.lifecycle.phase == .finalizing
     }
 
+    /// A workout the app died during, never archived, owns the strap's
+    /// recording: its recording state is saved as a workout. Workout recovery
+    /// (`recoverInterruptedWorkoutFromStrap`, the Record screen's "Recover
+    /// workout from strap") rebuilds it with its route; Stop and Recover
+    /// would file it through the overnight path without one.
+    var strapHeldByInterruptedWorkout: Bool {
+        guard let state = collector.getPersistedRecordingState(), state.sessionType == .workout else { return false }
+        return !collector.archive.store.exists(state.sessionId)
+    }
+
     /// A recording still running on the strap that no session owns: none is
     /// live and none is on record to stop it (a crashed night or workout has
     /// its own recovery). Left by a crash, or started on the strap itself.
@@ -104,7 +114,9 @@ extension SessionRecoveryCoordinator {
     private func checkRecoverable() throws {
         let manager = collector.polarManager
         guard manager.connectionState == .connected else { throw recoveryRefused(.notConnected) }
-        guard !strapRecordingBelongsToLiveSession else { throw recoveryRefused(.alreadyRecording) }
+        guard !strapRecordingBelongsToLiveSession, !strapHeldByInterruptedWorkout else {
+            throw recoveryRefused(.alreadyRecording)
+        }
         let alreadySaved = manager.hasStoredExercise && manager.storedExerciseDate != nil
             && !manager.isRecordingOnDevice && !collector.hasUnrecoveredData
         guard !alreadySaved else { throw recoveryRefused(.strapRecordingAlreadySaved) }
@@ -150,7 +162,8 @@ extension SessionRecoveryCoordinator {
     }
 
     private func persistedSessionOwning(_ recording: StrapRecording) -> DeviceRecordingSession.DownloadPlacement? {
-        guard let persisted = collector.getPersistedRecordingState(), let start = recording.startedAt,
+        guard let persisted = collector.getPersistedRecordingState(), persisted.sessionType != .workout,
+              let start = recording.startedAt,
               StrapRecordingPolicy.recording(startedAt: start, belongsToSessionStartedAt: persisted.startTime)
         else { return nil }
         debugLog("[Recovery] Recording started \(start), during the persisted session \(persisted.sessionId.uuidString.prefix(8))")

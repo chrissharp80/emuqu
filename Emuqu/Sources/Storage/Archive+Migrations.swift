@@ -342,24 +342,56 @@ extension ArchiveMigrations {
     ///    so content left on it is lost everywhere.
     func removeDuplicates() {
         guard archive.sessionMergeModeProvider() != .off else { return }
-        let quarantineWork = duplicateQuarantineWork()
+        let (quarantineWork, changedKeepers) = duplicateQuarantineWork()
+        // Posted outside the lock phase 1 held, as every archive change is.
+        if !changedKeepers.isEmpty {
+            NotificationCenter.default.post(
+                name: .flowRecoveryArchiveSessionsNeedReupload, object: nil, userInfo: ["sessionIds": changedKeepers]
+            )
+        }
         guard !quarantineWork.isEmpty else { return }
         // Phase 2: move files to quarantine without holding the lock
         // (releasing the lock between phases lets the main thread sneak in)
-        let quarantined = quarantineFiles(quarantineWork)
+        let quarantined = quarantineFiles(quarantineWork.map { ($0.id, $0.url) })
         guard !quarantined.isEmpty else { return }
         let moves = quarantineWork.compactMap { work in
-            quarantined[work.0].map { QuarantineMove(id: work.0, quarantined: $0, original: work.1) }
+            quarantined[work.id].map { (QuarantineMove(id: work.id, quarantined: $0, original: work.url), work.hash) }
         }
-        // Phase 3: update archive.index + tombstones under lock
+        retireUnlessWritten(moves)
+    }
+
+    /// Phase 3: update archive.index + tombstones under lock, for the copies
+    /// not written since phase 1 checked them.
+    private func retireUnlessWritten(_ checkedMoves: [(QuarantineMove, String)]) {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
+        let moves = keepingCopiesWrittenSinceTheCheck(checkedMoves)
+        guard !moves.isEmpty else { return }
         do {
-            try retireQuarantined(Set(quarantined.keys))
+            try retireQuarantined(Set(moves.map(\.id)))
         } catch {
             debugLog("[Archive] ⚠️ Failed to save the indexes after quarantining duplicates — moving the files back: \(error)", level: .warning)
             restoreFromQuarantine(moves)
         }
+    }
+
+    /// Phase 3, caller holds the lock: a copy written since phase 1 checked
+    /// it (an edit in History, a newer copy from iCloud) is no longer the
+    /// copy whose content went into its keeper, so it is not retired. Its
+    /// quarantined file goes back unless that write already put a newer file
+    /// in its place, which then stays and the older one stays in quarantine.
+    /// Returns the moves still to retire.
+    private func keepingCopiesWrittenSinceTheCheck(_ moves: [(QuarantineMove, String)]) -> [QuarantineMove] {
+        let (unchanged, written) = moves.reduce(into: ([QuarantineMove](), [QuarantineMove]())) { split, checked in
+            let (move, hash) = checked
+            if archive.store.entryById(move.id)?.fileHash == hash { split.0.append(move) } else { split.1.append(move) }
+        }
+        for move in written {
+            debugLog("[Archive] dedupe: \(move.id.uuidString.prefix(8)) was written while it was checked — kept", level: .info)
+            guard !archive.fileManager.fileExists(atPath: move.original.path) else { continue }
+            attempt("Archive.dedupe.returnWrittenCopy") { try archive.fileManager.moveItem(at: move.quarantined, to: move.original) }
+        }
+        return unchanged
     }
 
     /// One retired file: where quarantine put it and where the index expects it.
@@ -426,8 +458,8 @@ extension ArchiveMigrations {
     /// `duplicateRetirements(...)`, called on a snapshot of the archive.index;
     /// the lock-held section gathers the snapshot, carries each retired
     /// copy's user content into its keeper (`carryUserContent(to:)`), and maps
-    /// the ids that may go back to file URLs.
-    private func duplicateQuarantineWork() -> [(UUID, URL)] {
+    /// the ids that may go back to file URLs, with the file hash checked.
+    private func duplicateQuarantineWork() -> (work: [(id: UUID, url: URL, hash: String)], changedKeepers: Set<UUID>) {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         let overnightEntries = archive.index.filter { $0.sessionType == .overnight }
@@ -442,18 +474,21 @@ extension ArchiveMigrations {
             overnightEntries.map { ($0.sessionId, $0) },
             uniquingKeysWith: { first, _ in first }
         )
-        return carryUserContent(to: retirements).compactMap { id in
-            entriesById[id].map { (id, archive.resolveFileURL(for: $0)) }
+        let carried = carryUserContent(to: retirements)
+        let work = carried.retirable.compactMap { id in
+            entriesById[id].map { (id: id, url: archive.resolveFileURL(for: $0), hash: $0.fileHash) }
         }
+        return (work, carried.changedKeepers)
     }
 
     /// Carry each retired copy's user content into its keeper, keeper by
     /// keeper, and return the retired ids whose content is in a keeper. A
     /// keeper or copy that cannot be read, or a keeper that cannot be
     /// written, keeps its copies out of this pass: retiring them would lose
-    /// what only they hold. A keeper that changed is stamped and queued to
-    /// upload again, as any edit made here is. Caller holds `archiveLock`.
-    private func carryUserContent(to retirements: [DuplicateRetirement]) -> [UUID] {
+    /// what only they hold. A keeper that changed is stamped, and returned so
+    /// the caller queues it to upload again once the lock is released, as any
+    /// edit made here is. Caller holds `archiveLock`.
+    private func carryUserContent(to retirements: [DuplicateRetirement]) -> (retirable: [UUID], changedKeepers: Set<UUID>) {
         var retirable: [UUID] = []
         var changedKeepers: Set<UUID> = []
         for (keeperId, group) in Dictionary(grouping: retirements, by: \.keeper) {
@@ -461,12 +496,7 @@ extension ArchiveMigrations {
             if changed { changedKeepers.insert(keeperId) }
             retirable += group.map(\.loser)
         }
-        if !changedKeepers.isEmpty {
-            NotificationCenter.default.post(
-                name: .flowRecoveryArchiveSessionsNeedReupload, object: nil, userInfo: ["sessionIds": changedKeepers]
-            )
-        }
-        return retirable
+        return (retirable, changedKeepers)
     }
 
     /// Carry the content of the copies `loserIds` into the keeper and write it

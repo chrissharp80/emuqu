@@ -24,7 +24,7 @@ struct OvernightStatsComputer: Sendable {
         let hr = sleepHR(points: points, flags: flags, segmentRanges: segmentRanges, sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs)
         return makeStats(StatsInputs(
             series: series, points: points, flags: flags, hrValues: hr.sleep, allHrValues: hr.all,
-            rollingRMSSD: computeRollingRMSSD(points: points, flags: flags),
+            rollingRMSSD: OvernightPeakHRV.rollingRMSSD(points: points, flags: flags),
             nadirPoint: hr.sleep.min(by: { $0.hr < $1.hr }), peakPoint: hr.sleep.max(by: { $0.hr < $1.hr }),
             firstPoint: firstPoint, lastPoint: lastPoint,
             segmentRanges: segmentRanges, sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs))
@@ -54,7 +54,7 @@ struct OvernightStatsComputer: Sendable {
         let flags: [ArtifactFlags]
         let hrValues: [(index: Int, hr: Double, timeMs: Int64)]
         let allHrValues: [(index: Int, hr: Double, timeMs: Int64)]
-        let rollingRMSSD: [(index: Int, rmssd: Double, timeMs: Int64)]
+        let rollingRMSSD: [OvernightPeakHRV.Sample]
         let nadirPoint: (index: Int, hr: Double, timeMs: Int64)?
         let peakPoint: (index: Int, hr: Double, timeMs: Int64)?
         let firstPoint: RRPoint
@@ -338,16 +338,11 @@ struct OvernightStatsComputer: Sendable {
     /// Resolve sleep boundaries from HealthKit or stored session data, clamped
     /// to the recording range, on the beats' `t_ms` axis (`onBeatClock`).
     private func resolveSleepBoundaries(series: RRSeries) -> (start: Int64, end: Int64) {
-        let recordingEnd = series.points.last?.t_ms ?? Int64.max
-        if let hkSleep = healthKitSleep, let hkStart = hkSleep.sleepStart, let hkEnd = hkSleep.sleepEnd {
-            let start = max(0, onBeatClock(MillisecondOffset.between(hkStart, and: session.startDate, fallback: 0), series))
-            let end = min(recordingEnd, onBeatClock(MillisecondOffset.between(hkEnd, and: session.startDate, fallback: 0), series))
-            return (start, end)
-        }
-        let start = session.sleepStartMs.map { onBeatClock($0, series) } ?? 0
-        let rawEnd = session.sleepEndMs.map { onBeatClock($0, series) } ?? recordingEnd
-        let end = (rawEnd > start && rawEnd >= 0) ? rawEnd : recordingEnd
-        return (start, end)
+        OvernightPeakHRV.sleepWindowMs(
+            series: series, sessionStart: session.startDate,
+            healthKit: OvernightPeakHRV.envelope(start: healthKitSleep?.sleepStart, end: healthKitSleep?.sleepEnd),
+            stored: (session.sleepStartMs, session.sleepEndMs)
+        )
     }
 
     /// Whether the night has real sleep boundaries (HealthKit, else stored),
@@ -383,24 +378,7 @@ struct OvernightStatsComputer: Sendable {
     }
 
     private func onBeatClock(_ offsetMs: Int64, _ series: RRSeries) -> Int64 {
-        Self.tMs(forSessionOffset: offsetMs, series: series, sessionStart: session.startDate)
-    }
-
-    /// A session-clock offset (ms after `sessionStart`, as HealthKit dates
-    /// and the stored sleep fields are) moved onto the `t_ms` axis the beats
-    /// are filtered and plotted on. Streamed `t_ms` is cumulative RR time and
-    /// falls behind the wall clock after a Bluetooth drop, so the offset is
-    /// shifted by the drift (`t_ms` minus wall clock) of the beat nearest to
-    /// it in wall-clock time; past either end of the recording the drift at
-    /// that end applies. A beat without a wall-clock stamp has no drift: its
-    /// `t_ms` already is the session clock (strap recordings, and sessions
-    /// `DataSourceSelector` re-based), so the offset is returned unchanged.
-    static func tMs(forSessionOffset offsetMs: Int64, series: RRSeries, sessionStart: Date) -> Int64 {
-        let date = sessionStart.addingTimeInterval(TimeInterval(offsetMs) / 1000)
-        guard let index = series.indexClosestToWallClock(date),
-              let wallMs = series.points[index].wallClockMs else { return offsetMs }
-        let seriesShiftMs = MillisecondOffset.between(series.startDate, and: sessionStart, fallback: 0)
-        return offsetMs + series.points[index].t_ms - (wallMs + seriesShiftMs)
+        OvernightPeakHRV.tMs(forSessionOffset: offsetMs, series: series, sessionStart: session.startDate)
     }
 
     /// Compute HR values from RR data within an optional time range.
@@ -494,51 +472,23 @@ struct OvernightStatsComputer: Sendable {
         return (beatCount, durationMs, j)
     }
 
-    /// Compute rolling RMSSD over 300-beat windows, one every 30 beats.
-    private func computeRollingRMSSD(
-        points: [RRPoint],
-        flags: [ArtifactFlags]
-    ) -> [(index: Int, rmssd: Double, timeMs: Int64)] {
-        let windowSize = 300
-        let stepSize = 30
-        var out: [(index: Int, rmssd: Double, timeMs: Int64)] = []
-        var i = 0
-        while i <= points.count - 1 {
-            let lo = max(0, i - windowSize / 2)
-            let hi = min(points.count, i + windowSize / 2)
-            if let rmssd = TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: lo ..< max(lo, hi)) {
-                out.append((i, rmssd, points[i].t_ms))
-            }
-            // Snap the last step to the final point so the tail isn't dropped.
-            i = (i < points.count - 1 && i + stepSize > points.count - 1) ? points.count - 1 : i + stepSize
-        }
-        return out
-    }
-
-    /// Peak rolling RMSSD within `band` (the whole series when nothing falls
-    /// inside it), and the mean rolling RMSSD.
+    /// Peak rolling RMSSD within `band` (`OvernightPeakHRV.peak`), and the
+    /// mean rolling RMSSD.
     private func findPeakHRV(
-        rollingRMSSD: [(index: Int, rmssd: Double, timeMs: Int64)],
+        rollingRMSSD: [OvernightPeakHRV.Sample],
         band: (earlyMs: Int64, lateMs: Int64)
-    ) -> (peak: (index: Int, rmssd: Double, timeMs: Int64)?, avgRMSSD: Double) {
-        let constrained = rollingRMSSD.filter { $0.timeMs >= band.earlyMs && $0.timeMs <= band.lateMs }
-        let peak = (constrained.isEmpty ? rollingRMSSD : constrained).max(by: { $0.rmssd < $1.rmssd })
+    ) -> (peak: OvernightPeakHRV.Sample?, avgRMSSD: Double) {
         let avg = rollingRMSSD.isEmpty
             ? 0
             : rollingRMSSD.map(\.rmssd).reduce(0, +) / Double(rollingRMSSD.count)
-        return (peak, avg)
+        return (OvernightPeakHRV.peak(in: rollingRMSSD, band: band), avg)
     }
 
-    /// The 30–70% slice of the resolved sleep window (`resolveSleepBoundaries`:
-    /// HealthKit, else the stored sleep period, else the whole recording), on
-    /// the `t_ms` axis — the window the organized-zone scan uses and the band
-    /// the chart's 30%/70% markers show.
+    /// The 30–70% slice of the resolved sleep window (`resolveSleepBoundaries`),
+    /// the window the organized-zone scan uses and the band the chart's
+    /// 30%/70% markers show.
     static func peakSearchBand(sleepStartMs: Int64, sleepEndMs: Int64) -> (earlyMs: Int64, lateMs: Int64) {
-        let sleepDuration = sleepEndMs - sleepStartMs
-        return (
-            sleepStartMs + Int64(Double(sleepDuration) * 0.30),
-            sleepStartMs + Int64(Double(sleepDuration) * 0.70)
-        )
+        OvernightPeakHRV.searchBand(sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs)
     }
 
     private func deriveSleepDuration(

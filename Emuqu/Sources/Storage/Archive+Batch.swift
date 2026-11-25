@@ -26,9 +26,18 @@ extension ArchiveStore {
     /// - Parameter sessions: Array of sessions to archive
     /// - Returns: How many sessions were written, new and updated together
     @discardableResult
+    ///
+    /// The change notifications go out after the lock is released, as
+    /// `archive(_:)` posts its own: `NSLock` is not re-entrant, so an observer
+    /// that read the archive on the posting thread would deadlock.
     func archiveBatch(_ sessions: [HRVSession]) throws -> Int {
-        archive.archiveLock.lock()
-        defer { archive.archiveLock.unlock() }
+        let outcome = try archive.archiveLock.withLock { try writeBatch(sessions) }
+        postBatchChangeNotifications(outcome)
+        return outcome.newEntries.count + outcome.updatedIds.count
+    }
+
+    /// The batch's writes and its one index save. Caller holds the lock.
+    private func writeBatch(_ sessions: [HRVSession]) throws -> BatchOutcome {
         var outcome = BatchOutcome()
         do {
             for session in sessions {
@@ -41,8 +50,7 @@ extension ArchiveStore {
         if !outcome.newEntries.isEmpty {
             try archive.saveIndex()
         }
-        postBatchChangeNotifications(outcome)
-        return outcome.newEntries.count + outcome.updatedIds.count
+        return outcome
     }
 
     /// Files already written for a failed batch are in the in-memory index;

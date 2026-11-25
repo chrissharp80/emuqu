@@ -233,7 +233,8 @@ extension ArchiveStore {
     /// file write so the archive doesn't end up with an orphan file on disk
     /// and a stale archive.index. (A hard crash between the file write and archive.index save
     /// still leaves an orphan; `reconcileOrphanFiles()` on the next launch
-    /// picks those up.)
+    /// picks those up. A rewrite of an archived session killed there leaves
+    /// a marker `healInterruptedRewrites()` re-hashes it by.)
     /// A previous file that exists but cannot be read aborts the write:
     /// without its bytes, a failed index save would roll the old entry back
     /// over the new file, and the session would fail its hash check.
@@ -248,6 +249,9 @@ extension ArchiveStore {
         // Snapshot pre-write state so we can roll back on failure.
         let preIndex = archive.index
         let prior = try PriorFile(at: filePath, id: session.id, fileManager: archive.fileManager)
+        let rewriting = entryById(session.id) != nil
+        if rewriting { markRewriteStarting(session.id) }
+        defer { if rewriting { markRewriteSettled(session.id) } }
         try writeArchiveBytes(data, to: filePath, format: format, sessionID: session.id)
         let entry = SessionArchiveEntry.make(from: session, hash: hashString, filePath: fileName)
         archive.index.removeAll { $0.sessionId == session.id }
@@ -808,12 +812,41 @@ extension ArchiveStore {
     /// Remove a session from the deleted list: a trash restore, or a session
     /// deleted forever once its deletion no longer needs re-sending to iCloud
     /// (`SessionArchive.forgetDeletedSession`).
+    ///
+    /// A save that throws puts the mark and its time back, so memory and the
+    /// file agree that the session is still deleted.
     func unmarkAsDeleted(_ id: UUID) throws {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
-        archive.deletedSessionIds.remove(id)
+        let deletedAt = deletionTime(of: id)
+        let removed = archive.deletedSessionIds.remove(id) != nil
         Self.forgetDeletionTime(id)
-        try archive.saveDeletedIndex()
+        do {
+            try archive.saveDeletedIndex()
+        } catch {
+            if removed { putBackDeletionMark(id, deletedAt: deletedAt) }
+            throw error
+        }
+    }
+
+    /// The mark and its time as they were. Caller holds `archiveLock`.
+    private func putBackDeletionMark(_ id: UUID, deletedAt: Date?) {
+        archive.deletedSessionIds.insert(id)
+        Self.stageDeletionTime(deletedAt.map { .recorded($0.timeIntervalSince1970) } ?? .forgotten, for: id)
+    }
+
+    /// Put back a deletion `unmarkAsDeleted` dropped, with the time it had,
+    /// so a restore that could not be written loses to nothing it would not
+    /// have lost to before. Logged when the deleted list cannot be saved.
+    func reinstateDeletion(_ id: UUID, deletedAt: Date?) {
+        archive.archiveLock.lock()
+        defer { archive.archiveLock.unlock() }
+        putBackDeletionMark(id, deletedAt: deletedAt)
+        do {
+            try archive.saveDeletedIndex()
+        } catch {
+            debugLog("[Archive] ⚠️ Could not save the reinstated deletion of \(id.uuidString.prefix(8)): \(error)", level: .error)
+        }
     }
 
     /// Mark a session as intentionally deleted (for lost sessions that user wants to dismiss)

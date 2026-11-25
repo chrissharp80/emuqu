@@ -131,26 +131,17 @@ private func reencryptOne(_ id: UUID, in archive: SessionArchive) {
 /// device is locked, when the file's protection class keeps it closed.
 /// Clearing it there would leave the plaintext on disk with nothing left to
 /// repair it.
+///
+/// The read and the write happen under one lock (`SessionArchive.update`,
+/// with no change and no re-upload): an edit saved between a separate read
+/// and write would be overwritten by the copy read before it.
 private func reencryptArchived(_ id: UUID, in archive: SessionArchive) {
-    let session: HRVSession
     do {
-        guard let found = try archive.retrieveLightweight(id) else { return }
-        session = found
+        try archive.update(id, requestingReupload: false) { _ in }
     } catch SessionArchive.ArchiveError.fileNotFound {
         clearOnceParkedCopiesAreEncrypted(id, in: archive)
-        return
     } catch {
-        debugLog("[Archive] re-encryption deferred for \(id.uuidString.prefix(8)) — file not readable yet: \(error)", level: .warning)
-        return
-    }
-    do {
-        // Through the locked entry point: `_archive` expects its caller to hold
-        // `archiveLock`, and this runs from a detached migration beside every
-        // other writer. Same-night merge is skipped — this rewrites one file's
-        // encoding, it does not archive a new night.
-        try archive.archive(session, skipSameNightMerge: true)
-    } catch {
-        debugLog("[Archive] re-encryption failed for \(id.uuidString.prefix(8)): \(error)", level: .error)
+        debugLog("[Archive] re-encryption deferred for \(id.uuidString.prefix(8)) — not rewritten: \(error)", level: .warning)
     }
 }
 

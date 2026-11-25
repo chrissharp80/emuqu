@@ -291,7 +291,9 @@ final class SessionArchive: @unchecked Sendable {
     /// (`AppLaunchTasks.scheduleMigrationJobs`).
     func boot() {
         retryFailedIndexLoad()
+        store.finishInterruptedDeletes()
         reconcileOrphanFiles()
+        healInterruptedRewrites()
         logTombstoneSummary()
     }
 

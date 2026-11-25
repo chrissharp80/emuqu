@@ -764,7 +764,7 @@ struct FitnessTabView: View {
             if accessing { url.stopAccessingSecurityScopedResource() }
         }
         do {
-            let parsed = try GPXImporter.parseWorkout(data: try Data(contentsOf: url))
+            let parsed = try GPXImporter.parseWorkout(data: try GPXImporter.readFile(at: url))
             guard !HealthWorkoutImporter.isAlreadyArchived(start: parsed.startDate, existingStarts: existingStarts) else { return .duplicate }
             _ = try archive.archive(GPXImporter.buildSession(from: parsed))
             let dur = ImportedWorkoutBuilder.clampedDurationSeconds(from: parsed.startDate, to: parsed.endDate) / 60
