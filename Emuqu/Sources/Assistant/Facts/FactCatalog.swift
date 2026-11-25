@@ -191,6 +191,23 @@ enum FactEntry: Sendable {
         }
     }
 
+    /// What the entry tells the model it is for.
+    var entryDescription: String {
+        switch self {
+        case .fixed(_, let description, _, _, _): description
+        case .parameterized(_, _, let description, _, _): description
+        case .composite(_, let description, _, _, _, _): description
+        case .action(_, let description, _, _, _): description
+        }
+    }
+
+    /// Whether the entry is a tool that does something rather than a value
+    /// to read. Actions are called by name; `lookup_fact` cannot read them.
+    var isAction: Bool {
+        if case .action = self { return true }
+        return false
+    }
+
     /// Evaluate availability. The schema builder uses this to decide
     /// whether to emit a tool for this entry.
     var currentAvailability: Availability {

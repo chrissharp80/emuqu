@@ -237,6 +237,19 @@ final class FactResolverRegistry: Sendable {
             .sorted { $0.name < $1.name }
     }
 
+    /// Every catalog entry whose key or description shares a term with
+    /// `query`, best match first. Availability is not applied: a fact with
+    /// no data yet is still the right answer to "where would that be?",
+    /// and reading it says what is missing.
+    func entries(matching query: String, limit: Int) -> [FactEntry] {
+        let entries = namespaces.flatMap(\.entries)
+        let byName = Dictionary(entries.map { ($0.display, $0) }, uniquingKeysWith: { first, _ in first })
+        let documents = entries.map { entry in
+            ToolSpec(name: entry.display, description: entry.entryDescription, inputSchema: ToolSpec.InputSchema())
+        }
+        return ToolRetriever.search(query, in: documents, limit: limit).compactMap { byName[$0.name] }
+    }
+
     /// SHA256 of the deterministically-serialised tool schema. Stable
     /// across turns unless the catalog content genuinely changed
     /// (new entry, description edit, availability flip). Used by the
@@ -438,7 +451,7 @@ final class FactResolverRegistry: Sendable {
 
     // MARK: Private helpers (deterministic schema derivation)
 
-    fileprivate static func toolName(for entry: FactEntry) -> String {
+    static func toolName(for entry: FactEntry) -> String {
         switch entry {
         case .fixed(let key, _, _, _, _):
             return key.replacingOccurrences(of: ".", with: "_")

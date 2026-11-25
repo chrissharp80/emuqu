@@ -617,8 +617,8 @@ extension AssistantTurnRouter {
     }
 
     /// Per-request BM25 tool retrieval (`ToolRetriever`). The tools passed
-    /// in are the compact schema (`CompactToolRouter.schema`: 21 read
-    /// tools plus up to 18 action tools), which is under `targetK` of 40,
+    /// in are the compact schema (`CompactToolRouter.schema`: 22 read
+    /// tools plus up to 20 action tools), which is under `targetK` of 48,
     /// so the retriever returns them unchanged; it filters only if that
     /// schema grows past `targetK`. Apple Intelligence, whose window holds
     /// only a few tools, ranks this list by relevance itself before it
@@ -641,7 +641,7 @@ extension AssistantTurnRouter {
         let priorUserText = outbound.dropLast().last(where: { $0.role == .user })?.text ?? ""
         let query = priorUserText.isEmpty ? lastUserText : lastUserText + " " + priorUserText
         return ToolRetriever.retrieve(
-            query: query, tools: tools, targetK: 40, catalogHash: registry.catalogHash()
+            query: query, tools: tools, targetK: 48, catalogHash: registry.catalogHash()
         )
     }
 

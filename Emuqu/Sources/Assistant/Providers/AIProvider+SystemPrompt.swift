@@ -425,7 +425,8 @@ enum AssistantSystemPrompt {
         - `location_current_detailed` — current + heading, speed, altitude, accuracy.
         - `get_workout_live` (field='location' / 'location_bundle' / 'route_topology') — workout-bound location data.
         - Same spot, earlier workouts ("how am I doing on this hill vs last time", "was I faster here before") — `get_workout_live` field='segment_lookback_at_current_position' \
-        during a workout; `get_workout` which='segment_compare' with a `point` for a place after the fact. Both return pace, HR, power and altitude at that spot from each past \
+        during a workout; `get_workout` which='segment_compare' with a `point` for a place after the fact (for a hill on a past run, take the point from that run's \
+        `get_workout` which='timeline': each bucket has `lat`/`lon` and `grade_pct`). Both return pace, HR, power and altitude at that spot from each past \
         workout. Compare the numbers directly; this is supported, so never tell the user it isn't.
         - `breadcrumb.archive_summary` (via lookup_fact) — when the user asks "do you have my historical walks" / "how many walks do you have on record" / "why don't you recognise my usual route", call this to get a concrete count instead of guessing.
         Do NOT say "I don't know your location" / "I don't have a recognized route" / "I don't have breadcrumbs" without first attempting `location_situation`. That tool answers all of those at once. If `recurrence` is absent in the response, the user's \

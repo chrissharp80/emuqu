@@ -66,7 +66,7 @@ Table 2.1 shows one user turn on the text path. The voice path is the same up to
 | 3 | Provider check: the selected provider can answer and is switched on in Settings; then consent for the active hosted provider (Appendix A) | No turn goes to a switched-off provider; no health data goes to an unconsented one |
 | 4 | History assembly: drop `localOnly`, empty and incomplete assistant turns, truncate to the provider budget, summarize dropped turns (the summary is sealed on disk beside the history) | Guarded turns never leave the device later |
 | 5 | Build or reuse the fact registry (the runtime form of the catalog); reset per-turn rate-limit counters | One address space for all facts |
-| 6 | Compose tool list: 21 read tools + allow-listed actions, deduplicated and sorted | Byte-stable schema |
+| 6 | Compose tool list: 22 read tools + allow-listed actions, deduplicated and sorted | Byte-stable schema |
 | 7 | Compose system prompt: stable prefix (rules, tool overlay, capability index) + variable sections (time, user-stated values, dashboard cache unless suppressed, live-workout marker, pending corrections, summary) | Grounding, conflict resolution, correction loop |
 | 8 | Stream the provider round; tool calls go router → registry → envelope, at most 8 per turn; only advertised tools run | Retrieval with uniform absence semantics |
 | 9 | **Output guard, streaming**: publish only complete sentences, each scrubbed; the app's canned safety reply passes unchanged when it is given as the reply | Sentences matching the lexicon are not displayed |
@@ -213,10 +213,10 @@ Five rails apply to every call. Each answers in the same envelope.
 
 ### 3.2 Compact tool layer
 
-The model sees 40 tools, not 239:
+The model sees 42 tools, not 239:
 
-- **21 read tools** with fixed names and string parameters, most taking a selector (`which`, `field`, `metric` or `aspect`) that routes to catalog keys: `get_today`, `get_session`, `get_recovery`, `get_hrv`, `get_sleep`, `get_vitals`, `get_workout`, `list_workouts`, `get_walks`, `get_baseline`, `get_user`, `get_app_state`, `get_training_load`, `get_score_meta`, `get_breadcrumbs`, `get_routes`, `get_tags`, `get_workout_live`, `get_assistant_state`, `get_healthkit`, and `lookup_fact` for any raw catalog key.
-- **19 action tools** under their catalog names (e.g. `assistant_email_compose`, `routes_library_rename`, `web_search`, `directions_routeTo`), taken from the availability-filtered per-entry schema through an explicit allow-list. Of the 20 declared actions, `location.roads_ahead` is not allow-listed. The same list gates dispatch: a call to an action outside it, or to a per-entry tool name, is answered `missing(invalidParameter, "unknown tool …")` even if a provider emits it.
+- **22 read tools** with fixed names and string parameters, most taking a selector (`which`, `field`, `metric` or `aspect`) that routes to catalog keys: `get_today`, `get_session`, `get_recovery`, `get_hrv`, `get_sleep`, `get_vitals`, `get_workout`, `list_workouts`, `get_walks`, `get_baseline`, `get_user`, `get_app_state`, `get_training_load`, `get_score_meta`, `get_breadcrumbs`, `get_routes`, `get_tags`, `get_workout_live`, `get_assistant_state`, `get_healthkit`, `find_data` (a plain-words search of the whole catalog that returns the key or action that answers) and `lookup_fact` for any raw catalog key.
+- **20 action tools** under their catalog names (e.g. `assistant_email_compose`, `routes_library_rename`, `web_search`, `directions_routeTo`), taken from the availability-filtered per-entry schema through an explicit allow-list. Every declared action is allow-listed; `FloDiscoverabilityTests` fails if one is not. The same list gates dispatch: a call to an action outside it, or to a per-entry tool name, is answered `missing(invalidParameter, "unknown tool …")` even if a provider emits it.
 
 Read tools are appended first, then actions. Duplicates by name are dropped (first wins, with a warning, because one provider rejects duplicates), and the list is sorted by name. Action schemas list `required` sorted; every property is a string and the resolver converts types.
 
@@ -648,7 +648,7 @@ Behavior is fixed by unit tests in `EmuquTests` (Table 6.1; test-function counts
 - The input guard reads the current message only, keeping its decision immediate; a question split across turns is not joined.
 - Number verification covers present-value claims for the 11 metrics in Table 3.4, in English, so historical values, averages and non-English replies are not corrected.
 - In chat the correction lands at the end of the round, after its text may have been displayed; the next-turn reminder addresses that.
-- The 21 compact read tools are static for byte stability, so availability gating applies to the per-entry schema and the action tools.
+- The 22 compact read tools are static for byte stability, so availability gating applies to the per-entry schema and the action tools.
 - A destructive action, or a write of a value the user did not state, costs the user one extra "yes" message; a reply that is longer than five words or hedges cancels it rather than guessing.
 - The 8-call budget is per turn: in the round that crosses it, the calls that still fit run and only the ones past it are refused, and the model then gets one more pass to answer, in which any further tool calls are dropped. That bounds a turn's latency, at the cost of an answer that may lack what the refused calls would have fetched.
 - The coverage gate is one-directional: build-time terms must be covered at runtime, while the runtime lexicon may be broader.

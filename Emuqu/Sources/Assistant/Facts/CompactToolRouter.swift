@@ -19,13 +19,15 @@ import Foundation
 /// catalog and resolvers.
 ///
 /// **Tool budget.**
-///   • 21 read tools (cover all `.fixed` + `.parameterized` + `.composite`)
-///   • up to 19 action tools (`allowedActionNames`, preserved verbatim —
+///   • 22 read tools (cover all `.fixed` + `.parameterized` + `.composite`;
+///     `find_data` searches the whole catalog for what the typed tools
+///     don't name, and `lookup_fact` reads what it finds)
+///   • up to 20 action tools (`allowedActionNames`, preserved verbatim —
 ///     write operations stay visible because their identity matters:
 ///     `assistant_email_compose` vs `assistant_contacts_add` are
 ///     different audit-trail events).
 ///
-/// Total: under 40, well inside every provider's tool cap.
+/// Total: 42 at most, well inside every provider's tool cap.
 @MainActor
 struct CompactToolRouter {
     let registry: FactResolverRegistry
@@ -132,7 +134,11 @@ struct CompactToolRouter {
         the user's recovery, HRV, sleep, vitals, training load, trajectory, workouts, \
         routes, tags, or trends, CALL the matching tool BEFORE answering. Never claim \
         you don't have the data without calling the tool first — the app has it, and \
-        today's headline figures are already in the live-state block below.
+        today's headline figures are already in the live-state block below. The app \
+        holds far more than these tools name (heat acclimation, heart-rate recovery \
+        trends, streaks, live coaching metrics, navigation steps and more): when no \
+        tool below obviously fits, call find_data with a few words before you say \
+        the app can't do something.
 
         \(lines.joined(separator: "\n"))
         """
@@ -144,11 +150,11 @@ struct CompactToolRouter {
     // Same shape as `WorkoutTriggerEngine.defaultRules`: data, not control flow.
     //
     // Sliced into `readTools1…N` purely for length. The catalogue is one flat
-    // list to the model and the numbering runs 1–21 straight through the
+    // list to the model and the numbering runs 1–22 straight through the
     // slices, so a row keeps its number wherever the slice boundary lands.
     static func readTools() -> [ToolSpec] {
         readTools1() + readTools1b() + readTools2() + readTools2b() + readTools3() + readTools3a() + readTools3b() + readTools4() + readTools4b()
-            + readTools5() + readTools5b() + readTools6() + readTools6b() + readTools7() + readTools8()
+            + readTools5() + readTools5b() + readTools6() + readTools6b() + readTools7() + readTools8() + readTools9()
     }
 
     /// One `ToolSpec` from a compact row: name, description, and the string
@@ -209,7 +215,8 @@ struct CompactToolRouter {
         [
             // 4. get_hrv
             spec("get_hrv", """
-                HRV (RMSSD + window classification) lookup. `which`: 'latest' (default), 'by_date', 'recent', 'live_snapshot', 'window'. For 'by_date' pass `date`; for 'recent' pass `period`. 'live_snapshot' returns current live recording state. 'window' \
+                HRV (RMSSD + window classification) lookup. `which`: 'latest' (default), 'by_date', 'recent', 'live_snapshot', 'window'. For 'by_date' pass `date`; for 'recent' pass `period`. \
+                'live_snapshot' returns the live recording state: phase, whether beats are still arriving, beat count, elapsed time and the last error ('is it still recording', 'did the strap drop'). 'window' \
                 returns the analysis-window classification (organized recovery, consolidated, etc.).
                 """, [
                 ("which", "'latest', 'by_date', 'recent', 'live_snapshot', or 'window'"),
@@ -242,9 +249,9 @@ struct CompactToolRouter {
                 **Per-second analysis primitive: 'timeline'** — returns a downsampled (~200 buckets) time-series of HR, pace, cadence, altitude, grade, α1, power per bucket. Use 'timeline' for ANY question that needs the time-series shape: 'did my HR \
                 spike when I was flat / going downhill', 'where did pace drop on the climb', 'was α1 still healthy late in the workout', 'where did cadence collapse', 'did power drop while HR held'. The timeline gives you the resolution to find spikes, \
                 correlations, and segments without needing pre-computed special cases. All variants take `date` (YYYY-MM-DD) except 'by_ordinal' which takes `n` \
-                and 'segment_compare' which takes `point`. **'segment_compare'** — every recent GPS workout that passed a place, with the user's pace, HR, power, \
+                and 'segment_compare' which takes `point`. **'segment_compare'** — each of the user's 30 most recent GPS workouts that passed a place, with the user's pace, HR, power, \
                 cadence and altitude at that exact spot: 'how did I do on that hill compared to before'. `point` is 'lat,lon' or 'lat,lon,radius_m' (default 50 m); \
-                take the coordinate from a location or breadcrumb tool. During a workout, get_workout_live field='segment_lookback_at_current_position' does this for where the user is now.
+                take it from a location tool, or for a hill on a past workout from that workout's 'timeline' (each bucket carries `lat`/`lon`: pick the climb by grade_pct). During a workout, get_workout_live field='segment_lookback_at_current_position' does this for where the user is now.
                 """, [
                 ("which", "Variant — see description for full list"),
                 ("date", "YYYY-MM-DD"),
@@ -271,8 +278,8 @@ struct CompactToolRouter {
     private static func readTools3b() -> [ToolSpec] {
         [
             // 9. get_walks
-            spec("get_walks", "Walk-only aggregates (separate from runs/rides). `which`: 'count', 'list', 'total_distance_m', 'total_trimp', 'hardest'. Pass `period` like '7d', '30d'.", [
-                ("which", "'count', 'list', 'total_distance_m', 'total_trimp', or 'hardest'"),
+            spec("get_walks", "Walk-only aggregates (separate from runs/rides). `which`: 'summary' (count, distance, load and the hardest walk in one record), 'count', 'list', 'total_distance_m', 'total_trimp', 'hardest'. Pass `period` like '7d', '30d'.", [
+                ("which", "'summary', 'count', 'list', 'total_distance_m', 'total_trimp', or 'hardest'"),
                 ("period", "7d / 14d / 30d / 90d / 180d / 365d / last_week / last_month / last_year / all_time")
             ], required: ["which", "period"])
         ]
@@ -288,7 +295,7 @@ struct CompactToolRouter {
             // 11. get_user
             spec("get_user", """
                 User profile + settings. `field`: 'profile' (returns age, sex, max HR, RHR, LTHR, weight, FTP, VO2 max, etc.) or 'settings' (units, typical sleep, training break, comeback mode, etc.) or one specific key like 'max_hr', 'resting_hr', 'lthr', \
-                'weight_kg', 'biological_sex', 'age', 'cycling_ftp', 'vo2_max'.
+                'weight_kg', 'biological_sex', 'age', 'cycling_ftp', 'running_ftp', 'vo2_max'.
                 """, [
                 ("field", "'profile', 'settings', or a specific field name")
             ])
@@ -313,7 +320,8 @@ struct CompactToolRouter {
             spec("get_training_load", """
                 Training load + trajectory (ATL/CTL/TSB/TRIMP/ACWR). `which`: 'snapshot' (current values), 'trajectory' (the Load & Trajectory verdict: building/detraining/high-strain, ramp band + rate, form descriptor, monotony/strain), 'by_date', \
                 'recent', 'this_week', 'last_4_weeks', 'by_sport', 'recovery_hours_needed', 'days_until_fresh', 'days_until_atl_converges', 'projected_tsb', 'race_predictions', 'sport_baseline', 'pace_zones'. Pass `date`, `period`, `sport`, `daily_trimp`, \
-                or `params` as needed.
+                or `params` as needed. Coaching history: 'heat_acclimation' (how adapted the user is to training in heat, and what to do about it), 'workout_streak' (consecutive days with a workout), \
+                'workouts_this_week', 'hrr_trend_1min' / 'hrr_trend_2min' (average heart-rate recovery after workouts over `period`; rising = fitter).
                 """, [
                 ("which", "Variant — see description"),
                 ("date", "YYYY-MM-DD"),
@@ -341,8 +349,11 @@ struct CompactToolRouter {
     private static func readTools6() -> [ToolSpec] {
         [
             // 16. get_routes
-            spec("get_routes", "Saved-route library (read-only). `field`: 'count' or 'list'. To rename or save a route, use the dedicated action tools.", [
-                ("field", "'count' or 'list'")
+            spec("get_routes", """
+                Saved routes and the route being followed now (read-only). `field`: 'count', 'list', or 'next_step' (the next turn of the engaged route and how far away it is: \
+                'what's next', 'how far now', 'am I there yet'). To rename, save or follow a route, use the dedicated action tools.
+                """, [
+                ("field", "'count', 'list', or 'next_step'")
             ], required: ["field"]),
             // 17. get_tags
             spec("get_tags", """
@@ -365,7 +376,10 @@ struct CompactToolRouter {
                 Live workout state, and how the user did at this exact spot in past workouts (only meaningful while a workout is recording). \
                 `field`: 'snapshot' (default — full bundle), or specific fields like 'hr', 'pace_sec_per_km', 'speed_m_per_s', 'power_watts', 'sport', 'location', 'weather', 'today_readiness', \
                 'thresholds.active', 'thresholds.any_breaching', 'thresholds.breach_state', 'interval.active', 'interval.current_step', 'interval.next_step', 'route_topology', 'recognized_route', 'hr_drift_percent', \
-                'reverse_split_delta_sec_per_km', 'hrr_capture_status', 'units_preference', 'training_pace_zones', 'route_history_baseline', 'segment_lookback_at_current_position'. \
+                'reverse_split_delta_sec_per_km', 'hrr_capture_status', 'units_preference', 'training_pace_zones', 'route_history_baseline', 'segment_lookback_at_current_position', \
+                'alpha1', 'alpha1_band', 'alpha1_status', 'elapsed_sec', 'distance_meters', 'cadence_spm', 'elevation_gain_meters', 'historical_baseline' (the user's usual pace and HR for this sport), \
+                'location.locality', 'location.compact_address'. **Coaching metrics:** 'grade_adjusted_pace_sec_per_km' (pace corrected for the hill, for 'am I really slower or is it the climb'), \
+                'aerobic_decoupling_percent' (heart rate rising at the same pace: past ~5% the aerobic engine is tiring), 'cadence_drift_spm' (stride shortening with fatigue). \
                 **Same spot, earlier workouts: 'segment_lookback_at_current_position'** — the user's pace, HR, power, cadence and altitude at the exact spot they are on now, \
                 from each of their recent GPS workouts that passed within 50 m. Use it for 'how am I doing on this hill vs last time', 'was I faster here before', \
                 'what was my heart rate at this corner last week'. Answer with the numbers; never say you can't compare a spot.
@@ -398,12 +412,25 @@ struct CompactToolRouter {
             ], required: ["field"]),
             // 21. lookup_fact (universal fallback)
             spec("lookup_fact", """
-                Long-tail fact lookup by raw fact-catalog key. Use this only when no other tool fits — most needs are covered by the typed tools above. Example keys: 'recovery.today.full', 'session.latest.id', 'training.load.acwr'. Pass `key` as the \
-                dotted path. Parameterised keys take their parameter inline like 'session.by_date(2026-04-21)'. The app manual is here too: \
+                Long-tail fact lookup by raw fact-catalog key. Use this only when no other tool fits — most needs are covered by the typed tools above. find_data finds the key for anything else. Example keys: 'recovery.today.full', \
+                'session.latest.id', 'training.load.acwr'. Pass `key` as the dotted path. Parameterised keys take their parameter inline like 'session.by_date(2026-04-21)'. The app manual is here too: \
                 'app.help.lookup(<topic>)' returns one section (topics are listed in the app reference).
                 """, [
                 ("key", "Dotted fact-catalog key")
             ], required: ["key"])
+        ]
+    }
+
+    private static func readTools9() -> [ToolSpec] {
+        [
+            // 22. find_data (catalog search)
+            spec("find_data", """
+                Search everything the app can tell you or do, by plain words. Use it whenever no other tool obviously fits, before you ever say the app can't answer or can't do something: 'heat acclimation', \
+                'heart rate recovery trend', 'workout streak', 'next turn', 'roads ahead', 'grade adjusted pace', 'is it still recording'. Returns up to 8 matches, each with what it is and how to get it: a `lookup_fact` key \
+                (replace the example argument with the one you need) or the name of the tool to call.
+                """, [
+                ("query", "A few words for what you're looking for")
+            ], required: ["query"])
         ]
     }
 
@@ -422,7 +449,7 @@ struct CompactToolRouter {
     /// the AI can write to UserFactsStore, not just read it.
     /// `assistant_artifacts_*` is the long-term bug / feature / decision
     /// list the conversation summary tells the model to track items in.
-    private static let allowedActionNames: Set<String> = [
+    static let allowedActionNames: Set<String> = [
         "assistant_artifacts_add",
         "assistant_artifacts_update_status",
         "routes_library_rename",
@@ -439,6 +466,7 @@ struct CompactToolRouter {
         "location_current",
         "location_current_detailed",
         "location_situation",
+        "location_roads_ahead",
         "location_set_address",
         "directions_routeTo",
         "directions_clear"
@@ -495,6 +523,8 @@ struct CompactToolRouter {
         case "lookup_fact":
             guard let key = args["key"] else { return .missing(reason: .invalidParameter, detail: "lookup_fact requires 'key'") }
             return await registry.resolveAsync(key)
+        case "find_data":
+            return resolveFindData(query: args["query"] ?? "")
         default:
             return nil // not a compact read tool
         }

@@ -70,6 +70,33 @@ final class FloSpotCompareTests: XCTestCase {
         XCTAssertEqual(reason, .notRecorded)
     }
 
+    /// "How did I do on that hill yesterday compared to before": the past
+    /// workout's timeline says where each stretch was, and that point is
+    /// what segment_compare takes.
+    func testAHillOnAPastWorkoutCanBeComparedFromItsTimeline() async throws {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let router = CompactToolRouter(registry: registry(with: [walkUpTheHill(start: start)]))
+        let day = DateFormatter()
+        day.dateFormat = "yyyy-MM-dd"
+        day.timeZone = .current
+        let timeline = await router.resolveTool(name: "get_workout", argsJSON: #"{"which":"timeline","date":"\#(day.string(from: start))"}"#)
+        guard case let .record(envelope) = timeline, case let .list(buckets) = envelope["buckets"] else {
+            return XCTFail("expected a timeline, got \(timeline)")
+        }
+        let middle = try XCTUnwrap(buckets.first { bucket in
+            guard case let .record(rec) = bucket, case let .integer(offset) = rec["offset_sec"] else { return false }
+            return (290...300).contains(offset)
+        })
+        guard case let .record(rec) = middle, case let .double(lat) = rec["lat"], case let .double(lon) = rec["lon"] else {
+            return XCTFail("the bucket on the hill has no position: \(middle)")
+        }
+        XCTAssertEqual(lat, hill.latitude, accuracy: 0.0002)
+        XCTAssertEqual(lon, hill.longitude, accuracy: 0.0002)
+        let compared = await router.resolveTool(name: "get_workout", argsJSON: #"{"which":"segment_compare","point":"\#(lat),\#(lon)"}"#)
+        guard case let .list(matches) = compared else { return XCTFail("expected matches, got \(compared)") }
+        XCTAssertEqual(matches.count, 1)
+    }
+
     /// The other variants keep the arguments they always required.
     func testTheOtherWorkoutVariantsStillNameWhatTheyNeed() async {
         let router = CompactToolRouter(registry: registry(with: []))

@@ -187,7 +187,7 @@ extension CompactToolRouter {
             which,
             tool: "get_walks",
             plain: [:],
-            parameterized: Self.periodRows(prefix: "walks", ["count", "list", "total_distance_m", "total_trimp", "hardest"]),
+            parameterized: Self.periodRows(prefix: "walks", ["count", "list", "total_distance_m", "total_trimp", "hardest", "summary"]),
             args: args
         )
     }
@@ -376,7 +376,10 @@ extension CompactToolRouter {
         "trajectory": "training.trajectory",
         "recovery_hours_needed": "training.recovery_hours_needed",
         "days_until_fresh": "training.days_until_fresh",
-        "pace_zones": "training.pace_zones"
+        "pace_zones": "training.pace_zones",
+        "heat_acclimation": "heat.acclimation.summary",
+        "workout_streak": "workout.streak.consecutive_days",
+        "workouts_this_week": "workout.streak.this_week_count"
     ]
 
     /// `which` values that take exactly one argument, and which one.
@@ -391,7 +394,9 @@ extension CompactToolRouter {
         "days_until_atl_converges": .init("training.days_until_atl_converges", "params"),
         "projected_tsb": .init("training.projected_tsb", "daily_trimp"),
         "race_predictions": .init("training.race_predictions", "sport"),
-        "sport_baseline": .init("training.sport_baseline", "sport")
+        "sport_baseline": .init("training.sport_baseline", "sport"),
+        "hrr_trend_1min": .init("hrr.recent_avg_1min", "period"),
+        "hrr_trend_2min": .init("hrr.recent_avg_2min", "period")
     ]
 
     func resolveScoreMeta(args: [String: String]) async -> FactValue {
@@ -419,7 +424,7 @@ extension CompactToolRouter {
         }
         return await dispatch(
             field, tool: "get_routes (use action tools to mutate)", selector: "field",
-            plain: ["count": "routes.library.count", "list": "routes.library.list"],
+            plain: ["count": "routes.library.count", "list": "routes.library.list", "next_step": "directions.next_step"],
             args: args
         )
     }
@@ -474,6 +479,42 @@ extension CompactToolRouter {
             ],
             args: args
         )
+    }
+
+    /// `find_data`: the catalog entries that match `query`, each with what
+    /// it is and how to get it. An action the router doesn't advertise is
+    /// left out, since naming a tool the model can't call would only send
+    /// it to a refusal.
+    func resolveFindData(query: String) -> FactValue {
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return .missing(reason: .invalidParameter, detail: "find_data requires 'query'")
+        }
+        let rows = registry.entries(matching: query, limit: Self.findDataLimit + 4).compactMap(Self.findDataRow(for:))
+        guard !rows.isEmpty else {
+            return .missing(reason: .notRecorded, detail: "nothing in the app matches '\(query)'; try other words")
+        }
+        return .list(Array(rows.prefix(Self.findDataLimit)))
+    }
+
+    static let findDataLimit = 8
+
+    /// One match: the action to call, or the key `lookup_fact` reads, and
+    /// what it is. Nil for an action the router doesn't advertise.
+    private static func findDataRow(for entry: FactEntry) -> FactValue? {
+        guard entry.isAction else {
+            return .record(["lookup_fact_key": .string(entry.display), "about": .string(summary(of: entry))])
+        }
+        let tool = FactResolverRegistry.toolName(for: entry)
+        guard allowedActionNames.contains(tool) else { return nil }
+        return .record(["call_tool": .string(tool), "about": .string(summary(of: entry))])
+    }
+
+    /// The first two sentences of an entry's description, without its
+    /// `[ACTION]`-style tag, capped so eight matches stay small.
+    private static func summary(of entry: FactEntry) -> String {
+        let text = entry.entryDescription.replacingOccurrences(of: #"^\[[A-Z-]+\]\s*"#, with: "", options: .regularExpression)
+        let sentences = text.components(separatedBy: ". ").prefix(2).joined(separator: ". ")
+        return sentences.count > 280 ? String(sentences.prefix(280)) + "…" : sentences
     }
 
     // MARK: - Helpers
