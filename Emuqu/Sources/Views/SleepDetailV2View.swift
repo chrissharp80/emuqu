@@ -248,7 +248,7 @@ struct SleepDetailV2View: View {
     private static func refetchSleep(for session: HRVSession, from collector: RRCollector) async -> SleepData? {
         let recordingEnd = session.endDate ?? session.startDate.addingTimeInterval(8 * 3600)
         do {
-            return try await collector.healthKit.fetchSleepData(for: session.startDate, recordingEnd: recordingEnd)
+            return try await collector.healthKit.sleepQueries.fetchSleepData(for: session.startDate, recordingEnd: recordingEnd)
         } catch {
             debugLog("[SleepDetail] HealthKit sleep refresh failed: \(error)", level: .warning)
             return nil
@@ -295,7 +295,7 @@ struct SleepDetailV2View: View {
     private func refreshVitals() async {
         let referenceDate = session.endDate ?? session.startDate
         let strapHR = VitalsDetailV2View.strapMeanHR(of: session)
-        let fresh = await collector.healthKit
+        let fresh = await collector.healthKit.vitals
             .fetchRecoveryVitals(relativeTo: referenceDate)
             .withStrapNocturnalRHR(strapHR)
         // An empty fetch clears the last session's reading rather than

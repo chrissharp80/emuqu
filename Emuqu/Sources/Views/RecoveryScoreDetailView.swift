@@ -366,7 +366,7 @@ struct RecoveryScoreDetailView: View {
     /// when HealthKit delivers new vitals (`vitalsDataVersion`).
     @MainActor
     private func refreshVitals(referenceDate: Date) async {
-        let fresh = await collector.healthKit
+        let fresh = await collector.healthKit.vitals
             .fetchRecoveryVitals(relativeTo: referenceDate)
             .withStrapNocturnalRHR(strapSleepHR)
         guard !fresh.isEmpty else { return }

@@ -1,11 +1,11 @@
 import Combine
 import Foundation
+import HealthKit
 
 /// Protocol for HealthKit integration
 ///
-/// `@MainActor` alongside `HealthKitManager`: the implementation is
-/// `@Observable` and read by SwiftUI, so its state always has to change on the
-/// main actor.
+/// `@MainActor`, like the query types its conformer (`HealthKitService`)
+/// answers through.
 @MainActor
 protocol HealthKitServiceProtocol: Sendable {
     // The requirements are the queries the injected services
@@ -13,7 +13,7 @@ protocol HealthKitServiceProtocol: Sendable {
     // `ReanalysisService`, `HRVAnalysisPipeline`, `SleepBoundaryResolver`)
     // make through this protocol, so a test mock stubs only those. Everything
     // else (authorization, observers, trends, exports, dashboard queries) is
-    // called on the concrete `HealthKitManager` and is not part of it.
+    // called on `HealthKitManager`'s parts and is not part of it.
 
     /// Whether HealthKit is available on this device
     nonisolated var isHealthKitAvailable: Bool { get }
@@ -64,7 +64,7 @@ protocol HealthKitServiceProtocol: Sendable {
 
     /// Sleep boundaries inferred from the strap's own RR series — the
     /// fallback when HealthKit has no sleep for the night. The default calls
-    /// `HealthKitManager.estimateSleepFromHR` off the main actor (it walks
+    /// `HRSleepEstimator.estimateSleepFromHR` off the main actor (it walks
     /// every beat of the night); a test mock can stub it.
     func estimateSleepFromRR(rrPoints: [RRPoint], recordingStart: Date) async -> SleepData?
 
@@ -78,7 +78,7 @@ protocol HealthKitServiceProtocol: Sendable {
 
 extension HealthKitServiceProtocol {
     /// Conformers without daytime-nap support (e.g. test mocks) contribute no
-    /// nap credit. `HealthKitManager` overrides this with the real query.
+    /// nap credit. `HealthKitService` overrides this with the real query.
     func fetchDaytimeNapMinutes(nightAnchoredAt nightAnchor: Date) async -> Int { 0 }
 
     func fetchSleepData(
@@ -142,9 +142,21 @@ extension HealthKitServiceProtocol {
     }
 }
 
-// MARK: - HealthKitManager members the protocol requires
+// MARK: - The app's conformer
 
-extension HealthKitManager {
+/// The protocol over the app's Health queries: each requirement is answered
+/// by the query type of its domain. `HealthKitManager.service` builds it.
+struct HealthKitService: HealthKitServiceProtocol {
+    let heartRate: HeartRateHealthQueries
+    let sleepQueries: SleepHealthQueries
+    let vitals: VitalsHealthQueries
+    let training: TrainingHealthQueries
+    let writes: HealthWriteAndObserve
+
+    nonisolated var isHealthKitAvailable: Bool {
+        HKHealthStore.isHealthDataAvailable()
+    }
+
     func fetchDaytimeRestingHR(for sleepDate: Date) async throws -> Double? {
         try await heartRate.fetchDaytimeRestingHR(for: sleepDate)
     }
@@ -152,9 +164,9 @@ extension HealthKitManager {
     func fetchSleepData(
         for recordingStart: Date,
         recordingEnd: Date,
-        rrPoints: [RRPoint]? = nil,
-        autoSleepExtension: SleepResolver.AutoSleepExtension? = nil,
-        rrStart: Date? = nil
+        rrPoints: [RRPoint]?,
+        autoSleepExtension: SleepResolver.AutoSleepExtension?,
+        rrStart: Date?
     ) async throws -> SleepData {
         try await sleepQueries.fetchSleepData(
             for: recordingStart, recordingEnd: recordingEnd,
@@ -169,8 +181,8 @@ extension HealthKitManager {
     func estimateSleepFromHealthKitHR(
         windowStart: Date,
         windowEnd: Date,
-        minimumSamples: Int = 12,
-        minimumSleepMinutes: Int = 120
+        minimumSamples: Int,
+        minimumSleepMinutes: Int
     ) async -> SleepData? {
         await sleepQueries.estimateSleepFromHealthKitHR(
             windowStart: windowStart, windowEnd: windowEnd,
@@ -178,9 +190,7 @@ extension HealthKitManager {
         )
     }
 
-    func fetchRecoveryVitals(
-        relativeTo referenceDate: Date = Date()
-    ) async -> HealthKitManager.RecoveryVitals {
+    func fetchRecoveryVitals(relativeTo referenceDate: Date) async -> HealthKitManager.RecoveryVitals {
         await vitals.fetchRecoveryVitals(relativeTo: referenceDate)
     }
 
@@ -188,7 +198,8 @@ extension HealthKitManager {
         try await writes.exportSessionMetrics(from: session)
     }
 
-    func calculateTrainingLoad(relativeTo referenceDate: Date) async -> TrainingLoad {
+    /// The morning reading's seven-day load.
+    func calculateTrainingLoad(relativeTo referenceDate: Date) async -> HealthKitManager.TrainingLoad {
         await training.calculateTrainingLoad(days: 7, forMorningReading: true, relativeTo: referenceDate)
     }
 }

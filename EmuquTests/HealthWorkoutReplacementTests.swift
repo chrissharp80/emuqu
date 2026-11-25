@@ -176,7 +176,7 @@ final class HealthWorkoutReplacementTests: XCTestCase {
         defer { NotificationCenter.default.removeObserver(token) }
 
         let exportedAt = start.addingTimeInterval(700)
-        try HealthKitManager.writeExportStamp(sessionId, at: exportedAt, archive: archive)
+        try HealthKitBackfill.writeExportStamp(sessionId, at: exportedAt, archive: archive)
 
         let stored = try XCTUnwrap(archive.retrieve(sessionId))
         XCTAssertEqual(stored.healthKitExportedAt, exportedAt)

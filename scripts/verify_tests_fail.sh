@@ -1003,8 +1003,8 @@ mutate "archive_metadata_edit_drops_beats" "EmuquTests/ArchiveRRPreservationTest
 # doomed write on every foreground until the ceiling burns through, re-archiving
 # the session each time just to record the failure.
 mutate "backfill_retries_zero_length_workout" "EmuquTests/WorkoutBackfillEligibilityTests" \
-    "Emuqu/Sources/Collection/HealthKitManager.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HealthKitManager.swift');s=p.read_text();o='              endDate > session.startDate\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "Emuqu/Sources/Collection/HealthKitBackfill.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HealthKitBackfill.swift');s=p.read_text();o='              endDate > session.startDate\n';assert s.count(o)==1;p.write_text(s.replace(o,'              endDate >= session.startDate\n'))"
 
 # The unarchived-backup count means "beats that exist only in a backup". Marking
 # everything archived silences the one signal the user has that a recording is

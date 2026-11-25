@@ -12,7 +12,8 @@ final class DeviceRecordingSession {
     let archiveSignal: ArchiveSignal
     let artifactDetector: ArtifactDetector
     let baselineTracker: BaselineTracker
-    let healthKit: HealthKitManager
+    /// Apple Health sleep, for the downloaded night's start and boundaries.
+    let sleepQueries: SleepHealthQueries
     let polarManager: PolarManager
     let rawBackup: RawRRBackup
     let reconciliation: ReconciliationManager
@@ -30,7 +31,7 @@ final class DeviceRecordingSession {
         archiveSignal: ArchiveSignal,
         artifactDetector: ArtifactDetector,
         baselineTracker: BaselineTracker,
-        healthKit: HealthKitManager,
+        sleepQueries: SleepHealthQueries,
         polarManager: PolarManager,
         rawBackup: RawRRBackup,
         reconciliation: ReconciliationManager,
@@ -47,7 +48,7 @@ final class DeviceRecordingSession {
         self.archiveSignal = archiveSignal
         self.artifactDetector = artifactDetector
         self.baselineTracker = baselineTracker
-        self.healthKit = healthKit
+        self.sleepQueries = sleepQueries
         self.polarManager = polarManager
         self.rawBackup = rawBackup
         self.reconciliation = reconciliation

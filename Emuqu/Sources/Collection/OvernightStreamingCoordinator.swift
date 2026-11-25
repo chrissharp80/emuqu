@@ -12,7 +12,12 @@ final class OvernightStreamingCoordinator {
     let archive: SessionArchive
     let baselineTracker: BaselineTracker
     let cloudSyncManager: CloudKitSyncManager
-    let healthKit: HealthKitManager
+    /// Starts the Apple Health sleep observer for the night.
+    let healthWrites: HealthWriteAndObserve
+    /// Apple Health sleep, read while the strap's night downloads.
+    let sleepQueries: SleepHealthQueries
+    /// Starts the Apple Health vitals observers for the night.
+    let vitalsQueries: VitalsHealthQueries
     let morningCoordination: MorningCoordination
     let overnightRun: OvernightRunState
     let polarManager: PolarManager
@@ -28,7 +33,9 @@ final class OvernightStreamingCoordinator {
         archive: SessionArchive,
         baselineTracker: BaselineTracker,
         cloudSyncManager: CloudKitSyncManager,
-        healthKit: HealthKitManager,
+        healthWrites: HealthWriteAndObserve,
+        sleepQueries: SleepHealthQueries,
+        vitalsQueries: VitalsHealthQueries,
         morningCoordination: MorningCoordination,
         overnightRun: OvernightRunState,
         polarManager: PolarManager,
@@ -43,7 +50,9 @@ final class OvernightStreamingCoordinator {
         self.archive = archive
         self.baselineTracker = baselineTracker
         self.cloudSyncManager = cloudSyncManager
-        self.healthKit = healthKit
+        self.healthWrites = healthWrites
+        self.sleepQueries = sleepQueries
+        self.vitalsQueries = vitalsQueries
         self.morningCoordination = morningCoordination
         self.overnightRun = overnightRun
         self.polarManager = polarManager

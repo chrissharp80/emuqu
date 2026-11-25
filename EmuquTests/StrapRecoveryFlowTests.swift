@@ -523,7 +523,7 @@ extension RRCollector {
         let baselineTracker = BaselineTracker(baselineFile: storage.deletingLastPathComponent()
             .appendingPathComponent("HRVBaseline-\(storage.lastPathComponent).json"))
         let acceptance = SessionAcceptanceService(
-            archive: archive, healthKit: healthKit, baselineTracker: baselineTracker, rawBackup: rawBackup,
+            archive: archive, healthKit: healthKit.service, baselineTracker: baselineTracker, rawBackup: rawBackup,
             onCloudSync: { _ in }, onCloudDelete: { _ in }
         )
         return RRCollector(

@@ -13,7 +13,8 @@ extension RRCollector {
     /// record with too.
     var recordingCore: RecordingCore {
         RecordingCore(
-            polarManager: polarManager, healthKit: healthKit, archive: archive,
+            polarManager: polarManager, healthAccess: healthKit.access, heartRate: healthKit.heartRate,
+            training: healthKit.training, healthSampleStore: healthKit.sampleReplacer.store, archive: archive,
             cloudSyncManager: cloudSyncManager, rawBackup: rawBackup,
             analysisPipeline: analysisPipeline, archiveSignal: archiveSignal
         )

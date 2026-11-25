@@ -187,7 +187,7 @@ extension CollectorBindings {
     /// saved-session reanalysis's own observation
     /// (`SessionReanalysisCoordinator.observeHealthKitSleep`).
     private func bindHealthKitSleep() {
-        ObservationLoop.observe(self, read: { $0.healthKit.observation.sleepDataVersion }, onChange: { bindings, version in
+        ObservationLoop.observe(self, read: { $0.healthObservation.sleepDataVersion }, onChange: { bindings, version in
             bindings.morningCoordination.sleepDataVersion = version
         })
         bindHealthKitVitals()
@@ -199,7 +199,7 @@ extension CollectorBindings {
     /// `vitalsDataVersion` lets RecoveryDashboardView re-fetch and
     /// re-archive the session snapshot once the Watch's data lands.
     private func bindHealthKitVitals() {
-        ObservationLoop.observe(self, read: { $0.healthKit.observation.vitalsDataVersion }, onChange: { bindings, version in
+        ObservationLoop.observe(self, read: { $0.healthObservation.vitalsDataVersion }, onChange: { bindings, version in
             bindings.morningCoordination.vitalsDataVersion = version
         })
     }

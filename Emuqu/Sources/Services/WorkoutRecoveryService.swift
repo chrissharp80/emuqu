@@ -326,7 +326,7 @@ enum WorkoutRecoveryService {
     private static func carryArchived(into session: inout HRVSession, recovered: RecoveredWorkout, deps: Dependencies) {
         guard deps.archive.store.exists(session.id), let archived = deps.archive.retrieveOrLog(session.id) else { return }
         Self.carryForward(from: archived, into: &session)
-        if Self.wasExportedByEmuqu(archived) { HealthKitManager.requestBackfillRescan() }
+        if Self.wasExportedByEmuqu(archived) { HealthKitBackfill.requestBackfillRescan() }
         guard var metadata = session.workoutMetadata else { return }
         Self.attachAnalysisSnapshot(
             to: &metadata, sport: recovered.sport, durationSec: recovered.durationSec,

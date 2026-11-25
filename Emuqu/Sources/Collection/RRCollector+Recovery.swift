@@ -17,7 +17,7 @@ extension SessionRecoveryCoordinator {
             baselineTracker: baselineTracker,
             settingsManager: settingsManager,
             breadcrumbStore: services.breadcrumbStore,
-            exportToHealth: Self.healthExport(healthKit: healthKit, settingsManager: settingsManager)
+            exportToHealth: Self.healthExport(writes: healthWrites, settingsManager: settingsManager)
         )
         cachedRecoveryService = service
         return service
@@ -25,17 +25,17 @@ extension SessionRecoveryCoordinator {
 
     /// A recovered night's export to Apple Health, read against the setting
     /// at the time of recovery. Not awaited: the night is already archived.
-    private static func healthExport(healthKit: HealthKitManager, settingsManager: SettingsManager) -> @Sendable (HRVSession) -> Void {
+    private static func healthExport(writes: HealthWriteAndObserve, settingsManager: SettingsManager) -> @Sendable (HRVSession) -> Void {
         { session in
-            Task { @MainActor in await exportIfEnabled(session, healthKit: healthKit, settingsManager: settingsManager) }
+            Task { @MainActor in await exportIfEnabled(session, writes: writes, settingsManager: settingsManager) }
         }
     }
 
     @MainActor
-    private static func exportIfEnabled(_ session: HRVSession, healthKit: HealthKitManager, settingsManager: SettingsManager) async {
+    private static func exportIfEnabled(_ session: HRVSession, writes: HealthWriteAndObserve, settingsManager: SettingsManager) async {
         guard settingsManager.settings.enableHealthKitExport else { return }
         do {
-            try await healthKit.exportSessionMetrics(from: session)
+            try await writes.exportSessionMetrics(from: session)
         } catch {
             debugLog("[Recovery] Apple Health export of a recovered night failed: \(error.localizedDescription)")
         }

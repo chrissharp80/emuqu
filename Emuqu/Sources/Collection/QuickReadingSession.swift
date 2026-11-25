@@ -14,7 +14,8 @@ final class QuickReadingSession {
     let baselineTracker: BaselineTracker
     let cloudSyncManager: CloudKitSyncManager
     let deviceStatus: DeviceStatus
-    let healthKit: HealthKitManager
+    /// The training load a quick reading is scored with.
+    let trainingQueries: TrainingHealthQueries
     let overnightStreaming: OvernightStreamingCoordinator
     let polarManager: PolarManager
     let rawBackup: RawRRBackup
@@ -34,7 +35,7 @@ final class QuickReadingSession {
         baselineTracker: BaselineTracker,
         cloudSyncManager: CloudKitSyncManager,
         deviceStatus: DeviceStatus,
-        healthKit: HealthKitManager,
+        trainingQueries: TrainingHealthQueries,
         overnightStreaming: OvernightStreamingCoordinator,
         polarManager: PolarManager,
         rawBackup: RawRRBackup,
@@ -53,7 +54,7 @@ final class QuickReadingSession {
         self.baselineTracker = baselineTracker
         self.cloudSyncManager = cloudSyncManager
         self.deviceStatus = deviceStatus
-        self.healthKit = healthKit
+        self.trainingQueries = trainingQueries
         self.overnightStreaming = overnightStreaming
         self.polarManager = polarManager
         self.rawBackup = rawBackup

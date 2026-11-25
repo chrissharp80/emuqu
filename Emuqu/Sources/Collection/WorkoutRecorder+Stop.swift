@@ -282,8 +282,8 @@ extension WorkoutRecorder {
     func launchHRRCaptureAndRearchive(stopDate: Date, endHR: Int, finished: HRVSession) {
         let captureService = HRRCaptureService(
             polarManager: core.polarManager,
-            access: core.healthKit.access,
-            heartRate: core.healthKit.heartRate,
+            access: core.healthAccess,
+            heartRate: core.heartRate,
             captureWindowSec: 120
         )
         let sessionId = finished.id

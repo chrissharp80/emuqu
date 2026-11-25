@@ -21,7 +21,10 @@ final class MorningSessionPipeline {
     let baselineRebuild: BaselineRebuilder
     let cloudSyncManager: CloudKitSyncManager
     let deviceStatus: DeviceStatus
-    let healthKit: HealthKitManager
+    /// Stops the Apple Health sleep observer once a morning is accepted.
+    let healthWrites: HealthWriteAndObserve
+    /// The training load the morning reading is scored with.
+    let trainingQueries: TrainingHealthQueries
     let morningCoordination: MorningCoordination
     let morningProcessingService: MorningProcessingService
     let polarManager: PolarManager
@@ -41,7 +44,8 @@ final class MorningSessionPipeline {
         baselineRebuild: BaselineRebuilder,
         cloudSyncManager: CloudKitSyncManager,
         deviceStatus: DeviceStatus,
-        healthKit: HealthKitManager,
+        healthWrites: HealthWriteAndObserve,
+        trainingQueries: TrainingHealthQueries,
         morningCoordination: MorningCoordination,
         morningProcessingService: MorningProcessingService,
         polarManager: PolarManager,
@@ -60,7 +64,8 @@ final class MorningSessionPipeline {
         self.baselineRebuild = baselineRebuild
         self.cloudSyncManager = cloudSyncManager
         self.deviceStatus = deviceStatus
-        self.healthKit = healthKit
+        self.healthWrites = healthWrites
+        self.trainingQueries = trainingQueries
         self.morningCoordination = morningCoordination
         self.morningProcessingService = morningProcessingService
         self.polarManager = polarManager

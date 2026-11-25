@@ -343,7 +343,7 @@ extension DeviceRecordingSession {
     /// in the beats themselves.
     private func healthKitAlignedStart(rrPoints: [RRPoint]) async -> Date? {
         let searchEnd = Date()
-        let sleepData = try? await healthKit.fetchSleepData(
+        let sleepData = try? await sleepQueries.fetchSleepData(
             for: searchEnd.addingTimeInterval(-24 * 60 * 60), recordingEnd: searchEnd, rrPoints: rrPoints
         )
         guard let hkSleepStart = sleepData?.sleepStart else { return nil }
@@ -393,7 +393,7 @@ extension DeviceRecordingSession {
     /// recording's own span.
     func fetchSleepContext(sessionStart: Date, recordingEnd: Date) async -> SleepBoundaryContext {
         var context = SleepBoundaryContext()
-        guard let sleepData = try? await healthKit.fetchSleepData(for: sessionStart, recordingEnd: recordingEnd) else {
+        guard let sleepData = try? await sleepQueries.fetchSleepData(for: sessionStart, recordingEnd: recordingEnd) else {
             debugLog("[RRCollector] Could not fetch HealthKit sleep data for window selection", level: .warning)
             return context
         }

@@ -426,7 +426,7 @@ extension ImportDataView {
         let sessionEndDate = sessionStartDate
             .addingTimeInterval(Double(sessionData.rrIntervals.reduce(0, +)) / 1000.0)
         do {
-            let sleepData = try await healthKit.fetchSleepData(for: sessionStartDate, recordingEnd: sessionEndDate)
+            let sleepData = try await healthKit.sleepQueries.fetchSleepData(for: sessionStartDate, recordingEnd: sessionEndDate)
             return offsets(of: sleepData, from: sessionStartDate)
         } catch {
             log("  Apple Health ERROR: could not read sleep data (\(error.localizedDescription)) - using full recording as sleep period")
