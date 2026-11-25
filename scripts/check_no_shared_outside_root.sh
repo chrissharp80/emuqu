@@ -28,7 +28,7 @@ source "$(dirname "$0")/lib/preflight.sh"
 
 ROOT_FILES=(
     "Emuqu/Sources/Utilities/AppDependencies.swift"
-    "Emuqu/Sources/Utilities/AppDependencies+Instances.swift"
+    "Emuqu/Sources/Utilities/SharedInstances.swift"
     "EmuquWatch Watch App/WatchDependencies.swift"
 )
 SYSTEM='UIApplication|URLSession|NotificationCenter|UNUserNotificationCenter|WCSession|HKHealthStore|UIDevice|AVAudioSession|UIScreen|CLLocationManager|UIPasteboard|ProcessInfo|FileManager|UIAccessibility|SKPaymentQueue|MPMusicPlayerController|MXMetricManager|AVAudioApplication|AppTransaction|WidgetCenter|UIAccessibility'

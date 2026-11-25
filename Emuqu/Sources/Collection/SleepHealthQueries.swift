@@ -6,7 +6,7 @@ import HealthKit
 /// used on nights the watch recorded nothing.
 ///
 /// Reads only. Sleep EXPORT, trend analysis and the sleep observers live in
-/// `HealthKitManager+SleepTrends.swift`; they write and observe, which is a
+/// `HealthWriteAndObserve+Sleep.swift`; they write and observe, which is a
 /// different job with different failure modes.
 ///
 /// A value over the parts it uses: queries run through `access`, and the

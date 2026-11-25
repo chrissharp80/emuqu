@@ -56,7 +56,7 @@ extension DataPurgeService {
     ///
     /// `AppleLanguages` is covered by `systemOwnedPrefixes` rather than named
     /// here, but the reasoning is the same: the in-app language picker writes
-    /// it (`SettingsView+Appearance`), so sweeping it would silently change the
+    /// it (`AppearanceAndLanguagePages`), so sweeping it would silently change the
     /// UI language as a side effect of a data wipe.
     private static let defaultsKeepList: Set<String> = [
         "entitlement.anchor.account",
@@ -80,7 +80,7 @@ extension DataPurgeService {
     ]
 
     /// The migration bookkeeping described above is kept by its two
-    /// spellings — `FlowRecovery.migration.*` in `Archive+Migrations` and
+    /// spellings — `FlowRecovery.migration.*` in `ArchiveMigrations+Steps` and
     /// `didRun…_v<n>` in the `RRCollector+*Migration` files. A `didRun` key
     /// is kept only when it also carries a `_v` version marker, so an
     /// ordinary key that merely starts with "didRun" is still swept.

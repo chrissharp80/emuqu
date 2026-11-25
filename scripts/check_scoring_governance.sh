@@ -17,7 +17,7 @@
 #    user can see would present a made-up figure as a confidence. It may not
 #    leave Analysis/CauseDetection.
 #
-# 2. The scoring constants are hashed (Constants+RecoveryScore.swift,
+# 2. The scoring constants are hashed (RecoveryScoreConstants.swift,
 #    HRVThresholds.swift, and the ScoringBounds / ScoringWeights enums of
 #    Constants.swift, where the composite weights live). Change a weight, a
 #    threshold or a band and the hash moves; the gate then requires ScoringVersion.current to have
@@ -88,15 +88,18 @@ for path in sorted(pathlib.Path("Emuqu/Sources").rglob("*.swift")):
             )
 
 # --- 2. scoring constants vs the version string ---------------------------
+# Each file is hashed under a fixed key, not its path, so moving or renaming
+# a file leaves the hash alone and only a changed number moves it. The keys
+# are the paths the files had when the hash was first recorded.
 SCORING_SOURCES = [
-    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift",
+    ("Emuqu/Sources/Utilities/RecoveryScoreConstants.swift", "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift"),
+    ("Emuqu/Sources/Analysis/HRVThresholds.swift", "Emuqu/Sources/Analysis/HRVThresholds.swift"),
 ]
 CONST_RE = re.compile(r"static let\s+(\w+)\s*:?\s*[\w<>\[\], .]*=\s*([-\d.]+)")
 
 digest = hashlib.sha256()
 seen = 0
-for name in SCORING_SOURCES:
+for name, key in SCORING_SOURCES:
     path = pathlib.Path(name)
     if not path.is_file():
         sys.stderr.write(f"check_scoring_governance: missing {name}\n")
@@ -109,7 +112,7 @@ for name in SCORING_SOURCES:
         sys.stderr.write(f"check_scoring_governance: no scoring constants matched in {name}\n")
         raise SystemExit(2)
     for symbol, value in found:
-        digest.update(f"{name}:{symbol}={value}\n".encode())
+        digest.update(f"{key}:{symbol}={value}\n".encode())
         seen += 1
 
 # Composite weights and score bounds live in Constants.swift beside

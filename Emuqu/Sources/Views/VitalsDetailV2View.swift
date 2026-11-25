@@ -194,7 +194,7 @@ struct VitalsDetailV2View: View {
         guard let latest = latestOvernight else { return }
         let referenceDate = latest.endDate ?? latest.startDate
         let strapHR = Self.strapMeanHR(of: latest)
-        let fresh = await collector.healthKit
+        let fresh = await collector.healthKit.vitals
             .fetchRecoveryVitals(relativeTo: referenceDate)
             .withStrapNocturnalRHR(strapHR)
         if !fresh.isEmpty {

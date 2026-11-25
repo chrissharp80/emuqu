@@ -43,7 +43,7 @@ final class CollectorMigrationParityTests: XCTestCase {
     // before the collector exists, and deferring construction to first use in
     // the test body keeps that order.
     //
-    // Isolated on-disk archive. `RRCollector()` binds to
+    // Isolated on-disk archive. `RRCollector(dependencies: .current)` binds to
     // `SessionArchive.shared`, whose directory persists in the simulator
     // container across runs — the "empty archive must remain empty" tests were
     // reading 10 residue entries left by OTHER suites' killed runs. All three
@@ -57,10 +57,12 @@ final class CollectorMigrationParityTests: XCTestCase {
     // insufficient-data migration runs at all depends on that baseline.
     private lazy var collector = RRCollector(
         polarManager: PolarManager(),
-        healthKit: HealthKitManager(),
+        healthKit: HealthKitManager.forTests(),
         archive: SessionArchive(directory: tempDir),
         rawBackup: RawRRBackup(directory: tempDir.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)),
-        baselineTracker: BaselineTracker(baselineFile: baselineFile)
+        baselineTracker: BaselineTracker(baselineFile: baselineFile),
+        settingsManager: AppDependencies.current.app.settingsManager,
+        services: CollectorServices(.current)
     )
     private lazy var baselineFile = tempDir.appendingPathComponent("HRVBaseline.json")
     /// What the TRIMP repair reads from HealthKit: a known training load, so
@@ -86,7 +88,7 @@ final class CollectorMigrationParityTests: XCTestCase {
     /// the collector's baseline.
     private lazy var migrations = SessionDataMigrations(
         archive: collector.archive,
-        healthKit: collector.healthKit,
+        healthKit: collector.healthKit.service,
         sleepQueries: collector.healthKit.sleepQueries,
         settingsManager: SettingsManager(settingsURL: tempDir.appendingPathComponent("user_settings.json")),
         baselineTracker: collector.baselineTracker,

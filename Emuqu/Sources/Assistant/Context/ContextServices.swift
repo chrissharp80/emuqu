@@ -15,6 +15,9 @@ struct ContextServices: Sendable {
     var liveWorkoutBroker: LiveWorkoutBroker { container.assistant.liveWorkoutBroker }
     var sessionArchive: SessionArchive { container.storage.sessionArchive }
     var settingsManager: SettingsManager { container.app.settingsManager }
+    /// The app's recording collector, once launch has bound it.
+    @MainActor
+    var collectorBox: CollectorBox { container.app.collectorBox }
     @MainActor
     var trainingMetricsCache: TrainingMetricsCache { container.analysis.trainingMetricsCache }
 }

@@ -145,3 +145,31 @@ import Foundation
     }
 
 #endif
+
+/// The SDK handle and the radio the strap parts call through. One per
+/// `PolarManager`; the handle is created on first use
+/// (`PolarManager.ensureApiReady`).
+@MainActor
+final class StrapRadioSource {
+    #if canImport(PolarBleSdk)
+        var api: PolarBleApi?
+        /// Live beats from the standard Heart Rate Service. Lives as long as
+        /// its owner; its Bluetooth central is created on the first
+        /// subscription.
+        lazy var standardHeartRate = StandardHeartRateLink()
+
+        #if DEBUG
+            var radioForTesting: (any StrapRadio)?
+        #endif
+
+        /// What the app asks the strap's radio to do, behind `StrapRadio` so a
+        /// test can answer for a strap that isn't there. Production is always
+        /// the SDK; `radioForTesting` is only ever set by tests.
+        var strapAPI: (any StrapRadio)? {
+            #if DEBUG
+                if let radioForTesting { return radioForTesting }
+            #endif
+            return api.map { StrapAPI(sdk: $0, heartRate: standardHeartRate) }
+        }
+    #endif
+}

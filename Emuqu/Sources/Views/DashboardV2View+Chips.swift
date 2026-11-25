@@ -423,7 +423,7 @@ extension DashboardV2View {
         // as the app's other pasteboard writes (`AssistantChatView+Sections`,
         // `VoiceConversationController+Control`, the debug-log export) for
         // the same data class.
-        PasteboardWriter.copy(lines.joined(separator: "\n"))
+        PasteboardWriter.copy(lines.joined(separator: "\n"), preserveForPaste: settingsManager.settings.preserveClipboardForPaste)
         toast = ToastPayload(glyph: "doc.on.doc.fill", message: String(localized: "Copied.", bundle: LanguageManager.appBundle))
     }
 }

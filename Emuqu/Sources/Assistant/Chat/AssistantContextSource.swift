@@ -52,7 +52,7 @@ final class AssistantContextSource: Sendable {
     /// lock-protected and safe to read from the build queue.
     func currentContext() async -> AssistantContext {
         let (liveLoadSnapshot, tracker) = await MainActor.run {
-            (TrainingLoadRegistry.live(from: self.services.trainingMetricsCache), RRCollector.current?.baselineTracker)
+            (TrainingLoadRegistry.live(from: self.services.trainingMetricsCache), self.services.collectorBox.collector?.baselineTracker)
         }
         return await withCheckedContinuation { continuation in
             queue.async {

@@ -250,7 +250,7 @@ struct ArchiveDiagnosticsView: View {
             let outcome = await Task.detached(priority: .userInitiated) { Self.repair(archive) }.value
             isRepairing = false
             // Screens keyed on the archive signal reload the rebuilt index.
-            collector.notifyArchiveChanged()
+            collector.archiveSignal.notifyChanged()
             repairResult = Self.repairMessage(outcome, indexedBefore: indexedBefore)
             showingResult = true
             await refreshDiagnostics()

@@ -49,7 +49,13 @@ import NaturalLanguage
 /// question that mentions a number).
 @MainActor
 final class CapabilityClassifier {
-    static let shared = CapabilityClassifier()
+    /// The sentence embedder the prototype matching uses: the one
+    /// `SmartProviderRouter` owns, so the embedding asset loads once.
+    private let embedder: @MainActor (String) -> [Double]?
+
+    init(embed: @escaping @MainActor (String) -> [Double]?) {
+        self.embedder = embed
+    }
 
     /// Cosine similarity threshold per axis. The research recommends
     /// calibrating against a 200-utterance held-out set; 0.55 is the
@@ -161,7 +167,7 @@ final class CapabilityClassifier {
     /// download is shared at the OS level (`NLContextualEmbedding(language:)`
     /// is a singleton-like accessor) so we don't pay double initialization.
     private func embed(_ text: String) -> [Double]? {
-        AppDependencies.current.providers.smartProviderRouter.embed(text)
+        embedder(text)
     }
 
     /// Cached prototype centroids — computed once on first

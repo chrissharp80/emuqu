@@ -40,8 +40,6 @@ import Foundation
 @Observable
 @MainActor
 final class RoadGeocodingService {
-    static let shared = RoadGeocodingService()
-
     var current: RoadContext?
     var lastLookupCoord: CLLocationCoordinate2D?
     var lastLookupAt: Date?
@@ -93,6 +91,16 @@ final class RoadGeocodingService {
     private static let timeThresholdSec: TimeInterval = 60
 
     let geocoder = CLGeocoder()
+    /// The thread-safe cache every resolved address is mirrored into, and
+    /// the last GPS fix an override anchors the movement gate at.
+    let ambientLocationService: AmbientLocationService
+    /// The OSM road graph cross-streets are looked up in.
+    let roadGraph: RoadGraphService
+
+    init(ambientLocationService: AmbientLocationService, roadGraph: RoadGraphService) {
+        self.ambientLocationService = ambientLocationService
+        self.roadGraph = roadGraph
+    }
 
     // Rate floor across every path.
     //
@@ -560,21 +568,16 @@ final class RoadGeocodingService {
     /// thoroughfare string. Used by SavedRoute climb-naming.
     /// Goes through `reverseGeocodeQueued` so each call participates
     /// in the rate floor / backoff state.
-    static func resolveRoadName(at coord: CLLocationCoordinate2D) async -> String? {
+    func resolveRoadName(at coord: CLLocationCoordinate2D) async -> String? {
         let location = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
-        return await Task { @MainActor in
-            await AppDependencies.current.location.roadGeocodingService.reverseGeocodeQueued(location)?.thoroughfare
-        }.value
+        return await reverseGeocodeQueued(location)?.thoroughfare
     }
 
     /// Forward-geocode a free-text address into a `RoadContext`. Used
     /// by the AI's `location.set_address` + `directions.routeTo`
     /// actions. Goes through `forwardGeocodeQueued`.
-    static func geocodeAddress(_ query: String) async -> RoadContext? {
-        let placemarksOpt = await Task { @MainActor in
-            await AppDependencies.current.location.roadGeocodingService.forwardGeocodeQueued(query)
-        }.value
-        guard let placemarks = placemarksOpt,
+    func geocodeAddress(_ query: String) async -> RoadContext? {
+        guard let placemarks = await forwardGeocodeQueued(query),
               let p = placemarks.first,
               let loc = p.location
         else { return nil }
@@ -595,7 +598,7 @@ final class RoadGeocodingService {
     /// as "moved far" and an ambient lookup replaced the override at once.
     /// It stands until the user moves 15 m or 60 s pass.
     func overrideContext(_ context: RoadContext) {
-        let ambient = AppDependencies.current.location.ambientLocationService
+        let ambient = ambientLocationService
         current = context
         ambient.recordResolvedAddress(context)
         lastLookupCoord = ambient.cachedLocation()?.coordinate ?? context.observedAtCoord

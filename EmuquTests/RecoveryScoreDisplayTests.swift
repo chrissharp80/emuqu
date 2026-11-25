@@ -15,7 +15,7 @@ import XCTest
 /// The other half is a crash, not a cosmetic split: `Int(Double.nan)` traps in
 /// Swift. It does not produce a wrong integer, it kills the process. The NaN
 /// coercion in `breakdown(...)` and the sanitiser in
-/// `MorningResultsView+DetailCards` were each working around that locally, one
+/// `MorningDetailCards+Cards` were each working around that locally, one
 /// call site at a time, which only holds until someone adds a new one.
 final class RecoveryScoreDisplayTests: XCTestCase {
     // MARK: - Rounding parity

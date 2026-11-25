@@ -337,7 +337,7 @@ extension ThresholdCards {
         let metsValues = samples.compactMap { $0.mets }
         guard !metsValues.isEmpty else { return nil }
         let avgMETs = metsValues.reduce(0, +) / Double(metsValues.count)
-        let kcalPerHour = avgMETs * UserSettingsBridge.snapshot().weightKg
+        let kcalPerHour = avgMETs * settings.weightKg
         return .init(
             label: String(localized: "Calorie rate", bundle: LanguageManager.appBundle),
             value: String(format: "%.0f kcal/h", locale: LanguageManager.appLocale, kcalPerHour),
@@ -386,7 +386,7 @@ extension ThresholdCards {
     @ViewBuilder
     var hrZoneDistributionCard: some View {
         let zoneSecs = WorkoutPDFRenderer.hrZoneSeconds(samples: session.workoutMetadata?.samples ?? [],
-                                                        maxHR: UserSettingsBridge.snapshot().userMaxHR)
+                                                        maxHR: settings.userMaxHR)
         let total = zoneSecs.reduce(0, +)
         if total > 0 {
             zoneDistributionBody(zoneSecs: zoneSecs, total: total)
@@ -437,7 +437,7 @@ extension ThresholdCards {
 
     /// Per-zone labels — zones with no time in them are omitted.
     private func zoneLegend(zoneSecs: [Int]) -> some View {
-        let maxHR = UserSettingsBridge.snapshot().userMaxHR
+        let maxHR = settings.userMaxHR
         return VStack(alignment: .leading, spacing: 2) {
             ForEach(0 ..< 5, id: \.self) { idx in
                 zoneLegendRow(idx: idx, secs: zoneSecs[idx], maxHR: maxHR)
@@ -503,9 +503,9 @@ struct UserSettingsBridge {
     let userMaxHR: Int
     let weightKg: Double
 
-    /// Snapshot the current `SettingsManager` state.
-    static func snapshot() -> UserSettingsBridge {
-        let s = AppDependencies.current.app.settingsManager.settingsSnapshot
+    /// Snapshot `settingsManager`'s current state.
+    static func snapshot(of settingsManager: SettingsManager) -> UserSettingsBridge {
+        let s = settingsManager.settingsSnapshot
         return UserSettingsBridge(
             userMaxHR: s.effectiveMaxHR,
             weightKg: s.effectiveBodyWeightKg

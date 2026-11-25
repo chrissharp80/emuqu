@@ -1,31 +1,77 @@
 import Foundation
 
-/// Driving a capture session while it runs: the short streaming sessions, the
-/// pause/resume path that lets a night be split and rejoined, and the Combine
-/// bindings that republish the sub-objects' state for the views.
+/// The controls of a night in progress: pausing it so it can be split and
+/// rejoined, resuming it, finishing it from a pause, discarding a recording,
+/// and the paused night the Record screen offers to continue.
 ///
-/// All three live together because pause/resume and the streaming session are
-/// the same state machine seen from two directions, and the bindings republish
-/// exactly what those two change.
-///
-/// The bindings' observation handlers hold the collector weakly
-/// (`[weak owner = collector]`, and `ObservationLoop` holds its owner weakly):
-/// they outlive the call that registers them, so a strong capture would keep
-/// the collector alive, and a weak one is exactly right — each no-ops once the
-/// collector is gone.
-///
-/// ## Ownership
-///
-/// This is a value, built on demand by the collector (`collector.control`),
-/// holding the collector strongly. A class with an `unowned` back-pointer
-/// is safe on every synchronous path and fatal on the asynchronous one: a
-/// Task or a resumed continuation that keeps this object alive after the
-/// collector has gone reads the reference and traps ("Attempted to read an
-/// unowned reference but object … was already destroyed"). A strong
-/// reference from a transient value cannot outlive its owner and cannot form a
-/// cycle (ADR 005).
+/// Built once by the collector over the parts it uses. It calls overnight
+/// streaming and the morning pipeline; the bindings (`CollectorBindings`)
+/// call it when the battery runs critically low or a reconnect runs out.
 @MainActor
-struct CollectorSessionControl {
-    let collector: RRCollector
+final class CollectorSessionControl {
+    let archive: SessionArchive
+    let archiveSignal: ArchiveSignal
+    let baselineTracker: BaselineTracker
+    let cloudSyncManager: CloudKitSyncManager
+    let deviceStatus: DeviceStatus
+    let morningCoordination: MorningCoordination
+    let overnightRun: OvernightRunState
+    let strapLink: StrapLinkState
+    let strapStream: StrapStreamSession
+    let strapRecorder: StrapRecordingCoordinator
+    let strapBattery: StrapBatteryUsageTracker
+    let rawBackup: RawRRBackup
+    let recordingStore: RecordingStateStore
+    let services: CollectorServices
+    let sessionState: SessionState
+    let settingsManager: SettingsManager
+    let strapGuards: StrapRecordingGuards
+    let streamingLifecycle: StreamingLifecycle
+    let morning: MorningSessionPipeline
+    let overnightStreaming: OvernightStreamingCoordinator
+
+    init(
+        archive: SessionArchive,
+        archiveSignal: ArchiveSignal,
+        baselineTracker: BaselineTracker,
+        cloudSyncManager: CloudKitSyncManager,
+        deviceStatus: DeviceStatus,
+        morningCoordination: MorningCoordination,
+        overnightRun: OvernightRunState,
+        strapLink: StrapLinkState,
+        strapStream: StrapStreamSession,
+        strapRecorder: StrapRecordingCoordinator,
+        strapBattery: StrapBatteryUsageTracker,
+        rawBackup: RawRRBackup,
+        recordingStore: RecordingStateStore,
+        services: CollectorServices,
+        sessionState: SessionState,
+        settingsManager: SettingsManager,
+        strapGuards: StrapRecordingGuards,
+        streamingLifecycle: StreamingLifecycle,
+        morning: MorningSessionPipeline,
+        overnightStreaming: OvernightStreamingCoordinator
+    ) {
+        self.archive = archive
+        self.archiveSignal = archiveSignal
+        self.baselineTracker = baselineTracker
+        self.cloudSyncManager = cloudSyncManager
+        self.deviceStatus = deviceStatus
+        self.morningCoordination = morningCoordination
+        self.overnightRun = overnightRun
+        self.strapLink = strapLink
+        self.strapStream = strapStream
+        self.strapRecorder = strapRecorder
+        self.strapBattery = strapBattery
+        self.rawBackup = rawBackup
+        self.recordingStore = recordingStore
+        self.services = services
+        self.sessionState = sessionState
+        self.settingsManager = settingsManager
+        self.strapGuards = strapGuards
+        self.streamingLifecycle = streamingLifecycle
+        self.morning = morning
+        self.overnightStreaming = overnightStreaming
+    }
 
 }

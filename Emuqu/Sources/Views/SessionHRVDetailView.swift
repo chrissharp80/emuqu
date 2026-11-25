@@ -6,6 +6,7 @@ import SwiftUI
 /// Shows heart rate stats, peak capacity, trend comparison, charts (tachogram, Poincaré, frequency),
 /// and full Kubios-style technical metrics.
 struct SessionHRVDetailView: View {
+    @Environment(\.dependencies) var dependencies
     let session: HRVSession
     let result: HRVAnalysisResult
     var recentSessions: [HRVSession] = []
@@ -14,6 +15,9 @@ struct SessionHRVDetailView: View {
     /// this screen says what the card that opened it said; without it, fixed
     /// cut-offs and the prior nights' plain average stand in.
     var baselineStats: BaselineTracker.RecoveryBaselineStats?
+
+    /// The user's settings, for the age- and sex-adjusted HRV tier.
+    private var settings: UserSettings { dependencies.app.settingsManager.settings }
 
     // MARK: - Body
 
@@ -98,7 +102,7 @@ struct SessionHRVDetailView: View {
         HStack(alignment: .lastTextBaseline, spacing: 4) {
             Text(String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.rmssd))
                 .scaledFont(size: 56, weight: .bold)
-                .foregroundColor(AppTheme.hrvTextColor(result.timeDomain.rmssd, baseline: hrvBaseline))
+                .foregroundColor(AppTheme.hrvTextColor(result.timeDomain.rmssd, baseline: hrvBaseline, settings: settings))
             Text(String(localized: "ms", bundle: LanguageManager.appBundle))
                 .font(.title3)
                 .foregroundColor(AppTheme.textTertiary)
@@ -113,12 +117,12 @@ struct SessionHRVDetailView: View {
     }
 
     private var heroHRVLabel: some View {
-        Text(AppTheme.hrvLabel(result.timeDomain.rmssd, baseline: hrvBaseline))
+        Text(AppTheme.hrvLabel(result.timeDomain.rmssd, baseline: hrvBaseline, settings: settings))
             .font(.subheadline.weight(.medium))
-            .foregroundColor(AppTheme.hrvTextColor(result.timeDomain.rmssd, baseline: hrvBaseline))
+            .foregroundColor(AppTheme.hrvTextColor(result.timeDomain.rmssd, baseline: hrvBaseline, settings: settings))
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
-            .background(AppTheme.hrvColor(result.timeDomain.rmssd, baseline: hrvBaseline).opacity(0.15))
+            .background(AppTheme.hrvColor(result.timeDomain.rmssd, baseline: hrvBaseline, settings: settings).opacity(0.15))
             .cornerRadius(12)
     }
 

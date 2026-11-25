@@ -58,8 +58,8 @@ enum HealthKitWorkoutExport {
     /// the app (`PendingWorkoutReplacements`).
     ///
     /// Heart rate goes with the workout only when `writesHeartRate` is true,
-    /// which by default is the Apple Health export setting with its heart-rate
-    /// switch (`writesWorkoutHeartRate`), as the Health permission text and
+    /// which callers take from the Apple Health export setting with its
+    /// heart-rate switch (`writesHeartRate(with:)`), as the Health permission text and
     /// the privacy policy say. Data that came from Apple Health is never
     /// written back, because a copy would carry Emuqu as its source
     /// (`sampleOptions(for:bodyWeightKg:writesHeartRate:)`):
@@ -78,18 +78,17 @@ enum HealthKitWorkoutExport {
     @MainActor
     static func export(
         session: HRVSession,
-        healthKit: HealthKitManager,
+        healthStore store: HKHealthStore,
+        sampleStore: any HealthSampleStore,
         bodyWeightKg: Double,
-        writesHeartRate: Bool = writesWorkoutHeartRate
+        writesHeartRate: Bool
     ) async throws {
         guard let metadata = session.workoutMetadata, let endDate = session.endDate else {
             throw ExportError.missingRequiredFields
         }
-        let store = healthKit.access.store
         guard isWritable(HKObjectType.workoutType(), in: store) else {
             throw ExportError.authorizationNotGranted
         }
-        let sampleStore = healthKit.sampleReplacer.store
         let earlier = try await EarlierExport.findUnlessLocked(sessionId: session.id, startDate: session.startDate, in: sampleStore)
         let stamp = ExportStamp(sessionId: session.id, version: HealthExportIdentity.nextSyncVersion())
         let saved = try await saveWorkout(
@@ -200,7 +199,7 @@ enum HealthKitWorkoutExport {
             }
             var samples: [HKSample] = []
             for workout in workouts {
-                for (type, _) in HealthKitManager.workoutExportSampleTypes {
+                for (type, _) in HealthKitBackfill.workoutExportSampleTypes {
                     samples += try await store.ownSamples(
                         of: type, savedWith: workout, timeout: timeout, label: "earlier workout samples"
                     )
@@ -218,7 +217,7 @@ enum HealthKitWorkoutExport {
             let found = try await find(sessionId: sessionId, startDate: startDate, in: store)
             var seen = Set((found.samples + found.workouts.map { $0 as HKSample }).map(\.uuid))
             var series: [HKSample] = []
-            for (type, _) in HealthKitManager.workoutExportSampleTypes {
+            for (type, _) in HealthKitBackfill.workoutExportSampleTypes {
                 let own = try await store.ownSamples(
                     of: type, in: searchSpan(around: startDate),
                     timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec, label: "earlier workout series"
@@ -322,11 +321,6 @@ enum HealthKitWorkoutExport {
 
     /// Whether a saved workout carries its heart rate: Apple Health export on,
     /// with its heart-rate switch on.
-    @MainActor
-    static var writesWorkoutHeartRate: Bool {
-        writesHeartRate(with: AppDependencies.current.app.settingsManager.settings)
-    }
-
     static func writesHeartRate(with settings: UserSettings) -> Bool {
         settings.enableHealthKitExport && settings.exportHeartRate
     }

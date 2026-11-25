@@ -11,7 +11,7 @@ final class WorkoutVoiceCoachAlertTests: XCTestCase {
 
     func testAHapticEventPlaysTheAlertHaptic() {
         var played: [Bool] = []
-        let coach = WorkoutVoiceCoach(engine: WorkoutTriggerEngine(rules: []), alertHaptic: { played.append($0) })
+        let coach = makeCoach(engine: WorkoutTriggerEngine(rules: []), alertHaptic: { played.append($0) })
         coach.dispatch(event: event(tier: .haptic, urgency: .routine))
         XCTAssertEqual(played, [false])
     }
@@ -20,7 +20,7 @@ final class WorkoutVoiceCoachAlertTests: XCTestCase {
     /// urgent and `.spoken`. Both buzz, marked urgent.
     func testAnUrgentEventPlaysTheUrgentHapticWhateverItsTier() {
         var played: [Bool] = []
-        let coach = WorkoutVoiceCoach(engine: WorkoutTriggerEngine(rules: []), alertHaptic: { played.append($0) })
+        let coach = makeCoach(engine: WorkoutTriggerEngine(rules: []), alertHaptic: { played.append($0) })
         coach.dispatch(event: event(tier: .haptic, urgency: .urgent))
         coach.dispatch(event: event(tier: .spoken, urgency: .urgent))
         XCTAssertEqual(played, [true, true])
@@ -30,7 +30,7 @@ final class WorkoutVoiceCoachAlertTests: XCTestCase {
     /// play no haptic.
     func testRoutineSpokenAndSilentEventsPlayNoHaptic() {
         var played: [Bool] = []
-        let coach = WorkoutVoiceCoach(engine: WorkoutTriggerEngine(rules: []), alertHaptic: { played.append($0) })
+        let coach = makeCoach(engine: WorkoutTriggerEngine(rules: []), alertHaptic: { played.append($0) })
         coach.dispatch(event: event(tier: .spoken, urgency: .routine))
         coach.dispatch(event: event(tier: .silent, urgency: .routine))
         XCTAssertEqual(played, [])
@@ -71,6 +71,18 @@ final class WorkoutVoiceCoachAlertTests: XCTestCase {
     }
 
     // MARK: - Helpers
+
+    /// A coach over the app's settings, route and ambient location.
+    private func makeCoach(
+        engine: WorkoutTriggerEngine, alertHaptic: @escaping @MainActor (_ urgent: Bool) -> Void
+    ) -> WorkoutVoiceCoach {
+        let services = WorkoutServices(.current)
+        let settingsManager = services.settingsManager
+        return WorkoutVoiceCoach(
+            settingsProvider: { settingsManager.settings }, activeRoute: services.activeRouteSession,
+            ambientLocation: services.ambientLocationService, engine: engine, alertHaptic: alertHaptic
+        )
+    }
 
     private func event(tier: WorkoutTriggerEngine.Tier, urgency: WorkoutTriggerEngine.Urgency) -> WorkoutTriggerEngine.Event {
         WorkoutTriggerEngine.Event(ruleID: "test", tier: tier, urgency: urgency, message: "line", firedAt: Date())

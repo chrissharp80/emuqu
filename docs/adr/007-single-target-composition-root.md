@@ -94,7 +94,7 @@ hands the objects to the view tree.
 
 `scripts/check_no_shared_outside_root.sh` (`make shared-root-guard`, run by
 `make ci`, `gates.yml` and `ci.yml`) fails when any Swift file in either app reads `.shared` outside the root files
-(`AppDependencies.swift`, `AppDependencies+Instances.swift`, `WatchDependencies.swift`). `scripts/check_explicit_dependencies.sh` (`make explicit-deps-guard`,
+(`AppDependencies.swift`, `SharedInstances.swift`, `WatchDependencies.swift`). `scripts/check_explicit_dependencies.sh` (`make explicit-deps-guard`,
 run by the same three) enforces the two rules above. Declaring `static let shared` is allowed anywhere, and system
 singletons (`URLSession.shared`, `UIApplication.shared` and the others the
 script lists) are not the app's to inject.

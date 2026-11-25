@@ -147,9 +147,10 @@ enum RoadAwarenessEngine {
 
     static func awareness(
         for location: CLLocation,
-        neighborhoodFallback: String? = nil
+        neighborhoodFallback: String? = nil,
+        roadGraph: RoadGraphService
     ) async -> AwarenessResult? {
-        guard let tile = await AppDependencies.current.location.roadGraphService.tile(for: location.coordinate) else {
+        guard let tile = await roadGraph.tile(for: location.coordinate) else {
             return nil
         }
         return awareness(

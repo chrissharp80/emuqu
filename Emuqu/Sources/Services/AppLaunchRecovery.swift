@@ -65,10 +65,10 @@ extension EmuquApp {
     /// dismissed. The backup is still recoverable via Settings → iCloud & Data → Recover Lost Sessions
     /// for users who change their mind.
     private func presentInterruptedSessionAlertIfNeeded() {
-        guard let state = collector.getPersistedRecordingState() else { return }
+        guard let state = collector.recordingStore.load() else { return }
         // Only alert if the session isn't already archived (e.g. auto-archived on background)
         guard !collector.archive.store.exists(state.sessionId) else {
-            collector.clearPersistedRecordingStatePublic()
+            collector.recordingStore.clear()
             return
         }
         guard !PersistedRecordingState.isDismissed(state.sessionId) else {
@@ -77,7 +77,7 @@ extension EmuquApp {
         }
         debugLog("[App] Detected interrupted session: \(state.sessionId.uuidString.prefix(8)) started \(state.startTime)")
         // Write a termination report — iOS SIGKILL can't be caught by signal handlers
-        AppDependencies.current.app.crashLogManager.recordTermination(
+        launchServices.crashLogManager().recordTermination(
             sessionId: state.sessionId, sessionStart: state.startTime,
             sessionType: state.sessionType.rawValue
         )
@@ -145,9 +145,12 @@ extension EmuquApp {
             reason: .userInterrupted,
             archive: collector.archive,
             rawBackup: collector.rawBackup,
-            cloudSyncManager: syncManager
+            cloudSyncManager: syncManager,
+            workoutTrackBackup: launchServices.workoutTrackBackup(),
+            savedRouteStore: launchServices.savedRouteStore(),
+            settingsManager: settingsManager
         )
-        collector.clearPersistedRecordingStatePublic()
+        collector.recordingStore.clear()
         guard let outcome else {
             return String(localized: "Could not recover the workout. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
         }
@@ -203,7 +206,7 @@ extension EmuquApp {
     private func savedByAutoRecovery(_ sessionId: UUID, waitingAtMost limit: TimeInterval) async -> String? {
         await InterruptedWorkoutAutoRecovery.waitUntilDone(sessionId, limit: limit)
         guard collector.archive.store.exists(sessionId) else { return nil }
-        collector.clearPersistedRecordingStatePublic()
+        collector.recordingStore.clear()
         return String(localized: "Saved to your archive.", bundle: languageManager.bundle)
     }
 
@@ -212,7 +215,7 @@ extension EmuquApp {
     /// (`SessionRecoveryService.recoveredSessionType`).
     private func recoverInterruptedRecording(_ info: InterruptedSessionInfo) async -> String {
         let recovered = await collector.recovery.recoverFromBackup(info.sessionId, recordedType: info.sessionType)
-        collector.clearPersistedRecordingStatePublic()
+        collector.recordingStore.clear()
         guard let recovered else {
             return String(localized: "Could not recover the session. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
         }

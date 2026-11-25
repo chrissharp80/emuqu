@@ -413,7 +413,7 @@ final class DataPurgeServiceTests: XCTestCase {
     }
 
     /// The in-app language picker writes `AppleLanguages` into the app's own
-    /// persistent domain (`SettingsView+Appearance`). A preferences sweep that
+    /// persistent domain (`AppearanceAndLanguagePages`). A preferences sweep that
     /// did not exclude the system-owned prefixes would reset the user's chosen
     /// UI language as a side effect of deleting their data.
     func testPurgeLeavesTheChosenAppLanguageAlone() async throws {
@@ -721,7 +721,7 @@ final class DataPurgeServiceTests: XCTestCase {
     /// A workout counts while it records (paused included, which keeps the
     /// phase) and while it is being finalised, not once it has finished.
     func testAnActiveWorkoutCounts() {
-        let recorder = WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
+        let recorder = WorkoutRecorder(core: SnapshotFixtures.collector().recordingCore, conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
         XCTAssertFalse(DataPurgeService.isRecordingInProgress(collector: nil, workout: recorder), "idle workout")
 
         recorder.lifecycle.phase = .recording

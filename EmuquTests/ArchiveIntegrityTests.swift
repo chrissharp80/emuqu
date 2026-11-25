@@ -869,12 +869,8 @@ extension ArchiveIntegrityTests {
     @MainActor
     private func trashService() -> (SessionRecoveryService, BreadcrumbStore) {
         let trails = BreadcrumbStore(fileURL: archiveDirectory.appendingPathComponent("Breadcrumbs/active.json"))
-        let dependencies = AppDependencies()
-        dependencies.overrides.breadcrumbStore = trails
-        let installed = AppDependencies.install(dependencies)
         let forgotten = UserDefaults.standard.stringArray(forKey: ForgottenSessions.defaultsKey)
         addTeardownBlock {
-            installed.end()
             UserDefaults.standard.set(forgotten, forKey: ForgottenSessions.defaultsKey)
         }
         let service = SessionRecoveryService(
@@ -882,7 +878,8 @@ extension ArchiveIntegrityTests {
             rawBackup: RawRRBackup(directory: archiveDirectory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)),
             artifactDetector: ArtifactDetector(),
             windowSelector: WindowSelector(), cloudSyncManager: .shared,
-            baselineTracker: BaselineTracker(baselineFile: archiveDirectory.appendingPathComponent("HRVBaseline.json"))
+            baselineTracker: BaselineTracker(baselineFile: archiveDirectory.appendingPathComponent("HRVBaseline.json")),
+            settingsManager: .shared, breadcrumbStore: trails
         )
         return (service, trails)
     }

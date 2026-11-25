@@ -42,50 +42,47 @@ struct StrapPPIReading: Equatable, Sendable {
 /// intervals), and back to HR afterwards.
 @MainActor
 struct StrapHeartRateFeed {
-    let manager: PolarManager
+    let link: StrapLinkControl
+    let stream: StrapStreamSession
 
     enum Kind: Equatable, Sendable {
         case heartRate
         case ppi
     }
 
-    /// The task holds the manager strongly. A `[weak manager]` capture here
-    /// is diagnosed by the optimizer as "weak reference will always be nil"
-    /// once `restart()` is inlined into a `PolarManager` method, which fails
-    /// every Release build under warnings-as-errors while Debug builds pass.
-    /// The strong reference costs nothing: the manager lives as long as the
-    /// app, and the loop ends as soon as its link generation is superseded or
-    /// the task is cancelled, which releases it.
+    /// The task holds the feed's parts strongly. They live as long as the
+    /// manager that owns them, and the loop ends as soon as its link
+    /// generation is superseded or the task is cancelled, which releases them.
     func start(generation: Int) {
-        let manager = manager
-        manager.linkRuntime.feedTask?.cancel()
-        manager.linkRuntime.feedTask = Task {
-            await Self.run(generation: generation, manager: manager)
+        let feed = self
+        link.runtime.feedTask?.cancel()
+        link.runtime.feedTask = Task {
+            await Self.run(generation: generation, feed: feed)
         }
     }
 
     /// Re-open the subscription on the current link.
     func restart() {
-        guard manager.readiness.isLinked else { return }
-        start(generation: manager.readiness.generation)
+        guard link.state.readiness.isLinked else { return }
+        start(generation: link.state.readiness.generation)
     }
 
     static func desiredKind(deviceType: PolarDeviceType?, sessionActive: Bool) -> Kind {
         deviceType == .veritySense && sessionActive ? .ppi : .heartRate
     }
 
-    private static func isCurrent(_ manager: PolarManager, generation: Int) -> Bool {
-        manager.readiness.isLinked && manager.readiness.generation == generation
+    private func isCurrent(generation: Int) -> Bool {
+        link.state.readiness.isLinked && link.state.readiness.generation == generation
     }
 
-    private static func run(generation: Int, manager: PolarManager?) async {
+    private static func run(generation: Int, feed: StrapHeartRateFeed) async {
         var failures = 0
         var lastFailure = ""
         let openedAt = Date()
-        while !Task.isCancelled, let manager, isCurrent(manager, generation: generation) {
-            let kind = await resolveKind(manager: manager, generation: generation)
-            guard !Task.isCancelled, isCurrent(manager, generation: generation) else { return }
-            let pass = await openAndDrain(kind: kind, manager: manager)
+        while !Task.isCancelled, feed.isCurrent(generation: generation) {
+            let kind = await feed.resolveKind(generation: generation)
+            guard !Task.isCancelled, feed.isCurrent(generation: generation) else { return }
+            let pass = await feed.openAndDrain(kind: kind)
             guard !Task.isCancelled else { return }
             failures = pass.samples > 0 ? 0 : failures + 1
             let failure = pass.error.map { "\($0)" } ?? "stream ended"
@@ -93,7 +90,7 @@ struct StrapHeartRateFeed {
                 logPass(kind, pass, failure: failure, attempt: failures, since: openedAt)
                 lastFailure = failure
             }
-            _ = await manager.linkRuntime.signal.wait(timeout: StrapFeedHealth.resubscribeDelay(afterFailures: failures))
+            _ = await feed.link.runtime.signal.wait(timeout: StrapFeedHealth.resubscribeDelay(afterFailures: failures))
         }
     }
 
@@ -109,11 +106,11 @@ struct StrapHeartRateFeed {
 
     /// PPI needs the measurement service; a strap that does not offer it is
     /// served from HR.
-    private static func resolveKind(manager: PolarManager, generation: Int) async -> Kind {
-        let kind = desiredKind(deviceType: manager.connectedDeviceType, sessionActive: manager.isStreaming)
+    private func resolveKind(generation: Int) async -> Kind {
+        let kind = Self.desiredKind(deviceType: link.state.connectedDeviceType, sessionActive: stream.isStreaming)
         guard kind == .ppi else { return .heartRate }
-        let outcome = await manager.link.awaitFeature(
-            .onlineStreaming, until: nil, while: { isCurrent(manager, generation: generation) }
+        let outcome = await link.awaitFeature(
+            .onlineStreaming, until: nil, while: { isCurrent(generation: generation) }
         )
         return outcome == .unavailable ? .heartRate : .ppi
     }
@@ -124,15 +121,15 @@ struct StrapHeartRateFeed {
         var error: Error?
     }
 
-    private static func openAndDrain(kind: Kind, manager: PolarManager) async -> Pass {
+    private func openAndDrain(kind: Kind) async -> Pass {
         #if canImport(PolarBleSdk)
-            guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { return Pass() }
+            guard let api = link.radio.strapAPI, let deviceId = link.state.connectedDeviceId else { return Pass() }
             switch kind {
             case .heartRate:
-                let peripheralId = manager.linkRuntime.linkedPeripheralId
-                return await drain(api.startHrStreaming(deviceId, peripheralId: peripheralId)) { manager.ingestHeartRate($0) }
+                let peripheralId = link.runtime.linkedPeripheralId
+                return await Self.drain(api.startHrStreaming(deviceId, peripheralId: peripheralId)) { stream.ingestHeartRate($0) }
             case .ppi:
-                return await drain(api.startPpiStreaming(deviceId)) { manager.ingestPpi(ppiReadings($0)) }
+                return await Self.drain(api.startPpiStreaming(deviceId)) { stream.ingestPpi(Self.ppiReadings($0)) }
             }
         #else
             return Pass()

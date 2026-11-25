@@ -60,12 +60,12 @@ struct SettingsSearchEntry: Identifiable {
 @MainActor
 enum SettingsSearchIndex {
     /// `scrollToTopToken` is not used by any entry; the parameter stays only
-    /// because `SettingsView` still passes it. Only the Reports entry needs
-    /// `settingsManager`.
+    /// because `SettingsView` still passes it. The Reports and Modes entries
+    /// need `settingsManager`.
     static func entries(scrollToTopToken _: UUID, settingsManager: SettingsManager) -> [SettingsSearchEntry] {
         identityProfileEntries()
             + dataSourcesEntries(settingsManager: settingsManager)
-            + recoveryTrainingEntries()
+            + recoveryTrainingEntries(settingsManager: settingsManager)
             + floMainAiEntries()
             + notificationsEntries()
             + appearanceEntries()
@@ -129,11 +129,11 @@ enum SettingsSearchIndex {
     }
 
     /// Search entries for the Recovery & Training section of Settings.
-    private static func recoveryTrainingEntries() -> [SettingsSearchEntry] {
+    private static func recoveryTrainingEntries(settingsManager: SettingsManager) -> [SettingsSearchEntry] {
         [
             sleepSettingsPageEntry(),
             trainingSettingsPageEntry(),
-            modesSettingsPageEntry(),
+            modesSettingsPageEntry(settingsManager: settingsManager),
             customTagsPageEntry(),
             savedRoutesPageEntry()
         ]
@@ -157,13 +157,13 @@ enum SettingsSearchIndex {
         ) { AnyView(TrainingSettingsPage()) }
     }
 
-    private static func modesSettingsPageEntry() -> SettingsSearchEntry {
+    private static func modesSettingsPageEntry(settingsManager: SettingsManager) -> SettingsSearchEntry {
         SettingsSearchEntry(
             title: String(localized: "Modes", bundle: LanguageManager.appBundle),
             subtitle: String(localized: "Comeback, peaking, intentional overreach", bundle: LanguageManager.appBundle),
             aliases: ["comeback", "peaking", "taper", "overreach", "race"],
             systemImage: "arrow.triangle.2.circlepath"
-        ) { AnyView(ModesSettingsPage()) }
+        ) { AnyView(ModesSettingsPage(settingsManager: settingsManager)) }
     }
 
     private static func customTagsPageEntry() -> SettingsSearchEntry {

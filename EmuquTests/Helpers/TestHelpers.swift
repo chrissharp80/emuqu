@@ -142,3 +142,19 @@ extension CloudKitSyncManager {
         return manager
     }
 }
+
+extension HealthKitManager {
+    /// A manager of the test's own over the settings and archive of the
+    /// container in force when a query runs, or the settings it is given.
+    /// Its training queries merge that archive's workouts.
+    nonisolated static func forTests(
+        settingsProvider: @escaping @Sendable () -> UserSettings = { AppDependencies.current.app.settingsManager.settingsSnapshot },
+        sampleStore: (any HealthSampleStore)? = nil
+    ) -> HealthKitManager {
+        HealthKitManager(
+            settingsProvider: settingsProvider,
+            archiveProvider: { AppDependencies.current.storage.sessionArchive },
+            sampleStore: sampleStore
+        )
+    }
+}

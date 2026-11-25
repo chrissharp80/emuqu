@@ -28,13 +28,17 @@ import Foundation
 // resolver is suspended. The class has no UI state, so main-actor isolation
 // would buy nothing.
 final class WebSearchService: Sendable {
-    static let shared = WebSearchService()
-
     /// Sends the Tavily request: `HTTPTransport.live` in the app, a stub in
     /// tests.
     private let transport: HTTPTransport
+    /// The settings whose web-search switch gates every search.
+    private let settingsManager: SettingsManager
+    /// The keychain the Tavily key is read from.
+    private let apiKeyStore: APIKeyStore
 
-    init(transport: HTTPTransport = .live) {
+    init(settingsManager: SettingsManager, apiKeyStore: APIKeyStore, transport: HTTPTransport = .live) {
+        self.settingsManager = settingsManager
+        self.apiKeyStore = apiKeyStore
         self.transport = transport
     }
 
@@ -146,10 +150,10 @@ final class WebSearchService: Sendable {
         intent: Intent = .research,
         maxResults: Int = 5
     ) async throws -> [Result] {
-        guard AppDependencies.current.app.settingsManager.settingsSnapshot.enableWebSearch else {
+        guard settingsManager.settingsSnapshot.enableWebSearch else {
             throw SearchError.notEnabled
         }
-        guard let apiKey = AppDependencies.current.providers.apiKeyStore.serviceKey(for: .tavilyWebSearch), !apiKey.isEmpty else {
+        guard let apiKey = apiKeyStore.serviceKey(for: .tavilyWebSearch), !apiKey.isEmpty else {
             throw SearchError.missingKey
         }
         return try await send(query: query, intent: intent, maxResults: maxResults, apiKey: apiKey)

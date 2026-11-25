@@ -19,6 +19,8 @@ struct LaunchServices: Sendable {
     let morningNotificationScheduler: @MainActor @Sendable () -> MorningNotificationScheduler
     let roadGeocodingService: @MainActor @Sendable () -> RoadGeocodingService
     let savedRouteStore: @MainActor @Sendable () -> SavedRouteStore
+    let crashLogManager: @MainActor @Sendable () -> CrashLogManager
+    let workoutTrackBackup: @MainActor @Sendable () -> WorkoutTrackBackup
 }
 
 extension EmuquApp {
@@ -62,7 +64,7 @@ extension EmuquApp {
         }
         let recorderBox = launchServices.recorderBox()
         if recorderBox.recorder == nil {
-            recorderBox.bind(core: collector, conversation: voiceChat)
+            recorderBox.bind(core: collector.recordingCore, conversation: voiceChat)
         }
         guard let recorder = recorderBox.recorder else { return }
         switch recorder.lifecycle.phase {
@@ -99,7 +101,7 @@ extension EmuquApp {
         for await _ in stream {
             guard let recorder = launchServices.recorderBox().recorder else { continue }
             if case .recording = recorder.lifecycle.phase {
-                recorder.pause(isAuto: false)
+                recorder.pauseControl.pause(isAuto: false)
             }
         }
     }
@@ -110,7 +112,7 @@ extension EmuquApp {
         for await _ in stream {
             guard let recorder = launchServices.recorderBox().recorder else { continue }
             if case .recording = recorder.lifecycle.phase {
-                recorder.session.resume()
+                recorder.pauseControl.resume()
             }
         }
     }
@@ -259,7 +261,7 @@ extension EmuquApp {
     /// row, Settings → Wearables, or Settings → Permissions.
     private func requestHealthKitAuthorizationIfOnboarded() {
         guard settingsManager.settings.hasCompletedOnboarding else { return }
-        guard !collector.healthKit.isAccessSkipped else { return }
+        guard !collector.healthKit.authorization.isAccessSkipped else { return }
         Task(priority: .userInitiated) {
             await sleepQuietly(200_000_000, context: "requestHealthKitAuthorizationIfOnboarded")
             guard collector.healthKit.isHealthKitAvailable else { return }
@@ -725,7 +727,7 @@ extension EmuquApp {
     /// types, and the restart after a successful request picks up anything the
     /// sheet grants.
     func requestHealthKitAuthorizationWithRetry(collector: RRCollector) async {
-        collector.healthKit.writes.startObservingSleepData()
+        collector.healthKit.writes.startObservingSleepData(morningNotifications: launchServices.morningNotificationScheduler())
         collector.healthKit.vitals.startObservingVitalsData()
         for attempt in 1 ... 2 {
             if await authorizeHealthKitOnce(collector: collector, attempt: attempt) { return }
@@ -738,9 +740,9 @@ extension EmuquApp {
     private func authorizeHealthKitOnce(collector: RRCollector, attempt: Int) async -> Bool {
         NSLog("[App][hk] requesting authorization (attempt \(attempt))")
         do {
-            try await collector.healthKit.requestAuthorization()
+            try await collector.healthKit.authorization.requestAuthorization()
             NSLog("[App][hk] authorization request returned (attempt \(attempt))")
-            collector.healthKit.writes.startObservingSleepData()
+            collector.healthKit.writes.startObservingSleepData(morningNotifications: launchServices.morningNotificationScheduler())
             collector.healthKit.vitals.startObservingVitalsData()
             return true
         } catch {

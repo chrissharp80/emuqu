@@ -60,7 +60,7 @@ final class CoachCueSpeech {
 
     init(
         synthesizer: AVSpeechSynthesizer,
-        audio: @escaping @MainActor () -> BackgroundAudioManager = { AppDependencies.current.collection.backgroundAudioManager }
+        audio: @escaping @MainActor () -> BackgroundAudioManager
     ) {
         self.synthesizer = synthesizer
         self.audio = audio

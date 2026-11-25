@@ -31,7 +31,7 @@ likelihood:
 - **1.4.1** — health & medical accuracy. *Most likely cause:* AI
   assistant copy crossed from wellness into diagnostic. See
   `MedicalQueryGuard` and the MEDICAL BOUNDARY block in
-  `Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift`.
+  `Emuqu/Sources/Assistant/Providers/AssistantSystemPrompt+Text.swift`.
 - **5.1.3** — HealthKit data uses. *Most likely cause:* HealthKit data
   reached an advertising endpoint or a data broker. We don't do this —
   but a new analytics SDK (Firebase / Mixpanel / etc.) being pulled in

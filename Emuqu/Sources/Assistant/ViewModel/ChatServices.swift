@@ -39,6 +39,11 @@ struct ChatServices: Sendable {
     @MainActor
     var trainingMetricsCache: TrainingMetricsCache { container.analysis.trainingMetricsCache }
     var userFactsStore: UserFactsStore { container.assistant.userFactsStore }
+    /// The values the metrics verifier checks a reply's app-state claims against.
+    @MainActor
+    var verifiedAppState: MetricsVerifier.AppState {
+        MetricsVerifier.AppState(settings: settingsManager.settings, trainingMetricsCache: trainingMetricsCache, archive: sessionArchive)
+    }
     @MainActor
     var voiceConversationController: VoiceConversationController { container.assistant.voiceConversationController }
 }

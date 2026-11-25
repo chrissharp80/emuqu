@@ -210,7 +210,7 @@ final class VoiceConversationController: NSObject, AVSpeechSynthesizerDelegate {
         return synthesizer
     }()
     /// The audio-session claim of each coach line, and an AI line's scripted fallback.
-    @ObservationIgnored lazy var coachCue = CoachCueSpeech(synthesizer: synthesizer)
+    @ObservationIgnored lazy var coachCue = CoachCueSpeech(synthesizer: synthesizer) { [services] in services.backgroundAudioManager }
     /// The conversation's voice (`ConversationVoicePicker`), looked up off
     /// the main actor at each voice start (`refreshLanguageForSession`). Nil
     /// until the first lookup lands, when the system default voice speaks.

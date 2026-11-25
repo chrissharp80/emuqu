@@ -1,10 +1,26 @@
 import Foundation
 
-// MARK: - RecordingCore Conformance
-//
-// RRCollector already owns PolarManager, HealthKit, SessionArchive,
-// CloudKitSyncManager, and HRVAnalysisPipeline. Declaring conformance here
-// lets new recorders (WorkoutRecorder) depend on the RecordingCore protocol
-// instead of on RRCollector directly — keeps the shared substrate explicit
-// without rearranging the existing HRV pipeline.
-extension RRCollector: RecordingCore {}
+extension RRCollector {
+    /// Whose recording the strap holds, and the checks against it.
+    var strapGuards: StrapRecordingGuards {
+        StrapRecordingGuards(
+            sessionState: sessionState, streamingLifecycle: streamingLifecycle,
+            strapLink: polarManager.linkState, strapRecording: polarManager.deviceRecording,
+            recordingStore: recordingStore, archive: archive, rawBackup: rawBackup, recorderBox: services.recorderBox
+        )
+    }
+
+    /// The services this collector records with, for a workout recorder to
+    /// record with too.
+    var recordingCore: RecordingCore {
+        RecordingCore(
+            strapLink: polarManager.linkState, strapStream: polarManager.stream,
+            strapRecording: polarManager.deviceRecording, strapRecorder: polarManager.recording,
+            strapDiscovery: polarManager.discovery, strapBattery: polarManager.battery,
+            strapPairings: polarManager.pairings, healthAccess: healthKit.access, heartRate: healthKit.heartRate,
+            training: healthKit.training, healthSampleStore: healthKit.sampleReplacer.store, archive: archive,
+            cloudSyncManager: cloudSyncManager, rawBackup: rawBackup,
+            analysisPipeline: analysisPipeline, archiveSignal: archiveSignal
+        )
+    }
+}

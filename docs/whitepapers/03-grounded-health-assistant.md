@@ -965,21 +965,21 @@ fail(1) if gaps else pass
 | Compact tools, allow-list, capability index | `Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift`, `Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift` |
 | BM25 ranking | `Emuqu/Sources/Assistant/Facts/ToolRetriever.swift` |
 | xAI Grok schema cap | `Emuqu/Sources/Assistant/Providers/GrokProvider.swift` |
-| Tool loop, call budget, chat verification, fallback, mutating-tool rule | `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift`; routing-mode fallback limits `Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift` |
+| Tool loop, call budget, chat verification, fallback, mutating-tool rule | `Emuqu/Sources/Assistant/ViewModel/AssistantToolRunner+Tools.swift`; routing-mode fallback limits `Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift` |
 | Provider check (available and switched on) | `Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift` |
 | Action confirmation | `Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift`, `Emuqu/Sources/Assistant/Facts/AssistantConfirmationFacts.swift` |
 | On-device dispatcher | `Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift` |
 | Number verifier, correction buffer | `Emuqu/Sources/Assistant/MetricsVerifier.swift` |
 | Voice verification and scrub order | `Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift` |
 | User-assertion detector | `Emuqu/Sources/Assistant/UserAssertedValuesParser.swift` |
-| Prompt composition (cache suppression, corrections) | `Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift`; rules A–D in `Emuqu/Sources/Assistant/Providers/AIProvider+SystemPromptText.swift` |
+| Prompt composition (cache suppression, corrections) | `Emuqu/Sources/Assistant/Providers/AssistantSystemPrompt.swift`; rules A–D in `Emuqu/Sources/Assistant/Providers/AssistantSystemPrompt+Text.swift` |
 | Lexicon and groups | `Emuqu/Sources/Assistant/MedicalTermLexicon.swift`, `Emuqu/Sources/Assistant/MedicalTermLexicon+Injury.swift`, `Emuqu/Sources/Assistant/MedicalTermLexicon+MetricVerdict.swift` |
-| Input guard | `Emuqu/Sources/Assistant/MedicalQueryGuard.swift`; call site `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift`; echo trap `Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift` |
+| Input guard | `Emuqu/Sources/Assistant/MedicalQueryGuard.swift`; call site `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift`; echo trap `Emuqu/Sources/Assistant/VoiceAudioPipeline+Audio.swift` |
 | `localOnly` turns | `Emuqu/Sources/Assistant/Providers/AIProvider.swift` (ChatTurn); `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift` |
 | Output guard, offensive-language lists | `Emuqu/Sources/Assistant/CoachVoiceGuard.swift` |
 | Streaming buffer | `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift` (StreamTextBuffer) |
 | Spoken chunks and their safety-copy progress | `Emuqu/Sources/Assistant/SpokenTextChunker.swift` |
-| Final pass | `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift` |
+| Final pass | `Emuqu/Sources/Assistant/ViewModel/AssistantTurnRouter+Routing.swift` |
 | Copy linter and configuration | `Tools/copy_linter/lint.py`, `Tools/copy_linter/prohibited_terms.json` |
 | Coverage gate; gate failure check | `scripts/check_perimeter_sync.sh`; `scripts/verify_gates_fail.sh` |
 | Consent | `Emuqu/Sources/Assistant/ProviderConsentTracker.swift` |

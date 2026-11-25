@@ -87,7 +87,7 @@ struct InterruptedSessionInfo {
 // `AppDependencies.current`, so a substitute a test installs there is the one
 // the app holds.
 struct EmuquApp: App {
-    @State var collector = launchStep("collector", "init.collector") { RRCollector.makeDefault() }
+    @State var collector = launchStep("collector", "init.collector") { RRCollector.makeDefault(dependencies: .current) }
     /// Saved-session reanalysis, built at launch so its rescore, CloudKit
     /// backfill and HealthKit-sleep listeners are installed before any
     /// notification they answer can arrive. It shares the collector's
@@ -98,8 +98,11 @@ struct EmuquApp: App {
     @State var syncManager = launchStep("syncManager", "init.cloudKitSyncManager") {
         AppDependencies.current.storage.cloudKitSyncManager
     }
+    /// The palette (`AppTheme`) follows this settings manager's themes.
     @State var settingsManager = launchStep("settingsManager", "init.settingsManager") {
-        AppDependencies.current.app.settingsManager
+        let settingsManager = AppDependencies.current.app.settingsManager
+        AppTheme.follow(settingsManager)
+        return settingsManager
     }
     @State var storeKitManager = launchStep("storeKitManager", "init.storeKitManager") {
         AppDependencies.current.services.storeKitManager
@@ -549,14 +552,14 @@ struct EmuquApp: App {
     /// next launch.
     private func refreshHealthKitWriteAuthorization() {
         Task { @MainActor in
-            await collector.healthKit.ensureWriteAuthorizationFresh()
+            await collector.healthKit.authorization.ensureWriteAuthorizationFresh()
             // After (re-)granting permission, back-publish any workouts that
             // were archived locally but never reached HealthKit. Idempotent —
             // uses a per-session `healthKitExportedAt` flag to skip
             // already-published sessions. Runs in the background; the user
             // sees nothing.
             let weight = settingsManager.settings.effectiveBodyWeightKg
-            _ = await collector.healthKit.backfillWorkoutsToHealthKit(
+            _ = await collector.healthKit.backfill.backfillWorkoutsToHealthKit(
                 archive: collector.archive,
                 bodyWeightKg: weight
             )
@@ -835,7 +838,7 @@ struct EmuquApp: App {
     /// launch frame means the Watch's first Start gesture is instant.
     private func prebindWorkoutRecorder() {
         Task { @MainActor in
-            AppDependencies.current.app.recorderBox.bind(core: collector, conversation: voiceChat)
+            AppDependencies.current.app.recorderBox.bind(core: collector.recordingCore, conversation: voiceChat)
         }
     }
 

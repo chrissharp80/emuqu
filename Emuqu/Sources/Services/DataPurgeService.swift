@@ -259,10 +259,10 @@ enum DataPurgeService {
         }
     }
 
-    /// The running app's answer: `RRCollector.current` and the app's workout
-    /// recorder, held by `recorderBox`.
-    private static func appIsRecording(recorderBox: @MainActor () -> RecorderBox) -> Bool {
-        isRecordingInProgress(collector: RRCollector.current, workout: recorderBox().recorder)
+    /// The running app's answer: its recording collector and workout
+    /// recorder, held by `collectorBox` and `recorderBox`.
+    private static func appIsRecording(stores: Stores) -> Bool {
+        isRecordingInProgress(collector: stores.collectorBox().collector, workout: stores.recorderBox().recorder)
     }
 
     /// Executes the full purge. Best-effort: each step runs independently and
@@ -273,7 +273,7 @@ enum DataPurgeService {
     /// Throws `Refusal.recordingInProgress`, before deleting anything, while
     /// a recording is under way. `recordingInProgress` answers that: nil
     /// asks `isRecordingInProgress` about the running collector
-    /// (`RRCollector.current`) and the app's workout recorder
+    /// (`Stores.collectorBox`) and the app's workout recorder
     /// (`appIsRecording`); tests pass their own answer. It is asked again
     /// once the remote deletion has returned: a recording started during that
     /// wait throws `Refusal.recordingStartedDuringDelete` and the device is
@@ -298,7 +298,7 @@ enum DataPurgeService {
     /// other one: production leaves it `.device`; tests sweep temporary
     /// directories and a throwaway preference suite. `baselineTracker` is a
     /// third: nil resets the running collector's tracker
-    /// (`RRCollector.current`), and tests pass one on a temporary file.
+    /// (`Stores.collectorBox`), and tests pass one on a temporary file.
     ///
     /// The sweep runs FIRST, before the named steps. Those steps recreate
     /// the empty archive/backup directories and rewrite settings from live
@@ -315,7 +315,7 @@ enum DataPurgeService {
         deleteRemote: (() async -> Bool)? = nil,
         scope: PurgeScope = .device
     ) async throws(Refusal) -> Report {
-        let isRecording: @MainActor () -> Bool = { recordingInProgress?() ?? appIsRecording(recorderBox: stores.recorderBox) }
+        let isRecording: @MainActor () -> Bool = { recordingInProgress?() ?? appIsRecording(stores: stores) }
         guard !isRecording() else { throw Refusal.recordingInProgress }
         await PurgeGate.beginPurge()
         defer { PurgeGate.endPurge() }
@@ -326,7 +326,7 @@ enum DataPurgeService {
         let sweptFiles = sweepAndForget(archive: archive, rawBackup: rawBackup, scope: scope, liveSettingsFile: settingsManager.settingsURL, errors: &errors)
         let sweptDefaults = sweepAllDefaults(scope: scope, errors: &errors)
         let directories = purgeDirectories(settingsManager: settingsManager, cloudSync: cloudSync, stores: stores, scope: scope, errors: &errors)
-        resetBaseline(baselineTracker ?? RRCollector.current?.baselineTracker)
+        resetBaseline(baselineTracker ?? stores.collectorBox().collector?.baselineTracker)
         let fallible = purgeFallibleStores(stores.device, errors: &errors)
         let profileReset = readBackProfile(settingsManager: settingsManager, errors: &errors)
         let left = readBackClearedStores(settingsManager: settingsManager, cloudSync: cloudSync, stores: stores)
@@ -798,6 +798,8 @@ extension DataPurgeService {
     struct Stores {
         /// Holds the app's workout recorder, which `appIsRecording` asks about.
         let recorderBox: @MainActor () -> RecorderBox
+        /// Holds the app's recording collector, which `appIsRecording` asks about.
+        let collectorBox: @MainActor () -> CollectorBox
         let assistant: Assistant
         let location: Location
         let device: Device

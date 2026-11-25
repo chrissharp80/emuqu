@@ -1023,23 +1023,23 @@ function stageNight(P, s, e):
 | Method | Files (repository paths) |
 |---|---|
 | Source selection, gap fill, de-duplication | `Emuqu/Sources/Collection/DataSourceSelector.swift` |
-| Undated recording dating | `Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift`, `Emuqu/Sources/Analysis/SleepBoundaryResolver.swift` |
+| Undated recording dating | `Emuqu/Sources/Collection/DeviceRecordingSession+Capture.swift`, `Emuqu/Sources/Analysis/SleepBoundaryResolver.swift` |
 | HR sleep estimate | `Emuqu/Sources/Collection/HRSleepEstimator.swift`, `Emuqu/Sources/Services/MorningProcessingService+Sleep.swift` |
 | Append-only backup | `Emuqu/Sources/Storage/RawRRBackup.swift`, `Emuqu/Sources/Storage/RawRRBackup+Streaming.swift` |
 | Rescue before clear | `Emuqu/Sources/Collection/StrapStartSequence.swift` |
-| Pause/resume merge | `Emuqu/Sources/Collection/RRCollector+PauseResume.swift`, `Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift` |
+| Pause/resume merge | `Emuqu/Sources/Collection/CollectorSessionControl+PauseResume.swift`, `Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift` |
 | Artifact classifier | `Emuqu/Sources/Analysis/ArtifactDetection.swift`, `Emuqu/Sources/Utilities/Constants.swift` |
 | Recording break, masked RMSSD (reporting) | `Emuqu/Sources/Analysis/TimeDomainAnalysis.swift` |
-| Window scan, evaluation, gates | `Emuqu/Sources/Analysis/WindowSelection.swift`, `Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift`, `Emuqu/Sources/Analysis/WindowSelection+Filters.swift`, `Emuqu/Sources/Analysis/WindowSelection+Scoring.swift`, `Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift` |
+| Window scan, evaluation, gates | `Emuqu/Sources/Analysis/WindowSelector.swift`, `Emuqu/Sources/Analysis/WindowSelector+Evaluation.swift`, `Emuqu/Sources/Analysis/WindowSelector+Filters.swift`, `Emuqu/Sources/Analysis/WindowSelector+Scoring.swift`, `Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift` |
 | DFA | `Emuqu/Sources/Analysis/DFAAnalysis.swift` |
-| Pipeline entry | `Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift`, `Emuqu/Sources/Services/MorningProcessingService+Analysis.swift`, `Emuqu/Sources/Collection/RRCollector+Analysis.swift` |
-| Baseline | `Emuqu/Sources/Analysis/BaselineTracker.swift`, `Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift`, `Emuqu/Sources/Models/SleepSchedule.swift`, `Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift` |
-| Recovery score | `Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift`, `Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift`, `Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift`, `Emuqu/Sources/Analysis/ScoreDetailBuilder.swift`, `Emuqu/Sources/Analysis/HRVThresholds.swift`, `Emuqu/Sources/Utilities/Constants+RecoveryScore.swift`, `Emuqu/Sources/Utilities/Constants.swift` (`ScoringWeights`) |
+| Pipeline entry | `Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift`, `Emuqu/Sources/Services/MorningProcessingService+Analysis.swift`, `Emuqu/Sources/Collection/MorningSessionPipeline+Analysis.swift` |
+| Baseline | `Emuqu/Sources/Analysis/BaselineTracker.swift`, `Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift`, `Emuqu/Sources/Models/SleepSchedule.swift`, `Emuqu/Sources/Utilities/SleepAndDisplayConstants.swift` |
+| Recovery score | `Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift`, `Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift`, `Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift`, `Emuqu/Sources/Analysis/ScoreDetailBuilder.swift`, `Emuqu/Sources/Analysis/HRVThresholds.swift`, `Emuqu/Sources/Utilities/RecoveryScoreConstants.swift`, `Emuqu/Sources/Utilities/Constants.swift` (`ScoringWeights`) |
 | Vitals | `Emuqu/Sources/Analysis/VitalsScoring.swift`, `Emuqu/Sources/Models/RecoveryVitals.swift` |
 | Freeze and quality decision | `Emuqu/Sources/Services/SessionAcceptanceService.swift` |
 | Version | `Emuqu/Sources/Analysis/ScoringVersion.swift` |
 | Automatic refresh | `Emuqu/Sources/Collection/SleepRefreshPolicy.swift`, `Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift` |
 | Cross-device merge | `Emuqu/Sources/Storage/CloudSessionPayload.swift`, `Emuqu/Sources/Storage/CloudKitSessionFreshness.swift`, `Emuqu/Sources/Storage/SessionMerger.swift` |
 | Manual-window preservation | `Emuqu/Sources/Services/ReanalysisService.swift` |
-| Sleep staging, Watch augmentation | `Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift`, `Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift`, `Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift` |
+| Sleep staging, Watch augmentation | `Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift`, `Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift`, `Emuqu/Sources/Utilities/SleepAndDisplayConstants.swift` |
 | Science register / reference data | `Tools/science_register/register.json`, `docs/hrv-reference-data.md` |

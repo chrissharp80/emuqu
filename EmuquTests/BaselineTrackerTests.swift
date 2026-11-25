@@ -618,22 +618,24 @@ final class BaselineTrackerTests: XCTestCase {
         let archiveDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("BaselineCallers-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: archiveDirectory) }
         let collector = RRCollector(
-            polarManager: PolarManager(), healthKit: HealthKitManager(),
-            archive: SessionArchive(directory: archiveDirectory), baselineTracker: tracker
+            polarManager: PolarManager(), healthKit: HealthKitManager.forTests(),
+            archive: SessionArchive(directory: archiveDirectory), baselineTracker: tracker,
+            settingsManager: AppDependencies.current.app.settingsManager,
+            services: CollectorServices(.current)
         )
         let schedule = collector.settingsManager.settings.sleepSchedule
         for day in 1 ... 3 {
             tracker.update(with: timedSession(start: at(day, 23), hours: 8, rmssd: 40), sleepSchedule: schedule)
         }
         let nightN = timedSession(start: at(4, 23), hours: 8, rmssd: 160)
-        let before = try XCTUnwrap(collector.scoringBaselineStats(for: nightN))
+        let before = try XCTUnwrap(collector.scoring.scoringBaselineStats(for: nightN))
         tracker.update(with: nightN, sleepSchedule: schedule)
         tracker.update(with: timedSession(start: at(5, 23), hours: 8, rmssd: 160), sleepSchedule: schedule)
 
-        let after = try XCTUnwrap(collector.scoringBaselineStats(for: nightN))
+        let after = try XCTUnwrap(collector.scoring.scoringBaselineStats(for: nightN))
         XCTAssertEqual(tracker.daysCollected, 5)
         XCTAssertEqual(after.daysInWindow, before.daysInWindow)
         XCTAssertEqual(after.lnRmssdMean, before.lnRmssdMean, accuracy: 1e-12, "Night N and N+1 must not shift night N's baseline")
-        XCTAssertEqual(collector.ansConfig(for: nightN).baselineRMSSD, 40, accuracy: 0.01, "Readiness reads the same prior-nights baseline")
+        XCTAssertEqual(collector.scoring.ansConfig(for: nightN).baselineRMSSD, 40, accuracy: 0.01, "Readiness reads the same prior-nights baseline")
     }
 }

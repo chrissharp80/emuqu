@@ -385,6 +385,12 @@ check "coupling_budget/locator_read" \
     "Emuqu/Sources/Collection/HealthObservation.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HealthObservation.swift');p.write_text(p.read_text()+chr(10)+'let plantedLocator = AppDependencies.current'+chr(10))"
 
+# A part's code left in a file named for its old owner.
+check "file_names/extends_another_type" \
+    "./scripts/check_file_names.sh" \
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Recording.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapRecordingCoordinator+Recording.swift');p.write_text(p.read_text()+chr(10)+'extension PolarManager {}'+chr(10))"
+
 check "coupling_budget/below_budget" \
     "./scripts/check_coupling_budget.sh" \
     ".ci/hub_back_reference_budget.txt" \
@@ -420,8 +426,8 @@ check "leaked_mutations/unrestored_edit" \
 # formula.
 check "leaked_mutations/chr_escaped_original" \
     "./scripts/check_no_leaked_mutations.sh" \
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift');s=p.read_text();o='pow('+chr(36)+'1, 4)';assert s.count(o)>=1;p.write_text(s.replace(o,'pow('+chr(36)+'1, 2)',1))"
+    "Emuqu/Sources/Collection/WorkoutSessionLifecycle+Metrics.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutSessionLifecycle+Metrics.swift');s=p.read_text();o='pow('+chr(36)+'1, 4)';assert s.count(o)>=1;p.write_text(s.replace(o,'pow('+chr(36)+'1, 2)',1))"
 
 # An attribution that no longer matches Package.resolved is a licence
 # compliance gap, not a cosmetic one.
@@ -552,8 +558,8 @@ check "scoring_governance/version_bump_without_baseline" \
 # baseline each run, as an author updating it in step would.
 check "scoring_governance/baseline_relabelled_without_version_bump" \
     'b="$BACKUP_DIR/relabelled_baseline.txt"; h="$(./scripts/check_scoring_governance.sh 2>&1 | sed -n "s/.*hashed (\([0-9a-f]*\)).*/\1/p")"; printf "%s %s\n" "$(cut -d" " -f1 .ci/scoring_constants_hash.txt)" "$h" > "$b"; SCORING_BASELINE="$b" ./scripts/check_scoring_governance.sh' \
-    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/Constants+RecoveryScore.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
+    "Emuqu/Sources/Utilities/RecoveryScoreConstants.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Utilities/RecoveryScoreConstants.swift');s=p.read_text();o='static let rhrZScoreMultiplier: Double = -5.0';assert s.count(o)==1;p.write_text(s.replace(o,'static let rhrZScoreMultiplier: Double = -6.0'))"
 
 # Constants the pattern no longer matches hash nothing and would never move.
 check "scoring_governance/no_constants_matched" \

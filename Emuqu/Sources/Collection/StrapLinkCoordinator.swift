@@ -4,8 +4,8 @@ import Foundation
     import PolarBleSdk
 #endif
 
-/// The strap link: what each SDK event does, how code waits for the strap to be
-/// usable, how a lost link comes back, and when a silent feed is acted on.
+/// The strap link: what each SDK event does, how a lost link comes back, and
+/// when a silent feed is acted on. Waiting on the link is `StrapLinkControl`'s.
 ///
 /// ## The contract this follows
 ///
@@ -30,12 +30,33 @@ import Foundation
 /// strap's service setup. It only re-asserts the connect after an unexpected
 /// drop (idempotent in the SDK), stops for a lost pairing, and gives a session
 /// a bounded window before declaring the strap gone.
+///
+/// One per `PolarManager`, which holds it. Every task it starts captures it
+/// weakly, so an event or timer that fires after the manager is gone does
+/// nothing.
 @MainActor
-struct StrapLinkCoordinator {
-    let manager: PolarManager
+final class StrapLinkCoordinator {
+    let link: StrapLinkControl
+    let stream: StrapStreamSession
+    let battery: StrapBatteryUsageTracker
+    let pairings: StrapPairings
+    /// Reads the strap's recording status once per link.
+    let recording: StrapRecordingCoordinator
 
-    private var runtime: StrapLinkRuntime { manager.linkRuntime }
-    private var feed: StrapHeartRateFeed { StrapHeartRateFeed(manager: manager) }
+    init(
+        link: StrapLinkControl, stream: StrapStreamSession, battery: StrapBatteryUsageTracker,
+        pairings: StrapPairings, recording: StrapRecordingCoordinator
+    ) {
+        self.link = link
+        self.stream = stream
+        self.battery = battery
+        self.pairings = pairings
+        self.recording = recording
+    }
+
+    private var state: StrapLinkState { link.state }
+    private var runtime: StrapLinkRuntime { link.runtime }
+    var feed: StrapHeartRateFeed { StrapHeartRateFeed(link: link, stream: stream) }
 
     /// With no readiness summary by now the SDK's own check has ended (its
     /// window is ten seconds after service discovery).
@@ -53,9 +74,9 @@ struct StrapLinkCoordinator {
         guard runtime.deliveryTask == nil else { return }
         let events = runtime.pump.events
         // The stream finishes when the runtime is released, which ends this
-        // loop; until then an event for a manager already gone is dropped.
-        runtime.deliveryTask = Task { [weak manager] in
-            for await event in events { manager?.link.apply(event) }
+        // loop; until then an event for a coordinator already gone is dropped.
+        runtime.deliveryTask = Task { [weak self] in
+            for await event in events { self?.apply(event) }
         }
     }
 
@@ -70,51 +91,41 @@ struct StrapLinkCoordinator {
             summaryReported(deviceId: deviceId, ready: ready, unavailable: unavailable)
         case .powerOn: bluetoothPoweredOn()
         case .powerOff: bluetoothPoweredOff()
-        case let .battery(deviceId, level): manager.applyBatteryLevelUpdate(from: deviceId, batteryLevel: level)
+        case let .battery(deviceId, level): battery.applyLevelUpdate(from: deviceId, batteryLevel: level)
         case let .deviceInformation(deviceId, uuid, value):
-            manager.applyFirmwareRevisionUpdate(from: deviceId, uuid: CBUUID(string: uuid), value: value)
+            state.applyFirmwareRevisionUpdate(from: deviceId, uuid: CBUUID(string: uuid), value: value)
         case let .deviceInformationKey(deviceId, key, value):
-            manager.applyFirmwareRevisionUpdate(from: deviceId, key: key, value: value)
+            state.applyFirmwareRevisionUpdate(from: deviceId, key: key, value: value)
         }
     }
 
     // MARK: - Connection
 
     private func noteConnecting(_ deviceId: String) {
-        guard manager.connectionState != .connected else { return }
-        manager.connectionState = .connecting
+        guard state.connectionState != .connected else { return }
+        state.connectionState = .connecting
         debugLog("[PolarManager] Connecting to \(deviceId)")
     }
 
     private func linkEstablished(deviceId: String, name: String, peripheralId: UUID?) {
         let deviceType = PolarDeviceType.from(deviceName: name)
-        let restoredDuringSession = runtime.reconnectTargetId != nil && manager.isStreaming
+        let restoredDuringSession = runtime.reconnectTargetId != nil && stream.isStreaming
         clearPreviousLink()
         adoptConnectedDevice(deviceId: deviceId, name: name, deviceType: deviceType)
-        manager.readiness.linkEstablished()
+        state.readiness.linkEstablished()
         runtime.linkedAt = Date()
         runtime.linkedPeripheralId = peripheralId
-        manager.feedStatus = .settingUp
+        state.feedStatus = .settingUp
         if restoredDuringSession {
-            manager.streamingReconnectCount += 1
-            debugLog("[PolarManager] Strap link restored during session (\(manager.streamingReconnectCount) this session)")
+            stream.streamingReconnectCount += 1
+            debugLog("[PolarManager] Strap link restored during session (\(stream.streamingReconnectCount) this session)")
         }
         runtime.signal.fire()
-        let generation = manager.readiness.generation
+        let generation = state.readiness.generation
         feed.start(generation: generation)
         startHealthWatch(generation: generation)
         scheduleReadinessSettle(generation: generation)
         startRecordingStatusCheck(generation: generation, deviceId: deviceId, deviceType: deviceType)
-    }
-
-    /// The standard Heart Rate Service subscription holds its own connection to
-    /// the strap. It lets go whenever the SDK's link ends — a drop, the user's
-    /// disconnect, a deliberate reset — or it would keep the physical link up
-    /// after the app meant it to go down.
-    private func releaseStandardHeartRate() {
-        #if canImport(PolarBleSdk)
-            manager.standardHeartRate.releaseAll()
-        #endif
     }
 
     /// A new link supersedes everything the previous one was doing, and ends
@@ -133,14 +144,14 @@ struct StrapLinkCoordinator {
     /// callback would compare against an empty baseline and reset the counter
     /// on every reconnect, blowing away weeks of tracked recording time.
     private func adoptConnectedDevice(deviceId: String, name: String, deviceType: PolarDeviceType) {
-        manager.connectedDeviceId = deviceId
-        manager.connectedDeviceType = deviceType
-        manager.pendingDeviceId = nil
-        manager.connectionState = .connected
-        manager.lastConnectedTime = Date()
-        manager.saveLastConnectedTime()
-        manager.addKnownDevice(id: deviceId, name: name, deviceType: deviceType)
-        manager.loadBatteryUsageStateIfNeeded(for: deviceId)
+        state.connectedDeviceId = deviceId
+        state.connectedDeviceType = deviceType
+        state.pendingDeviceId = nil
+        state.connectionState = .connected
+        pairings.lastConnectedTime = Date()
+        pairings.saveLastConnectedTime()
+        pairings.addKnownDevice(id: deviceId, name: name, deviceType: deviceType)
+        battery.loadState(for: deviceId)
         debugLog("[PolarManager] Connected to \(deviceType.displayName)")
     }
 
@@ -151,18 +162,18 @@ struct StrapLinkCoordinator {
     /// recording state is never touched — the strap keeps recording through a
     /// drop.
     private func linkDropped(deviceId: String, loss: StrapLinkLoss) {
-        let wasLinked = manager.readiness.isLinked
-        guard wasLinked || manager.connectionState == .connecting,
-              deviceId == manager.connectedDeviceId || deviceId == manager.pendingDeviceId
+        let wasLinked = state.readiness.isLinked
+        guard wasLinked || state.connectionState == .connecting,
+              deviceId == state.connectedDeviceId || deviceId == state.pendingDeviceId
         else {
             runtime.userDisconnectRequested = false
             return
         }
-        let wasStreaming = manager.isStreaming
+        let wasStreaming = stream.isStreaming
         runtime.cancelLinkTasks()
-        releaseStandardHeartRate()
-        manager.readiness.linkLost()
-        manager.feedStatus = .waitingForStrap
+        link.releaseStandardHeartRate()
+        state.readiness.linkLost()
+        state.feedStatus = .waitingForStrap
         runtime.signal.fire()
         PolarSDKLogBridge.narrateDisconnect(wasStreaming: wasStreaming, pairingError: loss.needsUserRepair)
         clearLinkReadings(preserveDeviceIdentity: wasStreaming)
@@ -177,7 +188,7 @@ struct StrapLinkCoordinator {
             // session buffering on it is told now, as for a lost pairing,
             // rather than waiting for beats that will not come.
             runtime.reconnectTargetId = nil
-            if wasStreaming { manager.reconnectExhausted = true }
+            if wasStreaming { stream.reconnectExhausted = true }
         case let .pairingLost(reason):
             pairingLost(reason: reason, wasStreaming: wasStreaming)
         case .connectionLost:
@@ -214,24 +225,24 @@ struct StrapLinkCoordinator {
     private func pairingLost(reason: String, wasStreaming: Bool) {
         debugLog("[PolarManager] Strap pairing lost (\(reason)) — not reconnecting; the user has to pair again", level: .warning)
         runtime.reconnectTargetId = nil
-        manager.lastError = PolarManager.PolarError.pairingLost
-        if wasStreaming { manager.reconnectExhausted = true }
+        state.lastError = PolarManager.PolarError.pairingLost
+        if wasStreaming { stream.reconnectExhausted = true }
     }
 
     /// Everything that describes the live link is stale the moment it drops,
     /// and showing a stale battery or heart rate is worse than showing none.
     private func clearLinkReadings(preserveDeviceIdentity: Bool) {
-        manager.connectionState = .disconnected
-        manager.pendingDeviceId = nil
+        state.connectionState = .disconnected
+        state.pendingDeviceId = nil
         if !preserveDeviceIdentity {
-            manager.connectedDeviceId = nil
-            manager.connectedDeviceType = nil
+            state.connectedDeviceId = nil
+            state.connectedDeviceType = nil
         }
-        manager.batteryLevel = nil
-        manager.isBatteryReadingStale = false
-        manager.currentHeartRate = nil
-        manager.firmwareVersion = nil
-        manager.hasReceivedSoftwareRevision = false
+        state.batteryLevel = nil
+        state.isBatteryReadingStale = false
+        state.currentHeartRate = nil
+        state.firmwareVersion = nil
+        state.hasReceivedSoftwareRevision = false
     }
 
     /// Re-assert the connect to a strap that dropped unexpectedly. The SDK
@@ -241,7 +252,7 @@ struct StrapLinkCoordinator {
         runtime.reconnectTargetId = deviceId
         #if canImport(PolarBleSdk)
             do {
-                try manager.strapAPI?.connectToDevice(deviceId)
+                try link.radio.strapAPI?.connectToDevice(deviceId)
             } catch {
                 debugLog("[PolarManager] Reconnect request refused: \(error)")
             }
@@ -252,38 +263,14 @@ struct StrapLinkCoordinator {
     /// come back before the buffered stream is saved without it.
     private func armReconnectDeadline() {
         guard runtime.reconnectDeadlineTask == nil else { return }
-        runtime.reconnectDeadlineTask = Task { [weak manager] in
+        runtime.reconnectDeadlineTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(PolarReconnectPolicy.windowSeconds))
-            guard !Task.isCancelled, let manager else { return }
-            manager.linkRuntime.reconnectDeadlineTask = nil
-            guard manager.connectionState != .connected, manager.isStreaming else { return }
+            guard !Task.isCancelled, let self else { return }
+            self.runtime.reconnectDeadlineTask = nil
+            guard self.state.connectionState != .connected, self.stream.isStreaming else { return }
             debugLog("[PolarManager] ❌ Strap not back after \(Int(PolarReconnectPolicy.windowSeconds / 60)) min — ending the wait", level: .warning)
-            manager.reconnectExhausted = true
+            self.stream.reconnectExhausted = true
         }
-    }
-
-    /// The session ended; nothing is waiting for the strap any more.
-    func sessionEnded() {
-        runtime.reconnectDeadlineTask?.cancel()
-        runtime.reconnectDeadlineTask = nil
-        runtime.signal.fire()
-    }
-
-    /// The user asked to disconnect or cancel a connection attempt. The link is
-    /// torn down here rather than when the SDK's callback arrives, because the
-    /// caller clears the device identity immediately and the callback then no
-    /// longer matches a device; the flag covers a callback that still does.
-    func noteUserDisconnect() {
-        runtime.userDisconnectRequested = true
-        runtime.reconnectTargetId = nil
-        runtime.reconnectDeadlineTask?.cancel()
-        runtime.reconnectDeadlineTask = nil
-        runtime.cancelLinkTasks()
-        releaseStandardHeartRate()
-        manager.readiness.linkLost()
-        manager.feedStatus = .waitingForStrap
-        manager.currentHeartRate = nil
-        runtime.signal.fire()
     }
 
     // MARK: - Bluetooth power
@@ -293,12 +280,12 @@ struct StrapLinkCoordinator {
     /// callback, if any, finds nothing linked and is ignored.
     private func bluetoothPoweredOff() {
         debugLog("[PolarManager] Bluetooth powered off")
-        guard manager.readiness.isLinked, let deviceId = manager.connectedDeviceId else { return }
+        guard state.readiness.isLinked, let deviceId = state.connectedDeviceId else { return }
         linkDropped(deviceId: deviceId, loss: .connectionLost)
     }
 
     private func bluetoothPoweredOn() {
-        guard let deviceId = runtime.reconnectTargetId, manager.connectionState != .connected else { return }
+        guard let deviceId = runtime.reconnectTargetId, state.connectionState != .connected else { return }
         debugLog("[PolarManager] Bluetooth powered on — reconnecting to the strap")
         requestReconnect(to: deviceId)
     }
@@ -306,15 +293,15 @@ struct StrapLinkCoordinator {
     // MARK: - Readiness
 
     private func featureReported(deviceId: String, feature: StrapFeature) {
-        guard deviceId == manager.connectedDeviceId, manager.readiness.isLinked else { return }
-        manager.readiness.markReady(feature)
+        guard deviceId == state.connectedDeviceId, state.readiness.isLinked else { return }
+        state.readiness.markReady(feature)
         debugLog("[PolarManager] Strap feature ready: \(feature)")
         runtime.signal.fire()
     }
 
     private func summaryReported(deviceId: String, ready: Set<StrapFeature>, unavailable: Set<StrapFeature>) {
-        guard deviceId == manager.connectedDeviceId, manager.readiness.isLinked else { return }
-        manager.readiness.applySummary(ready: ready, unavailable: unavailable)
+        guard deviceId == state.connectedDeviceId, state.readiness.isLinked else { return }
+        state.readiness.applySummary(ready: ready, unavailable: unavailable)
         runtime.settledAt = runtime.settledAt ?? Date()
         let unreported = StrapFeature.allCases.filter { !ready.contains($0) && !unavailable.contains($0) }
         debugLog("[PolarManager] Strap readiness summary — ready: \(ready.map { "\($0)" }.sorted()), unavailable: \(unavailable.map { "\($0)" }.sorted()), not reported: \(unreported.map { "\($0)" })")
@@ -322,126 +309,15 @@ struct StrapLinkCoordinator {
     }
 
     private func scheduleReadinessSettle(generation: Int) {
-        runtime.settleTask = Task { [weak manager] in
+        runtime.settleTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(Self.readinessSettleSec))
-            guard !Task.isCancelled, let manager,
-                  manager.readiness.generation == generation, !manager.readiness.isSettled
+            guard !Task.isCancelled, let self,
+                  self.state.readiness.generation == generation, !self.state.readiness.isSettled
             else { return }
-            manager.readiness.settleWithoutSummary()
-            manager.linkRuntime.settledAt = Date()
+            self.state.readiness.settleWithoutSummary()
+            self.runtime.settledAt = Date()
             debugLogExternal("Strap sent no readiness summary \(Int(Self.readinessSettleSec)) s after connecting — its own per-call checks decide from here.", cause: .strap)
-            manager.linkRuntime.signal.fire()
-        }
-    }
-
-    /// Suspends until `feature` has an answer on a live link, the deadline
-    /// passes, `keepWaiting` turns false, or the task is cancelled. Waits
-    /// across disconnects: a strap that drops and returns is still answered.
-    func awaitFeature(
-        _ feature: StrapFeature,
-        until deadline: Date?,
-        while keepWaiting: () -> Bool = { true }
-    ) async -> StrapFeatureWait {
-        while true {
-            if let outcome = manager.readiness.waitOutcome(for: feature) { return outcome }
-            guard keepWaiting(), !Task.isCancelled else { return .timedOut }
-            let remaining = deadline?.timeIntervalSinceNow
-            if let remaining, remaining <= 0 { return .timedOut }
-            _ = await runtime.signal.wait(timeout: remaining)
-        }
-    }
-
-    /// Suspends until the strap is connected, or the deadline passes.
-    func awaitConnection(until deadline: Date) async -> Bool {
-        while manager.connectionState != .connected {
-            let remaining = deadline.timeIntervalSinceNow
-            guard remaining > 0, !Task.isCancelled else { return false }
-            _ = await runtime.signal.wait(timeout: remaining)
-        }
-        return true
-    }
-
-    /// Suspends until the link is down, or the deadline passes.
-    func awaitDisconnection(until deadline: Date) async -> Bool {
-        while manager.readiness.isLinked {
-            let remaining = deadline.timeIntervalSinceNow
-            guard remaining > 0, !Task.isCancelled else { return false }
-            _ = await runtime.signal.wait(timeout: remaining)
-        }
-        return true
-    }
-
-    /// Run `operation` once the strap can serve `feature`.
-    ///
-    /// Waits for readiness, runs the operation, and retries only the SDK's
-    /// local "not ready yet" refusal — which happens before any radio traffic —
-    /// until the deadline. Any other error is the operation's and is thrown.
-    /// Success confirms the feature for the rest of the link.
-    func whenFeatureUsable<T>(
-        _ feature: StrapFeature,
-        until deadline: Date?,
-        while keepWaiting: () -> Bool = { true },
-        perform operation: () async throws -> T
-    ) async throws -> T {
-        var refusals = 0
-        while true {
-            try await awaitUsable(feature, until: deadline, while: keepWaiting)
-            let generation = manager.readiness.generation
-            do {
-                let value = try await operation()
-                confirm(feature, onGeneration: generation)
-                return value
-            } catch where StrapErrorClassifier.isNotReadyYet(error) {
-                refusals += 1
-                try await pauseBeforeRetrying(after: error, refusals: refusals, deadline: deadline, while: keepWaiting)
-            }
-        }
-    }
-
-    /// An operation needing `feature` succeeded, which proves it usable — for
-    /// the link it ran on, not one that has replaced it since.
-    private func confirm(_ feature: StrapFeature, onGeneration generation: Int) {
-        guard manager.readiness.generation == generation else { return }
-        manager.readiness.confirm(feature)
-    }
-
-    /// Returns once `feature` may be attempted; throws when the strap does not
-    /// offer it or the deadline passed first.
-    private func awaitUsable(_ feature: StrapFeature, until deadline: Date?, while keepWaiting: () -> Bool) async throws {
-        switch await awaitFeature(feature, until: deadline, while: keepWaiting) {
-        case .ready, .unconfirmed: return
-        case .unavailable: throw PolarManager.PolarError.featureNotReady("\(feature) (not offered by this strap)")
-        case .timedOut: throw PolarManager.PolarError.featureNotReady("\(feature)")
-        }
-    }
-
-    /// Wait out a "not ready yet" refusal, or rethrow it when the retry would
-    /// land past the deadline, the caller has stopped waiting (`keepWaiting`
-    /// false, e.g. the user's Cancel on a transfer) or the task was
-    /// cancelled, where the wait would return at once and the retries run
-    /// back to back. A readiness change wakes the wait early.
-    private func pauseBeforeRetrying(after error: Error, refusals: Int, deadline: Date?, while keepWaiting: () -> Bool) async throws {
-        guard keepWaiting(), !Task.isCancelled else { throw error }
-        let delay = StrapFeedHealth.resubscribeDelay(afterFailures: refusals)
-        if let deadline, Date().addingTimeInterval(delay) >= deadline { throw error }
-        _ = await runtime.signal.wait(timeout: delay)
-    }
-
-    /// Whether an operation needing `feature` may be attempted now.
-    func isUsable(_ feature: StrapFeature) -> Bool {
-        switch manager.readiness.waitOutcome(for: feature) {
-        case .ready, .unconfirmed: true
-        case .unavailable, .timedOut, nil: false
-        }
-    }
-
-    /// Throws unless the strap has either reported `feature` or finished
-    /// checking without reporting it.
-    func requireUsable(_ feature: StrapFeature) throws {
-        switch manager.readiness.waitOutcome(for: feature) {
-        case .ready, .unconfirmed: return
-        case .unavailable: throw PolarManager.PolarError.featureNotReady("\(feature) (not offered by this strap)")
-        case .timedOut, nil: throw PolarManager.PolarError.featureNotReady("\(feature)")
+            self.runtime.signal.fire()
         }
     }
 
@@ -453,41 +329,39 @@ struct StrapLinkCoordinator {
     /// which is what surfaces a night still sitting on the strap.
     private func startRecordingStatusCheck(generation: Int, deviceId: String, deviceType: PolarDeviceType) {
         let feature: StrapFeature = deviceType == .veritySense ? .offlineRecording : .h10Recording
-        runtime.statusCheckTask = Task { [weak manager] in
-            guard let manager else { return }
-            await Self.readRecordingStatus(manager, feature: feature, generation: generation, deviceId: deviceId)
+        runtime.statusCheckTask = Task { [weak self] in
+            guard let self else { return }
+            await self.readRecordingStatus(feature: feature, generation: generation, deviceId: deviceId)
         }
     }
 
-    private static func readRecordingStatus(
-        _ manager: PolarManager, feature: StrapFeature, generation: Int, deviceId: String
-    ) async {
+    private func readRecordingStatus(feature: StrapFeature, generation: Int, deviceId: String) async {
         do {
-            try await checkStatusAndStoredExercises(manager, feature: feature, generation: generation, deviceId: deviceId)
+            try await checkStatusAndStoredExercises(feature: feature, generation: generation, deviceId: deviceId)
         } catch {
-            guard !Task.isCancelled, manager.readiness.generation == generation else { return }
+            guard !Task.isCancelled, state.readiness.generation == generation else { return }
             debugLogExternal("Couldn't read the strap's recording status after connecting — \(error)", cause: .strap)
         }
     }
 
-    private static func checkStatusAndStoredExercises(
-        _ manager: PolarManager, feature: StrapFeature, generation: Int, deviceId: String
-    ) async throws {
-        _ = try await manager.link.whenFeatureUsable(
-            feature, until: Date().addingTimeInterval(statusCheckWindowSec),
-            while: { manager.readiness.generation == generation },
-            perform: { try await manager.recording.checkRecordingStatus(deviceId: deviceId) }
+    private func checkStatusAndStoredExercises(feature: StrapFeature, generation: Int, deviceId: String) async throws {
+        let state = state
+        let recording = recording
+        _ = try await link.whenFeatureUsable(
+            feature, until: Date().addingTimeInterval(Self.statusCheckWindowSec),
+            while: { state.readiness.generation == generation },
+            perform: { try await recording.checkRecordingStatus(deviceId: deviceId) }
         )
-        guard manager.readiness.generation == generation else { return }
-        await manager.recording.checkForStoredExercises(deviceId: deviceId)
+        guard state.readiness.generation == generation else { return }
+        await recording.checkForStoredExercises(deviceId: deviceId)
     }
 
     // MARK: - Feed health
 
     private func startHealthWatch(generation: Int) {
-        runtime.healthTask = Task { [weak manager] in
-            while await Self.healthCheckDue(), let manager, manager.readiness.generation == generation {
-                manager.link.evaluateFeedHealth()
+        runtime.healthTask = Task { [weak self] in
+            while await Self.healthCheckDue(), let self, self.state.readiness.generation == generation {
+                self.evaluateFeedHealth()
             }
         }
     }
@@ -504,9 +378,9 @@ struct StrapLinkCoordinator {
 
     func evaluateFeedHealth(now: Date = Date()) {
         let decision = StrapFeedHealth.decide(feedHealthInputs(now: now))
-        if manager.feedStatus != decision.status {
-            debugLog("[PolarManager] Heart-rate feed: \(manager.feedStatus) → \(decision.status)")
-            manager.feedStatus = decision.status
+        if state.feedStatus != decision.status {
+            debugLog("[PolarManager] Heart-rate feed: \(state.feedStatus) → \(decision.status)")
+            state.feedStatus = decision.status
         }
         switch decision.action {
         case .none: break
@@ -522,13 +396,13 @@ struct StrapLinkCoordinator {
     private func feedHealthInputs(now: Date) -> StrapFeedHealth.Inputs {
         StrapFeedHealth.Inputs(
             now: now,
-            isLinked: manager.readiness.isLinked,
+            isLinked: state.readiness.isLinked,
             linkedAt: runtime.linkedAt,
             settledAt: runtime.settledAt,
             lastSampleAt: runtime.lastSampleAt,
             lastResubscribeAt: runtime.lastResubscribeAt,
             lastLinkResetAt: runtime.lastLinkResetAt,
-            sessionActive: manager.isStreaming
+            sessionActive: stream.isStreaming
         )
     }
 
@@ -536,43 +410,6 @@ struct StrapLinkCoordinator {
     private func resetLink(now: Date) {
         runtime.lastLinkResetAt = now
         debugLog("[PolarManager] Strap still silent after re-subscribing — resetting the link", level: .warning)
-        beginLinkReset()
-    }
-
-    /// Disconnect on purpose and let the drop handler reconnect straight away.
-    /// Returns false when there was no link to reset.
-    @discardableResult
-    func beginLinkReset() -> Bool {
-        #if canImport(PolarBleSdk)
-            guard let deviceId = manager.connectedDeviceId, let api = manager.strapAPI, manager.readiness.isLinked else {
-                return false
-            }
-            runtime.linkResetInProgress = true
-            releaseStandardHeartRate()
-            do {
-                try api.disconnectFromDevice(deviceId)
-                return true
-            } catch {
-                runtime.linkResetInProgress = false
-                debugLog("[PolarManager] Link reset refused: \(error)")
-                return false
-            }
-        #else
-            return false
-        #endif
-    }
-
-    /// A sample arrived on the feed.
-    ///
-    /// The first one on a link is logged with how long the link took to
-    /// deliver it — the number a slow connect is judged by.
-    func noteSample(at date: Date = Date()) {
-        runtime.lastSampleAt = date
-        guard manager.feedStatus != .live else { return }
-        let wasSettingUp = manager.feedStatus == .settingUp
-        manager.feedStatus = .live
-        guard wasSettingUp, let linkedAt = runtime.linkedAt else { return }
-        let seconds = date.timeIntervalSince(linkedAt)
-        debugLog("[PolarManager] First heart-rate sample \(String(format: "%.1f", seconds)) s after the link came up")
+        link.beginLinkReset()
     }
 }

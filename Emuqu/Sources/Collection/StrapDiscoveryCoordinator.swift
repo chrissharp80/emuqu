@@ -3,25 +3,41 @@ import Foundation
     import PolarBleSdk
 #endif
 
+/// What a BLE scan has found, and the scan running now.
+@Observable
+@MainActor
+final class StrapDiscoveryState {
+    var discoveredDevices: [PolarManager.DiscoveredDevice] = []
+    #if canImport(PolarBleSdk)
+        @ObservationIgnored var searchTask: Task<Void, Never>?
+    #endif
+}
+
 /// BLE scanning and the connect / disconnect lifecycle.
 ///
-/// It holds the manager strongly and is built on demand by it (ADR 005). It
-/// stores nothing, so it can neither outlive the manager nor retain it; the
-/// search task below crosses `await` boundaries, where an `unowned` reference
-/// to a manager that has gone would trap.
+/// A value built on demand by the manager. It holds the link, what the scan
+/// found, the pairings, and `prepareRadio`, which creates the SDK handle on
+/// first use; it stores nothing of its own.
 @MainActor
 struct StrapDiscoveryCoordinator {
-    let manager: PolarManager
+    let link: StrapLinkControl
+    let found: StrapDiscoveryState
+    let pairings: StrapPairings
+    /// Creates the SDK handle and starts event delivery, once. The manager's,
+    /// because the manager is what the SDK reports to.
+    let prepareRadio: @MainActor @Sendable () -> Void
+
+    private var state: StrapLinkState { link.state }
 
     // MARK: - Scanning
 
     func startScanning() {
         #if canImport(PolarBleSdk)
-            manager.ensureApiReady()
+            prepareRadio()
             guard let api = readyToScan() else { return }
             beginSearch(api: api)
         #else
-            manager.lastError = PolarManager.PolarError.sdkNotAvailable
+            state.lastError = PolarManager.PolarError.sdkNotAvailable
         #endif
     }
 
@@ -30,43 +46,131 @@ struct StrapDiscoveryCoordinator {
         /// a scan started from any state but `.disconnected` fights the one
         /// already running.
         private func readyToScan() -> (any StrapRadio)? {
-            guard manager.connectionState == .disconnected else {
-                debugLog("[PolarManager] startScanning: already in state \(manager.connectionState)")
+            guard state.connectionState == .disconnected else {
+                debugLog("[PolarManager] startScanning: already in state \(state.connectionState)")
                 return nil
             }
-            guard let api = manager.strapAPI else {
+            guard let api = link.radio.strapAPI else {
                 debugLog("[PolarManager] ERROR: api is nil, cannot scan")
-                manager.lastError = PolarManager.PolarError.sdkNotAvailable
+                state.lastError = PolarManager.PolarError.sdkNotAvailable
                 return nil
             }
             return api
         }
 
-        /// The task captures the MANAGER weakly, not this coordinator: a task
-        /// that starts after the manager is gone does nothing. Once the weak
-        /// load succeeds, the coordinator it builds holds the manager for as
-        /// long as the search runs; the search ends when the SDK stream ends
-        /// or fails, or when `stopScanning` (also called by `connect`)
-        /// cancels the task.
+        /// The task captures the link state and the results weakly: a task
+        /// that starts after they are gone does nothing. Once the weak loads
+        /// succeed, the search holds them for as long as it runs; it ends when
+        /// the SDK stream ends or fails, or when `stopScanning` (also called by
+        /// `connect`) cancels the task.
         private func beginSearch(api: any StrapRadio) {
-            manager.discoveredDevices = []
-            manager.connectionState = .scanning
+            found.discoveredDevices = []
+            state.connectionState = .scanning
             debugLog("[PolarManager] Starting scan...")
-            manager.searchTask?.cancel()
-            manager.searchTask = Task { [weak owner = manager] in
-                await owner?.discovery.consumeDeviceSearch(api: api)
+            found.searchTask?.cancel()
+            found.searchTask = Task { [weak state, weak found] in
+                guard let state, let found else { return }
+                await StrapDeviceSearch(state: state, found: found).consume(api: api)
             }
             debugLog("[PolarManager] Scan started")
         }
     #endif
 
-    #if canImport(PolarBleSdk)
+    func stopScanning() {
+        #if canImport(PolarBleSdk)
+            debugLog("[PolarManager] stopScanning called")
+            found.searchTask?.cancel()
+            found.searchTask = nil
+            if state.connectionState == .scanning {
+                state.connectionState = .disconnected
+            }
+        #endif
+    }
+
+    // MARK: - Connection
+
+    /// Stale info is cleared immediately so the UI doesn't show the previous
+    /// device's data while connecting. `connectedDeviceId` is NOT set here —
+    /// that waits for the `deviceConnected` callback, which prevents a brief
+    /// state inconsistency where the UI shows connected before it's true.
+    func connect(deviceId: String) {
+        #if canImport(PolarBleSdk)
+            prepareRadio()
+            stopScanning()
+            guard state.connectionState != .connected else { return }
+            state.batteryLevel = nil
+            state.firmwareVersion = nil
+            state.hasReceivedSoftwareRevision = false
+            state.pendingDeviceId = deviceId
+            state.connectionState = .connecting
+            do {
+                try link.radio.strapAPI?.connectToDevice(deviceId)
+            } catch {
+                state.lastError = error
+                state.pendingDeviceId = nil
+                state.connectionState = .disconnected
+            }
+        #else
+            state.lastError = PolarManager.PolarError.sdkNotAvailable
+        #endif
+    }
+
+    func connectToLastDevice() {
+        guard let deviceId = pairings.lastConnectedDeviceId else { return }
+        connect(deviceId: deviceId)
+    }
+
+    func disconnect() {
+        #if canImport(PolarBleSdk)
+            guard let deviceId = state.connectedDeviceId else { return }
+            link.noteUserDisconnect()
+            do {
+                try link.radio.strapAPI?.disconnectFromDevice(deviceId)
+            } catch {
+                state.lastError = error
+            }
+            state.connectedDeviceId = nil
+            state.connectedDeviceType = nil
+            state.pendingDeviceId = nil
+            state.batteryLevel = nil
+            state.firmwareVersion = nil
+            state.hasReceivedSoftwareRevision = false
+            state.connectionState = .disconnected
+            // Don't reset recordingState or isRecordingOnDevice - device may continue recording internally
+        #endif
+    }
+
+    /// Cancel an in-progress connection attempt. Safe to call from any state —
+    /// only acts when `.connecting` with a known pending device.
+    func cancelConnection() {
+        #if canImport(PolarBleSdk)
+            guard state.connectionState == .connecting, let deviceId = state.pendingDeviceId else { return }
+            link.noteUserDisconnect()
+            do {
+                try link.radio.strapAPI?.disconnectFromDevice(deviceId)
+            } catch {
+                debugLog("[PolarManager] cancelConnection error (non-critical): \(error)")
+            }
+            state.pendingDeviceId = nil
+            state.connectionState = .disconnected
+        #endif
+    }
+}
+
+#if canImport(PolarBleSdk)
+    /// One scan's stream of discoveries, applied to the link state and the
+    /// results.
+    @MainActor
+    private struct StrapDeviceSearch {
+        let state: StrapLinkState
+        let found: StrapDiscoveryState
+
         /// Uses async/await with the `.values` extension (matches the official
         /// Polar example pattern).
         ///
         /// A stream that ends without an error leaves `.scanning` too
         /// (`endSearch`), so the next scan is not refused as already running.
-        fileprivate func consumeDeviceSearch(api: any StrapRadio) async {
+        func consume(api: any StrapRadio) async {
             do {
                 try await forwardDiscoveries(api: api)
                 guard !Task.isCancelled else { return }
@@ -91,22 +195,18 @@ struct StrapDiscoveryCoordinator {
             await MainActor.run { self.handleDiscoveredDevice(deviceInfo) }
         }
 
-        @MainActor
         private func failSearch(_ error: Error) {
-            manager.lastError = error
-            manager.connectionState = .disconnected
+            state.lastError = error
+            state.connectionState = .disconnected
         }
 
         /// Only from `.scanning`: a connect begun from the results owns the
         /// state by then.
-        @MainActor
         private func endSearch() {
-            guard manager.connectionState == .scanning else { return }
-            manager.connectionState = .disconnected
+            guard state.connectionState == .scanning else { return }
+            state.connectionState = .disconnected
         }
-    #endif
 
-    #if canImport(PolarBleSdk)
         private func handleDiscoveredDevice(_ info: PolarDeviceInfo) {
             debugLog("[PolarManager] handleDiscoveredDevice called: \(info.name), connectable: \(info.connectable)")
 
@@ -120,106 +220,13 @@ struct StrapDiscoveryCoordinator {
             )
 
             // Update or add
-            if let index = manager.discoveredDevices.firstIndex(where: { $0.id == device.id }) {
-                manager.discoveredDevices[index] = device
-                debugLog("[PolarManager] Updated device: \(device.name), total: \(manager.discoveredDevices.count)")
+            if let index = found.discoveredDevices.firstIndex(where: { $0.id == device.id }) {
+                found.discoveredDevices[index] = device
+                debugLog("[PolarManager] Updated device: \(device.name), total: \(found.discoveredDevices.count)")
             } else {
-                manager.discoveredDevices.append(device)
-                debugLog("[PolarManager] Added new device: \(device.name), total: \(manager.discoveredDevices.count)")
+                found.discoveredDevices.append(device)
+                debugLog("[PolarManager] Added new device: \(device.name), total: \(found.discoveredDevices.count)")
             }
         }
-    #endif
-
-    func stopScanning() {
-        #if canImport(PolarBleSdk)
-            debugLog("[PolarManager] stopScanning called")
-            manager.searchTask?.cancel()
-            manager.searchTask = nil
-            if manager.connectionState == .scanning {
-                manager.connectionState = .disconnected
-            }
-        #endif
     }
-
-    // MARK: - Connection
-
-    /// Stale info is cleared immediately so the UI doesn't show the previous
-    /// device's data while connecting. `manager.connectedDeviceId` is NOT set here —
-    /// that waits for the `deviceConnected` callback, which prevents a brief
-    /// state inconsistency where the UI shows connected before it's true.
-    func connect(deviceId: String) {
-        #if canImport(PolarBleSdk)
-            manager.ensureApiReady()
-            stopScanning()
-            guard manager.connectionState != .connected else { return }
-            manager.batteryLevel = nil
-            manager.firmwareVersion = nil
-            manager.hasReceivedSoftwareRevision = false
-            manager.pendingDeviceId = deviceId
-            manager.connectionState = .connecting
-            do {
-                try manager.strapAPI?.connectToDevice(deviceId)
-            } catch {
-                manager.lastError = error
-                manager.pendingDeviceId = nil
-                manager.connectionState = .disconnected
-            }
-        #else
-            manager.lastError = PolarManager.PolarError.sdkNotAvailable
-        #endif
-    }
-
-    func connectToLastDevice() {
-        guard let deviceId = manager.lastConnectedDeviceId else { return }
-        connect(deviceId: deviceId)
-    }
-
-    func disconnect() {
-        #if canImport(PolarBleSdk)
-            guard let deviceId = manager.connectedDeviceId else { return }
-            manager.link.noteUserDisconnect()
-            do {
-                try manager.strapAPI?.disconnectFromDevice(deviceId)
-            } catch {
-                manager.lastError = error
-            }
-            manager.connectedDeviceId = nil
-            manager.connectedDeviceType = nil
-            manager.pendingDeviceId = nil
-            manager.batteryLevel = nil
-            manager.firmwareVersion = nil
-            manager.hasReceivedSoftwareRevision = false
-            manager.connectionState = .disconnected
-            // Don't reset recordingState or isRecordingOnDevice - device may continue recording internally
-        #endif
-    }
-
-    /// Cancel an in-progress connection attempt. Safe to call from any state —
-    /// only acts when `.connecting` with a known pending device.
-    func cancelConnection() {
-        #if canImport(PolarBleSdk)
-            guard manager.connectionState == .connecting, let deviceId = manager.pendingDeviceId else { return }
-            manager.link.noteUserDisconnect()
-            do {
-                try manager.strapAPI?.disconnectFromDevice(deviceId)
-            } catch {
-                debugLog("[PolarManager] cancelConnection error (non-critical): \(error)")
-            }
-            manager.pendingDeviceId = nil
-            manager.connectionState = .disconnected
-        #endif
-    }
-
-    /// Helper to update fetch progress on main thread
-    func updateProgress(_ stage: PolarManager.FetchProgress.Stage, progress: Double, attempt: Int = 1, maxAttempts: Int = 5, message: String = "") async {
-        await MainActor.run {
-            manager.fetchProgress = PolarManager.FetchProgress(
-                stage: stage,
-                progress: progress,
-                attempt: attempt,
-                maxAttempts: maxAttempts,
-                statusMessage: message
-            )
-        }
-    }
-}
+#endif

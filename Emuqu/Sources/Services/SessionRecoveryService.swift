@@ -27,6 +27,10 @@ final class SessionRecoveryService {
     let windowSelector: WindowSelector
     let cloudSyncManager: CloudKitSyncManager
     let baselineTracker: BaselineTracker
+    /// The settings whose sleep schedule ranks a recovered night's window.
+    let settingsManager: SettingsManager
+    /// The Get Me Back history a permanently deleted session's route leaves.
+    let breadcrumbStore: BreadcrumbStore
     /// Mirrors a recovered night to Apple Health when the user's export is on,
     /// as acceptance does (`SessionAcceptanceService.exportToHealthIfEnabled`).
     let exportToHealth: @Sendable (HRVSession) -> Void
@@ -40,6 +44,8 @@ final class SessionRecoveryService {
         windowSelector: WindowSelector,
         cloudSyncManager: CloudKitSyncManager,
         baselineTracker: BaselineTracker,
+        settingsManager: SettingsManager,
+        breadcrumbStore: BreadcrumbStore,
         exportToHealth: @escaping @Sendable (HRVSession) -> Void = { _ in }
     ) {
         self.archive = archive
@@ -48,6 +54,8 @@ final class SessionRecoveryService {
         self.windowSelector = windowSelector
         self.cloudSyncManager = cloudSyncManager
         self.baselineTracker = baselineTracker
+        self.settingsManager = settingsManager
+        self.breadcrumbStore = breadcrumbStore
         self.exportToHealth = exportToHealth
     }
 
@@ -59,7 +67,7 @@ final class SessionRecoveryService {
     private func windowBaselineStats(for session: HRVSession) -> BaselineTracker.RecoveryBaselineStats? {
         baselineTracker.recoveryBaselineStats(
             excludingNightOf: session,
-            sleepSchedule: AppDependencies.current.app.settingsManager.settings.sleepSchedule
+            sleepSchedule: settingsManager.settings.sleepSchedule
         )
     }
 
@@ -369,7 +377,7 @@ final class SessionRecoveryService {
     /// The breadcrumb route, the trashed file and the raw backup, in that
     /// order; false at the first that could not be removed.
     private func removeLocalCopies(of sessionId: UUID) -> Bool {
-        guard AppDependencies.current.location.breadcrumbStore.removeTrails(ofSession: sessionId) else {
+        guard breadcrumbStore.removeTrails(ofSession: sessionId) else {
             debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} The route of \(sessionId.uuidString.prefix(8)) could not be removed from the breadcrumb history — keeping it in the Trash", level: .error)
             return false
         }

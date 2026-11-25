@@ -4,7 +4,7 @@ import XCTest
 
 /// Tests for the pure archive policy functions:
 /// - `SessionArchive.duplicatesToQuarantine` — the dedupe keeper-ranking +
-///   containment selection from `removeDuplicates()` (Archive+Migrations).
+///   containment selection from `removeDuplicates()` (ArchiveMigrations+Steps).
 /// - `SessionArchive.mergeOutcome` / `.apply` — the session-merge decision
 ///   core from Archive+Merge.
 ///

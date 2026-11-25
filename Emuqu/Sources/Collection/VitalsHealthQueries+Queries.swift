@@ -536,16 +536,3 @@ extension VitalsHealthQueries {
         return statistics?.sumQuantity()?.doubleValue(for: unit) ?? 0
     }
 }
-
-// `DailyActivity` is nested on the manager, the type every caller names it
-// through (`HealthKitManager.DailyActivity`); `fetchDailyActivity` above
-// returns it.
-extension HealthKitManager {
-    struct DailyActivity: Identifiable, Equatable, Sendable {
-        let date: Date
-        let stepCount: Int
-        let distanceMeters: Double
-        let flightsClimbed: Int
-        var id: Date { date }
-    }
-}

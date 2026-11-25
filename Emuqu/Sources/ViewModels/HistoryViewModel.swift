@@ -30,10 +30,7 @@ final class HistoryViewModel {
 
     // MARK: - Init
 
-    init(
-        archive: SessionArchive = AppDependencies.current.storage.sessionArchive,
-        settingsProvider: @escaping () -> UserSettings = { AppDependencies.current.app.settingsManager.settingsSnapshot }
-    ) {
+    init(archive: SessionArchive, settingsProvider: @escaping () -> UserSettings) {
         self.archive = archive
         self.settingsProvider = settingsProvider
 

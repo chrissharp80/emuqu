@@ -127,7 +127,8 @@ extension WorkoutLiveCoachingNamespace {
         await FactResolveTimeout.withTimeout(seconds: 3) {
             await RoadAwarenessEngine.awareness(
                 for: location,
-                neighborhoodFallback: neighborhoodFallback
+                neighborhoodFallback: neighborhoodFallback,
+                roadGraph: services.roadGraphService
             )
         }
     }
@@ -343,8 +344,9 @@ extension WorkoutLiveCoachingNamespace {
     // apart from a no-match so the model doesn't ask the user to rephrase
     // an address that was never checked.
     @MainActor private func geocodedRoadContext(_ query: String) async -> AddressLookup? {
-        await FactResolveTimeout.withTimeout(seconds: 12) {
-            if let context = await RoadGeocodingService.geocodeAddress(query) {
+        let geocoding = services.roadGeocodingService
+        return await FactResolveTimeout.withTimeout(seconds: 12) {
+            if let context = await geocoding.geocodeAddress(query) {
                 return AddressLookup.matched(context)
             }
             return AddressLookup.unmatched
@@ -589,9 +591,16 @@ extension WorkoutLiveCoachingNamespace {
         mode: DirectionsService.Mode
     ) async -> Result<DirectionsService.RouteResult, Error>? {
         let origin = userLoc.coordinate
+        let routing = DirectionsService.Services(
+            activeRouteSession: services.activeRouteSession,
+            breadcrumbStore: services.breadcrumbStore,
+            roadGeocodingService: services.roadGeocodingService
+        )
         let lookup = Task.detached { () -> Result<DirectionsService.RouteResult, Error> in
             do {
-                return .success(try await DirectionsService.resolveRoute(from: origin, to: destination, mode: mode))
+                return .success(try await DirectionsService.resolveRoute(
+                    from: origin, to: destination, mode: mode, services: routing
+                ))
             } catch {
                 return .failure(error)
             }

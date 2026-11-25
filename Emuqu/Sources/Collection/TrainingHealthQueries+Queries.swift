@@ -609,7 +609,7 @@ extension TrainingHealthQueries {
     /// metrics and the cache's day-by-day series both resolve them here.
     func trainingHeartRateAnchors(relativeTo referenceDate: Date = Date()) async -> TrainingLoadSeries.HeartRateAnchors {
         let apple = await fetchAppleRestingHR(relativeTo: referenceDate)
-        let settings = AppDependencies.current.app.settingsManager.settings
+        let settings = access.settingsProvider()
         return .resolve(
             appleRestingHR: apple, settingRestingHR: settings.effectiveRestingHR, settingMaxHR: settings.effectiveMaxHR
         )
@@ -672,8 +672,8 @@ extension TrainingHealthQueries {
         } else {
             healthKitWorkouts = await fetchWorkoutsExtended(days: Self.ewmaLookbackDays, relativeTo: referenceDate)
         }
-        let archive = AppDependencies.current.storage.sessionArchive
-        let ftp = TrainingLoadPrecedence.FTPAnchors.current(AppDependencies.current.app.settingsManager.settingsSnapshot)
+        let archive = self.archive()
+        let ftp = TrainingLoadPrecedence.FTPAnchors.current(access.settingsProvider())
         let archiveWorkouts = await Task.detached(priority: .userInitiated) {
             HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: Self.ewmaLookbackDays, relativeTo: referenceDate, ftp: ftp)
         }.value
@@ -691,8 +691,8 @@ extension TrainingHealthQueries {
     /// trimmed to the window the weekly load score is normalised over.
     private func recentMergedWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary] {
         let healthKitWorkouts = await fetchRecentWorkouts(days: days, relativeTo: referenceDate)
-        let archive = AppDependencies.current.storage.sessionArchive
-        let ftp = TrainingLoadPrecedence.FTPAnchors.current(AppDependencies.current.app.settingsManager.settingsSnapshot)
+        let archive = self.archive()
+        let ftp = TrainingLoadPrecedence.FTPAnchors.current(access.settingsProvider())
         let archiveWorkouts = await Task.detached(priority: .userInitiated) {
             HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: days, relativeTo: referenceDate, ftp: ftp)
         }.value

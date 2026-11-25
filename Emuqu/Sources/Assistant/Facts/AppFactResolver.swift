@@ -252,7 +252,7 @@ private enum RecentBiometricProfile {
         }
         let fetch = Task {
             await FactResolveTimeout.withTimeout(seconds: 3) {
-                await healthKit.fetchBiometricProfile()
+                await healthKit.profile.fetchBiometricProfile()
             }
         }
         recent = (Date(), fetch)

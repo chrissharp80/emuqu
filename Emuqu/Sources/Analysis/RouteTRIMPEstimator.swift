@@ -16,7 +16,7 @@ import Foundation
 ///   • Power-based TSS (Coggan; Stryd RSS) is the most accurate
 ///     HR-free intensity proxy and outperforms hrTSS on variable
 ///     workouts. When a power meter is present we already compute
-///     `powerTSS` directly in `WorkoutRecorder+Lifecycle`. This
+///     `powerTSS` directly in `WorkoutFinalizer+Finalize`. This
 ///     estimator does NOT duplicate that — it's the route-history
 ///     path for runners without power.
 ///   • For runners without power, the best HR-free estimate is to

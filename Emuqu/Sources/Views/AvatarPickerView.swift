@@ -7,7 +7,7 @@ import SwiftUI
 /// it lands in `UserSettings.avatarImageData` (so the settings document
 /// doesn't bloat).
 struct AvatarPickerView: View {
-    var settingsManager: SettingsManager = AppDependencies.current.app.settingsManager
+    let settingsManager: SettingsManager
     var size: CGFloat = 88
 
     @State private var pickerItem: PhotosPickerItem?

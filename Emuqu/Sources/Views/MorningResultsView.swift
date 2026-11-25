@@ -121,7 +121,7 @@ struct MorningResultsView: View {
     /// the detail cards. Fixed `.system(size:)` values would ignore
     /// the user's text-size setting entirely. Scaled here
     /// (extensions can't hold stored @ScaledMetric props) and consumed
-    /// in MorningResultsView+DetailCards.
+    /// in MorningDetailCards+Cards.
     @ScaledMetric(relativeTo: .largeTitle) var heroScoreFontSize: CGFloat = 56
     @ScaledMetric(relativeTo: .title) var metricValueFontSize: CGFloat = 32
 
@@ -138,8 +138,8 @@ struct MorningResultsView: View {
     /// presentation time. Same problem in reverse: refresh sleep
     /// inside the report → dashboard doesn't see the change without
     /// re-fetching from disk. The view-model's
-    /// `applyExternalArchiveUpdate(version:)` re-loads from
-    /// `AppDependencies.current.storage.sessionArchive` and updates `reanalyzedSession` so
+    /// `applyExternalArchiveUpdate()` re-loads from the session archive it
+    /// was given and updates `reanalyzedSession` so
     /// every computed property (`displaySession`, `compositeRecoveryScore`,
     /// `recoveryBreakdown`) sees the new state.
     @Environment(ArchiveSignal.self) var archiveSignal
@@ -709,7 +709,7 @@ struct MorningResultsView: View {
     }
 
     private func hydrateAndLoad() async {
-        vm.baselineStats = collector.scoringBaselineStats(for: vm.displaySession)
+        vm.baselineStats = collector.scoring.scoringBaselineStats(for: vm.displaySession)
         vm.onUpdateSleep = onUpdateSleep
         await hydrateDisplaySessionIfNeeded()
         await vm.loadInitialData()

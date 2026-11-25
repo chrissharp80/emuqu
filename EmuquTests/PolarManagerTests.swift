@@ -12,7 +12,7 @@ final class PolarManagerTests: XCTestCase {
         let manager = PolarManager()
 
         // Simulate starting streaming to initialize state
-        manager.prepareStreamingStateForTesting()
+        manager.stream.prepareStreamingStateForTesting()
 
         // Create mock HR data with RR intervals available
         let mockSample = StrapHRSample(hr: 65, rrsMs: [920, 940, 930, 910], rrAvailable: true)
@@ -20,43 +20,43 @@ final class PolarManagerTests: XCTestCase {
         let mockHrData: [StrapHRSample] = [mockSample]
 
         // Call the handler (this would be called by Polar SDK)
-        manager.ingestHeartRate(mockHrData)
+        manager.stream.ingestHeartRate(mockHrData)
 
         // Verify RR intervals were extracted
-        XCTAssertEqual(manager.streamedRRPoints.count, 4, "Should extract all 4 RR intervals")
-        XCTAssertEqual(manager.streamedRRPoints[0].rr_ms, 920)
-        XCTAssertEqual(manager.streamedRRPoints[1].rr_ms, 940)
-        XCTAssertEqual(manager.streamedRRPoints[2].rr_ms, 930)
-        XCTAssertEqual(manager.streamedRRPoints[3].rr_ms, 910)
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 4, "Should extract all 4 RR intervals")
+        XCTAssertEqual(manager.stream.streamedRRPoints[0].rr_ms, 920)
+        XCTAssertEqual(manager.stream.streamedRRPoints[1].rr_ms, 940)
+        XCTAssertEqual(manager.stream.streamedRRPoints[2].rr_ms, 930)
+        XCTAssertEqual(manager.stream.streamedRRPoints[3].rr_ms, 910)
 
         // Verify cumulative time is tracked
         let expectedCumulative: Int64 = 920 + 940 + 930 + 910
-        XCTAssertEqual(manager.streamingCumulativeMsForTesting, expectedCumulative)
+        XCTAssertEqual(manager.stream.streamingCumulativeMsForTesting, expectedCumulative)
     }
 
     /// Test that RR intervals are skipped when rrAvailable is false
     func testRRDataSkippedWhenNotAvailable() {
         let manager = PolarManager()
 
-        manager.prepareStreamingStateForTesting()
+        manager.stream.prepareStreamingStateForTesting()
 
         // Create mock HR data WITHOUT RR intervals
         let mockSample = StrapHRSample(hr: 65, rrsMs: [], rrAvailable: false)
 
         let mockHrData: [StrapHRSample] = [mockSample]
 
-        manager.ingestHeartRate(mockHrData)
+        manager.stream.ingestHeartRate(mockHrData)
 
         // Verify NO RR intervals were added
-        XCTAssertEqual(manager.streamedRRPoints.count, 0, "Should not extract RR when rrAvailable is false")
-        XCTAssertEqual(manager.streamingCumulativeMsForTesting, 0, "Cumulative time should remain 0")
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 0, "Should not extract RR when rrAvailable is false")
+        XCTAssertEqual(manager.stream.streamingCumulativeMsForTesting, 0, "Cumulative time should remain 0")
     }
 
     /// Test handling multiple samples in a single batch
     func testMultipleSamplesInBatch() {
         let manager = PolarManager()
 
-        manager.prepareStreamingStateForTesting()
+        manager.stream.prepareStreamingStateForTesting()
 
         // Create multiple samples in one batch
         let sample1 = StrapHRSample(hr: 65, rrsMs: [920, 940], rrAvailable: true)
@@ -67,20 +67,20 @@ final class PolarManagerTests: XCTestCase {
 
         let mockHrData = [sample1, sample2, sample3]
 
-        manager.ingestHeartRate(mockHrData)
+        manager.stream.ingestHeartRate(mockHrData)
 
         // Should extract RR from sample1 and sample2, skip sample3
-        XCTAssertEqual(manager.streamedRRPoints.count, 3, "Should extract 2 + 1 + 0 = 3 RR intervals")
-        XCTAssertEqual(manager.streamedRRPoints[0].rr_ms, 920)
-        XCTAssertEqual(manager.streamedRRPoints[1].rr_ms, 940)
-        XCTAssertEqual(manager.streamedRRPoints[2].rr_ms, 910)
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 3, "Should extract 2 + 1 + 0 = 3 RR intervals")
+        XCTAssertEqual(manager.stream.streamedRRPoints[0].rr_ms, 920)
+        XCTAssertEqual(manager.stream.streamedRRPoints[1].rr_ms, 940)
+        XCTAssertEqual(manager.stream.streamedRRPoints[2].rr_ms, 910)
     }
 
     /// Test that empty rrsMs array is handled correctly even when rrAvailable is true
     func testEmptyRRsMsArray() {
         let manager = PolarManager()
 
-        manager.prepareStreamingStateForTesting()
+        manager.stream.prepareStreamingStateForTesting()
 
         // Edge case: rrAvailable is true but array is empty
         let mockSample = StrapHRSample(hr: 65, rrsMs: [], rrAvailable: true)
@@ -88,54 +88,54 @@ final class PolarManagerTests: XCTestCase {
         let mockHrData: [StrapHRSample] = [mockSample]
 
         // Should not crash
-        XCTAssertNoThrow(manager.ingestHeartRate(mockHrData))
+        XCTAssertNoThrow(manager.stream.ingestHeartRate(mockHrData))
 
         // No RR intervals should be added
-        XCTAssertEqual(manager.streamedRRPoints.count, 0)
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 0)
     }
 
     /// Test cumulative time calculation across multiple calls
     func testCumulativeTimeTracking() {
         let manager = PolarManager()
 
-        manager.prepareStreamingStateForTesting()
+        manager.stream.prepareStreamingStateForTesting()
 
         // First batch
         let batch1 = [StrapHRSample(hr: 65, rrsMs: [1000, 1000], rrAvailable: true)]
 
-        manager.ingestHeartRate(batch1)
-        XCTAssertEqual(manager.streamingCumulativeMsForTesting, 2000)
-        XCTAssertEqual(manager.streamedRRPoints.count, 2)
+        manager.stream.ingestHeartRate(batch1)
+        XCTAssertEqual(manager.stream.streamingCumulativeMsForTesting, 2000)
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 2)
 
         // Second batch - cumulative should continue
         let batch2 = [StrapHRSample(hr: 65, rrsMs: [1000, 1000, 1000], rrAvailable: true)]
 
-        manager.ingestHeartRate(batch2)
-        XCTAssertEqual(manager.streamingCumulativeMsForTesting, 5000, "Cumulative time should be 5 seconds")
-        XCTAssertEqual(manager.streamedRRPoints.count, 5, "Should have 5 total points")
+        manager.stream.ingestHeartRate(batch2)
+        XCTAssertEqual(manager.stream.streamingCumulativeMsForTesting, 5000, "Cumulative time should be 5 seconds")
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 5, "Should have 5 total points")
 
         // Verify t_ms values are cumulative
-        XCTAssertEqual(manager.streamedRRPoints[0].t_ms, 0)
-        XCTAssertEqual(manager.streamedRRPoints[1].t_ms, 1000)
-        XCTAssertEqual(manager.streamedRRPoints[2].t_ms, 2000)
-        XCTAssertEqual(manager.streamedRRPoints[3].t_ms, 3000)
-        XCTAssertEqual(manager.streamedRRPoints[4].t_ms, 4000)
+        XCTAssertEqual(manager.stream.streamedRRPoints[0].t_ms, 0)
+        XCTAssertEqual(manager.stream.streamedRRPoints[1].t_ms, 1000)
+        XCTAssertEqual(manager.stream.streamedRRPoints[2].t_ms, 2000)
+        XCTAssertEqual(manager.stream.streamedRRPoints[3].t_ms, 3000)
+        XCTAssertEqual(manager.stream.streamedRRPoints[4].t_ms, 4000)
     }
 
     /// Test wall clock time is captured
     func testWallClockTimeCapture() {
         let manager = PolarManager()
 
-        manager.prepareStreamingStateForTesting(startTime: Date())
+        manager.stream.prepareStreamingStateForTesting(startTime: Date())
 
         let mockSample = StrapHRSample(hr: 65, rrsMs: [920], rrAvailable: true)
 
         let mockHrData: [StrapHRSample] = [mockSample]
 
-        manager.ingestHeartRateForTesting(mockHrData, elapsedMs: 120)
+        manager.stream.ingestHeartRateForTesting(mockHrData, elapsedMs: 120)
 
         XCTAssertEqual(
-            manager.streamedRRPoints[0].wallClockMs,
+            manager.stream.streamedRRPoints[0].wallClockMs,
             120,
             "Wall clock time should match test override"
         )
@@ -145,7 +145,7 @@ final class PolarManagerTests: XCTestCase {
     func testRealisticTwoMinuteStream() {
         let manager = PolarManager()
 
-        manager.prepareStreamingStateForTesting()
+        manager.stream.prepareStreamingStateForTesting()
 
         // Simulate ~2 minutes at 65 bpm (130 beats)
         // Typical RR interval at 65 bpm is ~923ms
@@ -162,14 +162,14 @@ final class PolarManagerTests: XCTestCase {
             let mockSample = StrapHRSample(hr: 65, rrsMs: [rr], rrAvailable: true)
 
             let mockHrData: [StrapHRSample] = [mockSample]
-            manager.ingestHeartRate(mockHrData)
+            manager.stream.ingestHeartRate(mockHrData)
         }
 
         // Verify we collected all beats
-        XCTAssertEqual(manager.streamedRRPoints.count, 130, "Should collect 130 beats")
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 130, "Should collect 130 beats")
 
         // Verify total duration is approximately 2 minutes
-        let totalDurationMs = manager.streamingCumulativeMsForTesting
+        let totalDurationMs = manager.stream.streamingCumulativeMsForTesting
         XCTAssertEqual(
             totalDurationMs,
             expectedCumulativeMs,
@@ -181,10 +181,10 @@ final class PolarManagerTests: XCTestCase {
         let manager = PolarManager()
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
 
-        manager.link.apply(.battery(deviceId: "OTHER-DEVICE", level: 42))
+        manager.linkEvents.apply(.battery(deviceId: "OTHER-DEVICE", level: 42))
         XCTAssertNil(manager.batteryLevel, "Battery should ignore callbacks from non-active device IDs")
 
-        manager.link.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 88))
+        manager.linkEvents.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 88))
         XCTAssertEqual(manager.batteryLevel, 88, "Battery should update for the active device")
     }
 
@@ -192,15 +192,15 @@ final class PolarManagerTests: XCTestCase {
         let manager = PolarManager()
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
 
-        manager.link.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 84))
+        manager.linkEvents.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 84))
         XCTAssertEqual(manager.batteryLevel, 84, "Valid battery percentages should be published")
 
-        manager.link.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 255))
+        manager.linkEvents.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 255))
         XCTAssertEqual(manager.batteryLevel, 84, "Out-of-range battery callbacks should be ignored")
 
         let managerWithOnlyInvalidValue = PolarManager()
         managerWithOnlyInvalidValue.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
-        managerWithOnlyInvalidValue.link.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 200))
+        managerWithOnlyInvalidValue.linkEvents.apply(.battery(deviceId: "ACTIVE-DEVICE", level: 200))
         XCTAssertNil(managerWithOnlyInvalidValue.batteryLevel, "Invalid first callback should not fake a percentage")
     }
 
@@ -209,17 +209,17 @@ final class PolarManagerTests: XCTestCase {
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
         let firmwareUUID = CBUUID(string: "2A26")
 
-        manager.link.apply(.deviceInformation(deviceId: "OTHER-DEVICE", uuid: firmwareUUID.uuidString, value: "5.1.0"))
+        manager.linkEvents.apply(.deviceInformation(deviceId: "OTHER-DEVICE", uuid: firmwareUUID.uuidString, value: "5.1.0"))
         XCTAssertNil(manager.firmwareVersion, "Firmware should ignore callbacks from non-active device IDs")
 
-        manager.link.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: firmwareUUID.uuidString, value: "5.1.0"))
+        manager.linkEvents.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: firmwareUUID.uuidString, value: "5.1.0"))
         XCTAssertEqual(manager.firmwareVersion, "5.1.0", "Firmware should update for the active device")
     }
 
     func testFirmwareCallbackIgnoresNonFirmwareCharacteristic() {
         let manager = PolarManager()
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
-        manager.link.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A29", value: "ACME"))
+        manager.linkEvents.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A29", value: "ACME"))
         XCTAssertNil(manager.firmwareVersion, "Only 2A26/2A28 revision characteristics should update firmwareVersion")
     }
 
@@ -227,13 +227,13 @@ final class PolarManagerTests: XCTestCase {
         let manager = PolarManager()
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
 
-        manager.link.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A26", value: "5.0.0"))
+        manager.linkEvents.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A26", value: "5.0.0"))
         XCTAssertEqual(manager.firmwareVersion, "5.0.0", "Firmware revision should be used as fallback when no software revision exists")
 
-        manager.link.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A28", value: "4.1.10"))
+        manager.linkEvents.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A28", value: "4.1.10"))
         XCTAssertEqual(manager.firmwareVersion, "4.1.10", "Software revision should replace fallback firmware revision")
 
-        manager.link.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A26", value: "5.0.1"))
+        manager.linkEvents.apply(.deviceInformation(deviceId: "ACTIVE-DEVICE", uuid: "2A26", value: "5.0.1"))
         XCTAssertEqual(manager.firmwareVersion, "4.1.10", "Software revision should remain authoritative once received")
     }
 
@@ -241,7 +241,7 @@ final class PolarManagerTests: XCTestCase {
         let manager = PolarManager()
         manager.setConnectedDeviceForTesting(id: "ACTIVE-DEVICE", type: .h10)
 
-        manager.link.apply(.deviceInformationKey(deviceId: "ACTIVE-DEVICE", key: "2a28", value: "4.1.10"))
+        manager.linkEvents.apply(.deviceInformationKey(deviceId: "ACTIVE-DEVICE", key: "2a28", value: "4.1.10"))
         XCTAssertEqual(manager.firmwareVersion, "4.1.10", "String-key callback should update displayed firmware from software revision")
     }
 }
