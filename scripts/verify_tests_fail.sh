@@ -996,7 +996,7 @@ mutate "archive_beatless_reported_as_corrupt" "EmuquTests/ArchiveRRPreservationT
 # or CloudKit pull.
 mutate "archive_metadata_edit_drops_beats" "EmuquTests/ArchiveRRPreservationTests" \
     "Emuqu/Sources/Storage/ArchiveStore+Internal.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/ArchiveStore+Internal.swift');s=p.read_text();o='            session.rrSeries = beats\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/ArchiveStore+Internal.swift');s=p.read_text();o='            session.rrSeries = beats\n';assert s.count(o)==1;p.write_text(s.replace(o,'            session.rrSeries = nil\n'))"
 
 # HealthKit rejects a workout whose collection ends where it began, identically
 # every time. Without the forward-duration guard the backfill retries the same
