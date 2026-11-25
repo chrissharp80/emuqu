@@ -15,9 +15,10 @@ import Foundation
 ///     run under the caller's lock; the leading underscore and
 ///     `private`/internal scoping mark them as such. The rest take
 ///     `archiveLock` themselves.
-///   • File I/O and decoding happen OUTSIDE the lock, holding it only across
-///     index lookups — see `retrieveLightweight`. That is why the lock is not
-///     a contention point on the read path.
+///   • `retrieveLightweight` holds the lock only across index lookups and
+///     reads the file outside it. `retrieve` and the writes hold it across
+///     their file I/O and decoding, so a long write or full read makes other
+///     callers wait.
 ///
 /// The conformance exists because callers legitimately read the archive from
 /// background tasks (`FitnessTabView+Sections` detaches its week-workout

@@ -168,19 +168,42 @@ final class UserFactsStore {
     /// silently inflates prompt token cost over time. 25 fits ~250
     /// tokens — enough to remember a useful profile without dominating
     /// the static prefix.
-    func add(_ text: String, origin: Fact.Origin) {
+    ///
+    /// Written before it reports anything, as `remove` is: `.added` means the
+    /// fact is on disk, and `.notSaved` leaves the facts as they were (the
+    /// saved file is unreadable, or the write failed), so nothing reports a
+    /// save that a relaunch would lose.
+    @discardableResult
+    func add(_ text: String, origin: Fact.Origin) -> AddOutcome {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
         let key = Self.normalizedKey(trimmed)
+        guard !key.isEmpty else { return .nothingToSave }
+        // Read the saved facts first, so the duplicate check and the cap see
+        // what is on disk, not an empty list from a launch while locked.
+        reloadIfUnreadable()
+        guard !unreadableOnDisk else { return .notSaved }
         // Dedup on the NORMALIZED key so punctuation-/case-only twins
         // ("…right now" vs "…right now.") collapse to one fact instead of both
         // riding in every prompt.
-        guard !key.isEmpty, !facts.contains(where: { Self.normalizedKey($0.text) == key }) else { return }
-        facts.append(Fact(text: trimmed, origin: origin))
-        if facts.count > Self.maxFacts {
-            facts.removeFirst(facts.count - Self.maxFacts)
-        }
-        persist()
+        guard !facts.contains(where: { Self.normalizedKey($0.text) == key }) else { return .alreadySaved }
+        var next = facts + [Fact(text: trimmed, origin: origin)]
+        let evicted = Array(next.prefix(max(0, next.count - Self.maxFacts)))
+        next.removeFirst(evicted.count)
+        guard writeKeepingSetAsideCopies(next) else { return .notSaved }
+        facts = next
+        return .added(evicted: evicted)
+    }
+
+    /// What `add` did.
+    enum AddOutcome: Equatable {
+        /// Saved; `evicted` are the oldest facts dropped to stay within `maxFacts`.
+        case added(evicted: [Fact])
+        /// A fact with the same text (ignoring case and trailing punctuation) was already saved.
+        case alreadySaved
+        /// The text had nothing in it once spaces and trailing punctuation were dropped.
+        case nothingToSave
+        /// The facts could not be read or written, so nothing changed.
+        case notSaved
     }
 
     nonisolated static let maxFacts = 25
@@ -249,6 +272,16 @@ final class UserFactsStore {
 
     /// Drops the set-aside copies and writes `snapshot`, on the queue after
     /// any write already queued. True when both are done.
+    /// `writeNow` for an add: a set-aside copy of an undecodable file is
+    /// kept, as the queued write kept it, since only the user's own removal
+    /// or wipe lets it go. On the queue, after any write already queued.
+    private func writeKeepingSetAsideCopies(_ snapshot: [Fact]) -> Bool {
+        let url = fileURL
+        let done = queue.sync { Self.write(snapshot, to: url) }
+        if done { writePending = false }
+        return done
+    }
+
     private func writeNow(_ snapshot: [Fact]) -> Bool {
         let url = fileURL
         let done = queue.sync {

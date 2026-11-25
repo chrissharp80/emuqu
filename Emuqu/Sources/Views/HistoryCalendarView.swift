@@ -114,9 +114,14 @@ struct HistoryCalendarView: View {
     /// changes it even when the session count stays the same. The FTPs are
     /// in it because a power session stored without power TSS is scored
     /// against today's FTP.
+    /// The FTPs every load on this screen is scored with.
+    private var loadAnchors: TrainingLoadPrecedence.FTPAnchors {
+        .current(dependencies.app.settingsManager.settingsSnapshot)
+    }
+
     private var sessionsFingerprint: Int {
         var hasher = Hasher()
-        let ftp = TrainingLoadPrecedence.FTPAnchors.current(dependencies.app.settingsManager.settingsSnapshot)
+        let ftp = loadAnchors
         hasher.combine(ftp.running)
         hasher.combine(ftp.cycling)
         for session in allSessions {
@@ -468,8 +473,9 @@ struct HistoryCalendarView: View {
         let sessionsInMonth = allSessions.filter { session in
             Self.isIn(month: comps, date: Self.calendarDay(of: session, cal: cal), cal: cal)
         }
+        let ftp = loadAnchors
         let total = sessionsInMonth.reduce(0.0) { acc, s in
-            acc + (s.workoutMetadata?.preferredTrainingLoad?.value ?? 0)
+            acc + (s.workoutMetadata?.preferredTrainingLoad(ftp: ftp)?.value ?? 0)
         }
         return MonthStats(totalLoad: total, sessionCount: sessionsInMonth.count)
     }
@@ -526,9 +532,10 @@ struct HistoryCalendarView: View {
     private func weekRow(dates: [Date], cal: Calendar, comps: DateComponents, sessionsByDay: [Date: [HRVSession]], monthStart: Date) -> WeekRow {
         var weekDays: [DayCell] = []
         var weekTotal: Double = 0
+        let ftp = loadAnchors
         for date in dates {
             let day = cal.startOfDay(for: date)
-            let cell = Self.dayCellFor(day: day, inMonth: Self.isIn(month: comps, date: day, cal: cal), sessions: sessionsByDay[day] ?? [])
+            let cell = Self.dayCellFor(day: day, inMonth: Self.isIn(month: comps, date: day, cal: cal), sessions: sessionsByDay[day] ?? [], ftp: ftp)
             if cell.inVisibleMonth { weekTotal += cell.totalLoad }
             weekDays.append(cell)
         }
@@ -538,9 +545,9 @@ struct HistoryCalendarView: View {
     /// Pick the overnight session's morningFeeling for this day
     /// (naps / quick checks don't count). First overnight wins on
     /// multi-session days.
-    private static func dayCellFor(day: Date, inMonth: Bool, sessions: [HRVSession]) -> DayCell {
+    private static func dayCellFor(day: Date, inMonth: Bool, sessions: [HRVSession], ftp: TrainingLoadPrecedence.FTPAnchors) -> DayCell {
         let dayLoad = sessions.reduce(0.0) { acc, s in
-            acc + (s.workoutMetadata?.preferredTrainingLoad?.value ?? 0)
+            acc + (s.workoutMetadata?.preferredTrainingLoad(ftp: ftp)?.value ?? 0)
         }
         return DayCell(
             date: day,
@@ -643,6 +650,12 @@ private struct DaySummarySheet: View {
     @State private var deleteFailed = false
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dependencies) private var dependencies
+
+    /// The FTPs every load on this sheet is scored with.
+    private var loadAnchors: TrainingLoadPrecedence.FTPAnchors {
+        .current(dependencies.app.settingsManager.settingsSnapshot)
+    }
 
     init(date: Date, sessions: [HRVSession], onDelete: @escaping (HRVSession) async -> Bool) {
         self.date = date
@@ -741,8 +754,9 @@ private struct DaySummarySheet: View {
     }
 
     private var totalLoad: Double {
-        sessions.reduce(0.0) { acc, s in
-            acc + (s.workoutMetadata?.preferredTrainingLoad?.value ?? 0)
+        let ftp = loadAnchors
+        return sessions.reduce(0.0) { acc, s in
+            acc + (s.workoutMetadata?.preferredTrainingLoad(ftp: ftp)?.value ?? 0)
         }
     }
 
@@ -867,7 +881,7 @@ private struct DaySummarySheet: View {
 
     @ViewBuilder
     private func sessionRowLoad(_ session: HRVSession) -> some View {
-        if let load = session.workoutMetadata?.preferredTrainingLoad, load.value > 0 {
+        if let load = session.workoutMetadata?.preferredTrainingLoad(ftp: loadAnchors), load.value > 0 {
             VStack(alignment: .trailing, spacing: 1) {
                 Text(verbatim: "\(Int(load.value.rounded()))")
                     .font(.headline.monospacedDigit())

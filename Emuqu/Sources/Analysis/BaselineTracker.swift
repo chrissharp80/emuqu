@@ -2,7 +2,8 @@ import Foundation
 import UIKit
 
 /// Personal baseline tracking for multi-night HRV trends
-/// Per design spec v8.1: Rolling 7-day baseline with deviation tracking
+/// Per design spec v8.1: one reading per night, with the 7 most recent
+/// nights for display and up to 60 for the recovery score's baseline.
 ///
 /// # Concurrency contract
 ///

@@ -269,6 +269,59 @@ final class UserFactsStoreTests: XCTestCase {
         XCTAssertEqual(store.facts.map(\.text), ["alpha"])
     }
 
+    /// An add the disk refuses reports `.notSaved` and leaves the facts as
+    /// they were, so neither the assistant nor Settings reports a save a
+    /// relaunch would lose; the memory tool says so to the model.
+    @MainActor
+    func testAnAddThatCannotBeWrittenIsReportedAndNotListed() throws {
+        let store = UserFactsStore(fileURL: fileURL)
+        XCTAssertEqual(store.add("alpha", origin: .user), .added(evicted: []))
+        _ = waitForStore(at: fileURL, toHold: 1)
+        try makeDirectoryReadOnly()
+
+        XCTAssertEqual(store.add("beta", origin: .user), .notSaved)
+        XCTAssertEqual(store.facts.map(\.text), ["alpha"])
+        guard case let .record(fields) = AssistantMemoryNamespace.storeFact("gamma", in: store),
+              case .boolean(false) = fields["added"] else {
+            return XCTFail("the memory tool reported a save that did not happen")
+        }
+    }
+
+    /// A store opened while the saved file could not be read (a launch while
+    /// locked) checks a new fact against the saved ones once they can be read:
+    /// a fact already saved is not added again, and no saved fact is evicted
+    /// to make room for it.
+    func testAnAddAfterALockedLaunchSeesTheSavedFacts() throws {
+        let first = UserFactsStore(fileURL: fileURL)
+        for index in 0 ..< UserFactsStore.maxFacts { first.add("fact \(index)", origin: .user) }
+        _ = waitForStore(at: fileURL, toHold: UserFactsStore.maxFacts)
+        let fm = FileManager.default
+        try fm.setAttributes([.posixPermissions: 0o000], ofItemAtPath: fileURL.path)
+        let store = UserFactsStore(fileURL: fileURL)
+        try fm.setAttributes([.posixPermissions: 0o644], ofItemAtPath: fileURL.path)
+        XCTAssertTrue(store.facts.isEmpty, "the file must have been unreadable at launch")
+
+        XCTAssertEqual(store.add("Fact 3.", origin: .user), .alreadySaved)
+        XCTAssertEqual(store.facts.map(\.text), (0 ..< UserFactsStore.maxFacts).map { "fact \($0)" })
+    }
+
+    /// Text that is only punctuation has nothing to save, which is not a
+    /// failed save.
+    @MainActor
+    func testPunctuationOnlyTextIsNothingToSave() {
+        let store = UserFactsStore(fileURL: fileURL)
+        XCTAssertEqual(store.add(" . ", origin: .user), .nothingToSave)
+        guard case let .record(fields) = AssistantMemoryNamespace.storeFact("…", in: store),
+              case let .string(note) = fields["note"] else { return XCTFail("no note") }
+        XCTAssertTrue(note.hasPrefix("nothing to save"), note)
+    }
+
+    func testAnAddOfAFactAlreadySavedSaysSo() {
+        let store = UserFactsStore(fileURL: fileURL)
+        store.add("Vegetarian diet", origin: .user)
+        XCTAssertEqual(store.add("vegetarian diet.", origin: .user), .alreadySaved)
+    }
+
     // MARK: - Sealed at rest
 
     func testFactsAreSealedAtRestAndRoundTrip() throws {

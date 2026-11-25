@@ -118,16 +118,21 @@ extension TrainingHealthQueries {
         // it's the same session we already hold with strap precision. `overlaps`
         // requires ≥60% of the shorter session's span, so genuinely separate
         // external training (e.g. a ride logged only in Strava at another time)
-        // is kept. You can't do two time-overlapping workouts at once, so this
-        // never drops a distinct session.
+        // is kept. Two exceptions, where the Health workout is the better
+        // record of the training (`yields`): an archive workout counted only
+        // from its index entry, and a strap recording that covers only part
+        // of a longer Health workout.
+        let authoritative = archive.filter { workout in
+            !healthKit.contains { yields(workout, to: $0) }
+        }
         let externalHealthKit = healthKit.filter { hk in
-            !archive.contains { overlaps($0, hk) }
+            !authoritative.contains { overlaps($0, hk) }
         }
         // Among the KEPT set, external copies can still duplicate each other
         // (Strava + Apple's auto-detected copy of the same un-recorded ride) —
         // collapse those with the normal dedup. Archive workouts don't duplicate
         // each other, and no HealthKit twin of an archive workout remains.
-        return deduplicateWorkouts(archive + externalHealthKit + additional)
+        return deduplicateWorkouts(authoritative + externalHealthKit + additional)
     }
 
     /// Rule 1 or rule 2 of `deduplicateWorkouts`.
@@ -156,6 +161,26 @@ extension TrainingHealthQueries {
         let shorter = min(a.durationMinutes, b.durationMinutes) * 60.0
         guard shorter > 0 else { return false }
         return overlap / shorter >= 0.6
+    }
+
+    /// Whether the Health workout `hk` replaces `archived` in the load. An
+    /// index estimate (its file could not be read) carries only a span and a
+    /// mean heart rate, so Health's copy of the same session wins; the same
+    /// session covers most of both spans, so a short walk Apple detected
+    /// inside a long run does not stand in for the run. A strap recording
+    /// started part-way through a longer Health workout covers only part of
+    /// it, so the whole workout counts instead of the part.
+    nonisolated private static func yields(_ archived: HealthKitManager.WorkoutSummary, to hk: HealthKitManager.WorkoutSummary) -> Bool {
+        if coversMostOfBoth(archived, hk) { return archived.isIndexEstimate }
+        return hk.durationMinutes > archived.durationMinutes && overlaps(archived, hk)
+    }
+
+    /// Intersection >= 60 % of the LONGER workout's duration, so each covers
+    /// most of the other: the same session, not one nested in another.
+    nonisolated private static func coversMostOfBoth(_ a: HealthKitManager.WorkoutSummary, _ b: HealthKitManager.WorkoutSummary) -> Bool {
+        let longer = max(a.durationMinutes, b.durationMinutes) * 60.0
+        guard longer > 0 else { return false }
+        return intersectionSeconds(a, b) / longer >= 0.6
     }
 
     /// Score a workout by data richness for dedup tie-breaking.
@@ -648,8 +673,9 @@ extension TrainingHealthQueries {
             healthKitWorkouts = await fetchWorkoutsExtended(days: Self.ewmaLookbackDays, relativeTo: referenceDate)
         }
         let archive = AppDependencies.current.storage.sessionArchive
+        let ftp = TrainingLoadPrecedence.FTPAnchors.current(AppDependencies.current.app.settingsManager.settingsSnapshot)
         let archiveWorkouts = await Task.detached(priority: .userInitiated) {
-            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: Self.ewmaLookbackDays, relativeTo: referenceDate)
+            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: Self.ewmaLookbackDays, relativeTo: referenceDate, ftp: ftp)
         }.value
         return Self.mergeArchiveAuthoritative(
             archive: archiveWorkouts,
@@ -666,8 +692,9 @@ extension TrainingHealthQueries {
     private func recentMergedWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary] {
         let healthKitWorkouts = await fetchRecentWorkouts(days: days, relativeTo: referenceDate)
         let archive = AppDependencies.current.storage.sessionArchive
+        let ftp = TrainingLoadPrecedence.FTPAnchors.current(AppDependencies.current.app.settingsManager.settingsSnapshot)
         let archiveWorkouts = await Task.detached(priority: .userInitiated) {
-            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: days, relativeTo: referenceDate)
+            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: days, relativeTo: referenceDate, ftp: ftp)
         }.value
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: referenceDate)

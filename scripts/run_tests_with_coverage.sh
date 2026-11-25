@@ -22,9 +22,9 @@ MIN_COVERAGE="${MIN_COVERAGE:-}"
 # its own header: "Raising LOGIC is the meaningful goal. Raising OVERALL
 # materially requires snapshot tests for the view layer." The LOGIC floor is the
 # number that reflects test discipline, and the unit target is what moves it.
-# The UI target still runs at scope `full` — on demand and before every
-# release, through testflight.yml — where it guards the OVERALL and LOGIC
-# floors and the flows a unit test cannot reach. Nothing runs it on a schedule.
+# The UI target runs at scope `full`: every night on main (ci.yml's schedule),
+# on demand, and before every release through testflight.yml, where it covers
+# the flows a unit test cannot reach. All three floors apply at either scope.
 TEST_SCOPE="${TEST_SCOPE:-full}"
 case "$TEST_SCOPE" in
     unit)

@@ -69,7 +69,7 @@ extension FitnessSummaryCards {
     /// Use `preferredTrainingLoad` so power-equipped sessions show
     /// their TSS instead of an HR-only TRIMP.
     private func recapSummary(meta: WorkoutMetadata?) -> String {
-        guard let load = meta?.preferredTrainingLoad, load.value > 0 else { return "Emuqu" }
+        guard let load = meta?.preferredTrainingLoad(ftp: .current(settingsManager.settings)), load.value > 0 else { return "Emuqu" }
         let label: String
         switch load.source {
         case .power, .hr, .mets: label = String(localized: "Load", bundle: LanguageManager.appBundle)

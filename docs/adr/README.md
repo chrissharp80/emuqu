@@ -79,8 +79,8 @@ The script gates that need no Xcode run on a Linux runner on every pull request
 and every push to `main` (`.github/workflows/gates.yml`). The macOS jobs in
 `.github/workflows/ci.yml` run at scope `unit` on every pull request and every
 push to `main`: SwiftLint and the budgets, strict concurrency, the build, the
-unit suite and Thread Sanitizer. The UI target and the full coverage floors
-(scope `full`) run on demand and before every release. See
+unit suite with all three coverage floors, and Thread Sanitizer. The UI target
+(scope `full`) runs every night on `main`, on demand, and before every release. See
 [`docs/CI_POSTURE.md`](../CI_POSTURE.md) for what each scope runs, what it
 costs and the accepted trade-offs.
 

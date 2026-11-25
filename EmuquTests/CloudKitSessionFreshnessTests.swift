@@ -106,6 +106,25 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         XCTAssertGreaterThan(try XCTUnwrap(stored.modifiedAt), try XCTUnwrap(remote.modifiedAt))
     }
 
+    /// A segment unlinked on the other device took its beats with it on
+    /// purpose: the newer copy wins as it is, and the beats stay out.
+    func testAnUnlinkFromAnotherDeviceIsNotUndone() throws {
+        let (archive, directory) = makeArchive()
+        defer { removeDirectory(directory) }
+        var (local, newer) = try archivedSessionWithNewerICloudCopy(in: archive)
+        local.linkedSessionIds = [UUID()]
+        local.modifiedAt = CloudKitSessionFreshness.stamp(at: Date().addingTimeInterval(-3600), after: nil)
+        _ = try archive.archive(local, skipSameNightMerge: true)
+        var remote = newer
+        remote.linkedSessionIds = nil
+        remote.rrSeries = RRSeries(points: Array(local.rrSeries?.points.prefix(120) ?? []), sessionId: local.id, startDate: local.startDate)
+
+        let result = try XCTUnwrap(try CloudKitSessionFreshness.replaceIfStillNewer(local.id, with: remote, in: archive))
+
+        XCTAssertFalse(result.keptLocalBeats)
+        XCTAssertEqual(try archive.retrieve(local.id)?.rrSeries?.points.count, 120, "an unlink made on another device was undone")
+    }
+
     /// A newer copy holding every beat replaces the local one as before.
     func testANewerCopyWithEveryBeatIsTakenAsItIs() throws {
         let (archive, directory) = makeArchive()
