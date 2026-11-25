@@ -16,7 +16,8 @@ final class SessionRecoveryCoordinator {
     let artifactDetector: ArtifactDetector
     let baselineTracker: BaselineTracker
     let cloudSyncManager: CloudKitSyncManager
-    let healthKit: HealthKitManager
+    /// Apple Health exports of recovered nights, and their removal on a permanent delete.
+    let healthWrites: HealthWriteAndObserve
     let morningCoordination: MorningCoordination
     let overnightRun: OvernightRunState
     let strapRecorder: StrapRecordingCoordinator
@@ -38,7 +39,7 @@ final class SessionRecoveryCoordinator {
         artifactDetector: ArtifactDetector,
         baselineTracker: BaselineTracker,
         cloudSyncManager: CloudKitSyncManager,
-        healthKit: HealthKitManager,
+        healthWrites: HealthWriteAndObserve,
         morningCoordination: MorningCoordination,
         overnightRun: OvernightRunState,
         strapRecorder: StrapRecordingCoordinator,
@@ -59,7 +60,7 @@ final class SessionRecoveryCoordinator {
         self.artifactDetector = artifactDetector
         self.baselineTracker = baselineTracker
         self.cloudSyncManager = cloudSyncManager
-        self.healthKit = healthKit
+        self.healthWrites = healthWrites
         self.morningCoordination = morningCoordination
         self.overnightRun = overnightRun
         self.strapRecorder = strapRecorder

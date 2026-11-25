@@ -229,13 +229,14 @@ extension WorkoutSessionLifecycle {
     /// Best-effort — if auth isn't granted or the API call fails,
     /// the in-app session is canonical and unaffected.
     private func exportToHealthKitIfAvailable(_ session: HRVSession) {
-        let healthKit = core.healthKit
+        let healthStore = core.healthAccess.store
+        let sampleStore = core.healthSampleStore
         let weight = settingsProvider().effectiveBodyWeightKg
         let archive = core.archive
         let writesHeartRate = HealthKitWorkoutExport.writesHeartRate(with: services.settingsManager.settings)
         Task(priority: .utility) {
             await Self.exportWorkoutToHealthKit(
-                session: session, healthKit: healthKit,
+                session: session, healthStore: healthStore, sampleStore: sampleStore,
                 options: (bodyWeightKg: weight, writesHeartRate: writesHeartRate), archive: archive
             )
         }
@@ -259,7 +260,8 @@ extension WorkoutSessionLifecycle {
     @available(iOS 17.0, *)
     private static func exportWorkoutToHealthKit(
         session: HRVSession,
-        healthKit: HealthKitManager,
+        healthStore: HKHealthStore,
+        sampleStore: any HealthSampleStore,
         options: (bodyWeightKg: Double, writesHeartRate: Bool),
         archive: SessionArchive
     ) async {
@@ -267,7 +269,7 @@ extension WorkoutSessionLifecycle {
         defer { HealthExportClaims.release(session.id) }
         do {
             try await HealthKitWorkoutExport.export(
-                session: session, healthKit: healthKit,
+                session: session, healthStore: healthStore, sampleStore: sampleStore,
                 bodyWeightKg: options.bodyWeightKg, writesHeartRate: options.writesHeartRate
             )
             stampHealthKitExport(sessionId: session.id, archive: archive)

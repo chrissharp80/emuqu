@@ -261,7 +261,7 @@ extension EmuquApp {
     /// row, Settings → Wearables, or Settings → Permissions.
     private func requestHealthKitAuthorizationIfOnboarded() {
         guard settingsManager.settings.hasCompletedOnboarding else { return }
-        guard !collector.healthKit.isAccessSkipped else { return }
+        guard !collector.healthKit.authorization.isAccessSkipped else { return }
         Task(priority: .userInitiated) {
             await sleepQuietly(200_000_000, context: "requestHealthKitAuthorizationIfOnboarded")
             guard collector.healthKit.isHealthKitAvailable else { return }
@@ -740,7 +740,7 @@ extension EmuquApp {
     private func authorizeHealthKitOnce(collector: RRCollector, attempt: Int) async -> Bool {
         NSLog("[App][hk] requesting authorization (attempt \(attempt))")
         do {
-            try await collector.healthKit.requestAuthorization()
+            try await collector.healthKit.authorization.requestAuthorization()
             NSLog("[App][hk] authorization request returned (attempt \(attempt))")
             collector.healthKit.writes.startObservingSleepData(morningNotifications: launchServices.morningNotificationScheduler())
             collector.healthKit.vitals.startObservingVitalsData()

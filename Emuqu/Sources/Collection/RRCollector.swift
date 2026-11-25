@@ -92,7 +92,7 @@ final class RRCollector {
     /// calls it, and it calls none of them.
     @ObservationIgnored private(set) lazy var morning: MorningSessionPipeline = MorningSessionPipeline(
         acceptanceService: acceptanceService, analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal,
-        baselineRebuild: baselineRebuild, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthKit: healthKit,
+        baselineRebuild: baselineRebuild, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthWrites: healthKit.writes, trainingQueries: healthKit.training,
         morningCoordination: morningCoordination, morningProcessingService: morningProcessingService,
         strapLink: polarManager.linkState, strapBattery: polarManager.battery,
         rawBackup: rawBackup, recordingStore: recordingStore, scoring: scoring, sessionState: sessionState,
@@ -101,7 +101,7 @@ final class RRCollector {
 
     /// Overnight capture in streaming mode, and the gather that ends it.
     @ObservationIgnored private(set) lazy var overnightStreaming: OvernightStreamingCoordinator = OvernightStreamingCoordinator(
-        archive: archive, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, healthKit: healthKit,
+        archive: archive, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, healthWrites: healthKit.writes, sleepQueries: healthKit.sleepQueries, vitalsQueries: healthKit.vitals,
         morningCoordination: morningCoordination, overnightRun: overnightRun,
         strapLink: polarManager.linkState, strapLinkControl: polarManager.link, strapStream: polarManager.stream,
         strapRecording: polarManager.deviceRecording, strapRecorder: polarManager.recording,
@@ -113,7 +113,7 @@ final class RRCollector {
     /// Capture to the strap's own memory, and its download.
     @ObservationIgnored private(set) lazy var deviceRecording: DeviceRecordingSession = DeviceRecordingSession(
         archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker,
-        healthKit: healthKit, strapLink: polarManager.linkState, strapRecording: polarManager.deviceRecording,
+        sleepQueries: healthKit.sleepQueries, strapLink: polarManager.linkState, strapRecording: polarManager.deviceRecording,
         strapRecorder: polarManager.recording, rawBackup: rawBackup, reconciliation: reconciliation,
         recordingStore: recordingStore, scoring: scoring, sessionState: sessionState, strapGuards: strapGuards,
         streamingLifecycle: streamingLifecycle, verification: verification, windowSelector: windowSelector, morning: morning
@@ -122,7 +122,7 @@ final class RRCollector {
     /// Recovery of interrupted, lost and trashed recordings.
     @ObservationIgnored private(set) lazy var recovery: SessionRecoveryCoordinator = SessionRecoveryCoordinator(
         archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker,
-        cloudSyncManager: cloudSyncManager, healthKit: healthKit, morningCoordination: morningCoordination,
+        cloudSyncManager: cloudSyncManager, healthWrites: healthKit.writes, morningCoordination: morningCoordination,
         overnightRun: overnightRun, strapRecorder: polarManager.recording, rawBackup: rawBackup, recordingStore: recordingStore,
         scoring: scoring, services: services, sessionState: sessionState, settingsManager: settingsManager,
         strapGuards: strapGuards, streamingLifecycle: streamingLifecycle, windowSelector: windowSelector,
@@ -143,7 +143,7 @@ final class RRCollector {
     @ObservationIgnored private(set) lazy var bindings: CollectorBindings = CollectorBindings(
         archive: archive, archiveSignal: archiveSignal, baselineArchiveSync: baselineArchiveSync, baselineRebuild: baselineRebuild,
         baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, control: control, deviceStatus: deviceStatus,
-        healthKit: healthKit, liveHRVMirror: liveHRVMirror, morningCoordination: morningCoordination,
+        healthObservation: healthKit.observation, liveHRVMirror: liveHRVMirror, morningCoordination: morningCoordination,
         notificationObservers: notificationObservers, overnightRun: overnightRun,
         strapRecorder: polarManager.recording, strapStream: polarManager.stream, recovery: recovery,
         services: services, sessionState: sessionState, strapGuards: strapGuards, streamingLifecycle: streamingLifecycle
@@ -152,7 +152,7 @@ final class RRCollector {
     /// The few-minute streamed reading.
     @ObservationIgnored private(set) lazy var quickReading: QuickReadingSession = QuickReadingSession(
         analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector,
-        baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthKit: healthKit,
+        baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, trainingQueries: healthKit.training,
         overnightStreaming: overnightStreaming,
         strapStream: polarManager.stream, strapRecorder: polarManager.recording, strapBattery: polarManager.battery,
         rawBackup: rawBackup, recordingStore: recordingStore,
@@ -467,23 +467,23 @@ final class RRCollector {
         self.morningCoordination = morningCoordination ?? MorningCoordination()
         self.sessionState = sessionState ?? SessionState()
         self.scoring = scoring ?? SessionScoringContext(
-            settingsManager: settingsManager, healthKit: healthKit, baselineTracker: baselineTracker
+            settingsManager: settingsManager, healthKit: healthKit.service, baselineTracker: baselineTracker
         )
         let resolvedCloudSyncManager = cloudSyncManager ?? services.cloudKitSyncManager
         self.cloudSyncManager = resolvedCloudSyncManager
         self.reconciliation = reconciliation ?? ReconciliationManager(archive: archive)
         let resolvedPipeline = analysisPipeline ?? Self.makePipeline(
-            artifactDetector: artifactDetector, windowSelector: windowSelector, healthKit: healthKit
+            artifactDetector: artifactDetector, windowSelector: windowSelector, healthKit: healthKit.service
         )
         self.analysisPipeline = resolvedPipeline
-        self.sleepBoundaryResolver = sleepBoundaryResolver ?? SleepBoundaryResolver(healthKit: healthKit)
+        self.sleepBoundaryResolver = sleepBoundaryResolver ?? SleepBoundaryResolver(healthKit: healthKit.service)
         self.acceptanceService = acceptanceService ?? Self.makeAcceptanceService(
-            archive: archive, healthKit: healthKit, baselineTracker: baselineTracker,
+            archive: archive, healthKit: healthKit.service, baselineTracker: baselineTracker,
             rawBackup: rawBackup, cloudSync: resolvedCloudSyncManager
         )
         self.morningProcessingService = morningProcessingService ?? Self.makeMorningProcessingService(
             MorningProcessingDependencies(
-                archive: archive, healthKit: healthKit, pipeline: resolvedPipeline,
+                archive: archive, healthKit: healthKit.service, pipeline: resolvedPipeline,
                 windowSelector: windowSelector, artifactDetector: artifactDetector,
                 verification: verification, baselineTracker: baselineTracker, rawBackup: rawBackup
             )
@@ -498,7 +498,7 @@ final class RRCollector {
     private static func makePipeline(
         artifactDetector: ArtifactDetector,
         windowSelector: WindowSelector,
-        healthKit: HealthKitManager
+        healthKit: any HealthKitServiceProtocol
     ) -> HRVAnalysisPipeline {
         HRVAnalysisPipeline(
             artifactDetector: artifactDetector,
@@ -509,7 +509,7 @@ final class RRCollector {
 
     private static func makeAcceptanceService(
         archive: SessionArchive,
-        healthKit: HealthKitManager,
+        healthKit: any HealthKitServiceProtocol,
         baselineTracker: BaselineTracker,
         rawBackup: RawRRBackup,
         cloudSync: CloudKitSyncManager
@@ -532,7 +532,7 @@ final class RRCollector {
     /// stays inside `function_parameter_count`.
     struct MorningProcessingDependencies {
         let archive: SessionArchive
-        let healthKit: HealthKitManager
+        let healthKit: any HealthKitServiceProtocol
         let pipeline: HRVAnalysisPipeline
         let windowSelector: WindowSelector
         let artifactDetector: ArtifactDetector

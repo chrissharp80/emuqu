@@ -298,7 +298,7 @@ extension MorningSessionPipeline {
         // activity today. The dashboard uses forMorningReading: false (live, includes
         // today) so ATL visibly updates throughout the day as workouts sync.
         // History keeps the frozen morning value permanently.
-        scoring.cachedTrainingLoad = await healthKit.training.calculateTrainingLoad(forMorningReading: true)
+        scoring.cachedTrainingLoad = await trainingQueries.calculateTrainingLoad(forMorningReading: true)
         if let load = scoring.cachedTrainingLoad {
             debugLog("[RRCollector] Training load: weeklyScore=\(String(format: "%.1f", load.weeklyLoadScore)), daysSinceHard=\(load.daysSinceHardWorkout ?? -1)")
         }

@@ -21,7 +21,8 @@ final class CollectorBindings {
     let cloudSyncManager: CloudKitSyncManager
     let control: CollectorSessionControl
     let deviceStatus: DeviceStatus
-    let healthKit: HealthKitManager
+    /// Apple Health's sleep and vitals data versions, mirrored for the views.
+    let healthObservation: HealthObservation
     let liveHRVMirror: LiveHRVMirror
     let morningCoordination: MorningCoordination
     let notificationObservers: NotificationTokens
@@ -43,7 +44,7 @@ final class CollectorBindings {
         cloudSyncManager: CloudKitSyncManager,
         control: CollectorSessionControl,
         deviceStatus: DeviceStatus,
-        healthKit: HealthKitManager,
+        healthObservation: HealthObservation,
         liveHRVMirror: LiveHRVMirror,
         morningCoordination: MorningCoordination,
         notificationObservers: NotificationTokens,
@@ -64,7 +65,7 @@ final class CollectorBindings {
         self.cloudSyncManager = cloudSyncManager
         self.control = control
         self.deviceStatus = deviceStatus
-        self.healthKit = healthKit
+        self.healthObservation = healthObservation
         self.liveHRVMirror = liveHRVMirror
         self.morningCoordination = morningCoordination
         self.notificationObservers = notificationObservers

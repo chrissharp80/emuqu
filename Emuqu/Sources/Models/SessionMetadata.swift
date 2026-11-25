@@ -254,7 +254,7 @@ struct HRVSession: Codable, Identifiable, Sendable {
     /// Timestamp of when this workout was successfully
     /// pushed to HealthKit as an `HKWorkout`. nil = never exported (or
     /// exported under an older build that didn't track it). Used by
-    /// `HealthKitManager.backfillWorkoutsToHealthKit()` so we can
+    /// `HealthKitBackfill.backfillWorkoutsToHealthKit()` so we can
     /// scan the archive for un-exported sessions after the user
     /// finally grants workout-write permission, without double-publishing.
     var healthKitExportedAt: Date?

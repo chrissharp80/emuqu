@@ -243,7 +243,7 @@ extension WorkoutFinalizer {
     private func backfillHRAndAttachSamples(metadata: inout WorkoutMetadata, startDate: Date, stopDate: Date) async {
         let backfillResult = await Self.backfillWorkoutHRFromHealthKit(
             samples: recording.samples, sessionStart: startDate, sessionEnd: stopDate,
-            pauses: recording.pauseTimeline, healthKit: core.healthKit
+            pauses: recording.pauseTimeline, heartRate: core.heartRate
         )
         let filledCount = backfillResult.filledOffsets.count
         let samples = filledCount > 0 ? backfillResult.samples : recording.samples
@@ -487,9 +487,9 @@ extension WorkoutFinalizer {
         if let live = services.trainingMetricsCache.current, live.atl > 0 || live.ctl > 0 {
             return Self.trainingContext(fromCached: live, relativeTo: stopDate)
         }
-        let healthKit = core.healthKit
+        let training = core.training
         guard let load = await Self.runWithTimeout(seconds: 1.5, {
-            await healthKit.training.calculateTrainingLoad(forMorningReading: false)
+            await training.calculateTrainingLoad(forMorningReading: false)
         }) else {
             debugLog("[WorkoutRecorder.finalize] cache cold AND cold calculateTrainingLoad timed out at 1.5s — saving without trainingSnapshot")
             return nil
@@ -547,13 +547,13 @@ extension WorkoutFinalizer {
         sessionStart: Date,
         sessionEnd: Date,
         pauses: PauseTimeline = PauseTimeline(),
-        healthKit: HealthKitManager
+        heartRate: HeartRateHealthQueries
     ) async -> (samples: [WorkoutSample], filledOffsets: [Int], strapCount: Int) {
         let strapCount = samples.filter { $0.heartRate != nil }.count
         // Nothing to fill — short-circuit before paying for the
         // HealthKit query.
         guard samples.count - strapCount > 0 else { return (samples, [], strapCount) }
-        let healthKitSamples = await wristHRSamples(from: sessionStart, to: sessionEnd, healthKit: healthKit)
+        let healthKitSamples = await wristHRSamples(from: sessionStart, to: sessionEnd, heartRate: heartRate)
         guard !healthKitSamples.isEmpty else { return (samples, [], strapCount) }
 
         var filledOffsets: [Int] = []
@@ -590,9 +590,9 @@ extension WorkoutFinalizer {
     private static func wristHRSamples(
         from sessionStart: Date,
         to sessionEnd: Date,
-        healthKit: HealthKitManager
+        heartRate: HeartRateHealthQueries
     ) async -> [(date: Date, hr: Double)] {
-        switch await wristHRQuery(from: sessionStart, to: sessionEnd, healthKit: healthKit) {
+        switch await wristHRQuery(from: sessionStart, to: sessionEnd, heartRate: heartRate) {
         case nil:
             debugLog("[WorkoutRecorder.backfill] HealthKit HR query timed out after 3 s — no wrist HR backfill")
             return []
@@ -611,11 +611,11 @@ extension WorkoutFinalizer {
     private static func wristHRQuery(
         from sessionStart: Date,
         to sessionEnd: Date,
-        healthKit: HealthKitManager
+        heartRate: HeartRateHealthQueries
     ) async -> Result<[(date: Date, hr: Double)], any Error>? {
         await runWithTimeout(seconds: 3.0) { () async -> Result<[(date: Date, hr: Double)], any Error> in
             do {
-                return .success(try await healthKit.heartRate.fetchHeartRateSamples(from: sessionStart, to: sessionEnd))
+                return .success(try await heartRate.fetchHeartRateSamples(from: sessionStart, to: sessionEnd))
             } catch {
                 return .failure(error)
             }

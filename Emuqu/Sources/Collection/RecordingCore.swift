@@ -26,8 +26,17 @@ struct RecordingCore {
     /// The straps this app knows.
     let strapPairings: StrapPairings
 
-    /// HealthKit read/write (workouts, sleep, vitals).
-    let healthKit: HealthKitManager
+    /// The Health store and settings HealthKit reads and exports run through.
+    let healthAccess: HealthKitAccess
+
+    /// Apple Health heart rate: the wrist-HR backfill and heart-rate recovery.
+    let heartRate: HeartRateHealthQueries
+
+    /// Training load for a finished workout's snapshot.
+    let training: TrainingHealthQueries
+
+    /// The store a workout export replaces its earlier copies through.
+    let healthSampleStore: any HealthSampleStore
 
     /// On-disk session archive.
     let archive: SessionArchive

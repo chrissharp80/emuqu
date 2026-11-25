@@ -142,7 +142,7 @@ extension ReanalysisService {
     /// the sleep was being fetched (a rating, tags, a sleep edit) is kept, not
     /// overwritten with the copy the sweep loaded; the skip rules run again on
     /// that copy. Then sync. Nothing here writes to Apple Health; sleep
-    /// reaches it only through `HealthKitManager.exportSessionMetrics`, when
+    /// reaches it only through `HealthWriteAndObserve.exportSessionMetrics`, when
     /// `exportSleepData` is on and Emuqu is the night's only sleep source.
     private func persistRetroApply(_ newSleep: SleepData, sessionId: UUID, sessionEnd: Date) -> Bool {
         var written: HRVSession?

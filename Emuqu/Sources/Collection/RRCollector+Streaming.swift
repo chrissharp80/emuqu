@@ -235,7 +235,7 @@ extension QuickReadingSession {
         let analyzingSession = publishAnalyzingSession(on: sessionState, baseSession: baseSession, series: series)
         let flags = artifactDetector.detectArtifacts(in: series)
         if settingsManager.settings.enableTrainingLoadIntegration {
-            scoring.cachedTrainingLoad = await healthKit.calculateTrainingLoad()
+            scoring.cachedTrainingLoad = await trainingQueries.calculateTrainingLoad(forMorningReading: true)
         }
         let analysisResult = analysisPipeline.analyzeFullSeries(
             series: series, flags: flags,

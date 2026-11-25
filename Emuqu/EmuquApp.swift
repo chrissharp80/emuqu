@@ -552,14 +552,14 @@ struct EmuquApp: App {
     /// next launch.
     private func refreshHealthKitWriteAuthorization() {
         Task { @MainActor in
-            await collector.healthKit.ensureWriteAuthorizationFresh()
+            await collector.healthKit.authorization.ensureWriteAuthorizationFresh()
             // After (re-)granting permission, back-publish any workouts that
             // were archived locally but never reached HealthKit. Idempotent —
             // uses a per-session `healthKitExportedAt` flag to skip
             // already-published sessions. Runs in the background; the user
             // sees nothing.
             let weight = settingsManager.settings.effectiveBodyWeightKg
-            _ = await collector.healthKit.backfillWorkoutsToHealthKit(
+            _ = await collector.healthKit.backfill.backfillWorkoutsToHealthKit(
                 archive: collector.archive,
                 bodyWeightKg: weight
             )

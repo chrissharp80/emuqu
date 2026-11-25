@@ -87,7 +87,7 @@ extension SessionRecoveryCoordinator {
     /// False (logged) when HealthKit could not delete all of them.
     private func removeHealthExports(of id: UUID, over span: ClosedRange<Date>) async -> Bool {
         do {
-            try await healthKit.writes.removeExports(sessionId: id, from: span.lowerBound, to: span.upperBound)
+            try await healthWrites.removeExports(sessionId: id, from: span.lowerBound, to: span.upperBound)
             return true
         } catch {
             debugLog("[Recovery] Apple Health samples of \(id.uuidString.prefix(8)) could not all be deleted: \(error)", level: .error)
@@ -338,16 +338,17 @@ extension SessionRecoveryCoordinator {
     ///      no route exists. This is the "the app knows my steps" path.
     /// Either rebuild that is not archived reports `.failed`; a found route
     /// that could not be saved does not fall back to the distance path.
-    func recoverRouteFromAppleWatch(sessionId: UUID) async -> WatchRouteRecoveryResult {
+    /// `training` reads the Watch's route and Health's passive distance.
+    func recoverRouteFromAppleWatch(sessionId: UUID, training: TrainingHealthQueries) async -> WatchRouteRecoveryResult {
         guard let session = archive.retrieveOrLog(sessionId), let series = session.rrSeries else { return .failed }
         let start = session.startDate
         let end = session.endDate ?? start
-        if let route = await healthKit.training.fetchWorkoutRoute(from: start, to: end), route.count >= 2 {
+        if let route = await training.fetchWorkoutRoute(from: start, to: end), route.count >= 2 {
             guard let rebuilt = await recoverWorkout(sessionId: sessionId, points: series.points, track: route) else { return .failed }
             await MainActor.run { archiveSignal.notifyChanged() }
             return .recovered(distanceMeters: rebuilt.workoutMetadata?.distanceMeters ?? 0)
         }
-        let hkDistance = await healthKit.training.fetchPassiveDistanceMeters(from: start, to: end)
+        let hkDistance = await training.fetchPassiveDistanceMeters(from: start, to: end)
         // Only worth rewriting when HealthKit meaningfully beats what we recorded.
         guard hkDistance > (session.workoutMetadata?.distanceMeters ?? 0) + 50 else { return .noRoute }
         guard let rebuilt = await recoverWorkout(sessionId: sessionId, points: series.points, distanceMeters: hkDistance)

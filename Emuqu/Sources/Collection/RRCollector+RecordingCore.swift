@@ -17,7 +17,8 @@ extension RRCollector {
             strapLink: polarManager.linkState, strapStream: polarManager.stream,
             strapRecording: polarManager.deviceRecording, strapRecorder: polarManager.recording,
             strapDiscovery: polarManager.discovery, strapBattery: polarManager.battery,
-            strapPairings: polarManager.pairings, healthKit: healthKit, archive: archive,
+            strapPairings: polarManager.pairings, healthAccess: healthKit.access, heartRate: healthKit.heartRate,
+            training: healthKit.training, healthSampleStore: healthKit.sampleReplacer.store, archive: archive,
             cloudSyncManager: cloudSyncManager, rawBackup: rawBackup,
             analysisPipeline: analysisPipeline, archiveSignal: archiveSignal
         )

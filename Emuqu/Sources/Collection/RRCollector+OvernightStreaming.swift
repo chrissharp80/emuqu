@@ -128,8 +128,8 @@ extension OvernightStreamingCoordinator {
     /// SleepDetail card stays empty for "most nights" until the next
     /// launch happens to coincide with the Watch having synced.
     private func startOvernightHealthKitObservers() {
-        healthKit.writes.startObservingSleepData(morningNotifications: services.morningNotificationScheduler)
-        healthKit.vitals.startObservingVitalsData()
+        healthWrites.startObservingSleepData(morningNotifications: services.morningNotificationScheduler)
+        vitalsQueries.startObservingVitalsData()
     }
 
     private func logOvernightStreamingStart(session: HRVSession, sessionType: SessionType) {
@@ -465,7 +465,7 @@ extension OvernightStreamingCoordinator {
     /// observer re-triggers after unlock.
     private func attemptParallelSleepFetch(sessionStart: Date, attempt: Int) async -> SleepPollOutcome {
         do {
-            let sleepData = try await healthKit.fetchSleepData(for: sessionStart, recordingEnd: Date())
+            let sleepData = try await sleepQueries.fetchSleepData(for: sessionStart, recordingEnd: Date())
             guard sleepData.nightSleepMinutes > 0 else { return .retry }
             debugLog("[RRCollector] ✅ Parallel sleep poll: found \(sleepData.nightSleepMinutes) min on attempt \(attempt)")
             return .found(sleepData)

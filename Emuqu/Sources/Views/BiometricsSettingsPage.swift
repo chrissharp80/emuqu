@@ -138,7 +138,7 @@ struct BiometricsSettingsPage: View {
     func fillFromAppleHealth() async {
         isFillingFromHealthKit = true
         defer { isFillingFromHealthKit = false }
-        let profile = await dependencies.collection.healthKitManager.fetchBiometricProfile()
+        let profile = await dependencies.collection.healthKitManager.profile.fetchBiometricProfile()
         var settings = settingsManager.settings
         let filled = Self.fill(&settings, from: profile)
         if !filled.isEmpty { settingsManager.settings = settings }
