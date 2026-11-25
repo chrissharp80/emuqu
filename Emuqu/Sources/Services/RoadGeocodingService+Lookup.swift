@@ -276,7 +276,7 @@ extension RoadGeocodingService {
         // lock so non-MainActor readers (ContextBuilder, AI fact
         // resolvers running off the cooperative pool) can read the
         // context without trapping in `MainActor.assumeIsolated`.
-        AppDependencies.current.location.ambientLocationService.recordResolvedAddress(ctx)
+        ambientLocationService.recordResolvedAddress(ctx)
         lastLookupCoord = location.coordinate
         lastLookupAt = Date()
         consecutiveFailures = 0
@@ -448,7 +448,7 @@ extension RoadGeocodingService {
     ) async -> (name: String, distance: Double)? {
         guard let road = currentRoad else { return nil }
         guard !Self.normalizeStreetName(road).isEmpty else { return nil }
-        guard let tile = await AppDependencies.current.location.roadGraphService.tile(for: location.coordinate) else {
+        guard let tile = await roadGraph.tile(for: location.coordinate) else {
             return nil
         }
         // Find way IDs whose name normalizes to the current road.
@@ -538,7 +538,7 @@ extension RoadGeocodingService {
         }
         let upgraded = Self.withCrossStreet(name, on: existing)
         current = upgraded
-        AppDependencies.current.location.ambientLocationService.recordResolvedAddress(upgraded)
+        ambientLocationService.recordResolvedAddress(upgraded)
         debugLog("[RoadGeocoding] cross-street resolved \(Int(distance))m away (search radius \(Int(radius))m)", level: .info)
     }
 

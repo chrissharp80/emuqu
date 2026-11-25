@@ -77,7 +77,7 @@ extension EmuquApp {
         }
         debugLog("[App] Detected interrupted session: \(state.sessionId.uuidString.prefix(8)) started \(state.startTime)")
         // Write a termination report — iOS SIGKILL can't be caught by signal handlers
-        AppDependencies.current.app.crashLogManager.recordTermination(
+        launchServices.crashLogManager().recordTermination(
             sessionId: state.sessionId, sessionStart: state.startTime,
             sessionType: state.sessionType.rawValue
         )
@@ -145,7 +145,10 @@ extension EmuquApp {
             reason: .userInterrupted,
             archive: collector.archive,
             rawBackup: collector.rawBackup,
-            cloudSyncManager: syncManager
+            cloudSyncManager: syncManager,
+            workoutTrackBackup: launchServices.workoutTrackBackup(),
+            savedRouteStore: launchServices.savedRouteStore(),
+            settingsManager: settingsManager
         )
         collector.recordingStore.clear()
         guard let outcome else {

@@ -673,11 +673,14 @@ struct CollectorServices: Sendable {
 
     @MainActor
     var beatConsistencyPriorsCache: BeatConsistencyPriorsCache { container.analysis.beatConsistencyPriorsCache }
+    var breadcrumbStore: BreadcrumbStore { container.location.breadcrumbStore }
     @MainActor
     var cloudKitSyncManager: CloudKitSyncManager { container.storage.cloudKitSyncManager }
     var liveHRVBroker: LiveHRVBroker { container.assistant.liveHRVBroker }
     @MainActor
     var recorderBox: RecorderBox { container.app.recorderBox }
+    @MainActor
+    var savedRouteStore: SavedRouteStore { container.location.savedRouteStore }
     var systemDiagnosticsManager: SystemDiagnosticsManager { container.app.systemDiagnosticsManager }
     var workoutTrackBackup: WorkoutTrackBackup { container.storage.workoutTrackBackup }
 }

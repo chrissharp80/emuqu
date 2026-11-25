@@ -41,19 +41,23 @@ import UserNotifications
 /// **No marketing pushes ever.** Only the morning report fires here.
 @MainActor
 final class MorningNotificationScheduler {
-    static let shared = MorningNotificationScheduler()
-
     /// Identifier for the daily morning notification. Reused on every
     /// reschedule so we replace rather than stack pending notifications.
     private static let notificationIdentifier = "flow.recovery.morningReport"
 
     private let center = UNUserNotificationCenter.current()
+    /// The settings the pushes are gated and timed by.
+    private let settingsManager: SettingsManager
+    /// The archive the wake push reads this morning's score from.
+    private let archive: SessionArchive
 
     /// The daily request's text is frozen when it is scheduled, so a
     /// language change reschedules it in the new language.
     private var languageObserver: NSObjectProtocol?
 
-    private init() {
+    init(settingsManager: SettingsManager, archive: SessionArchive) {
+        self.settingsManager = settingsManager
+        self.archive = archive
         languageObserver = NotificationCenter.default.addObserver(
             forName: LanguageManager.languageDidChangeNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -95,10 +99,10 @@ final class MorningNotificationScheduler {
     /// report turned off, or a `cancelAll` with it (Delete All My Data),
     /// while it waited is not undone by adding the request it had prepared.
     func rescheduleIfNeeded() async {
-        guard AppDependencies.current.app.settingsManager.settings.dailyReportEnabled else { cancelAll(); return }
+        guard settingsManager.settings.dailyReportEnabled else { cancelAll(); return }
         let auth = await center.notificationSettings().authorizationStatus
         guard auth == .authorized || auth == .provisional || auth == .ephemeral else { cancelAll(); return }
-        let settings = AppDependencies.current.app.settingsManager.settings
+        let settings = settingsManager.settings
         guard settings.dailyReportEnabled else { cancelAll(); return }
         let time = Calendar.current.dateComponents([.hour, .minute], from: settings.dailyReportFixedTime)
         let request = UNNotificationRequest(
@@ -175,11 +179,11 @@ final class MorningNotificationScheduler {
     /// report turned off meanwhile sends nothing.
     func deliverWakeTriggeredPushIfAppropriate(sleepEnd: Date) async {
         // Fixed means the set time and nothing else.
-        guard Self.sendsWakePush(AppDependencies.current.app.settingsManager.settings) else { return }
+        guard Self.sendsWakePush(settingsManager.settings) else { return }
         let notificationSettings = await center.notificationSettings()
         let auth = notificationSettings.authorizationStatus
         guard auth == .authorized || auth == .provisional || auth == .ephemeral else { return }
-        let settings = AppDependencies.current.app.settingsManager.settings
+        let settings = settingsManager.settings
         guard Self.sendsWakePush(settings) else { return }
         let today = Calendar.current.startOfDay(for: Date())
         guard Self.isMorningWake(sleepEnd, schedule: settings.sleepSchedule),
@@ -275,12 +279,11 @@ final class MorningNotificationScheduler {
     }
 
     /// Variant of `buildPayload` that doesn't require an RRCollector —
-    /// reads directly from `AppDependencies.current.storage.sessionArchive`. Used by the sleep
+    /// reads directly from the scheduler's `archive`. Used by the sleep
     /// observer's wake-triggered push path, where no collector
     /// reference is in scope.
     private func buildPayloadFromArchive(settings: UserSettings, previewsHiddenWhileLocked: Bool) -> WakePayload {
         let title = "Emuqu"
-        let archive = AppDependencies.current.storage.sessionArchive
         // The score is looked for first: the teaser said "Your recovery is
         // in." on mornings with no reading at all.
         guard let scoreInt = Self.todaysScore(in: archive) else {

@@ -42,6 +42,7 @@ struct FactServices: Sendable {
     var providerRegistry: ProviderRegistry { container.providers.providerRegistry }
     @MainActor
     var roadGeocodingService: RoadGeocodingService { container.location.roadGeocodingService }
+    var roadGraphService: RoadGraphService { container.location.roadGraphService }
     @MainActor
     var savedRouteStore: SavedRouteStore { container.location.savedRouteStore }
     var sessionArchive: SessionArchive { container.storage.sessionArchive }
