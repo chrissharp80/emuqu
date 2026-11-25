@@ -835,7 +835,7 @@ struct EmuquApp: App {
     /// launch frame means the Watch's first Start gesture is instant.
     private func prebindWorkoutRecorder() {
         Task { @MainActor in
-            AppDependencies.current.app.recorderBox.bind(core: collector, conversation: voiceChat)
+            AppDependencies.current.app.recorderBox.bind(core: collector.recordingCore, conversation: voiceChat)
         }
     }
 

@@ -709,7 +709,7 @@ struct MorningResultsView: View {
     }
 
     private func hydrateAndLoad() async {
-        vm.baselineStats = collector.scoringBaselineStats(for: vm.displaySession)
+        vm.baselineStats = collector.scoring.scoringBaselineStats(for: vm.displaySession)
         vm.onUpdateSleep = onUpdateSleep
         await hydrateDisplaySessionIfNeeded()
         await vm.loadInitialData()

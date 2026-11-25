@@ -193,7 +193,7 @@ extension RecordView {
 
     func dismissFailedFetch() {
         fetchFailed = false
-        collector.resetSession()
+        collector.control.resetSession()
         selectedSessionType = nil
     }
 
@@ -276,7 +276,7 @@ extension RecordView {
             MorningProcessingCard(
                 status: status,
                 onSkipDeviceFetch: {
-                    collector.deviceFetchPolicy = .skipByUser
+                    collector.overnightRun.deviceFetchPolicy = .skipByUser
                     collector.polarManager.cancelFetch()
                 },
                 onSkipSleepWait: {
@@ -360,7 +360,7 @@ extension RecordView {
     /// all it does not score it: a quick reading carries no recovery score or
     /// sleep and vitals snapshots (see `analyzeStreamingData`).
     func clearFinishedQuickReading() {
-        collector.resetSession()
+        collector.control.resetSession()
         selectedTags.removeAll()
         sessionNotes = ""
         selectedSessionType = nil

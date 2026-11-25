@@ -64,7 +64,7 @@ extension RecordPanels {
         if deviceStatus.isRecordingOnDevice, !streamingLifecycle.isOvernightStreaming, deviceStatus.fetchProgress == nil {
             DeviceRecordingStatus(
                 deviceStatus: deviceStatus,
-                persistedStartTime: collector.getPersistedRecordingState()?.startTime
+                persistedStartTime: collector.recordingStore.load()?.startTime
             )
         }
     }
@@ -77,7 +77,7 @@ extension RecordPanels {
                 streamingLifecycle: streamingLifecycle,
                 polarManager: collector.polarManager,
                 strapBackup: strapBackupState,
-                sessionStartTime: collector.sessionStartTime
+                sessionStartTime: collector.streamingLifecycle.sessionStartTime
             )
         }
     }
@@ -464,7 +464,7 @@ extension RecordPanels {
             strapBatteryRefusalNote
         } else if isBatteryLow {
             batteryLowNote
-        } else if collector.hasUnrecoveredData {
+        } else if collector.strapGuards.hasUnrecoveredData {
             unrecoveredDataNote
         }
     }

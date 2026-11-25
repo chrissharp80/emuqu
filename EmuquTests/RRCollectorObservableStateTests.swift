@@ -112,17 +112,17 @@ final class RRCollectorObservableStateTests: XCTestCase {
     func testNotifyArchiveChangedIncrementsVersion() async {
         let collector = isolatedCollector()
         let initial = collector.archiveVersion
-        collector.notifyArchiveChanged()
+        collector.archiveSignal.notifyChanged()
         await waitForVersion(collector.archiveSignal, toReach: initial + 1)
         XCTAssertEqual(collector.archiveVersion, initial + 1)
-        collector.notifyArchiveChanged()
+        collector.archiveSignal.notifyChanged()
         await waitForVersion(collector.archiveSignal, toReach: initial + 2)
         XCTAssertEqual(collector.archiveVersion, initial + 2)
     }
 
     func testNotifyArchiveChangedPostsFlowRecoveryArchiveChangedNotification() {
         let exp = expectation(forNotification: .flowRecoveryArchiveChanged, object: nil)
-        collector.notifyArchiveChanged()
+        collector.archiveSignal.notifyChanged()
         wait(for: [exp], timeout: sanitizerSafeTimeout)
     }
 
@@ -132,7 +132,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
         // observable `version` increments after a mutation (via the existing
         // coalesce-aware helper).
         let initial = collector.archiveSignal.version
-        collector.notifyArchiveChanged()
+        collector.archiveSignal.notifyChanged()
         await waitForVersion(collector.archiveSignal, toReach: initial + 1)
         XCTAssertEqual(collector.archiveSignal.version, initial + 1)
     }
@@ -170,7 +170,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
     func testNotifyArchiveChangedForwardsToArchiveSignal() async {
         let collector = isolatedCollector()
-        collector.notifyArchiveChanged()
+        collector.archiveSignal.notifyChanged()
         await waitForVersion(collector.archiveSignal, toReach: 1)
         XCTAssertEqual(collector.archiveSignal.version, 1)
     }
@@ -277,11 +277,11 @@ final class RRCollectorObservableStateTests: XCTestCase {
     /// not hold the elapsed time back.
     func testTheStreamingClockIsTheWallClockSinceTheStart() {
         collector.streamingLifecycle.streamingElapsedSeconds = 3
-        collector.sessionStartTime = Date().addingTimeInterval(-125)
-        XCTAssertEqual(collector.streamingElapsedNow, 125, accuracy: 1)
+        collector.streamingLifecycle.sessionStartTime = Date().addingTimeInterval(-125)
+        XCTAssertEqual(collector.streamingLifecycle.streamingElapsedNow, 125, accuracy: 1)
 
-        collector.sessionStartTime = nil
-        XCTAssertEqual(collector.streamingElapsedNow, 4, "with no start time a tick counts one on")
+        collector.streamingLifecycle.sessionStartTime = nil
+        XCTAssertEqual(collector.streamingLifecycle.streamingElapsedNow, 4, "with no start time a tick counts one on")
     }
 
     func testStreamingLifecycleForwardsThroughCollector() {
@@ -403,7 +403,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
         collector.sessionState.needsAcceptance = true
         collector.streamingLifecycle.isPaused = true
 
-        collector.resetSession()
+        collector.control.resetSession()
 
         XCTAssertNil(collector.sessionState.currentSession)
         XCTAssertTrue(collector.sessionState.collectedPoints.isEmpty)
@@ -454,7 +454,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
 
     func testCreateTrainingContextReturnsNilWithoutCachedLoad() {
         collector.scoring.cachedTrainingLoad = nil
-        XCTAssertNil(collector.createTrainingContext(relativeTo: Date()))
+        XCTAssertNil(collector.scoring.createTrainingContext(relativeTo: Date()))
     }
 
     // MARK: - ANS configuration
@@ -543,7 +543,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
     }
 
     func testDeviceFetchPolicyDefaultsToAutomatic() {
-        if case .automatic = collector.deviceFetchPolicy {
+        if case .automatic = collector.overnightRun.deviceFetchPolicy {
             // OK
         } else {
             XCTFail("deviceFetchPolicy must default to .automatic")

@@ -4,57 +4,6 @@ import UIKit
 // MARK: - Lifecycle & Persisted State
 
 extension RRCollector {
-    // MARK: - Persisted Recording State
-
-    /// Persist recording start time and session info to survive app crashes
-    func persistRecordingState(sessionId: UUID, startTime: Date, sessionType: SessionType) {
-        let state = PersistedRecordingState(
-            sessionId: sessionId,
-            startTime: startTime,
-            sessionType: sessionType,
-            phase: sessionState.recordingPhase.description,
-            useDeviceInternalBackup: overnightRun.usesDeviceBackup
-        )
-        guard PersistedRecordingState.save(state) else {
-            debugLog("[RRCollector] Could not persist recording state for session \(sessionId.uuidString.prefix(8)) — a crash now would not offer it at launch", level: .error)
-            return
-        }
-        debugLog("[RRCollector] Persisted recording state: session=\(sessionId.uuidString.prefix(8)), start=\(startTime), phase=\(sessionState.recordingPhase)")
-    }
-
-    /// Clear persisted recording state (call on successful completion or explicit cancel)
-    func clearPersistedRecordingState() {
-        PersistedRecordingState.clear()
-        debugLog("[RRCollector] Cleared persisted recording state")
-    }
-
-    /// Retrieve persisted recording state (for recovery after crash/disconnect)
-    func getPersistedRecordingState() -> (sessionId: UUID, startTime: Date, sessionType: SessionType)? {
-        guard let state = PersistedRecordingState.load() else {
-            return nil
-        }
-        return (state.sessionId, state.startTime, state.sessionType)
-    }
-
-    /// Retrieve the persisted capture mode preference (device internal backup flag):
-    /// the recording's, else the paused night's (its recording marker is
-    /// cleared at pause). Nil when neither holds one.
-    func getPersistedCaptureMode() -> Bool? {
-        PersistedRecordingState.load()?.useDeviceInternalBackup ?? control.persistedPausedCaptureMode()
-    }
-
-    /// Check if there's a persisted recording that needs recovery
-    var hasPersistedRecordingState: Bool {
-        getPersistedRecordingState() != nil
-    }
-
-    /// Clear persisted recording state after recovery or dismissal from app launch alert.
-    /// The same as `clearPersistedRecordingState`, which is not private either;
-    /// the app layer's launch-recovery callers still use this name.
-    func clearPersistedRecordingStatePublic() {
-        clearPersistedRecordingState()
-    }
-
     // MARK: - Data Rescue Callback
 
     /// Hook PolarManager's rescue callback so a recording taken off the strap
@@ -67,7 +16,7 @@ extension RRCollector {
             self?.backUpRescuedRecording(recording) ?? false
         }
         polarManager.savedRecordingCheck = { [weak self] start in
-            self?.isStrapRecordingSaved(startedAt: start) ?? false
+            self?.strapGuards.isStrapRecordingSaved(startedAt: start) ?? false
         }
     }
 

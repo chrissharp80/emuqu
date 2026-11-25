@@ -72,7 +72,7 @@ struct SampleDataLibrary {
             )
             guard !ids.isEmpty else { throw SampleDataError.noOpenNights }
             appendToLedger(ids)
-            collector.notifyArchiveChanged()
+            collector.archiveSignal.notifyChanged()
             return ids.count
         } catch {
             await undoFailedSeed()
@@ -126,7 +126,7 @@ struct SampleDataLibrary {
         guard let result = night.analysisResult else { return session }
         session.hrvDataQuality = SessionAcceptanceService.classifyHRVQuality(
             result: result, sleepData: night.sleepSnapshot,
-            baselineStats: collector.scoringBaselineStats(for: night),
+            baselineStats: collector.scoring.scoringBaselineStats(for: night),
             recordingStart: night.startDate, recordingEnd: night.endDate ?? night.startDate
         ).dataQuality
         if let outcome = await collector.morning.computeRecoveryScore(for: session, from: result) {
@@ -159,7 +159,7 @@ struct SampleDataLibrary {
         let removed = await Task.detached(priority: .userInitiated) {
             DemoSessionSeeder.remove(ids, from: archive)
         }.value
-        collector.notifyArchiveChanged()
+        collector.archiveSignal.notifyChanged()
         sendCloudDeletions(removed)
         await rebuildBaseline()
         guard removed.count == ids.count else { throw SampleDataError.incompleteRemoval(remaining: ids.count - removed.count) }

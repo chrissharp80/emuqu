@@ -223,7 +223,7 @@ struct RecordView: View {
     private func acknowledgeError() {
         guard !fetchFailed else { return }
         if sessionState.currentSession?.state == .failed {
-            collector.resetSession()
+            collector.control.resetSession()
         }
         sessionState.lastError = nil
     }
@@ -268,7 +268,7 @@ struct RecordView: View {
 
     private func restoreCaptureMode() {
         // Restore capture mode from persisted state when returning to a paused session.
-        if streamingLifecycle.isPaused, let useBackup = collector.getPersistedCaptureMode() {
+        if streamingLifecycle.isPaused, let useBackup = collector.recordingStore.captureMode() {
             extendedCaptureMode = useBackup ? .both : .streaming
         } else if !streamingLifecycle.isOvernightStreaming {
             // Load user's saved default capture mode preference

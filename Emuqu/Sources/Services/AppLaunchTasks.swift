@@ -62,7 +62,7 @@ extension EmuquApp {
         }
         let recorderBox = launchServices.recorderBox()
         if recorderBox.recorder == nil {
-            recorderBox.bind(core: collector, conversation: voiceChat)
+            recorderBox.bind(core: collector.recordingCore, conversation: voiceChat)
         }
         guard let recorder = recorderBox.recorder else { return }
         switch recorder.lifecycle.phase {

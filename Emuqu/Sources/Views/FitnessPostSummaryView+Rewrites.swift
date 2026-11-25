@@ -162,7 +162,7 @@ extension FitnessSummaryCards {
         switch outcome {
         case .success(let updated?):
             refreshedSession = updated
-            collector.notifyArchiveChanged()
+            collector.archiveSignal.notifyChanged()
             elevResmoothPreview = nil
             debugLog("[ResmoothElevation] rewrote gain=\(Int(gain)) loss=\(Int(loss)) for session \(id)")
         case .success(nil):
@@ -318,7 +318,7 @@ extension FitnessSummaryCards {
         // The α1 stats cache key covers the values too, so the new samples
         // miss it anyway; clearing it here also frees the old entry at once.
         alpha1StatsCache.cachedKey = nil
-        collector.notifyArchiveChanged()
+        collector.archiveSignal.notifyChanged()
         debugLog("[Alpha1Reanalyze] rewrote \(readingCount) α1 readings for session \(session.id)")
     }
 

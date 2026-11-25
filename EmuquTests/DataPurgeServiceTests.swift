@@ -721,7 +721,7 @@ final class DataPurgeServiceTests: XCTestCase {
     /// A workout counts while it records (paused included, which keeps the
     /// phase) and while it is being finalised, not once it has finished.
     func testAnActiveWorkoutCounts() {
-        let recorder = WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
+        let recorder = WorkoutRecorder(core: SnapshotFixtures.collector().recordingCore, conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
         XCTAssertFalse(DataPurgeService.isRecordingInProgress(collector: nil, workout: recorder), "idle workout")
 
         recorder.lifecycle.phase = .recording

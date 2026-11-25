@@ -548,7 +548,7 @@ struct HistoryView: View {
     private func writeTags(_ id: UUID, tags: [ReadingTag], notes: String?, to archive: SessionArchive) async {
         do {
             try await Task.detached(priority: .userInitiated) { try archive.updateTags(id, tags: tags, notes: notes) }.value
-            collector.notifyArchiveChanged()
+            collector.archiveSignal.notifyChanged()
         } catch {
             debugLog("[HistoryView] Failed to update tags: \(error)")
             failureMessage = String(localized: "Couldn't save: \(error.localizedDescription)", bundle: LanguageManager.appBundle)

@@ -33,7 +33,7 @@ struct StreamingProgressPanel: View {
     /// (another tab, say): the countdown keeps running in the collector, and
     /// without a handler the reading never ended. The next panel replaces it.
     private func installAutoCompleteHandler() {
-        collector.onStreamingComplete = stopStreaming
+        collector.streamingLifecycle.onStreamingComplete = stopStreaming
     }
 
     /// Calm recording surface. Breathing mandala

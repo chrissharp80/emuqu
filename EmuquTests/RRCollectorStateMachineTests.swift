@@ -245,9 +245,9 @@ final class RRCollectorStateMachineTests: XCTestCase {
         let recovered = RRCollector()
 
         // Should detect persisted state
-        XCTAssertTrue(recovered.hasPersistedRecordingState)
+        XCTAssertTrue(recovered.recordingStore.hasRecording)
 
-        let state = recovered.getPersistedRecordingState()
+        let state = recovered.recordingStore.load()
         XCTAssertNotNil(state)
         XCTAssertEqual(state?.sessionId, sessionId)
         XCTAssertEqual(state?.sessionType, sessionType)
@@ -269,7 +269,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
 
         // On restart, new collector should detect persisted state
         let newCollector = RRCollector()
-        XCTAssertTrue(newCollector.hasPersistedRecordingState)
+        XCTAssertTrue(newCollector.recordingStore.hasRecording)
     }
 
     // MARK: - Session Archive Tests

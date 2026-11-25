@@ -49,7 +49,7 @@ extension MorningSessionPipeline {
         session: HRVSession, result: HRVAnalysisResult, sleep: SleepData?, vitals: RecoveryVitals?, training: TrainingContext?
     ) -> RecoveryScoreCalculator.ScoreBreakdown {
         let sessionEnd = session.endDate ?? session.startDate
-        let baselineStats = collector.scoringBaselineStats(for: session)
+        let baselineStats = collector.scoring.scoringBaselineStats(for: session)
         let quality = SessionAcceptanceService.classifyHRVQuality(
             result: result, sleepData: sleep, baselineStats: baselineStats,
             recordingStart: session.startDate, recordingEnd: sessionEnd
@@ -73,7 +73,7 @@ extension MorningSessionPipeline {
     /// use it.
     func scoringTrainingContext(result: HRVAnalysisResult?, sessionEnd: Date) async -> TrainingContext? {
         if let frozen = result?.trainingContext { return frozen }
-        return await collector.createTrainingContextEnsuringFresh(relativeTo: sessionEnd)
+        return await collector.scoring.createTrainingContextEnsuringFresh(relativeTo: sessionEnd)
     }
 
     // MARK: - Analysis (delegates to HRVAnalysisPipeline)
@@ -101,12 +101,12 @@ extension MorningSessionPipeline {
             session: session,
             sleepStartMs: boundaries.sleepStartMs,
             wakeTimeMs: boundaries.wakeTimeMs,
-            trainingContext: await collector.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
-            ansConfig: collector.ansConfig(for: session),
+            trainingContext: await collector.scoring.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
+            ansConfig: collector.scoring.ansConfig(for: session),
             // Pass the same baseline the scorer uses so window selection
             // agrees with scoring — no more "higher-RMSSD window scores lower"
             // mismatch.
-            baselineStats: collector.scoringBaselineStats(for: session)
+            baselineStats: collector.scoring.scoringBaselineStats(for: session)
         )
     }
 

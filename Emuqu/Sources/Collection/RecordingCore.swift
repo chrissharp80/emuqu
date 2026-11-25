@@ -1,53 +1,45 @@
 import Foundation
 
-// MARK: - Recording Core
-//
-// Shared substrate for anything that records a session backed by an HRVSession:
-// HRV (overnight/nap/quick/breathe) and workouts all need the same handful of
-// services — Polar BLE, archive persistence, CloudKit sync, HealthKit access.
-//
-// This protocol is the single "logical location" for those shared dependencies.
-// RRCollector conforms to it (see RRCollector+RecordingCore.swift) so the
-// existing HRV pipeline keeps working unchanged, and new recorders
-// (WorkoutRecorder) depend on the protocol rather than on RRCollector directly.
-//
-// Intentionally narrow: only the capabilities every recorder needs. Recorder-
-// specific state (overnight device-refinement, workout GPS, etc.) lives on the
-// concrete recorders, not here.
-//
-// @MainActor because every conformer (RRCollector today) is itself MainActor-
-// isolated, and the consumers (WorkoutRecorder, view models) all touch this
-// from the main actor. Without the annotation Swift 6 flags the conformance
-// as a data race risk.
+/// The services every recorder of an `HRVSession` shares: the strap, Apple
+/// Health, the archive, iCloud sync, the raw RR backup, the analysis pipeline
+/// and the signal that tells views the archive changed. HRV recordings
+/// (`RRCollector`) and workouts (`WorkoutRecorder`) are both built over the
+/// same instances, which the collector hands out as `recordingCore`.
+///
+/// Recorder-specific state (overnight device refinement, workout GPS) lives
+/// on the recorders, not here.
 @MainActor
-protocol RecordingCore: AnyObject {
+struct RecordingCore {
     /// BLE device controller (H10, Verity Sense).
-    var polarManager: PolarManager { get }
+    let polarManager: PolarManager
 
     /// HealthKit read/write (workouts, sleep, vitals).
-    var healthKit: HealthKitManager { get }
+    let healthKit: HealthKitManager
 
     /// On-disk session archive.
-    var archive: SessionArchive { get }
+    let archive: SessionArchive
 
     /// CloudKit synchronization.
-    var cloudSyncManager: CloudKitSyncManager { get }
+    let cloudSyncManager: CloudKitSyncManager
 
-    /// Append-only raw RR backup. Shared across recorders so crash-recovery
-    /// (SessionRecoveryService) can enumerate everything the device has
-    /// captured — HRV AND workout — from one place. Workouts additionally
-    /// lean on it for the "don't lose my 4-mile walk" guarantee: every ~60s
-    /// during a workout we append the latest beats here before attempting
-    /// CloudKit upload, so an iOS kill or crash can be restored from disk.
-    var rawBackup: RawRRBackup { get }
+    /// Append-only raw RR backup. Shared across recorders so crash recovery
+    /// (`SessionRecoveryService`) can enumerate everything the device has
+    /// captured, HRV and workout, from one place. A workout appends its
+    /// latest beats here about every 60 s, so an iOS kill or crash can be
+    /// restored from disk.
+    let rawBackup: RawRRBackup
 
-    /// Shared HRV analysis pipeline — workouts use the same time-domain /
-    /// frequency-domain / DFA machinery as overnight sessions; what differs is
-    /// the window and downstream interpretation, not the analysis itself.
-    var analysisPipeline: HRVAnalysisPipeline { get }
+    /// Shared HRV analysis pipeline: workouts use the same time-domain,
+    /// frequency-domain and DFA machinery as overnight sessions; what differs
+    /// is the window and downstream interpretation, not the analysis itself.
+    let analysisPipeline: HRVAnalysisPipeline
 
-    /// Called after a session is archived so downstream observers (dashboard,
-    /// trends, history) re-render. Currently backed by RRCollector's
-    /// `archiveVersion` observable counter.
-    func notifyArchiveChanged()
+    /// Bumped after a session is archived so the dashboard, trends and
+    /// history re-render.
+    let archiveSignal: ArchiveSignal
+
+    /// Tells the views the archive changed.
+    func notifyArchiveChanged() {
+        archiveSignal.notifyChanged()
+    }
 }

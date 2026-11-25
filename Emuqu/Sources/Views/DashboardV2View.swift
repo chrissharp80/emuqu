@@ -436,7 +436,7 @@ struct DashboardV2View: View {
                 session: session,
                 result: result,
                 recentSessions: sessions,
-                baselineStats: collector.scoringBaselineStats(for: session)
+                baselineStats: collector.scoring.scoringBaselineStats(for: session)
             )
         } else {
             EmptyState(

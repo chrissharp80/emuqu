@@ -35,7 +35,7 @@ extension MorningSessionPipeline {
         // Fetch training load before delegating (updates cachedTrainingLoad on self)
         await collector.deviceRecording.fetchTrainingLoadIfEnabled()
         showAnalyzingSession(baseSession: baseSession, points: points, skip: isBackgroundRefinement)
-        let freshContext = await collector.createTrainingContextEnsuringFresh()
+        let freshContext = await collector.scoring.createTrainingContextEnsuringFresh()
         let result = await collector.morningProcessingService.processOvernightData(
             MorningProcessingService.OvernightRequest(
                 points: points, baseSession: baseSession, dataSource: dataSource, reconnectCount: reconnectCount,
@@ -75,7 +75,7 @@ extension MorningSessionPipeline {
             enableTrainingLoadIntegration: settings.enableTrainingLoadIntegration,
             typicalSleepHours: settings.typicalSleepHours,
             scoringConfig: collector.scoring.currentScoringConfig,
-            ansConfig: collector.ansConfig(for: baseSession),
+            ansConfig: collector.scoring.ansConfig(for: baseSession),
             sessionMergeMode: settings.sessionMergeMode,
             mergeGapSeconds: settings.effectiveMergeGapSeconds
         )
@@ -114,7 +114,7 @@ extension MorningSessionPipeline {
             finalSession.trainingSnapshot = existing.trainingSnapshot
         }
         if finalSession.trainingSnapshot == nil {
-            finalSession.trainingSnapshot = freshContext ?? collector.createTrainingContext()
+            finalSession.trainingSnapshot = freshContext ?? collector.scoring.createTrainingContext()
         }
         if let frozen = finalSession.trainingSnapshot {
             finalSession.analysisResult?.trainingContext = frozen
@@ -138,7 +138,7 @@ extension MorningSessionPipeline {
             collector.sessionState.recordingPhase = .idle
         }
         collector.sessionState.baselineDeviation = result.baselineDeviation
-        collector.sessionStartTime = nil
+        collector.streamingLifecycle.sessionStartTime = nil
     }
 
     /// Save the night before the user reviews it, so a crash on the review
@@ -201,7 +201,7 @@ extension MorningSessionPipeline {
             debugLog("[RRCollector] Discard: could not move session \(reviewId.uuidString.prefix(8)) to Trash: \(error)", level: .error)
             return
         }
-        collector.rebuildBaselineFromArchive()
+        collector.baselineRebuild.rebuildFromArchive()
         let cloudSync = collector.cloudSyncManager
         Task { await cloudSync.uploadDeletion(reviewId) }
     }

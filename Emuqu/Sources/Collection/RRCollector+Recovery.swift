@@ -48,45 +48,6 @@ extension SessionRecoveryCoordinator {
         try await collector.deviceRecording.stopSession()
     }
 
-    // MARK: - Whose recording is on the strap
-
-    /// A session of this app is recording right now, and the strap's
-    /// recording is its own: an internal-mode or overnight night, or a
-    /// workout's backup. Recovery flows leave that recording alone. A night
-    /// being ended is still live: its ending stops and downloads the strap.
-    var strapRecordingBelongsToLiveSession: Bool {
-        if collector.sessionState.isCollecting || collector.streamingLifecycle.isOvernightStreaming || collector.streamingLifecycle.isEndingOvernight {
-            return true
-        }
-        return strapRecordingBelongsToLiveWorkout
-    }
-
-    /// A workout is recording or finishing, so the strap's recording is its
-    /// backup. The Record screen's strap-only Stop and Discard leave it alone.
-    var strapRecordingBelongsToLiveWorkout: Bool {
-        guard let recorder = collector.services.recorderBox.recorder else { return false }
-        return recorder.lifecycle.phase == .recording || recorder.lifecycle.phase == .finalizing
-    }
-
-    /// A workout the app died during, never archived, owns the strap's
-    /// recording: its recording state is saved as a workout. Workout recovery
-    /// (`recoverInterruptedWorkoutFromStrap`, the Record screen's "Recover
-    /// workout from strap") rebuilds it with its route; Stop and Recover
-    /// would file it through the overnight path without one.
-    var strapHeldByInterruptedWorkout: Bool {
-        guard let state = collector.getPersistedRecordingState(), state.sessionType == .workout else { return false }
-        return !collector.archive.store.exists(state.sessionId)
-    }
-
-    /// A recording still running on the strap that no session owns: none is
-    /// live and none is on record to stop it (a crashed night or workout has
-    /// its own recovery). Left by a crash, or started on the strap itself.
-    var strapHoldsOrphanedRecording: Bool {
-        collector.polarManager.isRecordingOnDevice
-            && collector.getPersistedRecordingState() == nil
-            && !strapRecordingBelongsToLiveSession
-    }
-
     // MARK: - Recover from Device
 
     /// Take the strap's recording off it (stopping one still running) and
@@ -114,11 +75,11 @@ extension SessionRecoveryCoordinator {
     private func checkRecoverable() throws {
         let manager = collector.polarManager
         guard manager.connectionState == .connected else { throw recoveryRefused(.notConnected) }
-        guard !strapRecordingBelongsToLiveSession, !strapHeldByInterruptedWorkout else {
+        guard !collector.strapGuards.belongsToLiveSession, !collector.strapGuards.heldByInterruptedWorkout else {
             throw recoveryRefused(.alreadyRecording)
         }
         let alreadySaved = manager.hasStoredExercise && manager.storedExerciseDate != nil
-            && !manager.isRecordingOnDevice && !collector.hasUnrecoveredData
+            && !manager.isRecordingOnDevice && !collector.strapGuards.hasUnrecoveredData
         guard !alreadySaved else { throw recoveryRefused(.strapRecordingAlreadySaved) }
     }
 
@@ -162,7 +123,7 @@ extension SessionRecoveryCoordinator {
     }
 
     private func persistedSessionOwning(_ recording: StrapRecording) -> DeviceRecordingSession.DownloadPlacement? {
-        guard let persisted = collector.getPersistedRecordingState(), persisted.sessionType != .workout,
+        guard let persisted = collector.recordingStore.load(), persisted.sessionType != .workout,
               let start = recording.startedAt,
               StrapRecordingPolicy.recording(startedAt: start, belongsToSessionStartedAt: persisted.startTime)
         else { return nil }

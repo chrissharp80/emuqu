@@ -272,7 +272,7 @@ struct MainTabView: View {
             session: session,
             result: result,
             recentSessions: sessions,
-            baselineStats: collector.scoringBaselineStats(for: session),
+            baselineStats: collector.scoring.scoringBaselineStats(for: session),
             totalSessionCount: collector.baselineTracker.daysCollected,
             onReanalyze: { await rescoreReport(session, method: $0) },
             onReanalyzeAt: { await rescoreReportAt(session, targetMs: $0) }

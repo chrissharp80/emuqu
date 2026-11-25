@@ -37,7 +37,7 @@ struct OvernightStreamingStatus: View {
     var streamingLifecycle: StreamingLifecycle
     var polarManager: PolarManager
     var strapBackup: StrapBackup = .notRequested
-    /// When this segment started streaming (`RRCollector.sessionStartTime`,
+    /// When this segment started streaming (`StreamingLifecycle.sessionStartTime`,
     /// set with the elapsed counter's reset). Elapsed is measured from it.
     var sessionStartTime: Date?
 

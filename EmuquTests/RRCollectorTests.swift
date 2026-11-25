@@ -56,9 +56,9 @@ final class RRCollectorTests: XCTestCase {
         let sessionId = UUID()
         let startTime = Date(timeIntervalSince1970: 1_790_000_000)
 
-        collector.persistRecordingState(sessionId: sessionId, startTime: startTime, sessionType: .overnight)
+        collector.recordingStore.persist(sessionId: sessionId, startTime: startTime, sessionType: .overnight)
 
-        let retrieved = try XCTUnwrap(collector.getPersistedRecordingState(), "Should retrieve persisted state")
+        let retrieved = try XCTUnwrap(collector.recordingStore.load(), "Should retrieve persisted state")
         XCTAssertEqual(retrieved.sessionId, sessionId)
         XCTAssertEqual(retrieved.sessionType, .overnight)
         XCTAssertEqual(retrieved.startTime.timeIntervalSince1970, startTime.timeIntervalSince1970, accuracy: 0.001)
@@ -69,12 +69,12 @@ final class RRCollectorTests: XCTestCase {
 
     /// Test persisted state detection and clearing
     func testPersistedStateCleared() {
-        collector.persistRecordingState(sessionId: UUID(), startTime: Date(), sessionType: .overnight)
-        XCTAssertTrue(collector.hasPersistedRecordingState)
+        collector.recordingStore.persist(sessionId: UUID(), startTime: Date(), sessionType: .overnight)
+        XCTAssertTrue(collector.recordingStore.hasRecording)
 
-        collector.clearPersistedRecordingStatePublic()
+        collector.recordingStore.clear()
 
-        XCTAssertFalse(collector.hasPersistedRecordingState)
+        XCTAssertFalse(collector.recordingStore.hasRecording)
     }
 
     /// A build from before the atomic record left three separate keys. A
@@ -94,9 +94,9 @@ final class RRCollectorTests: XCTestCase {
         let freshCollector = makeCollector()
 
         // Should detect persisted state
-        XCTAssertTrue(freshCollector.hasPersistedRecordingState)
+        XCTAssertTrue(freshCollector.recordingStore.hasRecording)
 
-        let recovered = freshCollector.getPersistedRecordingState()
+        let recovered = freshCollector.recordingStore.load()
         XCTAssertNotNil(recovered)
         XCTAssertEqual(recovered?.sessionId, sessionId)
         XCTAssertEqual(recovered?.sessionType, sessionType)

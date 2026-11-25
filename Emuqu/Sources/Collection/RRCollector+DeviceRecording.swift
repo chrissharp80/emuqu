@@ -31,7 +31,7 @@ extension DeviceRecordingSession {
     /// its recording off the strap.
     /// - Parameter sessionType: The type of session (overnight, nap, or quick)
     func startSession(sessionType: SessionType = .overnight) async throws {
-        try collector.requireConnectedWithNoNightHeld(starting: "a strap recording")
+        try collector.strapGuards.requireConnectedWithNoNightHeld(starting: "a strap recording")
         // The strap's own answer, not a flag a stopped recording left behind.
         await collector.polarManager.recording.refreshRecordingState(
             until: Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds)
@@ -48,7 +48,7 @@ extension DeviceRecordingSession {
         await publishDeviceRecordingStarted(session: session, startTime: startTime)
         // Persisted at once, with the phase just set: survives app crashes,
         // phone reboots, etc.
-        collector.persistRecordingState(sessionId: session.id, startTime: startTime, sessionType: sessionType)
+        collector.recordingStore.persist(sessionId: session.id, startTime: startTime, sessionType: sessionType)
     }
 
     /// Captured before starting — tracks source device and collection method.
@@ -69,7 +69,7 @@ extension DeviceRecordingSession {
     private func publishDeviceRecordingStarted(session: HRVSession, startTime: Date) async {
         collector.sessionState.currentSession = session
         collector.sessionState.collectedPoints = []
-        collector.sessionStartTime = startTime
+        collector.streamingLifecycle.sessionStartTime = startTime
         collector.sessionState.isCollecting = true
         collector.sessionState.recordingPhase = .deviceRecording
     }
@@ -88,7 +88,7 @@ extension DeviceRecordingSession {
     /// workout's backup: it is left alone, `alreadyRecording` is shown, and
     /// nil is returned.
     func stopSession() async throws -> HRVSession? {
-        guard !collector.strapRecordingIsHeldElsewhere("stopping") else { return nil }
+        guard !collector.strapGuards.isHeldElsewhere("stopping") else { return nil }
         guard collector.polarManager.connectionState == .connected else {
             throw RRCollector.CollectorError.notConnected
         }
@@ -258,7 +258,7 @@ extension DeviceRecordingSession {
     /// wrong one.
     func resolveBaseSession() -> HRVSession? {
         if let current = collector.sessionState.currentSession, current.deviceProvenance?.recordingMode == .deviceInternal { return current }
-        if let persisted = collector.getPersistedRecordingState() {
+        if let persisted = collector.recordingStore.load() {
             debugLog("[RRCollector] Using persisted recording state for session start time: \(persisted.startTime)")
             return Self.collectingSession(from: persisted)
         }
@@ -512,7 +512,7 @@ extension DeviceRecordingSession {
     private func freezeTrainingSnapshot(on finalSession: inout HRVSession) async {
         if finalSession.trainingSnapshot == nil {
             let asOf = finalSession.endDate ?? finalSession.startDate
-            finalSession.trainingSnapshot = await collector.createTrainingContextEnsuringFresh(relativeTo: asOf)
+            finalSession.trainingSnapshot = await collector.scoring.createTrainingContextEnsuringFresh(relativeTo: asOf)
         }
         if let frozen = finalSession.trainingSnapshot { finalSession.analysisResult?.trainingContext = frozen }
     }
@@ -550,7 +550,7 @@ extension DeviceRecordingSession {
             collector.sessionState.recordingPhase = .awaitingAcceptance
         }
         collector.sessionState.baselineDeviation = deviation
-        collector.sessionStartTime = nil
+        collector.streamingLifecycle.sessionStartTime = nil
         collector.archiveSignal.notifyChanged()
     }
 }

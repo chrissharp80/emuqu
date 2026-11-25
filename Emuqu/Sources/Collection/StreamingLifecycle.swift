@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 /// Published streaming and pause/resume lifecycle state.
 ///
@@ -9,12 +10,29 @@ import Observation
 /// publishes.
 ///
 /// Covers both active streaming (quick 3–5 min or overnight) and the
-/// paused/resume-able fragment of an overnight session. The collector
-/// retains thin back-compat getters/setters so the many extension files
-/// that orchestrate these transitions don't all have to change at once.
+/// paused/resume-able fragment of an overnight session.
 @MainActor
 @Observable
 final class StreamingLifecycle {
+    /// When the streaming session being recorded started.
+    var sessionStartTime: Date?
+
+    /// The quick or overnight session's 1 Hz tick. Held in a lock so
+    /// `deinit` can invalidate it without touching a non-`Sendable` stored
+    /// property from a nonisolated context.
+    @ObservationIgnored private let streamingTimerBox = OSAllocatedUnfairLock<Timer?>(uncheckedState: nil)
+    var streamingTimer: Timer? {
+        get { streamingTimerBox.withLockUnchecked { $0 } }
+        set { streamingTimerBox.withLockUnchecked { $0 = newValue } }
+    }
+
+    /// The strap's reconnect count the overnight session last acted on, so
+    /// each reconnect is handled once.
+    var lastSeenReconnectCount: Int = 0
+
+    /// Called when a quick streaming session completes on its own.
+    @ObservationIgnored var onStreamingComplete: (() -> Void)?
+
     /// True while a streaming-mode recording is active (quick or overnight).
     /// Drives `DeviceStatus.isStreaming` through the collector's binding.
     var isStreamingMode: Bool = false
@@ -110,5 +128,32 @@ final class StreamingLifecycle {
         guard age >= Self.staleEndingClaimAge else { return .endingInProgress }
         overnightEndingClaim = nil
         return .droppedStale(ageSeconds: age)
+    }
+
+    /// Hours to charge to the strap's battery-usage counter for the streaming
+    /// session being stopped: wall clock since `sessionStartTime` (the 1 Hz
+    /// tick counter falls behind while the app is suspended), or the tick
+    /// count when there is no start time.
+    var streamingHoursForBattery: Double {
+        sessionStartTime.map { max(0, Date().timeIntervalSince($0)) / 3600.0 }
+            ?? Double(streamingElapsedSeconds) / 3600.0
+    }
+
+    /// The streaming session's elapsed seconds for a 1 Hz tick to publish:
+    /// wall clock since `sessionStartTime`, as the battery hours are, since
+    /// the tick misses every second the app is suspended. One tick on from
+    /// the last value when there is no start time.
+    var streamingElapsedNow: Int {
+        sessionStartTime.map { max(0, Int(Date().timeIntervalSince($0))) } ?? streamingElapsedSeconds + 1
+    }
+
+    // The timer's run loop is the main one; deinit can run elsewhere, so it hops there.
+    deinit {
+        let timerBox = streamingTimerBox
+        if Thread.isMainThread {
+            timerBox.withLockUnchecked { $0?.invalidate() }
+        } else {
+            DispatchQueue.main.async { timerBox.withLockUnchecked { $0?.invalidate() } }
+        }
     }
 }

@@ -143,7 +143,7 @@ final class LostSessionRecoveryTests: XCTestCase {
     /// and nothing is interrupted; a marker for an overnight is no workout.
     func testTheInterruptedWorkoutIsTheMarkedOneUnlessItIsStillRecording() async {
         let workout = HRVSession(sessionType: .workout)
-        collector.persistRecordingState(sessionId: workout.id, startTime: workout.startDate, sessionType: .workout)
+        collector.recordingStore.persist(sessionId: workout.id, startTime: workout.startDate, sessionType: .workout)
 
         let interrupted = await collector.recovery.findInterruptedWorkoutSessionId()
         XCTAssertEqual(interrupted, workout.id)
@@ -155,7 +155,7 @@ final class LostSessionRecoveryTests: XCTestCase {
 
         collector.sessionState.isCollecting = false
         collector.sessionState.currentSession = nil
-        collector.persistRecordingState(sessionId: UUID(), startTime: Date(), sessionType: .overnight)
+        collector.recordingStore.persist(sessionId: UUID(), startTime: Date(), sessionType: .overnight)
         let overnight = await collector.recovery.findInterruptedWorkoutSessionId()
         XCTAssertNil(overnight, "an overnight marker was taken for a workout")
     }
@@ -166,12 +166,12 @@ final class LostSessionRecoveryTests: XCTestCase {
     /// asked.
     func testAutoRecoveryAfterItsLastAttemptLeavesTheWorkoutForTheCard() async {
         let workout = HRVSession(sessionType: .workout)
-        collector.persistRecordingState(sessionId: workout.id, startTime: workout.startDate, sessionType: .workout)
+        collector.recordingStore.persist(sessionId: workout.id, startTime: workout.startDate, sessionType: .workout)
         UserDefaults.standard.set([workout.id.uuidString: 3], forKey: Self.attemptsKey)
 
         await collector.recovery.autoRecoverInterruptedWorkoutOnLaunch()
 
-        XCTAssertEqual(collector.getPersistedRecordingState()?.sessionId, workout.id, "the marker went without a recovery")
+        XCTAssertEqual(collector.recordingStore.load()?.sessionId, workout.id, "the marker went without a recovery")
         XCTAssertEqual(UserDefaults.standard.dictionary(forKey: Self.attemptsKey)?[workout.id.uuidString] as? Int, 3,
                        "an attempt was counted although none was made")
         XCTAssertFalse(InterruptedWorkoutAutoRecovery.isRunning(workout.id), "the recovery stayed registered")
@@ -182,13 +182,13 @@ final class LostSessionRecoveryTests: XCTestCase {
     /// recovery does not take it over, and the marker stays.
     func testAutoRecoveryLeavesAWorkoutTheLaunchAlertIsRecovering() async {
         let workout = HRVSession(sessionType: .workout)
-        collector.persistRecordingState(sessionId: workout.id, startTime: workout.startDate, sessionType: .workout)
+        collector.recordingStore.persist(sessionId: workout.id, startTime: workout.startDate, sessionType: .workout)
         XCTAssertTrue(InterruptedWorkoutAutoRecovery.claim(workout.id))
         defer { InterruptedWorkoutAutoRecovery.end(workout.id) }
 
         await collector.recovery.autoRecoverInterruptedWorkoutOnLaunch()
 
-        XCTAssertEqual(collector.getPersistedRecordingState()?.sessionId, workout.id)
+        XCTAssertEqual(collector.recordingStore.load()?.sessionId, workout.id)
         XCTAssertTrue(InterruptedWorkoutAutoRecovery.isRunning(workout.id), "launch recovery released the alert's claim")
         XCTAssertNil(UserDefaults.standard.dictionary(forKey: Self.attemptsKey), "an attempt was counted")
     }

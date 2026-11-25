@@ -61,7 +61,7 @@ extension CollectorSessionControl {
     private func bindRecordingStateTracking() {
         ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.isRecordingOnDevice }, onChange: { collector, isRecording in
             collector.deviceStatus.isRecordingOnDevice = isRecording
-            if isRecording, collector.sessionState.recordingPhase == .idle, !collector.recovery.strapRecordingBelongsToLiveWorkout {
+            if isRecording, collector.sessionState.recordingPhase == .idle, !collector.strapGuards.belongsToLiveWorkout {
                 collector.sessionState.recordingPhase = .deviceRecording
             } else if !isRecording, collector.sessionState.recordingPhase == .deviceRecording {
                 collector.sessionState.isCollecting = false
@@ -144,7 +144,7 @@ extension CollectorSessionControl {
 
     @MainActor
     func onSessionStateChanged() {
-        collector.refreshLiveHRVSnapshotMirror()
+        collector.liveHRVMirror.refresh(from: collector.sessionState)
         armSessionStateMirrorObservation()
     }
 
@@ -253,7 +253,7 @@ extension CollectorSessionControl {
     private func bindCloudSyncBaseline() {
         ObservationLoop.observe(collector, read: { $0.cloudSyncManager.pullVersion }, onChange: { collector, _ in
             guard collector.baselineTracker.daysCollected == 0, !collector.archive.store.entries.isEmpty else { return }
-            collector.rebuildBaselineOffMain()
+            collector.baselineRebuild.rebuildOffMain()
         })
     }
 
@@ -335,8 +335,8 @@ extension CollectorSessionControl {
     ///
     /// A snapshot-mirror pattern, not a `DispatchQueue.main.sync`-based
     /// provider. The MainActor-isolated
-    /// `collector.refreshLiveHRVSnapshotMirror()` writes a Sendable struct into
-    /// `collector._liveHRVSnapshotMirror` whenever `collector.sessionState` changes. The provider
+    /// `LiveHRVMirror.refresh(from:)` writes a Sendable struct into the
+    /// mirror whenever `collector.sessionState` changes. The provider
     /// closure below reads the mirror through the lock — no actor crossing, no
     /// deadlock risk, no `dispatchPrecondition`. Stale-by-one-runloop-tick is
     /// the tradeoff; for "what's happening right now" it's invisible.
@@ -353,14 +353,14 @@ extension CollectorSessionControl {
     /// context builds the AI's context — crossing to the main actor here is
     /// exactly the deadlock the mirror pattern exists to avoid. Safe: the
     /// property is pointer-atomic and every write is lock-protected.
-    nonisolated private static func currentLiveHRVSnapshotMirror(of collector: RRCollector) -> RRCollector.LiveHRVSnapshotMirror? {
-        collector.liveHRVSnapshotMirror.withLock { $0 }
+    nonisolated private static func currentLiveHRVSnapshotMirror(of collector: RRCollector) -> LiveHRVMirror.Snapshot? {
+        collector.liveHRVMirror.snapshot.withLock { $0 }
     }
 
     /// Clock-dependent fields are recomputed at READ time so the values
     /// reflect "now", not the moment the mirror was written.
     nonisolated private static func liveSnapshot(
-        from mirror: RRCollector.LiveHRVSnapshotMirror,
+        from mirror: LiveHRVMirror.Snapshot,
         now: Date
     ) -> AssistantContext.LiveHRVSnapshot {
         AssistantContext.LiveHRVSnapshot(

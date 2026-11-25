@@ -145,7 +145,7 @@ extension SessionRecoveryCoordinator {
     private func enrichedRecoveryScore(session: HRVSession, analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome? {
         var enriched = analysisResult
         if enriched?.trainingContext == nil,
-           let fresh = await collector.createTrainingContextEnsuringFresh(relativeTo: session.endDate ?? session.startDate) {
+           let fresh = await collector.scoring.createTrainingContextEnsuringFresh(relativeTo: session.endDate ?? session.startDate) {
             enriched?.trainingContext = fresh
         }
         return await collector.morning.computeRecoveryScore(for: session, from: enriched)
@@ -195,7 +195,7 @@ extension SessionRecoveryCoordinator {
     /// streamed disk backup it reads on its own.
     private func strapRecordingForWorkoutRecovery(sessionId: UUID) async -> PulledStrapRecording? {
         guard let backup = collector.services.workoutTrackBackup.retrieve(sessionId),
-              !strapRecordingBelongsToLiveSession else { return nil }
+              !collector.strapGuards.belongsToLiveSession else { return nil }
         let workoutStart = backup.header.startDate
         let manager = collector.polarManager
         manager.recording.beginTransfer()
@@ -504,7 +504,7 @@ extension SessionRecoveryCoordinator {
         } ?? false
         // A recording still running is only dated once it is downloaded; the
         // check after the download catches one that is not this session's.
-        guard !strapRecordingBelongsToLiveSession, manager.isRecordingOnDevice || storedIsThisSession else {
+        guard !collector.strapGuards.belongsToLiveSession, manager.isRecordingOnDevice || storedIsThisSession else {
             debugLog("[RRCollector] Strap's recording is not from this session — not merging it")
             return nil
         }
@@ -607,7 +607,7 @@ extension SessionRecoveryCoordinator {
     /// The workout the persisted crash flag names, when it is neither live
     /// nor archived. Read synchronously, without touching the backups.
     private func flaggedInterruptedWorkoutId(live: Set<UUID>) -> UUID? {
-        guard let state = collector.getPersistedRecordingState(),
+        guard let state = collector.recordingStore.load(),
               state.sessionType == .workout,
               !live.contains(state.sessionId),
               !collector.archive.store.exists(state.sessionId) else { return nil }
@@ -636,8 +636,8 @@ extension SessionRecoveryCoordinator {
     /// overnight session, and clearing the marker unconditionally then wiped an
     /// interrupted night's record along with it.
     private func clearPersistedRecordingState(ifItIs sessionId: UUID) {
-        guard collector.getPersistedRecordingState()?.sessionId == sessionId else { return }
-        collector.clearPersistedRecordingState()
+        guard collector.recordingStore.load()?.sessionId == sessionId else { return }
+        collector.recordingStore.clear()
     }
 
     /// Called once at app launch. If a WORKOUT was recording when the app
@@ -694,7 +694,7 @@ extension SessionRecoveryCoordinator {
         // A workout started while the strap was being reached: its recording
         // is the one on the strap now, and fetching it would stop it and
         // file its beats under the interrupted workout.
-        if let current = collector.getPersistedRecordingState(), current.sessionId != sessionId {
+        if let current = collector.recordingStore.load(), current.sessionId != sessionId {
             debugLog("[RRCollector] Auto-recovery: a new recording started — deferring to manual card")
             return false
         }
@@ -728,9 +728,9 @@ extension SessionRecoveryCoordinator {
         }
         await MainActor.run { enterPausedState(session) }
         // Resume arms the strap by the night's own capture choice, not the default.
-        if let usesDeviceBackup = collector.getPersistedCaptureMode() { collector.overnightRun.usesDeviceBackup = usesDeviceBackup }
-        collector.control.persistPausedSessionState(sessionId: session.id)
-        collector.clearPersistedRecordingState()
+        if let usesDeviceBackup = collector.recordingStore.captureMode() { collector.overnightRun.usesDeviceBackup = usesDeviceBackup }
+        collector.recordingStore.persistPaused(sessionId: session.id)
+        collector.recordingStore.clear()
         return true
     }
 

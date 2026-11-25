@@ -25,7 +25,7 @@ extension MorningSessionPipeline {
         let inputs = SessionAcceptanceService.AcceptanceInputs(
             scoringConfig: collector.scoring.currentScoringConfig,
             trainingContext: trainingContext,
-            baselineStats: collector.scoringBaselineStats(for: session),
+            baselineStats: collector.scoring.scoringBaselineStats(for: session),
             typicalSleepHours: settings.typicalSleepHours,
             sleepSchedule: settings.sleepSchedule
         )
@@ -34,7 +34,7 @@ extension MorningSessionPipeline {
             inputs: inputs,
             enableHealthKitExport: settings.enableHealthKitExport,
             clearPersistedRecordingState: { [weak collector] in
-                collector?.clearPersistedRecordingState()
+                collector?.recordingStore.clear()
             }
         )
     }
@@ -69,7 +69,7 @@ extension MorningSessionPipeline {
             for: session,
             scoringConfig: collector.scoring.currentScoringConfig,
             trainingContext: trainingContext,
-            baselineStats: collector.scoringBaselineStats(for: session),
+            baselineStats: collector.scoring.scoringBaselineStats(for: session),
             typicalSleepHours: settings.typicalSleepHours,
             sleepSchedule: settings.sleepSchedule,
             exportMetrics: exportMetrics,
@@ -106,7 +106,7 @@ extension MorningSessionPipeline {
         await collector.acceptanceService.processRejection(
             sessionId: collector.sessionState.currentSession?.id,
             clearPersistedRecordingState: { [weak collector] in
-                collector?.clearPersistedRecordingState()
+                collector?.recordingStore.clear()
             }
         )
 

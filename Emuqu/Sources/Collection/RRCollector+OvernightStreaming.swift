@@ -113,7 +113,7 @@ extension OvernightStreamingCoordinator {
         }
         resetOvernightStreamingState(session: session)
         startOvernightHealthKitObservers()
-        collector.persistRecordingState(sessionId: session.id, startTime: Date(), sessionType: sessionType)
+        collector.recordingStore.persist(sessionId: session.id, startTime: Date(), sessionType: sessionType)
         logOvernightStreamingStart(session: session, sessionType: sessionType)
         startOvernightStreamingTimer()
     }
@@ -126,7 +126,7 @@ extension OvernightStreamingCoordinator {
     private func resetOvernightStreamingState(session: HRVSession) {
         collector.sessionState.currentSession = session
         collector.sessionState.collectedPoints = []
-        collector.sessionStartTime = Date()
+        collector.streamingLifecycle.sessionStartTime = Date()
         collector.streamingLifecycle.isStreamingMode = true
         collector.streamingLifecycle.isOvernightStreaming = true
         collector.sessionState.recordingPhase = .overnightStreaming
@@ -134,12 +134,12 @@ extension OvernightStreamingCoordinator {
         collector.streamingLifecycle.streamingElapsedSeconds = 0
         collector.sessionState.isCollecting = true
         collector.streamingLifecycle.pausedBeatCount = 0
-        collector.lastSeenReconnectCount = 0
+        collector.streamingLifecycle.lastSeenReconnectCount = 0
         collector.overnightRun.deviceBackupActive = false
         collector.overnightRun.isEnding = false
         // A Skip from an earlier morning never reaches this night's download,
         // and an earlier session's error is not this night's.
-        collector.deviceFetchPolicy = .automatic
+        collector.overnightRun.deviceFetchPolicy = .automatic
         collector.sessionState.lastError = nil
     }
 
@@ -186,14 +186,14 @@ extension OvernightStreamingCoordinator {
     /// Tolerance = 0.25s lets iOS coalesce this long-running 1Hz wakeup with
     /// other timers overnight, reducing CPU + battery cost without changing UX.
     func startOvernightStreamingTimer() {
-        collector.streamingTimer?.invalidate()
+        collector.streamingLifecycle.streamingTimer?.invalidate()
         let timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak collector] _ in
             Task { @MainActor in
                 collector?.overnightStreaming.overnightStreamingTick()
             }
         }
         timer.tolerance = 0.25
-        collector.streamingTimer = timer
+        collector.streamingLifecycle.streamingTimer = timer
     }
 
     /// One 1 Hz overnight tick: elapsed clock, strap keep-alive, and the
@@ -203,17 +203,17 @@ extension OvernightStreamingCoordinator {
     /// missed while the app was suspended skips neither.
     @MainActor
     private func overnightStreamingTick() {
-        guard collector.streamingLifecycle.isOvernightStreaming, collector.streamingTimer != nil else { return }
+        guard collector.streamingLifecycle.isOvernightStreaming, collector.streamingLifecycle.streamingTimer != nil else { return }
         let previousElapsed = collector.streamingLifecycle.streamingElapsedSeconds
-        collector.streamingLifecycle.streamingElapsedSeconds = collector.streamingElapsedNow
+        collector.streamingLifecycle.streamingElapsedSeconds = collector.streamingLifecycle.streamingElapsedNow
         if collector.streamingLifecycle.streamingElapsedSeconds / 30 != previousElapsed / 30 {
             collector.polarManager.checkBatteryStaleness()
         }
         let currentReconnectCount = collector.polarManager.streamingReconnectCount
-        let reconnectionOccurred = currentReconnectCount > collector.lastSeenReconnectCount
+        let reconnectionOccurred = currentReconnectCount > collector.streamingLifecycle.lastSeenReconnectCount
         if reconnectionOccurred {
-            debugLog("[RRCollector] Streaming reconnection detected (\(collector.lastSeenReconnectCount) → \(currentReconnectCount)) - forcing backup")
-            collector.lastSeenReconnectCount = currentReconnectCount
+            debugLog("[RRCollector] Streaming reconnection detected (\(collector.streamingLifecycle.lastSeenReconnectCount) → \(currentReconnectCount)) - forcing backup")
+            collector.streamingLifecycle.lastSeenReconnectCount = currentReconnectCount
         }
         guard let session = collector.sessionState.currentSession else { return }
         runOvernightIncrementalBackup(session: session, force: reconnectionOccurred)
@@ -573,7 +573,7 @@ extension OvernightStreamingCoordinator {
         }
         collector.morningCoordination.morningStatus = .fetchingDevice(streamingBeats: streamingPoints.count)
         let recording = await downloadNight(since: baseSession.startDate, streamingCount: streamingPoints.count)
-        guard collector.deviceFetchPolicy != .skipByUser else {
+        guard collector.overnightRun.deviceFetchPolicy != .skipByUser else {
             await keepDownloadSkipped(recording, baseSession: baseSession)
             return nil
         }
@@ -596,7 +596,7 @@ extension OvernightStreamingCoordinator {
     /// The night's Skip and its arming are read once, by the gate: both are
     /// reset when it finishes.
     private func closeNightGate() {
-        collector.deviceFetchPolicy = .automatic
+        collector.overnightRun.deviceFetchPolicy = .automatic
         collector.overnightRun.deviceBackupActive = false
     }
 
@@ -611,7 +611,7 @@ extension OvernightStreamingCoordinator {
     /// the night that does not exist. A recording the strap does hold stays
     /// on it, recoverable from the Record screen.
     private func nightFetchAllowed(isVeritySense: Bool) -> Bool {
-        if collector.deviceFetchPolicy == .skipByUser {
+        if collector.overnightRun.deviceFetchPolicy == .skipByUser {
             debugLog("[RRCollector] Device fetch skipped by user")
         } else if !collector.overnightRun.usesDeviceBackup {
             debugLog("[RRCollector] Skipping device fetch (capture mode: streaming only)")
@@ -720,7 +720,7 @@ extension OvernightStreamingCoordinator {
         let reconnectCount = collector.polarManager.streamingReconnectCount
         // Charge the strap's battery-usage counter with the recorded hours.
         // Captured BEFORE the publish helper zeroes the elapsed counter.
-        let elapsedHoursForBattery = collector.streamingHoursForBattery
+        let elapsedHoursForBattery = collector.streamingLifecycle.streamingHoursForBattery
         let streamingPoints = collector.polarManager.stopStreaming()
         await collector.morning.publishGatherSavingState(streamingPoints: streamingPoints, elapsedHours: elapsedHoursForBattery)
         return (baseSession, streamingPoints, reconnectCount)
@@ -795,7 +795,7 @@ extension OvernightStreamingCoordinator {
             debugLog("[RRCollector] Night \(finalSession.id.uuidString.prefix(8)) is not in the archive — keeping its recording marker until Accept", level: .warning)
             return
         }
-        collector.clearPersistedRecordingState()
+        collector.recordingStore.clear()
     }
 
     /// The stopped night is on the review card (or shown as failed): the
@@ -855,7 +855,7 @@ extension OvernightStreamingCoordinator {
         ), devicePoints.count >= Self.minimumUsableBeats else {
             debugLog("[RRCollector] Fallback: no usable device recording — recording failed")
             let failed = await failSession(from: baseSession)
-            collector.clearPersistedRecordingState()
+            collector.recordingStore.clear()
             return failed
         }
         // Device data is primary on this path (it holds a usable night); the

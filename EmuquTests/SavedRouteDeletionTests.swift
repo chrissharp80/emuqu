@@ -7,7 +7,7 @@ import XCTest
 @MainActor
 final class SavedRouteDeletionTests: XCTestCase {
     private func recorderFollowing(savedRoute id: UUID) -> WorkoutRecorder {
-        let recorder = WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
+        let recorder = WorkoutRecorder(core: SnapshotFixtures.collector().recordingCore, conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
         recorder.route.planned = Route.fromGPX(name: "Daily loop", track: [])
         recorder.route.savedRouteId = id
         recorder.route.wasAutoDetected = true

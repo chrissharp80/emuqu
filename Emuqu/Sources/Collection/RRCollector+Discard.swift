@@ -41,11 +41,11 @@ extension CollectorSessionControl {
         stopStreamingWithoutKeeping()
         let strapCopyKept = strapArmed ? await clearStrapCopy() : false
         if let session { await removeKeptCopies(of: session.id) }
-        collector.clearPersistedRecordingState()
+        collector.recordingStore.clear()
         collector.streamingLifecycle.releaseOvernightEnding(claim)
         returnToParentPauseOrIdle(parentId: session?.linkedSessionIds?.first)
         if strapCopyKept { collector.sessionState.lastError = PolarManager.PolarError.fetchFailed(Self.strapCopyKeptReason) }
-        collector.notifyArchiveChanged()
+        collector.archiveSignal.notifyChanged()
         return DiscardOutcome(strapCopyKept: strapCopyKept)
     }
 
@@ -70,8 +70,8 @@ extension CollectorSessionControl {
             }
             await removeKeptCopies(of: id)
         }
-        collector.resetSession()
-        collector.notifyArchiveChanged()
+        resetSession()
+        collector.archiveSignal.notifyChanged()
     }
 
     /// A paused segment the archive would not delete: the discard stops with
@@ -82,7 +82,7 @@ extension CollectorSessionControl {
         debugLog("[RRCollector] ⚠️ Could not discard paused segment \(id.uuidString.prefix(8)): \(error)", level: .warning)
         if id != pausedId {
             returnToParentPauseOrIdle(parentId: id)
-            collector.notifyArchiveChanged()
+            collector.archiveSignal.notifyChanged()
         }
         collector.sessionState.lastError = error
     }
@@ -95,7 +95,7 @@ extension CollectorSessionControl {
     /// be downloaded or saved, and nothing is touched; also false. So is a
     /// live workout's backup recording, with `alreadyRecording` shown.
     func discardDeviceRecording() async -> Bool {
-        guard !collector.strapRecordingIsHeldElsewhere("discarding") else { return false }
+        guard !collector.strapGuards.isHeldElsewhere("discarding") else { return false }
         let session = collector.sessionState.currentSession
         debugLog("[RRCollector] 🗑 Discarding strap recording \(session?.id.uuidString.prefix(8) ?? "-")")
         do {
@@ -106,8 +106,8 @@ extension CollectorSessionControl {
             return false
         }
         if let session { await removeKeptCopies(of: session.id) }
-        collector.clearPersistedRecordingState()
-        collector.resetSession()
+        collector.recordingStore.clear()
+        resetSession()
         return true
     }
 
@@ -119,7 +119,7 @@ extension CollectorSessionControl {
     /// The streaming half of `stopStreamingInfrastructure`, without keeping
     /// the beats: no gather, no "saving" status, no analysis.
     private func stopStreamingWithoutKeeping() {
-        let elapsedHours = collector.streamingHoursForBattery
+        let elapsedHours = collector.streamingLifecycle.streamingHoursForBattery
         collector.control.stopStreamingTimer()
         collector.services.systemDiagnosticsManager.stopSamplingAfterRecording()
         collector.streamingLifecycle.isStreamingMode = false
@@ -162,8 +162,8 @@ extension CollectorSessionControl {
     /// anything else returns it to idle.
     private func returnToParentPauseOrIdle(parentId: UUID?) {
         if let parentId, let parent = collector.archive.retrieveOrLog(parentId), parent.state == .paused {
-            collector.resetSession()
-            persistPausedSessionState(sessionId: parentId)
+            resetSession()
+            collector.recordingStore.persistPaused(sessionId: parentId)
             collector.streamingLifecycle.pausedSession = parent
             collector.sessionState.currentSession = parent
             collector.streamingLifecycle.isPaused = true
@@ -171,7 +171,7 @@ extension CollectorSessionControl {
             collector.sessionState.recordingPhase = .paused(sessionId: parentId)
             return
         }
-        collector.resetSession()
+        resetSession()
     }
 
     /// The paused session and every paused segment before it, newest first.

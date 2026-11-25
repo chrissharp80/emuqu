@@ -3,34 +3,6 @@ import Foundation
 // MARK: - Pause/Resume Recording
 
 extension CollectorSessionControl {
-    // MARK: - Persisted Pause State
-
-    static let pausedSessionIdKey = UserDefaultsKeys.pausedSessionId
-    /// The paused night's capture choice. The recording marker that also
-    /// holds it is cleared at pause, and Resume arms the strap by it.
-    private static let pausedCaptureModeKey = "pausedSessionUsesDeviceBackup"
-
-    func persistPausedSessionState(sessionId: UUID) {
-        UserDefaults.standard.set(sessionId.uuidString, forKey: Self.pausedSessionIdKey)
-        UserDefaults.standard.set(collector.overnightRun.usesDeviceBackup, forKey: Self.pausedCaptureModeKey)
-    }
-
-    func clearPausedSessionState() {
-        UserDefaults.standard.removeObject(forKey: Self.pausedSessionIdKey)
-        UserDefaults.standard.removeObject(forKey: Self.pausedCaptureModeKey)
-    }
-
-    /// Whether the paused night used the strap's internal recording; nil
-    /// when no night is paused or it was paused before this was kept.
-    func persistedPausedCaptureMode() -> Bool? {
-        UserDefaults.standard.object(forKey: Self.pausedCaptureModeKey) as? Bool
-    }
-
-    func getPersistedPausedSessionId() -> UUID? {
-        guard let str = UserDefaults.standard.string(forKey: Self.pausedSessionIdKey) else { return nil }
-        return UUID(uuidString: str)
-    }
-
     // MARK: - Pause
 
     /// Pause overnight streaming: save + score immediately, but keep resumable.
@@ -209,8 +181,8 @@ extension CollectorSessionControl {
     /// second. The reverse order (clear first, persist second) creates a
     /// window where neither marker exists and the session is orphaned.
     private func persistPauseAndClearRecording(sessionId: UUID) {
-        persistPausedSessionState(sessionId: sessionId)
-        collector.clearPersistedRecordingState()
+        collector.recordingStore.persistPaused(sessionId: sessionId)
+        collector.recordingStore.clear()
     }
 
     // MARK: - Resume
@@ -250,8 +222,8 @@ extension CollectorSessionControl {
     /// drop the paused-session marker, and restart the 1 Hz overnight timer.
     private func commitResumedSession(_ session: HRVSession) {
         resetStateForResumedSession(session)
-        collector.persistRecordingState(sessionId: session.id, startTime: Date(), sessionType: session.sessionType)
-        clearPausedSessionState()
+        collector.recordingStore.persist(sessionId: session.id, startTime: Date(), sessionType: session.sessionType)
+        collector.recordingStore.clearPaused()
         collector.overnightStreaming.startOvernightStreamingTimer()
         // The pause's gather stopped it; the resumed segment samples as a night does.
         collector.services.systemDiagnosticsManager.startSamplingDuringRecording()
@@ -296,7 +268,7 @@ extension CollectorSessionControl {
         debugLog("[RRCollector] Resume: carrying forward \(priorBeats) beats")
         collector.sessionState.currentSession = session
         collector.sessionState.collectedPoints = []
-        collector.sessionStartTime = Date()
+        collector.streamingLifecycle.sessionStartTime = Date()
         collector.streamingLifecycle.isStreamingMode = true
         collector.streamingLifecycle.isOvernightStreaming = true
         collector.overnightRun.isEnding = false
@@ -307,10 +279,10 @@ extension CollectorSessionControl {
         collector.streamingLifecycle.streamingTargetSeconds = Int.max
         collector.streamingLifecycle.streamingElapsedSeconds = 0
         collector.sessionState.isCollecting = true
-        collector.lastSeenReconnectCount = 0
+        collector.streamingLifecycle.lastSeenReconnectCount = 0
         collector.sessionState.verificationResult = nil
         collector.sessionState.baselineDeviation = nil
-        collector.deviceFetchPolicy = .automatic
+        collector.overnightRun.deviceFetchPolicy = .automatic
         collector.sessionState.lastError = nil
     }
 
@@ -342,7 +314,7 @@ extension CollectorSessionControl {
         collector.streamingLifecycle.isPaused = false
         collector.sessionState.recordingPhase = collector.sessionState.needsAcceptance ? .awaitingAcceptance : .idle
         collector.streamingLifecycle.pausedSession = nil
-        clearPausedSessionState()
+        collector.recordingStore.clearPaused()
     }
 
     /// Marks the archive's copy of the paused night complete, in place, and
@@ -372,7 +344,7 @@ extension CollectorSessionControl {
     /// Restore paused state on app launch so the Record tab shows Resume / Done.
     /// Session deserialization runs off the main thread to avoid blocking app startup.
     func restorePausedStateIfNeeded() {
-        guard let pausedId = getPersistedPausedSessionId() else { return }
+        guard let pausedId = collector.recordingStore.pausedSessionId() else { return }
         let archive = collector.archive
         Task.detached(priority: .userInitiated) {
             guard let session = archive.retrieveOrLog(pausedId), session.state == .paused else { return }
@@ -388,6 +360,6 @@ extension CollectorSessionControl {
         collector.streamingLifecycle.isPaused = true
         collector.streamingLifecycle.pausedBeatCount = session.rrSeries?.points.count ?? 0
         collector.sessionState.recordingPhase = .paused(sessionId: id)
-        if let usesDeviceBackup = persistedPausedCaptureMode() { collector.overnightRun.usesDeviceBackup = usesDeviceBackup }
+        if let usesDeviceBackup = collector.recordingStore.pausedCaptureMode() { collector.overnightRun.usesDeviceBackup = usesDeviceBackup }
     }
 }
