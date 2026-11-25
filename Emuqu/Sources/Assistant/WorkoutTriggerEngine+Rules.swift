@@ -296,7 +296,8 @@ extension WorkoutTriggerEngine {
         [
             zoneDriftedHighRule(),
             zoneDriftedLowRule(),
-            routeClimbAheadRule()
+            routeClimbAheadRule(),
+            climbHeartRateForecastRule()
         ]
     }
 

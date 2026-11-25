@@ -634,6 +634,18 @@ extension AssistantContext {
             let nextStepLabel: String?
             let isFinished: Bool
         }
+
+        // --- From the user's past GPS workouts (`LivePlaceMemory`) ---
+
+        /// The climb ahead that past passes heading this way agree on, with
+        /// the heart-rate rise it took. Nil without such history.
+        var historyClimbAhead: PlaceHistory.ClimbAhead?
+        /// Past passes over the spot the user is on.
+        var visitsHere: PlaceHistory.Visits?
+        /// `UserSettings.effectiveLTHR`, and whether the user entered it
+        /// (false: the 0.88 × max estimate).
+        var thresholdHeartRate: Int?
+        var thresholdHeartRateIsUserSet: Bool?
     }
 
     /// Live HRV-recording snapshot. Populated whenever RRCollector is in

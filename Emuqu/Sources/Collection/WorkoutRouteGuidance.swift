@@ -39,4 +39,9 @@ final class WorkoutRouteGuidance {
     /// (a warm-up leg before joining a saved loop must not rule the loop
     /// out for the rest of the workout). 0 = not tried yet.
     var nextDetectionAtMeters: Double = 0
+
+    /// The ground ahead and this spot, from the user's past GPS workouts:
+    /// with or without a route, the climb coming and what it did to their
+    /// heart rate.
+    @ObservationIgnored let places = LivePlaceMemory()
 }

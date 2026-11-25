@@ -74,7 +74,38 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
         rec.merge(readinessFields(s)) { current, _ in current }
         rec.merge(Self.zoneFields(s)) { current, _ in current }
         rec.merge(Self.racePredictionFields(s)) { current, _ in current }
+        rec.merge(Self.groundAheadFields(s)) { current, _ in current }
         return .record(rec)
+    }
+
+    /// From the user's past GPS workouts: the climb ahead they agree on
+    /// (with the heart-rate rise it took) and the past passes over this spot.
+    private static func groundAheadFields(_ s: AssistantContext.LiveWorkoutSnapshot) -> [String: FactValue] {
+        var rec: [String: FactValue] = [:]
+        if let climb = s.historyClimbAhead {
+            var climbRecord: [String: FactValue] = [
+                "distance_to_start_meters": .double(climb.distanceMeters), "length_meters": .double(climb.lengthMeters),
+                "gain_meters": .double(climb.gainMeters), "grade_percent": .double(climb.gradePercent), "past_passes": .integer(climb.passes)
+            ]
+            if let rise = climb.heartRateRise { climbRecord["past_hr_rise_bpm"] = .integer(rise) }
+            if let peak = climb.peakHeartRate { climbRecord["past_peak_hr_bpm"] = .integer(peak) }
+            rec["climb_ahead_from_past_workouts"] = .record(climbRecord)
+        }
+        if let visits = s.visitsHere { rec["this_spot_in_past_workouts"] = .record(visitsRecord(visits)) }
+        if let threshold = s.thresholdHeartRate {
+            rec["threshold_hr"] = .integer(threshold)
+            rec["threshold_hr_is_estimate"] = .boolean(!(s.thresholdHeartRateIsUserSet ?? false))
+        }
+        return rec
+    }
+
+    private static func visitsRecord(_ visits: PlaceHistory.Visits) -> [String: FactValue] {
+        var rec: [String: FactValue] = ["passes": .integer(visits.count), "latest_date": .date(visits.latestDate)]
+        if let pace = visits.medianPaceSecPerKm { rec["median_pace_sec_per_km"] = .double(pace) }
+        if let hr = visits.medianHeartRate { rec["median_hr_bpm"] = .integer(hr) }
+        if let pace = visits.latestPaceSecPerKm { rec["latest_pace_sec_per_km"] = .double(pace) }
+        if let hr = visits.latestHeartRate { rec["latest_hr_bpm"] = .integer(hr) }
+        return rec
     }
 
     /// Always-present identity, timing, and strap/HR state.
@@ -286,6 +317,8 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
             key: "workout.live.snapshot",
             description: """
             Full live-workout state in one record: sport, elapsed, HR, pace, α1, distance, cadence, elevation gain, GPS position + heading + grade, units preference, strap status, plus today_atl/today_ctl/today_tsb and some forecasts. \
+            From the user's past GPS workouts, with or without a saved route: `climb_ahead_from_past_workouts` (the next climb this way, and `past_hr_rise_bpm`, what it did to their heart \
+            rate) and `this_spot_in_past_workouts` (their pace and HR here before); with `threshold_hr` these answer 'should I ease off before this hill'. \
             Use this when answering any 'what's happening right now' question about the active workout. IMPORTANT for training load: `today_atl` / `today_ctl` / `today_tsb` are the CURRENT values the user sees on their Dashboard — those \
             are the answer to 'what's my TSB/ATL/CTL'. `projected_tsb_tomorrow_steady_state` is a FORECAST for tomorrow after rest — NEVER quote it as the current TSB (doing so makes the number look like it swung).
             """,

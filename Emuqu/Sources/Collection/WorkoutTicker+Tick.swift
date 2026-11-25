@@ -246,7 +246,19 @@ extension WorkoutTicker {
         attemptRouteDetectionIfEligible(sport: sport)
         pushZwiftBroadcasterUpdate()
         refreshEnvironmentContextIfNeeded(sport: sport)
+        refreshPlaceMemory(sport: sport)
         tickVoiceCoach(sport: sport)
+    }
+
+    /// Tick stage — past workouts' view of the ground ahead and of this spot,
+    /// for a GPS sport. The work runs off the main actor (`LivePlaceMemory`).
+    private func refreshPlaceMemory(sport: Sport) {
+        guard sport.usesGPS, !lifecycle.isPaused else { return }
+        let location = sensors.startedLocation?.currentLocation
+        routeGuidance.places.update(
+            location: location, heading: Self.validCourse(location),
+            sessionStart: lifecycle.sessionStartDate ?? Date(), archive: services.sessionArchive
+        )
     }
 
     /// Tick stage — incremental RR backup + cloud upload; track persistence delegates to `persistWorkoutTrackIfChanged`.
@@ -745,7 +757,7 @@ extension WorkoutTicker {
         liveZoneBreakdown: WorkoutZoneBreakdown
     ) -> AssistantContext.LiveWorkoutSnapshot {
         let (road, trends) = (services.roadGeocodingService.current, capture.syncedLiveTrends())
-        return AssistantContext.LiveWorkoutSnapshot(
+        return withGroundAhead(AssistantContext.LiveWorkoutSnapshot(
             sport: sport.displayName, snapshotAt: Date(), sessionStartAt: lifecycle.sessionStartDate ?? Date(), elapsedSeconds: lifecycle.elapsedSeconds, heartRate: workoutHR.currentHR, peakHR: workoutHR.peakHR, userMaxHR: settingsProvider().effectiveMaxHR,
             beatCount: workoutHR.beatCount, distanceMeters: motion.distanceMeters, stepCount: motion.stepCount, cadenceStepsPerMin: motion.cadenceStepsPerMin, elevationGainMeters: motion.elevationGainMeters, alpha1: dfa.currentAlpha1,
             alpha1Band: dfa.currentBand.label, alpha1Status: dfa.status.label, alpha1FitQualityR2: dfa.fitQuality, strapConnected: core.strapLink.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: motion.liveTrack.count,
@@ -763,7 +775,19 @@ extension WorkoutTicker {
             recoveryHoursNeeded: coaching.startContext.recoveryHoursNeeded, zone1Sec: liveZoneBreakdown.z1Sec, zone2Sec: liveZoneBreakdown.z2Sec, zone3Sec: liveZoneBreakdown.z3Sec, zone4Sec: liveZoneBreakdown.z4Sec, zone5Sec: liveZoneBreakdown.z5Sec, dominantZone: liveZoneBreakdown.dominantZone,
             predictedRaceTime5KSec: coaching.startContext.racePredictionsByDistance[5_000], predictedRaceTime10KSec: coaching.startContext.racePredictionsByDistance[10_000], predictedRaceTimeHalfSec: coaching.startContext.racePredictionsByDistance[21_097.5],
             predictedRaceTimeMarathonSec: coaching.startContext.racePredictionsByDistance[42_195], activeThresholds: activeThresholdSnapshots(), thresholdBreachSec: thresholdBreachSecByID(), intervalProgress: intervalController.liveProgressSnapshot()
-        )
+        ))
+    }
+
+    /// What past workouts say about the ground ahead and this spot, and the
+    /// threshold heart rate the answers measure against.
+    private func withGroundAhead(_ snapshot: AssistantContext.LiveWorkoutSnapshot) -> AssistantContext.LiveWorkoutSnapshot {
+        var snapshot = snapshot
+        let settings = settingsProvider()
+        snapshot.historyClimbAhead = routeGuidance.places.climbAhead
+        snapshot.visitsHere = routeGuidance.places.visitsHere
+        snapshot.thresholdHeartRate = settings.effectiveLTHR
+        snapshot.thresholdHeartRateIsUserSet = settings.hasUserLTHR
+        return snapshot
     }
 
     /// Direction is only meaningful for a route we recognised ourselves — a

@@ -474,7 +474,8 @@ final class AssistantViewModel {
         let context = DeterministicIntent.MatchContext(
             now: Date(),
             archive: services.sessionArchive,
-            userSettings: services.settingsManager.settings
+            userSettings: services.settingsManager.settings,
+            liveWorkout: services.liveWorkoutBroker.currentSnapshot()
         )
         guard let answer = DeterministicIntent.tryMatch(trimmed, in: context) else { return false }
         appendExchange(user: trimmed, assistant: answer)

@@ -122,6 +122,8 @@ enum UnitConstants {
     static let metersPerMile: Double = 1609.344
     /// Feet per metre (exact: 1 / 0.3048 = 3.280839895…).
     static let feetPerMeter: Double = 3.280_84
+    /// Yards per metre (exact: 1 / 0.9144 = 1.093613…).
+    static let yardsPerMeter: Double = 1.093_613
     /// Miles per hour per metre-per-second (exact: 3600 / 1609.344 = 2.236936…).
     static let mphPerMetersPerSecond: Double = 2.236_936
     /// Metres per degree of latitude (mean; 1° latitude ≈ 111.32 km).

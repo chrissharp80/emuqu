@@ -63,7 +63,7 @@ extension WorkoutAIContextBuilder {
     /// read after `contextInputs` updated its zone fold.
     func buildContext(sport: Sport) -> WorkoutAIContext {
         let (inputs, trends, start) = (contextInputs(), capture.syncedLiveTrends(), coaching.startContext)
-        return WorkoutAIContext(
+        return withGroundAhead(WorkoutAIContext(
             sport: sport, nowAt: Date(), sessionStart: inputs.startDate, elapsedSeconds: lifecycle.elapsedSeconds, heartRate: workoutHR.currentHR, peakHR: workoutHR.peakHR, userMaxHR: inputs.userMaxHR, hrDriftPercent: nil, alpha1: dfa.currentAlpha1, band: dfa.currentBand,
             alpha1FitQuality: dfa.fitQuality, alpha1Status: dfa.status, distanceMeters: motion.distanceMeters, currentPaceSecPerKm: signals.currentPaceSecPerKm, currentSpeedMS: signals.currentSpeedMS, cadenceStepsPerMin: motion.cadenceStepsPerMin, powerWatts: motion.powerWatts,
             footPodActive: motion.footPodActive, currentMETs: inputs.lastSample?.mets, recentSplitPaces: recentSplitPacesSecPerKm(), currentLatitude: inputs.loc?.coordinate.latitude, currentLongitude: inputs.loc?.coordinate.longitude, currentAltitudeMeters: inputs.loc?.altitude,
@@ -79,7 +79,18 @@ extension WorkoutAIContextBuilder {
             zone3Sec: inputs.zones.z3Sec, zone4Sec: inputs.zones.z4Sec, zone5Sec: inputs.zones.z5Sec, dominantZone: inputs.zones.dominantZone, predictedRaceTime5KSec: start.racePredictionsByDistance[5_000], predictedRaceTime10KSec: start.racePredictionsByDistance[10_000],
             predictedRaceTimeHalfSec: start.racePredictionsByDistance[21_097.5], predictedRaceTimeMarathonSec: start.racePredictionsByDistance[42_195], userUnits: UnitsPreferenceStore.current,
             targetZone: lifecycle.targetZone, activeThresholds: coaching.thresholds.thresholds, thresholdBreachSec: coaching.thresholds.breachSec
-        )
+        ))
+    }
+
+    /// The climb ahead from past workouts, and the threshold heart rate the
+    /// hill forecast measures it against.
+    private func withGroundAhead(_ context: WorkoutAIContext) -> WorkoutAIContext {
+        var context = context
+        let settings = settingsProvider()
+        context.historyClimbAhead = routeGuidance.places.climbAhead
+        context.thresholdHeartRate = settings.effectiveLTHR
+        context.thresholdHeartRateIsUserSet = settings.hasUserLTHR
+        return context
     }
 
     /// Recognise a route the user has explicitly saved to their library.
