@@ -125,6 +125,51 @@ final class FloSpotCompareTests: XCTestCase {
         }
     }
 
+    // MARK: - A list that grows
+
+    /// "Start a list… / Add another": the second save carries the first
+    /// one's id and replaces its text, so the user ends with one list.
+    func testAddingToAListReplacesItInsteadOfSavingACopy() async throws {
+        let directory = temporaryDirectory()
+        let store = AssistantArtifactStore(directory: directory)
+        let viewModel = AssistantViewModel(
+            services: ChatServices(.current),
+            store: ConversationStore(fileURL: directory.appendingPathComponent("conversation.json")),
+            factsStore: UserFactsStore(fileURL: directory.appendingPathComponent("user_facts.json"))
+        )
+        let dependencies = AppDependencies()
+        dependencies.overrides.assistantArtifactStore = store
+        dependencies.overrides.assistantViewModel = viewModel
+        let installed = AppDependencies.install(dependencies)
+        defer { installed.end() }
+        let router = CompactToolRouter(registry: AppFactResolverFactory.build(
+            archive: SessionArchive(directory: directory), settings: { UserSettings() }, services: FactServices(.current)
+        ))
+
+        viewModel.turns = [ChatTurn(role: .user, text: "Start a list of song ideas. First one: rain on the ridge.")]
+        let started = await router.resolveTool(
+            name: "assistant_artifacts_add",
+            argsJSON: #"{"kind":"note","body":"Song ideas\n1. rain on the ridge","user_quote":"Start a list of song ideas"}"#
+        )
+        guard case let .record(first) = started, case let .string(id) = first["id"] else { return XCTFail("not saved: \(started)") }
+
+        viewModel.turns.append(ChatTurn(role: .user, text: "Add another: a chorus about the hill."))
+        let grown = await router.resolveTool(
+            name: "assistant_artifacts_add",
+            argsJSON: #"{"kind":"note","body":"Song ideas\n1. rain on the ridge\n2. a chorus about the hill","user_quote":"Add another: a chorus about the hill.","id":"\#(id)"}"#
+        )
+        guard case let .record(second) = grown, case .boolean(true) = second["updated"] else { return XCTFail("not updated: \(grown)") }
+        XCTAssertEqual(store.list().count, 1, "the grown list was saved as a second note")
+        XCTAssertEqual(store.list().first?.body, "Song ideas\n1. rain on the ridge\n2. a chorus about the hill")
+    }
+
+    func testUpdatingAnUnknownArtifactSavesNothing() async {
+        let directory = temporaryDirectory()
+        let store = AssistantArtifactStore(directory: directory)
+        XCTAssertNil(store.updateBody(id: UUID(), body: "anything"))
+        XCTAssertTrue(store.list().isEmpty, "an update of nothing created a note")
+    }
+
     // MARK: - Fixtures
 
     private func temporaryDirectory() -> URL {

@@ -347,7 +347,7 @@ extension AssistantChatView {
     /// Workout-aware empty state.
     /// Pulls the live broker snapshot at render time. If a workout
     /// is in flight the heading and body acknowledge it directly
-    /// instead of the generic "Ask about your recovery" copy. Cheap
+    /// instead of the generic "Ask Flo" title. Cheap
     /// — broker.currentSnapshot() is a lock-protected read, no
     /// disk / network. When no workout is active the generic
     /// copy shows.
@@ -378,7 +378,7 @@ extension AssistantChatView {
     }
 
     func workoutAwareTitle(for live: AssistantContext.LiveWorkoutSnapshot?) -> String {
-        guard let live else { return String(localized: "Ask about your recovery", bundle: LanguageManager.appBundle) }
+        guard let live else { return String(localized: "Ask Flo", bundle: LanguageManager.appBundle) }
         let mins = live.elapsedSeconds / 60
         if mins < 1 {
             return String(localized: "You just started a \(live.sport)", bundle: LanguageManager.appBundle)

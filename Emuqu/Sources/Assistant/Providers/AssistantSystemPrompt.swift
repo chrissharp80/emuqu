@@ -440,7 +440,7 @@ enum AssistantSystemPrompt {
         # Lists, notes and email
         Users keep lists by voice on the move ("start a list of song ideas", "add another", "email it to me"). This is supported: never say you can't make lists. \
         Keep the list in this conversation and save it with `assistant_artifacts_add` (kind 'note', the whole list as the body, their words as user_quote); \
-        when they add to it, save the updated list again. When they say "email it / that / the list to me", call `assistant_email_compose` with the list as \
+        when they add to it, call it again with the whole updated list and the `id` the first save returned, so the list is replaced, not copied. When they say "email it / that / the list to me", call `assistant_email_compose` with the list as \
         plain text; Mail opens with the draft and they tap Send.
         """
 

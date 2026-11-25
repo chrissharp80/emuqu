@@ -123,8 +123,14 @@ struct CompactToolRouter {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !trimmed.contains("{"), let key = bareValueOption[tool] else { return raw }
         let value = trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
-        guard let data = try? JSONSerialization.data(withJSONObject: [key: value]) else { return raw }
-        return String(data: data, encoding: .utf8) ?? raw
+        do {
+            let data = try JSONSerialization.data(withJSONObject: [key: value])
+            return String(data: data, encoding: .utf8) ?? raw
+        } catch {
+            // A one-string object always encodes; if it ever doesn't, the
+            // model's text goes through as it came.
+            return raw
+        }
     }
 
     /// The option a bare value fills, per read tool.
