@@ -101,8 +101,9 @@ struct CompactToolRouter {
         let argsJSON = Self.normalizedArgs(rawArgs, tool: name)
         // 1. Try the read-tool router first.
         let startedAt = Date()
-        if let value = await resolveReadTool(name: name, argsJSON: argsJSON) {
+        if let raw = await resolveReadTool(name: name, argsJSON: argsJSON) {
             let elapsed = Date().timeIntervalSince(startedAt)
+            let value = PaceDisplay.annotate(raw, field: FactResolverRegistry.stringArgs(fromJSON: argsJSON)["field"])
             return registry.gatedReadResult(toolName: name, argsJSON: argsJSON, value: value, elapsed: elapsed)
         }
         // 2. Allowed action tools flow through the registry.
@@ -163,7 +164,9 @@ struct CompactToolRouter {
         holds far more than these tools name (heat acclimation, heart-rate recovery \
         trends, streaks, live coaching metrics, navigation steps and more): when no \
         tool below obviously fits, call find_data with a few words before you say \
-        the app can't do something.
+        the app can't do something. Every pace comes with a `…pace_display` field \
+        already in the user's units ("9:07 /mi"): say that one, never convert \
+        `…pace_sec_per_km` yourself.
 
         \(lines.joined(separator: "\n"))
         """

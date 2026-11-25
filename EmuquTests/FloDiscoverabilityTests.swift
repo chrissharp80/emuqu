@@ -160,6 +160,32 @@ final class FloDiscoverabilityTests: XCTestCase {
         XCTAssertEqual(reads, Set(CompactToolRouter.bareValueOption.keys))
     }
 
+    // MARK: - Pace in the user's units
+
+    /// A simulated run had the model read 340 s/km as "5:40 per mile";
+    /// it is 9:07 per mile. Every pace now carries its display form.
+    func testEveryPaceComesWithItsDisplayInTheUsersUnits() {
+        let record: FactValue = .record([
+            "current_pace_sec_per_km": .double(340),
+            "nested": .list([.record(["pace_sec_per_km_at_point": .double(300)])])
+        ])
+        guard case let .record(fields) = PaceDisplay.annotate(record, units: .imperial) else { return XCTFail("expected a record") }
+        XCTAssertEqual(text(fields["current_pace_display"]), "9:07 /mi")
+        guard case let .list(items) = fields["nested"], case let .record(inner) = items.first else { return XCTFail("nested lost") }
+        XCTAssertEqual(text(inner["pace_display_at_point"]), "8:02 /mi")
+        guard case let .record(single) = PaceDisplay.annotate(.double(340), field: "pace_sec_per_km", units: .metric) else {
+            return XCTFail("a bare pace becomes a record")
+        }
+        XCTAssertEqual(text(single["pace_display"]), "5:40 /km")
+        guard case let .double(seconds) = single["pace_sec_per_km"] else { return XCTFail("the number is kept") }
+        XCTAssertEqual(seconds, 340)
+    }
+
+    private func text(_ value: FactValue?) -> String? {
+        if case let .string(text) = value { return text }
+        return nil
+    }
+
     // MARK: - The typed tools name what a coach needs
 
     func testTheTypedToolsReachTheCoachingHistory() async {

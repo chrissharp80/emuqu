@@ -23,6 +23,10 @@ struct ProviderConsentSheet: View {
     let provider: ProviderID
     let onAccept: () -> Void
     let onDecline: () -> Void
+    /// Opened from the provider's Settings page rather than by a send:
+    /// nothing is waiting to go, so the buttons agree or step away instead
+    /// of sending.
+    var fromSettings = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -61,7 +65,7 @@ struct ProviderConsentSheet: View {
                 onAccept()
                 dismiss()
             } label: {
-                Text(String(localized: "Send and remember for \(provider.displayName)", bundle: LanguageManager.appBundle))
+                Text(acceptLabel)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -88,13 +92,19 @@ struct ProviderConsentSheet: View {
         .padding(20)
     }
 
+    private var acceptLabel: String {
+        fromSettings
+            ? String(localized: "I Agree", bundle: LanguageManager.appBundle)
+            : String(localized: "Send and remember for \(provider.displayName)", bundle: LanguageManager.appBundle)
+    }
+
     private var consentHeader: some View {
         HStack(spacing: 12) {
             Image(systemName: provider.symbolName)
                 .font(.title2)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: "First send to \(provider.displayName)", bundle: LanguageManager.appBundle))
+                Text(fromSettings ? provider.displayName : String(localized: "First send to \(provider.displayName)", bundle: LanguageManager.appBundle))
                     .font(.headline)
                 Text(String(localized: "Vendor: \(provider.vendorName)", bundle: LanguageManager.appBundle))
                     .font(.caption)
@@ -304,7 +314,7 @@ struct ProviderConsentSheet: View {
             onDecline()
             dismiss()
         } label: {
-            Text(String(localized: "Don't send", bundle: LanguageManager.appBundle))
+            Text(fromSettings ? String(localized: "Not now", bundle: LanguageManager.appBundle) : String(localized: "Don't send", bundle: LanguageManager.appBundle))
                 .frame(maxWidth: .infinity)
         }
     }
