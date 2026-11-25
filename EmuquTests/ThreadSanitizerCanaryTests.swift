@@ -1,3 +1,4 @@
+import Synchronization
 import XCTest
 
 /// A deliberate data race that proves the Thread Sanitizer gate can see one.
@@ -12,24 +13,41 @@ import XCTest
 /// included) the test returns at once, so it never races outside the gate's
 /// own check.
 final class ThreadSanitizerCanaryTests: XCTestCase {
-    /// An integer that several threads write with no synchronization: the race.
+    /// An integer two threads write with no synchronization: the race.
     private final class UnsynchronizedCounter: @unchecked Sendable {
         var value = 0
     }
 
-    /// Two threads of its own, not `DispatchQueue.concurrentPerform`. With work
-    /// this small, `concurrentPerform` can run every iteration on the calling
-    /// thread, and one thread writing alone is no race. Thread Sanitizer
-    /// reports two writes from different threads with nothing ordering them,
-    /// whether or not they overlap in time. Both threads start before the test
-    /// thread waits on either, so nothing orders one thread's writes with the
-    /// other's, and the race is there on every run.
-    func testUnsynchronizedWritesRaceWhenTheCanaryIsRequested() {
+    /// How many writer threads are running. Read and written with relaxed
+    /// ordering only, which Thread Sanitizer does not count as ordering
+    /// anything, so meeting here orders neither thread's writes.
+    @available(iOS 18.0, *)
+    private final class Arrivals: Sendable {
+        let count = Atomic<Int>(0)
+    }
+
+    /// Both writers are alive and writing at the same time, on every run.
+    ///
+    /// A race Thread Sanitizer can see needs two writes from different threads
+    /// with nothing ordering them. Started threads that do not overlap can be
+    /// ordered by the runtime's own bookkeeping: on a busy runner the first
+    /// thread can finish and exit before the second is started, and the lock
+    /// Foundation takes on thread exit and again on thread start then orders
+    /// the first thread's writes before the second's, which is no race. So each
+    /// writer waits, on a relaxed atomic, until both are running, and only
+    /// then writes; neither has exited when the other starts writing.
+    func testUnsynchronizedWritesRaceWhenTheCanaryIsRequested() throws {
         guard ProcessInfo.processInfo.environment["EMUQU_TSAN_CANARY"] == "1" else { return }
+        guard #available(iOS 18.0, *) else {
+            throw XCTSkip("The canary needs Synchronization.Atomic, iOS 18 and later.")
+        }
         let counter = UnsynchronizedCounter()
+        let arrivals = Arrivals()
         let finished = DispatchSemaphore(value: 0)
         for _ in 0..<2 {
             Thread {
+                arrivals.count.add(1, ordering: .relaxed)
+                while arrivals.count.load(ordering: .relaxed) < 2 {}
                 for _ in 0..<10_000 { counter.value += 1 }
                 finished.signal()
             }.start()
