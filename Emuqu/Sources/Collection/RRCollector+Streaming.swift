@@ -4,7 +4,7 @@ import UIKit
 
 // MARK: - Streaming Mode (Quick Readings)
 
-extension CollectorSessionControl {
+extension QuickReadingSession {
     // MARK: - Sound Constants
 
     /// System sound ID for the "received message" chime (standard iOS notification sound)

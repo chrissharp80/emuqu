@@ -70,7 +70,7 @@ struct StreamingProgressPanel: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(String(localized: "Stop reading now", bundle: LanguageManager.appBundle))
-            .accessibilityHint(String(localized: "Ends the reading early. A reading with at least \(CollectorSessionControl.minimumQuickReadingBeats) beats is still saved.", bundle: LanguageManager.appBundle))
+            .accessibilityHint(String(localized: "Ends the reading early. A reading with at least \(QuickReadingSession.minimumQuickReadingBeats) beats is still saved.", bundle: LanguageManager.appBundle))
             Spacer()
         }
         .padding(.top, 8)

@@ -226,7 +226,7 @@ final class RecordingDiscardTests: XCTestCase {
         XCTAssertThrowsError(try collector.control.resumeOvernightStreaming(linkedSessionId: UUID())) { error in
             XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
         }
-        XCTAssertThrowsError(try collector.startStreamingSession()) { error in
+        XCTAssertThrowsError(try collector.quickReading.startStreamingSession()) { error in
             XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
         }
         do {
@@ -252,7 +252,7 @@ final class RecordingDiscardTests: XCTestCase {
         collector.streamingLifecycle.isPaused = true
         collector.sessionState.recordingPhase = .paused(sessionId: paused.id)
 
-        XCTAssertThrowsError(try collector.startStreamingSession()) { error in
+        XCTAssertThrowsError(try collector.quickReading.startStreamingSession()) { error in
             XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
         }
         do {

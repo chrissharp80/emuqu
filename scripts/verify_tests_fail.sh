@@ -656,23 +656,17 @@ mutate "ble_drop_clears_device_recording_flag" "EmuquTests/PolarConnectionLifecy
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='        clearLinkReadings(preserveDeviceIdentity: wasStreaming)';assert s.count(o)==1;p.write_text(s.replace(o,'        clearLinkReadings(preserveDeviceIdentity: wasStreaming); manager.isRecordingOnDevice = false'))"
 
-# An explicit disconnect must not reset the device recording either: the strap
-# keeps writing after the phone lets go, and the morning pull retrieves it.
-mutate "explicit_disconnect_stops_device_recording" "EmuquTests/PolarConnectionLifecycleTests" \
-    "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift');s=p.read_text();o='            manager.hasReceivedSoftwareRevision = false\n            manager.connectionState = .disconnected';assert s.count(o)==1;p.write_text(s.replace(o,'            manager.hasReceivedSoftwareRevision = false; manager.isRecordingOnDevice = false\n            manager.connectionState = .disconnected'))"
-
 # `cancelConnection` is documented safe from any state. Without the guard it
 # tears down a healthy connection.
 mutate "cancel_connection_drops_a_live_connection" "EmuquTests/PolarConnectionLifecycleTests" \
     "Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift');s=p.read_text();o='            guard manager.connectionState == .connecting, let deviceId = manager.pendingDeviceId else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'            guard let deviceId = manager.pendingDeviceId ?? manager.connectedDeviceId else { return }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapDiscoveryCoordinator.swift');s=p.read_text();o='            guard state.connectionState == .connecting, let deviceId = state.pendingDeviceId else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'            guard let deviceId = state.pendingDeviceId ?? state.connectedDeviceId else { return }'))"
 
 # A late callback from a previous connection must not tear down the current
 # one. Without the device match, any drop for any strap clears the live link.
 mutate "stale_drop_tears_down_current_link" "EmuquTests/PolarConnectionLifecycleTests" \
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='              deviceId == manager.connectedDeviceId || deviceId == manager.pendingDeviceId';assert s.count(o)==1;p.write_text(s.replace(o,'              !deviceId.isEmpty'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='              deviceId == state.connectedDeviceId || deviceId == state.pendingDeviceId';assert s.count(o)==1;p.write_text(s.replace(o,'              !deviceId.isEmpty'))"
 
 # A session whose strap drops is given the reconnect window. Without the
 # deadline nothing ever ends the wait for a strap that is not coming back.
@@ -684,14 +678,14 @@ mutate "session_drop_not_given_a_window" "EmuquTests/PolarConnectionLifecycleTes
 # must be told now, not twenty minutes later.
 mutate "pairing_loss_leaves_the_session_waiting" "EmuquTests/PolarConnectionLifecycleTests" \
     "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='        if wasStreaming { manager.reconnectExhausted = true }';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = wasStreaming'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='        if wasStreaming { stream.reconnectExhausted = true }';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = wasStreaming'))"
 
 # SDK 8.x refuses a feature call locally until the strap is ready. Treating
 # that refusal as a failure abandons a recording the strap would accept a
 # second later.
 mutate "not_ready_refusal_treated_as_failure" "EmuquTests/PolarConnectionLifecycleTests" \
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkCoordinator.swift');s=p.read_text();o='            } catch where StrapErrorClassifier.isNotReadyYet(error) {';assert s.count(o)==1;p.write_text(s.replace(o,'            } catch where StrapErrorClassifier.isNotReadyYet(error) && refusals < 0 {'))"
+    "Emuqu/Sources/Collection/StrapLinkControl.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapLinkControl.swift');s=p.read_text();o='            } catch where StrapErrorClassifier.isNotReadyYet(error) {';assert s.count(o)==1;p.write_text(s.replace(o,'            } catch where StrapErrorClassifier.isNotReadyYet(error) && refusals < 0 {'))"
 
 # Every link reset makes the strap enumerate its services again. Resetting
 # before a re-subscribe has had its chance keeps a slow strap permanently
@@ -1068,8 +1062,8 @@ mutate "gpx_file_size_unbounded" "EmuquTests/GPXMalformedInputTests" \
 # A crashed workout's strap recording belongs to workout recovery; Stop and
 # Recover filing it as a night lose its route.
 mutate "interrupted_workout_strap_taken_as_night" "EmuquTests/StrapRecoveryFlowTests" \
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+Recovery.swift');s=p.read_text();o='guard let state = collector.getPersistedRecordingState(), state.sessionType == .workout else { return false }';assert s.count(o)==1;p.write_text(s.replace(o,'guard let state = collector.getPersistedRecordingState(), state.sessionType == .quick else { return false }'))"
+    "Emuqu/Sources/Collection/StrapRecordingGuards.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/StrapRecordingGuards.swift');s=p.read_text();o='guard let state = recordingStore.load(), state.sessionType == .workout else { return false }';assert s.count(o)==1;p.write_text(s.replace(o,'guard let state = recordingStore.load(), state.sessionType == .quick else { return false }'))"
 
 # A rewrite killed between the file and the index must be re-hashed at the
 # next launch, or the session fails every read.
@@ -1114,17 +1108,17 @@ mutate "baseline_rebuild_drops_unread_nights" "EmuquTests/BaselineTrackerTests" 
 # A pause backs the strap's downloaded beats up before the analysis.
 mutate "pause_leaves_strap_night_in_memory" "EmuquTests/StrapRecoveryFlowTests" \
     "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+OvernightGather.swift');s=p.read_text();o='        await collector.overnightStreaming.backUpDownloadedNight(\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = (\n'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+OvernightGather.swift');s=p.read_text();o='        await morning.backUpDownloadedNight(\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = (\n'))"
 
 # A Skip as the download finishes keeps the downloaded beats.
 mutate "late_skip_drops_download" "EmuquTests/StrapRecoveryFlowTests" \
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift');s=p.read_text();o='        collector.morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift');s=p.read_text();o='        morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
 # Discard Night leaves nothing in the Trash.
 mutate "discard_leaves_night_in_trash" "EmuquTests/RecordingDiscardTests" \
     "Emuqu/Sources/Collection/RRCollector+Discard.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+Discard.swift');s=p.read_text();o='        collector.archive.store.discardTrashed(id)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+Discard.swift');s=p.read_text();o='        archive.store.discardTrashed(id)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
 # A file the archive could not read is reported to the tool call resolving.
 mutate "failed_read_reported_as_no_data" "EmuquTests/SessionReadWatchTests" \

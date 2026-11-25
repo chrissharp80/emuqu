@@ -64,7 +64,7 @@ final class RRCollector {
     // recording state don't re-render on every archive / streaming /
     // morning-processing property the collector also publishes.
     //
-    // Writers: `RRCollector+Bindings.setupBindings()` pushes PolarManager
+    // Writers: `CollectorBindings.setupBindings()` pushes PolarManager
     // updates into `deviceStatus`. The computed getters below forward
     // `collector.isDeviceConnected` / `collector.batteryLevel` etc. reads
     // through to it. SwiftUI views read
@@ -88,36 +88,68 @@ final class RRCollector {
     )
     var lastEmergencyFlush: Date?
 
-
     /// Process → analyse → accept. Built first: every other coordinator
     /// calls it, and it calls none of them.
     @ObservationIgnored private(set) lazy var morning: MorningSessionPipeline = MorningSessionPipeline(
-        acceptanceService: acceptanceService, analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal, baselineRebuild: baselineRebuild, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthKit: healthKit, morningCoordination: morningCoordination, morningProcessingService: morningProcessingService, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore, scoring: scoring, sessionState: sessionState, settingsManager: settingsManager, sleepBoundaryResolver: sleepBoundaryResolver, streamingLifecycle: streamingLifecycle
+        acceptanceService: acceptanceService, analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal,
+        baselineRebuild: baselineRebuild, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthKit: healthKit,
+        morningCoordination: morningCoordination, morningProcessingService: morningProcessingService, polarManager: polarManager,
+        rawBackup: rawBackup, recordingStore: recordingStore, scoring: scoring, sessionState: sessionState,
+        settingsManager: settingsManager, sleepBoundaryResolver: sleepBoundaryResolver, streamingLifecycle: streamingLifecycle
     )
 
     /// Overnight capture in streaming mode, and the gather that ends it.
     @ObservationIgnored private(set) lazy var overnightStreaming: OvernightStreamingCoordinator = OvernightStreamingCoordinator(
-        archive: archive, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, healthKit: healthKit, morningCoordination: morningCoordination, overnightRun: overnightRun, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore, services: services, sessionState: sessionState, settingsManager: settingsManager, streamingLifecycle: streamingLifecycle, morning: morning
+        archive: archive, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, healthKit: healthKit,
+        morningCoordination: morningCoordination, overnightRun: overnightRun, polarManager: polarManager, rawBackup: rawBackup,
+        recordingStore: recordingStore, services: services, sessionState: sessionState, settingsManager: settingsManager,
+        streamingLifecycle: streamingLifecycle, morning: morning
     )
 
     /// Capture to the strap's own memory, and its download.
     @ObservationIgnored private(set) lazy var deviceRecording: DeviceRecordingSession = DeviceRecordingSession(
-        archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker, healthKit: healthKit, polarManager: polarManager, rawBackup: rawBackup, reconciliation: reconciliation, recordingStore: recordingStore, scoring: scoring, sessionState: sessionState, strapGuards: strapGuards, streamingLifecycle: streamingLifecycle, verification: verification, windowSelector: windowSelector, morning: morning
+        archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker,
+        healthKit: healthKit, polarManager: polarManager, rawBackup: rawBackup, reconciliation: reconciliation,
+        recordingStore: recordingStore, scoring: scoring, sessionState: sessionState, strapGuards: strapGuards,
+        streamingLifecycle: streamingLifecycle, verification: verification, windowSelector: windowSelector, morning: morning
     )
 
     /// Recovery of interrupted, lost and trashed recordings.
     @ObservationIgnored private(set) lazy var recovery: SessionRecoveryCoordinator = SessionRecoveryCoordinator(
-        archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, healthKit: healthKit, morningCoordination: morningCoordination, overnightRun: overnightRun, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore, scoring: scoring, services: services, sessionState: sessionState, settingsManager: settingsManager, strapGuards: strapGuards, streamingLifecycle: streamingLifecycle, windowSelector: windowSelector, deviceRecording: deviceRecording, morning: morning
+        archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker,
+        cloudSyncManager: cloudSyncManager, healthKit: healthKit, morningCoordination: morningCoordination,
+        overnightRun: overnightRun, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore,
+        scoring: scoring, services: services, sessionState: sessionState, settingsManager: settingsManager,
+        strapGuards: strapGuards, streamingLifecycle: streamingLifecycle, windowSelector: windowSelector,
+        deviceRecording: deviceRecording, morning: morning
     )
 
     /// Streaming sessions, pause/resume, and the view bindings.
     @ObservationIgnored private(set) lazy var control: CollectorSessionControl = CollectorSessionControl(
-        analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineArchiveSync: baselineArchiveSync, baselineRebuild: baselineRebuild, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthKit: healthKit, liveHRVMirror: liveHRVMirror, morningCoordination: morningCoordination, notificationObservers: notificationObservers, overnightRun: overnightRun, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore, scoring: scoring, services: services, sessionState: sessionState, settingsManager: settingsManager, strapGuards: strapGuards, streamingLifecycle: streamingLifecycle, streamingVerification: streamingVerification, morning: morning, overnightStreaming: overnightStreaming, recovery: recovery
+        archive: archive, archiveSignal: archiveSignal, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager,
+        deviceStatus: deviceStatus, morningCoordination: morningCoordination, overnightRun: overnightRun,
+        polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore, services: services,
+        sessionState: sessionState, settingsManager: settingsManager, strapGuards: strapGuards,
+        streamingLifecycle: streamingLifecycle, morning: morning, overnightStreaming: overnightStreaming
     )
 
-    func startStreamingSession(durationSeconds: Int = 180) throws {
-        try control.startStreamingSession(durationSeconds: durationSeconds)
-    }
+    /// The strap, Health and iCloud state republished for the views.
+    @ObservationIgnored private(set) lazy var bindings: CollectorBindings = CollectorBindings(
+        archive: archive, archiveSignal: archiveSignal, baselineArchiveSync: baselineArchiveSync, baselineRebuild: baselineRebuild,
+        baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, control: control, deviceStatus: deviceStatus,
+        healthKit: healthKit, liveHRVMirror: liveHRVMirror, morningCoordination: morningCoordination,
+        notificationObservers: notificationObservers, overnightRun: overnightRun, polarManager: polarManager, recovery: recovery,
+        services: services, sessionState: sessionState, strapGuards: strapGuards, streamingLifecycle: streamingLifecycle
+    )
+
+    /// The few-minute streamed reading.
+    @ObservationIgnored private(set) lazy var quickReading: QuickReadingSession = QuickReadingSession(
+        analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector,
+        baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthKit: healthKit,
+        overnightStreaming: overnightStreaming, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore,
+        scoring: scoring, sessionState: sessionState, settingsManager: settingsManager, strapGuards: strapGuards,
+        streamingLifecycle: streamingLifecycle, streamingVerification: streamingVerification
+    )
 
     // MARK: - Dependencies
 
@@ -159,7 +191,7 @@ final class RRCollector {
 
     /// Data quality verification (streaming - relaxed for short readings)
     let streamingVerification = Verification(config: Verification.Config(
-        minPoints: CollectorSessionControl.minimumQuickReadingBeats,
+        minPoints: QuickReadingSession.minimumQuickReadingBeats,
         minDurationHours: 0.025,
         maxArtifactPercent: 20.0,
         warnArtifactPercent: 10.0
@@ -533,7 +565,7 @@ final class RRCollector {
     /// here is cold-start cost. The disk-touching parts already hop off the
     /// main actor (`restorePausedStateIfNeeded` defers to `Task.detached`).
     private func wireCollaborators() {
-        control.setupBindings()
+        bindings.setupBindings()
         setupDataRescueCallback()
         setupLifecycleObservers()
         // Wire the Beat Consistency priors cache to the
@@ -544,9 +576,9 @@ final class RRCollector {
         installArchivedCopyListener()
         control.restorePausedStateIfNeeded()
         control.refreshRecentPausedSession()
-        control.publishLiveHRVSnapshotsToAssistant()
-        control.armObservationLoops()
-        control.runMergeDataLossMigrationIfNeeded()
+        bindings.publishLiveHRVSnapshotsToAssistant()
+        bindings.armObservationLoops()
+        bindings.runMergeDataLossMigrationIfNeeded()
     }
 
     // MARK: - Types

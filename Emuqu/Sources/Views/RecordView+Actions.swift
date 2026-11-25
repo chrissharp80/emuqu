@@ -202,7 +202,7 @@ extension RecordView {
         fetchFailed = false
         debugLog("startStreaming called with \(seconds) seconds")
         do {
-            try collector.startStreamingSession(durationSeconds: seconds)
+            try collector.quickReading.startStreamingSession(durationSeconds: seconds)
         } catch {
             debugLog("startStreaming error: \(error)")
             sessionState.lastError = error
@@ -215,7 +215,7 @@ extension RecordView {
     /// A failed reading is not archived and gets none.
     func stopStreaming() {
         Task {
-            let session = await collector.control.stopStreamingSession()
+            let session = await collector.quickReading.stopStreamingSession()
             guard let session, session.state == .complete else { return }
             await persistTagsAndNotes(for: session)
         }

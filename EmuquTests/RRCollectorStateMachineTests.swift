@@ -135,7 +135,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
     /// Test that startStreamingSession throws when not connected
     func testStartStreamingSessionThrowsWhenNotConnected() {
         do {
-            try collector.startStreamingSession()
+            try collector.quickReading.startStreamingSession()
             XCTFail("startStreamingSession should throw when not connected")
         } catch {
             XCTAssertTrue(
@@ -164,7 +164,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
     func testStateRemainsIdleAfterFailedTransitions() async {
         // Try all transitions — all should fail
         try? await collector.deviceRecording.startSession()
-        try? collector.startStreamingSession()
+        try? collector.quickReading.startStreamingSession()
         try? collector.overnightStreaming.startOvernightStreaming()
         try? await collector.morning.acceptSession()
 

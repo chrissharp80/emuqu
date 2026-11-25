@@ -362,4 +362,65 @@ extension CollectorSessionControl {
         sessionState.recordingPhase = .paused(sessionId: id)
         if let usesDeviceBackup = recordingStore.pausedCaptureMode() { overnightRun.usesDeviceBackup = usesDeviceBackup }
     }
+
+    /// Refresh the cached recentPausedSession on a background thread.
+    /// Archive I/O (index scan, file reads, SHA256, JSON decode) runs off-main.
+    /// Only hops to main to publish the result.
+    func refreshRecentPausedSession() {
+        // Capture what we need before leaving the MainActor. `owner` is weak
+        // so a background refresh never keeps these controls alive.
+        let archive = self.archive
+        let maxGap = settingsManager.settings.effectiveMergeGapSeconds
+
+        Task.detached(priority: .utility) { [weak owner = self] in
+            let result = CollectorSessionControl.findRecentPausedSessionOffMain(archive: archive, maxGap: maxGap)
+            await MainActor.run { [weak owner] in
+                owner?.sessionState.recentPausedSession = result
+            }
+        }
+    }
+
+    /// Pure function that searches the archive for a recent paused/complete overnight
+    /// session. Runs entirely off the main thread — no actor isolation needed.
+    /// Uses lightweight retrieval (skips rrSeries) since only state/dates are checked.
+    ///
+    /// The index scan + disk loads happen here, off the main thread.
+    /// Lightweight loads skip rrSeries (~700KB per session) since we only
+    /// need state, pausedDate, and endDate for the search.
+    ///
+    /// Paused sessions win over recently-completed ones — a pause is an
+    /// explicit "I'm coming back to this." A paused session that was already
+    /// resumed is not offered: it stays paused in the archive, but its night
+    /// went on in the segment resumed from it, and continuing it again would
+    /// leave that segment out.
+    nonisolated static func findRecentPausedSessionOffMain(archive: SessionArchive, maxGap: TimeInterval) -> HRVSession? {
+        guard maxGap > 0 else { return nil }
+        let now = Date()
+        let cutoff = now.addingTimeInterval(-maxGap)
+        let entries = archive.store.entries
+        // By when the night stopped, not when it started: a night paused or
+        // finished minutes ago may have begun hours before the window.
+        let loaded = entries
+            .filter { $0.sessionType == .overnight && ($0.endDate ?? $0.date) >= cutoff }
+            .compactMap { archive.retrieveLightweightOrLog($0.sessionId) }
+        let paused = loaded.first {
+            $0.state == .paused && now.timeIntervalSince($0.pausedDate ?? .distantPast) <= maxGap
+                && !wasResumed($0, entries: entries)
+        }
+        if let paused { return paused }
+        return loaded.first {
+            $0.state == .complete && now.timeIntervalSince($0.endDate ?? .distantPast) <= maxGap
+        }
+    }
+
+    /// Whether some archived segment was resumed from this paused session.
+    nonisolated private static func wasResumed(_ paused: HRVSession, entries: [SessionArchiveEntry]) -> Bool {
+        entries.contains { entry in
+            SessionRecoveryMath.isResumedSegment(
+                segmentId: entry.sessionId, segmentLinks: entry.linkedSessionIds,
+                segmentEnd: entry.endDate ?? entry.date,
+                parentId: paused.id, parentLinks: paused.linkedSessionIds, parentPausedAt: paused.pausedDate
+            )
+        }
+    }
 }
