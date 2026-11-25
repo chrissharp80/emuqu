@@ -29,7 +29,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
 
     private func makeCollector(_ radio: FakeStrapRadio) -> RRCollector {
         let manager = PolarManager()
-        manager.radioForTesting = radio
+        manager.radio.radioForTesting = radio
         manager.setConnectedDeviceForTesting(id: deviceId, type: .h10)
         manager.readiness.linkEstablished()
         manager.readiness.settleWithoutSummary()
@@ -435,11 +435,11 @@ final class StrapRecoveryFlowTests: XCTestCase {
         let radio = FakeStrapRadio()
         radio.setRecording(ongoing: true, entryId: exerciseId(Date().addingTimeInterval(-1800)))
         let manager = PolarManager()
-        manager.radioForTesting = radio
+        manager.radio.radioForTesting = radio
         manager.knownDevices = []
         Task { @MainActor in
             await sleepQuietly(200_000_000, context: "test reconnect")
-            manager.link.apply(.connected(deviceId: self.deviceId, name: "Polar H10 RECOVERY"))
+            manager.linkEvents.apply(.connected(deviceId: self.deviceId, name: "Polar H10 RECOVERY"))
             manager.readiness.settleWithoutSummary()
         }
 

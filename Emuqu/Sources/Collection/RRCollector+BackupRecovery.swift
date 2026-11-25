@@ -206,7 +206,7 @@ extension SessionRecoveryCoordinator {
             return nil
         }
         guard Self.recording(startedAt: recording.startedAt, belongsToWorkoutLastHeardAt: Self.lastKnownMoment(of: backup)) else {
-            let keptAside = manager.rescueToBackup(recording)
+            let keptAside = manager.deviceRecording.rescueToBackup(recording)
             debugLog("[Recovery] Workout strap recovery: the strap's recording began after the workout — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed; the strap keeps it"); using disk backup")
             return nil
         }
@@ -227,7 +227,7 @@ extension SessionRecoveryCoordinator {
     /// cleared over them.
     private func keepUnsavedDownload(_ recording: StrapRecording?) {
         guard let recording else { return }
-        let keptAside = polarManager.rescueToBackup(recording)
+        let keptAside = polarManager.deviceRecording.rescueToBackup(recording)
         debugLog("[Recovery] The session could not be saved with the strap's \(recording.points.count) beats — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed")", level: .warning)
     }
 
@@ -511,7 +511,7 @@ extension SessionRecoveryCoordinator {
         guard let recording = await manager.recording.fetchRecordingIfAvailable(recordedSince: session.startDate),
               !recording.points.isEmpty else { return nil }
         guard let recordedStart = recording.startedAt, recordedStart <= end else {
-            let keptAside = manager.rescueToBackup(recording)
+            let keptAside = manager.deviceRecording.rescueToBackup(recording)
             debugLog("[RRCollector] Downloaded recording is not from this session — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed; the strap keeps it")")
             return nil
         }

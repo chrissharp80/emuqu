@@ -179,7 +179,7 @@ private struct ConnectionPanelDisconnected: View {
             KnownDeviceRow(
                 device: device,
                 onConnect: { polarManager.discovery.connect(deviceId: device.id) },
-                onRemove: { polarManager.removeKnownDevice(id: device.id) }
+                onRemove: { polarManager.pairings.removeKnownDevice(id: device.id) }
             )
         }
         scanButton

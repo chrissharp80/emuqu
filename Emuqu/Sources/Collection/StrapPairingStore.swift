@@ -87,3 +87,37 @@ enum StrapPairingStore {
         }
     }
 }
+
+/// The straps this app has paired, most recent first, and when one was last
+/// connected. Persisted through `StrapPairingStore`; loaded when built.
+@Observable
+@MainActor
+final class StrapPairings {
+    var knownDevices: [PolarManager.KnownDevice] = []
+    /// When this device was last successfully connected.
+    var lastConnectedTime: Date?
+
+    init() {
+        knownDevices = StrapPairingStore.load()
+        if let time = StrapPairingStore.loadLastConnectedTime() { lastConnectedTime = time }
+    }
+
+    /// The most recently connected device ID (first in knownDevices list)
+    var lastConnectedDeviceId: String? { knownDevices.first?.id }
+
+    func addKnownDevice(id: String, name: String, deviceType: PolarDeviceType) {
+        knownDevices = StrapPairingStore.adding(
+            PolarManager.KnownDevice(id: id, name: name, deviceType: deviceType), to: knownDevices
+        )
+        StrapPairingStore.save(knownDevices)
+    }
+
+    func removeKnownDevice(id: String) {
+        knownDevices.removeAll { $0.id == id }
+        StrapPairingStore.save(knownDevices)
+    }
+
+    func saveLastConnectedTime() {
+        if let time = lastConnectedTime { StrapPairingStore.saveLastConnectedTime(time) }
+    }
+}

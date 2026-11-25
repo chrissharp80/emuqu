@@ -51,7 +51,7 @@ extension RecordPanels {
             FetchProgressCard(
                 progress: progress,
                 deviceName: deviceStatus.connectedDeviceType?.displayName ?? String(localized: "device", bundle: LanguageManager.appBundle),
-                onCancel: { collector.polarManager.cancelFetch() }
+                onCancel: { collector.polarManager.recording.cancelActiveTransfer() }
             )
         }
     }

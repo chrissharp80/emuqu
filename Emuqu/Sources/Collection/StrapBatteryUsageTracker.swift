@@ -7,14 +7,29 @@ import Foundation
 /// and one rule for reading them. It touches no BLE
 /// and makes no async call.
 ///
-/// Holds the manager strongly and is built on demand by it (ADR 005): a value
-/// with no stored state of its own cannot outlive what it points at and
-/// cannot form a cycle. The counters live
-/// on the manager, where the observable state belongs; this type holds
-/// the rules for reading and updating them.
+/// One per `PolarManager`. It owns the counters (observed: the battery card
+/// shows them) and writes the battery reading and its stale flag on the link
+/// state; the strap last paired is where hours are charged with none linked.
+@Observable
 @MainActor
-struct StrapBatteryUsageTracker {
-    let manager: PolarManager
+final class StrapBatteryUsageTracker {
+    @ObservationIgnored private let link: StrapLinkState
+    @ObservationIgnored private let pairings: StrapPairings
+
+    init(link: StrapLinkState, pairings: StrapPairings) {
+        self.link = link
+        self.pairings = pairings
+    }
+
+    /// The battery value the device most recently reported, tracked separately
+    /// from `batteryLevel` so a callback repeating the SAME value (which Polar
+    /// emits on connect) is told apart from one carrying a NEW one.
+    private(set) var batteryLastReportedValue: Int?
+    /// When the device last reported a CHANGED value — not merely a callback.
+    private(set) var batteryLastChangedAt: Date?
+    /// Recording hours put on the strap since that change. A strict lower
+    /// bound on consumed runtime.
+    private(set) var hoursRecordedSinceBatteryChanged: Double = 0
 
     //
     // Polar straps push BLE Battery Service notifications only on CHANGE. An
@@ -33,7 +48,7 @@ struct StrapBatteryUsageTracker {
     // Persisted per device ID so swapping straps (his + hers, or two H10s)
     // doesn't cross-contaminate the counters.
 
-    // The counters live on the manager. `batteryLastReportedValue` is kept
+    // `batteryLastReportedValue` is kept
     // apart from `batteryLevel` so a callback repeating the SAME value (which
     // doesn't reset the counter) is told from one with a NEW value (which
     // does). `batteryLastChangedAt` advances only on a changed value, unlike
@@ -58,21 +73,21 @@ struct StrapBatteryUsageTracker {
         let storedValue = defaults.object(forKey: Self.usageKey("value", deviceId: deviceId)) as? Int
         let storedAt = defaults.object(forKey: Self.usageKey("changedAt", deviceId: deviceId)) as? Date
         let storedHours = defaults.double(forKey: Self.usageKey("hours", deviceId: deviceId))
-        manager.batteryLastReportedValue = storedValue
-        manager.batteryLastChangedAt = storedAt
-        manager.hoursRecordedSinceBatteryChanged = max(0, storedHours)
+        batteryLastReportedValue = storedValue
+        batteryLastChangedAt = storedAt
+        hoursRecordedSinceBatteryChanged = max(0, storedHours)
         recomputeStaleness()
     }
 
     private func persist(for deviceId: String) {
         let defaults = UserDefaults.standard
-        if let v = manager.batteryLastReportedValue {
+        if let v = batteryLastReportedValue {
             defaults.set(v, forKey: Self.usageKey("value", deviceId: deviceId))
         }
-        if let at = manager.batteryLastChangedAt {
+        if let at = batteryLastChangedAt {
             defaults.set(at, forKey: Self.usageKey("changedAt", deviceId: deviceId))
         }
-        defaults.set(manager.hoursRecordedSinceBatteryChanged, forKey: Self.usageKey("hours", deviceId: deviceId))
+        defaults.set(hoursRecordedSinceBatteryChanged, forKey: Self.usageKey("hours", deviceId: deviceId))
     }
 
     /// Add recorded time to the running counter. Call from session-end paths
@@ -88,11 +103,11 @@ struct StrapBatteryUsageTracker {
     @MainActor
     func recordRecordingHours(_ hours: Double) {
         guard hours > 0, hours < 48 else { return } // sanity bound: > 48h = telemetry bug
-        guard let deviceId = manager.connectedDeviceId ?? manager.lastConnectedDeviceId else {
+        guard let deviceId = link.connectedDeviceId ?? pairings.lastConnectedDeviceId else {
             debugLog("[StrapBattery] \(String(format: "%.2f", hours)) h of recording not charged — no strap known")
             return
         }
-        manager.hoursRecordedSinceBatteryChanged += hours
+        hoursRecordedSinceBatteryChanged += hours
         persist(for: deviceId)
         recomputeStaleness()
     }
@@ -102,14 +117,14 @@ struct StrapBatteryUsageTracker {
     /// spec without a fresh device-reported change is flagged.
     @MainActor
     func recomputeStaleness() {
-        guard manager.batteryLevel != nil, let deviceType = manager.connectedDeviceType else {
-            manager.isBatteryReadingStale = false
+        guard link.batteryLevel != nil, let deviceType = link.connectedDeviceType else {
+            link.isBatteryReadingStale = false
             return
         }
         let spec = deviceType.specRecordingHours
         // 70 % of spec — gives a comfortable margin while still raising the
         // flag well before the user wakes up to a dead strap.
-        manager.isBatteryReadingStale = manager.hoursRecordedSinceBatteryChanged > spec * 0.7
+        link.isBatteryReadingStale = hoursRecordedSinceBatteryChanged > spec * 0.7
     }
 
     /// The recording-hours counter resets only when the device reports a
@@ -118,19 +133,19 @@ struct StrapBatteryUsageTracker {
     /// tell us the link is alive but nothing about discharge progress.
     @MainActor
     func applyLevelUpdate(from identifier: String, batteryLevel: UInt) {
-        guard manager.isActiveDeviceInfoSource(identifier) else { return }
+        guard link.isActiveDeviceInfoSource(identifier) else { return }
         let normalizedLevel = Int(batteryLevel)
         guard (0 ... 100).contains(normalizedLevel) else {
             debugLog("[StrapBattery] Ignoring invalid battery callback \(batteryLevel) for \(identifier)")
             return
         }
         debugLog("[PolarManager] Battery callback: \(normalizedLevel)% for \(identifier)")
-        manager.batteryLevel = normalizedLevel
-        manager.lastBatteryUpdateTime = Date()
-        if manager.batteryLastReportedValue != normalizedLevel {
-            manager.batteryLastReportedValue = normalizedLevel
-            manager.batteryLastChangedAt = Date()
-            manager.hoursRecordedSinceBatteryChanged = 0
+        link.batteryLevel = normalizedLevel
+        link.lastBatteryUpdateTime = Date()
+        if batteryLastReportedValue != normalizedLevel {
+            batteryLastReportedValue = normalizedLevel
+            batteryLastChangedAt = Date()
+            hoursRecordedSinceBatteryChanged = 0
         }
         persist(for: identifier)
         recomputeStaleness()

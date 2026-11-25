@@ -27,7 +27,7 @@ final class StrapNightTests: XCTestCase {
         _ radio: FakeStrapRadio, type: PolarDeviceType = .h10, settled: Bool = true
     ) -> PolarManager {
         let manager = PolarManager()
-        manager.radioForTesting = radio
+        manager.radio.radioForTesting = radio
         manager.setConnectedDeviceForTesting(id: deviceId, type: type)
         manager.readiness.linkEstablished()
         if settled { manager.readiness.settleWithoutSummary() }
@@ -172,13 +172,13 @@ final class StrapNightTests: XCTestCase {
         radio.setRecording(ongoing: true, entryId: exerciseId(start))
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 870, count: 25_000))
         let manager = linkedManager(radio)
-        manager.prepareStreamingStateForTesting()
+        manager.stream.prepareStreamingStateForTesting()
 
         let recordingBeforeDrop = manager.isRecordingOnDevice
-        manager.link.apply(.disconnected(deviceId: deviceId, loss: .connectionLost))
+        manager.linkEvents.apply(.disconnected(deviceId: deviceId, loss: .connectionLost))
         XCTAssertEqual(manager.isRecordingOnDevice, recordingBeforeDrop,
                        "the drop must not decide anything about the strap's own recording")
-        manager.link.apply(.connected(deviceId: deviceId, name: "Polar H10 NIGHT"))
+        manager.linkEvents.apply(.connected(deviceId: deviceId, name: "Polar H10 NIGHT"))
         manager.readiness.settleWithoutSummary()
 
         let points = try await manager.recording.fetchRecording(recordedSince: nil, budget: .attended).points
@@ -228,7 +228,7 @@ final class StrapNightTests: XCTestCase {
         let manager = linkedManager(radio)
         try manager.startStreaming()
 
-        StrapHeartRateFeed(manager: manager).restart()
+        manager.linkEvents.feed.restart()
         try await waitUntil { manager.streamedRRPoints.count >= 2 }
 
         XCTAssertEqual(manager.currentHeartRate, 58)
@@ -242,10 +242,10 @@ final class StrapNightTests: XCTestCase {
     func testTheHeartRateSubscriptionAttachesToTheStrapTheSDKConnected() async throws {
         let radio = FakeStrapRadio()
         let manager = PolarManager()
-        manager.radioForTesting = radio
+        manager.radio.radioForTesting = radio
         let strap = UUID()
 
-        manager.link.apply(.connected(deviceId: deviceId, name: "Polar H10 NIGHT", peripheralId: strap))
+        manager.linkEvents.apply(.connected(deviceId: deviceId, name: "Polar H10 NIGHT", peripheralId: strap))
         try await waitUntil { !radio.hrPeripheralIds.isEmpty }
 
         XCTAssertEqual(radio.hrPeripheralIds.first, strap)
@@ -262,7 +262,7 @@ final class StrapNightTests: XCTestCase {
         let manager = linkedManager(radio)
         try manager.startStreaming()
 
-        StrapHeartRateFeed(manager: manager).restart()
+        manager.linkEvents.feed.restart()
         try await waitUntil(timeout: 30) { manager.currentHeartRate != nil }
 
         XCTAssertEqual(manager.currentHeartRate, 61)

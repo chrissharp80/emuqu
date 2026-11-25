@@ -29,7 +29,7 @@ final class StrapArmingTests: XCTestCase {
 
     private func linkedManager(_ radio: FakeStrapRadio) -> PolarManager {
         let manager = PolarManager()
-        manager.radioForTesting = radio
+        manager.radio.radioForTesting = radio
         manager.setConnectedDeviceForTesting(id: deviceId, type: .h10)
         manager.readiness.linkEstablished()
         manager.readiness.settleWithoutSummary()

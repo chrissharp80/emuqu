@@ -15,10 +15,10 @@ extension StrapRecordingCoordinator {
     /// Analogous to H10's startRecording() - survives BLE disconnects
     func startOfflinePpiRecording() async throws {
         #if canImport(PolarBleSdk)
-            guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId, manager.connectionState == .connected else {
+            guard let api = strapAPI, let deviceId = linkState.connectedDeviceId, linkState.connectionState == .connected else {
                 throw PolarManager.PolarError.notConnected
             }
-            try manager.link.requireUsable(.offlineRecording)
+            try link.requireUsable(.offlineRecording)
             try await armOfflinePpiRecording(api: api, deviceId: deviceId)
         #else
             throw PolarManager.PolarError.sdkNotAvailable
@@ -27,15 +27,15 @@ extension StrapRecordingCoordinator {
 
     #if canImport(PolarBleSdk)
         private func armOfflinePpiRecording(api: any StrapRadio, deviceId: String) async throws {
-            manager.recordingState = .starting
+            device.recordingState = .starting
             do {
                 try await api.startOfflineRecording(deviceId, feature: .ppi, settings: nil, secret: nil)
             } catch {
                 // The same humanising and low-battery mapping as the H10 start.
                 throw surfaceStartFailure(error)
             }
-            manager.recordingState = .recording
-            manager.isRecordingOnDevice = true
+            device.recordingState = .recording
+            device.isRecordingOnDevice = true
             debugLog("[PolarManager] Started Verity Sense offline PPI recording")
         }
     #endif
@@ -49,7 +49,7 @@ extension StrapRecordingCoordinator {
     /// to recordings that started at or after it; nil reads them all.
     func fetchOfflinePpiRecording(requireEveryEntry: Bool = false, recordedSince: Date? = nil) async throws -> StrapRecording {
         #if canImport(PolarBleSdk)
-            guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
+            guard let api = strapAPI, let deviceId = linkState.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
             let read = try await Self.readAllOfflinePpi(api: api, deviceId: deviceId, since: recordedSince)
             return try Self.offlinePpiRecording(from: read, requireEveryEntry: requireEveryEntry)
         #else
@@ -64,9 +64,9 @@ extension StrapRecordingCoordinator {
     /// Throws `noRecordingFound` when there is nothing unsaved.
     func fetchUnsavedOfflinePpiRecordings() async throws -> StrapRecording {
         #if canImport(PolarBleSdk)
-            guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
+            guard let api = strapAPI, let deviceId = linkState.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
             let starts = try await Self.listPpiEntries(api: api, deviceId: deviceId).map(\.date)
-            let saved = Set(starts.filter { manager.isRecordingSaved(startedAt: $0) })
+            let saved = Set(starts.filter { device.isRecordingSaved(startedAt: $0) })
             let read = try await Self.readAllOfflinePpi(api: api, deviceId: deviceId, excluding: saved)
             return try Self.offlinePpiRecording(from: read, requireEveryEntry: true)
         #else

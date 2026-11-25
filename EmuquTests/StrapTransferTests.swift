@@ -20,7 +20,7 @@ final class StrapTransferTests: XCTestCase {
     private func linkedManager(_ radio: FakeStrapRadio, type: PolarDeviceType = .h10) -> PolarManager {
         let manager = PolarManager()
         manager.downloadLedger = StrapDownloadLedger(defaults: isolatedDefaults())
-        manager.radioForTesting = radio
+        manager.radio.radioForTesting = radio
         manager.setConnectedDeviceForTesting(id: deviceId, type: type)
         manager.readiness.linkEstablished()
         manager.readiness.settleWithoutSummary()
@@ -190,7 +190,7 @@ final class StrapTransferTests: XCTestCase {
         try await waitUntil { radio.calls.contains(.fetchExercise(entryId: self.exerciseId(start))) }
 
         let cancelledAt = Date()
-        manager.cancelFetch()
+        manager.recording.cancelActiveTransfer()
         let result = await transfer.result
 
         XCTAssertLessThan(Date().timeIntervalSince(cancelledAt), 2, "Cancel waited on a call that never answers")
@@ -223,7 +223,7 @@ final class StrapTransferTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 800, count: 500))
         let manager = linkedManager(radio)
         manager.recording.beginTransfer()
-        manager.cancelFetch()
+        manager.recording.cancelActiveTransfer()
 
         let recording = await manager.recording.fetchRecordingIfAvailable(recordedSince: start.addingTimeInterval(-60))
 

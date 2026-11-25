@@ -13,15 +13,15 @@ final class PolarManagerIntegrationTests: XCTestCase {
 
     /// Test streaming with BLE hiccups (gap then more data)
     func testStreamingWithBLEHiccups() {
-        manager.prepareStreamingStateForTesting(startTime: Date())
+        manager.stream.prepareStreamingStateForTesting(startTime: Date())
 
         let batch1 = createMockHRData(count: 10, startHR: 65)
-        manager.ingestHeartRateForTesting(batch1, elapsedMs: 1000)
+        manager.stream.ingestHeartRateForTesting(batch1, elapsedMs: 1000)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 10)
 
         let batch2 = createMockHRData(count: 10, startHR: 66)
-        manager.ingestHeartRateForTesting(batch2, elapsedMs: 1300)
+        manager.stream.ingestHeartRateForTesting(batch2, elapsedMs: 1300)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 20)
 
@@ -33,15 +33,15 @@ final class PolarManagerIntegrationTests: XCTestCase {
 
     /// Test streaming gap detection via wall clock
     func testStreamingGapDetection() {
-        manager.prepareStreamingStateForTesting(startTime: Date())
+        manager.stream.prepareStreamingStateForTesting(startTime: Date())
 
         let batch1 = createMockHRData(count: 5, startHR: 65)
-        manager.ingestHeartRateForTesting(batch1, elapsedMs: 2000)
+        manager.stream.ingestHeartRateForTesting(batch1, elapsedMs: 2000)
 
         let firstWallClock = manager.streamedRRPoints.last?.wallClockMs ?? 0
 
         let batch2 = createMockHRData(count: 5, startHR: 65)
-        manager.ingestHeartRateForTesting(batch2, elapsedMs: 2500)
+        manager.stream.ingestHeartRateForTesting(batch2, elapsedMs: 2500)
 
         let secondWallClock = manager.streamedRRPoints.last?.wallClockMs ?? 0
 
@@ -54,11 +54,11 @@ final class PolarManagerIntegrationTests: XCTestCase {
 
     /// Test streaming wall clock drift over many batches
     func testStreamingWallClockDrift() throws {
-        manager.prepareStreamingStateForTesting(startTime: Date())
+        manager.stream.prepareStreamingStateForTesting(startTime: Date())
 
         for index in 0 ..< 30 {
             let batch = createMockHRData(count: 1, startHR: 65)
-            manager.ingestHeartRateForTesting(batch, elapsedMs: Int64(1000 + (index * 1000)))
+            manager.stream.ingestHeartRateForTesting(batch, elapsedMs: Int64(1000 + (index * 1000)))
         }
 
         XCTAssertEqual(manager.streamedRRPoints.count, 30)
@@ -76,7 +76,7 @@ final class PolarManagerIntegrationTests: XCTestCase {
 
     /// Test multiple samples with mixed RR availability
     func testMultipleSamplesWithMixedAvailability() {
-        manager.prepareStreamingStateForTesting(startTime: Date())
+        manager.stream.prepareStreamingStateForTesting(startTime: Date())
 
         let mixedBatch: [StrapHRSample] = [
             StrapHRSample(hr: Int(65), rrsMs: [920, 930], rrAvailable: true),
@@ -86,7 +86,7 @@ final class PolarManagerIntegrationTests: XCTestCase {
             StrapHRSample(hr: Int(69), rrsMs: [925, 915, 920], rrAvailable: true)
         ]
 
-        manager.ingestHeartRate(mixedBatch)
+        manager.stream.ingestHeartRate(mixedBatch)
 
         XCTAssertEqual(
             manager.streamedRRPoints.count,
@@ -97,10 +97,10 @@ final class PolarManagerIntegrationTests: XCTestCase {
 
     /// Test high frequency data burst
     func testHighFrequencyDataBurst() {
-        manager.prepareStreamingStateForTesting(startTime: Date())
+        manager.stream.prepareStreamingStateForTesting(startTime: Date())
 
         let largeBatch = createMockHRData(count: 50, startHR: 65)
-        manager.ingestHeartRateForTesting(largeBatch, elapsedMs: 10000)
+        manager.stream.ingestHeartRateForTesting(largeBatch, elapsedMs: 10000)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 50)
 
@@ -118,10 +118,10 @@ final class PolarManagerIntegrationTests: XCTestCase {
 
     /// Test streaming data is preserved during interruption
     func testStreamingInterruption() {
-        manager.prepareStreamingStateForTesting(startTime: Date())
+        manager.stream.prepareStreamingStateForTesting(startTime: Date())
 
         let batch1 = createMockHRData(count: 10, startHR: 65)
-        manager.ingestHeartRateForTesting(batch1, elapsedMs: 5000)
+        manager.stream.ingestHeartRateForTesting(batch1, elapsedMs: 5000)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 10)
 
@@ -136,7 +136,7 @@ final class PolarManagerIntegrationTests: XCTestCase {
             let wallClockMs: Int64 = Int64(index * 1000)
             return RRPoint(t_ms: elapsedMs, rr_ms: 920, wallClockMs: wallClockMs)
         }
-        manager.prepareStreamingStateForTesting(
+        manager.stream.prepareStreamingStateForTesting(
             startTime: Date(),
             cumulativeMs: 10000,
             existingPoints: existingPoints
@@ -148,7 +148,7 @@ final class PolarManagerIntegrationTests: XCTestCase {
         }
 
         let resumeBatch = createMockHRData(count: 5, startHR: 65)
-        manager.ingestHeartRateForTesting(resumeBatch, elapsedMs: 12000)
+        manager.stream.ingestHeartRateForTesting(resumeBatch, elapsedMs: 12000)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 15)
         XCTAssertEqual(manager.streamedRRPoints[10].t_ms, 10000)
@@ -156,30 +156,30 @@ final class PolarManagerIntegrationTests: XCTestCase {
 
     /// Test empty batch followed by valid data
     func testEmptyStreamRecovery() {
-        manager.prepareStreamingStateForTesting(startTime: Date())
+        manager.stream.prepareStreamingStateForTesting(startTime: Date())
 
         let emptyBatch: [StrapHRSample] = [
             StrapHRSample(hr: Int(65), rrsMs: [], rrAvailable: false),
             StrapHRSample(hr: Int(66), rrsMs: [], rrAvailable: false)
         ]
 
-        manager.ingestHeartRateForTesting(emptyBatch, elapsedMs: 20000)
+        manager.stream.ingestHeartRateForTesting(emptyBatch, elapsedMs: 20000)
         XCTAssertEqual(manager.streamedRRPoints.count, 0, "Empty batch should add no points")
 
         let validBatch = createMockHRData(count: 5, startHR: 67)
-        manager.ingestHeartRateForTesting(validBatch, elapsedMs: 20500)
+        manager.stream.ingestHeartRateForTesting(validBatch, elapsedMs: 20500)
 
         XCTAssertEqual(manager.streamedRRPoints.count, 5, "Should recover and collect valid data")
     }
 
     /// Test maximum stream duration tracking
     func testMaxStreamDuration() {
-        manager.prepareStreamingStateForTesting(startTime: Date())
+        manager.stream.prepareStreamingStateForTesting(startTime: Date())
 
         let fixedSample = [StrapHRSample(hr: Int(65), rrsMs: [920], rrAvailable: true)]
 
         for index in 0 ..< 100 {
-            manager.ingestHeartRateForTesting(
+            manager.stream.ingestHeartRateForTesting(
                 fixedSample,
                 elapsedMs: Int64(30000 + (index * 920))
             )
@@ -187,7 +187,7 @@ final class PolarManagerIntegrationTests: XCTestCase {
 
         XCTAssertEqual(manager.streamedRRPoints.count, 100)
 
-        let totalMs = manager.streamingCumulativeMsForTesting
+        let totalMs = manager.stream.streamingCumulativeMsForTesting
         XCTAssertEqual(totalMs, 92000)
     }
 

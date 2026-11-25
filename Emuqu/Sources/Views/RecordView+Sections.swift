@@ -187,7 +187,7 @@ extension RecordView {
     }
 
     func cancelFetchRetry() {
-        collector.polarManager.cancelFetch()
+        collector.polarManager.recording.cancelActiveTransfer()
         isRetrying = false
     }
 
@@ -277,7 +277,7 @@ extension RecordView {
                 status: status,
                 onSkipDeviceFetch: {
                     collector.overnightRun.deviceFetchPolicy = .skipByUser
-                    collector.polarManager.cancelFetch()
+                    collector.polarManager.recording.cancelActiveTransfer()
                 },
                 onSkipSleepWait: {
                     collector.morningProcessingService.skipSleepWait = true

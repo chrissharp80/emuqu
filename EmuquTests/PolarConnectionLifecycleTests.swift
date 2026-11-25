@@ -26,18 +26,18 @@ final class PolarConnectionLifecycleTests: XCTestCase {
         manager.readiness.markReady(.heartRate)
         manager.readiness.markReady(.h10Recording)
         manager.feedStatus = .live
-        if streaming { manager.prepareStreamingStateForTesting() }
+        if streaming { manager.stream.prepareStreamingStateForTesting() }
         manager.isRecordingOnDevice = recordingOnDevice
         manager.recordingState = .recording
         manager.batteryLevel = 88
         manager.firmwareVersion = "5.1.5"
-        manager.hasReceivedSoftwareRevision = true
+        manager.linkState.hasReceivedSoftwareRevision = true
         manager.currentHeartRate = 54
         return manager
     }
 
     private func drop(_ manager: PolarManager, deviceId: String = "H10-ABC123", loss: StrapLinkLoss = .connectionLost) {
-        manager.link.apply(.disconnected(deviceId: deviceId, loss: loss))
+        manager.linkEvents.apply(.disconnected(deviceId: deviceId, loss: loss))
     }
 
     // MARK: - The invariant that costs a night
@@ -86,7 +86,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
             XCTAssertNil(manager.batteryLevel, "streaming: \(streaming)")
             XCTAssertNil(manager.firmwareVersion, "streaming: \(streaming)")
             XCTAssertNil(manager.currentHeartRate, "streaming: \(streaming)")
-            XCTAssertFalse(manager.hasReceivedSoftwareRevision)
+            XCTAssertFalse(manager.linkState.hasReceivedSoftwareRevision)
             XCTAssertEqual(manager.feedStatus, .waitingForStrap)
             XCTAssertFalse(manager.connectionHealthWarning)
         }
@@ -190,7 +190,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
             defaults.set(savedConnectedTime, forKey: UserDefaultsKeys.lastConnectedTime)
         }
 
-        manager.link.apply(.connected(deviceId: "H10-ABC123", name: "Polar H10 ABC123"))
+        manager.linkEvents.apply(.connected(deviceId: "H10-ABC123", name: "Polar H10 ABC123"))
 
         XCTAssertEqual(manager.streamingReconnectCount, 1)
         XCTAssertNil(manager.linkRuntime.reconnectDeadlineTask)
@@ -271,14 +271,14 @@ final class PolarConnectionLifecycleTests: XCTestCase {
 
     func testAFeatureReportForTheLinkedStrapMarksItReady() {
         let manager = linkedManager(streaming: false)
-        manager.link.apply(.featureReady(deviceId: "H10-ABC123", feature: .onlineStreaming))
+        manager.linkEvents.apply(.featureReady(deviceId: "H10-ABC123", feature: .onlineStreaming))
 
         XCTAssertTrue(manager.readiness.isReady(.onlineStreaming))
     }
 
     func testAFeatureReportForAnotherStrapIsIgnored() {
         let manager = linkedManager(streaming: false)
-        manager.link.apply(.featureReady(deviceId: "OTHER", feature: .onlineStreaming))
+        manager.linkEvents.apply(.featureReady(deviceId: "OTHER", feature: .onlineStreaming))
 
         XCTAssertFalse(manager.readiness.isReady(.onlineStreaming))
     }
@@ -290,7 +290,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
         let manager = PolarManager()
         manager.setConnectedDeviceForTesting(id: "H10-ABC123", type: .h10)
         manager.readiness.linkEstablished()
-        manager.link.apply(.readinessSummary(deviceId: "H10-ABC123", ready: [.heartRate], unavailable: [.offlineRecording]))
+        manager.linkEvents.apply(.readinessSummary(deviceId: "H10-ABC123", ready: [.heartRate], unavailable: [.offlineRecording]))
 
         XCTAssertEqual(manager.readiness.waitOutcome(for: .heartRate), .ready)
         XCTAssertEqual(manager.readiness.waitOutcome(for: .offlineRecording), .unavailable)
@@ -309,7 +309,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
             await manager.link.awaitFeature(.h10Recording, until: Date().addingTimeInterval(30))
         }
         await Task.yield()
-        manager.link.apply(.featureReady(deviceId: "H10-ABC123", feature: .h10Recording))
+        manager.linkEvents.apply(.featureReady(deviceId: "H10-ABC123", feature: .h10Recording))
 
         let outcome = await waiter.value
         XCTAssertEqual(outcome, .ready)
@@ -372,7 +372,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
     func testASampleWithoutASessionUpdatesTheLiveReadingOnly() {
         let manager = linkedManager(streaming: false)
         manager.feedStatus = .settingUp
-        manager.ingestHeartRate([StrapHRSample(hr: 71, rrsMs: [845], rrAvailable: true)])
+        manager.stream.ingestHeartRate([StrapHRSample(hr: 71, rrsMs: [845], rrAvailable: true)])
 
         XCTAssertEqual(manager.currentHeartRate, 71)
         XCTAssertEqual(manager.feedStatus, .live)
@@ -382,7 +382,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
     /// A strap reporting heart rate without RR still shows heart rate.
     func testHeartRateWithoutRRStillUpdatesTheLiveReading() {
         let manager = linkedManager(streaming: true)
-        manager.ingestHeartRate([StrapHRSample(hr: 63, rrsMs: [], rrAvailable: false)])
+        manager.stream.ingestHeartRate([StrapHRSample(hr: 63, rrsMs: [], rrAvailable: false)])
 
         XCTAssertEqual(manager.currentHeartRate, 63)
         XCTAssertTrue(manager.streamedRRPoints.isEmpty)
@@ -396,7 +396,7 @@ final class PolarConnectionLifecycleTests: XCTestCase {
         manager.linkRuntime.settledAt = now.addingTimeInterval(-290)
         manager.linkRuntime.lastSampleAt = now.addingTimeInterval(-60)
 
-        manager.link.evaluateFeedHealth(now: now)
+        manager.linkEvents.evaluateFeedHealth(now: now)
 
         XCTAssertEqual(manager.feedStatus, .stalled)
         XCTAssertTrue(manager.connectionHealthWarning)
