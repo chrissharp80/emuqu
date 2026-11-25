@@ -127,13 +127,14 @@ final class HeatAcclimationCache {
 
     private let archive: SessionArchive
     private let settingsManager: SettingsManager
-    private let healthKit: HealthKitManager
+    /// The Health workouts the heat model reads beside the archive.
+    private let training: TrainingHealthQueries
     private let maxAgeSec: TimeInterval = 300 // 5 min, matches TrainingMetricsCache
 
-    init(archive: SessionArchive, settingsManager: SettingsManager, healthKit: HealthKitManager) {
+    init(archive: SessionArchive, settingsManager: SettingsManager, training: TrainingHealthQueries) {
         self.archive = archive
         self.settingsManager = settingsManager
-        self.healthKit = healthKit
+        self.training = training
         // Seed from the last persisted readout so the card shows
         // the previous value immediately instead of a spinner while a fresh
         // (archive + HealthKit) compute runs. `lastUpdated` stays nil so
@@ -234,7 +235,7 @@ final class HeatAcclimationCache {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let windowStart = calendar.date(byAdding: .day, value: -HeatConstants.replayLookbackDays, to: today) ?? today
-        let workouts = await Self.mergingHealthKitWorkouts(into: archivedWorkouts(since: windowStart), from: healthKit)
+        let workouts = await Self.mergingHealthKitWorkouts(into: archivedWorkouts(since: windowStart), from: training)
         guard !workouts.isEmpty else { return .noOutdoorWorkouts }
         let exposuresByDay = Self.exposuresByDay(workouts, calendar: calendar)
         guard !exposuresByDay.isEmpty else { return .noRecordedWeather(outdoorWorkouts: workouts.count) }
@@ -313,10 +314,10 @@ final class HeatAcclimationCache {
     /// sessions 20 minutes apart both count. Their weather comes from the
     /// workout's HealthKit metadata when Apple Watch saved it.
     private static func mergingHealthKitWorkouts(
-        into workouts: [WorkoutForHeat], from healthKit: HealthKitManager
+        into workouts: [WorkoutForHeat], from training: TrainingHealthQueries
     ) async -> [WorkoutForHeat] {
         var merged = workouts
-        let hkWorkouts = await healthKit.fetchOutdoorWorkoutsForHeat(
+        let hkWorkouts = await training.fetchOutdoorWorkoutsForHeat(
             days: HeatConstants.replayLookbackDays
         )
         for w in hkWorkouts {

@@ -19,6 +19,9 @@ struct WorkoutNamespace: FactNamespaceResolver {
     let services: FactServices
     let archive: SessionArchive
 
+    /// The FTPs a workout's load is scored with.
+    var loadAnchors: TrainingLoadPrecedence.FTPAnchors { .current(services.settingsManager.settingsSnapshot) }
+
     func workoutEntries() -> [SessionArchiveEntry] {
         archive.store.entries
             .filter { $0.sessionType == .workout }
@@ -181,7 +184,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
             availability: { self.workoutAvailability() },
             resolve: { param, tail in
                 guard let session = self.sessionByDate(param) else { return self.noWorkout(on: param) }
-                return SessionNamespace.resolveSessionField(session, tail: tail)
+                return SessionNamespace.resolveSessionField(session, tail: tail, ftp: self.loadAnchors)
             }
         )
     }
@@ -202,7 +205,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
                 if sessions.isEmpty {
                     return .missing(reason: .notRecorded, detail: "no workouts in \(param)")
                 }
-                return .list(sessions.map { SessionNamespace.fullRecord(for: $0) })
+                return .list(sessions.map { SessionNamespace.fullRecord(for: $0, ftp: self.loadAnchors) })
             }
         )
     }
@@ -327,7 +330,7 @@ struct WorkoutNamespace: FactNamespaceResolver {
             resolve: { param, tail in
                 do throws(FactArgumentError) {
                     let n = try FactNumericArgument.ordinal.integer(param)
-                    return SessionNamespace.resolveSessionField(self.sessionByOrdinal(n), tail: tail)
+                    return SessionNamespace.resolveSessionField(self.sessionByOrdinal(n), tail: tail, ftp: self.loadAnchors)
                 } catch {
                     return error.factValue
                 }

@@ -36,7 +36,7 @@
 #     All 102 now pass `locale: .current`, and the four are in scope below so
 #     they stay that way. The rest of Analysis/ genuinely does compute, and
 #     stays out. Assistant/ is excluded as a directory because it is genuinely mixed
-#     — WorkoutAIContext and AIProvider+SystemPrompt build LLM prompts, where
+#     — WorkoutAIContext and AssistantSystemPrompt build LLM prompts, where
 #     unambiguous POSIX numbers are what we want the model to see — so only the
 #     files in it whose output a person reads or hears are guarded: the view
 #     file, and `WorkoutTriggerEngine`, whose coaching messages are shown and

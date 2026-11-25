@@ -259,7 +259,7 @@ fileprivate extension RecoveredRouteFromWatchButton {
         working = true
         message = nil
         Task {
-            let result = await collector.recovery.recoverRouteFromAppleWatch(sessionId: session.id)
+            let result = await collector.recovery.recoverRouteFromAppleWatch(sessionId: session.id, training: collector.healthKit.training)
             working = false
             message = Self.routeRecoveryMessage(result)
         }

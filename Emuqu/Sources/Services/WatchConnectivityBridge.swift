@@ -45,13 +45,6 @@ extension Notification.Name {
 @Observable
 @MainActor
 final class WatchConnectivityBridge: NSObject {
-    /// Shared instance — the WCSession itself is process-wide, so the delegate
-    /// must be too. Creating a second bridge would replace the delegate and
-    /// silently break whichever subsystem set up first (discovered when the
-    /// Watch Talk button stopped reaching the phone after a workout started
-    /// a fresh bridge). All consumers use this singleton.
-    static let shared = WatchConnectivityBridge()
-
     enum MessageKey: String {
         case type
         case displayOnlyMode  // Bool. iOS pushes the user's
@@ -263,6 +256,13 @@ final class WatchConnectivityBridge: NSObject {
 
     // MARK: Config
 
+    /// The settings whose `watchDisplayOnlyMode` is mirrored to the Watch.
+    private let settingsManager: SettingsManager
+    /// The chat, whose disclaimer a Watch Talk request checks.
+    let assistantViewModel: @MainActor () -> AssistantViewModel
+    /// The voice controller a Watch Talk request reports the state of.
+    let voiceConversation: @MainActor () -> VoiceConversationController
+
     /// WCSession is process-wide and thread-safe. Marked `nonisolated` so
     /// the transport queue can read it without an actor hop.
     nonisolated private var session: WCSession? {
@@ -292,8 +292,18 @@ final class WatchConnectivityBridge: NSObject {
     /// can arrive before our boot() runs if the Watch app was already
     /// foregrounded) lands on this instance. Activation itself is deferred to
     /// keep the synchronous launch path fast — see boot() below.
-    override init() {
+    ///
+    /// The chat and the voice controller are resolvers, read when a Watch
+    /// Talk request is answered, so building the bridge builds neither.
+    init(
+        settingsManager: SettingsManager,
+        assistantViewModel: @escaping @MainActor () -> AssistantViewModel,
+        voiceConversation: @escaping @MainActor () -> VoiceConversationController
+    ) {
         NSLog("[WatchBridge] init() — entry (lightweight; activate() deferred to boot())")
+        self.settingsManager = settingsManager
+        self.assistantViewModel = assistantViewModel
+        self.voiceConversation = voiceConversation
         super.init()
         guard let session else {
             NSLog("[WatchBridge] init() — WCSession not supported, returning")
@@ -336,8 +346,9 @@ final class WatchConnectivityBridge: NSObject {
         // Prime the watchDisplayOnlyMode mirror so the first WCSession
         // callback doesn't see the safe-default `true` placeholder.
         // Then subscribe to settings changes to keep the mirror fresh.
-        Self.refreshCachedWatchDisplayOnlyMode()
-        Task { @MainActor in Self.armWatchDisplayModeObservation() }
+        let settingsManager = settingsManager
+        Self.refreshCachedWatchDisplayOnlyMode(from: settingsManager)
+        Task { @MainActor in Self.armWatchDisplayModeObservation(settingsManager) }
         NSLog("[WatchBridge] boot() — calling session.activate()")
         session.activate()
         NSLog("[WatchBridge] boot() — session.activate() returned")
@@ -347,16 +358,16 @@ final class WatchConnectivityBridge: NSObject {
     /// mirror. See `cachedWatchDisplayOnlyMode` doc-comment for why
     /// this exists.
     /// Re-arms itself: `withObservationTracking` is one-shot. `SettingsManager`
-    /// is not main-actor-isolated, so this reads the global directly instead of
+    /// is not main-actor-isolated, so this reads the settings directly instead of
     /// going through `ObservationLoop` (whose owner must be Sendable).
     @MainActor
-    private static func armWatchDisplayModeObservation() {
+    private static func armWatchDisplayModeObservation(_ settingsManager: SettingsManager) {
         withObservationTracking {
-            _ = AppDependencies.current.app.settingsManager.settings.watchDisplayOnlyMode
+            _ = settingsManager.settings.watchDisplayOnlyMode
         } onChange: {
             Task { @MainActor in
-                Self.refreshCachedWatchDisplayOnlyMode()
-                Self.armWatchDisplayModeObservation()
+                Self.refreshCachedWatchDisplayOnlyMode(from: settingsManager)
+                Self.armWatchDisplayModeObservation(settingsManager)
             }
         }
     }
@@ -370,7 +381,7 @@ final class WatchConnectivityBridge: NSObject {
     /// One tick of live workout state, as the Watch face needs it.
     ///
     /// A parameter object rather than a long argument list: there is exactly
-    /// one caller — `WorkoutRecorder+Ticker.pushLiveStateToWatch` — and the
+    /// one caller — `WorkoutTicker+Tick.pushLiveStateToWatch` — and the
     /// arguments group naturally (`LiveTotals` carries the running totals).
     struct LiveState {
         let sport: Sport
@@ -540,9 +551,9 @@ final class WatchConnectivityBridge: NSObject {
 
         @MainActor
         init(polar: PolarManager) {
-            connected = polar.connectionState == .connected
-            deviceName = connected ? polar.connectedDeviceType?.displayName : nil
-            batteryPercent = connected ? polar.batteryLevel : nil
+            connected = polar.linkState.connectionState == .connected
+            deviceName = connected ? polar.linkState.connectedDeviceType?.displayName : nil
+            batteryPercent = connected ? polar.linkState.batteryLevel : nil
         }
     }
 
@@ -791,7 +802,7 @@ final class WatchConnectivityBridge: NSObject {
         liveStateCache.withLock { $0 }
     }
 
-    /// Lock-protected mirror of `AppDependencies.current.app.settingsManager.settings.watchDisplayOnlyMode`.
+    /// Lock-protected mirror of the injected settings' `watchDisplayOnlyMode`.
     /// Avoids a `DispatchQueue.main.sync` hop, which iOS
     /// 26 flags as "Potential Structural Swift Concurrency
     /// Issue: unsafeForcedSync called from Swift Concurrent context"
@@ -817,8 +828,8 @@ final class WatchConnectivityBridge: NSObject {
     /// SettingsManager field changes. Safe to call from anywhere
     /// MainActor-isolated.
     @MainActor
-    static func refreshCachedWatchDisplayOnlyMode() {
-        let value = AppDependencies.current.app.settingsManager.settings.watchDisplayOnlyMode
+    static func refreshCachedWatchDisplayOnlyMode(from settingsManager: SettingsManager) {
+        let value = settingsManager.settings.watchDisplayOnlyMode
         cachedWatchDisplayOnlyMode.withLock { $0 = value }
     }
 

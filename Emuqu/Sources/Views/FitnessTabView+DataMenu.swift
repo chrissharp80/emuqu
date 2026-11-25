@@ -65,7 +65,7 @@ extension FitnessTabView {
                 importer: healthImporter,
                 archive: collector.archive,
                 onImported: {
-                    collector.notifyArchiveChanged()
+                    collector.archiveSignal.notifyChanged()
                     reloadInterruptedRecordings()
                 }
             )
@@ -73,7 +73,8 @@ extension FitnessTabView {
     }
 
     private var healthImporter: HealthWorkoutImporter {
-        HealthWorkoutImporter(manager: dependencies.collection.healthKitManager)
+        let healthKit = dependencies.collection.healthKitManager
+        return HealthWorkoutImporter(access: healthKit.access, training: healthKit.training, heartRate: healthKit.heartRate)
     }
 
     // MARK: - Interrupted recordings

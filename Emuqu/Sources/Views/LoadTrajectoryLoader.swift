@@ -17,6 +17,8 @@ struct LoadTrajectoryLoader: View {
     @Environment(RRCollector.self) private var collector
     private var cache: TrainingMetricsCache { dependencies.analysis.trainingMetricsCache }
     private var settingsManager: SettingsManager { dependencies.app.settingsManager }
+    /// The FTPs the loads on this screen are scored with.
+    private var loadAnchors: TrainingLoadPrecedence.FTPAnchors { .current(settingsManager.settingsSnapshot) }
     /// The long-pressed day's workouts; nil while they load.
     @State private var contextSheetWorkouts: [LoadTrajectoryView.RecentWorkout]?
     @State private var contextSheetDate: Date?
@@ -111,8 +113,9 @@ struct LoadTrajectoryLoader: View {
             .filter { calendar.isDate($0.date, inSameDayAs: day) }
         guard !healthKit.isEmpty else { return [] }
         let archive = collector.archive
+        let ftp = loadAnchors
         let archived = await Task.detached(priority: .userInitiated) {
-            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: 1, relativeTo: dayEnd)
+            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: 1, relativeTo: dayEnd, ftp: ftp)
         }.value
         let merged = TrainingHealthQueries.mergeArchiveAuthoritative(archive: archived, healthKit: healthKit)
         return merged
@@ -228,7 +231,8 @@ struct LoadTrajectoryLoader: View {
         let decoded: [(SessionArchiveEntry, HRVSession)] = await Task.detached(priority: .userInitiated) {
             entries.compactMap { Self.pairWithSession($0, archive: archive) }
         }.value
-        return decoded.compactMap { Self.recentWorkoutRow(entry: $0, session: $1) }
+        let ftp = loadAnchors
+        return decoded.compactMap { Self.recentWorkoutRow(entry: $0, session: $1, ftp: ftp) }
     }
 
     /// Nil when the session can't be decoded — the row is simply skipped.
@@ -251,8 +255,9 @@ struct LoadTrajectoryLoader: View {
     /// value correctly (LOAD vs TRIMP) instead of hard-coding "TRIMP" on what
     /// is usually a power/HR TSS.
     @MainActor
-    private static func recentWorkoutRow(entry: SessionArchiveEntry, session: HRVSession) -> LoadTrajectoryView.RecentWorkout? {
+    private static func recentWorkoutRow(entry: SessionArchiveEntry, session: HRVSession, ftp: TrainingLoadPrecedence.FTPAnchors) -> LoadTrajectoryView.RecentWorkout? {
         guard let meta = session.workoutMetadata else { return nil }
+        let load = meta.preferredTrainingLoad(ftp: ftp)
         let durationSeconds = (session.endDate ?? session.startDate).timeIntervalSince(session.startDate)
         return LoadTrajectoryView.RecentWorkout(
             id: entry.sessionId,
@@ -260,8 +265,8 @@ struct LoadTrajectoryLoader: View {
             sportLabel: meta.sport.localizedName,
             date: session.startDate,
             durationMinutes: max(0, Int(durationSeconds.rounded() / 60)),
-            trimp: meta.preferredTrainingLoad?.value,
-            loadSource: meta.preferredTrainingLoad?.source
+            trimp: load?.value,
+            loadSource: load?.source
         )
     }
 

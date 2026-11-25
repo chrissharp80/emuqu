@@ -88,7 +88,7 @@ final class TrainingAdviceSurfaceTests: XCTestCase {
             trainingContext: heavy, frozenTrainingContext: heavy, adviceLiveLoad: nil,
             style: .comprehensive, sections: .all
         )
-        XCTAssertEqual(PDFReportGenerator().adviceLoadLevel(inputs), .easier)
+        XCTAssertEqual(PDFReportGenerator { AppDependencies.current.app.settingsManager.settingsSnapshot }.adviceLoadLevel(inputs), .easier)
     }
 
     private static let emptyResult = HRVAnalysisResult(

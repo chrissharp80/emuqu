@@ -384,7 +384,7 @@ private struct ArticleRow: View {
     NavigationStack {
         HelpCenterView()
     }
-    .environment(AppDependencies.current.app.settingsManager)
+    .environment(AppDependencies().app.settingsManager)
 }
 
 /// The Help Center's categories for one age and language, localized, with

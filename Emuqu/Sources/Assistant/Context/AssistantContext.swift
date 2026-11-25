@@ -101,7 +101,7 @@ extension AssistantContext {
     /// Minimal live-state block for cloud (tool-using)
     /// providers. The system prompt explicitly tells the model to look
     /// for the "📍 LOCATION:" line in static context (see the LOCATION rule in
-    /// `AIProvider+SystemPromptText`)
+    /// `AssistantSystemPrompt+Text`)
     /// — but cloud providers' `contextRendered` is set to `""` to
     /// keep the Anthropic / Gemini prompt-prefix cache stable. Without this
     /// block a cloud model never sees the location, however good the

@@ -22,7 +22,7 @@ final class PrivacyControlsTests: XCTestCase {
     /// syncs to the user's other Apple devices over iCloud. What this app
     /// copies is overnight RMSSD, DFA α1 and the debug log.
     func testPasteboardWritesAreLocalOnly() {
-        let options = PasteboardWriter.pasteboardOptions()
+        let options = PasteboardWriter.pasteboardOptions(preserveForPaste: true)
         XCTAssertEqual(
             options[.localOnly] as? Bool, true,
             "Copied health data would sync to the user's other devices over iCloud."
@@ -33,11 +33,7 @@ final class PrivacyControlsTests: XCTestCase {
     /// minutes later — but when the toggle is off the 60-second security cap
     /// must apply.
     func testPasteboardExpiryFollowsTheUserSetting() {
-        let original = SettingsManager.shared.settings.preserveClipboardForPaste
-        defer { SettingsManager.shared.settings.preserveClipboardForPaste = original }
-
-        SettingsManager.shared.settings.preserveClipboardForPaste = false
-        let capped = PasteboardWriter.pasteboardOptions()
+        let capped = PasteboardWriter.pasteboardOptions(preserveForPaste: false)
         let expiry = try? XCTUnwrap(capped[.expirationDate] as? Date)
         XCTAssertNotNil(expiry, "Expiry must be set when the user has not opted out.")
         if let expiry {
@@ -46,9 +42,8 @@ final class PrivacyControlsTests: XCTestCase {
             XCTAssertLessThanOrEqual(seconds, 60)
         }
 
-        SettingsManager.shared.settings.preserveClipboardForPaste = true
         XCTAssertNil(
-            PasteboardWriter.pasteboardOptions()[.expirationDate],
+            PasteboardWriter.pasteboardOptions(preserveForPaste: true)[.expirationDate],
             "The user asked for the clipboard to survive; it must not expire."
         )
     }
@@ -90,7 +85,7 @@ final class PrivacyControlsTests: XCTestCase {
     /// control-flow property directly: the flush is lexically inside a `defer`.
     func testTheStreamBufferFlushIsDeferred() throws {
         let file = try sourceRoot()
-            .appendingPathComponent("Assistant/ViewModel/AssistantViewModel+Tools.swift")
+            .appendingPathComponent("Assistant/ViewModel/AssistantToolRunner+Tools.swift")
         let text = try String(contentsOf: file, encoding: .utf8)
 
         let flushLines = text.split(separator: "\n", omittingEmptySubsequences: false)

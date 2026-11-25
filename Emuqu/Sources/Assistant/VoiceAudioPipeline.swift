@@ -6,7 +6,7 @@ import Foundation
 /// died.
 ///
 /// Capture and playback fight over one audio session; capture lives here
-/// (`VoiceConversationController+Pipeline.swift` and `+Audio.swift`), while
+/// (`VoiceAudioPipeline+Engine.swift` and `+Audio.swift`), while
 /// playback — the synthesizer and its delegate — stays on the controller
 /// (`VoiceConversationController+Speech.swift`).
 ///

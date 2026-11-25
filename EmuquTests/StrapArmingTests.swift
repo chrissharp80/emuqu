@@ -29,11 +29,11 @@ final class StrapArmingTests: XCTestCase {
 
     private func linkedManager(_ radio: FakeStrapRadio) -> PolarManager {
         let manager = PolarManager()
-        manager.radioForTesting = radio
+        manager.radio.radioForTesting = radio
         manager.setConnectedDeviceForTesting(id: deviceId, type: .h10)
-        manager.readiness.linkEstablished()
-        manager.readiness.settleWithoutSummary()
-        manager.downloadLedger = StrapDownloadLedger(
+        manager.linkState.readiness.linkEstablished()
+        manager.linkState.readiness.settleWithoutSummary()
+        manager.deviceRecording.downloadLedger = StrapDownloadLedger(
             defaults: UserDefaults(suiteName: "StrapArmingTests-\(UUID().uuidString)") ?? .standard
         )
         return manager
@@ -42,8 +42,8 @@ final class StrapArmingTests: XCTestCase {
     /// A night streaming with its arming loop running.
     private func armingNight(_ radio: FakeStrapRadio, battery: Int? = nil) -> RRCollector {
         let manager = linkedManager(radio)
-        manager.batteryLevel = battery
-        let collector = RRCollector(polarManager: manager, healthKit: HealthKitManager(), archive: archive)
+        manager.linkState.batteryLevel = battery
+        let collector = RRCollector(polarManager: manager, healthKit: HealthKitManager.forTests(), archive: archive, settingsManager: AppDependencies.current.app.settingsManager, services: CollectorServices(.current))
         collectors.append(collector)
         collector.overnightRun.armingRetryInterval = 0.05
         collector.overnightRun.usesDeviceBackup = true
@@ -80,7 +80,7 @@ final class StrapArmingTests: XCTestCase {
         await sleepQuietly(400_000_000, context: "several retry intervals")
         XCTAssertEqual(starts(radio), 1, "the strap was asked again on the same battery")
 
-        collector.polarManager.batteryLevel = 100
+        collector.polarManager.linkState.batteryLevel = 100
         try await waitUntil { collector.overnightRun.deviceBackupActive }
         XCTAssertEqual(starts(radio), 2)
         XCTAssertNil(collector.sessionState.lastError, "the notice stayed after the strap armed")
@@ -131,7 +131,7 @@ final class StrapArmingTests: XCTestCase {
         let radio = FakeStrapRadio()
         let manager = linkedManager(radio)
         await assertWithdrawn { try await manager.recording.startFreshRecording(while: { false }) }
-        manager.transfersInFlight = 1
+        manager.deviceRecording.transfersInFlight = 1
         await assertWithdrawn { try await manager.recording.startFreshRecording() }
         XCTAssertTrue(radio.calls.isEmpty, "the strap was touched: \(radio.calls)")
     }
@@ -146,7 +146,7 @@ final class StrapArmingTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 700))
         let manager = linkedManager(radio)
         var rescued: [RRPoint] = []
-        manager.onUnrecoveredDataRescued = { rescued = $0.points; return true }
+        manager.deviceRecording.onUnrecoveredDataRescued = { rescued = $0.points; return true }
 
         try await manager.recording.startFreshRecording()
 
@@ -164,7 +164,7 @@ final class StrapArmingTests: XCTestCase {
         let lastNight = Date().addingTimeInterval(-20 * 3600)
         radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 700))
         let manager = linkedManager(radio)
-        manager.onUnrecoveredDataRescued = { _ in false }
+        manager.deviceRecording.onUnrecoveredDataRescued = { _ in false }
 
         do {
             try await manager.recording.startFreshRecording()
@@ -184,7 +184,7 @@ final class StrapArmingTests: XCTestCase {
         let lastNight = Date().addingTimeInterval(-20 * 3600)
         radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 700))
         let manager = linkedManager(radio)
-        manager.downloadLedger.markDownloaded(recordingStartedAt: lastNight)
+        manager.deviceRecording.downloadLedger.markDownloaded(recordingStartedAt: lastNight)
 
         try await manager.recording.startFreshRecording()
 

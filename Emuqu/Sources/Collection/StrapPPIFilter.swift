@@ -21,7 +21,7 @@ struct StrapPPISample: Equatable {
 ///
 /// The live PPI stream (`PolarManager+Streaming.acceptedPpiInterval`) and a
 /// recording pulled off the Verity Sense's own memory
-/// (`PolarManager+VeritySense.convertOfflinePpiToRRPoints`) must apply the
+/// (`StrapRecordingCoordinator+VeritySense.convertOfflinePpiToRRPoints`) must apply the
 /// same three gates from the same constants. Two hand-written copies reading
 /// their physiological range from **different constants**
 /// (`HRVConstants.RRValidity.polarStreamRange` vs

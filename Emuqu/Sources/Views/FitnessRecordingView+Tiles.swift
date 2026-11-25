@@ -378,7 +378,7 @@ extension FitnessRecordingView {
     /// rescan every sample. Reading the buffer here keeps the tiles observing
     /// it as before.
     var liveTally: WorkoutLiveTrends.Tally {
-        recorder.ticker.syncedLiveTrends()
+        recorder.capture.syncedLiveTrends()
     }
 
     var peakHRCaption: String? {

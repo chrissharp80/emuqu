@@ -269,8 +269,15 @@ enum CloudKitSessionFreshness {
     /// other device's edit is kept: tags, notes and imported metrics stay as
     /// that copy has them, so a tag removed there is not added back. True
     /// when beats were put back.
+    ///
+    /// Only when the other copy keeps every segment this one links: an
+    /// unlink there (`ReanalysisService` unlinking a segment) removed that
+    /// segment's beats on purpose and drops it from `linkedSessionIds`, while
+    /// a fold never touches them.
     static func keepingBeatsOnlyHere(_ local: HRVSession, in merged: inout HRVSession) -> Bool {
-        guard (local.rrSeries?.points.count ?? 0) > (merged.rrSeries?.points.count ?? 0) else { return false }
+        guard (local.rrSeries?.points.count ?? 0) > (merged.rrSeries?.points.count ?? 0),
+              Set(local.linkedSessionIds ?? []).isSubset(of: Set(merged.linkedSessionIds ?? []))
+        else { return false }
         let edits = (tags: merged.tags, notes: merged.notes, importedMetrics: merged.importedMetrics)
         guard SessionMerger.mergeSessionData(from: local, into: &merged) else { return false }
         merged.tags = edits.tags

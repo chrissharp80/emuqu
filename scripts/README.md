@@ -79,6 +79,20 @@ Counts `XCTSkip` / `XCTSkipUnless` call sites against
 and a stale selector has already turned a whole class into silent skips here
 once. Ratchets toward zero.
 
+### `check_coupling_budget.sh`
+
+Counts three kinds of coupling, each against its own budget:
+hub back-references (stored properties typed as `RRCollector`,
+`WorkoutRecorder`, `HealthKitManager` or `PolarManager` outside the views and
+the composition root, `.ci/hub_back_reference_budget.txt`),
+`AppDependencies.current` reads outside the composition root
+(`.ci/locator_read_budget.txt`), and pass-through forwarders, a function whose
+whole body calls the same-named function on another value
+(`.ci/passthrough_forwarder_budget.txt`). File and function size limits pass
+when code moves into another file or into a value holding the whole type;
+these counts fall only when a part is given what it uses. Each ratchets toward
+zero, and a count below its budget fails until the budget is lowered.
+
 ### `check_localization_bundle.sh`
 
 Every `String(localized:)` / `NSLocalizedString` must name a bundle other than

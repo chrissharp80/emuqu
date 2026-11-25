@@ -541,7 +541,7 @@ final class MorningResultsViewModel {
     private func loadLiveSleep() async {
         do {
             let recoveryWindow = sleepFetchWindow()
-            let sleep = try await healthKit.fetchSleepData(
+            let sleep = try await healthKit.sleepQueries.fetchSleepData(
                 for: recoveryWindow.start,
                 recordingEnd: recoveryWindow.end,
                 rrPoints: session.rrSeries?.points
@@ -616,7 +616,7 @@ final class MorningResultsViewModel {
 
         let scheduleEnd = settings.sleepSchedule.overnightWindowEnd(relativeTo: window.start)
         let estimationEnd = max(window.end, scheduleEnd)
-        if let hkHREstimate = await healthKit.estimateSleepFromHealthKitHR(
+        if let hkHREstimate = await healthKit.sleepQueries.estimateSleepFromHealthKitHR(
             windowStart: window.start,
             windowEnd: estimationEnd
         ), hkHREstimate.nightSleepMinutes > 0 {

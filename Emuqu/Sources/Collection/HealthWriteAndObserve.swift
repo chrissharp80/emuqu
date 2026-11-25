@@ -13,16 +13,15 @@ import os
 /// is gone. The three read-only query classes (`VitalsHealthQueries`,
 /// `TrainingHealthQueries`, `SleepHealthQueries`) are the other side.
 ///
-/// The `[weak self]` captures are query completion and update handlers. They
-/// weakly hold this object; the manager is its only strong reference, and each
-/// no-ops on a nil self.
-///
-/// Holds its owner strongly and is built on demand by the manager — a
-/// value with no state of its own, so nothing here can outlive what it
-/// points at.
+/// A value over the parts it uses; the observer state it starts and stops
+/// lives in `observation`.
 @MainActor
 struct HealthWriteAndObserve {
-    let manager: HealthKitManager
+    let access: HealthKitAccess
+    let heartRate: HeartRateHealthQueries
+    let sleepQueries: SleepHealthQueries
+    let sampleReplacer: HealthSampleReplacer
+    let observation: HealthObservation
 
     /// Delete everything this app exported to Apple Health for a session
     /// deleted forever: its HRV (`removeExportedHRV`), heart rate
@@ -36,10 +35,10 @@ struct HealthWriteAndObserve {
     func removeExports(sessionId: UUID, from start: Date, to end: Date) async throws {
         let removals: [(String, @MainActor () async throws -> Void)] = [
             ("HRV", { try await removeExportedHRV(sessionId: sessionId, from: start, to: end) }),
-            ("heart rate", { try await manager.heartRate.removeExportedHeartRate(sessionId: sessionId, from: start, to: end) }),
-            ("resting heart rate", { try await manager.heartRate.removeExportedRestingHeartRate(at: end, sessionId: sessionId) }),
+            ("heart rate", { try await heartRate.removeExportedHeartRate(sessionId: sessionId, from: start, to: end) }),
+            ("resting heart rate", { try await heartRate.removeExportedRestingHeartRate(at: end, sessionId: sessionId) }),
             ("sleep", { try await removeExportedSleep(sessionId: sessionId) }),
-            ("workout", { try await HealthKitWorkoutExport.removeExports(sessionId: sessionId, startDate: start, healthKit: manager) })
+            ("workout", { try await HealthKitWorkoutExport.removeExports(sessionId: sessionId, startDate: start, sampleStore: sampleReplacer.store) })
         ]
         var firstError: Error?
         for (label, removal) in removals {
@@ -100,13 +99,13 @@ protocol HealthSampleStore: AnyObject, Sendable {
 }
 
 /// The app's Health store, read through the bounded, fail-closed query
-/// (`runBoundedThrowingQuery`). Holds the manager weakly: the manager owns it.
+/// (`HealthKitAccess.runBoundedThrowingQuery`).
 @MainActor
 final class HealthKitSampleStore: HealthSampleStore {
-    private weak var manager: HealthKitManager?
+    private let access: HealthKitAccess
 
-    init(manager: HealthKitManager) {
-        self.manager = manager
+    nonisolated init(access: HealthKitAccess) {
+        self.access = access
     }
 
     func ownSamples(of type: HKSampleType, in span: DateInterval?, timeout: TimeInterval, label: String) async throws -> [HKSample] {
@@ -122,7 +121,7 @@ final class HealthKitSampleStore: HealthSampleStore {
 
     /// The bounded, fail-closed read both lookups run.
     private func ownSamples(of type: HKSampleType, matching predicate: NSPredicate, timeout: TimeInterval, label: String) async throws -> [HKSample] {
-        try await requireManager().heartRate.runBoundedThrowingQuery(
+        try await access.runBoundedThrowingQuery(
             timeout: timeout,
             makeQuery: { resolve in
                 HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, results, error in
@@ -134,16 +133,11 @@ final class HealthKitSampleStore: HealthSampleStore {
     }
 
     func save(_ samples: [HKSample]) async throws {
-        try await requireManager().healthStore.save(samples)
+        try await access.store.save(samples)
     }
 
     func delete(_ samples: [HKSample]) async throws {
-        try await requireManager().healthStore.delete(samples)
-    }
-
-    private func requireManager() throws -> HealthKitManager {
-        guard let manager else { throw HealthKitManager.HealthKitError.notAvailable }
-        return manager
+        try await access.store.delete(samples)
     }
 
     /// Samples from this app's own source, inside `span` when one is given.

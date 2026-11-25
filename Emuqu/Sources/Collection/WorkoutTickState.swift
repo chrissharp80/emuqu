@@ -3,7 +3,7 @@ import Foundation
 /// How much of each live stream has already been written to the
 /// crash-recovery backup.
 ///
-/// One value rather than three cursors on `WorkoutRecorder`, because they
+/// One value rather than three cursors on `WorkoutCapture`, because they
 /// are only ever read and written together, one line apart: compare all
 /// three, then assign all three. Kept as separate stored properties, a
 /// future edit that advances two of them and forgets the third would

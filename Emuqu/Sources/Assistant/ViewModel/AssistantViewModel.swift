@@ -780,8 +780,10 @@ final class AssistantViewModel {
     }
 
     /// Add a turn's text (or any string) to the cross-session memory store.
+    /// A save that fails is shown, not left to look remembered.
     func remember(_ text: String) {
-        factsStore.add(text, origin: .user)
+        guard factsStore.add(text, origin: .user) == .notSaved else { return }
+        errorMessage = String(localized: "Your change couldn't be saved. Try again.", bundle: LanguageManager.appBundle)
     }
 
     /// The "Refresh data context" menu action. The context itself is rebuilt

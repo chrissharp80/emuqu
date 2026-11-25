@@ -5,7 +5,7 @@ Ported line by line from, all at commit b87eb64:
   Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift  (smoothStages, buildIntervals only;
                                                                the Watch augmentation path is NOT ported)
   Emuqu/Sources/Analysis/SleepBoundaryResolver.swift          (RRWindowSweep: t_ms in [start, end))
-  Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift     (SleepClassifierConstants)
+  Emuqu/Sources/Utilities/SleepAndDisplayConstants.swift     (SleepClassifierConstants)
   Emuqu/Sources/Utilities/Constants.swift                     (HRVConstants.RRInterval 300...2000 ms)
   Emuqu/Sources/Utilities/Statistics.swift                    (rootMeanSquare)
   Emuqu/Sources/Models/SleepDomain.swift                      (durationMinutes = Int(seconds / 60))

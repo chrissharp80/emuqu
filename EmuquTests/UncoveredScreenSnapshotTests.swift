@@ -69,7 +69,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     }
 
     func testModesSettingsRenders() {
-        assertSnapshot(of: hosted(ModesSettingsPage()), named: "uncovered-settings-modes")
+        assertSnapshot(of: hosted(ModesSettingsPage(settingsManager: AppDependencies.current.app.settingsManager)), named: "uncovered-settings-modes")
     }
 
     func testPrivacyPolicyRenders() {
@@ -239,7 +239,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
             fetchFailed: .constant(false),
             showingDiscardConfirm: .constant(false),
             isDiscarding: false,
-            breathingAudio: BreathingAudioManager()
+            breathingAudio: BreathingAudioManager(dependencies: .current)
         )
     }
 
@@ -247,7 +247,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
     /// what the user sees in the first seconds of a workout, before any sample
     /// has landed.
     private func recordingRecorder() -> WorkoutRecorder {
-        WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
+        WorkoutRecorder(core: SnapshotFixtures.collector().recordingCore, conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
     }
 
     /// A strap mid-recording, so the status views draw their populated state

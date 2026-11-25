@@ -31,6 +31,11 @@ struct HealthWorkoutSummary: Codable {
     /// an implausibly long recovered session (a recording that never stopped)
     /// until the user trims it. HealthKit-sourced summaries are `false`.
     let wasRecovered: Bool
+    /// True for an archive workout whose file could not be read, counted
+    /// from its index entry's span and mean heart rate
+    /// (`summaryFromIndex`). A Health copy of the same workout is more
+    /// complete, so the merge takes it over this one.
+    let isIndexEstimate: Bool
 
     init(
         date: Date,
@@ -41,7 +46,8 @@ struct HealthWorkoutSummary: Codable {
         maxHR: Double?,
         precomputedLoad: Double? = nil,
         precomputedLoadSource: String? = nil,
-        wasRecovered: Bool = false
+        wasRecovered: Bool = false,
+        isIndexEstimate: Bool = false
     ) {
         self.date = date
         workoutType = HealthWorkoutSummary.typeToString(type)
@@ -52,6 +58,7 @@ struct HealthWorkoutSummary: Codable {
         self.precomputedLoad = precomputedLoad
         self.precomputedLoadSource = precomputedLoadSource
         self.wasRecovered = wasRecovered
+        self.isIndexEstimate = isIndexEstimate
     }
 
     // Explicit Codable so `wasRecovered` (a newer field) defaults to
@@ -59,7 +66,7 @@ struct HealthWorkoutSummary: Codable {
     // failing the whole decode.
     private enum CodingKeys: String, CodingKey {
         case date, workoutType, durationMinutes, caloriesBurned
-        case averageHR, maxHR, precomputedLoad, precomputedLoadSource, wasRecovered
+        case averageHR, maxHR, precomputedLoad, precomputedLoadSource, wasRecovered, isIndexEstimate
     }
 
     init(from decoder: Decoder) throws {
@@ -73,6 +80,7 @@ struct HealthWorkoutSummary: Codable {
         precomputedLoad = try c.decodeIfPresent(Double.self, forKey: .precomputedLoad)
         precomputedLoadSource = try c.decodeIfPresent(String.self, forKey: .precomputedLoadSource)
         wasRecovered = try c.decodeIfPresent(Bool.self, forKey: .wasRecovered) ?? false
+        isIndexEstimate = try c.decodeIfPresent(Bool.self, forKey: .isIndexEstimate) ?? false
     }
 
     func encode(to encoder: Encoder) throws {
@@ -86,6 +94,7 @@ struct HealthWorkoutSummary: Codable {
         try c.encodeIfPresent(precomputedLoad, forKey: .precomputedLoad)
         try c.encodeIfPresent(precomputedLoadSource, forKey: .precomputedLoadSource)
         try c.encode(wasRecovered, forKey: .wasRecovered)
+        try c.encode(isIndexEstimate, forKey: .isIndexEstimate)
     }
 
     /// A `switch` with explicit cases
@@ -174,7 +183,8 @@ struct HealthWorkoutSummary: Codable {
     static func fromAppArchive(
         archive: SessionArchive,
         days: Int,
-        relativeTo referenceDate: Date = Date()
+        relativeTo referenceDate: Date = Date(),
+        ftp: TrainingLoadPrecedence.FTPAnchors
     ) -> [HealthWorkoutSummary] {
         let calendar = Calendar.current
         let endDate = referenceDate
@@ -183,7 +193,7 @@ struct HealthWorkoutSummary: Codable {
         }
         let entries = archive.store.entries(from: startDate, to: endDate)
             .filter { $0.sessionType == .workout }
-        return entries.compactMap { summary(from: $0, archive: archive) }
+        return entries.compactMap { summary(from: $0, archive: archive, ftp: ftp) }
     }
 
     /// Minimum duration for a recording to count as a workout. Anything
@@ -208,7 +218,8 @@ struct HealthWorkoutSummary: Codable {
     /// remain populated.
     private static func summary(
         from entry: SessionArchiveEntry,
-        archive: SessionArchive
+        archive: SessionArchive,
+        ftp: TrainingLoadPrecedence.FTPAnchors
     ) -> HealthWorkoutSummary? {
         guard let session = archive.retrieveLightweightOrLog(entry.sessionId) else { return summaryFromIndex(entry) }
         guard let meta = session.workoutMetadata else { return nil }
@@ -216,7 +227,7 @@ struct HealthWorkoutSummary: Codable {
         let durationSec = clampedDuration(samples: samples, entry: entry)
         guard durationSec >= minimumWorkoutDurationSec else { return nil }
         let sampleHRs = samples.compactMap { $0.heartRate }
-        let preferred = TrainingLoadPrecedence.stored(meta)
+        let preferred = TrainingLoadPrecedence.stored(meta, ftp: ftp)
         return HealthWorkoutSummary(
             date: entry.date,
             type: Self.activityTypeFromSport(meta.sport),
@@ -241,7 +252,8 @@ struct HealthWorkoutSummary: Codable {
         debugLog("[Training] workout \(entry.sessionId.uuidString.prefix(8)) unreadable — counted from its index entry (\(Int(durationSec / 60)) min, \(Int(meanHR)) bpm)", level: .warning)
         return HealthWorkoutSummary(
             date: entry.date, type: .other, durationMinutes: durationSec / 60.0, caloriesBurned: nil,
-            averageHR: meanHR, maxHR: nil, precomputedLoad: nil, precomputedLoadSource: nil, wasRecovered: false
+            averageHR: meanHR, maxHR: nil, precomputedLoad: nil, precomputedLoadSource: nil, wasRecovered: false,
+            isIndexEstimate: true
         )
     }
 

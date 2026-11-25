@@ -1,66 +1,79 @@
 import Foundation
-// `@preconcurrency`: HealthKit query and predicate types predate Sendable.
-@preconcurrency import HealthKit
+import HealthKit
 
-/// HealthKit integration for sleep data and HRV export
+/// The app's Apple Health parts, built over one Health store: authorization,
+/// the workout export backfill, the observer state, and the queries by
+/// domain.
 ///
-/// `@MainActor`-isolated. It is `@Observable` and read by SwiftUI, so its
-/// state is required to change on the main
-/// actor; the annotation makes the class Sendable,
-/// which is what HealthKit's `@Sendable` query callbacks need in order to
-/// capture it. Query bodies that run on HealthKit's own queues stay
-/// `nonisolated` and hop explicitly.
+/// `@MainActor`, like the parts it builds. `@Observable` so views can take
+/// it from the environment; the state they observe lives on
+/// `authorization` and `observation`.
 @Observable
 @MainActor
-final class HealthKitManager: HealthKitServiceProtocol {
-    /// Canonical shared instance used across the app.
-    ///
-    /// A second `HealthKitManager()` would allocate its own
-    /// `HKHealthStore`, hold its own anchor tokens, and publish its own
-    /// observed state; views downstream of it would never see updates
-    /// the shared one picked up (and vice versa). Route through this
-    /// accessor so every consumer sees the
-    /// same store, the same anchors, and the same observer notifications.
-    /// `nonisolated` so default arguments can name it — Swift evaluates those
-    /// in the caller's isolation. The isolation protects state, not the pointer.
-    nonisolated static let shared = HealthKitManager()
-
+final class HealthKitManager {
     // MARK: - Properties
 
-    // Internal, not `private`, so extensions in HealthKitManager+*.swift
-    // files (e.g. +Sleep, +Vitals, +HeartRate, +Training, +HRV) can reach the
-    // shared HealthKit store and settings provider.
-    let healthStore = HKHealthStore()
+    /// The Health store, the user's settings and the bounded executors every
+    /// query runs through.
+    nonisolated let access: HealthKitAccess
 
-    // The queries by domain. Each is a value over this manager's store and
-    // settings, built on each access; callers name the domain they read.
+    /// The archive whose workouts the training queries merge with HealthKit's.
+    nonisolated let archiveProvider: @Sendable () -> SessionArchive
 
-    /// Heart-rate reads, stats and exports, and the bounded-query plumbing the
-    /// other domains run their queries through.
+    /// The observer queries and the sleep and vitals data versions.
+    let observation = HealthObservation()
+
+    /// The permission prompt, the scope summaries and the inferred-denial
+    /// banner state.
+    let authorization: HealthKitAuthorization
+
+    /// Exports archived workouts that never reached Apple Health.
+    @ObservationIgnored lazy var backfill = HealthKitBackfill(access: access, sampleReplacer: sampleReplacer)
+
+    // The queries by domain. Each is a value over the parts it uses, built on
+    // each access; callers name the domain they read.
+
+    /// Heart-rate reads, stats and exports.
     var heartRate: HeartRateHealthQueries {
-        HeartRateHealthQueries(manager: self)
+        HeartRateHealthQueries(access: access, sampleReplacer: sampleReplacer)
     }
 
     /// Sleep reads, naps and the HR-estimated sleep fallback.
     var sleepQueries: SleepHealthQueries {
-        SleepHealthQueries(manager: self)
+        SleepHealthQueries(access: access, heartRate: heartRate)
     }
 
     /// Recovery vitals and daily activity.
     var vitals: VitalsHealthQueries {
-        VitalsHealthQueries(manager: self)
+        VitalsHealthQueries(access: access, heartRate: heartRate, observation: observation)
     }
 
     /// Workouts, routes and training load.
     var training: TrainingHealthQueries {
-        TrainingHealthQueries(manager: self)
+        TrainingHealthQueries(access: access, heartRate: heartRate, archive: archiveProvider)
     }
 
     /// Exports, deletes and observer queries.
     var writes: HealthWriteAndObserve {
-        HealthWriteAndObserve(manager: self)
+        HealthWriteAndObserve(
+            access: access, heartRate: heartRate, sleepQueries: sleepQueries,
+            sampleReplacer: sampleReplacer, observation: observation
+        )
     }
-    nonisolated let settingsProvider: @Sendable () -> UserSettings
+
+    /// Body mass, date of birth and biological sex.
+    var profile: ProfileHealthQueries {
+        ProfileHealthQueries(access: access)
+    }
+
+    /// The queries the scoring services make, behind
+    /// `HealthKitServiceProtocol`.
+    var service: HealthKitService {
+        HealthKitService(
+            heartRate: heartRate, sleepQueries: sleepQueries, vitals: vitals,
+            training: training, writes: writes
+        )
+    }
 
     /// The store exports replace their samples through: the app's Health
     /// store unless one was given at init (tests give an in-memory store).
@@ -69,55 +82,29 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// Every export and removal of a session's samples goes through this one
     /// replacer, so those for the same session run one at a time.
     @ObservationIgnored lazy var sampleReplacer = HealthSampleReplacer(
-        store: givenSampleStore ?? HealthKitSampleStore(manager: self)
+        store: givenSampleStore ?? HealthKitSampleStore(access: access)
     )
-
-    /// IMPORTANT: This flag only indicates authorization was REQUESTED, not that it was granted.
-    /// HealthKit deliberately doesn't reveal if read access was denied to protect user privacy.
-    ///
-    /// Callers MUST:
-    /// - Handle empty results gracefully (user may have denied access)
-    /// - Never assume data will be available just because this flag is true
-    /// - Provide appropriate fallback UI when sleep/HR data is unavailable
-    var authorizationRequested = false
-
-    /// HealthKit deliberately doesn't reveal whether
-    /// read access was denied (privacy shield). After `requestAuthorization`
-    /// returns, we run a probe query for sleep + HRV samples over the last
-    /// 14 days. If both come back empty we infer denial (or no history —
-    /// the fix is the same) and surface a banner pointing to Settings → Health.
-    /// True = "user appears to have denied at least one critical scope —
-    /// show the banner". Reset by `clearInferredDenial()` after the user
-    /// returns from the Settings deep-link.
-    var inferredAuthorizationDenied = false
-
-    /// Single in-flight authorization Task. Prevents concurrent
-    /// `requestAuthorization` calls from racing each other — iOS times
-    /// out the permission prompt when two arrive simultaneously (on a
-    /// first install, `loadDataAndContinue` and `OnboardingView.task` can
-    /// call milliseconds apart, and the user then cannot grant
-    /// permissions). A second caller awaits the in-flight task instead
-    /// of starting its own.
-    @ObservationIgnored private var pendingAuthTask: Task<Void, Error>?
-    /// The Workouts-write warning has been logged this launch.
-    @ObservationIgnored private var hasReportedWorkoutWriteDenied = false
-
-    /// Current sleep schedule from user settings. Used to derive overnight windows,
-    /// morning cutoffs, and daytime HR query windows instead of hardcoded clock times.
-    /// Internal, not `private`, so extension files can derive overnight
-    /// windows when querying HealthKit (e.g. HealthKitManager+Sleep.swift).
-    var sleepSchedule: SleepSchedule {
-        settingsProvider().sleepSchedule
-    }
 
     // MARK: - Init
 
+    /// Only one manager runs in the app (`shared`, built in the composition
+    /// root): a second would allocate its own `HKHealthStore`, hold its own
+    /// anchor tokens and publish its own observed state.
     nonisolated init(
-        settingsProvider: @escaping @Sendable () -> UserSettings = { AppDependencies.current.app.settingsManager.settingsSnapshot },
+        settingsProvider: @escaping @Sendable () -> UserSettings,
+        archiveProvider: @escaping @Sendable () -> SessionArchive,
         sampleStore: (any HealthSampleStore)? = nil
     ) {
-        self.settingsProvider = settingsProvider
+        let access = HealthKitAccess(store: HKHealthStore(), settingsProvider: settingsProvider)
+        self.access = access
+        self.authorization = HealthKitAuthorization(access: access)
+        self.archiveProvider = archiveProvider
         self.givenSampleStore = sampleStore
+    }
+
+    /// Whether this device has Apple Health at all.
+    nonisolated var isHealthKitAvailable: Bool {
+        access.isAvailable
     }
 
     // MARK: - Types
@@ -134,746 +121,4 @@ final class HealthKitManager: HealthKitServiceProtocol {
     typealias SleepStageProvenance = Emuqu.SleepStageProvenance
     typealias SleepStageInterval = Emuqu.SleepStageInterval
     typealias SleepData = Emuqu.SleepData
-
-    // MARK: - Authorization
-
-    /// Check if HealthKit is available on this device
-    /// `nonisolated`: a framework capability predicate, not instance state.
-    nonisolated var isHealthKitAvailable: Bool {
-        HKHealthStore.isHealthDataAvailable()
-    }
-
-    /// The user chose "Skip for now" on onboarding's Apple Health page and has
-    /// not asked for access since. Requests nobody tapped for respect it; any
-    /// request the user makes clears it.
-    nonisolated var isAccessSkipped: Bool {
-        UserDefaults.standard.bool(forKey: UserDefaultsKeys.healthAccessSkipped)
-    }
-
-    /// Request authorization to read sleep data.
-    ///
-    /// Concurrency-safe: a second call while an existing request is
-    /// in flight awaits the existing one rather than firing a parallel
-    /// `HKHealthStore.requestAuthorization` (which iOS responds to by
-    /// timing out the permission prompt — see `pendingAuthTask`).
-    func requestAuthorization() async throws {
-        // Asking for access, from anywhere, ends onboarding's "Skip for now".
-        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.healthAccessSkipped)
-        // Already requested this process — no work to do. Re-prompting
-        // is a no-op for granted/denied types anyway, so save the round
-        // trip and avoid the race window.
-        if await MainActor.run(body: { authorizationRequested }) {
-            return
-        }
-        try await runCoalescedAuthorization()
-    }
-
-    /// Run `performAuthorization`, or join the request already in flight:
-    /// every prompt goes through here, so two callers ms apart (a scene
-    /// activation and the launch task) never send two requests at once.
-    private func runCoalescedAuthorization() async throws {
-        if let existing = pendingAuthTask {
-            try await existing.value
-            return
-        }
-        let task = Task<Void, Error> { [weak self] in
-            try await self?.performAuthorization()
-        }
-        pendingAuthTask = task
-        defer { pendingAuthTask = nil }
-        try await task.value
-    }
-
-    /// Returns the names of read scopes that are at least nominally
-    /// granted. Used by `OnboardingHealthPage` to drive its post-sheet
-    /// status card. Empty set ⇒ user denied everything (or HK is off);
-    /// 4+ entries ⇒ confirmation card; partial ⇒ warning card.
-    ///
-    /// iOS never says whether a read was granted, so a scope counts when
-    /// another source's sample can be read from the last 30 days. This
-    /// app's own writes (heart rate, sleep, workouts) are left out — an app
-    /// can always read what it wrote, so counting them shows a denied scope as
-    /// granted. A granted scope with no other data in 30 days still reads as
-    /// not granted; nothing in HealthKit can tell those apart.
-    func grantedScopeSummary() async -> Set<String> {
-        guard isHealthKitAvailable else { return [] }
-        var granted: Set<String> = []
-        let last30Days = Date().addingTimeInterval(-30 * 24 * 60 * 60)
-        if await sampleExists(type: HKObjectType.categoryType(forIdentifier: .sleepAnalysis), since: last30Days) {
-            granted.insert("sleep")
-        }
-        if await sampleExists(type: HKObjectType.quantityType(forIdentifier: .heartRate), since: last30Days) {
-            granted.insert("heartRate")
-        }
-        if await anyVitalsSampleExists(since: last30Days) {
-            granted.insert("vitals")
-        }
-        if await sampleExists(type: HKObjectType.workoutType(), since: last30Days) {
-            granted.insert("workouts")
-        }
-        return granted
-    }
-
-    /// Any of resp / SpO2 / temp counts as "vitals". Short-circuits so a user
-    /// with respiratory data never pays for the other two probes.
-    private func anyVitalsSampleExists(since date: Date) async -> Bool {
-        let ids: [HKQuantityTypeIdentifier] = [.respiratoryRate, .oxygenSaturation, .appleSleepingWristTemperature]
-        for id in ids where await sampleExists(type: HKObjectType.quantityType(forIdentifier: id), since: date) {
-            return true
-        }
-        return false
-    }
-
-    private func sampleExists(type: HKSampleType?, since: Date) async -> Bool {
-        guard let type else { return false }
-        let predicate = Self.otherSourcesSamples(from: since, to: nil)
-        return await heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
-            HKSampleQuery(sampleType: type, predicate: predicate, limit: 1, sortDescriptors: nil) { _, results, _ in
-                resolve(!(results?.isEmpty ?? true))
-            }
-        } ?? false // timeout → treat as "not present" (fail-safe for the auth probe)
-    }
-
-    /// Samples in the date range written by any source but this app. The
-    /// read-authorization probes use it: an app can always read its own
-    /// writes, so counting them reports access the user denied.
-    nonisolated private static func otherSourcesSamples(from start: Date, to end: Date?) -> NSPredicate {
-        let range = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
-        let ours = HKQuery.predicateForObjects(from: Set([HKSource.default()]))
-        return NSCompoundPredicate(andPredicateWithSubpredicates: [range, NSCompoundPredicate(notPredicateWithSubpredicate: ours)])
-    }
-
-    /// Auto-recover from a "stale auth set": write types added to the request
-    /// set in a release after the user's onboarding stay `.notDetermined`
-    /// forever, because the in-memory `authorizationRequested` flag flips to
-    /// true after onboarding's single prompt and never re-fires. Exports of
-    /// those types then fail with "Authorization is not determined".
-    ///
-    /// This method probes `authorizationStatus(for:)` for every write
-    /// type we care about. If ANY are `.notDetermined`, fire the auth
-    /// prompt — iOS shows only the undecided types, so previously-
-    /// answered types don't pester the user. Idempotent + safe to call
-    /// on every cold start. Read types can't be probed (Apple withholds
-    /// the answer for privacy), so this only catches write gaps —
-    /// which is exactly the workout-export case.
-    func ensureWriteAuthorizationFresh() async {
-        guard isHealthKitAvailable, !isAccessSkipped else { return }
-        let undecided = Self.probeableWriteTypes().filter {
-            healthStore.authorizationStatus(for: $0) == .notDetermined
-        }
-        guard !undecided.isEmpty else { return }
-        debugLog("[HealthKitManager] re-requesting auth — \(undecided.count) write types stale (.notDetermined)")
-        // Force a re-prompt by clearing the in-process flag and going
-        // through the coalesced authorization path.
-        await MainActor.run { authorizationRequested = false }
-        do {
-            try await runCoalescedAuthorization()
-        } catch {
-            debugLog("[HealthKitManager] ensureWriteAuthorizationFresh failed: \(error.localizedDescription)", level: .warning)
-        }
-    }
-
-    nonisolated private static func probeableWriteTypes() -> [HKSampleType] {
-        [
-            HKObjectType.workoutType(),
-            HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN),
-            HKObjectType.quantityType(forIdentifier: .heartRate),
-            HKObjectType.quantityType(forIdentifier: .restingHeartRate),
-            HKObjectType.categoryType(forIdentifier: .sleepAnalysis),
-            HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
-            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning),
-            HKObjectType.quantityType(forIdentifier: .distanceCycling),
-            HKSeriesType.workoutRoute()
-        ].compactMap { $0 }
-    }
-
-    /// Force a full re-authorization prompt regardless of the in-memory
-    /// `authorizationRequested` flag. iOS re-prompts ONLY for types the user
-    /// hasn't decided on THIS device — most importantly Sleep / HR **read**
-    /// permissions that often DON'T carry over to a new iPhone. That's the
-    /// classic "Apple Health has the sleep but Emuqu reads nothing" case: a
-    /// never-granted read returns zero samples with no error, and iOS hides read
-    /// status so `ensureWriteAuthorizationFresh` (which can only probe WRITE
-    /// gaps) never re-fires for it. Already-decided types don't re-pester. A
-    /// hard read DENIAL can only be re-enabled in iOS Settings; this covers the
-    /// far more common "never asked on this device" case (e.g. after migration).
-    func forceReauthorize() async {
-        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.healthAccessSkipped)
-        await MainActor.run { authorizationRequested = false }
-        do {
-            try await runCoalescedAuthorization()
-        } catch {
-            debugLog("[HealthKitManager] forceReauthorize failed: \(error.localizedDescription)", level: .warning)
-        }
-    }
-
-    /// A read-only snapshot of WRITE-permission status per key type, for the
-    /// Permissions screen. Read permissions are intentionally omitted — Apple
-    /// withholds read-authorization status for privacy, so writes are the only
-    /// thing we can honestly show (and a missing workout export is a write
-    /// gap). `.sharingAuthorized` = allowed, `.sharingDenied` = the user
-    /// declined it in the Health prompt (only fixable in iOS Settings — the
-    /// system won't re-prompt), `.notDetermined` = never asked (re-promptable).
-    struct WritePermission: Identifiable {
-        var id: String { label }
-        let label: String
-        let status: HKAuthorizationStatus
-    }
-
-    func writePermissionSummary() -> [WritePermission] {
-        guard isHealthKitAvailable else { return [] }
-        func status(_ type: HKObjectType?) -> HKAuthorizationStatus {
-            guard let type else { return .notDetermined }
-            return healthStore.authorizationStatus(for: type)
-        }
-        let bundle = LanguageManager.appBundle
-        return [
-            WritePermission(label: String(localized: "Workouts", bundle: bundle), status: status(HKObjectType.workoutType())),
-            WritePermission(label: String(localized: "Heart rate variability", bundle: bundle), status: status(HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN))),
-            WritePermission(label: String(localized: "Heart rate", bundle: bundle), status: status(HKObjectType.quantityType(forIdentifier: .heartRate))),
-            WritePermission(label: String(localized: "Resting heart rate", bundle: bundle), status: status(HKObjectType.quantityType(forIdentifier: .restingHeartRate))),
-            WritePermission(label: String(localized: "Sleep", bundle: bundle), status: status(HKObjectType.categoryType(forIdentifier: .sleepAnalysis))),
-            WritePermission(label: String(localized: "Active energy", bundle: bundle), status: status(HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)))
-        ]
-    }
-
-    /// Back-publish past workouts to Apple Health.
-    ///
-    /// Users who had not granted workout write access (or who initially
-    /// denied it) can have a history of archived workouts that never reached
-    /// HealthKit. Once they grant
-    /// the supplementary permission (`ensureWriteAuthorizationFresh`
-    /// re-prompts at launch), this method walks the archive, exports anything still flagged
-    /// `healthKitExportedAt == nil`, and stamps each one on success
-    /// so a follow-up call doesn't duplicate. Idempotent.
-    ///
-    /// Runs serially with a small delay between writes so HealthKit's
-    /// rate limiter doesn't bounce the batch — observed limit on iOS
-    /// 17 is ~1 workout/sec sustained. A one-year archive of 4
-    /// workouts/week takes ~3 minutes; we yield to the runloop on
-    /// each iteration so the UI stays responsive.
-    ///
-    /// This runs on EVERY foreground and, without the watermark
-    /// gate, would do a full `archive.retrieve` (disk + AES-GCM decrypt + JSON
-    /// decode) for every workout just to read the `healthKitExportedAt` flag —
-    /// dozens of decrypts per foreground even when everything is already
-    /// exported. The whole scan is skipped when the workout set is unchanged
-    /// since the last clean (failed==0) backfill, judged by the count AND the
-    /// newest workout's date: deleting one workout and recording another
-    /// leaves the count alone, but not the newest date.
-    ///
-    /// First, before the watermark: a workout saved while the phone was
-    /// locked has its earlier copies deleted (`PendingWorkoutReplacements`).
-    @discardableResult
-    func backfillWorkoutsToHealthKit(
-        archive: SessionArchive,
-        bodyWeightKg: Double
-    ) async -> (exported: Int, skipped: Int, failed: Int) {
-        guard isHealthKitAvailable, workoutWriteAuthorized else { return (0, 0, 0) }
-        await PendingWorkoutReplacements.finish(in: sampleReplacer.store)
-        let candidates = archive.store.entries.filter { $0.sessionType == .workout }
-        let watermark = Self.backfillWatermark(candidates)
-        if UserDefaults.standard.string(forKey: Self.backfillWatermarkKey) == watermark {
-            return (0, candidates.count, 0)
-        }
-        reportDeniedWorkoutSampleTypes()
-        var tally = (exported: 0, skipped: 0, failed: 0)
-        for entry in candidates {
-            await Task.yield()
-            await backfillOne(entry: entry, archive: archive, bodyWeightKg: bodyWeightKg, tally: &tally)
-        }
-        // Advance the watermark only when nothing failed, so failed sessions
-        // are retried next foreground (until the retry ceiling skips them).
-        if tally.failed == 0 {
-            UserDefaults.standard.set(watermark, forKey: Self.backfillWatermarkKey)
-        }
-        debugLog("[HealthKitManager] backfill complete — exported=\(tally.exported) skipped=\(tally.skipped) failed=\(tally.failed) of \(candidates.count) candidates")
-        return tally
-    }
-
-    /// Only proceed if the user has granted workout-write — otherwise every
-    /// export throws and we'd burn battery.
-    ///
-    /// Workouts is the one permission an export cannot do without. The sample
-    /// types it attaches (heart rate, distance, energy, route) are each
-    /// optional: `HealthKitWorkoutExport` leaves off any the user has switched
-    /// off, so they are named for the user but never block the export.
-    ///
-    /// `.warning`, not `debugLogExternal`: this has to reach the user-facing
-    /// problems list. Logged as an external event it would stay invisible while
-    /// every workout fails to reach Apple Health — and the training load, which
-    /// is built only from HealthKit workouts, would be computed without them.
-    /// Once per launch, because backfill checks on every foreground.
-    private var workoutWriteAuthorized: Bool {
-        guard healthStore.authorizationStatus(for: HKObjectType.workoutType()) == .sharingAuthorized else {
-            if !hasReportedWorkoutWriteDenied {
-                hasReportedWorkoutWriteDenied = true
-                debugLog(
-                    "[HealthKitManager] Workouts can't be written to Apple Health — writing is off for Workouts. Turn it on in Settings → Health → Data Access & Devices → Emuqu. Until then workouts stay in Emuqu only and the training load will not include them.",
-                    level: .warning
-                )
-            }
-            return false
-        }
-        return true
-    }
-
-    /// Say which optional workout data will be left off, once per backfill
-    /// that has something to export.
-    private func reportDeniedWorkoutSampleTypes() {
-        let denied = Self.workoutExportSampleTypes.compactMap { type, name in
-            healthStore.authorizationStatus(for: type) == .sharingAuthorized ? nil : name
-        }
-        guard !denied.isEmpty else { return }
-        debugLog(
-            "[HealthKitManager] Workouts reach Apple Health without: \(denied.joined(separator: ", ")) — writing is off for them in Settings → Health → Data Access & Devices → Emuqu.",
-            level: .warning
-        )
-    }
-
-    /// The optional sample types `HealthKitWorkoutExport` attaches to a
-    /// workout, paired with the label each one carries in the iOS Health
-    /// permission list.
-    nonisolated static let workoutExportSampleTypes: [(HKSampleType, String)] = [
-        (HKQuantityType(.heartRate), "Heart Rate"),
-        (HKQuantityType(.activeEnergyBurned), "Active Energy"),
-        (HKQuantityType(.distanceWalkingRunning), "Walking + Running Distance"),
-        (HKQuantityType(.distanceCycling), "Cycling Distance"),
-        (HKSeriesType.workoutRoute(), "Workout Routes")
-    ]
-
-    nonisolated private static let backfillWatermarkKey = "hkBackfillExportedWatermark"
-
-    /// Make the next backfill scan every workout. For a change the
-    /// watermark cannot see: a rebuilt workout keeps its id, start and
-    /// count, but its export stamp was cleared so the new copy replaces the
-    /// one in Apple Health.
-    nonisolated static func requestBackfillRescan() {
-        UserDefaults.standard.removeObject(forKey: backfillWatermarkKey)
-    }
-
-    /// "count-newestDate" for the workout entries; see `backfillWorkoutsToHealthKit`.
-    nonisolated private static func backfillWatermark(_ entries: [SessionArchiveEntry]) -> String {
-        let newest = entries.map(\.date).max()?.timeIntervalSince1970 ?? 0
-        return "\(entries.count)-\(Int(newest))"
-    }
-
-    /// Gives up after N failed attempts. Without this gate, the
-    /// same 2 sessions failing every backfill cycle log `failed=2 of 27` every
-    /// minute forever and burn battery retrying writes HealthKit has already
-    /// rejected (typically because a sub-permission like active-energy was
-    /// never granted). After `healthKitExportRetryCeiling` they're marked
-    /// giving-up and skipped; nothing resets the failure counter, so granting
-    /// the missing permission later does not retry these sessions.
-    private func backfillOne(
-        entry: SessionArchiveEntry,
-        archive: SessionArchive,
-        bodyWeightKg: Double,
-        tally: inout (exported: Int, skipped: Int, failed: Int)
-    ) async {
-        // Another export of this session is in flight. Counted as not done,
-        // so the watermark holds and the next pass checks it again in case
-        // that export failed. The session is read only once the claim is
-        // held: read before it, a workout the recorder exports and stamps in
-        // between would look unexported and go to Health twice.
-        guard HealthExportClaims.claim(entry.sessionId) else { return tally.failed += 1 }
-        defer { HealthExportClaims.release(entry.sessionId) }
-        guard var session = readableSession(entry, archive: archive) else { return tally.skipped += 1 }
-        guard Self.needsBackfill(session) else { return tally.skipped += 1 }
-        guard !Self.exportedUnstamped().contains(entry.sessionId.uuidString) else {
-            return stampAlreadyExported(entry.sessionId, archive: archive, tally: &tally)
-        }
-        await exportClaimed(&session, entry: entry, archive: archive, bodyWeightKg: bodyWeightKg, tally: &tally)
-    }
-
-    /// The session, or nil when it cannot be read (its file is missing or
-    /// cannot be decrypted). Retrying will not make it readable, so the
-    /// caller counts it as skipped rather than failed: counted as failed it
-    /// held the watermark for good, and every foreground decrypted every
-    /// workout again.
-    private func readableSession(_ entry: SessionArchiveEntry, archive: SessionArchive) -> HRVSession? {
-        let id = entry.sessionId.uuidString.prefix(8)
-        do {
-            if let session = try archive.retrieve(entry.sessionId) { return session }
-            debugLog("[HealthKitManager] backfill: workout \(id) is listed but missing from the archive — skipped", level: .warning)
-        } catch {
-            debugLog("[HealthKitManager] backfill: workout \(id) could not be read — skipped: \(error.localizedDescription)", level: .warning)
-        }
-        return nil
-    }
-
-    /// A session already in Apple Health whose stamp did not persist: only
-    /// the stamp is written. Exporting it again put a second copy of the
-    /// workout in Health.
-    private func stampAlreadyExported(_ id: UUID, archive: SessionArchive, tally: inout (exported: Int, skipped: Int, failed: Int)) {
-        do {
-            try Self.writeExportStamp(id, at: Date(), archive: archive)
-            Self.noteExportedUnstamped(id, pending: false)
-            tally.skipped += 1
-        } catch {
-            debugLog("[HealthKit] Export stamp still not persisted for \(id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
-            tally.failed += 1
-        }
-    }
-
-    private func exportClaimed(
-        _ session: inout HRVSession,
-        entry: SessionArchiveEntry,
-        archive: SessionArchive,
-        bodyWeightKg: Double,
-        tally: inout (exported: Int, skipped: Int, failed: Int)
-    ) async {
-        do {
-            try await exportAndStamp(&session, archive: archive, bodyWeightKg: bodyWeightKg)
-            tally.exported += 1
-        } catch {
-            tally.failed += 1
-            recordBackfillFailure(error, session: &session, archive: archive, sessionId: entry.sessionId)
-        }
-    }
-
-    /// Polite pacing after each write — HealthKit's writer accepts ~1/sec
-    /// sustained without throwing, so a 1 s pause after each export keeps
-    /// the batch at or below that.
-    private func exportAndStamp(_ session: inout HRVSession, archive: SessionArchive, bodyWeightKg: Double) async throws {
-        try await HealthKitWorkoutExport.export(session: session, healthKit: self, bodyWeightKg: bodyWeightKg)
-        let exportedAt = Date()
-        session.healthKitExportedAt = exportedAt
-        session.healthKitExportFailureCount = nil
-        do {
-            try Self.writeExportStamp(session.id, at: exportedAt, archive: archive)
-        } catch {
-            // The export itself succeeded; only the "already exported" stamp
-            // failed to persist. Noted outside the archive, so the next pass
-            // stamps it instead of exporting a second copy to Health.
-            Self.noteExportedUnstamped(session.id, pending: true)
-            debugLog("[HealthKit] Export stamp not persisted for \(session.id.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
-        }
-        await sleepQuietly(1_000_000_000, context: "exportAndStamp")
-    }
-
-    /// Only the stamp, onto the copy as stored now: the export takes a
-    /// moment, and writing back the copy read before it undid an edit or a
-    /// heart-rate-recovery save made meanwhile. A routine stamp: it asks for
-    /// no re-upload and leaves `modifiedAt` alone, so this device's copy,
-    /// which may predate an edit made on another device, cannot overwrite
-    /// that edit in iCloud. The stamp rides the session's next real upload,
-    /// and a pull keeps it (`CloudKitSessionFreshness.replacing`); the sync
-    /// identifiers already stop a second device's export from duplicating
-    /// the workout in Health.
-    static func writeExportStamp(_ id: UUID, at exportedAt: Date, archive: SessionArchive) throws {
-        try archive.update(id, requestingReupload: false) {
-            $0.healthKitExportedAt = exportedAt
-            $0.healthKitExportFailureCount = nil
-        }
-    }
-
-    /// Sessions exported to Apple Health whose stamp could not be written
-    /// to the archive (`UserDefaults`, swept by Delete All My Data).
-    nonisolated private static let exportedUnstampedKey = "hkExportedUnstampedSessions"
-
-    private static func exportedUnstamped() -> Set<String> {
-        Set(UserDefaults.standard.stringArray(forKey: exportedUnstampedKey) ?? [])
-    }
-
-    private static func noteExportedUnstamped(_ id: UUID, pending: Bool) {
-        var ids = exportedUnstamped()
-        if pending { ids.insert(id.uuidString) } else { ids.remove(id.uuidString) }
-        UserDefaults.standard.set(Array(ids), forKey: exportedUnstampedKey)
-    }
-
-    /// A workout with no forward duration can never be exported.
-    ///
-    /// HealthKit rejects a builder whose collection ends where it began —
-    /// "endDate must be after startDate" — and it will reject it identically
-    /// every time. Without this guard such a session stays eligible, so every
-    /// foreground retries the same doomed write until the retry ceiling burns
-    /// through, and each failure re-archives the session to record the count.
-    /// The usual case is the one-second stub a crashed recording leaves behind.
-    nonisolated static func needsBackfill(_ session: HRVSession) -> Bool {
-        guard session.healthKitExportedAt == nil,
-              (session.healthKitExportFailureCount ?? 0) < HRVSession.healthKitExportRetryCeiling,
-              session.workoutMetadata != nil,
-              let endDate = session.endDate,
-              endDate > session.startDate
-        else { return false }
-        return true
-    }
-
-    private func recordBackfillFailure(_ error: Error, session: inout HRVSession, archive: SessionArchive, sessionId: UUID) {
-        let newFails = (session.healthKitExportFailureCount ?? 0) + 1
-        session.healthKitExportFailureCount = newFails
-        do {
-            try archive.update(sessionId, requestingReupload: false) { $0.healthKitExportFailureCount = newFails }
-        } catch let archiveError {
-            // Bound explicitly: a bare `catch` would shadow this function's own
-            // `error` parameter, and the two are different failures — that one
-            // is the HealthKit export, this one is the archive write recording
-            // that it failed. If this write is lost the retry counter never
-            // advances and the session retries export forever against the
-            // retry ceiling.
-            debugLog("[HealthKit] Backfill failure count not persisted for \(sessionId.uuidString.prefix(8)): \(archiveError.localizedDescription)", level: .warning)
-        }
-        Self.logBackfillFailure(error, sessionId: sessionId, attempt: newFails)
-    }
-
-    /// Quiet "Authorization is not determined" by default. Most
-    /// "failed" counts come from this and it's an auth-completeness issue, not
-    /// a code bug. But: log a ONE-TIME warning on the very first failure per
-    /// session so the user / log reader can see why backfill is short, AND log
-    /// on the final failure (hitting the retry ceiling) so it's clear we're
-    /// giving up.
-    nonisolated private static func logBackfillFailure(_ error: Error, sessionId: UUID, attempt newFails: Int) {
-        let ceilingHit = newFails >= HRVSession.healthKitExportRetryCeiling
-        guard newFails == 1 || ceilingHit else { return }
-        let desc = error.localizedDescription
-        // By code, not by the message: `localizedDescription` follows the
-        // device language.
-        let isAuthNotDetermined = (error as? HKError)?.code == .errorAuthorizationNotDetermined
-        guard !isAuthNotDetermined || ceilingHit else { return }
-        let suffix = ceilingHit ? " — giving up after \(newFails) attempts" : ""
-        debugLog("[HealthKitManager] backfill export failed for \(sessionId.uuidString.prefix(8)): \(desc)\(suffix)", level: .warning)
-    }
-
-    /// The actual authorization work. Invoked only through
-    /// `runCoalescedAuthorization` — never call directly.
-    ///
-    /// After the prompt, probe whether reads actually
-    /// returned anything. We can't ask HK directly ("did the user deny?"), but
-    /// we can see whether ANY sleep or HRV samples come back over the last 14
-    /// days. When both probes are empty, infer denial. False-positive cost is
-    /// showing the banner to a brand-new user who hasn't synced yet —
-    /// acceptable, because the banner copy is informational ("if data is
-    /// missing, check Settings → Health → Emuqu"), not accusatory.
-    private func performAuthorization() async throws {
-        guard isHealthKitAvailable else { throw HealthKitError.notAvailable }
-        guard let core = Self.coreAuthorizationTypes() else {
-            debugLog("[HealthKitManager] Required HealthKit type unavailable for authorization")
-            throw HealthKitError.notAvailable
-        }
-        try await healthStore.requestAuthorization(
-            toShare: Self.writeTypes(core: core),
-            read: Self.readTypes(core: core)
-        )
-        await MainActor.run { self.authorizationRequested = true }
-        Task { [weak self] in
-            await self?.probeAuthorizationGranted(sleepType: core.sleep, hrvType: core.hrv)
-        }
-    }
-
-    /// Whether the user has already answered Apple Health's permission sheet
-    /// for the app's types on this device, in this launch or an earlier one.
-    /// `authorizationRequested` only covers this process; HealthKit keeps the
-    /// answer (`.unnecessary`: nothing left to ask). False when HealthKit is
-    /// unavailable or the status cannot be read.
-    func authorizationWasEverRequested() async -> Bool {
-        guard isHealthKitAvailable, let core = Self.coreAuthorizationTypes() else { return false }
-        do {
-            let status = try await healthStore.statusForAuthorizationRequest(
-                toShare: Self.writeTypes(core: core),
-                read: Self.readTypes(core: core)
-            )
-            return status == .unnecessary
-        } catch {
-            debugLog("[HealthKitManager] Authorization request status unavailable: \(error)", level: .warning)
-            return false
-        }
-    }
-
-    /// The types the app cannot function without. A nil return means one of
-    /// them is unavailable on this device and authorization can't proceed.
-    private struct CoreAuthTypes {
-        let sleep: HKCategoryType
-        let hrv: HKQuantityType
-        let heartRate: HKQuantityType
-        let vo2: HKQuantityType
-        let activeEnergy: HKQuantityType
-        let respiratory: HKQuantityType
-        let oxygenSaturation: HKQuantityType
-        let restingHeartRate: HKQuantityType
-    }
-
-    nonisolated private static func coreAuthorizationTypes() -> CoreAuthTypes? {
-        guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis),
-              let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN),
-              let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate),
-              let vo2Type = HKObjectType.quantityType(forIdentifier: .vo2Max),
-              let activeEnergyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
-              let respiratoryType = HKObjectType.quantityType(forIdentifier: .respiratoryRate),
-              let oxygenSaturationType = HKObjectType.quantityType(forIdentifier: .oxygenSaturation),
-              let restingHeartRateType = HKObjectType.quantityType(forIdentifier: .restingHeartRate)
-        else { return nil }
-        return CoreAuthTypes(
-            sleep: sleepType, hrv: hrvType, heartRate: heartRateType,
-            vo2: vo2Type, activeEnergy: activeEnergyType, respiratory: respiratoryType,
-            oxygenSaturation: oxygenSaturationType, restingHeartRate: restingHeartRateType
-        )
-    }
-
-    /// The passive-activity aggregates are included so the
-    /// Fitness tab's daily totals cover EVERY source (iPhone, Apple Watch,
-    /// third-party apps), not just the iPhone-side CMPedometer: a user who
-    /// walks with the Watch but leaves the phone at home would otherwise be
-    /// underreported. HealthKit sums across sources.
-    ///
-    /// Biometric profile reads — body mass, date of birth, biological sex —
-    /// back the "Fill from Apple Health" button on the Biometrics settings page
-    /// so users don't have to retype values they've already entered into Apple
-    /// Health. Reads are permission-scoped: the user can deny without affecting
-    /// the rest of the app.
-    ///
-    /// `forIdentifier:` results are inserted as explicit optionals rather than
-    /// force-unwrapped. `biologicalSex` / `dateOfBirth` are stable SDK
-    /// identifiers — the unwrap would be effectively safe — but the codebase
-    /// treats every `!` as a finding.
-    nonisolated private static func readTypes(core: CoreAuthTypes) -> Set<HKObjectType> {
-        var readTypes: Set<HKObjectType> = [
-            core.sleep, core.hrv, core.heartRate, core.vo2,
-            HKObjectType.workoutType(), core.activeEnergy, core.respiratory,
-            core.oxygenSaturation, core.restingHeartRate,
-            // Workout GPS route — lets us recover the FULL route of a workout
-            // whose phone-side GPS died mid-session (e.g. an app crash) by
-            // reading the Apple Watch's recording of the same workout.
-            HKSeriesType.workoutRoute()
-        ]
-        readTypes.formUnion(Self.optionalReadTypes())
-        return readTypes
-    }
-
-    /// `appleExerciseTime`, `walkingSpeed`, `runningSpeed` and
-    /// `distanceCycling` are here for reconstruction, not for display.
-    ///
-    /// `distanceCycling` is authorized for WRITE further down, and a write
-    /// grant alone reads back as no data at all: a rebuilt ride would ask Health
-    /// how far it went, be told nothing, and show the user 0 km.
-    ///
-    /// Apple Health records all three continuously, with no workout running.
-    /// Exercise time is Apple's own minute-by-minute judgement that the user
-    /// was working out, which is a far better answer to "when did the walk
-    /// end" than counting steps — steps keep accruing around the house.
-    /// Walking and running speed give pace on a rebuild that has no GPS track
-    /// to derive it from, and `flightsClimbed` (already here) is the only
-    /// terrain signal the passive record carries.
-    ///
-    /// `heartRateRecoveryOneMinute` is Apple's own one-minute heart-rate
-    /// recovery, which a Watch workout writes; `HRRCaptureService` falls back to
-    /// it (tier 3) when the strap gave nothing after a workout. `distanceRowing`
-    /// (iOS 18 and later) gives an imported rowing workout its distance.
-    nonisolated private static func optionalReadTypes() -> Set<HKObjectType> {
-        var types: Set<HKObjectType> = []
-        var quantities: [HKQuantityTypeIdentifier] = [
-            .stepCount, .distanceWalkingRunning, .distanceCycling, .flightsClimbed, .bodyMass,
-            .appleExerciseTime, .walkingSpeed, .runningSpeed, .physicalEffort, .heartRateRecoveryOneMinute
-        ]
-        if #available(iOS 18.0, *) { quantities.append(.distanceRowing) }
-        for id in quantities {
-            if let type = HKObjectType.quantityType(forIdentifier: id) { types.insert(type) }
-        }
-        for id in [HKCharacteristicTypeIdentifier.biologicalSex, .dateOfBirth] {
-            if let type = HKObjectType.characteristicType(forIdentifier: id) { types.insert(type) }
-        }
-        if let wristTemperature = HKObjectType.quantityType(forIdentifier: .appleSleepingWristTemperature) {
-            types.insert(wristTemperature)
-        }
-        return types
-    }
-
-    /// HRV, HR, resting HR, sleep export, workouts — plus the walking/running
-    /// and cycling distance types workouts need.
-    nonisolated private static func writeTypes(core: CoreAuthTypes) -> Set<HKSampleType> {
-        // The workout route is written after each GPS workout is saved; without
-        // share permission for it the route is left off.
-        var writeTypes: Set<HKSampleType> = [
-            core.hrv, core.heartRate, core.restingHeartRate, core.sleep,
-            HKObjectType.workoutType(), core.activeEnergy, HKSeriesType.workoutRoute()
-        ]
-        for id in [HKQuantityTypeIdentifier.distanceWalkingRunning, .distanceCycling] {
-            if let type = HKObjectType.quantityType(forIdentifier: id) { writeTypes.insert(type) }
-        }
-        return writeTypes
-    }
-
-    /// Run a wide-window probe for sleep + HRV samples from other sources
-    /// (this app's own SDNN and sleep exports are left out: an app can
-    /// always read its own writes). If both return zero results, set
-    /// `inferredAuthorizationDenied = true` so the UI can surface a
-    /// Settings deep-link; otherwise clear it.
-    ///
-    /// Heuristic: if BOTH come back empty over 14 days, the user probably
-    /// denied access OR has never recorded sleep / HRV. We can't distinguish
-    /// those two from inside the app — but the user-action for both is the same
-    /// (visit Settings → Health → Emuqu to check). So surface the banner.
-    private func probeAuthorizationGranted(
-        sleepType: HKCategoryType,
-        hrvType: HKQuantityType
-    ) async {
-        let now = Date()
-        // 14-day window — overshoots typical sleep + HRV cadence; if the
-        // user has any history at all, at least one sample lands.
-        let windowStart = Calendar.current.date(byAdding: .day, value: -14, to: now) ?? now
-        async let sleepCount = sampleCount(for: sleepType, from: windowStart, to: now)
-        async let hrvCount = sampleCount(for: hrvType, from: windowStart, to: now)
-        let (sleeps, hrvs) = await (sleepCount, hrvCount)
-        let appearsDenied = (sleeps == 0 && hrvs == 0)
-        await MainActor.run {
-            self.inferredAuthorizationDenied = appearsDenied
-            if appearsDenied {
-                debugLog("[HealthKitManager] probe: 0 sleep + 0 HRV samples in 14d → inferring denial / no history; banner armed", level: .warning)
-            }
-        }
-    }
-
-    /// Sample-count helper used by the auth probe: samples from sources
-    /// other than this app. Wraps `HKSampleQuery` in async/await; returns 0
-    /// on any error so the probe defaults to "appears denied" — fail-safe
-    /// for the banner.
-    /// Takes dates rather than a built `NSPredicate` so nothing non-Sendable
-    /// crosses into the child task; the predicate is built where it is used.
-    private func sampleCount(for type: HKSampleType, from start: Date, to end: Date) async -> Int {
-        await heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
-            HKSampleQuery(
-                sampleType: type,
-                predicate: Self.otherSourcesSamples(from: start, to: end),
-                limit: 1,
-                sortDescriptors: nil
-            ) { _, samples, _ in
-                resolve(samples?.count ?? 0)
-            }
-        } ?? 0 // timeout → 0 (probe defaults to "appears denied" — fail-safe)
-    }
-
-    /// Call after the user returns from the Settings deep-link. Only clears
-    /// the flag, so the banner goes away; the next probe (after the next
-    /// authorization request) sets it again if nothing is readable.
-    func clearInferredDenial() {
-        Task { @MainActor in
-            self.inferredAuthorizationDenied = false
-        }
-    }
-    /// Active observer query for sleep data arrival.
-    /// Internal, not `private`, so the start/stop methods in
-    /// HealthKitManager+SleepTrends.swift can manage it across files.
-    var sleepObserverQuery: HKQuery?
-    /// Incremented each time new sleep data arrives in HealthKit.
-    /// Views can observe this to trigger a re-fetch.
-    var sleepDataVersion: Int = 0
-    /// Pending cache-warm task. Apple Watch syncs sleep
-    /// samples in bursts of a dozen within a few seconds; without
-    /// debouncing, each burst kicked off its own `fetchLastNightSleep`
-    /// (full HKSampleQuery + full SleepMergingPipeline + classifier).
-    /// Holding the task lets the observer cancel the prior in-flight warm
-    /// when a fresh burst arrives, so only the last batch's value lands in
-    /// the cache.
-    @ObservationIgnored var sleepCacheWarmTask: Task<Void, Never>?
-    /// Active observer queries for the four overnight vitals (respiratory
-    /// rate, SpO2, wrist temperature, resting HR). Apple Watch writes these
-    /// MINUTES to HOURS after sleep ends — long after the user accepts the
-    /// session and the initial vitalsSnapshot is captured. Without this
-    /// observer, the SleepDetail card stays empty until the user manually
-    /// re-opens the app on the next launch.
-    var vitalsObserverQueries: [HKQuery] = []
-    /// Incremented each time new vitals samples arrive in HealthKit. Views
-    /// observe to trigger a re-fetch of `RecoveryVitals` and an in-place
-    /// re-archive of the session snapshot.
-    var vitalsDataVersion: Int = 0
 }

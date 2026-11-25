@@ -75,9 +75,14 @@ final class ProviderConsentTrackerTests: XCTestCase {
         let request = URLRequest(url: try XCTUnwrap(URL(string: "https://127.0.0.1:9/v1/messages")))
         do {
             try await Self.open(request)
-        } catch AIProviderError.consentWithdrawn {
-            XCTFail("A consented request was refused")
-        } catch {}
+            XCTFail("Nothing listens on port 9, so the connection cannot succeed")
+        } catch let error as URLError {
+            // The connection was tried and refused: the request reached the
+            // transport, past the consent check.
+            XCTAssertNotEqual(error.code, .cancelled)
+        } catch {
+            XCTFail("The request stopped before the transport: \(error)")
+        }
     }
 
     /// Tool calls a model asked for are not run once its provider's consent

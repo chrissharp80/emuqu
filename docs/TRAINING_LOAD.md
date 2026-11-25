@@ -237,7 +237,7 @@ monotony. The warning ("unusually similar day-to-day") is
 `FosterMonotonyWarning.isRaised`, one rule for both Load & Trajectory and the
 Training Load screen: monotony > `monotonyThreshold` (2.0) **and** strain >
 `strainThreshold` (1600: Foster's moderate band, 2500, ×0.64 for the TRIMP
-scale), both in `Constants+RecoveryScore.swift` `RecoveryScoreConstants.Training`.
+scale), both in `RecoveryScoreConstants.swift` `RecoveryScoreConstants.Training`.
 
 ---
 

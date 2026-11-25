@@ -366,7 +366,7 @@ struct RecoveryScoreDetailView: View {
     /// when HealthKit delivers new vitals (`vitalsDataVersion`).
     @MainActor
     private func refreshVitals(referenceDate: Date) async {
-        let fresh = await collector.healthKit
+        let fresh = await collector.healthKit.vitals
             .fetchRecoveryVitals(relativeTo: referenceDate)
             .withStrapNocturnalRHR(strapSleepHR)
         guard !fresh.isEmpty else { return }
@@ -438,21 +438,21 @@ struct RecoveryScoreDetailView: View {
         let flags = session.artifactFlags ?? []
         let sleepStartMs = session.sleepStartMs ?? 0
         let sleepEndMs = session.sleepEndMs ?? series.points.last?.t_ms ?? 0
-        let sessionId = session.id
+        let (sessionId, cache) = (session.id, dependencies.app.organizedZonesCache)
         let zones = await Task.detached(priority: .userInitiated) {
             OvernightStatsComputer.computeOrganizedZonesOnDemand(
                 sessionId: sessionId, series: series, flags: flags,
-                sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs
+                sleepStartMs: sleepStartMs, sleepEndMs: sleepEndMs, cache: cache
             )
         }.value
         organizedZoneRanges = zones
-        OvernightStatsComputer.backfillZonesToArchive(sessionId: sessionId, zones: zones)
+        OvernightStatsComputer.backfillZonesToArchive(sessionId: sessionId, zones: zones, archive: dependencies.storage.sessionArchive)
     }
 
     /// Recompute the cached overnight chart series (`rmssdChartSeries` /
     /// `hrChartSeries`) from the current inputs. This is
     /// the off-render-path home for `buildRMSSDSeries` / `buildHRSeries`
-    /// (RecoveryScoreDetailView+Charts.swift). Inputs are snapshotted on
+    /// (RecoveryScoreCharts+Overnight.swift). Inputs are snapshotted on
     /// the MainActor, the walk runs on a detached task, and the results
     /// land back in @State — the main thread never blocks on a
     /// full-night beat stream.

@@ -173,10 +173,10 @@ extension ImportDataView {
     /// main actor. Nil when there is not enough clean data.
     private func pipelineAnalysis(of session: HRVSession, sleep: ImportSleepWindow.Offsets) async -> HRVAnalysisResult? {
         let pipeline = collector.analysisPipeline
-        let ansConfig = collector.ansConfig(for: session)
+        let ansConfig = collector.scoring.ansConfig(for: session)
         if session.sessionType == .overnight, let windowed = await pipeline.analyzeWithAutoWindow(
             session: session, sleepStartMs: sleep.startMs, wakeTimeMs: sleep.wakeMs,
-            trainingContext: nil, ansConfig: ansConfig, baselineStats: collector.scoringBaselineStats(for: session)
+            trainingContext: nil, ansConfig: ansConfig, baselineStats: collector.scoring.scoringBaselineStats(for: session)
         ) {
             return windowed
         }
@@ -426,7 +426,7 @@ extension ImportDataView {
         let sessionEndDate = sessionStartDate
             .addingTimeInterval(Double(sessionData.rrIntervals.reduce(0, +)) / 1000.0)
         do {
-            let sleepData = try await healthKit.fetchSleepData(for: sessionStartDate, recordingEnd: sessionEndDate)
+            let sleepData = try await healthKit.sleepQueries.fetchSleepData(for: sessionStartDate, recordingEnd: sessionEndDate)
             return offsets(of: sleepData, from: sessionStartDate)
         } catch {
             log("  Apple Health ERROR: could not read sleep data (\(error.localizedDescription)) - using full recording as sleep period")

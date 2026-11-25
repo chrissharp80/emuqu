@@ -27,7 +27,7 @@ struct WearablesSettingsPage: View {
     /// HealthKit re-auth flow. HKHealthStore deliberately
     /// hides denial state, so once a user denies permissions there's no
     /// in-app signal we can use to detect it. The button goes through
-    /// `HealthKitManager.forceReauthorize`, which asks HealthKit again even
+    /// `HealthKitAuthorization.forceReauthorize`, which asks HealthKit again even
     /// after this process already asked: iOS then prompts for any types the
     /// user hasn't seen yet, or answers at once without a window.
     @State private var isReprompting = false
@@ -335,7 +335,7 @@ struct WearablesSettingsPage: View {
         isReprompting = true
         let started = Date()
         Task {
-            await collector.healthKit.forceReauthorize()
+            await collector.healthKit.authorization.forceReauthorize()
             let noWindowShown = Date().timeIntervalSince(started) < Self.fastestAnsweredPrompt
             await MainActor.run {
                 isReprompting = false

@@ -79,9 +79,13 @@ enum TrainingLoadPrecedence {
     /// order is a training load that is silently too low or too high for
     /// every historical workout — which then feeds CTL, ATL, TSB and every
     /// recommendation built on them.
+    ///
+    /// `ftp` is passed by every caller, never read here: the same metadata
+    /// scores differently under different FTPs, so the settings a number was
+    /// computed with are named where it is computed.
     nonisolated static func stored(
         _ meta: WorkoutMetadata,
-        ftp: FTPAnchors = .current(AppDependencies.current.app.settingsManager.settingsSnapshot)
+        ftp: FTPAnchors
     ) -> (value: Double, source: WorkoutMetadata.TrainingLoadSource)? {
         if let p = meta.storedPowerTSS ?? readTimePowerTSS(meta, ftp: ftp) { return (p, .power) }
         if meta.routeEstimateReplacesHRLoad, let e = meta.extrapolatedTRIMP { return (e, .routeHistory) }

@@ -2,7 +2,7 @@ import Charts
 import SwiftUI
 
 // The HRV chart canvas. The stat card, tooltip and HR canvas live in
-// `OvernightChartsView+Charts.swift`.
+// `OvernightChartComponents.swift`.
 
 // MARK: - HRV Chart Canvas
 

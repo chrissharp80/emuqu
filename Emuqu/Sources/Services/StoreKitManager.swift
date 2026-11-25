@@ -7,7 +7,6 @@ import SwiftUI
 @Observable
 @MainActor
 final class StoreKitManager {
-    static let shared = StoreKitManager()
 
     // MARK: - Product IDs
 
@@ -152,9 +151,13 @@ final class StoreKitManager {
     // MARK: - Private
 
     @ObservationIgnored private var transactionListener: Task<Void, Never>?
+    /// The synced settings: the trial clock's fallback start, and where the
+    /// App Store's trial start is mirrored.
+    private let settingsManager: SettingsManager
 
-    private init() {
-        // Cold-start: init is a no-op. The
+    init(settingsManager: SettingsManager) {
+        self.settingsManager = settingsManager
+        // Cold-start: init only keeps its settings. The
         // StoreKit wiring (transactionListener / refreshStatus / AppTransaction
         // verification) is deferred to boot() so it can't run on the
         // synchronous launch path even if paywallEnabled flips on later.
@@ -358,7 +361,7 @@ final class StoreKitManager {
         }
         guard case let .success(verification) = result else { return }
         let transaction = try checkVerified(verification)
-        Self.adoptStoreTrialStart(transaction.purchaseDate)
+        adoptStoreTrialStart(transaction.purchaseDate)
         await transaction.finish()
         await refreshStatus()
         if !hasActiveAccess {
@@ -369,9 +372,9 @@ final class StoreKitManager {
     /// The App Store's trial start becomes the trial clock: recorded in the
     /// anchor, where it replaces a start an earlier build kept on this device,
     /// then mirrored into the synced settings.
-    private static func adoptStoreTrialStart(_ start: Date) {
+    private func adoptStoreTrialStart(_ start: Date) {
         EntitlementAnchor.recordStoreTrialStart(start, wallClock: Date())
-        AppDependencies.current.app.settingsManager.adoptTrialStart(start)
+        settingsManager.adoptTrialStart(start)
     }
 
     // MARK: - Restore
@@ -438,7 +441,7 @@ final class StoreKitManager {
     /// Writes one entitlement sweep's answer into the published state.
     private func apply(_ sweep: EntitlementSweep) {
         if let trialStart = sweep.trialStart {
-            Self.adoptStoreTrialStart(trialStart)
+            adoptStoreTrialStart(trialStart)
         }
         hasTrialTransaction = sweep.hasTrialTransaction
         guard sweep.storeKitAnswered else {
@@ -535,7 +538,7 @@ final class StoreKitManager {
     ///
     /// The free trial is measured against the anchor's high-water mark, so
     /// winding the device clock back does not extend it. Resolved via
-    /// `Self.isTrialActive` so this agrees with the launch gate and the
+    /// `isTrialActive` so this agrees with the launch gate and the
     /// paywall; reading the anchor alone here lets those three disagree.
     ///
     /// `-UITests-ForcePaywall` removes every route but the Skip (Debug) grant,
@@ -544,7 +547,7 @@ final class StoreKitManager {
     /// handler takes the gate down before it draws.
     private var hasBypassGrant: Bool {
         if hasPermanentGrant { return true }
-        return !UITestLaunchArguments.forcesPaywall && Self.isTrialActive
+        return !UITestLaunchArguments.forcesPaywall && isTrialActive
     }
 
     /// The routes in that need no purchase and never expire: a grandfathered
@@ -589,7 +592,7 @@ final class StoreKitManager {
     /// anchor alone misses a trial start that survives only in the
     /// CloudKit-mirrored settings, so the launch gate lets the user through
     /// while `isPurchased` computes false and a trial user meets a hard paywall.
-    static var isTrialActive: Bool {
+    var isTrialActive: Bool {
         let clock = trialClock
         return TrialPolicy.isActive(start: clock.start, now: clock.now)
     }
@@ -599,10 +602,10 @@ final class StoreKitManager {
     /// time it reads (the wall clock, never earlier than the anchor's
     /// high-water mark, so winding the device clock back does not stretch
     /// the trial).
-    private static var trialClock: (start: Date?, now: Date) {
+    private var trialClock: (start: Date?, now: Date) {
         let anchor = EntitlementAnchor.cached()
         return (
-            anchor.trialStartDate ?? AppDependencies.current.app.settingsManager.settings.trialStartDate,
+            anchor.trialStartDate ?? settingsManager.settings.trialStartDate,
             EntitlementAnchor.effectiveNow(anchor, wallClock: Date())
         )
     }
@@ -610,18 +613,18 @@ final class StoreKitManager {
     /// When the free trial started, as this device keeps it: the durable
     /// anchor first, the synced settings as fallback. Nil when no trial
     /// start is kept here.
-    static var localTrialStart: Date? {
+    var localTrialStart: Date? {
         trialClock.start
     }
 
     /// Whether this device keeps a trial start, by any route.
-    static var hasTrialStarted: Bool {
+    var hasTrialStarted: Bool {
         localTrialStart != nil
     }
 
     /// Days left in the free trial, or 0 when it is not running. Resolved the
     /// same way `isTrialActive` is, so the two cannot disagree.
-    static var trialDaysRemaining: Int {
+    var trialDaysRemaining: Int {
         let clock = trialClock
         return TrialPolicy.daysRemaining(start: clock.start, now: clock.now)
     }

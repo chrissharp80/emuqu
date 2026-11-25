@@ -126,6 +126,15 @@ jobs:
       - name: Tech-debt budgets
         run: ./scripts/enforce_tech_debt_budgets.sh Emuqu
 
+      # Size limits pass when code moves between files; these count the
+      # dependencies themselves, so only passing a part what it uses lowers them.
+      - name: Coupling budgets
+        run: ./scripts/check_coupling_budget.sh
+
+      # A file named for one type that extends another hides where code lives.
+      - name: Each Type+Part.swift file extends Type
+        run: ./scripts/check_file_names.sh
+
       # Every gate above is a `count > budget` comparison and every budget sits
       # at its measured value, so the cheapest way to turn CI green is to edit
       # the number in .ci/ rather than pay the debt. This makes that visible:

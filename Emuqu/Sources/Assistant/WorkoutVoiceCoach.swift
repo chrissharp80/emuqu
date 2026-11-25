@@ -77,12 +77,27 @@ final class WorkoutVoiceCoach {
     /// phone's haptic plus a wrist haptic sent to the Watch.
     private let playAlertHaptic: @MainActor (_ urgent: Bool) -> Void
 
+    /// The user's settings, read on every tick.
+    private let settingsProvider: @MainActor () -> UserSettings
+    /// The route the turn engines follow.
+    private let activeRoute: ActiveRouteSession
+    /// The fallback position when the workout has no GPS fix of its own.
+    private let ambientLocation: AmbientLocationService
+
+    /// `engine` left out is one over the default rules, reading
+    /// `settingsProvider`.
     init(
+        settingsProvider: @escaping @MainActor () -> UserSettings,
+        activeRoute: ActiveRouteSession,
+        ambientLocation: AmbientLocationService,
         engine: WorkoutTriggerEngine? = nil,
         watchBridge: WatchConnectivityBridge? = nil,
         alertHaptic: (@MainActor (_ urgent: Bool) -> Void)? = nil
     ) {
-        self.engine = engine ?? WorkoutTriggerEngine()
+        self.settingsProvider = settingsProvider
+        self.activeRoute = activeRoute
+        self.ambientLocation = ambientLocation
+        self.engine = engine ?? WorkoutTriggerEngine(settingsProvider: settingsProvider)
         self.watchBridge = watchBridge
         self.playAlertHaptic = alertHaptic ?? { [weak watchBridge] urgent in
             CoachAlertHaptic.playOnPhone(urgent: urgent)
@@ -123,7 +138,7 @@ final class WorkoutVoiceCoach {
     /// engaged, both engines no-op — cheaper than letting them
     /// walk through their state machines.
     func tick(context: WorkoutAIContext) {
-        let settings = AppDependencies.current.app.settingsManager.settings
+        let settings = settingsProvider()
         let canAlert = settings.coachAlertsEnabled && !isMuted
         let events = engine.evaluate(context: context, canAlert: canAlert)
         if canAlert {
@@ -168,7 +183,7 @@ final class WorkoutVoiceCoach {
     /// the step; a different `engagedAt` skips this tick, and the next one
     /// reads the new route throughout.
     private func tickRouteEngines(context: WorkoutAIContext, settings: UserSettings) {
-        let route = AppDependencies.current.location.activeRouteSession
+        let route = activeRoute
         guard let snapshot = route.snapshot(), let fix = routeFix(context: context),
               let stepResult = route.currentStep(for: fix),
               route.snapshot()?.engagedAt == snapshot.engagedAt
@@ -207,8 +222,7 @@ final class WorkoutVoiceCoach {
         if let lat = context.currentLatitude, let lon = context.currentLongitude {
             return CLLocation(latitude: lat, longitude: lon)
         }
-        return AppDependencies.current.location.ambientLocationService
-            .cachedLocation(maxAgeSec: Self.ambientFixMaxAgeSec)
+        return ambientLocation.cachedLocation(maxAgeSec: Self.ambientFixMaxAgeSec)
     }
 
     /// Oldest ambient fix the route engines accept when the workout has no

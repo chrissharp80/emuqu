@@ -79,8 +79,8 @@ The script gates that need no Xcode run on a Linux runner on every pull request
 and every push to `main` (`.github/workflows/gates.yml`). The macOS jobs in
 `.github/workflows/ci.yml` run at scope `unit` on every pull request and every
 push to `main`: SwiftLint and the budgets, strict concurrency, the build, the
-unit suite and Thread Sanitizer. The UI target and the full coverage floors
-(scope `full`) run on demand and before every release. See
+unit suite with all three coverage floors, and Thread Sanitizer. The UI target
+(scope `full`) runs every night on `main`, on demand, and before every release. See
 [`docs/CI_POSTURE.md`](../CI_POSTURE.md) for what each scope runs, what it
 costs and the accepted trade-offs.
 
@@ -101,11 +101,13 @@ nowhere else.
 
 See [`004-ratcheted-budgets.md`](004-ratcheted-budgets.md).
 
-## 005 — Helpers hold their owner strongly; `unowned` is banned
+## 005 — Helpers hold no back-reference, or hold their owner strongly; `unowned` is banned
 
 An `unowned` back-pointer from a helper to its owner traps when a resumed
-continuation outlives the owner. Helpers are values, holding the owner strongly
-and built on demand, and the `no_unowned` SwiftLint rule bans `unowned`.
+continuation outlives the owner. A part takes the state and services it uses
+and is built once by its owner; a helper that must reach its owner is a value
+holding it strongly, built on demand. The `no_unowned` SwiftLint rule bans
+`unowned`.
 
 See [`005-no-unowned-back-references.md`](005-no-unowned-back-references.md).
 

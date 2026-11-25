@@ -5,15 +5,11 @@ import HealthKit
 /// computing the stats the morning pipeline needs, and writing HR and resting
 /// HR back.
 ///
-/// It also owns the bounded-query plumbing every other HealthKit call uses —
-/// `runBoundedQuery`, `runBoundedThrowingQuery` and the per-domain timeouts —
-/// and `HealthKitManager` forwards it for the other query classes.
-///
-/// Holds its owner strongly and is built on demand by the manager — a
-/// value with no state of its own, so nothing here can outlive what it
-/// points at.
+/// A value over the parts it uses: queries run through `access`, and
+/// exports replace their samples through `sampleReplacer`.
 @MainActor
 struct HeartRateHealthQueries {
-    let manager: HealthKitManager
+    let access: HealthKitAccess
+    let sampleReplacer: HealthSampleReplacer
 
 }

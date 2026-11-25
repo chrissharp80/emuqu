@@ -197,8 +197,10 @@ extension SnapshotFixtures {
     @MainActor
     static func collector() -> RRCollector {
         RRCollector(
-            polarManager: PolarManager(), healthKit: HealthKitManager(),
-            archive: SessionArchive(directory: emptyArchiveDirectory)
+            polarManager: PolarManager(), healthKit: HealthKitManager.forTests(),
+            archive: SessionArchive(directory: emptyArchiveDirectory),
+            settingsManager: AppDependencies.current.app.settingsManager,
+            services: CollectorServices(.current)
         )
     }
 }

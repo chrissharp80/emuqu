@@ -30,8 +30,6 @@ import os
 /// block for seconds after a phone-call interruption. Every other transition
 /// is queued without waiting, so the main actor never waits behind one.
 final class BackgroundAudioManager: Sendable {
-    static let shared = BackgroundAudioManager()
-
     /// One cue's hold on the session. Only the cue that began with a token can
     /// end it, so a late finish or cancel callback for an earlier utterance
     /// can't release a later cue's hold.
@@ -81,9 +79,10 @@ final class BackgroundAudioManager: Sendable {
     /// Cleared when the next cue begins or the workout ends.
     var wasInterrupted: Bool { state.withLock { $0.wasInterrupted } }
 
-    /// `session` is the shared audio session in the app; tests pass a
-    /// recording stand-in and skip the system interruption observer.
-    init(session: any CueAudioSession = SystemCueAudioSession(), observesInterruptions: Bool = true) {
+    /// `session` is the shared audio session in the app
+    /// (`SystemCueAudioSession`); tests pass a recording stand-in and skip
+    /// the system interruption observer.
+    init(session: any CueAudioSession, observesInterruptions: Bool = true) {
         self.session = session
         if observesInterruptions { setupInterruptionObserver() }
     }
@@ -248,9 +247,10 @@ protocol CueAudioSession: Sendable {
 /// The app's `AVAudioSession`, with categories applied by the
 /// `AudioSessionCoordinator`.
 struct SystemCueAudioSession: CueAudioSession {
-    private var coordinator: AudioSessionCoordinator {
-        AppDependencies.current.services.audioSessionCoordinator
-    }
+    /// The app's coordinator, resolved on each use.
+    let coordinatorProvider: @Sendable () -> AudioSessionCoordinator
+
+    private var coordinator: AudioSessionCoordinator { coordinatorProvider() }
 
     func claimCuePlayback() {
         coordinator.claim(.workoutCue, mode: .playback)
@@ -275,32 +275,34 @@ struct SystemCueAudioSession: CueAudioSession {
 
 /// Ends a cue's hold on the audio session when its utterance finishes or is
 /// cancelled. Set it as the delegate of a synthesizer, and `track` each
-/// utterance with the token from `BackgroundAudioManager.beginCue()` before
-/// speaking it. Callbacks for untracked utterances do nothing. A synthesizer
-/// keeps its delegate weakly, so the owner retains this object.
+/// utterance with the token from `BackgroundAudioManager.beginCue()`, and
+/// the manager that gave it, before speaking it. Callbacks for untracked
+/// utterances do nothing. A synthesizer keeps its delegate weakly, so the
+/// owner retains this object.
 final class CueAudioSessionReleaser: NSObject, AVSpeechSynthesizerDelegate, Sendable {
-    private let manager: BackgroundAudioManager
+    /// One tracked utterance's hold, and the manager that ends it.
+    private struct Hold: Sendable {
+        let token: BackgroundAudioManager.CueToken
+        let manager: BackgroundAudioManager
+    }
+
     /// Keyed by utterance identity: the synthesizer retains a queued utterance
     /// until its finish or cancel callback, so the identity can't be reused
     /// while its entry is here.
-    private let pending = OSAllocatedUnfairLock<[ObjectIdentifier: BackgroundAudioManager.CueToken]>(initialState: [:])
+    private let pending = OSAllocatedUnfairLock<[ObjectIdentifier: Hold]>(initialState: [:])
 
-    init(manager: BackgroundAudioManager) {
-        self.manager = manager
-    }
-
-    /// Pair `utterance` with the cue token its speech holds.
-    func track(_ utterance: AVSpeechUtterance, token: BackgroundAudioManager.CueToken) {
+    /// Pair `utterance` with the cue token its speech holds on `manager`.
+    func track(_ utterance: AVSpeechUtterance, token: BackgroundAudioManager.CueToken, on manager: BackgroundAudioManager) {
         let key = ObjectIdentifier(utterance)
-        pending.withLock { $0[key] = token }
+        pending.withLock { $0[key] = Hold(token: token, manager: manager) }
     }
 
     /// End the cue `utterance` holds, if any. Called from the delegate
     /// callbacks, and directly when the utterance failed to queue.
     func release(_ utterance: AVSpeechUtterance) {
         let key = ObjectIdentifier(utterance)
-        guard let token = pending.withLock({ $0.removeValue(forKey: key) }) else { return }
-        manager.endCue(token)
+        guard let hold = pending.withLock({ $0.removeValue(forKey: key) }) else { return }
+        hold.manager.endCue(hold.token)
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {

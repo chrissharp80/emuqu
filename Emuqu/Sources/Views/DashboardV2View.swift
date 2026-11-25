@@ -49,9 +49,9 @@ struct DashboardV2View: View {
     /// Read by `baselineNights` so the dashboard re-renders when an archive
     /// write moves the (non-observable) baseline-night count.
     @Environment(ArchiveSignal.self) private var archiveSignal
-    /// The HealthKit manager from the dependency container. It is
-    /// `@Observable`, so reading `inferredAuthorizationDenied` in `body`
-    /// drives a view update.
+    /// The HealthKit manager from the dependency container. Its
+    /// `authorization` is `@Observable`, so reading
+    /// `authorization.inferredAuthorizationDenied` in `body` drives a view update.
     var healthKit: HealthKitManager { dependencies.collection.healthKitManager }
     var settingsManager: SettingsManager { dependencies.app.settingsManager }
     @State var toast: ToastPayload?
@@ -356,7 +356,7 @@ struct DashboardV2View: View {
         // Not before a first night: a new phone has no Apple Health sleep or
         // HRV yet, so the notice met everyone straight after they allowed
         // access.
-        if healthKit.inferredAuthorizationDenied, !healthNoDataNoticeDismissed, baselineNights > 0 {
+        if healthKit.authorization.inferredAuthorizationDenied, !healthNoDataNoticeDismissed, baselineNights > 0 {
             healthKitDeniedBanner
                 .transition(.move(edge: .top).combined(with: .opacity))
         }
@@ -436,7 +436,7 @@ struct DashboardV2View: View {
                 session: session,
                 result: result,
                 recentSessions: sessions,
-                baselineStats: collector.scoringBaselineStats(for: session)
+                baselineStats: collector.scoring.scoringBaselineStats(for: session)
             )
         } else {
             EmptyState(
@@ -525,6 +525,8 @@ struct DashboardV2View: View {
 
     private var historyDestination: some View {
         HistoryView(
+            archive: dependencies.storage.sessionArchive,
+            settingsManager: settingsManager,
             onDelete: onDeleteSession,
             onUpdateTags: onUpdateSessionTags,
             onReanalyze: onReanalyzeSession,

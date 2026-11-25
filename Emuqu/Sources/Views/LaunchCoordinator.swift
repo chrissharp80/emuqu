@@ -100,17 +100,17 @@ final class LaunchCoordinator {
     ) {
         if skipInLowPower, lowPower { return }
         Task.detached(priority: priority) {
-            await Self.runCoordinated(phase: phase, work)
+            await self.runCoordinated(phase: phase, work)
         }
     }
 
     /// Housekeeping waits for its gate to open; every job then takes a
     /// concurrency slot for the duration of its work.
-    private static func runCoordinated(phase: Phase, _ work: @Sendable () async -> Void) async {
-        if phase == .housekeeping { await AppDependencies.current.app.launchCoordinator.awaitHousekeepingOpen() }
-        await AppDependencies.current.app.launchCoordinator.acquireSlot()
+    private func runCoordinated(phase: Phase, _ work: @Sendable () async -> Void) async {
+        if phase == .housekeeping { await awaitHousekeepingOpen() }
+        await acquireSlot()
         await work()
-        AppDependencies.current.app.launchCoordinator.releaseSlot()
+        releaseSlot()
     }
 
     private func awaitHousekeepingOpen() async {

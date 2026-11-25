@@ -49,7 +49,7 @@ When stopping an overnight session, preference order (`DataSourceSelector`):
 1. **Internal recording** (preferred) — no Bluetooth gaps
 2. **Composite** (internal + streaming gap-fill) — if internal has >5% fewer beats than streaming
 3. **Streaming only** — if internal fetch failed, or if the composite could not be built
-4. **RawRRBackup** — if both failed (a separate recovery path, `RRCollector+BackupRecovery`)
+4. **RawRRBackup** — if both failed (a separate recovery path, `SessionRecoveryCoordinator+Backup`)
 
 A source counts as usable only at `minimumValidBeats = 120` beats or more; below that it is
 treated as absent. Each data path can succeed or fail independently — an H10 fetch failure
@@ -346,7 +346,7 @@ Computed independently — highest sustained RMSSD regardless of organization. R
 
 Research-informed three-tier composite using ln(RMSSD) z-score normalization (Plews et al. 2013, Buchheit 2014).
 
-> **Scale note:** every tier computes on a **0–100** scale; the result is converted via `RecoveryScoreCalculator.toTenScale` (called from `RRCollector+Analysis.swift`) to a **1–10** scale before it is stored on `HRVSession.recoveryScore`. The "0–100" here and the "1–10" in [Storage & Sync](#storage--sync) are the same number pre- and post-storage, not a contradiction.
+> **Scale note:** every tier computes on a **0–100** scale; the result is converted via `RecoveryScoreCalculator.toTenScale` (called from `MorningSessionPipeline+Analysis.swift`) to a **1–10** scale before it is stored on `HRVSession.recoveryScore`. The "0–100" here and the "1–10" in [Storage & Sync](#storage--sync) are the same number pre- and post-storage, not a contradiction.
 
 **Architecture:** the score is `HRV + Sleep + Vitals`. Training load is **not** in the composite — it lives on the parallel Load & Trajectory page. Rationale: per Impellizzeri et al. (2020 IJSPP 15(6); 2021 Sports Med 51:581–592) ACWR's chronic denominator carries no real injury-prediction signal (random numbers in the chronic position produce nearly identical odds ratios). Per Doherty/Altini 2025 systematic review of 14 commercial composite scores and Marco Altini's HRV4Training methodology, training load already manifests downstream as suppressed HRV / elevated RHR — folding it back into the score double-counts the same physiological event. Rule restated in `ScoringWeights` doc-comment.
 
@@ -449,7 +449,7 @@ Only SpO2 retains a post-composite penalty in the current scoring:
 
 Respiratory rate and wrist temperature carry no post-composite penalty. They feed the Vitals factor (Tier 3) as a continuous sub-score.
 
-Magic numbers for all scoring thresholds (z-score clamps, DFA bands, CV thresholds, Vitals sub-score weights, Comeback weights, SpO2 penalty, etc.) are centralized in the constants files: `ScoringWeights` lives in `Constants.swift`, while `RecoveryScoreConstants` (and the ACWR / capacity-ratio / freshness-bonus figures) lives in the `Constants+RecoveryScore.swift` extension.
+Magic numbers for all scoring thresholds (z-score clamps, DFA bands, CV thresholds, Vitals sub-score weights, Comeback weights, SpO2 penalty, etc.) are centralized in the constants files: `ScoringWeights` lives in `Constants.swift`, while `RecoveryScoreConstants` (and the ACWR / capacity-ratio / freshness-bonus figures) lives in the `RecoveryScoreConstants.swift` extension.
 
 ### Confidence pips (cold-start UX)
 
@@ -512,7 +512,7 @@ Two dampeners reduce the penalty's effect when the underlying ratio is unreliabl
 1. **Low-CTL confidence ramp.** Penalty multiplied by `min(CTL/50, 1.0)`. At CTL=16 the ratio is mathematically noisy (one 40-TRIMP walk swings it ~0.2); the ramp prevents that noise from steamrolling the readout.
 2. **Autonomic-state rescue.** When the morning recovery score is ≥70, the ACWR penalty is capped at 10%. The proxy (ACWR) shouldn't override the direct physiological signal (HRV) when they disagree on a clearly-recovered morning.
 
-Per Impellizzeri 2020/2021 the ratio's signal value for predicting injury is weaker than the original Gabbett framing claimed; Emuqu shows it as descriptive load-range context on the Load & Trajectory page and uses it as a graded readiness modifier here, but does not surface ACWR by name in user-facing copy and does not present it as an injury predictor (rules 11 and 13 of the system prompt in `AIProvider+SystemPromptText.swift`).
+Per Impellizzeri 2020/2021 the ratio's signal value for predicting injury is weaker than the original Gabbett framing claimed; Emuqu shows it as descriptive load-range context on the Load & Trajectory page and uses it as a graded readiness modifier here, but does not surface ACWR by name in user-facing copy and does not present it as an injury predictor (rules 11 and 13 of the system prompt in `AssistantSystemPrompt+Text.swift`).
 
 ### Fatigue Dissipation (intra-day)
 
@@ -588,7 +588,7 @@ Based on Ohayon et al. (2004), Buysse et al. (2014), Phillips et al. (2017):
 When HealthKit returns **zero** sleep for a session, `MorningResultsViewModel.estimateSleepFallback`
 tries to recover a night from what the passive record does hold, in this order:
 
-1. **RR-derived estimate** from the session's own beats (`HealthKitManager.estimateSleepFromHR`),
+1. **RR-derived estimate** from the session's own beats (`HRSleepEstimator.estimateSleepFromHR`),
    when the recording captured any.
 2. **Apple Watch passive HR** (`estimateSleepFromHealthKitHR`), over the session window extended
    to the end of the user's sleep schedule.
@@ -667,7 +667,7 @@ Separate from the 7-day baseline, used for z-score normalization:
 
 File-based JSON in App Group container with SHA256 integrity checking.
 
-**Index**: `SessionArchiveEntry` stores lightweight metadata in memory — e.g. sessionId, date, endDate, recoveryScore, meanRMSSD, meanHR, stressIndex, meanSDNN, tags, sessionType, linkedSessionIds, plus `fileHash` / `filePath`, `notes`, and the sleep-index fields (`sleepEnd`, `sleepSegmentCount`, deep/rem/core/awake minutes, nocturnal-HR-dip) that make trend + AI queries possible without loading full sessions (see `Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift`, `SessionArchiveEntry` for the authoritative field list). This enables trend computation and filtering without loading full sessions from disk. A sorted cache (`sortedEntriesCache`) avoids re-sorting on every `entries` access.
+**Index**: `SessionArchiveEntry` stores lightweight metadata in memory — e.g. sessionId, date, endDate, recoveryScore, meanRMSSD, meanHR, stressIndex, meanSDNN, tags, sessionType, linkedSessionIds, plus `fileHash` / `filePath`, `notes`, and the sleep-index fields (`sleepEnd`, `sleepSegmentCount`, deep/rem/core/awake minutes, nocturnal-HR-dip) that make trend + AI queries possible without loading full sessions (see `Emuqu/Sources/Models/SessionArchiveEntry.swift`, `SessionArchiveEntry` for the authoritative field list). This enables trend computation and filtering without loading full sessions from disk. A sorted cache (`sortedEntriesCache`) avoids re-sorting on every `entries` access.
 
 **Locking**: `archiveLock` (NSLock) protects the in-memory index. All migrations use 3-phase locking — gather work items under lock, release for disk I/O, reacquire to apply patches — so the main thread is never blocked for more than a few milliseconds. `archive()`, `retrieve()`, `entries`, and other public APIs acquire/release the lock per-call.
 
@@ -710,7 +710,7 @@ Each layer re-sorts only because its consumer requires a different order. Do not
 
 **Deferred Migrations**: `runDeferredMigrations()` runs 9 passes on a background thread at launch: `reencryptPendingSessions` and `resealPlainIndexIfNeeded` (re-encrypt session files and the index written plain while the key was unavailable), `migrateRecoveryScores`, `migrateEndDates`, `migrateMetrics` (backfills meanHR/stressIndex), `migrateSleepIndexFields` (backfills `sleepEnd` / `sleepSegmentCount`), `migrateLegacyEliteImportIndex`, `removeDuplicates`, and `relinkSameNightSessions`. Each is a no-op if already complete.
 
-**File Organization**: `Archive` is split into extensions — `Archive+Migrations.swift` (deferred migrations), `SessionMerger.swift` (session merging logic), and `Archive+Repair.swift` (integrity repair utilities).
+**File Organization**: `Archive` is split into extensions — `ArchiveMigrations+Steps.swift` (deferred migrations), `SessionMerger.swift` (session merging logic), and `SessionArchive+Repair.swift` (integrity repair utilities).
 
 ### iCloud Sync
 
@@ -1124,7 +1124,7 @@ workout recorder and the recording collector's parts read no container: each is 
 `install` out of app code. Views read it through
 `@Environment(\.dependencies)`, classes through an `init` parameter defaulting to `.current`, and
 static helpers and `EmuquApp` through `AppDependencies.current`. `.shared` is read only in this
-file, in `AppDependencies+Instances.swift` beside it (the services whose construction names
+file, in `SharedInstances.swift` beside it (the services whose construction names
 other services) and in the Watch target's root, `WatchDependencies`, which
 `scripts/check_no_shared_outside_root.sh` enforces. The reasoning, and why the app is one target,
 is [ADR 007](adr/007-single-target-composition-root.md).
@@ -1140,9 +1140,9 @@ the other layers reaches a web API only through one of those clients.
 
 `RRCollector` additionally exposes a designated initializer taking all of its dependencies as
 parameters (`BackgroundAudioManager`, `SettingsManager`, `SessionArchive`, plus the
-protocol-typed HealthKit service). `RRCollector.makeDefault()` is the production wiring and
-also publishes the weak `RRCollector.current` the fact resolvers read; a `convenience init()`
-wires in the shared singletons for tests and previews.
+protocol-typed HealthKit service). `RRCollector.makeDefault(dependencies:)` is the production wiring and
+binds the container's `CollectorBox`, which the assistant's context and device facts and Delete All
+My Data read; `init(dependencies:)` builds a collector over a given container for tests and previews.
 
 ### RRCollector decomposition (sub-objects + SwiftUI observation)
 
@@ -1332,7 +1332,7 @@ verification.
 - **No Training Periodization**: Training load tracked but no periodization planning.
 - **TRIMPi (Manzi) Not Implemented**: Requires individual blood-lactate testing that users don't have. Banister is our accepted fallback. The post-summary shows an α1-derived LT1 (aerobic-threshold) estimate, but it is not offered as an LTHR value — LT1 is not LTHR (see "LT1 is not LTHR" below).
 - **Sex Binary in Banister k**: Banister 1991's sex-split coefficients (k = 1.92 male / 1.67 female) are the accepted defaults in the literature but don't handle non-binary / unspecified users gracefully — we fall back to male constants, noted in code.
-- **Polar battery — no force-read API**: Polar's BLE SDK reports battery opportunistically and the value can stall for days while the strap is fine. We supplement the manufacturer signal with a recording-hours counter (`PolarManager.hoursRecordedSinceBatteryChanged`) against published spec capacity (H10 = 400 h, Verity Sense = 30 h). UI surfaces both numbers — "Reported 100 %, recorded 38 h since last full charge" — instead of a "stale" warning after days of unchanged readings.
+- **Polar battery — no force-read API**: Polar's BLE SDK reports battery opportunistically and the value can stall for days while the strap is fine. We supplement the manufacturer signal with a recording-hours counter (`StrapBatteryUsageTracker.hoursRecordedSinceBatteryChanged`) against published spec capacity (H10 = 400 h, Verity Sense = 30 h). UI surfaces both numbers — "Reported 100 %, recorded 38 h since last full charge" — instead of a "stale" warning after days of unchanged readings.
 - **Multi-sport / triathlon transitions not supported**: Recorder owns one sport per session today; brick / triathlon transition support is intentionally held until there's user demand.
 - **Custom interval editor not built**: Voice coach announces steps from a chosen `IntervalPlan`, but there's no in-app editor yet — pre-built plans only.
 - **Road construction / closures**: Free APIs (Mapbox / HERE Traffic) charge per request; OSM construction data is sparse. Live coaching only sees terrain (climbs, grade, peak altitude) and weather, not roadway events.

@@ -4,7 +4,7 @@ import XCTest
 
 /// Migration parity tests.
 ///
-/// Each `Archive+Migrations.swift` entry mutates the index or session files
+/// Each `ArchiveMigrations+Steps.swift` entry mutates the index or session files
 /// based on a UserDefaults-flagged "have I run yet?" check. The refactor spec
 /// §§ 17-18 (Migration Safety / Data Model Versioning) requires that these
 /// migrations be verifiable: a pre-state → post-state pair, where the post
@@ -32,7 +32,7 @@ final class ArchiveMigrationParityTests: XCTestCase {
     var testSessionIds: [UUID] = []
 
     /// The done flags `runIndexMigration` checks before each backfill
-    /// (`MigrationFlag` in Archive+Migrations.swift). They live in the host
+    /// (`MigrationFlag` in ArchiveMigrations+Steps.swift). They live in the host
     /// app's standard defaults, so once any earlier run or launch set them
     /// every backfill here would return at once. Each test clears them and
     /// puts the host's values back afterwards.

@@ -7,10 +7,10 @@ import XCTest
 @MainActor
 final class SavedRouteDeletionTests: XCTestCase {
     private func recorderFollowing(savedRoute id: UUID) -> WorkoutRecorder {
-        let recorder = WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
-        recorder.plannedRoute = Route.fromGPX(name: "Daily loop", track: [])
-        recorder.plannedSavedRouteId = id
-        recorder.plannedRouteWasAutoDetected = true
+        let recorder = WorkoutRecorder(core: SnapshotFixtures.collector().recordingCore, conversation: VoiceConversationController.shared, services: WorkoutServices(.current))
+        recorder.route.planned = Route.fromGPX(name: "Daily loop", track: [])
+        recorder.route.savedRouteId = id
+        recorder.route.wasAutoDetected = true
         return recorder
     }
 
@@ -20,9 +20,9 @@ final class SavedRouteDeletionTests: XCTestCase {
 
         recorder.forgetDeletedSavedRoute(id)
 
-        XCTAssertNil(recorder.plannedRoute, "the coach would keep naming a deleted route")
-        XCTAssertNil(recorder.plannedSavedRouteId)
-        XCTAssertFalse(recorder.plannedRouteWasAutoDetected)
+        XCTAssertNil(recorder.route.planned, "the coach would keep naming a deleted route")
+        XCTAssertNil(recorder.route.savedRouteId)
+        XCTAssertFalse(recorder.route.wasAutoDetected)
     }
 
     func testDeletingAnotherRouteLeavesTheFollowedOne() {
@@ -30,6 +30,6 @@ final class SavedRouteDeletionTests: XCTestCase {
 
         recorder.forgetDeletedSavedRoute(UUID())
 
-        XCTAssertNotNil(recorder.plannedRoute)
+        XCTAssertNotNil(recorder.route.planned)
     }
 }

@@ -4,9 +4,10 @@ import Foundation
 ///
 /// These migrations open sessions archived long ago, recompute a field an
 /// earlier release got wrong, and write them back. They share nothing with
-/// recording: they read only the five dependencies injected below —
-/// `archive`, `healthKit`, `settingsManager`, `baselineTracker` and
-/// `reanalysisService` — and call no method of `RRCollector`.
+/// recording: they read only the dependencies injected below —
+/// `archive`, `healthKit`, `sleepQueries`, `settingsManager`,
+/// `baselineTracker` and `reanalysisService` — and call no method of
+/// `RRCollector`.
 ///
 /// ## Ordering
 ///
@@ -22,7 +23,9 @@ import Foundation
 @MainActor
 final class SessionDataMigrations {
     let archive: SessionArchive
-    let healthKit: HealthKitManager
+    let healthKit: any HealthKitServiceProtocol
+    /// The nap read the nap repair makes.
+    let sleepQueries: SleepHealthQueries
     let settingsManager: SettingsManager
     let baselineTracker: BaselineTracker
 
@@ -33,13 +36,15 @@ final class SessionDataMigrations {
 
     init(
         archive: SessionArchive,
-        healthKit: HealthKitManager,
+        healthKit: any HealthKitServiceProtocol,
+        sleepQueries: SleepHealthQueries,
         settingsManager: SettingsManager,
         baselineTracker: BaselineTracker,
         reanalysisService: ReanalysisService
     ) {
         self.archive = archive
         self.healthKit = healthKit
+        self.sleepQueries = sleepQueries
         self.settingsManager = settingsManager
         self.baselineTracker = baselineTracker
         self.reanalysisService = reanalysisService

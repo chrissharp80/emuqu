@@ -12,6 +12,8 @@ struct WorkoutServices: Sendable {
 
     init(_ container: AppDependencies) { self.container = container }
 
+    var activeRouteSession: ActiveRouteSession { container.location.activeRouteSession }
+    var ambientLocationService: AmbientLocationService { container.location.ambientLocationService }
     @MainActor
     var assistantEmailBridge: AssistantEmailBridge { container.assistant.assistantEmailBridge }
     @MainActor

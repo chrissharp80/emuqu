@@ -108,7 +108,7 @@ enum CloudPayloadCodec {
     /// Guideline 5.1.3(ii) says apps "may not store personal health
     /// information in iCloud", for all health data, not only data read from
     /// HealthKit, and compression is not confidentiality. The local archive
-    /// does the opposite (`Archive+SessionCodec` writes plaintext under
+    /// does the opposite (`SessionArchive+SessionCodec` writes plaintext under
     /// `.completeFileProtectionUnlessOpen` and re-encrypts it later, ADR 001): a local
     /// file can be repaired in place, but an upload cannot be taken back. A
     /// skipped upload is retried on a later cycle.

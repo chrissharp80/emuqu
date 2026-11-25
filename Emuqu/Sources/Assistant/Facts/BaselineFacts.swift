@@ -7,20 +7,17 @@ import os
 
 // MARK: - baseline.* namespace
 //
-// Rolling 7-day and 30-day personal baselines for "how am I trending"
-// questions. Neither is the recovery score's baseline, which is the ln-mean
-// of up to the 60 most recent usable nights before the scored one
-// (`BaselineTracker.recoveryBaselineStats`). The tracker's persisted data isn't directly reachable
-// from the fact resolver (would require threading the RRCollector
-// through), but every data point it uses comes from overnight sessions
-// in the archive — we can reconstruct the same rolling averages here
-// synchronously from sessions' analysisResult.timeDomain.
+// Trailing 7-day and 30-day personal baselines for "how am I trending"
+// questions, read from the archive's overnight sessions. Neither is the
+// recovery score's baseline, which is the ln-mean of up to the 60 most
+// recent usable nights before the scored one
+// (`BaselineTracker.recoveryBaselineStats`).
 //
-// This intentionally stays a small shim rather than importing
-// BaselineTracker's logic: the resolver is read-only, doesn't need
-// quality gating (consolidated / organized / artifact filtering), and
-// doesn't need to replace data points — just the geometric mean of RMSSD
-// and the arithmetic mean of overnight mean HR over the trailing window.
+// Like the tracker, it skips readings unreliable for HRV aggregates and
+// counts one reading per night (`SleepSchedule.nightKey`). Where a night
+// has two readings it takes the one that ends latest, the morning end of
+// the night; the tracker's finer tie-break on window quality uses fields
+// the archive index does not hold.
 
 struct BaselineNamespace: FactNamespaceResolver {
     let namespace = "baseline"
@@ -41,15 +38,23 @@ struct BaselineNamespace: FactNamespaceResolver {
         return latest
     }
 
-    /// All overnight sessions with analysis results, sorted oldest → newest.
+    /// One overnight session per night, with analysis results, sorted oldest → newest.
     /// Excludes untrustworthy-HRV readings so the AI's rolling
     /// RMSSD baseline matches the app's `BaselineTracker` (which does too).
     /// Each resolver reads this once and derives everything else from it.
     private func samples() -> [Sample] {
-        archive.store.entries
-            .filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
+        let schedule = services.settingsManager.settingsSnapshot.sleepSchedule
+        let usable = archive.store.entries.filter { $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
+        return Self.onePerNight(usable, schedule: schedule)
             .sorted { $0.date < $1.date }
             .compactMap { sample(for: $0) }
+    }
+
+    /// One entry per night: the one that ends latest, so a night recorded
+    /// twice counts once in every mean, as in `usableNightCount`.
+    static func onePerNight(_ entries: [SessionArchiveEntry], schedule: SleepSchedule) -> [SessionArchiveEntry] {
+        let nights = Dictionary(grouping: entries) { schedule.nightKey(for: $0.date) }
+        return nights.values.compactMap { night in night.max { ($0.endDate ?? $0.date) < ($1.endDate ?? $1.date) } }
     }
 
     /// From the index's mirror of the session's RMSSD and mean HR (written

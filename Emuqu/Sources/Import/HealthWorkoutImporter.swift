@@ -37,7 +37,11 @@ import HealthKit
 
 @MainActor
 struct HealthWorkoutImporter {
-    let manager: HealthKitManager
+    let access: HealthKitAccess
+    /// The workout routes, samples and activity reads.
+    let training: TrainingHealthQueries
+    /// The heart rate a rebuilt workout is scored from.
+    let heartRate: HeartRateHealthQueries
 
     /// A workout Apple Health has and Emuqu does not.
     struct Candidate: Identifiable, Sendable, Equatable {

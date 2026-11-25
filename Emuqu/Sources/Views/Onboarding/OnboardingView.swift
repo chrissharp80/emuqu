@@ -74,12 +74,12 @@ struct OnboardingView: View {
     /// follows a Connect, even one whose request threw.
     private func noteHealthPageSwipedPast(from old: Int, to new: Int) {
         guard old == 4, new > 4, !healthPageAnswered,
-              !collector.healthKit.authorizationRequested else { return }
+              !collector.healthKit.authorization.authorizationRequested else { return }
         // A relaunch mid-onboarding loses the in-memory flag; HealthKit's own
         // record says whether the permission sheet was already answered.
         let healthKit = collector.healthKit
         Task {
-            let alreadyAnswered = await healthKit.authorizationWasEverRequested()
+            let alreadyAnswered = await healthKit.authorization.authorizationWasEverRequested()
             guard !alreadyAnswered else { return }
             UserDefaults.standard.set(true, forKey: UserDefaultsKeys.healthAccessSkipped)
         }
@@ -246,6 +246,6 @@ struct OnboardingFillingScroll<Content: View>: View {
 
 #Preview {
     OnboardingView()
-        .environment(AppDependencies.current.app.settingsManager)
-        .environment(RRCollector())
+        .environment(AppDependencies().app.settingsManager)
+        .environment(RRCollector(dependencies: AppDependencies()))
 }

@@ -165,4 +165,25 @@ final class ScoreFactorFactsTests: XCTestCase {
     func testUnrecognisedPenaltyLineIsShownAsStored() {
         XCTAssertEqual(ScoreBreakdownCopy.displayPenalty("Something else (−4)"), "Something else (−4)")
     }
+
+    /// Flo's trailing baselines count a night recorded twice once, keeping
+    /// the reading that runs into the morning.
+    func testTheAssistantsBaselineCountsANightRecordedTwiceOnce() throws {
+        let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
+        let calendar = Calendar.current
+        let anchor = calendar.startOfDay(for: Date(timeIntervalSince1970: 1_790_000_000))
+        let night = try XCTUnwrap(calendar.date(byAdding: .hour, value: 23, to: anchor))
+        func entry(start: Date, hours: Double) -> SessionArchiveEntry {
+            SessionArchiveEntry(
+                sessionId: UUID(), date: start, endDate: start.addingTimeInterval(hours * 3600),
+                fileHash: "", filePath: "", sessionType: .overnight
+            )
+        }
+        let early = entry(start: night, hours: 1)
+        let continuation = entry(start: night.addingTimeInterval(1.5 * 3600), hours: 5.5)
+        let nextNight = entry(start: night.addingTimeInterval(24 * 3600), hours: 7)
+
+        let kept = BaselineNamespace.onePerNight([early, continuation, nextNight], schedule: schedule)
+        XCTAssertEqual(Set(kept.map(\.sessionId)), [continuation.sessionId, nextNight.sessionId])
+    }
 }

@@ -3,11 +3,14 @@ import HealthKit
 
 /// HealthKit queries about training: workouts, routes, VO2 max, training load.
 ///
-/// Holds its owner strongly and is built on demand by the manager — a
-/// value with no state of its own, so nothing here can outlive what it
-/// points at.
+/// A value over the parts it uses: queries run through `access`, and
+/// heart-rate reads use `heartRate`'s predicate, and the app's own workouts
+/// are read from `archive`.
 @MainActor
 struct TrainingHealthQueries {
-    let manager: HealthKitManager
-
+    let access: HealthKitAccess
+    let heartRate: HeartRateHealthQueries
+    /// The archive whose workouts training load merges with HealthKit's,
+    /// resolved on each read.
+    let archive: @Sendable () -> SessionArchive
 }

@@ -269,14 +269,18 @@ struct OvernightChartsView<InterChartContent: View>: View {
     /// cancellation check: a superseded run never assigns its stale stats
     /// over the newer run's.
     private func loadOvernightStats() async {
-        let computer = OvernightStatsComputer(session: session, result: result, healthKitSleep: healthKitSleep)
+        let computer = OvernightStatsComputer(
+            session: session, result: result, healthKitSleep: healthKitSleep, zonesCache: dependencies.app.organizedZonesCache
+        )
         let zonesNeedDiskBackfill = computer.willScanOrganizedZones()
         var stats = await Task.detached(priority: .userInitiated) {
             computer.computeOvernightStats()
         }.value
         guard !Task.isCancelled else { return }
         if zonesNeedDiskBackfill {
-            OvernightStatsComputer.backfillZonesToArchive(sessionId: session.id, zones: stats.organizedRecoveryZones)
+            OvernightStatsComputer.backfillZonesToArchive(
+                sessionId: session.id, zones: stats.organizedRecoveryZones, archive: dependencies.storage.sessionArchive
+            )
         }
         stats = await withHealthKitGapFill(stats)
         guard !Task.isCancelled else { return }

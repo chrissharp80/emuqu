@@ -13,11 +13,11 @@ extension TrainingHealthQueries {
     /// oldestInWindow. nil tuple when the user has zero samples. A past
     /// `referenceDate` (a reanalysis) reads the trend as it stood then.
     func fetchVO2MaxTrend(days: Int = 30, relativeTo referenceDate: Date = Date()) async -> (latest: Double, oldestInWindow: Double, sampleCount: Int)? {
-        guard manager.isHealthKitAvailable, let vo2Type = HKTypes.quantity(.vo2Max) else { return nil }
+        guard access.isAvailable, let vo2Type = HKTypes.quantity(.vo2Max) else { return nil }
         let windowStart = Calendar.current.date(byAdding: .day, value: -days, to: referenceDate) ?? referenceDate
         let predicate = HKQuery.predicateForSamples(withStart: windowStart, end: referenceDate, options: [])
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: vo2Type,
                 predicate: predicate,
@@ -118,16 +118,21 @@ extension TrainingHealthQueries {
         // it's the same session we already hold with strap precision. `overlaps`
         // requires ≥60% of the shorter session's span, so genuinely separate
         // external training (e.g. a ride logged only in Strava at another time)
-        // is kept. You can't do two time-overlapping workouts at once, so this
-        // never drops a distinct session.
+        // is kept. Two exceptions, where the Health workout is the better
+        // record of the training (`yields`): an archive workout counted only
+        // from its index entry, and a strap recording that covers only part
+        // of a longer Health workout.
+        let authoritative = archive.filter { workout in
+            !healthKit.contains { yields(workout, to: $0) }
+        }
         let externalHealthKit = healthKit.filter { hk in
-            !archive.contains { overlaps($0, hk) }
+            !authoritative.contains { overlaps($0, hk) }
         }
         // Among the KEPT set, external copies can still duplicate each other
         // (Strava + Apple's auto-detected copy of the same un-recorded ride) —
         // collapse those with the normal dedup. Archive workouts don't duplicate
         // each other, and no HealthKit twin of an archive workout remains.
-        return deduplicateWorkouts(archive + externalHealthKit + additional)
+        return deduplicateWorkouts(authoritative + externalHealthKit + additional)
     }
 
     /// Rule 1 or rule 2 of `deduplicateWorkouts`.
@@ -156,6 +161,26 @@ extension TrainingHealthQueries {
         let shorter = min(a.durationMinutes, b.durationMinutes) * 60.0
         guard shorter > 0 else { return false }
         return overlap / shorter >= 0.6
+    }
+
+    /// Whether the Health workout `hk` replaces `archived` in the load. An
+    /// index estimate (its file could not be read) carries only a span and a
+    /// mean heart rate, so Health's copy of the same session wins; the same
+    /// session covers most of both spans, so a short walk Apple detected
+    /// inside a long run does not stand in for the run. A strap recording
+    /// started part-way through a longer Health workout covers only part of
+    /// it, so the whole workout counts instead of the part.
+    nonisolated private static func yields(_ archived: HealthKitManager.WorkoutSummary, to hk: HealthKitManager.WorkoutSummary) -> Bool {
+        if coversMostOfBoth(archived, hk) { return archived.isIndexEstimate }
+        return hk.durationMinutes > archived.durationMinutes && overlaps(archived, hk)
+    }
+
+    /// Intersection >= 60 % of the LONGER workout's duration, so each covers
+    /// most of the other: the same session, not one nested in another.
+    nonisolated private static func coversMostOfBoth(_ a: HealthKitManager.WorkoutSummary, _ b: HealthKitManager.WorkoutSummary) -> Bool {
+        let longer = max(a.durationMinutes, b.durationMinutes) * 60.0
+        guard longer > 0 else { return false }
+        return intersectionSeconds(a, b) / longer >= 0.6
     }
 
     /// Score a workout by data richness for dedup tie-breaking.
@@ -205,13 +230,13 @@ extension TrainingHealthQueries {
     /// never authorized (or were denied) is an answer: both are no workouts
     /// rather than a failure, so the load is still built from the archive.
     private func queryWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary]? {
-        guard manager.isHealthKitAvailable else { return [] }
+        guard access.isAvailable else { return [] }
         let calendar = Calendar.current
         let startOfReferenceDay = calendar.startOfDay(for: referenceDate)
         guard let startDate = calendar.date(byAdding: .day, value: -days, to: startOfReferenceDay) else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: referenceDate, options: .strictStartDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,
@@ -303,7 +328,7 @@ extension TrainingHealthQueries {
     /// holds the truncated phone track. Returns nil when there's no matching
     /// workout, no route series, or no locations (so the caller can fall back).
     func fetchWorkoutRoute(from start: Date, to end: Date) async -> [CLLocation]? {
-        guard manager.isHealthKitAvailable, end > start else { return nil }
+        guard access.isAvailable, end > start else { return nil }
         guard let workout = await bestOverlappingWorkout(from: start, to: end) else { return nil }
         guard let route = await routeSeries(for: workout) else { return nil }
         let locations = await routeLocations(route)
@@ -323,7 +348,7 @@ extension TrainingHealthQueries {
             end: end.addingTimeInterval(pad),
             options: []
         )
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,
@@ -354,7 +379,7 @@ extension TrainingHealthQueries {
     /// workouts and needs the same route, and a second copy of this query would
     /// be a second thing to keep correct.
     func routeSeries(for workout: HKWorkout) async -> HKWorkoutRoute? {
-        await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKSeriesType.workoutRoute(),
                 predicate: HKQuery.predicateForObjects(from: workout),
@@ -372,7 +397,7 @@ extension TrainingHealthQueries {
     /// route-series queries before it already have — so a route query that
     /// never reports done cannot hang the caller awaiting it.
     func routeLocations(_ route: HKWorkoutRoute) async -> [CLLocation] {
-        await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             Self.routeQuery(route, resolve: resolve)
         } ?? []
     }
@@ -418,7 +443,7 @@ extension TrainingHealthQueries {
     /// movement was still counted. Excludes our own written samples so we don't
     /// double-count the (short) distance the app already wrote for the workout.
     func fetchPassiveDistanceMeters(from start: Date, to end: Date) async -> Double {
-        guard manager.isHealthKitAvailable, end > start,
+        guard access.isAvailable, end > start,
               let distType = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)
         else { return 0 }
 
@@ -428,7 +453,7 @@ extension TrainingHealthQueries {
         )
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [timePredicate, notOwnSource])
 
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: distType,
                 quantitySamplePredicate: predicate,
@@ -443,9 +468,9 @@ extension TrainingHealthQueries {
     /// Used to detect if the user exercised between two sleep sessions —
     /// if so, the second sleep shouldn't be merged into the first.
     func hasWorkoutInRange(from start: Date, to end: Date) async -> Bool {
-        guard manager.isHealthKitAvailable, end > start else { return false }
+        guard access.isAvailable, end > start else { return false }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,
@@ -495,7 +520,7 @@ extension TrainingHealthQueries {
     /// resting HR the SAME way as `calculateTrainingMetrics` — see the note
     /// there. Both must use one source or their HR-backed TRIMP diverges.
     func fetchAppleRestingHR(relativeTo referenceDate: Date = Date()) async -> Double? {
-        guard manager.isHealthKitAvailable else { return nil }
+        guard access.isAvailable else { return nil }
         guard let rhrType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else {
             debugLog("[HealthKitManager] Resting heart rate type unavailable")
             return nil
@@ -510,7 +535,7 @@ extension TrainingHealthQueries {
 
     /// Fetch the latest VO2max from HealthKit as of `referenceDate`.
     func fetchVO2Max(relativeTo referenceDate: Date = Date()) async -> Double? {
-        guard manager.isHealthKitAvailable, let vo2Type = HKTypes.quantity(.vo2Max) else { return nil }
+        guard access.isAvailable, let vo2Type = HKTypes.quantity(.vo2Max) else { return nil }
         let vo2 = await latestQuantitySample(vo2Type, unit: HKUnit(from: "ml/kg*min"), since: nil, until: referenceDate)?.value
         if vo2 == nil { debugLog("[HealthKitManager] No VO2max data found") }
         return vo2
@@ -522,8 +547,8 @@ extension TrainingHealthQueries {
     private func latestQuantitySample(_ type: HKQuantityType, unit: HKUnit, since: Date?, until: Date) async -> (value: Double, date: Date)? {
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         let window = HKQuery.predicateForSamples(withStart: since, end: until, options: [.strictStartDate, .strictEndDate])
-        let predicate = manager.heartRate.hrReadExcludingOwnWrites(dateRange: window)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        let predicate = heartRate.hrReadExcludingOwnWrites(dateRange: window)
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
                 predicate: predicate,
@@ -584,7 +609,7 @@ extension TrainingHealthQueries {
     /// metrics and the cache's day-by-day series both resolve them here.
     func trainingHeartRateAnchors(relativeTo referenceDate: Date = Date()) async -> TrainingLoadSeries.HeartRateAnchors {
         let apple = await fetchAppleRestingHR(relativeTo: referenceDate)
-        let settings = AppDependencies.current.app.settingsManager.settings
+        let settings = access.settingsProvider()
         return .resolve(
             appleRestingHR: apple, settingRestingHR: settings.effectiveRestingHR, settingMaxHR: settings.effectiveMaxHR
         )
@@ -647,9 +672,10 @@ extension TrainingHealthQueries {
         } else {
             healthKitWorkouts = await fetchWorkoutsExtended(days: Self.ewmaLookbackDays, relativeTo: referenceDate)
         }
-        let archive = AppDependencies.current.storage.sessionArchive
+        let archive = self.archive()
+        let ftp = TrainingLoadPrecedence.FTPAnchors.current(access.settingsProvider())
         let archiveWorkouts = await Task.detached(priority: .userInitiated) {
-            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: Self.ewmaLookbackDays, relativeTo: referenceDate)
+            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: Self.ewmaLookbackDays, relativeTo: referenceDate, ftp: ftp)
         }.value
         return Self.mergeArchiveAuthoritative(
             archive: archiveWorkouts,
@@ -665,9 +691,10 @@ extension TrainingHealthQueries {
     /// trimmed to the window the weekly load score is normalised over.
     private func recentMergedWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary] {
         let healthKitWorkouts = await fetchRecentWorkouts(days: days, relativeTo: referenceDate)
-        let archive = AppDependencies.current.storage.sessionArchive
+        let archive = self.archive()
+        let ftp = TrainingLoadPrecedence.FTPAnchors.current(access.settingsProvider())
         let archiveWorkouts = await Task.detached(priority: .userInitiated) {
-            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: days, relativeTo: referenceDate)
+            HealthKitManager.WorkoutSummary.fromAppArchive(archive: archive, days: days, relativeTo: referenceDate, ftp: ftp)
         }.value
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: referenceDate)

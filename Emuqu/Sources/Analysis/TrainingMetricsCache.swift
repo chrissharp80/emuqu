@@ -325,18 +325,16 @@ final class TrainingMetricsCache {
         return current
     }
 
-    /// Injected HealthKit provider. Set once at app launch via
-    /// `configure(healthKit:)` — the cache itself is a singleton, but
-    /// the HealthKitManager is instance-owned by `RRCollector`, so we
-    /// weave them together once rather than hard-coding a singleton
-    /// where there isn't one.
-    private weak var healthKit: HealthKitManager?
+    /// The HealthKit workout and training-load queries. Set once at app
+    /// launch via `configure(training:)`: the cache is built before the
+    /// collector that owns the HealthKit manager.
+    private var training: TrainingHealthQueries?
 
     /// Wire up the cache's HealthKit source. Safe to call multiple
-    /// times; last-call wins. Called once from `EmuquApp` with
-    /// `collector.healthKit`.
-    func configure(healthKit: HealthKitManager) {
-        self.healthKit = healthKit
+    /// times; last-call wins. Called once at launch with
+    /// `collector.healthKit.training`.
+    func configure(training: TrainingHealthQueries) {
+        self.training = training
     }
 
     /// Await a fresh refresh. Use when the caller genuinely needs the
@@ -353,8 +351,8 @@ final class TrainingMetricsCache {
     func refresh(reference: Date = Date(), forMorningReading: Bool = false) async {
         // Not yet wired — refresh is a no-op. The first caller to hit a cold
         // cache after configure() runs will succeed. (`startRefreshTask`
-        // re-unwraps `healthKit` inside its task.)
-        guard healthKit != nil else { return }
+        // re-unwraps `training` inside its task.)
+        guard training != nil else { return }
         guard needsRebuild(reference: reference) else { return }
         if let existing = refreshTask {
             _ = await existing.value
@@ -434,8 +432,8 @@ final class TrainingMetricsCache {
         let settings = currentLoadSettings()
         let task = Task { [weak self] in
             guard let self else { return }
-            guard let hk = self.healthKit else { return self.releaseRefreshTaskUnlessCancelled() }
-            await self.recompute(healthKit: hk, reference: reference, forMorningReading: forMorningReading, settings: settings)
+            guard let training = self.training else { return self.releaseRefreshTaskUnlessCancelled() }
+            await self.recompute(training: training, reference: reference, forMorningReading: forMorningReading, settings: settings)
         }
         refreshTask = task
         return task
@@ -458,19 +456,19 @@ final class TrainingMetricsCache {
     /// stay as they were, still due for a rebuild, and the registration is
     /// released so the next refresh asks HealthKit again.
     private func recompute(
-        healthKit hk: HealthKitManager, reference: Date, forMorningReading: Bool, settings: LoadSettings
+        training: TrainingHealthQueries, reference: Date, forMorningReading: Bool, settings: LoadSettings
     ) async {
         // The archived workouts this compute starts from; a workout archived
         // while it awaits HealthKit is not in it.
         let startFingerprint = workoutFingerprint()
-        guard let hkWorkouts = await hk.training.fetchWorkoutsExtendedIfAnswered(
+        guard let hkWorkouts = await training.fetchWorkoutsExtendedIfAnswered(
             days: lookbackDays + replayWarmUpDays, relativeTo: reference
         ) else {
             debugLog("[TrainingMetricsCache] HealthKit workout query failed or timed out — the published load is kept and the next refresh asks again", level: .warning)
             return releaseRefreshTaskUnlessCancelled()
         }
-        let anchors = await hk.training.trainingHeartRateAnchors()
-        let metrics = await hk.training.calculateTrainingMetrics(
+        let anchors = await training.trainingHeartRateAnchors()
+        let metrics = await training.calculateTrainingMetrics(
             restingHR: anchors.restingHR, userMaxHR: anchors.maxHR, forMorningReading: forMorningReading,
             relativeTo: reference, preloadedHealthKitWorkouts: hkWorkouts
         )
@@ -536,7 +534,7 @@ final class TrainingMetricsCache {
         historicalTask = Task.detached(priority: .utility) {
             let series = Self.buildDailySeries(
                 reference: reference, lookbackDays: replayDays, archive: archive,
-                healthKitWorkouts: workouts, anchors: key.anchors
+                healthKitWorkouts: workouts, anchors: key.anchors, ftp: key.settings.ftp
             )
             let kept = Self.lastDays(keptDays, of: series, reference: reference)
             await self.adoptHistoricalSeries(kept, key: key)
@@ -592,10 +590,11 @@ final class TrainingMetricsCache {
         lookbackDays: Int,
         archive: SessionArchive,
         healthKitWorkouts: [HealthKitManager.WorkoutSummary],
-        anchors: TrainingLoadSeries.HeartRateAnchors
+        anchors: TrainingLoadSeries.HeartRateAnchors,
+        ftp: TrainingLoadPrecedence.FTPAnchors
     ) -> [Date: DaySample] {
         let workouts = mergedWorkouts(
-            reference: reference, lookbackDays: lookbackDays, archive: archive, healthKitWorkouts: healthKitWorkouts
+            reference: reference, lookbackDays: lookbackDays, archive: archive, healthKitWorkouts: healthKitWorkouts, ftp: ftp
         )
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: reference)
@@ -621,10 +620,11 @@ final class TrainingMetricsCache {
         reference: Date,
         lookbackDays: Int,
         archive: SessionArchive,
-        healthKitWorkouts: [HealthKitManager.WorkoutSummary]
+        healthKitWorkouts: [HealthKitManager.WorkoutSummary],
+        ftp: TrainingLoadPrecedence.FTPAnchors
     ) -> [HealthKitManager.WorkoutSummary] {
         let archiveWorkouts = HealthKitManager.WorkoutSummary.fromAppArchive(
-            archive: archive, days: lookbackDays, relativeTo: reference
+            archive: archive, days: lookbackDays, relativeTo: reference, ftp: ftp
         )
         return TrainingHealthQueries.mergeArchiveAuthoritative(archive: archiveWorkouts, healthKit: healthKitWorkouts)
     }
@@ -691,7 +691,7 @@ final class TrainingMetricsCache {
         // self-deadlock). `startRefreshTask` registers
         // `refreshTask` internally, so the `== nil` check still coalesces
         // duplicate schedule requests.
-        guard refreshTask == nil, healthKit != nil else { return }
+        guard refreshTask == nil, training != nil else { return }
         startRefreshTask(reference: Date(), forMorningReading: false)
     }
 }

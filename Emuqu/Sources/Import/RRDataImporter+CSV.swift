@@ -10,9 +10,11 @@ extension RRDataImporter {
     /// from and has always returned them empty. Preserved rather than changed,
     /// because the signature is shared.
     func parseCSV(_ content: String) throws -> ([Int], [String: String], Date?) {
-        let lines = csvRecords(content)
+        // Comments go before the header is looked for, so a leading comment
+        // is never taken for the header and the RR column is still found.
+        let lines = Self.recordLines(of: content, quoteAware: csvRecords)
             .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
+            .filter { !$0.isEmpty && !Self.isComment($0) }
         guard let headerLine = lines.first else {
             throw ImportError.noRRData
         }
@@ -30,8 +32,6 @@ extension RRDataImporter {
     /// The RR column of each data line, in milliseconds.
     private func rrValues(from lines: ArraySlice<String>, separator: Character, rrColumn: Int?) -> [Int] {
         lines
-            // Skip comment lines
-            .filter { !$0.hasPrefix("#") && !$0.hasPrefix("//") }
             .compactMap { line -> Int? in
                 let columns = Self.fields(of: line, separator: separator)
                 return Self.rrValue(fromColumns: columns, rrColumnIndex: rrColumn, convert: convertToMilliseconds)
@@ -42,6 +42,22 @@ extension RRDataImporter {
     }
 
     // MARK: - parseCSV helpers
+
+    /// The file's records. Quote-aware only when its quotes pair up: one
+    /// stray `"` (in a comment, a device name) would otherwise make every
+    /// line after it one record and import nothing, so an odd count splits
+    /// on plain line breaks.
+    static func recordLines(of content: String, quoteAware: (String) -> [String]) -> [String] {
+        guard content.count(where: { $0 == "\"" }).isMultiple(of: 2) else {
+            return content.components(separatedBy: .newlines)
+        }
+        return quoteAware(content)
+    }
+
+    /// A `#` or `//` comment line, which no CSV or text format here reads.
+    static func isComment(_ line: String) -> Bool {
+        line.hasPrefix("#") || line.hasPrefix("//")
+    }
     //
     // All four are
     // pure and `static`, so each is testable without an importer instance.
@@ -67,13 +83,13 @@ extension RRDataImporter {
 
     /// Whether a lowercased header names the RR column: one of its words is
     /// "rr" or "ibi", or starts with one ("rr_ms", "RR interval (ms)",
-    /// "rrms", "IBI"), or the whole header is "ms" or "interval". Whole
-    /// words, so "current_hr", "error" or "correction" do not match just
-    /// because they contain the letters "rr".
+    /// "rrms", "IBI"), or the header is "ms", "interval" or "interval (ms)".
+    /// Whole words, so "current_hr", "error" or "correction" do not match
+    /// just because they contain the letters "rr".
     private static func namesRRColumn(_ header: String) -> Bool {
         let words = header.split { !$0.isLetter && !$0.isNumber }
         return words.contains { $0.hasPrefix("rr") || $0.hasPrefix("ibi") }
-            || header == "ms" || header == "interval"
+            || words == ["ms"] || words == ["interval"] || words == ["interval", "ms"]
     }
 
     /// Picks the RR value out of one already-split data row, or nil to skip it.
@@ -124,7 +140,7 @@ extension RRDataImporter {
     func parsePlainText(_ content: String) throws -> [Int] {
         let lines = content.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty && !$0.hasPrefix("#") && !$0.hasPrefix("//") }
+            .filter { !$0.isEmpty && !Self.isComment($0) }
         return lines.flatMap { line in
             // Handle space-separated values on same line
             line.split(whereSeparator: { $0.isWhitespace || $0 == "," || $0 == ";" })
@@ -132,24 +148,31 @@ extension RRDataImporter {
         }
     }
 
-    /// One whitespace- or delimiter-separated token as a validated RR value in
-    /// milliseconds. Nil when it isn't a finite number, or lands outside the
-    /// physiologically plausible range.
+    /// One whitespace- or delimiter-separated token as an RR value in
+    /// milliseconds. Nil when it isn't a finite number or is not a beat at all
+    /// (outside `storableRRRange`). The policy a CSV column gets: values out
+    /// of the physiological range are kept, for `validate` and artifact
+    /// detection to judge, so the same beats import the same whichever
+    /// format holds them, and the summed timeline keeps every interval.
     private func validRRValue(in token: Substring) -> Int? {
         guard let value = Double(token), value.isFinite else { return nil }
         let converted = convertToMilliseconds(value)
-        return HRVConstants.RRInterval.isValid(converted) ? converted : nil
+        return Self.storableRRRange.contains(converted) ? converted : nil
     }
 
     /// The file's records: its lines, except that a newline inside a quoted
     /// field (an Elite HRV Notes or Tags value) stays in its record instead
-    /// of splitting it in two.
+    /// of splitting it in two. As in `fields(of:separator:)`, a quote opens a
+    /// field only at its start, so a quote inside a value (5'10") does not
+    /// join the lines after it.
     func csvRecords(_ content: String) -> [String] {
         var records: [String] = []
         var current = ""
         var inQuotes = false
+        var atFieldStart = true
         for char in content {
-            if char == "\"" { inQuotes.toggle() }
+            if char == "\"", inQuotes || atFieldStart { inQuotes.toggle() }
+            atFieldStart = !inQuotes && (char.isNewline || ",;\t".contains(char) || (atFieldStart && char.isWhitespace))
             if char.isNewline, !inQuotes {
                 records.append(current)
                 current = ""
@@ -173,7 +196,9 @@ extension RRDataImporter {
         var current = ""
         var inQuotes = false
         for char in line {
-            if char == "\"" {
+            if char == "\"", inQuotes || current.allSatisfy(\.isWhitespace) {
+                // A quote opens a field only at its start, as in RFC 4180;
+                // one inside a value (5'10") is part of the value.
                 inQuotes.toggle()
             } else if char == separator, !inQuotes {
                 result.append(current.trimmingCharacters(in: .whitespaces))

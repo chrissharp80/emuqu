@@ -77,10 +77,25 @@ struct ChatInputBar: View {
     /// What the field held when dictation started; the transcript is added
     /// after it rather than replacing it.
     @State private var draftBeforeDictation: String = ""
-    @State private var speech = SpeechInputManager()
+    @State private var speech: SpeechInputManager
     @State private var voiceErrorMessage: String?
     @FocusState private var inputFocused: Bool
     private var inbox: AssistantInbox { dependencies.assistant.assistantInbox }
+
+    /// Dictation claims the audio session through `audioSession`.
+    init(
+        composerState: ComposerState,
+        isAppleActive: Bool,
+        audioSession: AudioSessionCoordinator,
+        onSend: @escaping (String) -> AssistantViewModel.SendOutcome,
+        onSendPrefab: @escaping (PrefabQuestion) -> Void
+    ) {
+        self.composerState = composerState
+        self.isAppleActive = isAppleActive
+        self.onSend = onSend
+        self.onSendPrefab = onSendPrefab
+        _speech = State(initialValue: SpeechInputManager(audioSession: audioSession))
+    }
     var body: some View {
         let _ = dependencies.app.keyboardPerfSignpost.event("ChatInputBar.body")
         VStack(spacing: 8) {

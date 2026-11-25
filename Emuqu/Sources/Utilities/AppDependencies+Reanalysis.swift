@@ -24,7 +24,7 @@ enum SessionReanalysisRoot {
         let dependencies = AppDependencies.current
         return SessionScoringContext(
             settingsManager: dependencies.app.settingsManager,
-            healthKit: dependencies.collection.healthKitManager,
+            healthKit: dependencies.collection.healthKitManager.service,
             baselineTracker: dependencies.collection.baselineTracker
         )
     }()
@@ -74,7 +74,9 @@ extension AppDependencies {
         SessionReanalysisCoordinator(
             service: makeReanalysisService(parts),
             archive: parts.archive,
-            healthKit: parts.healthKit,
+            healthKit: parts.healthKit.service,
+            healthObservation: parts.healthKit.observation,
+            sleepQueries: parts.healthKit.sleepQueries,
             scoring: parts.scoring,
             archiveSignal: parts.archiveSignal,
             trainingMetricsCache: parts.trainingMetricsCache
@@ -91,7 +93,7 @@ extension AppDependencies {
         let scoring = parts.scoring
         let pipeline = defaultAnalysisPipeline(healthKit: parts.healthKit)
         return ReanalysisService(
-            archive: parts.archive, healthKit: parts.healthKit, analysisPipeline: pipeline,
+            archive: parts.archive, healthKit: parts.healthKit.service, analysisPipeline: pipeline,
             windowSelector: pipeline.windowSelector, artifactDetector: pipeline.artifactDetector,
             baselineTracker: scoring.baselineTracker,
             settingsProvider: { scoring.settingsManager.settings },
@@ -112,6 +114,6 @@ extension AppDependencies {
     /// selector, which hold only their default configuration.
     @MainActor
     private static func defaultAnalysisPipeline(healthKit: HealthKitManager) -> HRVAnalysisPipeline {
-        HRVAnalysisPipeline(artifactDetector: ArtifactDetector(), windowSelector: WindowSelector(), healthKit: healthKit)
+        HRVAnalysisPipeline(artifactDetector: ArtifactDetector(), windowSelector: WindowSelector(), healthKit: healthKit.service)
     }
 }

@@ -20,13 +20,17 @@ import HealthKit
 // session's workoutMetadata with provenance tags.
 @MainActor
 final class HRRCaptureService {
-    private let polarManager: PolarManager
-    private let healthKit: HealthKitManager
+    private let strapLink: StrapLinkState
+    private let strapStream: StrapStreamSession
+    private let access: HealthKitAccess
+    private let heartRate: HeartRateHealthQueries
     private let captureWindowSec: Int
 
-    init(polarManager: PolarManager, healthKit: HealthKitManager, captureWindowSec: Int = 120) {
-        self.polarManager = polarManager
-        self.healthKit = healthKit
+    init(strapLink: StrapLinkState, strapStream: StrapStreamSession, access: HealthKitAccess, heartRate: HeartRateHealthQueries, captureWindowSec: Int = 120) {
+        self.strapLink = strapLink
+        self.strapStream = strapStream
+        self.access = access
+        self.heartRate = heartRate
         self.captureWindowSec = captureWindowSec
     }
 
@@ -256,17 +260,17 @@ final class HRRCaptureService {
     /// user wasn't wearing the strap). HRR capture failing because there's no
     /// data source isn't an app malfunction, so they log at `.info`.
     private func strapHR(at target: Int) -> Int? {
-        guard polarManager.connectionState == .connected else {
-            debugLog("[HRRCaptureService] tier 1 — strap not connected at +\(target)s (state=\(polarManager.connectionState)), breaking")
+        guard strapLink.connectionState == .connected else {
+            debugLog("[HRRCaptureService] tier 1 — strap not connected at +\(target)s (state=\(strapLink.connectionState)), breaking")
             return nil
         }
-        guard polarManager.isStreaming else {
+        guard strapStream.isStreaming else {
             debugLog("[HRRCaptureService] tier 1 — strap connected but not streaming at +\(target)s, breaking")
             return nil
         }
 
         guard let hr = currentHRFromBuffer() else {
-            debugLog("[HRRCaptureService] tier 1 — strap streaming but RR buffer empty/invalid at +\(target)s (buffer count=\(polarManager.streamedRRPoints.count)), breaking")
+            debugLog("[HRRCaptureService] tier 1 — strap streaming but RR buffer empty/invalid at +\(target)s (buffer count=\(strapStream.streamedRRPoints.count)), breaking")
             return nil
         }
         return hr
@@ -301,8 +305,8 @@ final class HRRCaptureService {
     /// `maxBeatAgeSec` of now (by its wall-clock stamp from the stream start);
     /// nil when it is older, or its arrival time is unknown.
     private func freshTailBeats() -> [RRPoint]? {
-        let tail = polarManager.streamedRRPoints.suffix(8).filter { $0.rr_ms > 0 }
-        guard let start = polarManager.streamingStartTime, let lastMs = tail.last?.wallClockMs else { return nil }
+        let tail = strapStream.streamedRRPoints.suffix(8).filter { $0.rr_ms > 0 }
+        guard let start = strapStream.streamingStartTime, let lastMs = tail.last?.wallClockMs else { return nil }
         let age = Date().timeIntervalSince(start.addingTimeInterval(Double(lastMs) / 1_000))
         guard age <= Self.maxBeatAgeSec else {
             debugLog("[HRRCaptureService] tier 1 — newest strap beat is \(Int(age)) s old; stream stalled, not reading HR")
@@ -340,7 +344,7 @@ final class HRRCaptureService {
         let start = stopDate
         let end = stopDate.addingTimeInterval(TimeInterval(captureWindowSec) + Self.watchWindowSlackSec)
         let hrType = HKQuantityType(.heartRate)
-        let authStatus = healthKit.healthStore.authorizationStatus(for: hrType)
+        let authStatus = access.store.authorizationStatus(for: hrType)
         debugLog("[HRRCaptureService] tier 2 — HR read auth status=\(authStatus.rawValue) (0=notDetermined, 1=denied, 2=granted)")
         let samples = await runHeartRateQuery(type: hrType, start: start, end: end)
         if samples.isEmpty {
@@ -352,8 +356,8 @@ final class HRRCaptureService {
     private func runHeartRateQuery(type hrType: HKQuantityType, start: Date, end: Date) async -> [HKQuantitySample] {
         // This app writes the strap's HR series to HealthKit; reading it back
         // would label the strap's own beats as Watch samples.
-        let predicate = healthKit.heartRate.hrReadExcludingOwnWrites(dateRange: HKQuery.predicateForSamples(withStart: start, end: end))
-        let samples: [HKQuantitySample] = await healthKit.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.hrvQueryTimeoutSec) { resolve in
+        let predicate = heartRate.hrReadExcludingOwnWrites(dateRange: HKQuery.predicateForSamples(withStart: start, end: end))
+        let samples: [HKQuantitySample] = await access.runBoundedQuery(timeout: HealthKitAccess.hrvQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: hrType,
                 predicate: predicate,
@@ -433,7 +437,7 @@ final class HRRCaptureService {
             withStart: stopDate.addingTimeInterval(-5 * 60),
             end: stopDate.addingTimeInterval(5 * 60)
         )
-        let samples: [HKQuantitySample] = await healthKit.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.hrvQueryTimeoutSec) { resolve in
+        let samples: [HKQuantitySample] = await access.runBoundedQuery(timeout: HealthKitAccess.hrvQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
                 predicate: predicate,

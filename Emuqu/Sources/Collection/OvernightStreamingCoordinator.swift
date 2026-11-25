@@ -2,14 +2,79 @@ import Foundation
 
 /// Overnight capture in bluetooth-central (streaming) mode: starting the
 /// stream, the keep-alive timer, reconnect handling, and the merge of the
-/// strap's own internal recording into the streamed night. The morning
-/// gather itself is `MorningSessionPipeline.gatherOvernightData`
-/// (RRCollector+OvernightGather).
+/// strap's own internal recording into the streamed night, and the gather
+/// that ends it (`gatherOvernightData`, RRCollector+OvernightGather).
 ///
-/// Holds its owner strongly and is built on demand — see the note on
-/// `CollectorSessionControl`.
+/// Built once by the collector over the parts it uses; it hands the gathered
+/// night to the morning pipeline, and session control calls it.
 @MainActor
-struct OvernightStreamingCoordinator {
-    let collector: RRCollector
+final class OvernightStreamingCoordinator {
+    let archive: SessionArchive
+    let baselineTracker: BaselineTracker
+    let cloudSyncManager: CloudKitSyncManager
+    /// Starts the Apple Health sleep observer for the night.
+    let healthWrites: HealthWriteAndObserve
+    /// Apple Health sleep, read while the strap's night downloads.
+    let sleepQueries: SleepHealthQueries
+    /// Starts the Apple Health vitals observers for the night.
+    let vitalsQueries: VitalsHealthQueries
+    let morningCoordination: MorningCoordination
+    let overnightRun: OvernightRunState
+    let strapLinkControl: StrapLinkControl
+    let strapStream: StrapStreamSession
+    let strapRecorder: StrapRecordingCoordinator
+    let strapDiscovery: StrapDiscoveryCoordinator
+    let strapBattery: StrapBatteryUsageTracker
+    let rawBackup: RawRRBackup
+    let recordingStore: RecordingStateStore
+    let services: CollectorServices
+    let sessionState: SessionState
+    let settingsManager: SettingsManager
+    let streamingLifecycle: StreamingLifecycle
+    let morning: MorningSessionPipeline
+
+    init(
+        archive: SessionArchive,
+        baselineTracker: BaselineTracker,
+        cloudSyncManager: CloudKitSyncManager,
+        healthWrites: HealthWriteAndObserve,
+        sleepQueries: SleepHealthQueries,
+        vitalsQueries: VitalsHealthQueries,
+        morningCoordination: MorningCoordination,
+        overnightRun: OvernightRunState,
+        strapLinkControl: StrapLinkControl,
+        strapStream: StrapStreamSession,
+        strapRecorder: StrapRecordingCoordinator,
+        strapDiscovery: StrapDiscoveryCoordinator,
+        strapBattery: StrapBatteryUsageTracker,
+        rawBackup: RawRRBackup,
+        recordingStore: RecordingStateStore,
+        services: CollectorServices,
+        sessionState: SessionState,
+        settingsManager: SettingsManager,
+        streamingLifecycle: StreamingLifecycle,
+        morning: MorningSessionPipeline
+    ) {
+        self.archive = archive
+        self.baselineTracker = baselineTracker
+        self.cloudSyncManager = cloudSyncManager
+        self.healthWrites = healthWrites
+        self.sleepQueries = sleepQueries
+        self.vitalsQueries = vitalsQueries
+        self.morningCoordination = morningCoordination
+        self.overnightRun = overnightRun
+        self.strapLinkControl = strapLinkControl
+        self.strapStream = strapStream
+        self.strapRecorder = strapRecorder
+        self.strapDiscovery = strapDiscovery
+        self.strapBattery = strapBattery
+        self.rawBackup = rawBackup
+        self.recordingStore = recordingStore
+        self.services = services
+        self.sessionState = sessionState
+        self.settingsManager = settingsManager
+        self.streamingLifecycle = streamingLifecycle
+        self.morning = morning
+    }
 
 }

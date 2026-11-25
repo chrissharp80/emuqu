@@ -128,7 +128,12 @@ final class WorkoutLocationManager: NSObject {
     /// than being credited distance from it.
     private var trackSeededByRejectedFix = false
 
-    override init() {
+    /// Handed every fix, so the AI's location tools have a fresh one while
+    /// a workout runs.
+    @ObservationIgnored private let ambientLocation: AmbientLocationService
+
+    init(ambientLocation: AmbientLocationService) {
+        self.ambientLocation = ambientLocation
         authorizationStatus = manager.authorizationStatus
         super.init()
         manager.delegate = self
@@ -454,7 +459,7 @@ extension WorkoutLocationManager: CLLocationManagerDelegate {
             // without this push the cache would stay empty and the
             // AI would cold-fetch + time out.
             if let last = fixes.last {
-                AppDependencies.current.location.ambientLocationService.record(last)
+                self.ambientLocation.record(last)
             }
         }
     }

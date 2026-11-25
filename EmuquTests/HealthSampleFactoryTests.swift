@@ -107,7 +107,7 @@ final class HealthSampleFactoryTests: XCTestCase {
     /// A save that fails leaves the earlier export in Health, untouched.
     func testFailedSaveLeavesTheEarlierExport() async throws {
         let store = InMemoryHealthSampleStore()
-        let writes = HealthKitManager(settingsProvider: { UserSettings() }, sampleStore: store).writes
+        let writes = HealthKitManager.forTests(settingsProvider: { UserSettings() }, sampleStore: store).writes
         let id = UUID()
         try await writes.exportSleepToHealthKit(sleepData: sleepData(stages: [stage(0, 7_200)]), sessionId: id)
         let first = store.samples
@@ -126,7 +126,7 @@ final class HealthSampleFactoryTests: XCTestCase {
     /// replaced by the save, and the one past the new end must be deleted.
     func testFailedDeleteIsReportedAndTheNextExportLeavesOneSet() async throws {
         let store = InMemoryHealthSampleStore()
-        let writes = HealthKitManager(settingsProvider: { UserSettings() }, sampleStore: store).writes
+        let writes = HealthKitManager.forTests(settingsProvider: { UserSettings() }, sampleStore: store).writes
         let long = sessionWithBeats(minutes: 12)
         let short = sessionWithBeats(minutes: 7, id: long.id)
         let result = analysisResult(nocturnalMedianHR: nil)
@@ -147,7 +147,7 @@ final class HealthSampleFactoryTests: XCTestCase {
     /// replaced through their sync identifier.
     func testReExportIsReplacedThroughTheSyncIdentifier() async throws {
         let store = InMemoryHealthSampleStore()
-        let writes = HealthKitManager(settingsProvider: { UserSettings() }, sampleStore: store).writes
+        let writes = HealthKitManager.forTests(settingsProvider: { UserSettings() }, sampleStore: store).writes
         let session = sessionWithBeats(minutes: 12)
         let result = analysisResult(nocturnalMedianHR: nil)
         try await writes.exportHRV(session: session, result: result)
@@ -165,7 +165,7 @@ final class HealthSampleFactoryTests: XCTestCase {
     /// nothing another session exported.
     func testRemovingASessionsExportsLeavesOnlyOtherSessions() async throws {
         let store = InMemoryHealthSampleStore()
-        let manager = HealthKitManager(settingsProvider: { UserSettings() }, sampleStore: store)
+        let manager = HealthKitManager.forTests(settingsProvider: { UserSettings() }, sampleStore: store)
         let session = sessionWithBeats(minutes: 12)
         let other = sessionWithBeats(minutes: 6)
         let result = analysisResult(nocturnalMedianHR: 52)
@@ -192,7 +192,7 @@ final class HealthSampleFactoryTests: XCTestCase {
     /// behind.
     func testOverlappingExportsOfOneSessionLeaveOneSet() async throws {
         let store = InMemoryHealthSampleStore()
-        let manager = HealthKitManager(settingsProvider: { UserSettings() }, sampleStore: store)
+        let manager = HealthKitManager.forTests(settingsProvider: { UserSettings() }, sampleStore: store)
         let session = sessionWithBeats(minutes: 10)
         let points = try XCTUnwrap(session.rrSeries?.points)
         let trimmed = try XCTUnwrap(sessionWithBeats(minutes: 6, id: session.id).rrSeries?.points)
@@ -208,7 +208,7 @@ final class HealthSampleFactoryTests: XCTestCase {
     /// removes what that export wrote.
     func testRemovalAfterAnOverlappingExportLeavesNothing() async throws {
         let store = InMemoryHealthSampleStore()
-        let writes = HealthKitManager(settingsProvider: { UserSettings() }, sampleStore: store).writes
+        let writes = HealthKitManager.forTests(settingsProvider: { UserSettings() }, sampleStore: store).writes
         let session = sessionWithBeats(minutes: 12)
         let result = analysisResult(nocturnalMedianHR: nil)
         let span = (start, start.addingTimeInterval(720))

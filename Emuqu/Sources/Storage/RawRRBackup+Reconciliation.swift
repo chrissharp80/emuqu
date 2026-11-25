@@ -107,6 +107,6 @@ extension RawRRBackup {
         } catch {
             debugLog("[RawRRBackup] ⚠️ Failed to save index after marking archived: \(error)")
         }
-        // No logging needed - archival is already logged in Archive.swift
+        // No logging needed - archival is already logged in SessionArchive.swift
     }
 }

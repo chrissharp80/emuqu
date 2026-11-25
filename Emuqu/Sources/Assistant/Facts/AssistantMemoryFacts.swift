@@ -142,23 +142,28 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
     /// to the length its description promises.
     private static let maxFactLength = 160
 
-    /// Adds the fact and reports what actually changed: `added` is false
-    /// when the store kept an existing fact with the same text (it ignores
-    /// case and trailing punctuation), and `evicted` lists the oldest facts
-    /// dropped to stay within `UserFactsStore.maxFacts`.
+    /// Adds the fact and reports what the store says happened, after it
+    /// wrote: `added` is true only once the fact is on disk; false with a note
+    /// when an existing fact has the same text (case and trailing punctuation
+    /// ignored) or the save failed; `evicted_oldest` lists the facts dropped
+    /// to stay within `UserFactsStore.maxFacts`.
     @MainActor
-    private static func storeFact(_ text: String, in store: UserFactsStore) -> FactValue {
-        let before = store.facts
-        store.add(text, origin: .user)
-        let afterIDs = Set(store.facts.map(\.id))
-        let beforeIDs = Set(before.map(\.id))
-        let added = afterIDs.contains { !beforeIDs.contains($0) }
-        let evicted = before.filter { !afterIDs.contains($0.id) }.map(\.text)
-        guard added else {
+    static func storeFact(_ text: String, in store: UserFactsStore) -> FactValue {
+        switch store.add(text, origin: .user) {
+        case .alreadySaved:
             return .record(["added": .boolean(false), "text": .string(text), "note": .string("already saved — an existing fact has the same text")])
+        case .nothingToSave:
+            return .record(["added": .boolean(false), "text": .string(text), "note": .string("nothing to save — the text is empty")])
+        case .notSaved:
+            return .record(["added": .boolean(false), "text": .string(text), "note": .string("not saved — the memory could not be written; tell the user and do not say it was remembered")])
+        case let .added(evicted):
+            return addedRecord(text, evicted: evicted)
         }
+    }
+
+    private static func addedRecord(_ text: String, evicted: [UserFactsStore.Fact]) -> FactValue {
         var rec: [String: FactValue] = ["added": .boolean(true), "text": .string(text)]
-        if !evicted.isEmpty { rec["evicted_oldest"] = .list(evicted.map { .string($0) }) }
+        if !evicted.isEmpty { rec["evicted_oldest"] = .list(evicted.map { .string($0.text) }) }
         return .record(rec)
     }
 

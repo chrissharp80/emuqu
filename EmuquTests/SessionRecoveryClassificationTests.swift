@@ -60,7 +60,8 @@ final class SessionRecoveryClassificationTests: XCTestCase {
         let service = SessionRecoveryService(
             archive: archive, rawBackup: rawBackup,
             artifactDetector: ArtifactDetector(), windowSelector: WindowSelector(), cloudSyncManager: .shared,
-            baselineTracker: BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json"))
+            baselineTracker: BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json")),
+            settingsManager: .shared, breadcrumbStore: .shared
         )
         let data = backup(beats: 150, durationSec: 150)
         var session = HRVSession(

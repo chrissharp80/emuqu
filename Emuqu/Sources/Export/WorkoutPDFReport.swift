@@ -86,6 +86,8 @@ final class WorkoutPDFReport: Sendable {
     let userMaxHR: Int
     let userRestingHR: Int
     let userLTHR: Int
+    /// The body weight the calorie estimate uses.
+    let userBodyWeightKg: Double
     let units: UnitsPreference
 
     init(
@@ -94,6 +96,7 @@ final class WorkoutPDFReport: Sendable {
         userMaxHR: Int,
         userRestingHR: Int,
         userLTHR: Int,
+        userBodyWeightKg: Double,
         units: UnitsPreference,
         config: Config = Config()
     ) {
@@ -102,6 +105,7 @@ final class WorkoutPDFReport: Sendable {
         self.userMaxHR = userMaxHR
         self.userRestingHR = userRestingHR
         self.userLTHR = userLTHR
+        self.userBodyWeightKg = userBodyWeightKg
         self.units = units
         self.config = config
     }

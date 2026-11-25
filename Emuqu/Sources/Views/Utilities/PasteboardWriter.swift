@@ -4,8 +4,8 @@ import UniformTypeIdentifiers
 /// The single place the app writes to the pasteboard.
 ///
 /// Every write sets `[.localOnly: true]`. A 60-second expiry is added only
-/// when the user has turned `preserveClipboardForPaste` off; that setting is
-/// on by default, so by default the copy does not expire. Scattered write
+/// when the caller passes the user's `preserveClipboardForPaste` as false;
+/// that setting is on by default, so by default the copy does not expire. Scattered write
 /// sites drift: a bare
 /// `UIPasteboard.general.string = …` hands the content to the Universal
 /// Clipboard — synced to the user's other Apple devices over iCloud, with no
@@ -13,15 +13,16 @@ import UniformTypeIdentifiers
 /// first case, the whole debug log in the second.
 enum PasteboardWriter {
     /// Copy `text` local-only, with the user-configurable expiry.
+    /// `preserveForPaste` is the user's `preserveClipboardForPaste` setting.
     ///
     /// `.localOnly` keeps it off the Universal Clipboard. The expiry is skipped
-    /// while `preserveClipboardForPaste` is on, which is the default — some people
+    /// while `preserveForPaste` is true, which is the default — some people
     /// copy a report and paste it minutes later into another app, and a
     /// clipboard that empties itself reads as a bug to them.
     @MainActor
-    static func copy(_ text: String) {
+    static func copy(_ text: String, preserveForPaste: Bool) {
         UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: text]],
-                                      options: pasteboardOptions())
+                                      options: pasteboardOptions(preserveForPaste: preserveForPaste))
     }
 
     /// The options `copy` writes with, split out so they can be asserted.
@@ -33,9 +34,9 @@ enum PasteboardWriter {
     /// here is overnight RMSSD, DFA α1 and the debug log. A security control
     /// nothing asserts is a comment.
     @MainActor
-    static func pasteboardOptions() -> [UIPasteboard.OptionsKey: Any] {
+    static func pasteboardOptions(preserveForPaste: Bool) -> [UIPasteboard.OptionsKey: Any] {
         var options: [UIPasteboard.OptionsKey: Any] = [.localOnly: true]
-        if !AppDependencies.current.app.settingsManager.settings.preserveClipboardForPaste {
+        if !preserveForPaste {
             options[.expirationDate] = Date().addingTimeInterval(expirySeconds)
         }
         return options

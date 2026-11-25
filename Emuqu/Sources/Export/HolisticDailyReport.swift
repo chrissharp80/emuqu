@@ -24,7 +24,7 @@ import UIKit
 // Fallback behaviour: with no overnight session this class still draws
 // both cover pages, page 1 showing a "No morning data" row. Callers that
 // want the standalone WorkoutPDFReport instead when there is no night
-// (WorkoutRecorder+Metrics, MainTabView+Reports) choose it themselves.
+// (WorkoutSessionLifecycle+Metrics, MainTabView+Reports) choose it themselves.
 /// Immutable after construction, so it is `Sendable` and renders on whatever
 /// task the caller detaches; the drawing APIs are thread-safe.
 final class HolisticDailyReport: Sendable {
@@ -64,6 +64,8 @@ final class HolisticDailyReport: Sendable {
     let userMaxHR: Int
     let userRestingHR: Int
     let userLTHR: Int
+    /// The body weight the workout pages' calorie estimate uses.
+    let userBodyWeightKg: Double
     let units: UnitsPreference
     /// The user's temperature unit, for the score factor lines rebuilt from
     /// their stored numbers.
@@ -77,7 +79,7 @@ final class HolisticDailyReport: Sendable {
     /// Crash guard: reading
     /// `TrainingLoadRegistry.live(from:)` inside the renderer via
     /// `MainActor.assumeIsolated` traps. PDF generation runs from
-    /// `Task.detached(priority: .userInitiated)` (WorkoutRecorder+Metrics'
+    /// `Task.detached(priority: .userInitiated)` (WorkoutSessionLifecycle+Metrics'
     /// coach report, ReportsListView.renderHolistic and
     /// MainTabView+Reports.renderDailyReport), so `assumeIsolated`
     /// triggers a fatal trap the moment the render touches training
@@ -96,6 +98,7 @@ final class HolisticDailyReport: Sendable {
         userMaxHR: Int,
         userRestingHR: Int,
         userLTHR: Int,
+        userBodyWeightKg: Double,
         units: UnitsPreference,
         sleepSchedule: SleepSchedule,
         temperatureUnit: TemperatureUnit = .regionDefault,
@@ -109,12 +112,12 @@ final class HolisticDailyReport: Sendable {
         self.userMaxHR = userMaxHR
         self.userRestingHR = userRestingHR
         self.userLTHR = userLTHR
+        self.userBodyWeightKg = userBodyWeightKg
         self.units = units
         self.temperatureUnit = temperatureUnit
         // Today's live load only belongs on today's report; a past day's
         // report keeps the load frozen with that day's sessions.
-        let isToday = Calendar.current.isDateInToday(workoutSession.endDate ?? workoutSession.startDate)
-        let reportLoad = isToday ? liveLoadSnapshot : nil
+        let reportLoad = Calendar.current.isDateInToday(workoutSession.endDate ?? workoutSession.startDate) ? liveLoadSnapshot : nil
         self.liveLoadSnapshot = reportLoad
         self.config = config
         self.loopAnalysis = Self.makeLoopAnalysis(
@@ -159,6 +162,7 @@ final class HolisticDailyReport: Sendable {
             userMaxHR: userMaxHR,
             userRestingHR: userRestingHR,
             userLTHR: userLTHR,
+            userBodyWeightKg: userBodyWeightKg,
             units: units
         )
         do {

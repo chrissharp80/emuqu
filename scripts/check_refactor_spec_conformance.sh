@@ -140,7 +140,7 @@ INIT = re.compile(r'^\s*' + MODS + r'(?P<name>init|subscript)\b')
 #     }()
 #
 # That is a function body with a different keyword in front of it —
-# `OpenAICompatibleStreamer.session`, `Archive+Migrations.relinkEncoder` and
+# `OpenAICompatibleStreamer.session`, `ArchiveMigrations+Steps.relinkEncoder` and
 # `StoreKitManager.isPurchased` are all this shape at 28 to 41 lines. The spec
 # limit is about how much logic sits in one unreadable place, not about
 # which keyword introduced it.

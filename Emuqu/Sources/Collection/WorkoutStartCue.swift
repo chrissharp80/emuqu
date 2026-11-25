@@ -48,9 +48,7 @@ enum WorkoutStartCue {
     /// finishes or is cancelled. Retained here because a synthesizer holds its
     /// delegate weakly. Sendable, so the detached announce task tracks its
     /// utterance with it.
-    @MainActor static let cueReleaser = CueAudioSessionReleaser(
-        manager: AppDependencies.current.collection.backgroundAudioManager
-    )
+    @MainActor static let cueReleaser = CueAudioSessionReleaser()
 
     /// Pre-warmed haptic generators. Init + first `.notificationOccurred` on a
     /// cold Taptic Engine can block the calling thread for hundreds of ms to
@@ -79,8 +77,9 @@ enum WorkoutStartCue {
     /// and haptic generators are pre-warmed. Belt-and-braces, the utterance
     /// build + speak() is hopped onto a detached Task so even if voice
     /// enumeration stalls, the main actor doesn't wait for it.
+    /// `audio` holds the session for the spoken announcement.
     @MainActor
-    static func announceStart(sport: Sport) {
+    static func announceStart(sport: Sport, audio: BackgroundAudioManager) {
         let t0 = Date()
         // Pre-warmed generators (see `notificationFeedback` / `impactFeedback`
         // above). `.prepare()` is fired at launch; firing again here is a free
@@ -93,7 +92,7 @@ enum WorkoutStartCue {
         }
         AudioServicesPlaySystemSound(startChimeSoundID)
         let t2 = Date()
-        speakStartAnnouncementOffMain(sportName: sport.localizedName)
+        speakStartAnnouncementOffMain(sportName: sport.localizedName, audio: audio)
         let t3 = Date()
         let hapticMs = Int(t1.timeIntervalSince(t0) * 1000)
         let chimeMs = Int(t2.timeIntervalSince(t1) * 1000)
@@ -111,12 +110,11 @@ enum WorkoutStartCue {
     /// seconds of silence between Recorder.start returning and the
     /// "Walk started" announcement. Passing the value in eliminates the hop entirely.
     @MainActor
-    private static func speakStartAnnouncementOffMain(sportName: String) {
+    private static func speakStartAnnouncementOffMain(sportName: String, audio: BackgroundAudioManager) {
         // The app's language, not the phone's, for both words and voice: an
         // English "<sport> started" would be read by the phone's voice.
         let lang = LanguageManager.appLocale.language.languageCode?.identifier ?? "en"
         let phrase = String(localized: "\(sportName) started", bundle: LanguageManager.appBundle)
-        let audio = AppDependencies.current.collection.backgroundAudioManager
         let releaser = cueReleaser
         announceSynthesizer.delegate = releaser
         let announceWork = Task.detached(priority: .userInitiated) {
@@ -156,7 +154,7 @@ enum WorkoutStartCue {
             debugLog("[announceStart] voice prep outran the watchdog (\(Int(s1.timeIntervalSince(s0) * 1000))ms) — cue skipped, not spoken late")
             return
         }
-        releaser.track(utterance, token: audio.beginCue())
+        releaser.track(utterance, token: audio.beginCue(), on: audio)
         var speakErr: NSError?
         let speakOK = FRSafeSpeak(announceSynthesizer, utterance, &speakErr)
         let s2 = Date()
