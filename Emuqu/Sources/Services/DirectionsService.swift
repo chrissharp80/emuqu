@@ -111,8 +111,12 @@ enum DirectionsService {
         from origin: CLLocationCoordinate2D, to destCoord: CLLocationCoordinate2D, mode: Mode
     ) async throws -> MKRoute {
         let request = MKDirections.Request()
-        request.source = MKMapItem(placemark: MKPlacemark(coordinate: origin))
-        request.destination = MKMapItem(placemark: MKPlacemark(coordinate: destCoord))
+        // Typed one step at a time: nested, the overloaded initializers can
+        // take the type-checker past CI's time limit on a slow runner.
+        let sourcePlacemark: MKPlacemark = MKPlacemark(coordinate: origin)
+        let destinationPlacemark: MKPlacemark = MKPlacemark(coordinate: destCoord)
+        request.source = MKMapItem(placemark: sourcePlacemark)
+        request.destination = MKMapItem(placemark: destinationPlacemark)
         request.transportType = mode.transportType
         request.requestsAlternateRoutes = false
         let response = try await MKDirections(request: request).calculate()
