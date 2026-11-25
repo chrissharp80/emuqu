@@ -399,7 +399,7 @@ extension WorkoutTicker {
         guard !drainedWatchRR.isEmpty, !phoneStrapIsLive else { return }
         let newPoints = synthesizeWatchRoutedPoints(drainedWatchRR, arrivedAt: watchStrapAt)
         guard !newPoints.isEmpty else { return }
-        recorder.watchRoutedRRBuffer.append(contentsOf: newPoints)
+        recorder.watchRouted.points.append(contentsOf: newPoints)
         guard Date().timeIntervalSince(watchStrapAt) < 10 else { return }
         recorder.dfa.ingest(points: newPoints)
         applyWatchRoutedHR()
@@ -409,7 +409,7 @@ extension WorkoutTicker {
     private func alignWatchClock(toWallMs wallMs: Int64) {
         guard let start = recorder.sessionStartDate else { return }
         let sinceStart = wallMs - Int64(start.timeIntervalSince1970 * 1000)
-        recorder.watchRoutedCumulativeMs = max(recorder.watchRoutedCumulativeMs, sinceStart)
+        recorder.watchRouted.cumulativeMs = max(recorder.watchRouted.cumulativeMs, sinceStart)
     }
 
     /// When the phone's strap stream started, in epoch milliseconds: the zero
@@ -446,10 +446,10 @@ extension WorkoutTicker {
         for rr in drainedWatchRR {
             let rrMs = Int(rr.rounded())
             newPoints.append(RRPoint(
-                t_ms: recorder.watchRoutedCumulativeMs, rr_ms: rrMs,
+                t_ms: recorder.watchRouted.cumulativeMs, rr_ms: rrMs,
                 wallClockMs: batchStartWallMs, hr: WatchPayloadBounds.plausibleHeartRate(recorder.watchBridge.latestWatchStrapHR)
             ))
-            recorder.watchRoutedCumulativeMs += Int64(rrMs)
+            recorder.watchRouted.cumulativeMs += Int64(rrMs)
             batchStartWallMs += Int64(rrMs)
         }
         return newPoints
@@ -463,7 +463,7 @@ extension WorkoutTicker {
     /// older than 10 s — and we'd want it FRESH (so the cache survives) but
     /// also need the display to update.
     ///
-    /// `recorder.lastWatchRoutedHRAt` is a separate freshness timestamp so the
+    /// `recorder.watchRouted.lastAt` is a separate freshness timestamp so the
     /// silent-strap detector treats Polar-direct and Watch-routed channels as
     /// independent. Reusing `recorder.lastStrapHRAt` would mask a true Polar drop with
     /// stale freshness from the Watch path and break the wrist-HR tier.
@@ -473,7 +473,7 @@ extension WorkoutTicker {
             recorder.hrFromWrist = false
             if strapHR > recorder.workoutHR.peakHR { recorder.workoutHR.peakHR = strapHR }
         }
-        recorder.lastWatchRoutedHRAt = Date()
+        recorder.watchRouted.lastAt = Date()
     }
 
     /// Tick stage — HR-source arbitration (`HRArbitration.decide`).
@@ -492,7 +492,7 @@ extension WorkoutTicker {
             sourceMode: recorder.lifecycle.activeHRSource,
             recordingElapsedSeconds: recorder.lifecycle.elapsedSeconds,
             strapSilentFor: recorder.lastStrapHRAt.map { Date().timeIntervalSince($0) } ?? .infinity,
-            watchRoutedSilentFor: recorder.lastWatchRoutedHRAt.map { Date().timeIntervalSince($0) } ?? .infinity,
+            watchRoutedSilentFor: recorder.watchRouted.lastAt.map { Date().timeIntervalSince($0) } ?? .infinity,
             latestWatchHR: freshWristHR(now: Date()),
             strapFeed: recorder.core.polarManager.feedStatus
         ))
@@ -599,9 +599,7 @@ extension WorkoutTicker {
         }
         recorder.motion.powerWatts = w
         guard !recorder.lifecycle.isPaused else { return }
-        recorder.powerSampleSum += w
-        recorder.powerSampleCount += 1
-        if w > recorder.maxPowerObserved { recorder.maxPowerObserved = w }
+        recorder.power.add(w)
     }
 
     /// Tick stage — per-second WorkoutSample capture (skipped while paused).
@@ -783,26 +781,26 @@ extension WorkoutTicker {
             alpha1Band: recorder.dfa.currentBand.label, alpha1Status: recorder.dfa.status.label, alpha1FitQualityR2: recorder.dfa.fitQuality, strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: recorder.motion.liveTrack.count,
             gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy, currentPaceSecPerKm: recorder.currentPaceSecPerKm, currentSpeedMS: speedMS, powerWatts: recorder.motion.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: recorder.aiContext.recentSplitPacesSecPerKm(),
             currentLatitude: loc?.coordinate.latitude, currentLongitude: loc?.coordinate.longitude, currentAltitudeMeters: loc?.altitude, currentHeadingDegrees: heading, currentHeadingCardinal: heading.map(Self.cardinal(fromCourse:)),
-            currentGradePercent: recorder.aiContext.computeCurrentGradePercent(), unitsPreference: UnitsPreferenceStore.current.rawValue, targetZone: recorder.targetZone, recognizedRouteName: recorder.plannedRoute?.name, recognizedRouteWasAutoDetected: recorder.plannedRouteWasAutoDetected,
-            recognizedRouteDirection: recognizedRouteDirectionLabel(), routeTotalDistanceMeters: recorder.plannedRoute?.totalDistanceMeters, routeClimbCount: recorder.plannedRoute?.climbs.count, currentRoadName: road?.road, currentLocality: road?.locality,
+            currentGradePercent: recorder.aiContext.computeCurrentGradePercent(), unitsPreference: UnitsPreferenceStore.current.rawValue, targetZone: recorder.targetZone, recognizedRouteName: recorder.route.planned?.name, recognizedRouteWasAutoDetected: recorder.route.wasAutoDetected,
+            recognizedRouteDirection: recognizedRouteDirectionLabel(), routeTotalDistanceMeters: recorder.route.planned?.totalDistanceMeters, routeClimbCount: recorder.route.planned?.climbs.count, currentRoadName: road?.road, currentLocality: road?.locality,
             currentAdministrativeArea: road?.administrativeArea, currentCountry: road?.country, currentCountryCode: road?.countryCode, currentCompactAddress: road?.compactAddress, currentNearestCrossStreet: road?.nearestCrossStreet,
             routeTopology: recorder.aiContext.liveRouteTopologySnapshot(currentLocation: loc), weather: recorder.aiContext.liveWeatherSnapshot(), reverseSplitDeltaSecPerKm: trends.reverseSplitDeltaSecPerKm,
             liveHRDriftPercent: trends.hrDriftPercent, aerobicDecouplingPercent: trends.aerobicDecouplingPercent, cadenceDriftSpm: trends.cadenceDriftSpm,
             gradeAdjustedPaceSecPerKm: liveGradeAdjustedPace(), recentSplitGradeAdjustedPaces: trends.recentSplitGradeAdjustedPaces, projectedMinutesUntilFade: trends.projectedMinutesUntilFade,
-            historicalSportAvgPaceSecPerKm: recorder.cachedHistoricalBaselines.avgPaceSecPerKm, historicalSportAvgHR: recorder.cachedHistoricalBaselines.avgHR, historicalSportAvgAlpha1: recorder.cachedHistoricalBaselines.avgAlpha1,
-            historicalSportSampleCount: recorder.cachedHistoricalBaselines.sampleCount, todayRecoveryScore: recorder.cachedTodayReadiness.recoveryScore, todayTrainingReadiness: recorder.cachedTodayReadiness.trainingReadiness, todayATL: recorder.cachedTodayReadiness.atl,
-            todayCTL: recorder.cachedTodayReadiness.ctl, todayTSB: recorder.cachedTodayReadiness.tsb, projectedDaysUntilFresh: recorder.cachedTrainingProjection.daysUntilFresh, projectedTSBTomorrowSteadyState: recorder.cachedTrainingProjection.tsbTomorrowSteadyState,
+            historicalSportAvgPaceSecPerKm: recorder.startContext.historicalBaselines.avgPaceSecPerKm, historicalSportAvgHR: recorder.startContext.historicalBaselines.avgHR, historicalSportAvgAlpha1: recorder.startContext.historicalBaselines.avgAlpha1,
+            historicalSportSampleCount: recorder.startContext.historicalBaselines.sampleCount, todayRecoveryScore: recorder.startContext.todayReadiness.recoveryScore, todayTrainingReadiness: recorder.startContext.todayReadiness.trainingReadiness, todayATL: recorder.startContext.todayReadiness.atl,
+            todayCTL: recorder.startContext.todayReadiness.ctl, todayTSB: recorder.startContext.todayReadiness.tsb, projectedDaysUntilFresh: recorder.startContext.trainingProjection.daysUntilFresh, projectedTSBTomorrowSteadyState: recorder.startContext.trainingProjection.tsbTomorrowSteadyState,
             recoveryHoursNeeded: liveRecoveryHoursNeeded(), zone1Sec: liveZoneBreakdown.z1Sec, zone2Sec: liveZoneBreakdown.z2Sec, zone3Sec: liveZoneBreakdown.z3Sec, zone4Sec: liveZoneBreakdown.z4Sec, zone5Sec: liveZoneBreakdown.z5Sec, dominantZone: liveZoneBreakdown.dominantZone,
-            predictedRaceTime5KSec: recorder.cachedRacePredictionsByDistance[5_000], predictedRaceTime10KSec: recorder.cachedRacePredictionsByDistance[10_000], predictedRaceTimeHalfSec: recorder.cachedRacePredictionsByDistance[21_097.5],
-            predictedRaceTimeMarathonSec: recorder.cachedRacePredictionsByDistance[42_195], activeThresholds: activeThresholdSnapshots(), thresholdBreachSec: thresholdBreachSecByID(), intervalProgress: recorder.aiContext.liveIntervalProgressSnapshot()
+            predictedRaceTime5KSec: recorder.startContext.racePredictionsByDistance[5_000], predictedRaceTime10KSec: recorder.startContext.racePredictionsByDistance[10_000], predictedRaceTimeHalfSec: recorder.startContext.racePredictionsByDistance[21_097.5],
+            predictedRaceTimeMarathonSec: recorder.startContext.racePredictionsByDistance[42_195], activeThresholds: activeThresholdSnapshots(), thresholdBreachSec: thresholdBreachSecByID(), intervalProgress: recorder.aiContext.liveIntervalProgressSnapshot()
         )
     }
 
     /// Direction is only meaningful for a route we recognised ourselves — a
     /// user-chosen route is always run in its stored direction.
     private func recognizedRouteDirectionLabel() -> String? {
-        guard recorder.plannedRouteWasAutoDetected else { return nil }
-        return recorder.plannedRouteDirection == .reverse ? "reverse" : "forward"
+        guard recorder.route.wasAutoDetected else { return nil }
+        return recorder.route.direction == .reverse ? "reverse" : "forward"
     }
 
     private func liveGradeAdjustedPace() -> Double? {
@@ -814,13 +812,13 @@ extension WorkoutTicker {
 
     func liveRecoveryHoursNeeded() -> Double? {
         RecoveryTimeEstimate.hoursFromTrainingLoad(
-            atl: recorder.cachedTodayReadiness.atl,
-            ctl: recorder.cachedTodayReadiness.ctl
+            atl: recorder.startContext.todayReadiness.atl,
+            ctl: recorder.startContext.todayReadiness.ctl
         )
     }
 
     private func activeThresholdSnapshots() -> [AssistantContext.LiveWorkoutSnapshot.ThresholdSnapshot] {
-        recorder.userThresholds.map {
+        recorder.thresholds.thresholds.map {
             AssistantContext.LiveWorkoutSnapshot.ThresholdSnapshot(
                 id: $0.id.uuidString,
                 metric: $0.metric.rawValue,
@@ -834,7 +832,7 @@ extension WorkoutTicker {
     }
 
     private func thresholdBreachSecByID() -> [String: Int] {
-        Dictionary(uniqueKeysWithValues: recorder.thresholdBreachSec.map { ($0.key.uuidString, $0.value) })
+        Dictionary(uniqueKeysWithValues: recorder.thresholds.breachSec.map { ($0.key.uuidString, $0.value) })
     }
 
     /// Tick stage — Watch live-state push (pace display + zone/pause state).
@@ -863,8 +861,8 @@ extension WorkoutTicker {
         // when the user didn't already pick a route — a manual GPX
         // pick always wins — and stops once one is bound. Between
         // attempts `attemptAutoRouteDetection` returns at once until the
-        // track reaches `recorder.nextRouteDetectionAtMeters`.
-        if recorder.plannedRoute == nil, sport.usesGPS {
+        // track reaches `recorder.route.nextDetectionAtMeters`.
+        if recorder.route.planned == nil, sport.usesGPS {
             recorder.aiContext.attemptAutoRouteDetection(sport: sport)
         }
     }

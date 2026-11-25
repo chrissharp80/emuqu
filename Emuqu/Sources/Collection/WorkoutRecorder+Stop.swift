@@ -116,6 +116,9 @@ extension WorkoutRecorder {
     private func runFinalize(rrPoints: [RRPoint], stopDate: Date, startedAt: Date) async -> HRVSession {
         debugLog("[Recorder.stop] step=finalizeSession (rrPoints=\(rrPoints.count), elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         let finished = await finalizer.finalizeSession(rrPoints: rrPoints, stopDate: stopDate, hrrSamples: [])
+        // Used once, by this finalize.
+        wristHROffsets = []
+        liveSnapshotAtStop = nil
         debugLog("[Recorder.stop] step=finalizeSession done (elapsed=\(String(format: "%.2f", Date().timeIntervalSince(startedAt)))s)")
         return finished
     }
@@ -170,17 +173,17 @@ extension WorkoutRecorder {
     /// Watch and none sources never started a stream; the snapshot is skipped.
     ///
     /// Also merges in any RR samples that arrived via the
-    /// Watch direct-strap fallback path (`watchRoutedRRBuffer`), sorted by
+    /// Watch direct-strap fallback path (`watchRouted.points`), sorted by
     /// t_ms so a workout that bounced between iPhone-paired and Watch-routed
     /// strap connections still produces a single coherent RR series.
     func snapshotAndMergeRRBuffers() -> [RRPoint] {
         let merged = WorkoutRRMerge.merged(
             source: lifecycle.activeHRSource,
             streaming: core.polarManager.streamedRRPoints,
-            watchRouted: watchRoutedRRBuffer
+            watchRouted: watchRouted.points
         )
-        if !watchRoutedRRBuffer.isEmpty {
-            debugLog("[Recorder.finalize] merged \(watchRoutedRRBuffer.count) Watch-routed RR points (total now \(merged.count))")
+        if !watchRouted.points.isEmpty {
+            debugLog("[Recorder.finalize] merged \(watchRouted.points.count) Watch-routed RR points (total now \(merged.count))")
         }
         return merged
     }

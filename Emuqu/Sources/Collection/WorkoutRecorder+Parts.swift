@@ -9,9 +9,25 @@ extension WorkoutRecorder {
         WorkoutTicker(recorder: self)
     }
 
-    /// Assembling the finished session and archiving it.
+    /// Assembling the finished session and archiving it, from what this
+    /// recorder holds now.
     var finalizer: WorkoutFinalizer {
-        WorkoutFinalizer(recorder: self)
+        WorkoutFinalizer(
+            recording: finalizerRecording(), settings: settingsProvider(),
+            core: core, services: services, sessionLifecycle: session
+        )
+    }
+
+    private func finalizerRecording() -> WorkoutFinalizer.Recording {
+        WorkoutFinalizer.Recording(
+            session: lifecycle.currentSession, startDate: sessionStartDate,
+            samples: workoutSamples, wristHROffsets: wristHROffsets, liveSnapshot: liveSnapshotAtStop,
+            pauseTimeline: lifecycle.pauseTimeline, pausedMotion: lifecycle.pausedMotion,
+            elapsedSeconds: lifecycle.elapsedSeconds, activeHRSource: lifecycle.activeHRSource,
+            location: startedLocation, pedometerDistanceMeters: pedometer.distanceMeters,
+            footPodDistanceMeters: footPodDistanceMeters(), motionDistanceMeters: motion.distanceMeters,
+            power: power, routeName: route.planned?.name
+        )
     }
 
     /// The live context the coach is given.

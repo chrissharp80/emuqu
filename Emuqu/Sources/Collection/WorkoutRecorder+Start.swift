@@ -186,12 +186,11 @@ extension WorkoutSessionLifecycle {
     /// thresholds, route and last summary as they were.
     func applyStartParameters(thresholds: [WorkoutThreshold], route: Route?) {
         recorder.lifecycle.finishedSession = nil
-        recorder.userThresholds = thresholds
-        recorder.thresholdBreachSec.removeAll()
-        recorder.plannedRoute = route
-        recorder.plannedSavedRouteId = nil
-        recorder.plannedRouteWasAutoDetected = false
-        recorder.nextRouteDetectionAtMeters = 0
+        recorder.thresholds = WorkoutThresholdWatch(thresholds: thresholds)
+        recorder.route.planned = route
+        recorder.route.savedRouteId = nil
+        recorder.route.wasAutoDetected = false
+        recorder.route.nextDetectionAtMeters = 0
         recorder.gradeMemo = nil
     }
 
@@ -320,9 +319,7 @@ extension WorkoutSessionLifecycle {
         recorder.workoutSamples = []
         recorder.livePace.reset()
         recorder.footPodOdometer = FootPodOdometer()
-        recorder.powerSampleSum = 0
-        recorder.powerSampleCount = 0
-        recorder.maxPowerObserved = 0
+        recorder.power = WorkoutPowerTally()
         recorder.motion.powerWatts = nil
         recorder.motion.footPodActive = false
         recorder.lastStrapHRAt = nil

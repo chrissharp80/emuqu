@@ -177,47 +177,10 @@ final class WorkoutRecorder {
     /// The crash backup's track and barometer rows, extended each snapshot
     /// by what arrived since the last one.
     @ObservationIgnored var trackBackupRows = TrackBackupRows()
-    /// Cached at workout start for fast per-tick lookup in
-    /// `buildContext`. Computed off the main thread; nil/empty until
-    /// the background task lands. See `WorkoutHistoryBaselines`.
-    var cachedHistoricalBaselines: WorkoutHistoryBaselines = .empty
-    /// Readiness snapshot grabbed from the morning HRV
-    /// session at workout start. Frozen for the duration of the
-    /// workout; the AI context surfaces it as `todayRecoveryScore`,
-    /// `todayTrainingReadiness`, and `todayATL/CTL/TSB`. Nil entries
-    /// when no morning reading exists yet today.
-    var cachedTodayReadiness: ReadinessSnapshot = .empty
-
-    struct ReadinessSnapshot: Equatable {
-        let recoveryScore: Double?
-        let trainingReadiness: Double?
-        let atl: Double?
-        let ctl: Double?
-        let tsb: Double?
-
-        static let empty = ReadinessSnapshot(
-            recoveryScore: nil, trainingReadiness: nil,
-            atl: nil, ctl: nil, tsb: nil
-        )
-    }
-
-    /// Forward-looking training-load forecast, captured
-    /// alongside `cachedTodayReadiness` at workout start. Two surfaces
-    /// the AI uses: rest-recovery days, and steady-state TSB if today's
-    /// load repeats. Both nil when there's no morning training context.
-    struct TrainingProjectionSnapshot: Equatable {
-        let daysUntilFresh: Int?
-        let tsbTomorrowSteadyState: Double?
-
-        static let empty = TrainingProjectionSnapshot(
-            daysUntilFresh: nil, tsbTomorrowSteadyState: nil
-        )
-    }
-    var cachedTrainingProjection: TrainingProjectionSnapshot = .empty
-    /// Riegel race-time predictions captured at workout
-    /// start (key: distance in meters → predicted total seconds).
-    /// Empty when no comparable history exists.
-    var cachedRacePredictionsByDistance: [Double: Double] = [:]
+    /// What the app knew at the start: history baselines, today's readiness,
+    /// the training-load projection and race predictions. Filled once off the
+    /// main thread after start; empty until then.
+    var startContext = WorkoutStartContext()
     // Watch direct-strap fallback. When the user has paired
     // the chest strap to the Watch (not the iPhone) and the iPhone
     // runs the workout (e.g. phone in backpack), the Watch routes RR
@@ -229,21 +192,8 @@ final class WorkoutRecorder {
     // Each tick drains the bridge's queue of Watch-routed beats
     // (`drainPendingWatchStrapRR`), so a slow tick never re-ingests a
     // payload it already consumed.
-    /// When we last produced beats via the Watch-routed
-    /// strap path. Lives separately from `lastStrapHRAt` (which is the
-    /// iPhone-paired Polar's freshness gate) so the wrist-HR fallback
-    /// can tell "Polar dropped, Watch is carrying it" from "both dropped,
-    /// fall through to wrist."
-    var lastWatchRoutedHRAt: Date?
-    /// Cumulative session-relative ms used to assign `RRPoint.t_ms` to
-    /// synthesized Watch-routed beats. Starts at 0 at workout start
-    /// and advances by each consumed RR interval.
-    var watchRoutedCumulativeMs: Int64 = 0
-    /// All RR points that arrived via the Watch fallback path. Merged
-    /// into the canonical RR series at `finalizeSession()`. Kept
-    /// separately so we can also see "did this workout depend on the
-    /// fallback?" in diagnostics.
-    var watchRoutedRRBuffer: [RRPoint] = []
+    /// Beats the Watch forwarded from the strap, this workout.
+    var watchRouted = WatchRoutedBeats()
     /// Read-only view of the captured per-second sample series. Exposed so
     /// the live recording view can render "avg HR", "current pace", "current
     /// METs" tiles without duplicating aggregation state. Not observed
@@ -290,55 +240,16 @@ final class WorkoutRecorder {
     /// when. Lets the indoor auto-pause tell a stopped treadmill from the
     /// last walking cadence the pedometer leaves standing.
     @ObservationIgnored var lastPedometerStepAdvance: (count: Int, at: Date?) = (0, nil)
-    /// Running tally of power samples for average-power computation.
-    var powerSampleSum: Int = 0
-    var powerSampleCount: Int = 0
-    var maxPowerObserved: Int = 0
+    /// The power readings counted so far, for the average and the peak.
+    var power = WorkoutPowerTally()
     /// Wall-clock of the most recent strap-derived HR reading. When more
     /// than ~10 s stale, we fall back to the Watch's wrist HR.
     var lastStrapHRAt: Date?
-    /// User-declared physiological constraints for ambient coaching. Set
-    /// pre-workout via the start flow; the trigger engine reads these
-    /// alongside its built-in rules and fires breach cues when the metric
-    /// stays outside the band past `debounceSec`.
-    var userThresholds: [WorkoutThreshold] = []
+    /// The user's thresholds for this workout and how long each is breached.
+    var thresholds = WorkoutThresholdWatch()
 
-    /// Optional course the user bound before starting. Loaded from a GPX
-    /// file via the start flow's route picker. When non-nil, every tick
-    /// computes a fresh `RouteProgress` so the AI coach knows the climbs
-    /// ahead and can pre-warn ("big climb in 400 m, save power"). Kept
-    /// optional because route-aware coaching is opt-in — most workouts
-    /// don't need it.
-    var plannedRoute: Route? {
-        didSet { lastRouteProgressIndex = nil }
-    }
-    /// The route point the last tick projected onto. Passed back to
-    /// `RouteProgress.compute` so a route that loops back near itself keeps
-    /// the user's place instead of jumping to the closer leg.
-    @ObservationIgnored var lastRouteProgressIndex: Int?
-
-    /// True when `plannedRoute` was assigned by the recogniser matching a
-    /// route the user explicitly saved to their library. Distinct from a
-    /// hand-loaded GPX. Drives the "Following Daily 1" banner.
-    var plannedRouteWasAutoDetected: Bool = false
-
-    /// When the recognised match was a reverse-direction fit (user is
-    /// walking / running the saved route backwards today), the live UI +
-    /// AI surface this so the climb cues read right and the user knows
-    /// the app understood the directional swap.
-    var plannedRouteDirection: RouteLibrary.Direction = .forward
-
-    /// The saved route the recogniser bound as `plannedRoute`, nil for a
-    /// hand-loaded GPX, so deleting that saved route unbinds it.
-    @ObservationIgnored var plannedSavedRouteId: UUID?
-
-    /// Track length at which route auto-detection next runs: it first runs
-    /// at `RouteLibrary.detectionTriggerMeters` of movement, and while
-    /// nothing matches, again after each further stretch of that length
-    /// (a warm-up leg before joining a saved loop must not rule the loop
-    /// out for the rest of the workout). 0 = not tried yet. Reset in
-    /// `start()`.
-    var nextRouteDetectionAtMeters: Double = 0
+    /// The course this workout follows, if any, and the user's place on it.
+    let route = WorkoutRouteGuidance()
 
     /// The live grade, with the track and barometer state it was worked out
     /// from (`WorkoutAIContextBuilder.computeCurrentGradePercent`). Reset in
@@ -355,12 +266,6 @@ final class WorkoutRecorder {
         let key: Key
         let grade: Double?
     }
-
-    /// Per-threshold breach duration in seconds. Counts up while breached,
-    /// resets to 0 the moment the metric comes back inside the band. The
-    /// trigger engine compares this to each threshold's debounceSec to
-    /// decide whether to fire a cue. Indexed by threshold ID.
-    var thresholdBreachSec: [UUID: Int] = [:]
 
     // MARK: Auto-pause / auto-resume counters
     //

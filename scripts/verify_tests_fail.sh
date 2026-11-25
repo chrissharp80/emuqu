@@ -1159,7 +1159,7 @@ mutate "score_screen_hides_missing_nights" "EmuquTests/SessionDecodeTests" \
 # Deleting the saved route a workout follows unbinds it.
 mutate "deleted_route_still_followed" "EmuquTests/SavedRouteDeletionTests" \
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Context.swift');s=p.read_text();o='guard plannedSavedRouteId == id else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'guard plannedSavedRouteId != id else { return }'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Context.swift');s=p.read_text();o='guard route.savedRouteId == id else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'guard route.savedRouteId != id else { return }'))"
 
 # A leading comment is never taken for the CSV header.
 mutate "csv_comment_taken_for_header" "EmuquTests/RRDataImporterTests" \

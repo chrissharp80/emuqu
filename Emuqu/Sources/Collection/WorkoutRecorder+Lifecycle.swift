@@ -23,7 +23,7 @@ extension WorkoutFinalizer {
         stopDate: Date,
         hrrSamples: [HRRSample]
     ) async -> HRVSession {
-        guard var session = recorder.lifecycle.currentSession, let startDate = recorder.sessionStartDate else {
+        guard var session = recording.session, let startDate = recording.startDate else {
             debugLog("[WorkoutRecorder.finalize] no current session or start date — nothing to finalize or archive", level: .warning)
             return HRVSession(sessionType: .workout)
         }
@@ -39,7 +39,7 @@ extension WorkoutFinalizer {
         )
         attachAIContextSnapshot(to: &session, sport: analysis.sport, stopDate: stopDate)
         await attachTrainingSnapshot(to: &session, stopDate: stopDate)
-        await recorder.session.archive(session: session)
+        await sessionLifecycle.archive(session: session)
         return session
     }
 
@@ -56,11 +56,11 @@ extension WorkoutFinalizer {
         applyElevationMetrics(to: &metadata)
         applyAnalyzerMetrics(to: &metadata, computed: analysis.computed, hrrSamples: hrrSamples)
         await backfillHRAndAttachSamples(metadata: &metadata, startDate: startDate, stopDate: stopDate)
-        metadata.pauseSpans = WorkoutPauseSpan.spans(of: recorder.lifecycle.pauseTimeline)
+        metadata.pauseSpans = WorkoutPauseSpan.spans(of: recording.pauseTimeline)
         applyPowerAggregates(to: &metadata, sport: analysis.sport, startDate: startDate, stopDate: stopDate)
         applyRouteTRIMPEstimate(to: &metadata, sport: analysis.sport)
         applyRowingTelemetry(to: &metadata, sport: analysis.sport)
-        attachWeatherSnapshot(to: &metadata, sport: analysis.sport, weather: recorder.services.weatherService)
+        attachWeatherSnapshot(to: &metadata, sport: analysis.sport, weather: services.weatherService)
         attachAnalysisSnapshot(
             to: &metadata, sport: analysis.sport, rrPoints: rrPoints,
             startDate: startDate, stopDate: stopDate, userMaxHR: analysis.userMaxHR
@@ -86,19 +86,19 @@ extension WorkoutFinalizer {
             ? nil
             : RRSeries(points: rrPoints, sessionId: session.id, startDate: startDate)
         let sport = session.sport ?? .run
-        let settings = recorder.settingsProvider()
+        let settings = settings
         let userMaxHR = settings.effectiveMaxHR
         let computed = WorkoutAnalyzer.analyze(
             sport: sport,
             rrPoints: rrPoints,
             startDate: startDate,
-            track: recorder.startedLocation?.track ?? [],
+            track: recording.location?.track ?? [],
             userMaxHR: userMaxHR,
             userRestingHR: settings.effectiveRestingHR,
             userLTHR: settings.effectiveLTHR,
             sex: Self.banisterSex(for: settings.biologicalSex),
             splitDistanceMeters: Self.splitDistanceMeters(),
-            pauses: recorder.startedLocation?.trackPauses ?? WorkoutAnalyzer.TrackPauses()
+            pauses: recording.location?.trackPauses ?? WorkoutAnalyzer.TrackPauses()
         )
         return FinalizeAnalysis(series: series, sport: sport, userMaxHR: userMaxHR, computed: computed)
     }
@@ -138,13 +138,13 @@ extension WorkoutFinalizer {
     /// out of the GPS distance, and the pedometer and foot-pod readings drop
     /// what accrued while paused.
     private func finalDistanceMeters(sport: Sport, computed: WorkoutMetadata) -> Double {
-        if sport == .row, let ergDistance = recorder.services.concept2Manager.distanceMeters {
+        if sport == .row, let ergDistance = services.concept2Manager.distanceMeters {
             return ergDistance
         }
-        let paused = recorder.lifecycle.pausedMotion
-        let gpsDistance = computed.distanceMeters ?? recorder.startedLocation?.distanceMeters ?? 0
-        let pedometerDistance = paused.pedometerDistance(recorder.pedometer.distanceMeters)
-        let footPodDistance = paused.footPodDistance(recorder.footPodDistanceMeters())
+        let paused = recording.pausedMotion
+        let gpsDistance = computed.distanceMeters ?? recording.location?.distanceMeters ?? 0
+        let pedometerDistance = paused.pedometerDistance(recording.pedometerDistanceMeters)
+        let footPodDistance = paused.footPodDistance(recording.footPodDistanceMeters)
         return max(gpsDistance, pedometerDistance, footPodDistance)
     }
 
@@ -152,7 +152,7 @@ extension WorkoutFinalizer {
     ///
     /// Elevation: post-hoc processing of the raw CMAltimeter sample
     /// buffer via BarometricAltitudeProcessor. The live
-    /// `recorder.location.elevationGainMeters` accumulator is only a ticker-
+    /// `recording.location.elevationGainMeters` accumulator is only a ticker-
     /// display estimate — the authoritative persisted value comes
     /// from running the full algorithm once at finalize (symmetric
     /// moving-average smoother, then a 2 m hysteresis threshold on the
@@ -164,7 +164,7 @@ extension WorkoutFinalizer {
     /// that the location manager maintained internally — less
     /// accurate but non-zero.
     private func applyElevationMetrics(to metadata: inout WorkoutMetadata) {
-        let started = recorder.startedLocation
+        let started = recording.location
         guard let location = started, location.barometerAvailable, !location.barometricSamples.isEmpty else {
             let gain = started?.elevationGainMeters ?? 0
             metadata.elevationGainMeters = gain
@@ -189,7 +189,7 @@ extension WorkoutFinalizer {
         // "the same loop." Only set when a route was actually bound;
         // unbound / one-off GPX runs leave this nil so they don't
         // pollute "Daily 1" averages.
-        metadata.recognizedRouteName = recorder.plannedRoute?.name
+        metadata.recognizedRouteName = recording.routeName
         metadata.hrTSS = computed.hrTSS
         metadata.decouplingPercent = computed.decouplingPercent
         metadata.efficiencyFactor = computed.efficiencyFactor
@@ -231,7 +231,7 @@ extension WorkoutFinalizer {
     ///
     /// Every row whose heart rate came from Apple Health — the HealthKit
     /// backfill here, the Watch's wrist HR shown live while a strap workout's
-    /// strap was silent (`recorder.wristHROffsets`), or the Watch's wrist HR
+    /// strap was silent (`recording.wristHROffsets`), or the Watch's wrist HR
     /// for a Watch-sourced workout — is listed in `healthKitHROffsets`, so the
     /// iCloud upload leaves it out.
     ///
@@ -242,23 +242,22 @@ extension WorkoutFinalizer {
     /// from, rather than the stored polyline.
     private func backfillHRAndAttachSamples(metadata: inout WorkoutMetadata, startDate: Date, stopDate: Date) async {
         let backfillResult = await Self.backfillWorkoutHRFromHealthKit(
-            samples: recorder.workoutSamples, sessionStart: startDate, sessionEnd: stopDate,
-            pauses: recorder.lifecycle.pauseTimeline, healthKit: recorder.core.healthKit
+            samples: recording.samples, sessionStart: startDate, sessionEnd: stopDate,
+            pauses: recording.pauseTimeline, healthKit: core.healthKit
         )
         let filledCount = backfillResult.filledOffsets.count
+        let samples = filledCount > 0 ? backfillResult.samples : recording.samples
         if filledCount > 0 {
-            recorder.workoutSamples = backfillResult.samples
-            debugLog("[WorkoutRecorder.finalize] Backfilled \(filledCount) HR samples from HealthKit (Apple Watch) — strap had \(backfillResult.strapCount), now \(backfillResult.strapCount + filledCount) of \(recorder.workoutSamples.count) rows have HR")
+            debugLog("[WorkoutRecorder.finalize] Backfilled \(filledCount) HR samples from HealthKit (Apple Watch) — strap had \(backfillResult.strapCount), now \(backfillResult.strapCount + filledCount) of \(samples.count) rows have HR")
         }
-        metadata.samples = recorder.workoutSamples.isEmpty ? nil : recorder.workoutSamples
+        metadata.samples = samples.isEmpty ? nil : samples
         metadata.healthKitHROffsets = Self.healthKitHROffsets(
-            samples: recorder.workoutSamples, backfilled: backfillResult.filledOffsets + recorder.wristHROffsets,
-            source: recorder.lifecycle.activeHRSource
+            samples: samples, backfilled: backfillResult.filledOffsets + recording.wristHROffsets,
+            source: recording.activeHRSource
         )
-        recorder.wristHROffsets = []
         if let splits = metadata.splits, let samples = metadata.samples {
             metadata.splits = WorkoutAnalyzer.enrichSplitsWithAlpha1(
-                splits: splits, samples: samples, startDate: startDate, track: recorder.startedLocation?.track ?? []
+                splits: splits, samples: samples, startDate: startDate, track: recording.location?.track ?? []
             )
         }
     }
@@ -274,16 +273,16 @@ extension WorkoutFinalizer {
     /// = real surges (intervals, rolling course). Adds context to
     /// every NP reading without needing an FTP anchor.
     private func applyPowerAggregates(to metadata: inout WorkoutMetadata, sport: Sport, startDate: Date, stopDate: Date) {
-        guard recorder.powerSampleCount > 0 else { return }
-        let avgPower = Double(recorder.powerSampleSum) / Double(recorder.powerSampleCount)
+        guard let avgPower = recording.power.average else { return }
         metadata.averagePowerWatts = avgPower
-        metadata.peakPowerWatts = recorder.maxPowerObserved
-        let np = WorkoutSessionLifecycle.computeNormalizedPower(samples: recorder.workoutSamples)
+        metadata.peakPowerWatts = recording.power.peak
+        // Normalized power reads power, which the HR backfill leaves alone.
+        let np = WorkoutSessionLifecycle.computeNormalizedPower(samples: recording.samples)
         metadata.normalizedPowerWatts = np
         if let np, np > 0, avgPower > 0 {
             metadata.variabilityIndex = np / avgPower
         }
-        guard let ftp = WorkoutRecorder.sportFTP(for: sport, settings: recorder.settingsProvider()), ftp > 0, let np else { return }
+        guard let ftp = WorkoutRecorder.sportFTP(for: sport, settings: settings), ftp > 0, let np else { return }
         applyFTPAnchoredMetrics(
             to: &metadata, ftp: ftp, np: np,
             durationSeconds: activeDurationSeconds(startDate: startDate, stopDate: stopDate)
@@ -293,7 +292,7 @@ extension WorkoutFinalizer {
     /// Recorded time with pauses left out: the ticker counts only while the
     /// workout runs. Wall-clock start to stop stands in when no tick counted.
     private func activeDurationSeconds(startDate: Date, stopDate: Date) -> TimeInterval {
-        recorder.lifecycle.elapsedSeconds > 0 ? Double(recorder.lifecycle.elapsedSeconds) : stopDate.timeIntervalSince(startDate)
+        recording.elapsedSeconds > 0 ? Double(recording.elapsedSeconds) : stopDate.timeIntervalSince(startDate)
     }
 
     /// Finalize stage 7 — route-history TRIMP fallback estimate.
@@ -315,12 +314,12 @@ extension WorkoutFinalizer {
     /// HR-free intensity proxy and runs independently of this estimator.)
     private func applyRouteTRIMPEstimate(to metadata: inout WorkoutMetadata, sport: Sport) {
         guard let estimate = RouteTRIMPEstimator.estimate(
-            track: recorder.startedLocation?.track ?? [],
+            track: recording.location?.track ?? [],
             sport: sport,
             recordedTRIMP: metadata.luciaTRIMP,
             recordedDistance: metadata.distanceMeters,
-            archive: recorder.core.archive,
-            savedRouteStore: recorder.services.savedRouteStore
+            archive: core.archive,
+            savedRouteStore: services.savedRouteStore
         ) else { return }
         metadata.extrapolatedTRIMP = estimate.estimatedTRIMP
         metadata.extrapolationConfidence = estimate.confidence
@@ -338,11 +337,11 @@ extension WorkoutFinalizer {
         // numbers (split pace, total strokes, drag setting they used)
         // would evaporate the moment they tap Stop.
         if sport == .row {
-            let erg = recorder.services.concept2Manager
+            let erg = services.concept2Manager
             metadata.strokeCount = erg.strokeCount
             metadata.dragFactor = erg.dragFactor
             metadata.averageSplitSecPer500m = Self.averageSplitSecPer500m(
-                movingSeconds: recorder.lifecycle.elapsedSeconds, distanceMeters: recorder.motion.distanceMeters
+                movingSeconds: recording.elapsedSeconds, distanceMeters: recording.motionDistanceMeters
             )
         }
     }
@@ -376,7 +375,7 @@ extension WorkoutFinalizer {
             elevationLossMeters: metadata.elevationLossMeters,
             meanHR: rrPoints.isEmpty ? nil : 60_000.0 / (rrPoints.reduce(0.0) { $0 + Double($1.rr_ms) } / Double(rrPoints.count)),
             userMaxHR: userMaxHR,
-            bodyWeightKg: recorder.settingsProvider().effectiveBodyWeightKg,
+            bodyWeightKg: settings.effectiveBodyWeightKg,
             samples: metadata.samples ?? [],
             splits: metadata.splits ?? [],
             trimp: metadata.luciaTRIMP,
@@ -431,14 +430,13 @@ extension WorkoutFinalizer {
     /// Finalize stage 11 — flat AI-context snapshot from the live broker.
     private func attachAIContextSnapshot(to session: inout HRVSession, sport: Sport, stopDate: Date) {
         // The broker is cleared when stop() tears the live services down,
-        // before finalize runs, so its last snapshot was kept on the recorder
-        // at that point. String-only values for third-party JSON-export
+        // before finalize runs, so its last snapshot was kept for this at
+        // that point. String-only values for third-party JSON-export
         // interop; not surfaced anywhere in the UI, included in the data
         // export so external integrators see exactly what the AI was reading
         // when it generated coaching for this session.
-        defer { recorder.liveSnapshotAtStop = nil }
-        if let liveSnap = recorder.liveSnapshotAtStop {
-            session.aiContext = recorder.session.buildAiContextSnapshot(liveSnap, sport: sport, stopDate: stopDate)
+        if let liveSnap = recording.liveSnapshot {
+            session.aiContext = sessionLifecycle.buildAiContextSnapshot(liveSnap, sport: sport, stopDate: stopDate)
         }
     }
 
@@ -457,7 +455,7 @@ extension WorkoutFinalizer {
     /// RRCollector+DeviceRecording.swift, including the
     /// user's VO2max override / opt-out handling.
     private func attachTrainingSnapshot(to session: inout HRVSession, stopDate: Date) async {
-        let s = recorder.settingsProvider()
+        let s = settings
         guard s.enableTrainingLoadIntegration else { return }
         guard var context = await resolveFinalizeTrainingContext(stopDate: stopDate) else { return }
         if let override = s.vo2MaxOverride {
@@ -486,10 +484,10 @@ extension WorkoutFinalizer {
     /// calculateTrainingLoad) gets a fresh one. Strictly better than the user
     /// losing the workout entirely.
     private func resolveFinalizeTrainingContext(stopDate: Date) async -> TrainingContext? {
-        if let live = recorder.services.trainingMetricsCache.current, live.atl > 0 || live.ctl > 0 {
+        if let live = services.trainingMetricsCache.current, live.atl > 0 || live.ctl > 0 {
             return Self.trainingContext(fromCached: live, relativeTo: stopDate)
         }
-        let healthKit = recorder.core.healthKit
+        let healthKit = core.healthKit
         guard let load = await Self.runWithTimeout(seconds: 1.5, {
             await healthKit.training.calculateTrainingLoad(forMorningReading: false)
         }) else {

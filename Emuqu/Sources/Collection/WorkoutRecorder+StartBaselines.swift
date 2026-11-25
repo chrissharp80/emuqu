@@ -13,10 +13,7 @@ extension WorkoutRecorder {
     /// a per-tick archive scan. Backgrounded because
     /// `recentSessions(limit:)` deserializes JSON from disk.
     func resetCachedBaselinesAndLaunchBaselineTask(sport: Sport) {
-        cachedHistoricalBaselines = WorkoutHistoryBaselines.empty
-        cachedTodayReadiness = ReadinessSnapshot.empty
-        cachedTrainingProjection = TrainingProjectionSnapshot.empty
-        cachedRacePredictionsByDistance = [:]
+        startContext = WorkoutStartContext()
         resetWatchStrapFallbackState()
         // SessionArchive owns its own lock — safe to read off the main
         // actor. We just need a stable reference to the archive instance.
@@ -34,9 +31,7 @@ extension WorkoutRecorder {
     /// one's heart rate.
     private func resetWatchStrapFallbackState() {
         watchBridge.latestWatchHR = nil
-        lastWatchRoutedHRAt = nil
-        watchRoutedCumulativeMs = 0
-        watchRoutedRRBuffer = []
+        watchRouted = WatchRoutedBeats()
         // Beats the Watch forwarded while no workout was running would
         // otherwise all land in this workout's first tick.
         _ = watchBridge.drainPendingWatchStrapRR()
@@ -73,15 +68,15 @@ extension WorkoutRecorder {
     private func commitStartBaselines(
         sessionId: UUID?,
         baselines: WorkoutHistoryBaselines,
-        readiness: ReadinessSnapshot,
-        projection: TrainingProjectionSnapshot,
+        readiness: WorkoutStartContext.ReadinessSnapshot,
+        projection: WorkoutStartContext.TrainingProjectionSnapshot,
         racePredictions: [Double: Double]
     ) {
         guard let sessionId, lifecycle.currentSession?.id == sessionId else { return }
-        cachedHistoricalBaselines = baselines
-        cachedTodayReadiness = readiness
-        cachedTrainingProjection = projection
-        cachedRacePredictionsByDistance = racePredictions
+        startContext = WorkoutStartContext(
+            historicalBaselines: baselines, todayReadiness: readiness,
+            trainingProjection: projection, racePredictionsByDistance: racePredictions
+        )
     }
 
     /// Uses `retrieveLightweight()` (~50 ms each, ~3 s total), not 60 ×
@@ -124,8 +119,8 @@ extension WorkoutRecorder {
 
     /// HRV ANS readiness is on a 0-10 scale; it's rescaled here to match the
     /// recovery-score 0-100 range so the AI doesn't confuse the two.
-    nonisolated private static func readinessSnapshot(morning: HRVSession?) -> ReadinessSnapshot {
-        ReadinessSnapshot(
+    nonisolated private static func readinessSnapshot(morning: HRVSession?) -> WorkoutStartContext.ReadinessSnapshot {
+        WorkoutStartContext.ReadinessSnapshot(
             recoveryScore: morning?.recoveryScore.map { $0 * 10 },
             trainingReadiness: morning?.readinessScore.map { $0 * 10 },
             atl: morning?.trainingSnapshot?.atl,
@@ -138,13 +133,13 @@ extension WorkoutRecorder {
     /// ATL itself as the daily load — a "stay-the-course" projection rather
     /// than zero. (The morning reading is an overnight or quick session,
     /// which carries no workout TRIMP to use instead.)
-    nonisolated private static func trainingProjection(readiness: ReadinessSnapshot) -> TrainingProjectionSnapshot {
+    nonisolated private static func trainingProjection(readiness: WorkoutStartContext.ReadinessSnapshot) -> WorkoutStartContext.TrainingProjectionSnapshot {
         guard let atl = readiness.atl, let ctl = readiness.ctl else { return .empty }
         let dailyTrimp = atl
         let tomorrow = TrainingLoadProjection.project(
             startingATL: atl, startingCTL: ctl, dailyTrimp: dailyTrimp, horizonDays: 1
         ).first?.tsb
-        return TrainingProjectionSnapshot(
+        return WorkoutStartContext.TrainingProjectionSnapshot(
             daysUntilFresh: TrainingLoadProjection.daysUntilFresh(currentATL: atl, currentCTL: ctl),
             tsbTomorrowSteadyState: tomorrow
         )

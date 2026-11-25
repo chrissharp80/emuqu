@@ -74,20 +74,22 @@ extension WorkoutAIContextBuilder {
             currentCountryCode: inputs.road?.countryCode, currentCompactAddress: inputs.road?.compactAddress, currentNearestCrossStreet: inputs.road?.nearestCrossStreet, currentNearestIntersection: inputs.road?.nearestIntersection, sessionAverageHR: trends.sessionAverageHR,
             reverseSplitDeltaSecPerKm: trends.reverseSplitDeltaSecPerKm, liveHRDriftPercent: trends.hrDriftPercent, recentHRSlopeBpm: trends.recentHRSlopeBpm, aerobicDecouplingPercent: trends.aerobicDecouplingPercent,
             cadenceDriftSpm: trends.cadenceDriftSpm, gradeAdjustedPaceSecPerKm: WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: recorder.currentPaceSecPerKm, gradePercent: inputs.grade),
-            recentSplitGradeAdjustedPaces: trends.recentSplitGradeAdjustedPaces, projectedMinutesUntilFade: trends.projectedMinutesUntilFade, historicalSportAvgPaceSecPerKm: recorder.cachedHistoricalBaselines.avgPaceSecPerKm,
-            historicalSportAvgHR: recorder.cachedHistoricalBaselines.avgHR, historicalSportAvgAlpha1: recorder.cachedHistoricalBaselines.avgAlpha1, historicalSportSampleCount: recorder.cachedHistoricalBaselines.sampleCount,
-            todayRecoveryScore: recorder.cachedTodayReadiness.recoveryScore, todayTrainingReadiness: recorder.cachedTodayReadiness.trainingReadiness, todayATL: recorder.cachedTodayReadiness.atl, todayCTL: recorder.cachedTodayReadiness.ctl, todayTSB: recorder.cachedTodayReadiness.tsb,
-            projectedDaysUntilFresh: recorder.cachedTrainingProjection.daysUntilFresh, projectedTSBTomorrowSteadyState: recorder.cachedTrainingProjection.tsbTomorrowSteadyState, recoveryHoursNeeded: recorder.ticker.liveRecoveryHoursNeeded(), zone1Sec: inputs.zones.z1Sec,
-            zone2Sec: inputs.zones.z2Sec, zone3Sec: inputs.zones.z3Sec, zone4Sec: inputs.zones.z4Sec, zone5Sec: inputs.zones.z5Sec, dominantZone: inputs.zones.dominantZone, predictedRaceTime5KSec: recorder.cachedRacePredictionsByDistance[5_000],
-            predictedRaceTime10KSec: recorder.cachedRacePredictionsByDistance[10_000], predictedRaceTimeHalfSec: recorder.cachedRacePredictionsByDistance[21_097.5], predictedRaceTimeMarathonSec: recorder.cachedRacePredictionsByDistance[42_195], userUnits: UnitsPreferenceStore.current,
-            targetZone: recorder.targetZone, activeThresholds: recorder.userThresholds, thresholdBreachSec: recorder.thresholdBreachSec
+            recentSplitGradeAdjustedPaces: trends.recentSplitGradeAdjustedPaces, projectedMinutesUntilFade: trends.projectedMinutesUntilFade, historicalSportAvgPaceSecPerKm: recorder.startContext.historicalBaselines.avgPaceSecPerKm,
+            historicalSportAvgHR: recorder.startContext.historicalBaselines.avgHR, historicalSportAvgAlpha1: recorder.startContext.historicalBaselines.avgAlpha1, historicalSportSampleCount: recorder.startContext.historicalBaselines.sampleCount,
+            todayRecoveryScore: recorder.startContext.todayReadiness.recoveryScore, todayTrainingReadiness: recorder.startContext.todayReadiness.trainingReadiness,
+            todayATL: recorder.startContext.todayReadiness.atl, todayCTL: recorder.startContext.todayReadiness.ctl, todayTSB: recorder.startContext.todayReadiness.tsb,
+            projectedDaysUntilFresh: recorder.startContext.trainingProjection.daysUntilFresh, projectedTSBTomorrowSteadyState: recorder.startContext.trainingProjection.tsbTomorrowSteadyState, recoveryHoursNeeded: recorder.ticker.liveRecoveryHoursNeeded(), zone1Sec: inputs.zones.z1Sec,
+            zone2Sec: inputs.zones.z2Sec, zone3Sec: inputs.zones.z3Sec, zone4Sec: inputs.zones.z4Sec, zone5Sec: inputs.zones.z5Sec, dominantZone: inputs.zones.dominantZone, predictedRaceTime5KSec: recorder.startContext.racePredictionsByDistance[5_000],
+            predictedRaceTime10KSec: recorder.startContext.racePredictionsByDistance[10_000], predictedRaceTimeHalfSec: recorder.startContext.racePredictionsByDistance[21_097.5],
+            predictedRaceTimeMarathonSec: recorder.startContext.racePredictionsByDistance[42_195], userUnits: UnitsPreferenceStore.current,
+            targetZone: recorder.targetZone, activeThresholds: recorder.thresholds.thresholds, thresholdBreachSec: recorder.thresholds.breachSec
         )
     }
 
     /// Recognise a route the user has explicitly saved to their library.
     /// Match is direction-agnostic: a saved "Daily 1" loop matches whether
     /// the user is walking it the same way as the day they saved it OR in
-    /// reverse. Sets `recorder.plannedRoute` + the direction flag so the banner +
+    /// reverse. Sets `recorder.route.planned` + the direction flag so the banner +
     /// AI coach speak about it correctly. Runs first at
     /// `RouteLibrary.detectionTriggerMeters` of GPS distance, then, while
     /// nothing matches, after each further stretch of that length, so a loop
@@ -101,9 +103,9 @@ extension WorkoutAIContextBuilder {
     /// the "what is the app doing right now" question harder to answer.
     func attemptAutoRouteDetection(sport: Sport) {
         let traveled = recorder.location.distanceMeters
-        guard traveled >= max(RouteLibrary.detectionTriggerMeters, recorder.nextRouteDetectionAtMeters) else { return }
+        guard traveled >= max(RouteLibrary.detectionTriggerMeters, recorder.route.nextDetectionAtMeters) else { return }
 
-        recorder.nextRouteDetectionAtMeters = traveled + RouteLibrary.detectionTriggerMeters
+        recorder.route.nextDetectionAtMeters = traveled + RouteLibrary.detectionTriggerMeters
         guard let match = RouteLibrary.findMatch(
             currentTrack: recorder.location.track,
             sport: sport,
@@ -111,19 +113,19 @@ extension WorkoutAIContextBuilder {
         ) else {
             return
         }
-        recorder.plannedRoute = match.route
-        recorder.plannedSavedRouteId = match.savedRoute.id
-        recorder.plannedRouteWasAutoDetected = true
-        recorder.plannedRouteDirection = match.direction
+        recorder.route.planned = match.route
+        recorder.route.savedRouteId = match.savedRoute.id
+        recorder.route.wasAutoDetected = true
+        recorder.route.direction = match.direction
         debugLog("[WorkoutRecorder] auto-bound saved route \(match.savedRoute.id.uuidString.prefix(8)) \(match.direction == .reverse ? "(reverse)" : "") fit \(Int(match.meanFitMeters.rounded())) m")
     }
 
     /// Projects `location` onto `route`, continuing from the last tick's point.
     func routeProgress(at location: CLLocation, on route: Route) -> RouteProgress? {
         let progress = RouteProgress.compute(
-            currentLocation: location, route: route, previousIndex: recorder.lastRouteProgressIndex
+            currentLocation: location, route: route, previousIndex: recorder.route.lastProgressIndex
         )
-        if let progress { recorder.lastRouteProgressIndex = progress.nearestPointIndex }
+        if let progress { recorder.route.lastProgressIndex = progress.nearestPointIndex }
         return progress
     }
 
@@ -134,7 +136,7 @@ extension WorkoutAIContextBuilder {
     /// which the trigger engine (and the LLM context) can read to fire
     /// pre-emptive cues like "big climb in 400 m, save power".
     func computeUpcomingClimb(currentLocation: CLLocation?) -> WorkoutAIContext.UpcomingClimb? {
-        guard let route = recorder.plannedRoute, let loc = currentLocation else { return nil }
+        guard let route = recorder.route.planned, let loc = currentLocation else { return nil }
         guard let progress = routeProgress(at: loc, on: route) else { return nil }
         guard let next = progress.nextClimb,
               let distance = progress.metersToNextClimb,
@@ -157,7 +159,7 @@ extension WorkoutAIContextBuilder {
     /// Turns ahead walk the polyline from the user's current position and flag
     /// bearing changes ≥30° within ~30 m windows, capped at 5.
     func computeRouteTopology(currentLocation: CLLocation?) -> WorkoutAIContext.RouteTopology? {
-        guard let route = recorder.plannedRoute, let loc = currentLocation,
+        guard let route = recorder.route.planned, let loc = currentLocation,
               let progress = routeProgress(at: loc, on: route)
         else { return nil }
         let climbsAhead = Self.climbsAhead(on: route, pastDistance: progress.distanceAlongMeters)
@@ -355,12 +357,9 @@ extension WorkoutAIContextBuilder {
     /// (see `evaluateNaturalLanguageThresholds`); the per-tick breach state
     /// machine ignores them entirely.
     func updateThresholdBreaches(sport: Sport) {
-        guard !recorder.userThresholds.isEmpty else {
-            if !recorder.thresholdBreachSec.isEmpty { recorder.thresholdBreachSec.removeAll() }
-            return
-        }
+        guard !recorder.thresholds.thresholds.isEmpty else { return }
         let signals = thresholdSignals(sport: sport)
-        for threshold in recorder.userThresholds where threshold.metric != .naturalLanguage {
+        for threshold in recorder.thresholds.thresholds where threshold.metric != .naturalLanguage {
             applyBreachTick(threshold, signals: signals)
         }
     }
@@ -439,11 +438,7 @@ extension WorkoutAIContextBuilder {
             elapsedSec: signals.elapsedSec, elevationGainMeters: signals.elevationGainMeters,
             gradePercent: signals.gradePercent
         )
-        switch breached {
-        case .some(true): recorder.thresholdBreachSec[threshold.id, default: 0] += 1
-        case .some(false): recorder.thresholdBreachSec[threshold.id] = 0
-        case .none: break
-        }
+        recorder.thresholds.record(threshold, breached: breached)
     }
 
     /// Auto-archive a finished GPS-bearing workout's track
@@ -564,11 +559,11 @@ extension WorkoutRecorder {
     /// no longer names it and the session is not stamped with it ("the coach
     /// stops recognising it on your workouts").
     func forgetDeletedSavedRoute(_ id: UUID) {
-        guard plannedSavedRouteId == id else { return }
-        plannedRoute = nil
-        plannedSavedRouteId = nil
-        plannedRouteWasAutoDetected = false
-        plannedRouteDirection = .forward
+        guard route.savedRouteId == id else { return }
+        route.planned = nil
+        route.savedRouteId = nil
+        route.wasAutoDetected = false
+        route.direction = .forward
         debugLog("[WorkoutRecorder] saved route \(id.uuidString.prefix(8)) deleted during the workout — no longer followed")
     }
 }
