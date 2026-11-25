@@ -83,13 +83,13 @@ extension RRDataImporter {
 
     /// Whether a lowercased header names the RR column: one of its words is
     /// "rr" or "ibi", or starts with one ("rr_ms", "RR interval (ms)",
-    /// "rrms", "IBI"), or the whole header is "ms" or "interval". Whole
-    /// words, so "current_hr", "error" or "correction" do not match just
-    /// because they contain the letters "rr".
+    /// "rrms", "IBI"), or the header is "ms", "interval" or "interval (ms)".
+    /// Whole words, so "current_hr", "error" or "correction" do not match
+    /// just because they contain the letters "rr".
     private static func namesRRColumn(_ header: String) -> Bool {
         let words = header.split { !$0.isLetter && !$0.isNumber }
         return words.contains { $0.hasPrefix("rr") || $0.hasPrefix("ibi") }
-            || header == "ms" || header == "interval"
+            || words == ["ms"] || words == ["interval"] || words == ["interval", "ms"]
     }
 
     /// Picks the RR value out of one already-split data row, or nil to skip it.
@@ -162,13 +162,17 @@ extension RRDataImporter {
 
     /// The file's records: its lines, except that a newline inside a quoted
     /// field (an Elite HRV Notes or Tags value) stays in its record instead
-    /// of splitting it in two.
+    /// of splitting it in two. As in `fields(of:separator:)`, a quote opens a
+    /// field only at its start, so a quote inside a value (5'10") does not
+    /// join the lines after it.
     func csvRecords(_ content: String) -> [String] {
         var records: [String] = []
         var current = ""
         var inQuotes = false
+        var atFieldStart = true
         for char in content {
-            if char == "\"" { inQuotes.toggle() }
+            if char == "\"", inQuotes || atFieldStart { inQuotes.toggle() }
+            atFieldStart = !inQuotes && (char.isNewline || ",;\t".contains(char) || (atFieldStart && char.isWhitespace))
             if char.isNewline, !inQuotes {
                 records.append(current)
                 current = ""
@@ -192,7 +196,9 @@ extension RRDataImporter {
         var current = ""
         var inQuotes = false
         for char in line {
-            if char == "\"" {
+            if char == "\"", inQuotes || current.allSatisfy(\.isWhitespace) {
+                // A quote opens a field only at its start, as in RFC 4180;
+                // one inside a value (5'10") is part of the value.
                 inQuotes.toggle()
             } else if char == separator, !inQuotes {
                 result.append(current.trimmingCharacters(in: .whitespaces))

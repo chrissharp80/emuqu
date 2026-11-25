@@ -152,6 +152,8 @@ struct AssistantMemoryNamespace: FactNamespaceResolver {
         switch store.add(text, origin: .user) {
         case .alreadySaved:
             return .record(["added": .boolean(false), "text": .string(text), "note": .string("already saved — an existing fact has the same text")])
+        case .nothingToSave:
+            return .record(["added": .boolean(false), "text": .string(text), "note": .string("nothing to save — the text is empty")])
         case .notSaved:
             return .record(["added": .boolean(false), "text": .string(text), "note": .string("not saved — the memory could not be written; tell the user and do not say it was remembered")])
         case let .added(evicted):

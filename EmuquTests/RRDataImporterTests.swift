@@ -188,6 +188,37 @@ final class RRDataImporterTests: XCTestCase {
         XCTAssertEqual(try importer.parseCSV(csv).0, [812, 830, 845])
     }
 
+    /// A quote that opens an Elite HRV note and never closes loses only its
+    /// own row: the sessions after it still import.
+    func testParseEliteHRV_anUnclosedQuoteDoesNotSwallowLaterSessions() throws {
+        let csv = """
+        Member,Type,Position,Date Time Start,Duration,Notes,HRV,HR,lnRmssd,Rmssd,Nn50,Pnn50,Sdnn
+        John,Morning,Seated,2024-01-15 06:30:00,120,"tall,65,60,3.75,42.5,30,18.2,55.1
+        John,Morning,Seated,2024-01-16 06:30:00,120,fine,66,59,3.80,44.0,31,18.9,56.0
+        John,Morning,Seated,2024-01-17 06:30:00,120,fine,64,61,3.70,41.0,29,17.5,54.2
+        """
+        let sessions = try importer.parseEliteHRVSummary(csv, fileName: "e.csv").sessions
+        XCTAssertEqual(sessions.map(\.rmssd), [44.0, 41.0])
+    }
+
+    /// Quotes inside values (heights in a note) are part of the value, so
+    /// every row imports, the ones holding them included.
+    func testParseEliteHRV_quotesInsideValuesAreKept() throws {
+        let csv = """
+        Member,Type,Position,Date Time Start,Duration,Notes,HRV,HR,lnRmssd,Rmssd,Nn50,Pnn50,Sdnn
+        John,Morning,Seated,2024-01-15 06:30:00,120,5'10",65,60,3.75,42.5,30,18.2,55.1
+        John,Morning,Seated,2024-01-16 06:30:00,120,fine,66,59,3.80,44.0,31,18.9,56.0
+        John,Morning,Seated,2024-01-17 06:30:00,120,6'1",64,61,3.70,41.0,29,17.5,54.2
+        """
+        let sessions = try importer.parseEliteHRVSummary(csv, fileName: "e.csv").sessions
+        XCTAssertEqual(sessions.map(\.rmssd), [42.5, 44.0, 41.0])
+    }
+
+    func testParseCSV_anIntervalMsHeaderNamesTheRRColumn() throws {
+        let csv = "Interval (ms),Time (s)\n812,0.0\n830,0.812"
+        XCTAssertEqual(try importer.parseCSV(csv).0, [812, 830])
+    }
+
     func testParseCSV_skipsCommentLines() throws {
         let csv = "# This is a comment\nrr\n800\n// Another comment\n750"
         let (intervals, _, _) = try importer.parseCSV(csv)

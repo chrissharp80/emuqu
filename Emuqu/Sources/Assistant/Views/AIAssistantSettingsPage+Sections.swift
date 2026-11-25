@@ -483,9 +483,9 @@ extension AIAssistantSettingsPage {
                 addDraftFact()
             } label: {
                 Image(systemName: "plus.circle.fill")
-                    .foregroundStyle(newFactText.trimmingCharacters(in: .whitespaces).isEmpty ? Color(.tertiaryLabel) : Color.accentColor)
+                    .foregroundStyle(UserFactsStore.normalizedKey(newFactText).isEmpty ? Color(.tertiaryLabel) : Color.accentColor)
             }
-            .disabled(newFactText.trimmingCharacters(in: .whitespaces).isEmpty)
+            .disabled(UserFactsStore.normalizedKey(newFactText).isEmpty)
             .accessibilityLabel(String(localized: "Add fact", bundle: LanguageManager.appBundle))
         }
     }

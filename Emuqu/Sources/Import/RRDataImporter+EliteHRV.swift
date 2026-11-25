@@ -26,7 +26,7 @@ extension RRDataImporter {
     /// Old format: datetime,rmssd_clean_ms,rmssd_raw_ms,removed_rr_pct,n_rr,rr_min_ms,rr_max_ms,file
     /// New format: Member,Type,Position,Breathing Pattern,Date Time Start,Date Time End,Duration,Tags,Notes,Value 1,Value 2,Value 3,HRV,Morning Readiness,Balance,HRV CV,HR,lnRmssd,Rmssd,Nn50,Pnn50,Sdnn,Low Frequency Power,High Frequency Power,LF/HF Ratio,Total Power
     func parseEliteHRVSummary(_ content: String, fileName: String) throws -> EliteHRVSummaryResult {
-        let lines = csvRecords(content)
+        let lines = Self.recordLines(of: content, quoteAware: csvRecords)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         guard lines.count >= 2 else {

@@ -1194,7 +1194,39 @@ mutate "csv_stray_quote_swallows_file" "EmuquTests/RRDataImporterTests" \
 # A Health copy of a workout wins over an index estimate of it.
 mutate "index_estimate_beats_health_copy" "EmuquTests/TrainingLoadPrecedenceTests" \
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift');s=p.read_text();o='!workout.isIndexEstimate || ';assert s.count(o)==1;p.write_text(s.replace(o,'true || '))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift');s=p.read_text();o='if coversMostOfBoth(archived, hk) { return archived.isIndexEstimate }';assert s.count(o)==1;p.write_text(s.replace(o,'if coversMostOfBoth(archived, hk) { return false }'))"
+
+mutate "facts_dedup_before_reload" "EmuquTests/UserFactsStoreTests" \
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Chat/UserFactsStore.swift');s=p.read_text();o='guard !facts.contains(where: { Self.normalizedKey(\$0.text) == key }) else { return .alreadySaved }';assert s.count(o)==1;s=s.replace(o,'');r='        reloadIfUnreadable()\n        guard !unreadableOnDisk else { return .notSaved }';assert s.count(r)==1;p.write_text(s.replace(r,'        '+o+'\n'+r))"
+
+mutate "nested_walk_replaces_estimate" "EmuquTests/TrainingLoadPrecedenceTests" \
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift');s=p.read_text();o='if coversMostOfBoth(archived, hk) { return archived.isIndexEstimate }';assert s.count(o)==1;p.write_text(s.replace(o,'if overlaps(archived, hk) { return archived.isIndexEstimate }'))"
+
+mutate "elite_stray_quote_swallows_file" "EmuquTests/RRDataImporterTests" \
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift');s=p.read_text();o='Self.recordLines(of: content, quoteAware: csvRecords)';assert s.count(o)==1;p.write_text(s.replace(o,'csvRecords(content)'))"
+
+mutate "blank_fact_reported_as_failure" "EmuquTests/UserFactsStoreTests" \
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Chat/UserFactsStore.swift');s=p.read_text();o='guard !key.isEmpty else { return .nothingToSave }';assert s.count(o)==1;p.write_text(s.replace(o,'guard !key.isEmpty else { return .notSaved }'))"
+
+mutate "strap_part_beats_whole_health_run" "EmuquTests/TrainingLoadPrecedenceTests" \
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift');s=p.read_text();o='return hk.durationMinutes > archived.durationMinutes && overlaps(archived, hk)';assert s.count(o)==1;p.write_text(s.replace(o,'return false'))"
+
+mutate "midfield_quote_joins_records" "EmuquTests/RRDataImporterTests" \
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o=', inQuotes || atFieldStart { inQuotes.toggle() }';assert s.count(o)==1;p.write_text(s.replace(o,', !atFieldStart || atFieldStart { inQuotes.toggle() }'))"
+
+mutate "assistant_baseline_counts_night_twice" "EmuquTests/ScoreFactorFactsTests" \
+    "Emuqu/Sources/Assistant/Facts/BaselineFacts.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Facts/BaselineFacts.swift');s=p.read_text();o='return nights.values.compactMap { night in night.max { (\$0.endDate ?? \$0.date) < (\$1.endDate ?? \$1.date) } }';assert s.count(o)==1;p.write_text(s.replace(o,'return nights.values.flatMap { \$0 }'))"
+
+mutate "interval_ms_header_missed" "EmuquTests/RRDataImporterTests" \
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o=' || words == [\"interval\", \"ms\"]';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
 echo
 echo "  $PASS caught, $FAIL survived, $INVALID did not compile, $SKIP skipped"

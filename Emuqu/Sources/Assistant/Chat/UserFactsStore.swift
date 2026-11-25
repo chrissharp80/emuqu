@@ -177,13 +177,15 @@ final class UserFactsStore {
     func add(_ text: String, origin: Fact.Origin) -> AddOutcome {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let key = Self.normalizedKey(trimmed)
-        guard !key.isEmpty else { return .notSaved }
+        guard !key.isEmpty else { return .nothingToSave }
+        // Read the saved facts first, so the duplicate check and the cap see
+        // what is on disk, not an empty list from a launch while locked.
+        reloadIfUnreadable()
+        guard !unreadableOnDisk else { return .notSaved }
         // Dedup on the NORMALIZED key so punctuation-/case-only twins
         // ("…right now" vs "…right now.") collapse to one fact instead of both
         // riding in every prompt.
         guard !facts.contains(where: { Self.normalizedKey($0.text) == key }) else { return .alreadySaved }
-        reloadIfUnreadable()
-        guard !unreadableOnDisk else { return .notSaved }
         var next = facts + [Fact(text: trimmed, origin: origin)]
         let evicted = Array(next.prefix(max(0, next.count - Self.maxFacts)))
         next.removeFirst(evicted.count)
@@ -198,7 +200,9 @@ final class UserFactsStore {
         case added(evicted: [Fact])
         /// A fact with the same text (ignoring case and trailing punctuation) was already saved.
         case alreadySaved
-        /// Nothing was saved: the text was empty, or the facts could not be written.
+        /// The text had nothing in it once spaces and trailing punctuation were dropped.
+        case nothingToSave
+        /// The facts could not be read or written, so nothing changed.
         case notSaved
     }
 

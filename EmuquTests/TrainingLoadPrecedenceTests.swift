@@ -276,5 +276,45 @@ final class TrainingLoadPrecedenceTests: XCTestCase {
         let alone = TrainingHealthQueries.mergeArchiveAuthoritative(archive: [estimate], healthKit: [])
         XCTAssertEqual(alone.map(\.averageHR), [142])
     }
-}
 
+    /// A short walk Apple detected inside a long run is not Health's copy of
+    /// the run, so the run's estimate stays and the walk is not added.
+    func testAWalkInsideARunDoesNotReplaceTheRunsEstimate() throws {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let entry = SessionArchiveEntry(
+            sessionId: UUID(), date: start, endDate: start.addingTimeInterval(60 * 60),
+            fileHash: "", filePath: "", meanHR: 148, sessionType: .workout
+        )
+        let estimate = try XCTUnwrap(HealthKitManager.WorkoutSummary.summaryFromIndex(entry))
+        let walk = HealthKitManager.WorkoutSummary(
+            date: start.addingTimeInterval(20 * 60), type: .walking, durationMinutes: 10,
+            caloriesBurned: 40, averageHR: 110, maxHR: 120
+        )
+
+        let merged = TrainingHealthQueries.mergeArchiveAuthoritative(archive: [estimate], healthKit: [walk])
+        XCTAssertEqual(merged.map(\.averageHR), [148])
+    }
+
+    /// A strap recording started part-way through a longer Apple Watch run
+    /// covers only part of it, so the whole run counts, not the part.
+    func testAStrapRecordingInsideALongerHealthRunCountsTheWholeRun() {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let strap = HealthKitManager.WorkoutSummary(
+            date: start.addingTimeInterval(40 * 60), type: .running, durationMinutes: 20,
+            caloriesBurned: 200, averageHR: 160, maxHR: 175
+        )
+        let watchRun = HealthKitManager.WorkoutSummary(
+            date: start, type: .running, durationMinutes: 60, caloriesBurned: 600, averageHR: 150, maxHR: 176
+        )
+
+        let merged = TrainingHealthQueries.mergeArchiveAuthoritative(archive: [strap], healthKit: [watchRun])
+        XCTAssertEqual(merged.map(\.durationMinutes), [60])
+
+        let sameRun = HealthKitManager.WorkoutSummary(
+            date: start.addingTimeInterval(38 * 60), type: .running, durationMinutes: 23,
+            caloriesBurned: 210, averageHR: 155, maxHR: 174
+        )
+        let kept = TrainingHealthQueries.mergeArchiveAuthoritative(archive: [strap], healthKit: [sameRun])
+        XCTAssertEqual(kept.map(\.averageHR), [160], "Health's copy of the strap's own session never replaces it")
+    }
+}

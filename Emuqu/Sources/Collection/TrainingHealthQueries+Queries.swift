@@ -118,13 +118,12 @@ extension TrainingHealthQueries {
         // it's the same session we already hold with strap precision. `overlaps`
         // requires ≥60% of the shorter session's span, so genuinely separate
         // external training (e.g. a ride logged only in Strava at another time)
-        // is kept. You can't do two time-overlapping workouts at once, so this
-        // never drops a distinct session.
-        // An archive workout counted only from its index entry (its file
-        // could not be read) yields to a Health copy of the same session,
-        // which carries more than a span and a mean heart rate.
+        // is kept. Two exceptions, where the Health workout is the better
+        // record of the training (`yields`): an archive workout counted only
+        // from its index entry, and a strap recording that covers only part
+        // of a longer Health workout.
         let authoritative = archive.filter { workout in
-            !workout.isIndexEstimate || !healthKit.contains { overlaps(workout, $0) }
+            !healthKit.contains { yields(workout, to: $0) }
         }
         let externalHealthKit = healthKit.filter { hk in
             !authoritative.contains { overlaps($0, hk) }
@@ -162,6 +161,26 @@ extension TrainingHealthQueries {
         let shorter = min(a.durationMinutes, b.durationMinutes) * 60.0
         guard shorter > 0 else { return false }
         return overlap / shorter >= 0.6
+    }
+
+    /// Whether the Health workout `hk` replaces `archived` in the load. An
+    /// index estimate (its file could not be read) carries only a span and a
+    /// mean heart rate, so Health's copy of the same session wins; the same
+    /// session covers most of both spans, so a short walk Apple detected
+    /// inside a long run does not stand in for the run. A strap recording
+    /// started part-way through a longer Health workout covers only part of
+    /// it, so the whole workout counts instead of the part.
+    nonisolated private static func yields(_ archived: HealthKitManager.WorkoutSummary, to hk: HealthKitManager.WorkoutSummary) -> Bool {
+        if coversMostOfBoth(archived, hk) { return archived.isIndexEstimate }
+        return hk.durationMinutes > archived.durationMinutes && overlaps(archived, hk)
+    }
+
+    /// Intersection >= 60 % of the LONGER workout's duration, so each covers
+    /// most of the other: the same session, not one nested in another.
+    nonisolated private static func coversMostOfBoth(_ a: HealthKitManager.WorkoutSummary, _ b: HealthKitManager.WorkoutSummary) -> Bool {
+        let longer = max(a.durationMinutes, b.durationMinutes) * 60.0
+        guard longer > 0 else { return false }
+        return intersectionSeconds(a, b) / longer >= 0.6
     }
 
     /// Score a workout by data richness for dedup tie-breaking.
