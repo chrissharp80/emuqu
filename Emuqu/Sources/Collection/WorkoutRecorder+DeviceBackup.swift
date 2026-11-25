@@ -28,7 +28,7 @@ extension WorkoutSessionLifecycle {
     /// recording feature is usable — which on a cold connect can be well past
     /// the workout's first minute.
     func startDeviceInternalBackupIfPossible(workoutId: UUID) {
-        guard core.polarManager.connectedDeviceType != .veritySense else {
+        guard core.strapLink.connectedDeviceType != .veritySense else {
             debugLog("[Recorder.start] device-internal backup skipped — Verity Sense can't record + stream simultaneously")
             return
         }
@@ -50,11 +50,11 @@ extension WorkoutSessionLifecycle {
     /// workout that asked for it, and a recording that started after that
     /// workout ended is stopped at once.
     private func armDeviceInternalBackup(for workoutId: UUID) async {
-        let manager = core.polarManager
+        let recorder = core.strapRecorder
         do {
-            try await manager.link.whenFeatureUsable(
+            try await recorder.link.whenFeatureUsable(
                 .h10Recording, until: nil, while: { [weak self] in self?.isRecording(workoutId) == true },
-                perform: { [weak self] in try await self?.armBackup(for: workoutId, manager: manager) }
+                perform: { [weak self] in try await self?.armBackup(for: workoutId, recorder: recorder) }
             )
         } catch {
             guard lifecycle.phase == .recording else { return }
@@ -67,10 +67,10 @@ extension WorkoutSessionLifecycle {
         lifecycle.phase == .recording && lifecycle.currentSession?.id == workoutId
     }
 
-    private func keepOrStopArmedBackup(for workoutId: UUID, manager: PolarManager) async {
+    private func keepOrStopArmedBackup(for workoutId: UUID, recorder: StrapRecordingCoordinator) async {
         guard isRecording(workoutId) else {
             debugLog("[Recorder.start] device-internal backup armed after its workout ended — stopping it", level: .warning)
-            await manager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+            await recorder.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
             return
         }
         lifecycle.deviceBackupArmedAt = Date()
@@ -78,14 +78,14 @@ extension WorkoutSessionLifecycle {
 
     /// `stillWanted` is asked before each destructive step, so a workout
     /// that ended meanwhile never has the strap cleared or started.
-    private func armBackup(for workoutId: UUID, manager: PolarManager) async throws {
-        try await Self.startH10Backup(manager, while: { isRecording(workoutId) })
-        await keepOrStopArmedBackup(for: workoutId, manager: manager)
+    private func armBackup(for workoutId: UUID, recorder: StrapRecordingCoordinator) async throws {
+        try await Self.startH10Backup(recorder, while: { isRecording(workoutId) })
+        await keepOrStopArmedBackup(for: workoutId, recorder: recorder)
     }
 
-    private static func startH10Backup(_ manager: PolarManager, while stillWanted: () -> Bool) async throws {
-        guard manager.connectedDeviceType != .veritySense else { return }
-        try await manager.recording.startFreshRecording(while: stillWanted)
+    private static func startH10Backup(_ recorder: StrapRecordingCoordinator, while stillWanted: () -> Bool) async throws {
+        guard recorder.linkState.connectedDeviceType != .veritySense else { return }
+        try await recorder.startFreshRecording(while: stillWanted)
         debugLog("[Recorder.start] device-internal backup started (H10)")
     }
 }
@@ -182,7 +182,7 @@ extension WorkoutRecorder {
               await shouldFetchDeviceRecording(streamingPoints: streamingPoints, startDate: startDate, stopDate: stopDate)
         else { return streamingPoints }
         debugLog("[Recorder.finalize] fetching H10 internal RR for workout merge…")
-        guard let recording = await core.polarManager.recording.fetchRecordingIfAvailable(recordedSince: startDate),
+        guard let recording = await core.strapRecorder.fetchRecordingIfAvailable(recordedSince: startDate),
               !recording.points.isEmpty
         else {
             debugLog("[Recorder.finalize] H10 fetch returned no points — using streaming only (\(streamingPoints.count) beats)")
@@ -202,10 +202,10 @@ extension WorkoutRecorder {
     /// A strap workout whose backup was armed: the strap is brought back if
     /// the link dropped, so it can be stopped or downloaded at all.
     private func strapHoldsThisWorkout() async -> Bool {
-        let manager = core.polarManager
-        guard lifecycle.activeHRSource == .strap, lifecycle.deviceBackupArmedAt != nil || manager.isRecordingOnDevice else { return false }
-        manager.recording.beginTransfer()
-        guard await manager.recording.reconnectForTransfer() else {
+        let recorder = core.strapRecorder
+        guard lifecycle.activeHRSource == .strap, lifecycle.deviceBackupArmedAt != nil || recorder.device.isRecordingOnDevice else { return false }
+        recorder.beginTransfer()
+        guard await recorder.reconnectForTransfer() else {
             debugLogExternal("The strap didn't come back after the workout, so its own recording couldn't be stopped or read — using the live stream. The strap keeps recording until it is next connected, when the Record screen offers to recover it.", cause: .strap)
             return false
         }
@@ -235,7 +235,7 @@ extension WorkoutRecorder {
         ) {
         case let .skipFetch(density, expectedBeats):
             debugLog("[Recorder.finalize] skipping H10 fetch — streaming density \(String(format: "%.0f%%", density * 100)) (\(streamingPoints.count) beats / \(Int(expectedBeats)) expected) — saves ~30-60s of BLE wait")
-            await core.polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: true)
+            await core.strapRecorder.stopDeviceRecordingIfNeeded(streamHoldsIt: true)
             return false
         case let .fetch(belowThresholdDensity):
             if let density = belowThresholdDensity {
@@ -251,7 +251,7 @@ extension WorkoutRecorder {
     /// post-stop HRR capture task keeps the stream open for up to 120 s
     /// to sample HR at +60 / +120 s, which means a user who closes the
     /// summary and immediately starts another workout would otherwise
-    /// hit a `strapBusy` throw because `polarManager.isStreaming == true`.
+    /// hit a `strapBusy` throw because `strapStream.isStreaming == true`.
     /// Calling `stopStreaming()` here is safe — the HRR task is already
     /// holding any samples it captured before this point, so the data
     /// in the archive is whatever was recoverable in the time window
@@ -260,8 +260,8 @@ extension WorkoutRecorder {
         if lifecycle.phase == .finished {
             lifecycle.finishedSession = nil
             lifecycle.phase = .idle
-            if core.polarManager.isStreaming {
-                _ = core.polarManager.stopStreaming()
+            if core.strapStream.isStreaming {
+                _ = core.strapStream.stopStreaming()
                 debugLog("[WorkoutRecorder] acknowledgeFinished — stopped lingering Polar stream")
             }
         }

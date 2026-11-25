@@ -33,10 +33,10 @@ extension DeviceRecordingSession {
     func startSession(sessionType: SessionType = .overnight) async throws {
         try strapGuards.requireConnectedWithNoNightHeld(starting: "a strap recording")
         // The strap's own answer, not a flag a stopped recording left behind.
-        await polarManager.recording.refreshRecordingState(
+        await strapRecorder.refreshRecordingState(
             until: Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds)
         )
-        guard !polarManager.isRecordingOnDevice else {
+        guard !strapRecording.isRecordingOnDevice else {
             throw RRCollector.CollectorError.alreadyRecording
         }
         let session = HRVSession(sessionType: sessionType, deviceProvenance: deviceRecordingProvenance())
@@ -44,7 +44,7 @@ extension DeviceRecordingSession {
         guard !reconciliation.sessionExists(session.id) else {
             throw RRCollector.CollectorError.sessionExists
         }
-        try await polarManager.recording.startRecording()
+        try await strapRecorder.startRecording()
         await publishDeviceRecordingStarted(session: session, startTime: startTime)
         // Persisted at once, with the phase just set: survives app crashes,
         // phone reboots, etc.
@@ -54,8 +54,8 @@ extension DeviceRecordingSession {
     /// Captured before starting — tracks source device and collection method.
     func deviceRecordingProvenance() -> DeviceProvenance {
         DeviceProvenance.current(
-            deviceId: polarManager.connectedDeviceId ?? "unknown",
-            deviceModel: polarManager.connectedDeviceType?.displayName ?? "Polar device",
+            deviceId: strapLink.connectedDeviceId ?? "unknown",
+            deviceModel: strapLink.connectedDeviceType?.displayName ?? "Polar device",
             firmwareVersion: nil,
             recordingMode: .deviceInternal
         )
@@ -89,17 +89,17 @@ extension DeviceRecordingSession {
     /// nil is returned.
     func stopSession() async throws -> HRVSession? {
         guard !strapGuards.isHeldElsewhere("stopping") else { return nil }
-        guard polarManager.connectionState == .connected else {
+        guard strapLink.connectionState == .connected else {
             throw RRCollector.CollectorError.notConnected
         }
         // The download runs from the tap; see `stopOvernightStreaming`.
         let bgTask = BackgroundTaskAssertion.forRecordingStop(named: "DeviceRecordingStop")
         defer { bgTask.end() }
         let base = resolveBaseSession()
-        polarManager.recording.beginTransfer()
+        strapRecorder.beginTransfer()
         let recording: StrapRecording
         do {
-            recording = try await polarManager.recording.fetchRecording(recordedSince: base?.startDate, budget: .attended)
+            recording = try await strapRecorder.fetchRecording(recordedSince: base?.startDate, budget: .attended)
         } catch {
             return await makeFailedSession(from: base ?? HRVSession(), error: error)
         }
@@ -181,7 +181,7 @@ extension DeviceRecordingSession {
             selectedSource: source, streamingBeats: archivedCount, deviceBeats: deviceCount,
             totalBeats: totalCount, beatDifferencePercent: differencePercent,
             reconnectCount: existing?.dataSourceSummary?.reconnectCount ?? 0,
-            deviceModel: existing?.deviceProvenance?.deviceModel ?? polarManager.connectedDeviceType?.displayName
+            deviceModel: existing?.deviceProvenance?.deviceModel ?? strapLink.connectedDeviceType?.displayName
         )
     }
 
@@ -379,7 +379,7 @@ extension DeviceRecordingSession {
             try rawBackup.backup(
                 points: points,
                 sessionId: sessionId,
-                deviceId: polarManager.connectedDeviceId,
+                deviceId: strapLink.connectedDeviceId,
                 captureDate: startDate
             )
         } catch {

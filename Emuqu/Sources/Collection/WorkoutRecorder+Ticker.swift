@@ -162,13 +162,13 @@ extension WorkoutTicker {
         tickTimer = nil
     }
 
-    /// PolarManager already publishes a heart rate the HRV path consumes.
+    /// The strap link already publishes a heart rate the HRV path consumes.
     /// Observe it through `ObservationLoop` and mirror the latest value into
     /// `workoutHR` for the UI. Changes arrive as a main-actor hop rather than
     /// through a run-loop mode, so the mirror keeps updating while the user is
     /// touching the screen.
     func observeHeartRate() {
-        hrSubscription = ObservationLoop.observe(self, initial: true, read: { $0.core.polarManager.currentHeartRate }, onChange: { ticker, newHR in
+        hrSubscription = ObservationLoop.observe(self, initial: true, read: { $0.core.strapLink.currentHeartRate }, onChange: { ticker, newHR in
             ticker.mirrorStrapHeartRate(newHR)
         })
     }
@@ -191,7 +191,7 @@ extension WorkoutTicker {
     /// slice to the DFA each tick to avoid reprocessing the whole session.
     ///
     /// Why derive HR from RR here instead of subscribing to
-    /// PolarManager.currentHeartRate: the strap broadcasts HR on a
+    /// StrapLinkState.currentHeartRate: the strap broadcasts HR on a
     /// separate BLE service from RR. That HR publisher is flaky — drops
     /// silently, doesn't republish when the value is unchanged. Users see
     /// this during overnight recordings ("beats stacking but the HR
@@ -203,7 +203,7 @@ extension WorkoutTicker {
     /// so the per-tick build is skipped when the assistant is off (matches
     /// the geocode gate in `refreshEnvironmentContextIfNeeded`).
     func incrementalBackupTick() {
-        let buffer = core.polarManager.streamedRRPoints
+        let buffer = core.strapStream.streamedRRPoints
         workoutHR.beatCount = buffer.count
 
         runIncrementalBackup(buffer: buffer)
@@ -260,7 +260,7 @@ extension WorkoutTicker {
     private func runIncrementalBackup(buffer: [RRPoint]) {
         guard let session = lifecycle.currentSession else { return }
         let sessionId = session.id
-        let deviceId = core.polarManager.connectedDeviceId
+        let deviceId = core.strapLink.connectedDeviceId
         let bufferSnapshot = buffer  // copy before handing off
         let backup = core.rawBackup
         let cloudSyncManager = core.cloudSyncManager
@@ -421,7 +421,7 @@ extension WorkoutTicker {
     /// of the phone beats' `wallClockMs`. The workout start stands in when
     /// no stream ran.
     private var streamClockBaseEpochMs: Int64 {
-        let base = core.polarManager.streamingStartTime ?? lifecycle.sessionStartDate
+        let base = core.strapStream.streamingStartTime ?? lifecycle.sessionStartDate
         return Int64((base?.timeIntervalSince1970 ?? 0) * 1000)
     }
 
@@ -499,7 +499,7 @@ extension WorkoutTicker {
             strapSilentFor: signals.lastStrapHRAt.map { Date().timeIntervalSince($0) } ?? .infinity,
             watchRoutedSilentFor: capture.watchRouted.lastAt.map { Date().timeIntervalSince($0) } ?? .infinity,
             latestWatchHR: watchBridge.freshWristHR(now: Date()),
-            strapFeed: core.polarManager.feedStatus
+            strapFeed: core.strapLink.feedStatus
         ))
         applyDisplayHR(arbitration)
         if lifecycle.strapNotice != arbitration.strapNotice {
@@ -653,7 +653,7 @@ extension WorkoutTicker {
         ))
     }
 
-    /// Defensive memory cap, mirroring PolarManager's RR streaming
+    /// Defensive memory cap, mirroring the strap stream's RR streaming
     /// buffer. One WorkoutSample is appended ~1 Hz, so 12h of samples
     /// is the ceiling; a normal-length workout never reaches it. If
     /// exceeded (e.g. a session left running for days), drop the
@@ -748,7 +748,7 @@ extension WorkoutTicker {
         return AssistantContext.LiveWorkoutSnapshot(
             sport: sport.displayName, snapshotAt: Date(), sessionStartAt: lifecycle.sessionStartDate ?? Date(), elapsedSeconds: lifecycle.elapsedSeconds, heartRate: workoutHR.currentHR, peakHR: workoutHR.peakHR, userMaxHR: settingsProvider().effectiveMaxHR,
             beatCount: workoutHR.beatCount, distanceMeters: motion.distanceMeters, stepCount: motion.stepCount, cadenceStepsPerMin: motion.cadenceStepsPerMin, elevationGainMeters: motion.elevationGainMeters, alpha1: dfa.currentAlpha1,
-            alpha1Band: dfa.currentBand.label, alpha1Status: dfa.status.label, alpha1FitQualityR2: dfa.fitQuality, strapConnected: core.polarManager.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: motion.liveTrack.count,
+            alpha1Band: dfa.currentBand.label, alpha1Status: dfa.status.label, alpha1FitQualityR2: dfa.fitQuality, strapConnected: core.strapLink.connectionState == .connected, strapSilentSec: strapSilent, gpsFixCount: motion.liveTrack.count,
             gpsAccuracyMeters: sensors.startedLocation?.lastHorizontalAccuracy, currentPaceSecPerKm: signals.currentPaceSecPerKm, currentSpeedMS: speedMS, powerWatts: motion.powerWatts, currentMETs: lastSample?.mets, recentSplitPaces: aiContext.recentSplitPacesSecPerKm(),
             currentLatitude: loc?.coordinate.latitude, currentLongitude: loc?.coordinate.longitude, currentAltitudeMeters: loc?.altitude, currentHeadingDegrees: heading, currentHeadingCardinal: heading.map(Self.cardinal(fromCourse:)),
             currentGradePercent: aiContext.computeCurrentGradePercent(), unitsPreference: UnitsPreferenceStore.current.rawValue, targetZone: lifecycle.targetZone, recognizedRouteName: routeGuidance.planned?.name, recognizedRouteWasAutoDetected: routeGuidance.wasAutoDetected,

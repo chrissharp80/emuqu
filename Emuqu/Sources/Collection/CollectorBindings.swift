@@ -26,7 +26,8 @@ final class CollectorBindings {
     let morningCoordination: MorningCoordination
     let notificationObservers: NotificationTokens
     let overnightRun: OvernightRunState
-    let polarManager: PolarManager
+    let strapRecorder: StrapRecordingCoordinator
+    let strapStream: StrapStreamSession
     let recovery: SessionRecoveryCoordinator
     let services: CollectorServices
     let sessionState: SessionState
@@ -47,7 +48,8 @@ final class CollectorBindings {
         morningCoordination: MorningCoordination,
         notificationObservers: NotificationTokens,
         overnightRun: OvernightRunState,
-        polarManager: PolarManager,
+        strapRecorder: StrapRecordingCoordinator,
+        strapStream: StrapStreamSession,
         recovery: SessionRecoveryCoordinator,
         services: CollectorServices,
         sessionState: SessionState,
@@ -67,7 +69,8 @@ final class CollectorBindings {
         self.morningCoordination = morningCoordination
         self.notificationObservers = notificationObservers
         self.overnightRun = overnightRun
-        self.polarManager = polarManager
+        self.strapRecorder = strapRecorder
+        self.strapStream = strapStream
         self.recovery = recovery
         self.services = services
         self.sessionState = sessionState

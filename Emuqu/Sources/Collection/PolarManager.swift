@@ -67,8 +67,9 @@ enum PolarDeviceType: String, Codable {
 ///
 /// The strap's parts each hold only what they use. The state they share lives
 /// in small observed objects owned here — `linkState`, `pairings`,
-/// `deviceRecording`, `stream`, `battery`, the discovery results — and the
-/// properties below read and write those for the views and the collector.
+/// `deviceRecording`, `stream`, `battery`, the discovery results. Everything
+/// outside the views takes the parts it uses; the properties below read those
+/// parts for the views, and `lastError` also clears from them.
 @Observable
 @MainActor
 final class PolarManager: NSObject {
@@ -105,138 +106,47 @@ final class PolarManager: NSObject {
         StrapRecordingCoordinator(link: link, device: deviceRecording, discovery: discovery)
     }
 
-    // MARK: - State the app reads
+    // MARK: - State the views read
 
-    var connectionState: ConnectionState {
-        get { linkState.connectionState }
-        set { linkState.connectionState = newValue }
-    }
-    var connectedDeviceId: String? {
-        get { linkState.connectedDeviceId }
-        set { linkState.connectedDeviceId = newValue }
-    }
-    var connectedDeviceType: PolarDeviceType? {
-        get { linkState.connectedDeviceType }
-        set { linkState.connectedDeviceType = newValue }
-    }
+    var connectionState: ConnectionState { linkState.connectionState }
+    var connectedDeviceId: String? { linkState.connectedDeviceId }
+    var connectedDeviceType: PolarDeviceType? { linkState.connectedDeviceType }
     /// Device ID of a connection attempt in progress (set during `.connecting`, cleared on connect/cancel).
-    var pendingDeviceId: String? {
-        get { linkState.pendingDeviceId }
-        set { linkState.pendingDeviceId = newValue }
-    }
+    var pendingDeviceId: String? { linkState.pendingDeviceId }
     var lastError: Error? {
         get { linkState.lastError }
         set { linkState.lastError = newValue }
     }
-    var batteryLevel: Int? {
-        get { linkState.batteryLevel }
-        set { linkState.batteryLevel = newValue }
-    }
+    var batteryLevel: Int? { linkState.batteryLevel }
     /// See `StrapLinkState.isBatteryReadingStale`.
     var isBatteryReadingStale: Bool { linkState.isBatteryReadingStale }
-    var firmwareVersion: String? {
-        get { linkState.firmwareVersion }
-        set { linkState.firmwareVersion = newValue }
-    }
+    var firmwareVersion: String? { linkState.firmwareVersion }
     /// The strap's own heart-rate reading, live whenever a strap is linked.
-    var currentHeartRate: Int? {
-        get { linkState.currentHeartRate }
-        set { linkState.currentHeartRate = newValue }
-    }
-
-    /// Feature readiness for the current link; see `StrapReadiness`.
-    var readiness: StrapReadiness {
-        get { linkState.readiness }
-        set { linkState.readiness = newValue }
-    }
-    var isH10RecordingFeatureReady: Bool { readiness.isReady(.h10Recording) }
-    var isHrStreamingReady: Bool { readiness.isReady(.heartRate) }
+    var currentHeartRate: Int? { linkState.currentHeartRate }
 
     /// Whether heart rate is actually arriving, as opposed to merely connected.
-    var feedStatus: StrapFeedHealth.Status {
-        get { linkState.feedStatus }
-        set { linkState.feedStatus = newValue }
-    }
+    var feedStatus: StrapFeedHealth.Status { linkState.feedStatus }
 
     /// True while the strap is linked but has stopped delivering heart rate.
     var connectionHealthWarning: Bool { feedStatus == .stalled }
 
-    var discoveredDevices: [DiscoveredDevice] {
-        get { discoveryResults.discoveredDevices }
-        set { discoveryResults.discoveredDevices = newValue }
-    }
-    var knownDevices: [KnownDevice] {
-        get { pairings.knownDevices }
-        set { pairings.knownDevices = newValue }
-    }
+    var discoveredDevices: [DiscoveredDevice] { discoveryResults.discoveredDevices }
+    var knownDevices: [KnownDevice] { pairings.knownDevices }
     /// When this device was last successfully connected.
-    var lastConnectedTime: Date? {
-        get { pairings.lastConnectedTime }
-        set { pairings.lastConnectedTime = newValue }
-    }
-    /// The most recently connected device ID (first in knownDevices list)
-    var lastConnectedDeviceId: String? { pairings.lastConnectedDeviceId }
+    var lastConnectedTime: Date? { pairings.lastConnectedTime }
 
-    var recordingState: RecordingState {
-        get { deviceRecording.recordingState }
-        set { deviceRecording.recordingState = newValue }
-    }
-    var isRecordingOnDevice: Bool {
-        get { deviceRecording.isRecordingOnDevice }
-        set { deviceRecording.isRecordingOnDevice = newValue }
-    }
+    var recordingState: RecordingState { deviceRecording.recordingState }
+    var isRecordingOnDevice: Bool { deviceRecording.isRecordingOnDevice }
     /// True if H10 has stored data that can be recovered.
-    var hasStoredExercise: Bool {
-        get { deviceRecording.hasStoredExercise }
-        set { deviceRecording.hasStoredExercise = newValue }
-    }
+    var hasStoredExercise: Bool { deviceRecording.hasStoredExercise }
     /// Date of stored exercise on H10 (for archive comparison).
-    var storedExerciseDate: Date? {
-        get { deviceRecording.storedExerciseDate }
-        set { deviceRecording.storedExerciseDate = newValue }
-    }
-    /// Non-nil during fetch operations.
-    var fetchProgress: FetchProgress? {
-        get { deviceRecording.fetchProgress }
-        set { deviceRecording.fetchProgress = newValue }
-    }
-    /// See `StrapRecordingState.transfersInFlight`.
-    var transfersInFlight: Int {
-        get { deviceRecording.transfersInFlight }
-        set { deviceRecording.transfersInFlight = newValue }
-    }
-    /// See `StrapRecordingState.savedRecordingCheck`.
-    var savedRecordingCheck: ((Date) -> Bool)? {
-        get { deviceRecording.savedRecordingCheck }
-        set { deviceRecording.savedRecordingCheck = newValue }
-    }
-    /// The strap recordings already downloaded; see `StrapDownloadLedger`.
-    var downloadLedger: StrapDownloadLedger {
-        get { deviceRecording.downloadLedger }
-        set { deviceRecording.downloadLedger = newValue }
-    }
-    /// See `StrapRecordingState.onUnrecoveredDataRescued`.
-    var onUnrecoveredDataRescued: ((StrapRecording) -> Bool)? {
-        get { deviceRecording.onUnrecoveredDataRescued }
-        set { deviceRecording.onUnrecoveredDataRescued = newValue }
-    }
+    var storedExerciseDate: Date? { deviceRecording.storedExerciseDate }
 
     var isStreaming: Bool { stream.isStreaming }
-    var streamingElapsedSeconds: Int { stream.streamingElapsedSeconds }
-    /// The full streaming buffer (no SwiftUI observation per beat).
-    var streamedRRPoints: [RRPoint] { stream.streamedRRPoints }
     /// Lightweight published count so the UI can display beat totals without copying the array.
     var streamedRRCount: Int { stream.streamedRRCount }
     /// Last N points for live waveform / stats display.
     var recentRRPoints: [RRPoint] { stream.recentRRPoints }
-    var streamingStartTime: Date? { stream.streamingStartTime }
-    /// Links re-established during the current session.
-    var streamingReconnectCount: Int { stream.streamingReconnectCount }
-    /// See `StrapStreamSession.reconnectExhausted`.
-    var reconnectExhausted: Bool {
-        get { stream.reconnectExhausted }
-        set { stream.reconnectExhausted = newValue }
-    }
 
     // MARK: - Types
 
@@ -357,7 +267,9 @@ final class PolarManager: NSObject {
         self.pairings = pairings
         discoveryResults = StrapDiscoveryState()
         deviceRecording = StrapRecordingState()
-        stream = StrapStreamSession(link: StrapLinkControl(state: linkState, runtime: linkRuntime, radio: radio))
+        stream = StrapStreamSession(
+            link: StrapLinkControl(state: linkState, runtime: linkRuntime, radio: radio), pairings: pairings
+        )
         battery = StrapBatteryUsageTracker(link: linkState, pairings: pairings)
         super.init()
         // Defer setupPolarApi() — CoreBluetooth init is expensive and not needed

@@ -19,11 +19,11 @@ final class StrapTransferTests: XCTestCase {
     /// download paths write to it while `startFreshRecording` reads it back.
     private func linkedManager(_ radio: FakeStrapRadio, type: PolarDeviceType = .h10) -> PolarManager {
         let manager = PolarManager()
-        manager.downloadLedger = StrapDownloadLedger(defaults: isolatedDefaults())
+        manager.deviceRecording.downloadLedger = StrapDownloadLedger(defaults: isolatedDefaults())
         manager.radio.radioForTesting = radio
         manager.setConnectedDeviceForTesting(id: deviceId, type: type)
-        manager.readiness.linkEstablished()
-        manager.readiness.settleWithoutSummary()
+        manager.linkState.readiness.linkEstablished()
+        manager.linkState.readiness.settleWithoutSummary()
         return manager
     }
 
@@ -36,8 +36,8 @@ final class StrapTransferTests: XCTestCase {
         radio.setRecording(ongoing: true, entryId: exerciseId(start))
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 800, count: beats))
         let manager = linkedManager(radio)
-        manager.recordingState = .recording
-        manager.isRecordingOnDevice = true
+        manager.deviceRecording.recordingState = .recording
+        manager.deviceRecording.isRecordingOnDevice = true
         return manager
     }
 
@@ -85,7 +85,7 @@ final class StrapTransferTests: XCTestCase {
         let night = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 20 * 3600).rounded(.down))
         let manager = armedStrap(radio, start: night, beats: 3_000)
         var rescued: [RRPoint] = []
-        manager.onUnrecoveredDataRescued = { rescued = $0.points; return true }
+        manager.deviceRecording.onUnrecoveredDataRescued = { rescued = $0.points; return true }
 
         await manager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
         try await manager.recording.startFreshRecording()
@@ -113,8 +113,8 @@ final class StrapTransferTests: XCTestCase {
     func testAStatusReadCorrectsAStaleRecordingState() async throws {
         let radio = FakeStrapRadio()
         let manager = linkedManager(radio)
-        manager.recordingState = .recording
-        manager.isRecordingOnDevice = true
+        manager.deviceRecording.recordingState = .recording
+        manager.deviceRecording.isRecordingOnDevice = true
 
         _ = try await manager.recording.checkRecordingStatus()
 
@@ -197,7 +197,7 @@ final class StrapTransferTests: XCTestCase {
         guard case let .failure(error) = result else { return XCTFail("a hung download returned beats") }
         XCTAssertEqual(error.localizedDescription, PolarManager.PolarError.fetchFailed("").localizedDescription)
         XCTAssertEqual(manager.recordingState, .idle)
-        XCTAssertNil(manager.fetchProgress)
+        XCTAssertNil(manager.deviceRecording.fetchProgress)
     }
 
     /// The deadline itself returns when the call never does.
@@ -244,7 +244,7 @@ final class StrapTransferTests: XCTestCase {
         _ = try await manager.recording.fetchRecording(recordedSince: nil, budget: .unattended)
 
         XCTAssertTrue(manager.hasStoredExercise, "the strap keeps its copy")
-        XCTAssertTrue(manager.downloadLedger.wasDownloaded(recordingStartedAt: start))
+        XCTAssertTrue(manager.deviceRecording.downloadLedger.wasDownloaded(recordingStartedAt: start))
     }
 
     // MARK: - Placing beats on a session's clock

@@ -469,7 +469,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
     /// mid-stream drop and the recording-hours counter survives every one.
     private func connectedPolar() -> PolarManager? {
         MainActor.assumeIsolated {
-            guard let p = RRCollector.current?.polarManager, p.connectionState == .connected else { return nil }
+            guard let p = RRCollector.current?.polarManager, p.linkState.connectionState == .connected else { return nil }
             return p
         }
     }
@@ -501,7 +501,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             valueType: "Bool"
         ) {
             guard let p = self.polar() else { return .boolean(false) }
-            return .boolean(MainActor.assumeIsolated { p.connectionState == .connected })
+            return .boolean(MainActor.assumeIsolated { p.linkState.connectionState == .connected })
         }
     }
 
@@ -514,7 +514,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             guard let p = self.connectedPolar() else {
                 return .missing(reason: .notRecorded, detail: "no Polar connected")
             }
-            let lvl = MainActor.assumeIsolated { p.batteryLevel }
+            let lvl = MainActor.assumeIsolated { p.linkState.batteryLevel }
             return .from(lvl, detail: "battery never reported")
         }
     }
@@ -543,7 +543,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             valueType: "Double"
         ) {
             guard let p = self.connectedPolar(),
-                  let t = MainActor.assumeIsolated({ p.connectedDeviceType })
+                  let t = MainActor.assumeIsolated({ p.linkState.connectedDeviceType })
             else {
                 return .missing(reason: .notRecorded, detail: "no Polar connected")
             }
@@ -557,7 +557,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             description: "Connected Polar device type: 'Polar H10' (chest strap) or 'Polar Verity Sense' (optical armband).",
             valueType: "String"
         ) {
-            guard let p = self.connectedPolar(), let t = MainActor.assumeIsolated({ p.connectedDeviceType }) else {
+            guard let p = self.connectedPolar(), let t = MainActor.assumeIsolated({ p.linkState.connectedDeviceType }) else {
                 return .missing(reason: .notRecorded, detail: "no Polar connected")
             }
             return .string(t.displayName)
@@ -573,7 +573,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             guard let p = self.connectedPolar() else {
                 return .missing(reason: .notRecorded, detail: "no Polar connected")
             }
-            let fw = MainActor.assumeIsolated { p.firmwareVersion }
+            let fw = MainActor.assumeIsolated { p.linkState.firmwareVersion }
             return .from(fw, detail: "firmware not yet read")
         }
     }
@@ -585,7 +585,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             valueType: "Int"
         ) {
             guard let p = self.polar() else { return .integer(0) }
-            return .integer(MainActor.assumeIsolated { p.knownDevices.count })
+            return .integer(MainActor.assumeIsolated { p.pairings.knownDevices.count })
         }
     }
 

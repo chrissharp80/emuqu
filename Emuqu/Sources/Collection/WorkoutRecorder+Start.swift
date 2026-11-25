@@ -220,7 +220,7 @@ extension WorkoutSessionLifecycle {
             throw WorkoutRecorderError.strapBusy
         }
         if case .reconnectThenUseStrap = resolution {
-            core.polarManager.discovery.connectToLastDevice()
+            core.strapDiscovery.connectToLastDevice()
         }
         return resolved
     }
@@ -230,9 +230,9 @@ extension WorkoutSessionLifecycle {
     private func currentSourceResolution(requested source: HRSource) -> WorkoutHRSourceResolver.Resolution {
         WorkoutHRSourceResolver.resolve(
             requested: source,
-            strapIsRecordingOnDevice: core.polarManager.isRecordingOnDevice,
-            strapIsConnected: core.polarManager.connectionState == .connected,
-            hasKnownDevices: !core.polarManager.knownDevices.isEmpty,
+            strapIsRecordingOnDevice: core.strapRecording.isRecordingOnDevice,
+            strapIsConnected: core.strapLink.connectionState == .connected,
+            hasKnownDevices: !core.strapPairings.knownDevices.isEmpty,
             isWatchPaired: services.watchConnectivityBridge.isWatchPaired
         )
     }
@@ -249,14 +249,14 @@ extension WorkoutSessionLifecycle {
     /// has rendered). Any other stream refuses the start with `strapBusy`
     /// rather than discard that session's buffered beats.
     private func stopOwnStaleStreamOrRefuse() throws {
-        let polar = core.polarManager
-        guard polar.isStreaming else { return }
-        guard let ownStart = lifecycle.ownedStrapStreamStart, polar.streamingStartTime == ownStart else {
+        let stream = core.strapStream
+        guard stream.isStreaming else { return }
+        guard let ownStart = lifecycle.ownedStrapStreamStart, stream.streamingStartTime == ownStart else {
             debugLog("[Recorder.start] BAIL — the strap is buffering for another session", level: .warning)
             throw WorkoutRecorderError.strapBusy
         }
         debugLog("[Recorder.start] stale Polar stream detected with recorder idle — stopping inline before new session")
-        _ = polar.stopStreaming()
+        _ = stream.stopStreaming()
     }
 
     /// start() — device-provenance construction from the post-downgrade source (sync-breakdown `session` span).
@@ -271,8 +271,8 @@ extension WorkoutSessionLifecycle {
         switch effectiveSource {
         case .strap:
             identity = (
-                core.polarManager.connectedDeviceId ?? "unknown",
-                core.polarManager.connectedDeviceType?.displayName ?? "Polar device"
+                core.strapLink.connectedDeviceId ?? "unknown",
+                core.strapLink.connectedDeviceType?.displayName ?? "Polar device"
             )
         case .watch:
             identity = ("apple-watch", "Apple Watch")
@@ -299,9 +299,9 @@ extension WorkoutSessionLifecycle {
     func beginPolarStreamingOrDefer(effectiveSource: HRSource, workoutId: UUID) throws {
         lifecycle.strapNotice = nil
         guard effectiveSource == .strap else { return }
-        debugLog("[Recorder.start] step=polar.startStreaming (link: \(core.polarManager.connectionState))")
-        try core.polarManager.startStreaming()
-        lifecycle.ownedStrapStreamStart = core.polarManager.streamingStartTime
+        debugLog("[Recorder.start] step=polar.startStreaming (link: \(core.strapLink.connectionState))")
+        try core.strapStream.startStreaming()
+        lifecycle.ownedStrapStreamStart = core.strapStream.streamingStartTime
         debugLog("[Recorder.start] step=polar.startStreaming done")
         startDeviceInternalBackupIfPossible(workoutId: workoutId)
     }

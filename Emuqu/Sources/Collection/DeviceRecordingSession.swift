@@ -13,7 +13,9 @@ final class DeviceRecordingSession {
     let artifactDetector: ArtifactDetector
     let baselineTracker: BaselineTracker
     let healthKit: HealthKitManager
-    let polarManager: PolarManager
+    let strapLink: StrapLinkState
+    let strapRecording: StrapRecordingState
+    let strapRecorder: StrapRecordingCoordinator
     let rawBackup: RawRRBackup
     let reconciliation: ReconciliationManager
     let recordingStore: RecordingStateStore
@@ -31,7 +33,9 @@ final class DeviceRecordingSession {
         artifactDetector: ArtifactDetector,
         baselineTracker: BaselineTracker,
         healthKit: HealthKitManager,
-        polarManager: PolarManager,
+        strapLink: StrapLinkState,
+        strapRecording: StrapRecordingState,
+        strapRecorder: StrapRecordingCoordinator,
         rawBackup: RawRRBackup,
         reconciliation: ReconciliationManager,
         recordingStore: RecordingStateStore,
@@ -48,7 +52,9 @@ final class DeviceRecordingSession {
         self.artifactDetector = artifactDetector
         self.baselineTracker = baselineTracker
         self.healthKit = healthKit
-        self.polarManager = polarManager
+        self.strapLink = strapLink
+        self.strapRecording = strapRecording
+        self.strapRecorder = strapRecorder
         self.rawBackup = rawBackup
         self.reconciliation = reconciliation
         self.recordingStore = recordingStore

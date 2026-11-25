@@ -29,8 +29,8 @@ final class StrapNightTests: XCTestCase {
         let manager = PolarManager()
         manager.radio.radioForTesting = radio
         manager.setConnectedDeviceForTesting(id: deviceId, type: type)
-        manager.readiness.linkEstablished()
-        if settled { manager.readiness.settleWithoutSummary() }
+        manager.linkState.readiness.linkEstablished()
+        if settled { manager.linkState.readiness.settleWithoutSummary() }
         return manager
     }
 
@@ -82,7 +82,7 @@ final class StrapNightTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(lastNight), date: lastNight, rrMs: Array(repeating: 900, count: 500))
         let manager = linkedManager(radio)
         var rescued: [RRPoint] = []
-        manager.onUnrecoveredDataRescued = { rescued = $0.points; return true }
+        manager.deviceRecording.onUnrecoveredDataRescued = { rescued = $0.points; return true }
 
         try await manager.recording.startFreshRecording()
 
@@ -179,7 +179,7 @@ final class StrapNightTests: XCTestCase {
         XCTAssertEqual(manager.isRecordingOnDevice, recordingBeforeDrop,
                        "the drop must not decide anything about the strap's own recording")
         manager.linkEvents.apply(.connected(deviceId: deviceId, name: "Polar H10 NIGHT"))
-        manager.readiness.settleWithoutSummary()
+        manager.linkState.readiness.settleWithoutSummary()
 
         let points = try await manager.recording.fetchRecording(recordedSince: nil, budget: .attended).points
         XCTAssertEqual(points.count, 25_000, "the night was lost across the reconnect")
@@ -226,13 +226,13 @@ final class StrapNightTests: XCTestCase {
         let radio = FakeStrapRadio()
         radio.queueHeartRate(bpm: 58, rrsMs: [1_030, 1_020])
         let manager = linkedManager(radio)
-        try manager.startStreaming()
+        try manager.stream.startStreaming()
 
         manager.linkEvents.feed.restart()
-        try await waitUntil { manager.streamedRRPoints.count >= 2 }
+        try await waitUntil { manager.stream.streamedRRPoints.count >= 2 }
 
         XCTAssertEqual(manager.currentHeartRate, 58)
-        XCTAssertEqual(manager.streamedRRPoints.map(\.rr_ms), [1_030, 1_020])
+        XCTAssertEqual(manager.stream.streamedRRPoints.map(\.rr_ms), [1_030, 1_020])
         XCTAssertEqual(manager.feedStatus, .live)
     }
 
@@ -260,7 +260,7 @@ final class StrapNightTests: XCTestCase {
         radio.refuse("startHrStreaming", times: 3, with: BleGattException.gattDisconnected)
         radio.queueHeartRate(bpm: 61, rrsMs: [980])
         let manager = linkedManager(radio)
-        try manager.startStreaming()
+        try manager.stream.startStreaming()
 
         manager.linkEvents.feed.restart()
         try await waitUntil(timeout: 30) { manager.currentHeartRate != nil }

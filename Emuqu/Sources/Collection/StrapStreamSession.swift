@@ -7,14 +7,17 @@ import os
 /// It opens no Bluetooth subscription: the feed (`StrapHeartRateFeed`) is the
 /// link's and delivers here through `ingestHeartRate` / `ingestPpi`, which also
 /// keep the live heart-rate reading whether or not a session runs. Starting
-/// and stopping a session is `PolarManager`'s, which also moves the feed.
+/// and stopping a session also moves a Verity Sense's feed between HR and PPI.
 @Observable
 @MainActor
 final class StrapStreamSession {
     @ObservationIgnored private let link: StrapLinkControl
+    /// The straps this app knows: a session may start on one still reconnecting.
+    @ObservationIgnored private let pairings: StrapPairings
 
-    init(link: StrapLinkControl) {
+    init(link: StrapLinkControl, pairings: StrapPairings) {
         self.link = link
+        self.pairings = pairings
     }
 
     var isStreaming: Bool = false
@@ -73,6 +76,47 @@ final class StrapStreamSession {
     }
 
     // MARK: - Session
+
+    /// Start buffering RR intervals (H10) or PPI intervals (Verity Sense).
+    ///
+    /// Needs a strap this app knows, not a live link: a workout started while
+    /// the strap is still reconnecting begins buffering the moment it is back.
+    func startStreaming() throws {
+        guard link.state.connectedDeviceId != nil || !pairings.knownDevices.isEmpty else {
+            throw PolarManager.PolarError.notConnected
+        }
+        guard !isStreaming else {
+            throw PolarManager.PolarError.alreadyRecording
+        }
+        resetStreamingState()
+        startStreamingElapsedTimer()
+        if link.state.connectedDeviceType == .veritySense {
+            // The Verity carries intervals on PPI, not on the HR service.
+            feed.restart()
+        }
+        debugLog("[PolarManager] Session buffering started (link: \(link.state.connectionState), feed: \(link.state.feedStatus))")
+    }
+
+    /// Stop buffering and return the collected points.
+    func stopStreaming() -> [RRPoint] {
+        stopStreamingInternal()
+        let points = _streamedRRPoints
+        debugLog("[PolarManager] Stopped streaming with \(points.count) RR points")
+        return points
+    }
+
+    private func stopStreamingInternal() {
+        let wasStreaming = isStreaming
+        endStreaming()
+        link.sessionEnded()
+        // Don't reset reconnectExhausted here — consumers need to read it first.
+        if wasStreaming, link.state.connectedDeviceType == .veritySense {
+            feed.restart()
+        }
+    }
+
+    /// The link's heart-rate feed, which delivers into this session.
+    private var feed: StrapHeartRateFeed { StrapHeartRateFeed(link: link, stream: self) }
 
     func resetStreamingState() {
         _streamedRRPoints = []

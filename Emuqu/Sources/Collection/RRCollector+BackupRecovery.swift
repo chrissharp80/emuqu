@@ -195,16 +195,15 @@ extension SessionRecoveryCoordinator {
         guard let backup = services.workoutTrackBackup.retrieve(sessionId),
               !strapGuards.belongsToLiveSession else { return nil }
         let workoutStart = backup.header.startDate
-        let manager = polarManager
-        manager.recording.beginTransfer()
-        guard await manager.recording.reconnectForTransfer(), manager.isRecordingOnDevice || manager.hasStoredExercise,
-              let recording = await manager.recording.fetchRecordingIfAvailable(recordedSince: workoutStart),
+        strapRecorder.beginTransfer()
+        guard await strapRecorder.reconnectForTransfer(), strapRecorder.device.isRecordingOnDevice || strapRecorder.device.hasStoredExercise,
+              let recording = await strapRecorder.fetchRecordingIfAvailable(recordedSince: workoutStart),
               !recording.points.isEmpty else {
             debugLog("[Recovery] Workout strap recovery: no usable H10 recording — using disk backup")
             return nil
         }
         guard Self.recording(startedAt: recording.startedAt, belongsToWorkoutLastHeardAt: Self.lastKnownMoment(of: backup)) else {
-            let keptAside = manager.deviceRecording.rescueToBackup(recording)
+            let keptAside = strapRecorder.device.rescueToBackup(recording)
             debugLog("[Recovery] Workout strap recovery: the strap's recording began after the workout — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed; the strap keeps it"); using disk backup")
             return nil
         }
@@ -225,7 +224,7 @@ extension SessionRecoveryCoordinator {
     /// cleared over them.
     private func keepUnsavedDownload(_ recording: StrapRecording?) {
         guard let recording else { return }
-        let keptAside = polarManager.deviceRecording.rescueToBackup(recording)
+        let keptAside = strapRecorder.device.rescueToBackup(recording)
         debugLog("[Recovery] The session could not be saved with the strap's \(recording.points.count) beats — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed")", level: .warning)
     }
 
@@ -396,9 +395,9 @@ extension SessionRecoveryCoordinator {
     /// was partial, so this restores the true duration/HR. (The strap carries
     /// HR, not GPS — distance still comes from the recorded route.)
     func augmentWorkoutFromStrap(sessionId: UUID) async -> StrapAugmentResult {
-        guard polarManager.connectionState == .connected else { return .notConnected }
+        guard strapRecorder.linkState.connectionState == .connected else { return .notConnected }
         guard let session = archive.retrieveOrLog(sessionId) else { return .failed }
-        polarManager.recording.beginTransfer()
+        strapRecorder.beginTransfer()
         guard let strap = await pullStrapRecording(for: session) else { return .noStrapData }
         let merged = SessionRecoveryMath.mergedWorkoutPoints(
             existing: session.rrSeries?.points ?? [], strapRR: strap.points,
@@ -487,8 +486,8 @@ extension SessionRecoveryCoordinator {
     /// Reconnect so the strap's stored recording is reachable (BLE likely
     /// dropped overnight).
     private func reconnectStrapForAugment() async -> Bool {
-        polarManager.recording.beginTransfer()
-        return await polarManager.recording.reconnectForTransfer()
+        strapRecorder.beginTransfer()
+        return await strapRecorder.reconnectForTransfer()
     }
 
     /// The strap's recording of `session`, on the session's clock: one that
@@ -498,21 +497,20 @@ extension SessionRecoveryCoordinator {
     /// fails the strap's copy is not saved (`isStrapRecordingSaved`), so the
     /// next start rescues it again instead of clearing it.
     private func pullStrapRecording(for session: HRVSession) async -> PulledStrapRecording? {
-        let manager = polarManager
         let end = session.endDate ?? session.startDate
-        let storedIsThisSession = manager.storedExerciseDate.map {
+        let storedIsThisSession = strapRecorder.device.storedExerciseDate.map {
             StrapRecordingPolicy.recording(startedAt: $0, belongsToSessionStartedAt: session.startDate) && $0 <= end
         } ?? false
         // A recording still running is only dated once it is downloaded; the
         // check after the download catches one that is not this session's.
-        guard !strapGuards.belongsToLiveSession, manager.isRecordingOnDevice || storedIsThisSession else {
+        guard !strapGuards.belongsToLiveSession, strapRecorder.device.isRecordingOnDevice || storedIsThisSession else {
             debugLog("[RRCollector] Strap's recording is not from this session — not merging it")
             return nil
         }
-        guard let recording = await manager.recording.fetchRecordingIfAvailable(recordedSince: session.startDate),
+        guard let recording = await strapRecorder.fetchRecordingIfAvailable(recordedSince: session.startDate),
               !recording.points.isEmpty else { return nil }
         guard let recordedStart = recording.startedAt, recordedStart <= end else {
-            let keptAside = manager.deviceRecording.rescueToBackup(recording)
+            let keptAside = strapRecorder.device.rescueToBackup(recording)
             debugLog("[RRCollector] Downloaded recording is not from this session — \(keptAside ? "kept as a rescue backup" : "the rescue backup failed; the strap keeps it")")
             return nil
         }
@@ -705,13 +703,12 @@ extension SessionRecoveryCoordinator {
     /// Get the strap connected so its on-device recording is reachable, and
     /// read whether it still records.
     private func strapReadyForAutoRecovery() async -> Bool {
-        let manager = polarManager
-        manager.recording.beginTransfer()
-        guard await manager.recording.reconnectForTransfer() else { return false }
-        await manager.recording.refreshRecordingState(
+        strapRecorder.beginTransfer()
+        guard await strapRecorder.reconnectForTransfer() else { return false }
+        await strapRecorder.refreshRecordingState(
             until: Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds)
         )
-        return manager.isRecordingOnDevice
+        return strapRecorder.device.isRecordingOnDevice
     }
 
     func recoverToPausedState(_ sessionId: UUID, sessionType: SessionType) async -> Bool {

@@ -12,10 +12,10 @@ extension RRCollector {
     /// Sessions instead of dropped, and so the strap's start sequence asks
     /// the archive-aware question of which stored recordings the app holds.
     func setupDataRescueCallback() {
-        polarManager.onUnrecoveredDataRescued = { [weak self] recording in
+        polarManager.deviceRecording.onUnrecoveredDataRescued = { [weak self] recording in
             self?.backUpRescuedRecording(recording) ?? false
         }
-        polarManager.savedRecordingCheck = { [weak self] start in
+        polarManager.deviceRecording.savedRecordingCheck = { [weak self] start in
             self?.strapGuards.isStrapRecordingSaved(startedAt: start) ?? false
         }
     }
@@ -32,7 +32,7 @@ extension RRCollector {
         debugLog("[RRCollector] Rescuing \(recording.points.count) unrecovered points from device → backup \(rescueId.uuidString.prefix(8))")
         do {
             try rawBackup.backup(
-                points: recording.points, sessionId: rescueId, deviceId: polarManager.connectedDeviceId,
+                points: recording.points, sessionId: rescueId, deviceId: polarManager.linkState.connectedDeviceId,
                 captureDate: recording.startedAt.flatMap { $0 <= Date() ? $0 : nil }
             )
             debugLog("[RRCollector] Rescued \(recording.points.count) points to RawRRBackup (recoverable via Lost Sessions)")
@@ -63,13 +63,13 @@ extension RRCollector {
         // Skip debounce for willTerminate — it's our last chance before the process dies.
         if !force, let last = lastEmergencyFlush, Date().timeIntervalSince(last) < 2 { return }
         guard let session = sessionState.currentSession, streamingLifecycle.isOvernightStreaming || streamingLifecycle.isStreamingMode else { return }
-        let buffer = polarManager.streamedRRPoints
+        let buffer = polarManager.stream.streamedRRPoints
         guard !buffer.isEmpty else { return }
         lastEmergencyFlush = Date()
         rawBackup.incrementalBackup(
             points: buffer,
             sessionId: session.id,
-            deviceId: polarManager.connectedDeviceId,
+            deviceId: polarManager.linkState.connectedDeviceId,
             force: true
         )
         debugLog("[RRCollector] 🛟 Emergency backup flush: \(buffer.count) beats saved to disk")

@@ -1,8 +1,8 @@
 import Foundation
 
-/// The services every recorder of an `HRVSession` shares: the strap, Apple
-/// Health, the archive, iCloud sync, the raw RR backup, the analysis pipeline
-/// and the signal that tells views the archive changed. HRV recordings
+/// The services every recorder of an `HRVSession` shares: the strap's parts,
+/// Apple Health, the archive, iCloud sync, the raw RR backup, the analysis
+/// pipeline and the signal that tells views the archive changed. HRV recordings
 /// (`RRCollector`) and workouts (`WorkoutRecorder`) are both built over the
 /// same instances, which the collector hands out as `recordingCore`.
 ///
@@ -10,8 +10,21 @@ import Foundation
 /// on the recorders, not here.
 @MainActor
 struct RecordingCore {
-    /// BLE device controller (H10, Verity Sense).
-    let polarManager: PolarManager
+    /// The strap's link (H10, Verity Sense): which strap, its live heart rate
+    /// and feed health.
+    let strapLink: StrapLinkState
+    /// The strap's streaming session: start, stop and the buffered beats.
+    let strapStream: StrapStreamSession
+    /// What the strap's own memory is doing.
+    let strapRecording: StrapRecordingState
+    /// Recording to the strap's own memory, and downloads off it.
+    let strapRecorder: StrapRecordingCoordinator
+    /// Reconnecting to the last strap, and disconnecting.
+    let strapDiscovery: StrapDiscoveryCoordinator
+    /// The strap's battery-usage counters.
+    let strapBattery: StrapBatteryUsageTracker
+    /// The straps this app knows.
+    let strapPairings: StrapPairings
 
     /// HealthKit read/write (workouts, sleep, vitals).
     let healthKit: HealthKitManager

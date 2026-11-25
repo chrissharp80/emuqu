@@ -60,14 +60,14 @@ extension OvernightStreamingCoordinator {
     @MainActor
     func startOvernightStreaming(sessionType: SessionType = .overnight, useDeviceInternalBackup: Bool = true) throws {
         try refuseWhileEndingInProgress()
-        guard polarManager.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }
-        guard !polarManager.isStreaming else { throw RRCollector.CollectorError.alreadyRecording }
-        let session = HRVSession(sessionType: sessionType, deviceProvenance: .streaming(from: polarManager))
+        guard strapLink.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }
+        guard !strapStream.isStreaming else { throw RRCollector.CollectorError.alreadyRecording }
+        let session = HRVSession(sessionType: sessionType, deviceProvenance: .streaming(from: strapLink))
         overnightRun.usesDeviceBackup = useDeviceInternalBackup
-        try polarManager.startStreaming()  // primary data source
+        try strapStream.startStreaming()  // primary data source
         // Only once streaming started: a failed start must not leave it sampling.
         services.systemDiagnosticsManager.startSamplingDuringRecording()
-        if useDeviceInternalBackup, polarManager.connectedDeviceType != .veritySense {
+        if useDeviceInternalBackup, strapLink.connectedDeviceType != .veritySense {
             launchDeviceRecordingLoop()  // H10-only internal-recording backup
         }
         resetOvernightStreamingState(session: session)
@@ -137,7 +137,7 @@ extension OvernightStreamingCoordinator {
         debugLog("[RRCollector] ✅ Started overnight streaming (H10 internal recording, the primary source: \(overnightRun.usesDeviceBackup ? "will arm" : "OFF"))")
         debugLog("[RRCollector] Session ID: \(session.id)")
         debugLog("[RRCollector] Session type: \(sessionType.rawValue)")
-        debugLog("[RRCollector] Connected device: \(polarManager.connectedDeviceId ?? "unknown")")
+        debugLog("[RRCollector] Connected device: \(strapLink.connectedDeviceId ?? "unknown")")
     }
 
     /// Timer for overnight streaming - tracks elapsed time and performs incremental backups.
@@ -166,9 +166,9 @@ extension OvernightStreamingCoordinator {
         let previousElapsed = streamingLifecycle.streamingElapsedSeconds
         streamingLifecycle.streamingElapsedSeconds = streamingLifecycle.streamingElapsedNow
         if streamingLifecycle.streamingElapsedSeconds / 30 != previousElapsed / 30 {
-            polarManager.battery.recomputeStaleness()
+            strapBattery.recomputeStaleness()
         }
-        let currentReconnectCount = polarManager.streamingReconnectCount
+        let currentReconnectCount = strapStream.streamingReconnectCount
         let reconnectionOccurred = currentReconnectCount > streamingLifecycle.lastSeenReconnectCount
         if reconnectionOccurred {
             debugLog("[RRCollector] Streaming reconnection detected (\(streamingLifecycle.lastSeenReconnectCount) → \(currentReconnectCount)) - forcing backup")
@@ -180,8 +180,8 @@ extension OvernightStreamingCoordinator {
 
     @MainActor
     private func runOvernightIncrementalBackup(session: HRVSession, force: Bool) {
-        let buffer = polarManager.streamedRRPoints
-        let deviceId = polarManager.connectedDeviceId
+        let buffer = strapStream.streamedRRPoints
+        let deviceId = strapLink.connectedDeviceId
         let didBackup = rawBackup.incrementalBackup(
             points: buffer,
             sessionId: session.id,
@@ -347,7 +347,7 @@ extension OvernightStreamingCoordinator {
     private func disconnectVeritySenseAfterNight(isVeritySense: Bool) {
         guard isVeritySense, !streamingLifecycle.isOvernightStreaming else { return }
         debugLog("[RRCollector] Auto-disconnecting Verity Sense after overnight session")
-        polarManager.discovery.disconnect()
+        strapDiscovery.disconnect()
     }
 
     /// The good-streaming morning: pull the strap file (and sleep) concurrently,
@@ -495,10 +495,10 @@ extension OvernightStreamingCoordinator {
     /// and again when the next night starts. So is the night's arming
     /// (`overnightDeviceBackupActive`), which the gate reads and then clears.
     func fetchNightFromStrap(baseSession: HRVSession, streamingPoints: [RRPoint], isVeritySense: Bool) async -> [RRPoint]? {
-        polarManager.recording.beginTransfer()
+        strapRecorder.beginTransfer()
         defer { closeNightGate() }
         guard nightFetchAllowed(isVeritySense: isVeritySense) else {
-            await polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+            await strapRecorder.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
             return nil
         }
         morningCoordination.morningStatus = .fetchingDevice(streamingBeats: streamingPoints.count)
@@ -520,7 +520,7 @@ extension OvernightStreamingCoordinator {
     private func keepDownloadSkipped(_ recording: StrapRecording?, baseSession: HRVSession) async {
         debugLog("[RRCollector] Device fetch skipped by user during the download — using streaming data")
         morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)
-        await polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+        await strapRecorder.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
     }
 
     /// The night's Skip and its arming are read once, by the gate: both are
@@ -547,7 +547,7 @@ extension OvernightStreamingCoordinator {
             debugLog("[RRCollector] Skipping device fetch (capture mode: streaming only)")
         } else if isVeritySense {
             debugLog("[RRCollector] Skipping device fetch (Verity Sense uses streaming only)")
-        } else if !overnightRun.deviceBackupActive, !polarManager.isRecordingOnDevice {
+        } else if !overnightRun.deviceBackupActive, !strapRecording.isRecordingOnDevice {
             debugLog("[RRCollector] Skipping device fetch (the strap was never armed for this night)", level: .warning)
         } else {
             return true
@@ -560,12 +560,12 @@ extension OvernightStreamingCoordinator {
     /// download. The time it takes is logged against the morning's other
     /// steps.
     private func downloadNight(since start: Date, streamingCount: Int) async -> StrapRecording? {
-        guard await polarManager.recording.reconnectForTransfer() else {
+        guard await strapRecorder.reconnectForTransfer() else {
             debugLog("[RRCollector] Strap did not reconnect within \(Int(StrapRecordingPolicy.reconnectWindowSeconds))s — the strap's file is still on the H10")
             return nil
         }
         let started = Date()
-        let recording = await polarManager.recording.fetchRecordingIfAvailable(recordedSince: start)
+        let recording = await strapRecorder.fetchRecordingIfAvailable(recordedSince: start)
         debugLog("[MorningTiming] device fetch: \(Int(Date().timeIntervalSince(started) * 1000))ms (beats=\(recording?.points.count ?? -1), streamed=\(streamingCount))")
         return recording
     }
@@ -635,8 +635,8 @@ extension OvernightStreamingCoordinator {
     /// starts a location session (App Store 2.5.4, see
     /// `startOvernightStreaming`).
     ///
-    /// `streamingLifecycle.isStreamingMode` is cleared BEFORE stopping PolarManager streaming.
-    /// `PolarManager.stopStreaming()` triggers Combine publishers that are
+    /// `streamingLifecycle.isStreamingMode` is cleared BEFORE stopping the strap stream.
+    /// `StrapStreamSession.stopStreaming()` triggers Combine publishers that are
     /// delivered on the next main queue drain via `.receive(on: .main)`.
     /// If `streamingLifecycle.isStreamingMode` is still true when that sink fires, it
     /// re-sets `isStreaming = true`, causing LiveDataPanel to flash on
@@ -647,11 +647,11 @@ extension OvernightStreamingCoordinator {
         services.systemDiagnosticsManager.stopSamplingAfterRecording()
         streamingLifecycle.isStreamingMode = false
         let baseSession = sessionState.currentSession ?? HRVSession()
-        let reconnectCount = polarManager.streamingReconnectCount
+        let reconnectCount = strapStream.streamingReconnectCount
         // Charge the strap's battery-usage counter with the recorded hours.
         // Captured BEFORE the publish helper zeroes the elapsed counter.
         let elapsedHoursForBattery = streamingLifecycle.streamingHoursForBattery
-        let streamingPoints = polarManager.stopStreaming()
+        let streamingPoints = strapStream.stopStreaming()
         await morning.publishGatherSavingState(streamingPoints: streamingPoints, elapsedHours: elapsedHoursForBattery)
         return (baseSession, streamingPoints, reconnectCount)
     }
@@ -662,7 +662,7 @@ extension OvernightStreamingCoordinator {
     func backupStreamingData(_ points: [RRPoint], sessionId: UUID) async {
         guard !points.isEmpty else { return }
         let backup = rawBackup
-        let did = polarManager.connectedDeviceId
+        let did = strapLink.connectedDeviceId
         await Task.detached(priority: .utility) {
             do {
                 try backup.backup(points: points, sessionId: sessionId, deviceId: did)
@@ -829,10 +829,10 @@ extension DeviceProvenance {
     /// Provenance for a session streamed live from the connected Polar strap —
     /// the overnight start and the pause/resume restart stamp the same thing.
     @MainActor
-    static func streaming(from polarManager: PolarManager) -> DeviceProvenance {
+    static func streaming(from link: StrapLinkState) -> DeviceProvenance {
         DeviceProvenance.current(
-            deviceId: polarManager.connectedDeviceId ?? "unknown",
-            deviceModel: polarManager.connectedDeviceType?.displayName ?? "Polar device",
+            deviceId: link.connectedDeviceId ?? "unknown",
+            deviceModel: link.connectedDeviceType?.displayName ?? "Polar device",
             firmwareVersion: nil,
             recordingMode: .streaming
         )

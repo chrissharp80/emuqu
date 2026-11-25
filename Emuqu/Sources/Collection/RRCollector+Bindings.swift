@@ -5,7 +5,7 @@ import Observation
 // MARK: - PolarManager State Bindings
 
 extension CollectorBindings {
-    /// Forward PolarManager state changes to RRCollector's observable proxies.
+    /// Forward the strap parts' state changes to RRCollector's observable proxies.
     ///
     /// There is deliberately NO throttled proxy that subscribes to
     /// `polarManager.objectWillChange` (the firehose — fires on every HR/RR
@@ -44,7 +44,7 @@ extension CollectorBindings {
 
     /// Forward Polar errors to RRCollector's lastError.
     private func bindPolarErrorForwarding() {
-        ObservationLoop.observe(self, read: { $0.polarManager.lastError }, onChange: { bindings, error in
+        ObservationLoop.observe(self, read: { $0.strapRecorder.linkState.lastError }, onChange: { bindings, error in
             if let error { bindings.sessionState.lastError = error }
         })
     }
@@ -59,7 +59,7 @@ extension CollectorBindings {
     /// night's. A live workout's backup recording is the workout's, not a
     /// device recording, so the phase stays idle for it.
     private func bindRecordingStateTracking() {
-        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.isRecordingOnDevice }, onChange: { bindings, isRecording in
+        ObservationLoop.observe(self, initial: true, read: { $0.strapRecorder.device.isRecordingOnDevice }, onChange: { bindings, isRecording in
             bindings.deviceStatus.isRecordingOnDevice = isRecording
             if isRecording, bindings.sessionState.recordingPhase == .idle, !bindings.strapGuards.belongsToLiveWorkout {
                 bindings.sessionState.recordingPhase = .deviceRecording
@@ -72,16 +72,16 @@ extension CollectorBindings {
 
     /// Simple 1:1 property proxies: recordingState, deviceType, fetchProgress, storedExercise.
     private func bindSimplePropertyProxies() {
-        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.recordingState }, onChange: { bindings, state in
+        ObservationLoop.observe(self, initial: true, read: { $0.strapRecorder.device.recordingState }, onChange: { bindings, state in
             bindings.deviceStatus.recordingState = state
         })
-        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.connectedDeviceType }, onChange: { bindings, type in
+        ObservationLoop.observe(self, initial: true, read: { $0.strapRecorder.linkState.connectedDeviceType }, onChange: { bindings, type in
             bindings.deviceStatus.connectedDeviceType = type
         })
-        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.fetchProgress }, onChange: { bindings, progress in
+        ObservationLoop.observe(self, initial: true, read: { $0.strapRecorder.device.fetchProgress }, onChange: { bindings, progress in
             bindings.deviceStatus.fetchProgress = progress
         })
-        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.hasStoredExercise }, onChange: { bindings, stored in
+        ObservationLoop.observe(self, initial: true, read: { $0.strapRecorder.device.hasStoredExercise }, onChange: { bindings, stored in
             bindings.deviceStatus.hasStoredExercise = stored
         })
     }
@@ -99,7 +99,7 @@ extension CollectorBindings {
     /// scans the archive, and a reconnecting strap passes those steps over
     /// and over.
     private func bindConnectionState() {
-        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.connectionState }, onChange: { bindings, state in
+        ObservationLoop.observe(self, initial: true, read: { $0.strapRecorder.linkState.connectionState }, onChange: { bindings, state in
             bindings.deviceStatus.isDeviceConnected = state == .connected
             bindings.deviceStatus.connectionState = state
             guard state == .connected || state == .disconnected else { return }
@@ -107,9 +107,9 @@ extension CollectorBindings {
         })
     }
 
-    /// Streaming state: observe both polarManager.isStreaming and isStreamingMode to avoid race.
+    /// Streaming state: observe both strapStream.isStreaming and isStreamingMode to avoid race.
     private func bindStreamingState() {
-        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.isStreaming }, onChange: { bindings, streaming in
+        ObservationLoop.observe(self, initial: true, read: { $0.strapStream.isStreaming }, onChange: { bindings, streaming in
             bindings.deviceStatus.isStreaming = streaming || bindings.streamingLifecycle.isStreamingMode
         })
         armStreamingModeObservation()
@@ -177,7 +177,7 @@ extension CollectorBindings {
     /// Observation tracking is one-shot, so every handler re-arms itself.
     @MainActor
     func onStreamingModeChanged() {
-        deviceStatus.isStreaming = polarManager.isStreaming || streamingLifecycle.isStreamingMode
+        deviceStatus.isStreaming = strapStream.isStreaming || streamingLifecycle.isStreamingMode
         armStreamingModeObservation()
     }
 
@@ -206,13 +206,13 @@ extension CollectorBindings {
 
     /// Battery level proxy + auto-finalize on critical battery, auto-pause on reconnect exhaustion.
     private func bindBatteryAndReconnect() {
-        ObservationLoop.observe(self, initial: true, read: { $0.polarManager.batteryLevel }, onChange: { bindings, level in
+        ObservationLoop.observe(self, initial: true, read: { $0.strapRecorder.linkState.batteryLevel }, onChange: { bindings, level in
             bindings.deviceStatus.batteryLevel = level
             guard let level, bindings.streamingLifecycle.isPaused, level <= 5 else { return }
             debugLog("[RRCollector] 🪫 Battery critical (\(level)%) while paused — auto-finalizing")
             bindings.control.finalizeFromPause()
         })
-        ObservationLoop.observe(self, read: { $0.polarManager.reconnectExhausted }, onChange: { bindings, exhausted in
+        ObservationLoop.observe(self, read: { $0.strapStream.reconnectExhausted }, onChange: { bindings, exhausted in
             if exhausted { bindings.handleReconnectExhaustedDuringOvernight() }
         })
     }
@@ -235,14 +235,14 @@ extension CollectorBindings {
         guard streamingLifecycle.isOvernightStreaming else { return }
         if overnightRun.deviceBackupActive {
             debugLog("[RRCollector] Reconnect exhausted, but H10 internal backup is recording the full night — NOT pausing; the strap keeps recording and the morning stop will fetch it", level: .warning)
-            polarManager.reconnectExhausted = false
+            strapStream.reconnectExhausted = false
             return
         }
         debugLog("[RRCollector] Reconnect exhausted during overnight streaming (no strap backup) — auto-pausing to save buffered data")
         // `[self]` keeps the controls alive for the hop.
         Task { [self] in
             _ = await self.control.pauseOvernightStreaming()
-            polarManager.reconnectExhausted = false
+            strapStream.reconnectExhausted = false
         }
     }
 

@@ -19,7 +19,7 @@ final class SessionRecoveryCoordinator {
     let healthKit: HealthKitManager
     let morningCoordination: MorningCoordination
     let overnightRun: OvernightRunState
-    let polarManager: PolarManager
+    let strapRecorder: StrapRecordingCoordinator
     let rawBackup: RawRRBackup
     let recordingStore: RecordingStateStore
     let scoring: SessionScoringContext
@@ -41,7 +41,7 @@ final class SessionRecoveryCoordinator {
         healthKit: HealthKitManager,
         morningCoordination: MorningCoordination,
         overnightRun: OvernightRunState,
-        polarManager: PolarManager,
+        strapRecorder: StrapRecordingCoordinator,
         rawBackup: RawRRBackup,
         recordingStore: RecordingStateStore,
         scoring: SessionScoringContext,
@@ -62,7 +62,7 @@ final class SessionRecoveryCoordinator {
         self.healthKit = healthKit
         self.morningCoordination = morningCoordination
         self.overnightRun = overnightRun
-        self.polarManager = polarManager
+        self.strapRecorder = strapRecorder
         self.rawBackup = rawBackup
         self.recordingStore = recordingStore
         self.scoring = scoring

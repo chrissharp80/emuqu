@@ -39,7 +39,7 @@ extension MorningSessionPipeline {
         let result = await morningProcessingService.processOvernightData(
             MorningProcessingService.OvernightRequest(
                 points: points, baseSession: baseSession, dataSource: dataSource, reconnectCount: reconnectCount,
-                streamingBeats: streamingBeats, deviceBeats: deviceBeats, deviceId: polarManager.connectedDeviceId,
+                streamingBeats: streamingBeats, deviceBeats: deviceBeats, deviceId: strapLink.connectedDeviceId,
                 isBackgroundRefinement: isBackgroundRefinement, settings: settingsSnapshot(for: baseSession),
                 trainingContext: freshContext, cachedTrainingLoad: scoring.cachedTrainingLoad,
                 prefetchedSleepData: prefetchedSleepData,
@@ -226,7 +226,7 @@ extension MorningSessionPipeline {
         if let model = session.deviceProvenance?.deviceModel.lowercased() {
             return model.contains("verity") || model.contains("sense")
         }
-        return polarManager.connectedDeviceType == .veritySense
+        return strapLink.connectedDeviceType == .veritySense
     }
 
     /// Create a failed session and publish it as the current one.
@@ -278,7 +278,7 @@ extension MorningSessionPipeline {
     /// Replaces the night's backup with `points`; false when it was not written.
     private func backUpMergedNight(_ points: [RRPoint], sessionId: UUID) async -> Bool {
         let backup = rawBackup
-        let did = polarManager.connectedDeviceId
+        let did = strapLink.connectedDeviceId
         return await Task.detached(priority: .utility) {
             do {
                 try backup.backup(points: points, sessionId: sessionId, deviceId: did)
@@ -312,7 +312,7 @@ extension MorningSessionPipeline {
         do {
             try rawBackup.backup(
                 points: internalPoints, sessionId: UUID(),
-                deviceId: polarManager.connectedDeviceId, captureDate: baseSession.startDate
+                deviceId: strapLink.connectedDeviceId, captureDate: baseSession.startDate
             )
             debugLog("[RRCollector] Backed up \(internalPoints.count) downloaded strap beats the night could not use (recoverable via Lost Sessions)")
         } catch {
@@ -335,7 +335,7 @@ extension MorningSessionPipeline {
             sessionState.isCollecting = false
             sessionState.collectedPoints = streamingPoints
             streamingLifecycle.streamingElapsedSeconds = 0
-            polarManager.battery.recordRecordingHours(elapsedHours)
+            strapBattery.recordRecordingHours(elapsedHours)
         }
     }
 }

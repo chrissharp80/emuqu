@@ -74,7 +74,7 @@ extension OvernightStreamingCoordinator {
         var batteryRefusal: BatteryRefusal?
         while nightWantsArming {
             if let refusal = batteryRefusal, !StrapRecordingPolicy.mayRetryArming(
-                afterBatteryRefusalAt: refusal.level, batteryNow: polarManager.batteryLevel
+                afterBatteryRefusalAt: refusal.level, batteryNow: strapLink.batteryLevel
             ) {
                 await waitBeforeRetrying()
                 continue
@@ -94,7 +94,7 @@ extension OvernightStreamingCoordinator {
     /// before trying again — unless the night is ending.
     private func waitBeforeRetrying() async {
         guard nightWantsArming else { return }
-        _ = await polarManager.linkRuntime.signal.wait(timeout: overnightRun.armingRetryInterval)
+        _ = await strapLinkControl.runtime.signal.wait(timeout: overnightRun.armingRetryInterval)
     }
 
     /// Tell the user at once about a refusal only they can fix; log the rest.
@@ -116,7 +116,7 @@ extension OvernightStreamingCoordinator {
             return nil
         case .batteryTooLow:
             surfaceArmingRefusal(error, refusal)
-            return BatteryRefusal(level: polarManager.batteryLevel)
+            return BatteryRefusal(level: strapLink.batteryLevel)
         }
     }
 
@@ -128,7 +128,7 @@ extension OvernightStreamingCoordinator {
     }
 
     private func armWhenStrapIsReady() async throws {
-        try await polarManager.link.whenFeatureUsable(
+        try await strapLinkControl.whenFeatureUsable(
             .h10Recording, until: nil, while: { nightWantsArming },
             perform: attemptDeviceRecordingStart
         )
@@ -141,12 +141,12 @@ extension OvernightStreamingCoordinator {
     /// A start the strap answers only after the night stopped wanting it does
     /// not mark the night strap-backed (`settleLateArmedRecording`).
     private func attemptDeviceRecordingStart() async throws {
-        try await polarManager.recording.startFreshRecording(while: { nightWantsArming })
+        try await strapRecorder.startFreshRecording(while: { nightWantsArming })
         guard nightWantsArming else {
             await settleLateArmedRecording()
             return
         }
-        let deviceName = polarManager.connectedDeviceType?.displayName ?? "device"
+        let deviceName = strapLink.connectedDeviceType?.displayName ?? "device"
         debugLog("[RRCollector] ✅ \(deviceName) internal recording started")
         // The strap is now capturing the full night to its own
         // flash memory — mark it so a mid-night BLE loss can't
@@ -168,18 +168,17 @@ extension OvernightStreamingCoordinator {
     /// night started since, owns the strap and is left to it.
     private func settleLateArmedRecording() async {
         debugLog("[RRCollector] H10 internal recording started after the night stopped wanting it — not marking the night strap-backed", level: .warning)
-        guard !streamingLifecycle.isOvernightStreaming, polarManager.transfersInFlight == 0 else { return }
-        await polarManager.recording.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
+        guard !streamingLifecycle.isOvernightStreaming, strapRecording.transfersInFlight == 0 else { return }
+        await strapRecorder.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
     }
 
     /// Before a night that arms the H10's own recording: a strap whose last
     /// reported battery is low may refuse it. The night still starts; the
     /// Record screen shows the same warning before Start.
     func warnIfStrapBatteryMayRefuse() {
-        let manager = polarManager
         guard overnightRun.usesDeviceBackup, StrapRecordingPolicy.strapMayRefuseToRecord(
-            batteryLevel: manager.batteryLevel, deviceType: manager.connectedDeviceType
+            batteryLevel: strapLink.batteryLevel, deviceType: strapLink.connectedDeviceType
         ) else { return }
-        debugLogExternal("Strap battery at \(manager.batteryLevel ?? 0)% — the H10 may refuse to record to its own memory tonight; the night still records from the live stream.", cause: .strap)
+        debugLogExternal("Strap battery at \(strapLink.batteryLevel ?? 0)% — the H10 may refuse to record to its own memory tonight; the night still records from the live stream.", cause: .strap)
     }
 }

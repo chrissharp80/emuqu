@@ -8,7 +8,10 @@ import Foundation
 struct StrapRecordingGuards {
     let sessionState: SessionState
     let streamingLifecycle: StreamingLifecycle
-    let polarManager: PolarManager
+    /// The strap's link, for whether it is connected.
+    let strapLink: StrapLinkState
+    /// What the strap's own memory holds, and the downloads on record.
+    let strapRecording: StrapRecordingState
     let recordingStore: RecordingStateStore
     let archive: SessionArchive
     let rawBackup: RawRRBackup
@@ -47,7 +50,7 @@ struct StrapRecordingGuards {
     /// live and none is on record to stop it (a crashed night or workout has
     /// its own recovery). Left by a crash, or started on the strap itself.
     var holdsOrphanedRecording: Bool {
-        polarManager.isRecordingOnDevice
+        strapRecording.isRecordingOnDevice
             && recordingStore.load() == nil
             && !belongsToLiveSession
     }
@@ -63,7 +66,7 @@ struct StrapRecordingGuards {
             debugLog("[RRCollector] Not starting \(what): a night is paused or being ended", level: .warning)
             throw RRCollector.CollectorError.alreadyRecording
         }
-        guard polarManager.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }
+        guard strapLink.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }
     }
 
     /// Whether the strap's recording belongs to a session the strap-only Stop
@@ -92,7 +95,7 @@ struct StrapRecordingGuards {
     /// (`StrapRecordingPolicy.holdsUnrecoveredRecording`). The strap keeps
     /// every downloaded recording as a backup, so holding one is not enough.
     var hasUnrecoveredData: Bool {
-        guard polarManager.hasStoredExercise, let start = polarManager.storedExerciseDate else { return false }
+        guard strapRecording.hasStoredExercise, let start = strapRecording.storedExerciseDate else { return false }
         return !isStrapRecordingSaved(startedAt: start)
     }
 
@@ -106,7 +109,7 @@ struct StrapRecordingGuards {
     /// recording's; a quick reading or workout that ended just before the
     /// recording does not hold it.
     func isStrapRecordingSaved(startedAt start: Date) -> Bool {
-        let ledger = polarManager.downloadLedger
+        let ledger = strapRecording.downloadLedger
         return StrapRecordingPolicy.recordingIsSaved(
             alreadyDownloaded: ledger.wasDownloaded(recordingStartedAt: start),
             predatesDownloadRecord: ledger.predatesRecord(start),

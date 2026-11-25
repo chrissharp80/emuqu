@@ -16,7 +16,10 @@ final class CollectorSessionControl {
     let deviceStatus: DeviceStatus
     let morningCoordination: MorningCoordination
     let overnightRun: OvernightRunState
-    let polarManager: PolarManager
+    let strapLink: StrapLinkState
+    let strapStream: StrapStreamSession
+    let strapRecorder: StrapRecordingCoordinator
+    let strapBattery: StrapBatteryUsageTracker
     let rawBackup: RawRRBackup
     let recordingStore: RecordingStateStore
     let services: CollectorServices
@@ -35,7 +38,10 @@ final class CollectorSessionControl {
         deviceStatus: DeviceStatus,
         morningCoordination: MorningCoordination,
         overnightRun: OvernightRunState,
-        polarManager: PolarManager,
+        strapLink: StrapLinkState,
+        strapStream: StrapStreamSession,
+        strapRecorder: StrapRecordingCoordinator,
+        strapBattery: StrapBatteryUsageTracker,
         rawBackup: RawRRBackup,
         recordingStore: RecordingStateStore,
         services: CollectorServices,
@@ -53,7 +59,10 @@ final class CollectorSessionControl {
         self.deviceStatus = deviceStatus
         self.morningCoordination = morningCoordination
         self.overnightRun = overnightRun
-        self.polarManager = polarManager
+        self.strapLink = strapLink
+        self.strapStream = strapStream
+        self.strapRecorder = strapRecorder
+        self.strapBattery = strapBattery
         self.rawBackup = rawBackup
         self.recordingStore = recordingStore
         self.services = services

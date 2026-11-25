@@ -198,20 +198,20 @@ extension CollectorSessionControl {
     /// resume leaves no link.
     func resumeOvernightStreaming(linkedSessionId: UUID) throws {
         try overnightStreaming.refuseWhileEndingInProgress()
-        guard polarManager.connectionState == .connected else {
+        guard strapLink.connectionState == .connected else {
             throw RRCollector.CollectorError.notConnected
         }
-        guard !polarManager.isStreaming else {
+        guard !strapStream.isStreaming else {
             throw RRCollector.CollectorError.alreadyRecording
         }
         debugLog("[RRCollector] ▶ Resuming overnight streaming, linked to \(linkedSessionId.uuidString.prefix(8))")
         var session = HRVSession(
-            sessionType: parentSessionType(of: linkedSessionId), deviceProvenance: .streaming(from: polarManager)
+            sessionType: parentSessionType(of: linkedSessionId), deviceProvenance: .streaming(from: strapLink)
         )
         session.linkedSessionIds = [linkedSessionId]
         overnightRun.deviceBackupActive = false
-        try polarManager.startStreaming()
-        if overnightRun.usesDeviceBackup, polarManager.connectedDeviceType != .veritySense {
+        try strapStream.startStreaming()
+        if overnightRun.usesDeviceBackup, strapLink.connectedDeviceType != .veritySense {
             launchResumeDeviceBackupRecording()
         }
         linkChildToParent(childId: session.id, parentId: linkedSessionId)

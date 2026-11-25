@@ -16,7 +16,9 @@ final class QuickReadingSession {
     let deviceStatus: DeviceStatus
     let healthKit: HealthKitManager
     let overnightStreaming: OvernightStreamingCoordinator
-    let polarManager: PolarManager
+    let strapStream: StrapStreamSession
+    let strapRecorder: StrapRecordingCoordinator
+    let strapBattery: StrapBatteryUsageTracker
     let rawBackup: RawRRBackup
     let recordingStore: RecordingStateStore
     let scoring: SessionScoringContext
@@ -36,7 +38,9 @@ final class QuickReadingSession {
         deviceStatus: DeviceStatus,
         healthKit: HealthKitManager,
         overnightStreaming: OvernightStreamingCoordinator,
-        polarManager: PolarManager,
+        strapStream: StrapStreamSession,
+        strapRecorder: StrapRecordingCoordinator,
+        strapBattery: StrapBatteryUsageTracker,
         rawBackup: RawRRBackup,
         recordingStore: RecordingStateStore,
         scoring: SessionScoringContext,
@@ -55,7 +59,9 @@ final class QuickReadingSession {
         self.deviceStatus = deviceStatus
         self.healthKit = healthKit
         self.overnightStreaming = overnightStreaming
-        self.polarManager = polarManager
+        self.strapStream = strapStream
+        self.strapRecorder = strapRecorder
+        self.strapBattery = strapBattery
         self.rawBackup = rawBackup
         self.recordingStore = recordingStore
         self.scoring = scoring

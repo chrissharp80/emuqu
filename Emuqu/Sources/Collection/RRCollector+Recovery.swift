@@ -61,7 +61,7 @@ extension SessionRecoveryCoordinator {
         // An earlier operation's error must not stand in for this one's.
         sessionState.lastError = nil
         try checkRecoverable()
-        polarManager.recording.beginTransfer()
+        strapRecorder.beginTransfer()
         let recording = try await downloadForRecovery()
         let placement = await recoveryPlacement(for: recording)
         let session = await deviceRecording.assembleDownloadedSession(recording, placement: placement)
@@ -75,13 +75,13 @@ extension SessionRecoveryCoordinator {
     /// Recover needs the strap, must not stop a live session's recording, and
     /// does not offer a recording already downloaded and saved.
     private func checkRecoverable() throws {
-        let manager = polarManager
-        guard manager.connectionState == .connected else { throw recoveryRefused(.notConnected) }
+        guard strapRecorder.linkState.connectionState == .connected else { throw recoveryRefused(.notConnected) }
         guard !strapGuards.belongsToLiveSession, !strapGuards.heldByInterruptedWorkout else {
             throw recoveryRefused(.alreadyRecording)
         }
-        let alreadySaved = manager.hasStoredExercise && manager.storedExerciseDate != nil
-            && !manager.isRecordingOnDevice && !strapGuards.hasUnrecoveredData
+        let device = strapRecorder.device
+        let alreadySaved = device.hasStoredExercise && device.storedExerciseDate != nil
+            && !device.isRecordingOnDevice && !strapGuards.hasUnrecoveredData
         guard !alreadySaved else { throw recoveryRefused(.strapRecordingAlreadySaved) }
     }
 
@@ -93,7 +93,7 @@ extension SessionRecoveryCoordinator {
 
     private func downloadForRecovery() async throws -> StrapRecording {
         do {
-            let recording = try await polarManager.recording.fetchRecording(recordedSince: nil, budget: .attended)
+            let recording = try await strapRecorder.fetchRecording(recordedSince: nil, budget: .attended)
             debugLog("[Recovery] Got \(recording.points.count) beats from strap, started \(recording.startedAt?.description ?? "unknown")")
             return recording
         } catch {

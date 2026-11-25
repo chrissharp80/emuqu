@@ -551,9 +551,9 @@ final class WatchConnectivityBridge: NSObject {
 
         @MainActor
         init(polar: PolarManager) {
-            connected = polar.connectionState == .connected
-            deviceName = connected ? polar.connectedDeviceType?.displayName : nil
-            batteryPercent = connected ? polar.batteryLevel : nil
+            connected = polar.linkState.connectionState == .connected
+            deviceName = connected ? polar.linkState.connectedDeviceType?.displayName : nil
+            batteryPercent = connected ? polar.linkState.batteryLevel : nil
         }
     }
 

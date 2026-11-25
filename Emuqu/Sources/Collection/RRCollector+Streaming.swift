@@ -29,17 +29,17 @@ extension QuickReadingSession {
     @MainActor
     func startStreamingSession(durationSeconds: Int = 180) throws {
         try strapGuards.requireConnectedWithNoNightHeld(starting: "a quick reading")
-        guard !polarManager.isStreaming, !polarManager.isRecordingOnDevice else {
+        guard !strapStream.isStreaming, !strapRecorder.device.isRecordingOnDevice else {
             throw RRCollector.CollectorError.alreadyRecording
         }
         // Capture device provenance for streaming mode
         let session = HRVSession(sessionType: .quick, deviceProvenance: DeviceProvenance.current(
-            deviceId: polarManager.connectedDeviceId ?? "unknown",
-            deviceModel: polarManager.connectedDeviceType?.displayName ?? "Polar device",
+            deviceId: strapRecorder.linkState.connectedDeviceId ?? "unknown",
+            deviceModel: strapRecorder.linkState.connectedDeviceType?.displayName ?? "Polar device",
             firmwareVersion: nil,
             recordingMode: .streaming
         ))
-        try polarManager.startStreaming()
+        try strapStream.startStreaming()
         resetStateForQuickStreaming(session, durationSeconds: durationSeconds)
         // Persist recording state so crash recovery can find this session
         recordingStore.persist(sessionId: session.id, startTime: Date(), sessionType: .quick)
@@ -106,7 +106,7 @@ extension QuickReadingSession {
         let elapsed = streamingLifecycle.streamingElapsedSeconds
         let target = streamingLifecycle.streamingTargetSeconds
         guard elapsed >= target else { return false }
-        return polarManager.streamedRRPoints.count >= Self.minimumQuickReadingBeats
+        return strapStream.streamedRRPoints.count >= Self.minimumQuickReadingBeats
             || elapsed >= target + Self.maxQuickReadingExtensionSeconds
     }
 
@@ -114,8 +114,8 @@ extension QuickReadingSession {
     /// pushed to iCloud on success (throttled internally to every 5 min).
     @MainActor
     private func runQuickStreamingBackup(session: HRVSession) {
-        let buffer = polarManager.streamedRRPoints
-        let deviceId = polarManager.connectedDeviceId
+        let buffer = strapStream.streamedRRPoints
+        let deviceId = strapRecorder.linkState.connectedDeviceId
         let didBackup = rawBackup.incrementalBackup(
             points: buffer, sessionId: session.id, deviceId: deviceId
         )
@@ -160,7 +160,7 @@ extension QuickReadingSession {
         streamingLifecycle.isStreamingMode = false
         let baseSession = sessionState.currentSession ?? HRVSession()
         let elapsedHoursForBattery = streamingLifecycle.streamingHoursForBattery
-        let rrPoints = polarManager.stopStreaming()
+        let rrPoints = strapStream.stopStreaming()
         await publishQuickStreamingStopped(rrPoints: rrPoints, elapsedHours: elapsedHoursForBattery)
         await overnightStreaming.backupStreamingData(rrPoints, sessionId: baseSession.id)
         // A slow heart's 2-minute reading ran on until it had these (see
@@ -182,9 +182,9 @@ extension QuickReadingSession {
 
     /// Auto-disconnect Verity Sense to prevent battery drain.
     private func disconnectVeritySenseAfterQuickSession() {
-        guard polarManager.connectedDeviceType == .veritySense else { return }
+        guard strapRecorder.linkState.connectedDeviceType == .veritySense else { return }
         debugLog("[RRCollector] Auto-disconnecting Verity Sense after session end")
-        polarManager.discovery.disconnect()
+        strapRecorder.discovery.disconnect()
     }
 
     private func publishQuickStreamingStopped(rrPoints: [RRPoint], elapsedHours: Double) async {
@@ -194,7 +194,7 @@ extension QuickReadingSession {
             sessionState.isCollecting = false
             sessionState.collectedPoints = rrPoints
             streamingLifecycle.streamingElapsedSeconds = 0
-            polarManager.battery.recordRecordingHours(elapsedHours)
+            strapBattery.recordRecordingHours(elapsedHours)
         }
     }
 

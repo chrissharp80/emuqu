@@ -80,7 +80,7 @@ final class WorkoutLifecycle {
     /// When the strap's own recording actually started for this workout.
     var deviceBackupArmedAt: Date?
 
-    /// `PolarManager.streamingStartTime` of the stream the recorder's last
+    /// `StrapStreamSession.streamingStartTime` of the stream the recorder's last
     /// strap workout started. RRCollector's overnight and quick sessions
     /// buffer on the same manager, so a stream still live while no workout
     /// records is the recorder's to stop only when its start matches.

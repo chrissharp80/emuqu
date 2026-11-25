@@ -31,9 +31,9 @@ final class StrapRecoveryFlowTests: XCTestCase {
         let manager = PolarManager()
         manager.radio.radioForTesting = radio
         manager.setConnectedDeviceForTesting(id: deviceId, type: .h10)
-        manager.readiness.linkEstablished()
-        manager.readiness.settleWithoutSummary()
-        manager.downloadLedger = StrapDownloadLedger(
+        manager.linkState.readiness.linkEstablished()
+        manager.linkState.readiness.settleWithoutSummary()
+        manager.deviceRecording.downloadLedger = StrapDownloadLedger(
             defaults: UserDefaults(suiteName: "StrapRecoveryFlowTests-\(UUID().uuidString)") ?? .standard
         )
         return RRCollector.withoutCloudAcceptance(polarManager: manager, archive: archive)
@@ -91,7 +91,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
     func testAnOrphanedRunningRecordingIsOffered() {
         let radio = FakeStrapRadio()
         let collector = makeCollector(radio)
-        collector.polarManager.isRecordingOnDevice = true
+        collector.polarManager.deviceRecording.isRecordingOnDevice = true
 
         XCTAssertTrue(collector.offersStrapRecovery)
     }
@@ -103,7 +103,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         let start = Date().addingTimeInterval(-3600)
         radio.setRecording(ongoing: true, entryId: exerciseId(start))
         let collector = makeCollector(radio)
-        collector.polarManager.isRecordingOnDevice = true
+        collector.polarManager.deviceRecording.isRecordingOnDevice = true
         collector.sessionState.isCollecting = true
 
         XCTAssertFalse(collector.offersStrapRecovery)
@@ -124,7 +124,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         let start = Date().addingTimeInterval(-3600)
         radio.setRecording(ongoing: true, entryId: exerciseId(start))
         let collector = makeCollector(radio)
-        collector.polarManager.isRecordingOnDevice = true
+        collector.polarManager.deviceRecording.isRecordingOnDevice = true
         collector.recordingStore.persist(sessionId: UUID(), startTime: start, sessionType: .workout)
 
         XCTAssertTrue(collector.strapGuards.heldByInterruptedWorkout)
@@ -148,11 +148,11 @@ final class StrapRecoveryFlowTests: XCTestCase {
         let radio = FakeStrapRadio()
         let collector = makeCollector(radio)
         let start = Date().addingTimeInterval(-3600)
-        collector.polarManager.hasStoredExercise = true
-        collector.polarManager.storedExerciseDate = start
+        collector.polarManager.deviceRecording.hasStoredExercise = true
+        collector.polarManager.deviceRecording.storedExerciseDate = start
         XCTAssertTrue(collector.strapGuards.hasUnrecoveredData, "never downloaded: the user's missing data")
 
-        collector.polarManager.downloadLedger.markDownloaded(recordingStartedAt: start)
+        collector.polarManager.deviceRecording.downloadLedger.markDownloaded(recordingStartedAt: start)
         XCTAssertTrue(
             collector.strapGuards.hasUnrecoveredData,
             "downloaded but stored nowhere on the device: still the user's missing data"
@@ -237,7 +237,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         let collector = makeCollector(FakeStrapRadio())
         let nightStart = Date().addingTimeInterval(-9 * 3600)
         let armed = nightStart.addingTimeInterval(2 * 3600)
-        collector.polarManager.downloadLedger.markDownloaded(recordingStartedAt: armed)
+        collector.polarManager.deviceRecording.downloadLedger.markDownloaded(recordingStartedAt: armed)
         XCTAssertFalse(collector.strapGuards.isStrapRecordingSaved(startedAt: armed), "stored nowhere on the device yet")
 
         _ = try archive.archive(completeNight(startingAt: nightStart), skipSameNightMerge: true)
@@ -251,7 +251,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
     func testASessionThatEndedBeforeTheRecordingDoesNotHoldIt() throws {
         let collector = makeCollector(FakeStrapRadio())
         let armed = Date().addingTimeInterval(-3 * 3600)
-        collector.polarManager.downloadLedger.markDownloaded(recordingStartedAt: armed)
+        collector.polarManager.deviceRecording.downloadLedger.markDownloaded(recordingStartedAt: armed)
         for type in [SessionType.quick, .workout, .overnight] {
             var ended = completeNight(startingAt: armed.addingTimeInterval(-3600))
             ended.sessionType = type
@@ -304,7 +304,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         radio.setRecording(ongoing: true, entryId: exerciseId(start))
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 900, count: 500))
         let collector = makeCollector(radio)
-        collector.polarManager.isRecordingOnDevice = true
+        collector.polarManager.deviceRecording.isRecordingOnDevice = true
         collector.overnightRun.usesDeviceBackup = true
         collector.overnightRun.deviceFetchPolicy = .skipByUser
 
@@ -327,7 +327,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         radio.setRecording(ongoing: true, entryId: exerciseId(start))
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 900, count: 500))
         let collector = makeCollector(radio)
-        collector.polarManager.isRecordingOnDevice = true
+        collector.polarManager.deviceRecording.isRecordingOnDevice = true
         collector.overnightRun.usesDeviceBackup = true
         radio.onFetchExercise = { Task { @MainActor in collector.overnightRun.deviceFetchPolicy = .skipByUser } }
 
@@ -352,7 +352,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         radio.setRecording(ongoing: true, entryId: exerciseId(start))
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 900, count: 3000))
         let collector = makeCollector(radio)
-        collector.polarManager.isRecordingOnDevice = true
+        collector.polarManager.deviceRecording.isRecordingOnDevice = true
         collector.overnightRun.usesDeviceBackup = true
         let night = HRVSession(startDate: start)
         collector.sessionState.currentSession = night
@@ -377,7 +377,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         radio.addExercise(entryId: exerciseId(start), date: start, rrMs: Array(repeating: 900, count: 500))
         radio.refuse("fetchExercise", times: 50, with: PolarErrors.deviceError(description: "transfer failed"))
         let collector = makeCollector(radio)
-        collector.polarManager.isRecordingOnDevice = true
+        collector.polarManager.deviceRecording.isRecordingOnDevice = true
         collector.overnightRun.usesDeviceBackup = true
 
         let points = await collector.overnightStreaming.fetchNightFromStrap(
@@ -436,11 +436,11 @@ final class StrapRecoveryFlowTests: XCTestCase {
         radio.setRecording(ongoing: true, entryId: exerciseId(Date().addingTimeInterval(-1800)))
         let manager = PolarManager()
         manager.radio.radioForTesting = radio
-        manager.knownDevices = []
+        manager.pairings.knownDevices = []
         Task { @MainActor in
             await sleepQuietly(200_000_000, context: "test reconnect")
             manager.linkEvents.apply(.connected(deviceId: self.deviceId, name: "Polar H10 RECOVERY"))
-            manager.readiness.settleWithoutSummary()
+            manager.linkState.readiness.settleWithoutSummary()
         }
 
         let back = await manager.recording.reconnectForTransfer()

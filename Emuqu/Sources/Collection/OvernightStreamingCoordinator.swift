@@ -15,7 +15,13 @@ final class OvernightStreamingCoordinator {
     let healthKit: HealthKitManager
     let morningCoordination: MorningCoordination
     let overnightRun: OvernightRunState
-    let polarManager: PolarManager
+    let strapLink: StrapLinkState
+    let strapLinkControl: StrapLinkControl
+    let strapStream: StrapStreamSession
+    let strapRecording: StrapRecordingState
+    let strapRecorder: StrapRecordingCoordinator
+    let strapDiscovery: StrapDiscoveryCoordinator
+    let strapBattery: StrapBatteryUsageTracker
     let rawBackup: RawRRBackup
     let recordingStore: RecordingStateStore
     let services: CollectorServices
@@ -31,7 +37,13 @@ final class OvernightStreamingCoordinator {
         healthKit: HealthKitManager,
         morningCoordination: MorningCoordination,
         overnightRun: OvernightRunState,
-        polarManager: PolarManager,
+        strapLink: StrapLinkState,
+        strapLinkControl: StrapLinkControl,
+        strapStream: StrapStreamSession,
+        strapRecording: StrapRecordingState,
+        strapRecorder: StrapRecordingCoordinator,
+        strapDiscovery: StrapDiscoveryCoordinator,
+        strapBattery: StrapBatteryUsageTracker,
         rawBackup: RawRRBackup,
         recordingStore: RecordingStateStore,
         services: CollectorServices,
@@ -46,7 +58,13 @@ final class OvernightStreamingCoordinator {
         self.healthKit = healthKit
         self.morningCoordination = morningCoordination
         self.overnightRun = overnightRun
-        self.polarManager = polarManager
+        self.strapLink = strapLink
+        self.strapLinkControl = strapLinkControl
+        self.strapStream = strapStream
+        self.strapRecording = strapRecording
+        self.strapRecorder = strapRecorder
+        self.strapDiscovery = strapDiscovery
+        self.strapBattery = strapBattery
         self.rawBackup = rawBackup
         self.recordingStore = recordingStore
         self.services = services

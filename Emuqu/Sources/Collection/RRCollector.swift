@@ -93,7 +93,8 @@ final class RRCollector {
     @ObservationIgnored private(set) lazy var morning: MorningSessionPipeline = MorningSessionPipeline(
         acceptanceService: acceptanceService, analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal,
         baselineRebuild: baselineRebuild, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthKit: healthKit,
-        morningCoordination: morningCoordination, morningProcessingService: morningProcessingService, polarManager: polarManager,
+        morningCoordination: morningCoordination, morningProcessingService: morningProcessingService,
+        strapLink: polarManager.linkState, strapBattery: polarManager.battery,
         rawBackup: rawBackup, recordingStore: recordingStore, scoring: scoring, sessionState: sessionState,
         settingsManager: settingsManager, sleepBoundaryResolver: sleepBoundaryResolver, streamingLifecycle: streamingLifecycle
     )
@@ -101,7 +102,10 @@ final class RRCollector {
     /// Overnight capture in streaming mode, and the gather that ends it.
     @ObservationIgnored private(set) lazy var overnightStreaming: OvernightStreamingCoordinator = OvernightStreamingCoordinator(
         archive: archive, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, healthKit: healthKit,
-        morningCoordination: morningCoordination, overnightRun: overnightRun, polarManager: polarManager, rawBackup: rawBackup,
+        morningCoordination: morningCoordination, overnightRun: overnightRun,
+        strapLink: polarManager.linkState, strapLinkControl: polarManager.link, strapStream: polarManager.stream,
+        strapRecording: polarManager.deviceRecording, strapRecorder: polarManager.recording,
+        strapDiscovery: polarManager.discovery, strapBattery: polarManager.battery, rawBackup: rawBackup,
         recordingStore: recordingStore, services: services, sessionState: sessionState, settingsManager: settingsManager,
         streamingLifecycle: streamingLifecycle, morning: morning
     )
@@ -109,7 +113,8 @@ final class RRCollector {
     /// Capture to the strap's own memory, and its download.
     @ObservationIgnored private(set) lazy var deviceRecording: DeviceRecordingSession = DeviceRecordingSession(
         archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker,
-        healthKit: healthKit, polarManager: polarManager, rawBackup: rawBackup, reconciliation: reconciliation,
+        healthKit: healthKit, strapLink: polarManager.linkState, strapRecording: polarManager.deviceRecording,
+        strapRecorder: polarManager.recording, rawBackup: rawBackup, reconciliation: reconciliation,
         recordingStore: recordingStore, scoring: scoring, sessionState: sessionState, strapGuards: strapGuards,
         streamingLifecycle: streamingLifecycle, verification: verification, windowSelector: windowSelector, morning: morning
     )
@@ -118,7 +123,7 @@ final class RRCollector {
     @ObservationIgnored private(set) lazy var recovery: SessionRecoveryCoordinator = SessionRecoveryCoordinator(
         archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector, baselineTracker: baselineTracker,
         cloudSyncManager: cloudSyncManager, healthKit: healthKit, morningCoordination: morningCoordination,
-        overnightRun: overnightRun, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore,
+        overnightRun: overnightRun, strapRecorder: polarManager.recording, rawBackup: rawBackup, recordingStore: recordingStore,
         scoring: scoring, services: services, sessionState: sessionState, settingsManager: settingsManager,
         strapGuards: strapGuards, streamingLifecycle: streamingLifecycle, windowSelector: windowSelector,
         deviceRecording: deviceRecording, morning: morning
@@ -128,7 +133,8 @@ final class RRCollector {
     @ObservationIgnored private(set) lazy var control: CollectorSessionControl = CollectorSessionControl(
         archive: archive, archiveSignal: archiveSignal, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager,
         deviceStatus: deviceStatus, morningCoordination: morningCoordination, overnightRun: overnightRun,
-        polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore, services: services,
+        strapLink: polarManager.linkState, strapStream: polarManager.stream, strapRecorder: polarManager.recording,
+        strapBattery: polarManager.battery, rawBackup: rawBackup, recordingStore: recordingStore, services: services,
         sessionState: sessionState, settingsManager: settingsManager, strapGuards: strapGuards,
         streamingLifecycle: streamingLifecycle, morning: morning, overnightStreaming: overnightStreaming
     )
@@ -138,7 +144,8 @@ final class RRCollector {
         archive: archive, archiveSignal: archiveSignal, baselineArchiveSync: baselineArchiveSync, baselineRebuild: baselineRebuild,
         baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, control: control, deviceStatus: deviceStatus,
         healthKit: healthKit, liveHRVMirror: liveHRVMirror, morningCoordination: morningCoordination,
-        notificationObservers: notificationObservers, overnightRun: overnightRun, polarManager: polarManager, recovery: recovery,
+        notificationObservers: notificationObservers, overnightRun: overnightRun,
+        strapRecorder: polarManager.recording, strapStream: polarManager.stream, recovery: recovery,
         services: services, sessionState: sessionState, strapGuards: strapGuards, streamingLifecycle: streamingLifecycle
     )
 
@@ -146,7 +153,9 @@ final class RRCollector {
     @ObservationIgnored private(set) lazy var quickReading: QuickReadingSession = QuickReadingSession(
         analysisPipeline: analysisPipeline, archive: archive, archiveSignal: archiveSignal, artifactDetector: artifactDetector,
         baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, deviceStatus: deviceStatus, healthKit: healthKit,
-        overnightStreaming: overnightStreaming, polarManager: polarManager, rawBackup: rawBackup, recordingStore: recordingStore,
+        overnightStreaming: overnightStreaming,
+        strapStream: polarManager.stream, strapRecorder: polarManager.recording, strapBattery: polarManager.battery,
+        rawBackup: rawBackup, recordingStore: recordingStore,
         scoring: scoring, sessionState: sessionState, settingsManager: settingsManager, strapGuards: strapGuards,
         streamingLifecycle: streamingLifecycle, streamingVerification: streamingVerification
     )

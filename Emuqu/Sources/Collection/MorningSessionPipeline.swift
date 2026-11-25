@@ -24,7 +24,8 @@ final class MorningSessionPipeline {
     let healthKit: HealthKitManager
     let morningCoordination: MorningCoordination
     let morningProcessingService: MorningProcessingService
-    let polarManager: PolarManager
+    let strapLink: StrapLinkState
+    let strapBattery: StrapBatteryUsageTracker
     let rawBackup: RawRRBackup
     let recordingStore: RecordingStateStore
     let scoring: SessionScoringContext
@@ -44,7 +45,8 @@ final class MorningSessionPipeline {
         healthKit: HealthKitManager,
         morningCoordination: MorningCoordination,
         morningProcessingService: MorningProcessingService,
-        polarManager: PolarManager,
+        strapLink: StrapLinkState,
+        strapBattery: StrapBatteryUsageTracker,
         rawBackup: RawRRBackup,
         recordingStore: RecordingStateStore,
         scoring: SessionScoringContext,
@@ -63,7 +65,8 @@ final class MorningSessionPipeline {
         self.healthKit = healthKit
         self.morningCoordination = morningCoordination
         self.morningProcessingService = morningProcessingService
-        self.polarManager = polarManager
+        self.strapLink = strapLink
+        self.strapBattery = strapBattery
         self.rawBackup = rawBackup
         self.recordingStore = recordingStore
         self.scoring = scoring

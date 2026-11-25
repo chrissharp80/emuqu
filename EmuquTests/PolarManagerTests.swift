@@ -23,11 +23,11 @@ final class PolarManagerTests: XCTestCase {
         manager.stream.ingestHeartRate(mockHrData)
 
         // Verify RR intervals were extracted
-        XCTAssertEqual(manager.streamedRRPoints.count, 4, "Should extract all 4 RR intervals")
-        XCTAssertEqual(manager.streamedRRPoints[0].rr_ms, 920)
-        XCTAssertEqual(manager.streamedRRPoints[1].rr_ms, 940)
-        XCTAssertEqual(manager.streamedRRPoints[2].rr_ms, 930)
-        XCTAssertEqual(manager.streamedRRPoints[3].rr_ms, 910)
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 4, "Should extract all 4 RR intervals")
+        XCTAssertEqual(manager.stream.streamedRRPoints[0].rr_ms, 920)
+        XCTAssertEqual(manager.stream.streamedRRPoints[1].rr_ms, 940)
+        XCTAssertEqual(manager.stream.streamedRRPoints[2].rr_ms, 930)
+        XCTAssertEqual(manager.stream.streamedRRPoints[3].rr_ms, 910)
 
         // Verify cumulative time is tracked
         let expectedCumulative: Int64 = 920 + 940 + 930 + 910
@@ -48,7 +48,7 @@ final class PolarManagerTests: XCTestCase {
         manager.stream.ingestHeartRate(mockHrData)
 
         // Verify NO RR intervals were added
-        XCTAssertEqual(manager.streamedRRPoints.count, 0, "Should not extract RR when rrAvailable is false")
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 0, "Should not extract RR when rrAvailable is false")
         XCTAssertEqual(manager.stream.streamingCumulativeMsForTesting, 0, "Cumulative time should remain 0")
     }
 
@@ -70,10 +70,10 @@ final class PolarManagerTests: XCTestCase {
         manager.stream.ingestHeartRate(mockHrData)
 
         // Should extract RR from sample1 and sample2, skip sample3
-        XCTAssertEqual(manager.streamedRRPoints.count, 3, "Should extract 2 + 1 + 0 = 3 RR intervals")
-        XCTAssertEqual(manager.streamedRRPoints[0].rr_ms, 920)
-        XCTAssertEqual(manager.streamedRRPoints[1].rr_ms, 940)
-        XCTAssertEqual(manager.streamedRRPoints[2].rr_ms, 910)
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 3, "Should extract 2 + 1 + 0 = 3 RR intervals")
+        XCTAssertEqual(manager.stream.streamedRRPoints[0].rr_ms, 920)
+        XCTAssertEqual(manager.stream.streamedRRPoints[1].rr_ms, 940)
+        XCTAssertEqual(manager.stream.streamedRRPoints[2].rr_ms, 910)
     }
 
     /// Test that empty rrsMs array is handled correctly even when rrAvailable is true
@@ -91,7 +91,7 @@ final class PolarManagerTests: XCTestCase {
         XCTAssertNoThrow(manager.stream.ingestHeartRate(mockHrData))
 
         // No RR intervals should be added
-        XCTAssertEqual(manager.streamedRRPoints.count, 0)
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 0)
     }
 
     /// Test cumulative time calculation across multiple calls
@@ -105,21 +105,21 @@ final class PolarManagerTests: XCTestCase {
 
         manager.stream.ingestHeartRate(batch1)
         XCTAssertEqual(manager.stream.streamingCumulativeMsForTesting, 2000)
-        XCTAssertEqual(manager.streamedRRPoints.count, 2)
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 2)
 
         // Second batch - cumulative should continue
         let batch2 = [StrapHRSample(hr: 65, rrsMs: [1000, 1000, 1000], rrAvailable: true)]
 
         manager.stream.ingestHeartRate(batch2)
         XCTAssertEqual(manager.stream.streamingCumulativeMsForTesting, 5000, "Cumulative time should be 5 seconds")
-        XCTAssertEqual(manager.streamedRRPoints.count, 5, "Should have 5 total points")
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 5, "Should have 5 total points")
 
         // Verify t_ms values are cumulative
-        XCTAssertEqual(manager.streamedRRPoints[0].t_ms, 0)
-        XCTAssertEqual(manager.streamedRRPoints[1].t_ms, 1000)
-        XCTAssertEqual(manager.streamedRRPoints[2].t_ms, 2000)
-        XCTAssertEqual(manager.streamedRRPoints[3].t_ms, 3000)
-        XCTAssertEqual(manager.streamedRRPoints[4].t_ms, 4000)
+        XCTAssertEqual(manager.stream.streamedRRPoints[0].t_ms, 0)
+        XCTAssertEqual(manager.stream.streamedRRPoints[1].t_ms, 1000)
+        XCTAssertEqual(manager.stream.streamedRRPoints[2].t_ms, 2000)
+        XCTAssertEqual(manager.stream.streamedRRPoints[3].t_ms, 3000)
+        XCTAssertEqual(manager.stream.streamedRRPoints[4].t_ms, 4000)
     }
 
     /// Test wall clock time is captured
@@ -135,7 +135,7 @@ final class PolarManagerTests: XCTestCase {
         manager.stream.ingestHeartRateForTesting(mockHrData, elapsedMs: 120)
 
         XCTAssertEqual(
-            manager.streamedRRPoints[0].wallClockMs,
+            manager.stream.streamedRRPoints[0].wallClockMs,
             120,
             "Wall clock time should match test override"
         )
@@ -166,7 +166,7 @@ final class PolarManagerTests: XCTestCase {
         }
 
         // Verify we collected all beats
-        XCTAssertEqual(manager.streamedRRPoints.count, 130, "Should collect 130 beats")
+        XCTAssertEqual(manager.stream.streamedRRPoints.count, 130, "Should collect 130 beats")
 
         // Verify total duration is approximately 2 minutes
         let totalDurationMs = manager.stream.streamingCumulativeMsForTesting
