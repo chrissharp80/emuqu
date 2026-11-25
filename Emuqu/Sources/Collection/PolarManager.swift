@@ -64,226 +64,179 @@ enum PolarDeviceType: String, Codable {
 
 /// Manages Polar device connection and RR/PPI recording
 /// Supports Polar H10 (ECG) and Verity Sense (optical PPG)
+///
+/// The strap's parts each hold only what they use. The state they share lives
+/// in small observed objects owned here — `linkState`, `pairings`,
+/// `deviceRecording`, `stream`, `battery`, the discovery results — and the
+/// properties below read and write those for the views and the collector.
 @Observable
 @MainActor
 final class PolarManager: NSObject {
-    // MARK: - Published State
+    // MARK: - Parts
 
-    var connectionState: ConnectionState = .disconnected
-    var recordingState: RecordingState = .idle
-    var connectedDeviceId: String?
-    var connectedDeviceType: PolarDeviceType?
-    /// Device ID of a connection attempt in progress (set during `.connecting`, cleared on connect/cancel).
-    var pendingDeviceId: String?
-    var discoveredDevices: [DiscoveredDevice] = []
-    var knownDevices: [KnownDevice] = []
-    var lastError: Error?
-    var batteryLevel: Int?
-    var isRecordingOnDevice: Bool = false
-
-    /// Feature readiness for the current link. Replaced wholesale on every
-    /// connect and disconnect; see `StrapReadiness`.
-    var readiness = StrapReadiness.initial
-    var isH10RecordingFeatureReady: Bool { readiness.isReady(.h10Recording) }
-    var isHrStreamingReady: Bool { readiness.isReady(.heartRate) }
-
-    /// Whether heart rate is actually arriving, as opposed to merely connected.
-    var feedStatus: StrapFeedHealth.Status = .waitingForStrap
-
-    /// The link, its readiness and the heart-rate feed are driven from here.
-    var link: StrapLinkCoordinator { StrapLinkCoordinator(manager: self) }
+    /// The link: which strap, its readiness, its feed and readings.
+    @ObservationIgnored let linkState: StrapLinkState
     /// State the link coordinator keeps between SDK events. Not observed.
     @ObservationIgnored let linkRuntime: StrapLinkRuntime
     /// The SDK's observer callbacks send into this from its own queue.
     @ObservationIgnored nonisolated let linkRuntimePump: StrapEventPump
+    /// The SDK handle, created on first use.
+    @ObservationIgnored let radio: StrapRadioSource
+    @ObservationIgnored let pairings: StrapPairings
+    @ObservationIgnored let discoveryResults: StrapDiscoveryState
+    /// What the strap's own memory is doing, and transfers off it.
+    @ObservationIgnored let deviceRecording: StrapRecordingState
+    /// A streaming session's buffer.
+    @ObservationIgnored let stream: StrapStreamSession
+    /// The strap's battery-usage counters and staleness rule.
+    @ObservationIgnored let battery: StrapBatteryUsageTracker
 
-    /// Device-internal recording: start, stop, status, download. Lazy — a
-    /// streaming-only user never builds it.
+    /// Waiting on the link, and the few things other parts do to it.
+    var link: StrapLinkControl { StrapLinkControl(state: linkState, runtime: linkRuntime, radio: radio) }
+
+    /// What each SDK event does, the heart-rate feed, and feed health.
+    /// Built on first use; held for the manager's life.
+    @ObservationIgnored private(set) lazy var linkEvents = StrapLinkCoordinator(
+        link: link, stream: stream, battery: battery, pairings: pairings, recording: recording
+    )
+
+    /// Device-internal recording: start, stop, status, download.
     var recording: StrapRecordingCoordinator {
-        StrapRecordingCoordinator(manager: self)
+        StrapRecordingCoordinator(link: link, device: deviceRecording, discovery: discovery)
     }
 
-    var hasStoredExercise: Bool = false // True if H10 has stored data that can be recovered
-    var storedExerciseDate: Date? // Date of stored exercise on H10 (for archive comparison)
-    var firmwareVersion: String? // User-visible revision (prefers DIS software revision, falls back to firmware revision)
-    var lastConnectedTime: Date? // When this device was last successfully connected
-    var fetchProgress: FetchProgress? // Non-nil during fetch operations
+    // MARK: - State the app reads
 
-    // Fetch cancellation
-    var fetchCancelled = false
-    /// The strap transfer phase running now, so Cancel can end it.
-    @ObservationIgnored var activeTransfer: StrapTransferHandle?
-    /// Downloads and reconnects running now. Arming never starts while one
-    /// is: it would stop, clear or start the strap under the transfer.
-    @ObservationIgnored var transfersInFlight = 0
-    /// Whether the app already holds a strap recording that began at the
-    /// given time (`StrapRecordingPolicy.recordingIsSaved`). Set by
-    /// RRCollector, which also knows the archive; without it, only a
-    /// download on record counts.
-    @ObservationIgnored var savedRecordingCheck: ((Date) -> Bool)?
-
-    /// Whether a stored strap recording that began at `start` may be cleared.
-    func isRecordingSaved(startedAt start: Date) -> Bool {
-        savedRecordingCheck?(start) ?? downloadLedger.wasDownloaded(recordingStartedAt: start)
+    var connectionState: ConnectionState {
+        get { linkState.connectionState }
+        set { linkState.connectionState = newValue }
     }
-    /// The strap recordings already downloaded; see `StrapDownloadLedger`.
-    @ObservationIgnored var downloadLedger = StrapDownloadLedger()
-    private static let disFirmwareRevisionUUID = CBUUID(string: "2A26")
-    private static let disSoftwareRevisionUUID = CBUUID(string: "2A28")
-    var hasReceivedSoftwareRevision = false
-
-    /// Accept async device-info callbacks only from the currently connected device.
-    /// Internal, not private: `StrapBatteryUsageTracker` asks the same question
-    /// before accepting a battery callback, and a second copy of the rule is a
-    /// second thing to keep correct.
-    func isActiveDeviceInfoSource(_ identifier: String) -> Bool {
-        guard let connectedId = connectedDeviceId else { return false }
-        return connectedId == identifier
+    var connectedDeviceId: String? {
+        get { linkState.connectedDeviceId }
+        set { linkState.connectedDeviceId = newValue }
     }
-
-    /// Timestamp of the most recent battery level callback from the device.
-    /// Reset on every callback regardless of whether the value actually changed.
-    var lastBatteryUpdateTime: Date?
-
-    /// True when the battery reading is judged stale. Computed from
-    /// `hoursRecordedSinceBatteryChanged` vs the device's `specRecordingHours`,
-    /// not from wall-clock elapsed time — wall-clock punished users who only
-    /// connect to record (the strap reads the same %, gets called "stale",
-    /// even though the user genuinely hasn't drained it).
-    var isBatteryReadingStale: Bool = false
-
-    // MARK: - Battery Usage Tracking
-    //
-    // The counters, their persistence, and the staleness rule live on
-    // `StrapBatteryUsageTracker`; the members below forward to it.
-
-    /// The battery value the device most recently reported, tracked separately
-    /// from `batteryLevel` so a callback repeating the SAME value (which Polar
-    /// emits on connect) is told apart from one carrying a NEW one.
-    /// These three are written by `StrapBatteryUsageTracker` and by nothing
-    /// else. They cannot be `private(set)`: that setter is private to the
-    /// declaring file, and the tracker lives in another one.
-    var batteryLastReportedValue: Int?
-    /// When the device last reported a CHANGED value — not merely a callback.
-    var batteryLastChangedAt: Date?
-    /// Recording hours put on the strap since that change. A strict lower
-    /// bound on consumed runtime.
-    var hoursRecordedSinceBatteryChanged: Double = 0
-
-    /// Built on demand: a value with no state of its own, so it cannot outlive
-    /// the manager or retain it.
-    var battery: StrapBatteryUsageTracker { StrapBatteryUsageTracker(manager: self) }
-
-    func loadBatteryUsageStateIfNeeded(for deviceId: String) { battery.loadState(for: deviceId) }
-    func checkBatteryStaleness() { battery.recomputeStaleness() }
-
-    func applyBatteryLevelUpdate(from identifier: String, batteryLevel: UInt) {
-        battery.applyLevelUpdate(from: identifier, batteryLevel: batteryLevel)
+    var connectedDeviceType: PolarDeviceType? {
+        get { linkState.connectedDeviceType }
+        set { linkState.connectedDeviceType = newValue }
+    }
+    /// Device ID of a connection attempt in progress (set during `.connecting`, cleared on connect/cancel).
+    var pendingDeviceId: String? {
+        get { linkState.pendingDeviceId }
+        set { linkState.pendingDeviceId = newValue }
+    }
+    var lastError: Error? {
+        get { linkState.lastError }
+        set { linkState.lastError = newValue }
+    }
+    var batteryLevel: Int? {
+        get { linkState.batteryLevel }
+        set { linkState.batteryLevel = newValue }
+    }
+    /// See `StrapLinkState.isBatteryReadingStale`.
+    var isBatteryReadingStale: Bool { linkState.isBatteryReadingStale }
+    var firmwareVersion: String? {
+        get { linkState.firmwareVersion }
+        set { linkState.firmwareVersion = newValue }
+    }
+    /// The strap's own heart-rate reading, live whenever a strap is linked.
+    var currentHeartRate: Int? {
+        get { linkState.currentHeartRate }
+        set { linkState.currentHeartRate = newValue }
     }
 
-    /// Polar's own sample apps treat software revision (2A28) as the user-visible
-    /// firmware label. Firmware revision (2A26) is kept only as fallback.
-    ///
-    /// Polar's SDK fires this callback multiple times per
-    /// connect (once per BLE characteristic discovered, sometimes
-    /// 6–8x). We log only on actual change to avoid duplicates polluting
-    /// the debug log. Same applies to the fallback path.
-    @MainActor
-    func applyFirmwareRevisionUpdate(from identifier: String, uuid: CBUUID, value: String) {
-        guard isActiveDeviceInfoSource(identifier) else { return }
-        if uuid == Self.disSoftwareRevisionUUID {
-            setFirmwareVersion(value, label: "Software revision (displayed as firmware)")
-            hasReceivedSoftwareRevision = true
-            return
-        }
-        guard uuid == Self.disFirmwareRevisionUUID, !hasReceivedSoftwareRevision else { return }
-        setFirmwareVersion(value, label: "Firmware revision fallback")
+    /// Feature readiness for the current link; see `StrapReadiness`.
+    var readiness: StrapReadiness {
+        get { linkState.readiness }
+        set { linkState.readiness = newValue }
     }
+    var isH10RecordingFeatureReady: Bool { readiness.isReady(.h10Recording) }
+    var isHrStreamingReady: Bool { readiness.isReady(.heartRate) }
 
-    @MainActor
-    private func setFirmwareVersion(_ value: String, label: String) {
-        let isNew = firmwareVersion != value
-        firmwareVersion = value
-        if isNew {
-            debugLog("[PolarManager] \(label): \(value)")
-        }
+    /// Whether heart rate is actually arriving, as opposed to merely connected.
+    var feedStatus: StrapFeedHealth.Status {
+        get { linkState.feedStatus }
+        set { linkState.feedStatus = newValue }
     }
-
-    @MainActor
-    func applyFirmwareRevisionUpdate(from identifier: String, key: String, value: String) {
-        let normalizedKey = key.uppercased()
-        guard normalizedKey == Self.disFirmwareRevisionUUID.uuidString ||
-            normalizedKey == Self.disSoftwareRevisionUUID.uuidString else { return }
-        applyFirmwareRevisionUpdate(from: identifier, uuid: CBUUID(string: normalizedKey), value: value)
-    }
-
-    /// Called when a recording left on the strap is downloaded so the strap
-    /// can be cleared or reused, or when a download turns out not to belong
-    /// to the session that asked for it. RRCollector backs it up via
-    /// RawRRBackup, dated by the recording's own start, and returns whether
-    /// the backup is on disk.
-    var onUnrecoveredDataRescued: ((StrapRecording) -> Bool)?
-
-    /// Backs `recording` up through `onUnrecoveredDataRescued`. False when
-    /// the backup failed or nothing is set to take it: the strap then still
-    /// holds the only copy, and must not be cleared.
-    func rescueToBackup(_ recording: StrapRecording) -> Bool {
-        onUnrecoveredDataRescued?(recording) ?? false
-    }
-
-    // Streaming mode state
-    var isStreaming: Bool = false
-    var streamingElapsedSeconds: Int = 0
-
-    /// Streaming data storage — NOT observable to avoid SwiftUI thrashing on every beat.
-    /// During overnight sessions the array grows to 20,000+ points; publishing it would
-    /// trigger expensive view diffs every heartbeat and cause iOS to kill the app.
-    var _streamedRRPoints: [RRPoint] = []
-
-    /// Lightweight published count so the UI can display beat totals without copying the array.
-    var streamedRRCount: Int = 0
-
-    /// Last N points for live waveform / stats display (published, cheap to diff).
-    var recentRRPoints: [RRPoint] = []
-    static let recentRRWindowSize = 60
-
-    /// Maximum streaming buffer size — safety cap to prevent unbounded growth.
-    /// Sized in beats, not seconds: 250,000 beats is about 35 hours at an
-    /// average of 120 bpm and 60 hours at 70 bpm (roughly 10 MB of points),
-    /// well beyond any realistic session.
-    static let maxStreamingBufferSize = 250_000
-
-    /// Throttle UI updates — only push recentRRPoints every N beats to reduce SwiftUI work.
-    var lastUIUpdateBeatCount: Int = 0
-    static let uiUpdateBeatInterval = 5
-
-    /// Public read-only access to the full streaming buffer (no SwiftUI observation).
-    var streamedRRPoints: [RRPoint] {
-        _streamedRRPoints
-    }
-
-    /// Heartbeat logging (only log if nothing noteworthy happened in 30 min).
-    /// A lock-protected box, not a `nonisolated(unsafe) var`: it is accessed
-    /// from Polar SDK background callbacks (PolarManager+Streaming), so a
-    /// bare `var` races with itself. Semantics: last-write-wins, no
-    /// observer count.
-    private let _lastSignificantLogTime = OSAllocatedUnfairLock<Date>(initialState: .init())
-    nonisolated var lastSignificantLogTime: Date {
-        get { _lastSignificantLogTime.withLock { $0 } }
-        set { _lastSignificantLogTime.withLock { $0 = newValue } }
-    }
-
-    /// The strap's own heart-rate reading, live whenever a strap is linked —
-    /// with or without a recording session.
-    var currentHeartRate: Int?
 
     /// True while the strap is linked but has stopped delivering heart rate.
     var connectionHealthWarning: Bool { feedStatus == .stalled }
 
-    /// Set when a session's strap has been gone longer than
-    /// `PolarReconnectPolicy.windowSeconds`, or its pairing was lost.
-    /// Observers (RRCollector) save the buffered stream and alert the user.
-    var reconnectExhausted: Bool = false
+    var discoveredDevices: [DiscoveredDevice] {
+        get { discoveryResults.discoveredDevices }
+        set { discoveryResults.discoveredDevices = newValue }
+    }
+    var knownDevices: [KnownDevice] {
+        get { pairings.knownDevices }
+        set { pairings.knownDevices = newValue }
+    }
+    /// When this device was last successfully connected.
+    var lastConnectedTime: Date? {
+        get { pairings.lastConnectedTime }
+        set { pairings.lastConnectedTime = newValue }
+    }
+    /// The most recently connected device ID (first in knownDevices list)
+    var lastConnectedDeviceId: String? { pairings.lastConnectedDeviceId }
+
+    var recordingState: RecordingState {
+        get { deviceRecording.recordingState }
+        set { deviceRecording.recordingState = newValue }
+    }
+    var isRecordingOnDevice: Bool {
+        get { deviceRecording.isRecordingOnDevice }
+        set { deviceRecording.isRecordingOnDevice = newValue }
+    }
+    /// True if H10 has stored data that can be recovered.
+    var hasStoredExercise: Bool {
+        get { deviceRecording.hasStoredExercise }
+        set { deviceRecording.hasStoredExercise = newValue }
+    }
+    /// Date of stored exercise on H10 (for archive comparison).
+    var storedExerciseDate: Date? {
+        get { deviceRecording.storedExerciseDate }
+        set { deviceRecording.storedExerciseDate = newValue }
+    }
+    /// Non-nil during fetch operations.
+    var fetchProgress: FetchProgress? {
+        get { deviceRecording.fetchProgress }
+        set { deviceRecording.fetchProgress = newValue }
+    }
+    /// See `StrapRecordingState.transfersInFlight`.
+    var transfersInFlight: Int {
+        get { deviceRecording.transfersInFlight }
+        set { deviceRecording.transfersInFlight = newValue }
+    }
+    /// See `StrapRecordingState.savedRecordingCheck`.
+    var savedRecordingCheck: ((Date) -> Bool)? {
+        get { deviceRecording.savedRecordingCheck }
+        set { deviceRecording.savedRecordingCheck = newValue }
+    }
+    /// The strap recordings already downloaded; see `StrapDownloadLedger`.
+    var downloadLedger: StrapDownloadLedger {
+        get { deviceRecording.downloadLedger }
+        set { deviceRecording.downloadLedger = newValue }
+    }
+    /// See `StrapRecordingState.onUnrecoveredDataRescued`.
+    var onUnrecoveredDataRescued: ((StrapRecording) -> Bool)? {
+        get { deviceRecording.onUnrecoveredDataRescued }
+        set { deviceRecording.onUnrecoveredDataRescued = newValue }
+    }
+
+    var isStreaming: Bool { stream.isStreaming }
+    var streamingElapsedSeconds: Int { stream.streamingElapsedSeconds }
+    /// The full streaming buffer (no SwiftUI observation per beat).
+    var streamedRRPoints: [RRPoint] { stream.streamedRRPoints }
+    /// Lightweight published count so the UI can display beat totals without copying the array.
+    var streamedRRCount: Int { stream.streamedRRCount }
+    /// Last N points for live waveform / stats display.
+    var recentRRPoints: [RRPoint] { stream.recentRRPoints }
+    var streamingStartTime: Date? { stream.streamingStartTime }
+    /// Links re-established during the current session.
+    var streamingReconnectCount: Int { stream.streamingReconnectCount }
+    /// See `StrapStreamSession.reconnectExhausted`.
+    var reconnectExhausted: Bool {
+        get { stream.reconnectExhausted }
+        set { stream.reconnectExhausted = newValue }
+    }
 
     // MARK: - Types
 
@@ -358,72 +311,6 @@ final class PolarManager: NSObject {
         }
     }
 
-    // MARK: - Persisted State
-    //
-    // Pairings and the last-connected timestamp live in
-    // `StrapPairingStore`, which owns their App Group location and the
-    // migration from the two older ones; the members below forward to it.
-
-    /// The most recently connected device ID (first in knownDevices list)
-    var lastConnectedDeviceId: String? { knownDevices.first?.id }
-
-    func addKnownDevice(id: String, name: String, deviceType: PolarDeviceType) {
-        knownDevices = StrapPairingStore.adding(
-            KnownDevice(id: id, name: name, deviceType: deviceType), to: knownDevices
-        )
-        StrapPairingStore.save(knownDevices)
-    }
-
-    func removeKnownDevice(id: String) {
-        knownDevices.removeAll { $0.id == id }
-        StrapPairingStore.save(knownDevices)
-    }
-
-    private func loadKnownDevices() { knownDevices = StrapPairingStore.load() }
-
-    private func loadLastConnectedTime() {
-        if let time = StrapPairingStore.loadLastConnectedTime() { lastConnectedTime = time }
-    }
-
-    func saveLastConnectedTime() {
-        if let time = lastConnectedTime { StrapPairingStore.saveLastConnectedTime(time) }
-    }
-
-    // MARK: - Constants
-
-    // MARK: - Private Properties
-
-    #if canImport(PolarBleSdk)
-        var api: PolarBleApi?
-        /// Live beats from the standard Heart Rate Service. Lives as long as
-        /// the manager; its Bluetooth central is created on the first
-        /// subscription.
-        @ObservationIgnored lazy var standardHeartRate = StandardHeartRateLink()
-        /// What the app asks the strap's radio to do, behind `StrapRadio` so a
-        /// test can answer for a strap that isn't there. Production is always
-        /// the SDK; `radioForTesting` is only ever set by tests.
-        var strapAPI: (any StrapRadio)? {
-            #if DEBUG
-                if let radioForTesting { return radioForTesting }
-            #endif
-            return api.map { StrapAPI(sdk: $0, heartRate: standardHeartRate) }
-        }
-
-        #if DEBUG
-            @ObservationIgnored var radioForTesting: (any StrapRadio)?
-        #endif
-        @ObservationIgnored var searchTask: Task<Void, Never>?
-    #endif
-
-    @ObservationIgnored var streamingTimer: Timer?
-    var streamingStartTime: Date?
-    var streamingCumulativeMs: Int64 = 0
-    /// The streaming buffer's safety-cap warning has been logged this session.
-    @ObservationIgnored var hasLoggedStreamingCap = false
-    /// Links re-established during the current session, so the overnight
-    /// backup can flush on each one.
-    var streamingReconnectCount: Int = 0
-
     // MARK: - Initialization
 
     private var apiInitialized = false
@@ -459,11 +346,20 @@ final class PolarManager: NSObject {
     @ObservationIgnored private let lifecycleObservers = NotificationTokens()
 
     override init() {
-        linkRuntime = StrapLinkRuntime()
+        let linkState = StrapLinkState()
+        let linkRuntime = StrapLinkRuntime()
+        let radio = StrapRadioSource()
+        let pairings = StrapPairings()
+        self.linkState = linkState
+        self.linkRuntime = linkRuntime
         linkRuntimePump = linkRuntime.pump
+        self.radio = radio
+        self.pairings = pairings
+        discoveryResults = StrapDiscoveryState()
+        deviceRecording = StrapRecordingState()
+        stream = StrapStreamSession(link: StrapLinkControl(state: linkState, runtime: linkRuntime, radio: radio))
+        battery = StrapBatteryUsageTracker(link: linkState, pairings: pairings)
         super.init()
-        loadKnownDevices()
-        loadLastConnectedTime()
         // Defer setupPolarApi() — CoreBluetooth init is expensive and not needed
         // until the user actually tries to scan/connect. ensureApiReady() handles it.
         observeSignificantLogs()
@@ -476,8 +372,8 @@ final class PolarManager: NSObject {
             forName: DebugLogger.significantLogPosted,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
-            self?.lastSignificantLogTime = Date()
+        ) { [weak stream] _ in
+            stream?.lastSignificantLogTime = Date()
         })
     }
 
@@ -501,34 +397,16 @@ final class PolarManager: NSObject {
     /// because `self` is what conforms.
     private func setupPolarApi() {
         #if canImport(PolarBleSdk)
-            link.startEventDelivery()
-            api = PolarSDKFactory.makeApi(queue: Self.sdkQueue)
-            api?.observer = self
-            api?.deviceInfoObserver = self
-            api?.deviceFeaturesObserver = self
-            api?.powerStateObserver = self
-            api?.logger = self
-            debugLog("[PolarManager] API initialized with H10 + Verity Sense support: \(api != nil)")
+            linkEvents.startEventDelivery()
+            radio.api = PolarSDKFactory.makeApi(queue: Self.sdkQueue)
+            radio.api?.observer = self
+            radio.api?.deviceInfoObserver = self
+            radio.api?.deviceFeaturesObserver = self
+            radio.api?.powerStateObserver = self
+            radio.api?.logger = self
+            debugLog("[PolarManager] API initialized with H10 + Verity Sense support: \(radio.api != nil)")
         #else
             debugLog("[PolarManager] PolarBleSdk not available")
         #endif
     }
-
-    // MARK: - Helpers
-
-    /// Preserve non-throwing sleep semantics while surfacing interruptions in logs.
-    func sleepIgnoringCancellation(_ nanoseconds: UInt64, context: String) async {
-        do {
-            try await Task.sleep(nanoseconds: nanoseconds)
-        } catch {
-            debugLog("[PolarManager] Sleep interrupted during \(context): \(error)")
-        }
-    }
-
-    #if canImport(PolarBleSdk)
-        func convertToRRPoints(_ exercise: PolarExerciseData) -> [RRPoint] {
-            debugLog("[PolarManager] Converting exercise data: \(exercise.samples.count) samples")
-            return StrapExerciseDecoder.rrPoints(fromIntervalsMs: exercise.samples.map(Int.init))
-        }
-    #endif
 }

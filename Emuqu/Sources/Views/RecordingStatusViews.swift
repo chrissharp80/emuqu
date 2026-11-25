@@ -11,8 +11,8 @@ struct DeviceInfoPanelObserving: View {
         DeviceInfoPanelView(
             deviceType: polarManager.connectedDeviceType,
             batteryLevel: polarManager.batteryLevel,
-            batteryLastChangedAt: polarManager.batteryLastChangedAt,
-            hoursRecordedSinceChange: polarManager.hoursRecordedSinceBatteryChanged,
+            batteryLastChangedAt: polarManager.battery.batteryLastChangedAt,
+            hoursRecordedSinceChange: polarManager.battery.hoursRecordedSinceBatteryChanged,
             specRecordingHours: polarManager.connectedDeviceType?.specRecordingHours,
             isBatteryReadingStale: polarManager.isBatteryReadingStale,
             firmwareVersion: polarManager.firmwareVersion,

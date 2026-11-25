@@ -207,7 +207,7 @@ extension OvernightStreamingCoordinator {
         let previousElapsed = collector.streamingLifecycle.streamingElapsedSeconds
         collector.streamingLifecycle.streamingElapsedSeconds = collector.streamingElapsedNow
         if collector.streamingLifecycle.streamingElapsedSeconds / 30 != previousElapsed / 30 {
-            collector.polarManager.checkBatteryStaleness()
+            collector.polarManager.battery.recomputeStaleness()
         }
         let currentReconnectCount = collector.polarManager.streamingReconnectCount
         let reconnectionOccurred = currentReconnectCount > collector.lastSeenReconnectCount

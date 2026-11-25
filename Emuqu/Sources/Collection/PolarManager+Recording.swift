@@ -16,12 +16,12 @@ extension StrapRecordingCoordinator {
     func startRecording(while stillWanted: () -> Bool = { true }) async throws {
         #if canImport(PolarBleSdk)
             switch StrapRecordingPolicy.startDecision(
-                hasAPI: manager.strapAPI != nil,
-                hasDeviceId: manager.connectedDeviceId != nil,
-                connectionState: manager.connectionState,
-                recordingState: manager.recordingState,
-                isRecordingOnDevice: manager.isRecordingOnDevice,
-                deviceType: manager.connectedDeviceType
+                hasAPI: strapAPI != nil,
+                hasDeviceId: linkState.connectedDeviceId != nil,
+                connectionState: linkState.connectionState,
+                recordingState: device.recordingState,
+                isRecordingOnDevice: device.isRecordingOnDevice,
+                deviceType: linkState.connectedDeviceType
             ) {
             case .notConnected: throw PolarManager.PolarError.notConnected
             case .alreadyRecording: throw PolarManager.PolarError.alreadyRecording
@@ -62,15 +62,15 @@ extension StrapRecordingCoordinator {
     /// included; downloading it here as well filed the same night twice.
     private func setAsideRunningRecording() async throws {
         beginTransfer()
-        guard manager.connectedDeviceType == .veritySense else {
+        guard linkState.connectedDeviceType == .veritySense else {
             let stale = try await fetchRecording(recordedSince: nil, budget: .attended)
-            guard stale.points.isEmpty || manager.rescueToBackup(stale) else {
+            guard stale.points.isEmpty || device.rescueToBackup(stale) else {
                 debugLogExternal("Couldn't save the recording the strap was running. Its new recording was not started, which would have deleted it.", cause: .strap)
                 throw PolarManager.PolarError.strapHoldsUndownloadedRecording
             }
             return
         }
-        guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
+        guard let api = strapAPI, let deviceId = linkState.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
         try await stopWithinBudget(api: api, deviceId: deviceId)
         // The sensor lists a recording only once it is complete.
         await sleepQuietly(500_000_000, context: "Verity Sense stop before the rescue lists it")
@@ -79,7 +79,7 @@ extension StrapRecordingCoordinator {
     /// Throws `CancellationError` when the session no longer wants the strap
     /// armed, the task was cancelled, or a transfer is using the strap.
     func requireArmingAllowed(_ stillWanted: () -> Bool) throws {
-        guard stillWanted(), !Task.isCancelled, manager.transfersInFlight == 0 else {
+        guard stillWanted(), !Task.isCancelled, device.transfersInFlight == 0 else {
             debugLog("[PolarManager] Arming withdrawn: the session is ending or a transfer is using the strap")
             throw CancellationError()
         }
@@ -92,7 +92,7 @@ extension StrapRecordingCoordinator {
             return try await checkRecordingStatus()
         } catch {
             debugLog("[PolarManager] Couldn't read the strap's recording status before arming: \(error)")
-            return manager.isRecordingOnDevice
+            return device.isRecordingOnDevice
         }
     }
 
@@ -101,8 +101,8 @@ extension StrapRecordingCoordinator {
         /// asserted by tests rather than held in place by this reading top to
         /// bottom.
         private func startVeritySenseRecording(while stillWanted: () -> Bool) async throws {
-            try manager.link.requireUsable(.offlineRecording)
-            manager.recordingState = .starting
+            try link.requireUsable(.offlineRecording)
+            device.recordingState = .starting
             try await settlingAbortedStart { try await runVeritySenseStartSteps(while: stillWanted) }
         }
 
@@ -129,7 +129,7 @@ extension StrapRecordingCoordinator {
             do {
                 try await start()
             } catch {
-                if manager.recordingState == .starting { manager.recordingState = .idle }
+                if device.recordingState == .starting { device.recordingState = .idle }
                 throw error
             }
         }
@@ -160,7 +160,7 @@ extension StrapRecordingCoordinator {
                 let existing = try await fetchUnsavedOfflinePpiRecordings()
                 guard !existing.points.isEmpty else { return true }
                 debugLog("[PolarManager] Found \(existing.points.count) unrecovered PPI points on \(deviceLabel) — rescuing before clear")
-                guard manager.rescueToBackup(existing) else {
+                guard device.rescueToBackup(existing) else {
                     debugLog("[PolarManager] Warning: the rescue backup failed — leaving the recordings on the strap")
                     return false
                 }
@@ -180,7 +180,7 @@ extension StrapRecordingCoordinator {
         /// downloaded to the rescue backup first; one that cannot be stops
         /// the start rather than be deleted.
         private func startH10Recording(while stillWanted: () -> Bool) async throws {
-            try manager.link.requireUsable(.h10Recording)
+            try link.requireUsable(.h10Recording)
             try await settlingAbortedStart {
                 for step in StrapStartSequence.steps(for: .h10) {
                     try requireArmingAllowed(stillWanted)
@@ -193,7 +193,7 @@ extension StrapRecordingCoordinator {
             switch step {
             case .rescueExisting: try await rescueUndownloadedH10Recordings()
             case .clearExisting:
-                manager.recordingState = .starting
+                device.recordingState = .starting
                 await clearExistingTolerantly(label: "exercises")
             case .beginRecording: try await beginH10RecordingSurfacingFailure()
             }
@@ -203,7 +203,7 @@ extension StrapRecordingCoordinator {
         /// rescue backup. Throws `strapHoldsUndownloadedRecording` when one
         /// cannot be downloaded.
         private func rescueUndownloadedH10Recordings() async throws {
-            guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
+            guard let api = strapAPI, let deviceId = linkState.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
             for entryId in try await unsavedExerciseIds(api: api, deviceId: deviceId) {
                 debugLog("[PolarManager] Stored exercise \(entryId) was never downloaded — rescuing it before the clear")
                 beginTransfer()
@@ -214,7 +214,7 @@ extension StrapRecordingCoordinator {
                     debugLogExternal("Couldn't download a recording the strap holds — \(error). Its own recording was not started, which would have deleted it.", cause: .strap)
                     throw PolarManager.PolarError.strapHoldsUndownloadedRecording
                 }
-                guard manager.rescueToBackup(rescued) else {
+                guard device.rescueToBackup(rescued) else {
                     debugLogExternal("Couldn't save a recording the strap holds. Its own recording was not started, which would have deleted it.", cause: .strap)
                     throw PolarManager.PolarError.strapHoldsUndownloadedRecording
                 }
@@ -226,7 +226,7 @@ extension StrapRecordingCoordinator {
         private func unsavedExerciseIds(api: any StrapRadio, deviceId: String) async throws -> [String] {
             try await listStoredExercises(api: api, deviceId: deviceId).compactMap { entry in
                 let start = StrapExerciseDecoder.recordingStart(fromExerciseId: entry.entryId)
-                return start.map { manager.isRecordingSaved(startedAt: $0) } == true ? nil : entry.entryId
+                return start.map { device.isRecordingSaved(startedAt: $0) } == true ? nil : entry.entryId
             }
         }
 
@@ -239,29 +239,29 @@ extension StrapRecordingCoordinator {
         }
 
         private func beginH10ExerciseRecording() async throws {
-            guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
+            guard let api = strapAPI, let deviceId = linkState.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
             let exerciseId = StrapExerciseDecoder.exerciseId()
             debugLog("[PolarManager] Starting \(deviceLabel) internal recording with exerciseId: \(exerciseId)")
             try await api.startRecording(deviceId, exerciseId: exerciseId, interval: .interval_1s, sampleType: .rr)
-            manager.recordingState = .recording
-            manager.isRecordingOnDevice = true
+            device.recordingState = .recording
+            device.isRecordingOnDevice = true
             debugLog("[PolarManager] Started \(deviceLabel) internal RR recording successfully")
         }
 
         /// Humanise raw Polar SDK errors before they surface to the user via
-        /// `manager.lastError`. Without this the alert shows e.g. "Recording failed:
+        /// `linkState.lastError`. Without this the alert shows e.g. "Recording failed:
         /// PolarBleSdk.PolarErrors error 3." A refusal for
         /// a low battery becomes `strapBatteryTooLow`, which callers act on.
         /// Both straps' start failures come through here.
         func surfaceStartFailure(_ error: Error) -> Error {
             debugLog("[PolarManager] ERROR starting recording: \(error)")
-            manager.recordingState = .idle
+            device.recordingState = .idle
             guard Self.isBatteryTooLow(error) else {
-                manager.lastError = PolarManager.PolarError.recordingFailed(PolarErrorMessages.humanizeStartFailure(error))
+                linkState.lastError = PolarManager.PolarError.recordingFailed(PolarErrorMessages.humanizeStartFailure(error))
                 return error
             }
-            let refusal = PolarManager.PolarError.strapBatteryTooLow(percent: manager.batteryLevel)
-            manager.lastError = refusal
+            let refusal = PolarManager.PolarError.strapBatteryTooLow(percent: linkState.batteryLevel)
+            linkState.lastError = refusal
             return refusal
         }
 
@@ -273,7 +273,7 @@ extension StrapRecordingCoordinator {
         }
 
         private var deviceLabel: String {
-            manager.connectedDeviceType?.displayName ?? "device"
+            linkState.connectedDeviceType?.displayName ?? "device"
         }
     #endif
 
@@ -282,8 +282,8 @@ extension StrapRecordingCoordinator {
     /// removes offline PPI recordings. This is also the user-initiated "discard" path.
     func clearAnyExistingExercises() async throws {
         #if canImport(PolarBleSdk)
-            guard manager.connectedDeviceId != nil else { return }
-            if manager.connectedDeviceType == .veritySense {
+            guard linkState.connectedDeviceId != nil else { return }
+            if linkState.connectedDeviceType == .veritySense {
                 try await clearOfflinePpiRecordings()
             } else {
                 try await clearStoredExercises()
@@ -296,8 +296,8 @@ extension StrapRecordingCoordinator {
         /// cannot be asked (not connected, offline-recording feature not
         /// ready), so Discard never reports a clear that did not happen.
         private func clearOfflinePpiRecordings() async throws {
-            guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
-            try manager.link.requireUsable(.offlineRecording)
+            guard let api = strapAPI, let deviceId = linkState.connectedDeviceId else { throw PolarManager.PolarError.notConnected }
+            try link.requireUsable(.offlineRecording)
             let removed = try await Self.removeOfflinePpiRecordings(api: api, deviceId: deviceId)
             guard removed > 0 else {
                 debugLog("[PolarManager] No offline PPI recordings to clear on Verity Sense")
@@ -308,7 +308,7 @@ extension StrapRecordingCoordinator {
 
         /// H10: clear stored exercises (prevents error 106 operationNotPermitted).
         private func clearStoredExercises() async throws {
-            guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { return }
+            guard let api = strapAPI, let deviceId = linkState.connectedDeviceId else { return }
             let entries = try await listStoredExercises(api: api, deviceId: deviceId)
             guard !entries.isEmpty else {
                 debugLog("[PolarManager] No existing exercises to clear on H10")
@@ -363,13 +363,13 @@ extension StrapRecordingCoordinator {
     /// Check if the connected device has an active recording.
     /// H10: uses requestRecordingStatus. Verity Sense: uses getOfflineRecordingStatus.
     /// Called only after the relevant BLE feature is ready (no polling needed).
-    /// - Parameter deviceId: Optional device ID to use. If nil, uses manager.connectedDeviceId.
+    /// - Parameter deviceId: Optional device ID to use. If nil, uses linkState.connectedDeviceId.
     func checkRecordingStatus(deviceId: String? = nil) async throws -> Bool {
         #if canImport(PolarBleSdk)
-            guard let api = manager.strapAPI, let deviceId = deviceId ?? manager.connectedDeviceId else {
+            guard let api = strapAPI, let deviceId = deviceId ?? linkState.connectedDeviceId else {
                 throw PolarManager.PolarError.notConnected
             }
-            if manager.connectedDeviceType == .veritySense {
+            if linkState.connectedDeviceType == .veritySense {
                 return try await veritySenseRecordingStatus(api: api, deviceId: deviceId)
             }
             let status = try await h10RecordingStatus(api: api, deviceId: deviceId)
@@ -383,7 +383,7 @@ extension StrapRecordingCoordinator {
 
     #if canImport(PolarBleSdk)
         func veritySenseRecordingStatus(api: any StrapRadio, deviceId: String) async throws -> Bool {
-            try manager.link.requireUsable(.offlineRecording)
+            try link.requireUsable(.offlineRecording)
             // 8.2.0 returns the dictionary directly; the Rx `Single` and its
             // continuation wrapper are gone.
             let status: [PolarDeviceDataType: Bool] = try await api.getOfflineRecordingStatus(deviceId)
@@ -397,21 +397,21 @@ extension StrapRecordingCoordinator {
     /// What the strap said about its own recording, applied to the app's
     /// state through `StrapRecordingPolicy.statusOutcome`.
     func applyStatus(ongoing: Bool) {
-        let outcome = StrapRecordingPolicy.statusOutcome(ongoing: ongoing, current: manager.recordingState)
-        manager.isRecordingOnDevice = outcome.isRecordingOnDevice
-        if let state = outcome.recordingState { manager.recordingState = state }
+        let outcome = StrapRecordingPolicy.statusOutcome(ongoing: ongoing, current: device.recordingState)
+        device.isRecordingOnDevice = outcome.isRecordingOnDevice
+        if let state = outcome.recordingState { device.recordingState = state }
     }
 
     /// Check if H10 has stored exercise data that can be recovered.
     /// Called only after the relevant BLE feature is ready (no polling needed).
-    /// - Parameter deviceId: Optional device ID to use. If nil, uses manager.connectedDeviceId.
+    /// - Parameter deviceId: Optional device ID to use. If nil, uses linkState.connectedDeviceId.
     func checkForStoredExercises(deviceId: String? = nil) async {
         #if canImport(PolarBleSdk)
-            guard let api = manager.strapAPI, let deviceId = deviceId ?? manager.connectedDeviceId else {
+            guard let api = strapAPI, let deviceId = deviceId ?? linkState.connectedDeviceId else {
                 debugLog("[PolarManager] checkForStoredExercises: No device ID available")
                 return
             }
-            if manager.connectedDeviceType == .veritySense {
+            if linkState.connectedDeviceType == .veritySense {
                 await checkStoredOfflineRecordings(api: api, deviceId: deviceId)
             } else {
                 await checkStoredH10Exercises(api: api, deviceId: deviceId)
@@ -421,7 +421,7 @@ extension StrapRecordingCoordinator {
 
     #if canImport(PolarBleSdk)
         private func checkStoredOfflineRecordings(api: any StrapRadio, deviceId: String) async {
-            guard manager.link.isUsable(.offlineRecording) else {
+            guard link.isUsable(.offlineRecording) else {
                 debugLog("[PolarManager] Offline recording feature not ready — cannot check for stored recordings")
                 return
             }
@@ -429,8 +429,8 @@ extension StrapRecordingCoordinator {
                 let ppiRecordings = try await Self.listPpiEntries(api: api, deviceId: deviceId)
                 let recordingDate = ppiRecordings.map(\.date).min()
                 debugLog("[PolarManager] Found \(ppiRecordings.count) offline PPI recording(s) on Verity Sense, date: \(recordingDate?.description ?? "none")")
-                manager.hasStoredExercise = !ppiRecordings.isEmpty
-                manager.storedExerciseDate = recordingDate
+                device.hasStoredExercise = !ppiRecordings.isEmpty
+                device.storedExerciseDate = recordingDate
             } catch {
                 // An error says nothing about what the sensor holds, so the
                 // last answer stands; reading it as "empty" hid the Recover card.
@@ -446,8 +446,8 @@ extension StrapRecordingCoordinator {
                 let newest = StrapExerciseDecoder.newestRecording(entries, exerciseId: \.entryId, notBefore: nil)
                 let exerciseDate = newest.flatMap { StrapExerciseDecoder.recordingStart(fromExerciseId: $0.entryId) }
                 debugLog("[PolarManager] Found \(entries.count) stored exercise(s) on H10, started: \(exerciseDate?.description ?? "unknown")")
-                manager.hasStoredExercise = !entries.isEmpty
-                manager.storedExerciseDate = exerciseDate
+                device.hasStoredExercise = !entries.isEmpty
+                device.storedExerciseDate = exerciseDate
             } catch {
                 // An error says nothing about what the strap holds, so the
                 // last answer stands; reading it as "empty" hid the Recover card.
@@ -461,14 +461,14 @@ extension StrapRecordingCoordinator {
     /// `listOfflineRecordings` only returns completed recordings.
     func stopOfflinePpiRecording() async throws {
         #if canImport(PolarBleSdk)
-            guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else {
+            guard let api = strapAPI, let deviceId = linkState.connectedDeviceId else {
                 throw PolarManager.PolarError.notConnected
             }
-            try manager.link.requireUsable(.offlineRecording)
+            try link.requireUsable(.offlineRecording)
             debugLog("[PolarManager] Stopping active offline PPI recording on Verity Sense...")
             try await api.stopOfflineRecording(deviceId, feature: .ppi)
-            manager.isRecordingOnDevice = false
-            manager.recordingState = .idle
+            device.isRecordingOnDevice = false
+            device.recordingState = .idle
             debugLog("[PolarManager] Stopped offline PPI recording")
         #else
             throw PolarManager.PolarError.sdkNotAvailable
@@ -485,15 +485,15 @@ extension StrapRecordingCoordinator {
     /// Record screen's "Discard & Start Fresh".
     func discardStoredExercises() async throws {
         #if canImport(PolarBleSdk)
-            guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else {
+            guard let api = strapAPI, let deviceId = linkState.connectedDeviceId else {
                 throw PolarManager.PolarError.notConnected
             }
-            let deviceName = manager.connectedDeviceType?.displayName ?? "device"
+            let deviceName = linkState.connectedDeviceType?.displayName ?? "device"
             debugLog("[PolarManager] User requested discard of stored data on \(deviceName)...")
             try await stopBeforeDiscarding(api: api, deviceId: deviceId)
             try await clearAnyExistingExercises()
-            manager.hasStoredExercise = false
-            manager.storedExerciseDate = nil
+            device.hasStoredExercise = false
+            device.storedExerciseDate = nil
         #else
             throw PolarManager.PolarError.sdkNotAvailable
         #endif
@@ -519,7 +519,7 @@ extension StrapRecordingCoordinator {
     }
 
     private func stopOnStrap(api: any StrapRadio, deviceId: String) async throws {
-        if manager.connectedDeviceType == .veritySense {
+        if linkState.connectedDeviceType == .veritySense {
             try await stopOfflinePpiRecording()
         } else {
             _ = try await stopH10Recording(

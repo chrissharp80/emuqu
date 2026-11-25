@@ -22,7 +22,7 @@ extension StrapRecordingCoordinator {
     /// only older recordings throws `noRecordingSinceSessionStart` rather
     /// than hand back an earlier night as this one.
     ///
-    /// Each phase runs under `budget`'s hard deadline, and `cancelFetch()`
+    /// Each phase runs under `budget`'s hard deadline, and `cancelActiveTransfer()`
     /// ends it at once. Whatever happens, the app's recording state is left
     /// settled, never mid-`.stopping` or `.fetching`.
     func fetchRecording(recordedSince: Date?, budget: StrapRecordingPolicy.TransferBudget) async throws -> StrapRecording {
@@ -38,10 +38,10 @@ extension StrapRecordingCoordinator {
     private func fetchRecording(
         _ selection: StrapRecordingSelection, budget: StrapRecordingPolicy.TransferBudget
     ) async throws -> StrapRecording {
-        guard let api = manager.strapAPI, let deviceId = manager.connectedDeviceId,
-              manager.connectionState == .connected else { throw PolarManager.PolarError.notConnected }
-        manager.transfersInFlight += 1
-        defer { manager.transfersInFlight -= 1 }
+        guard let api = strapAPI, let deviceId = linkState.connectedDeviceId,
+              linkState.connectionState == .connected else { throw PolarManager.PolarError.notConnected }
+        device.transfersInFlight += 1
+        defer { device.transfersInFlight -= 1 }
         do {
             let stopped = try await runBounded(seconds: budget.stopSeconds, phase: "stop") {
                 try await self.stopRunningRecording(api: api, deviceId: deviceId, showsProgress: budget.showsProgress)
@@ -65,8 +65,8 @@ extension StrapRecordingCoordinator {
     /// asked.
     func fetchRecordingIfAvailable(recordedSince: Date?) async -> StrapRecording? {
         let decision = StrapRecordingPolicy.quickFetchDecision(
-            hasAPI: manager.strapAPI != nil, hasDeviceId: manager.connectedDeviceId != nil,
-            isRecordingOnDevice: manager.isRecordingOnDevice, deviceType: manager.connectedDeviceType
+            hasAPI: strapAPI != nil, hasDeviceId: linkState.connectedDeviceId != nil,
+            isRecordingOnDevice: device.isRecordingOnDevice, deviceType: linkState.connectedDeviceType
         )
         guard decision == .fetchH10 || decision == .fetchVeritySense else {
             debugLog("[PolarManager] Strap download skipped: \(decision)")
@@ -83,7 +83,7 @@ extension StrapRecordingCoordinator {
     /// Say what actually failed, and never promise the night is safe: a
     /// fallback message must not make a claim the fallback cannot verify.
     private func reportUnattendedFailure(_ error: Error) {
-        let stillOnStrap = manager.isRecordingOnDevice || manager.hasStoredExercise
+        let stillOnStrap = device.isRecordingOnDevice || device.hasStoredExercise
         let tail = stillOnStrap
             ? "The strap still holds its own copy — recover it from the Record screen before starting anything new, which clears it."
             : "Scoring the live stream instead."
@@ -96,7 +96,7 @@ extension StrapRecordingCoordinator {
     /// fetch itself never clears the flag: a Cancel or Skip tapped while the
     /// flow was still reconnecting must survive into the download.
     func beginTransfer() {
-        manager.fetchCancelled = false
+        device.fetchCancelled = false
     }
 
     /// The user's Cancel: the flag stops the retry loop between attempts (the
@@ -105,21 +105,21 @@ extension StrapRecordingCoordinator {
     /// retry), and cancelling the running phase ends a call the strap never
     /// answers.
     func cancelActiveTransfer() {
-        manager.fetchCancelled = true
-        manager.activeTransfer?.cancel()
+        device.fetchCancelled = true
+        device.activeTransfer?.cancel()
         debugLog("[PolarManager] Fetch cancellation requested")
     }
 
-    /// One phase under its hard deadline, cancellable from `cancelFetch()`.
+    /// One phase under its hard deadline, cancellable from `cancelActiveTransfer()`.
     func runBounded<T: Sendable>(
         seconds: UInt64, phase: String, _ operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
-        if manager.fetchCancelled { throw CancellationError() }
+        if device.fetchCancelled { throw CancellationError() }
         let timeout = PolarManager.PolarError.fetchFailed("strap \(phase) timed out after \(seconds)s (strap unresponsive)")
         let task = Task { try await Deadline.race(seconds: TimeInterval(seconds), timeout: timeout, operation: operation) }
         let handle = StrapTransferHandle(cancel: { task.cancel() })
-        manager.activeTransfer = handle
-        defer { if manager.activeTransfer?.id == handle.id { manager.activeTransfer = nil } }
+        device.activeTransfer = handle
+        defer { if device.activeTransfer?.id == handle.id { device.activeTransfer = nil } }
         return try await withTaskCancellationHandler {
             try await task.value
         } onCancel: {
@@ -133,9 +133,9 @@ extension StrapRecordingCoordinator {
     /// it had also failed some other way (a phase deadline that ran out
     /// after the Cancel), that cause goes in the log rather than being lost.
     private func settleFailedTransfer(_ error: Error) -> Error {
-        manager.fetchProgress = nil
-        if manager.recordingState != .idle { manager.recordingState = .idle }
-        guard error is CancellationError || manager.fetchCancelled else {
+        device.fetchProgress = nil
+        if device.recordingState != .idle { device.recordingState = .idle }
+        guard error is CancellationError || device.fetchCancelled else {
             debugLog("[PolarManager] Strap transfer failed: \(error)")
             return error
         }
@@ -147,17 +147,17 @@ extension StrapRecordingCoordinator {
     /// The strap keeps its copy after a download, so it still holds one, and
     /// the download is on record so the copy is not offered again.
     private func noteDownloaded(_ recording: StrapRecording, showsProgress: Bool) async {
-        manager.recordingState = .idle
-        manager.hasStoredExercise = true
+        device.recordingState = .idle
+        device.hasStoredExercise = true
         if let start = recording.startedAt {
-            manager.storedExerciseDate = start
-            manager.downloadLedger.markDownloaded(recordingStartedAt: start)
+            device.storedExerciseDate = start
+            device.downloadLedger.markDownloaded(recordingStartedAt: start)
         }
         debugLog("[PolarManager] Downloaded \(recording.points.count) beats, started \(recording.startedAt?.description ?? "unknown")")
         guard showsProgress else { return }
-        await manager.updateProgress(.complete, progress: 1.0, message: "Downloaded \(recording.points.count) heartbeats!")
-        await manager.sleepIgnoringCancellation(500_000_000, context: "strap download completion UI delay")
-        manager.fetchProgress = nil
+        await device.updateProgress(.complete, progress: 1.0, message: "Downloaded \(recording.points.count) heartbeats!")
+        await Self.sleepIgnoringCancellation(500_000_000, context: "strap download completion UI delay")
+        device.fetchProgress = nil
     }
 
     // MARK: - Reconnecting for a transfer
@@ -168,12 +168,12 @@ extension StrapRecordingCoordinator {
     /// `StrapRecordingPolicy.reconnectWindowSeconds` and ended at once by
     /// Cancel or Skip.
     func reconnectForTransfer() async -> Bool {
-        guard manager.connectionState != .connected else { return true }
+        guard linkState.connectionState != .connected else { return true }
         debugLog("[PolarManager] Strap not connected — reconnecting for the transfer…")
-        manager.discovery.connectToLastDevice()
+        discovery.connectToLastDevice()
         let window = StrapRecordingPolicy.reconnectWindowSeconds
-        manager.transfersInFlight += 1
-        defer { manager.transfersInFlight -= 1 }
+        device.transfersInFlight += 1
+        defer { device.transfersInFlight -= 1 }
         do {
             return try await runBounded(seconds: UInt64(window) + 5, phase: "reconnect") {
                 await self.awaitLinkAndRecordingState(until: Date().addingTimeInterval(window))
@@ -185,7 +185,7 @@ extension StrapRecordingCoordinator {
     }
 
     private func awaitLinkAndRecordingState(until deadline: Date) async -> Bool {
-        guard await manager.link.awaitConnection(until: deadline) else { return false }
+        guard await link.awaitConnection(until: deadline) else { return false }
         await refreshRecordingState(until: deadline)
         return true
     }
@@ -197,9 +197,9 @@ extension StrapRecordingCoordinator {
     /// not take as fresh.
     @discardableResult
     func refreshRecordingState(until deadline: Date) async -> Bool {
-        let feature: StrapFeature = manager.connectedDeviceType == .veritySense ? .offlineRecording : .h10Recording
+        let feature: StrapFeature = linkState.connectedDeviceType == .veritySense ? .offlineRecording : .h10Recording
         do {
-            _ = try await manager.link.whenFeatureUsable(feature, until: deadline) {
+            _ = try await link.whenFeatureUsable(feature, until: deadline) {
                 try await checkRecordingStatus()
             }
             await checkForStoredExercises()
@@ -215,7 +215,7 @@ extension StrapRecordingCoordinator {
     /// Stop whatever the strap is recording, as its own status reports it.
     /// True when a recording was running and is now stopped.
     private func stopRunningRecording(api: any StrapRadio, deviceId: String, showsProgress: Bool) async throws -> Bool {
-        if manager.connectedDeviceType == .veritySense {
+        if linkState.connectedDeviceType == .veritySense {
             return try await stopVeritySenseIfRecording(api: api, deviceId: deviceId, showsProgress: showsProgress)
         }
         return try await stopH10Recording(
@@ -240,10 +240,10 @@ extension StrapRecordingCoordinator {
         api: any StrapRadio, deviceId: String, awaitFinalize: Bool, showsProgress: Bool, cancellable: Bool,
         streamHoldsIt: Bool
     ) async throws -> Bool {
-        if showsProgress { await manager.updateProgress(.stopping, progress: 0.05, message: "Checking recording status...") }
-        let status = try await manager.link.whenFeatureUsable(
+        if showsProgress { await device.updateProgress(.stopping, progress: 0.05, message: "Checking recording status...") }
+        let status = try await link.whenFeatureUsable(
             .h10Recording, until: Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds),
-            while: { !cancellable || !manager.fetchCancelled },
+            while: { !cancellable || !device.fetchCancelled },
             perform: { try await h10RecordingStatus(api: api, deviceId: deviceId) }
         )
         try Task.checkCancellation()
@@ -251,12 +251,12 @@ extension StrapRecordingCoordinator {
             applyStatus(ongoing: false)
             return false
         }
-        manager.recordingState = .stopping
-        if showsProgress { await manager.updateProgress(.stopping, progress: 0.1, message: "Stopping recording...") }
+        device.recordingState = .stopping
+        if showsProgress { await device.updateProgress(.stopping, progress: 0.1, message: "Stopping recording...") }
         try await api.stopRecording(deviceId)
         let startedAt = StrapExerciseDecoder.recordingStart(fromExerciseId: status.entryId)
         markRecordingStopped(startedAt: startedAt)
-        if streamHoldsIt, let startedAt { manager.downloadLedger.markDownloaded(recordingStartedAt: startedAt) }
+        if streamHoldsIt, let startedAt { device.downloadLedger.markDownloaded(recordingStartedAt: startedAt) }
         if awaitFinalize { await awaitH10FileFinalize(api: api, deviceId: deviceId, entryId: status.entryId, showsProgress: showsProgress) }
         return true
     }
@@ -264,10 +264,10 @@ extension StrapRecordingCoordinator {
     /// The strap confirmed the stop: nothing records, and the strap now holds
     /// the finished file.
     private func markRecordingStopped(startedAt: Date?) {
-        manager.recordingState = .idle
-        manager.isRecordingOnDevice = false
-        manager.hasStoredExercise = true
-        if let startedAt { manager.storedExerciseDate = startedAt }
+        device.recordingState = .idle
+        device.isRecordingOnDevice = false
+        device.hasStoredExercise = true
+        if let startedAt { device.storedExerciseDate = startedAt }
         debugLog("[PolarManager] Strap recording stopped (started \(startedAt?.description ?? "unknown"))")
     }
 
@@ -275,13 +275,13 @@ extension StrapRecordingCoordinator {
     /// stopped first. A stop that fails is logged and the completed
     /// recordings are read anyway.
     private func stopVeritySenseIfRecording(api: any StrapRadio, deviceId: String, showsProgress: Bool) async throws -> Bool {
-        let ongoing = try await manager.link.whenFeatureUsable(
+        let ongoing = try await link.whenFeatureUsable(
             .offlineRecording, until: Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds),
-            while: { !manager.fetchCancelled },
+            while: { !device.fetchCancelled },
             perform: { try await veritySenseRecordingStatus(api: api, deviceId: deviceId) }
         )
         guard ongoing else { return false }
-        if showsProgress { await manager.updateProgress(.stopping, progress: 0.05, message: "Stopping recording...") }
+        if showsProgress { await device.updateProgress(.stopping, progress: 0.05, message: "Stopping recording...") }
         do {
             try await stopOfflinePpiRecording()
             await sleepQuietly(500_000_000, context: "Verity Sense stop before download")
@@ -300,10 +300,10 @@ extension StrapRecordingCoordinator {
     /// still listed does not end the wait. Bounded so a missing file falls
     /// through to the retry loop.
     private func awaitH10FileFinalize(api: any StrapRadio, deviceId: String, entryId: String, showsProgress: Bool) async {
-        if showsProgress { await manager.updateProgress(.finalizing, progress: 0.2, message: "Strap is saving data...") }
+        if showsProgress { await device.updateProgress(.finalizing, progress: 0.2, message: "Strap is saving data...") }
         let started = Date()
         for poll in 1 ... 30 {
-            if manager.fetchCancelled || Task.isCancelled { return }
+            if device.fetchCancelled || Task.isCancelled { return }
             if await h10Lists(entryId: entryId, api: api, deviceId: deviceId) {
                 debugLog("[MorningTiming] H10 finalize ready after \(Int(Date().timeIntervalSince(started) * 1000))ms (\(poll) polls)")
                 return
@@ -334,9 +334,9 @@ extension StrapRecordingCoordinator {
     /// it again; without it a walk's complete stream looked lost at bedtime.
     func stopDeviceRecordingIfNeeded(streamHoldsIt: Bool) async {
         guard StrapRecordingPolicy.shouldStopDeviceRecording(
-            deviceType: manager.connectedDeviceType, hasAPI: manager.strapAPI != nil,
-            hasDeviceId: manager.connectedDeviceId != nil, isRecordingOnDevice: manager.isRecordingOnDevice
-        ), let api = manager.strapAPI, let deviceId = manager.connectedDeviceId else { return }
+            deviceType: linkState.connectedDeviceType, hasAPI: strapAPI != nil,
+            hasDeviceId: linkState.connectedDeviceId != nil, isRecordingOnDevice: device.isRecordingOnDevice
+        ), let api = strapAPI, let deviceId = linkState.connectedDeviceId else { return }
         let budget = StrapRecordingPolicy.TransferBudget.unattended
         do {
             _ = try await Deadline.race(
@@ -349,7 +349,7 @@ extension StrapRecordingCoordinator {
                 )
             }
         } catch {
-            if manager.recordingState != .idle { manager.recordingState = .idle }
+            if device.recordingState != .idle { device.recordingState = .idle }
             debugLogExternal("H10 didn't confirm the recording stop — \(error). It is asked again before the next recording starts.", cause: .strap)
         }
     }
@@ -363,7 +363,7 @@ extension StrapRecordingCoordinator {
     ) async throws -> StrapRecording {
         var attempt = 1
         while true {
-            if manager.fetchCancelled || Task.isCancelled { throw CancellationError() }
+            if device.fetchCancelled || Task.isCancelled { throw CancellationError() }
             do {
                 return try await readWhenUsable(
                     api: api, deviceId: deviceId, selection: selection, attempt: attempt, showsProgress: showsProgress
@@ -383,9 +383,9 @@ extension StrapRecordingCoordinator {
     private func readWhenUsable(
         api: any StrapRadio, deviceId: String, selection: StrapRecordingSelection, attempt: Int, showsProgress: Bool
     ) async throws -> StrapRecording {
-        try await manager.link.whenFeatureUsable(
+        try await link.whenFeatureUsable(
             downloadFeature, until: Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds),
-            while: { !manager.fetchCancelled },
+            while: { !device.fetchCancelled },
             perform: {
                 try await readRecording(
                     api: api, deviceId: deviceId, selection: selection, attempt: attempt, showsProgress: showsProgress
@@ -395,7 +395,7 @@ extension StrapRecordingCoordinator {
     }
 
     private var downloadFeature: StrapFeature {
-        manager.connectedDeviceType == .veritySense ? .offlineRecording : .h10Recording
+        linkState.connectedDeviceType == .veritySense ? .offlineRecording : .h10Recording
     }
 
     /// What a failed attempt means for the next one.
@@ -417,7 +417,7 @@ extension StrapRecordingCoordinator {
             try await Task.sleep(nanoseconds: milliseconds * 1_000_000)
         case .resetLink:
             if showsProgress {
-                await manager.updateProgress(.reconnecting, progress: 0.35, attempt: attempt + 1, maxAttempts: StrapRecordingPolicy.maxDownloadAttempts, message: "Resetting connection...")
+                await device.updateProgress(.reconnecting, progress: 0.35, attempt: attempt + 1, maxAttempts: StrapRecordingPolicy.maxDownloadAttempts, message: "Resetting connection...")
             }
             await resetLinkForRetry()
         }
@@ -427,13 +427,13 @@ extension StrapRecordingCoordinator {
     /// and its recording feature to be usable again.
     private func resetLinkForRetry() async {
         debugLog("[PolarManager] Resetting the strap link before the next download attempt...")
-        if manager.link.beginLinkReset() {
-            _ = await manager.link.awaitDisconnection(until: Date().addingTimeInterval(StrapRecordingPolicy.linkDropWaitSeconds))
+        if link.beginLinkReset() {
+            _ = await link.awaitDisconnection(until: Date().addingTimeInterval(StrapRecordingPolicy.linkDropWaitSeconds))
         }
-        let outcome = await manager.link.awaitFeature(
+        let outcome = await link.awaitFeature(
             downloadFeature,
             until: Date().addingTimeInterval(StrapRecordingPolicy.featureReadyWindowSeconds),
-            while: { !manager.fetchCancelled }
+            while: { !device.fetchCancelled }
         )
         debugLog("[PolarManager] Link reset for retry — \(downloadFeature): \(outcome)")
     }
@@ -443,9 +443,9 @@ extension StrapRecordingCoordinator {
     private func readRecording(
         api: any StrapRadio, deviceId: String, selection: StrapRecordingSelection, attempt: Int, showsProgress: Bool
     ) async throws -> StrapRecording {
-        manager.recordingState = .fetching
+        device.recordingState = .fetching
         if showsProgress {
-            await manager.updateProgress(.fetchingData, progress: 0.5, attempt: attempt, maxAttempts: StrapRecordingPolicy.maxDownloadAttempts, message: "Downloading...")
+            await device.updateProgress(.fetchingData, progress: 0.5, attempt: attempt, maxAttempts: StrapRecordingPolicy.maxDownloadAttempts, message: "Downloading...")
         }
         let recording = try await readFromStrap(api: api, deviceId: deviceId, selection: selection)
         try Task.checkCancellation()
@@ -456,7 +456,7 @@ extension StrapRecordingCoordinator {
     /// names nothing on it and finds nothing, rather than taking every
     /// completed recording.
     private func readFromStrap(api: any StrapRadio, deviceId: String, selection: StrapRecordingSelection) async throws -> StrapRecording {
-        if manager.connectedDeviceType == .veritySense {
+        if linkState.connectedDeviceType == .veritySense {
             guard case let .newest(since) = selection else { throw PolarManager.PolarError.noRecordingFound }
             return try await readVeritySenseRecording(recordedSince: since)
         }
@@ -467,7 +467,7 @@ extension StrapRecordingCoordinator {
         let entry = try await selectedRecording(api: api, deviceId: deviceId, selection: selection)
         let exercise = try await api.fetchExercise(deviceId, entry: entry)
         return StrapRecording(
-            points: manager.convertToRRPoints(exercise),
+            points: Self.convertToRRPoints(exercise),
             startedAt: StrapExerciseDecoder.recordingStart(fromExerciseId: entry.entryId)
         )
     }
@@ -522,6 +522,20 @@ extension StrapRecordingCoordinator {
         let recording = try await fetchOfflinePpiRecording(recordedSince: recordedSince)
         guard !recording.points.isEmpty else { throw PolarManager.PolarError.noRecordingFound }
         return recording
+    }
+
+    private static func convertToRRPoints(_ exercise: PolarExerciseData) -> [RRPoint] {
+        debugLog("[PolarManager] Converting exercise data: \(exercise.samples.count) samples")
+        return StrapExerciseDecoder.rrPoints(fromIntervalsMs: exercise.samples.map(Int.init))
+    }
+
+    /// Preserve non-throwing sleep semantics while surfacing interruptions in logs.
+    private static func sleepIgnoringCancellation(_ nanoseconds: UInt64, context: String) async {
+        do {
+            try await Task.sleep(nanoseconds: nanoseconds)
+        } catch {
+            debugLog("[PolarManager] Sleep interrupted during \(context): \(error)")
+        }
     }
 }
 

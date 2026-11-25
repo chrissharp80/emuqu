@@ -527,7 +527,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
             guard let p = self.connectedPolar() else {
                 return .missing(reason: .notRecorded, detail: "no Polar connected")
             }
-            let h = MainActor.assumeIsolated { p.hoursRecordedSinceBatteryChanged }
+            let h = MainActor.assumeIsolated { p.battery.hoursRecordedSinceBatteryChanged }
             return .double(h)
         }
     }
