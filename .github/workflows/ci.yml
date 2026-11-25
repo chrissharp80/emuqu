@@ -433,10 +433,11 @@ jobs:
     if: inputs.scope != 'gates'
     runs-on: macos-26
     # A hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
-    # The sanitized step takes 20 to 40 min; 60 is 1.5x the slowest run seen.
+    # The sanitized step takes 20 to 40 min, and a blind run (its canary
+    # unreported) is run once more; 100 allows two of the slowest seen.
     # The step prints its progress every minute, so a slow run can be told
     # apart from a hung one.
-    timeout-minutes: 60
+    timeout-minutes: 100
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2

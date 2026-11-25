@@ -1338,10 +1338,13 @@ bash scripts/check_refactor_spec_conformance.sh
     file, each naming the queue or lock that owns its state) are actually
     safe, as opposed to merely no more numerous than last week.
     `scripts/check_thread_sanitizer.sh` runs the tests serially
-    (`-parallel-testing-enabled NO`, so race reports reach the log) with
-    `TSAN_OPTIONS=halt_on_error=1` (so a race fails the run), and first runs a
-    canary, `EmuquTests/ThreadSanitizerCanaryTests`, that races on purpose: the
-    gate fails unless the canary's race is reported and fails its run. Its last
+    (`-parallel-testing-enabled NO`, so race reports reach the log) and
+    `TSAN_OPTIONS=halt_on_error=0` (so a report does not end the host), with a
+    canary, `EmuquTests/ThreadSanitizerCanaryTests`, racing on purpose inside
+    the same process. A sanitized host is sometimes blind for its whole life,
+    so the run counts only if the canary's race is in its log; a blind run is
+    retried once, and the gate fails if every run was blind or any report
+    other than the canary's appears. Its last
     step writes the job's result to the run summary.
   - **Job 4 `release-build`** — `make release-build`: the Release
     configuration compiles with the optimizer, in parallel with the tests so a

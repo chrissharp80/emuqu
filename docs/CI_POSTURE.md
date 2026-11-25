@@ -84,12 +84,13 @@ measuring nothing is worse than no gate, because it is documented as protection.
 
 Every gate has a plant except `check_coverage.sh`, which needs a real build and
 is verified by its own CI runs. `check_thread_sanitizer.sh` is planted against a
-stand-in `xcodebuild`: a race in the suite, and each of the two settings that
-make a race visible (serial testing, so the report reaches the log, and
-`TSAN_OPTIONS=halt_on_error=1`, so it fails the run) removed from the gate. On a
-real run the gate proves the same two things first with a canary,
-`EmuquTests/ThreadSanitizerCanaryTests`, which races on purpose; it fails unless
-that race is reported and fails its run. `check_uitest_fresh_install.sh` is a static grep that runs on
+stand-in `xcodebuild`: a race in the suite, a blind test host, parallel testing
+left on (so reports never reach the log), the canary not asked to race, and the
+halt on the first report left on (so the canary ends the host mid-suite). On a
+real run, `EmuquTests/ThreadSanitizerCanaryTests` races on purpose inside the
+suite's own process, and the run counts only if that race is reported in its
+log; a run without it was blind, is retried once, and fails the gate if blind
+again. `check_uitest_fresh_install.sh` is a static grep that runs on
 Ubuntu, so it has a plant like the rest. Every planted violation goes red.
 
 A gate that covers one of two shapes of its subject reports a clean tree it has
