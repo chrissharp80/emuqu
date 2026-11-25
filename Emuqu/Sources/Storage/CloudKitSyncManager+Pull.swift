@@ -230,7 +230,7 @@ extension CloudPullCoordinator {
     /// alone; a copy held here counts as uploaded and stays as it is. A
     /// restore made on another device after this one applied a deletion
     /// (`isRestoreToAdopt`) is imported with this pull; the local deletion is
-    /// dropped only once the iCloud copy has downloaded and decoded.
+    /// dropped only in the step that writes the iCloud copy here.
     func processRemoteRecord(_ record: CKRecord, forgotten: Set<UUID>) async -> RecordOutcome {
         let sessionIdString = record.recordID.recordName
         guard let sessionId = UUID(uuidString: sessionIdString), !forgotten.contains(sessionId) else { return RecordOutcome() }
@@ -307,7 +307,9 @@ extension CloudPullCoordinator {
         guard manager.archive.store.exists(sessionId) || manager.archive.store.wasIntentionallyDeleted(sessionId) else {
             return false
         }
-        if !manager.state.pendingUploadIds.contains(sessionId) {
+        // A Trash restore not yet uploaded is not in iCloud, whatever the
+        // queue says: its upload clears the flag.
+        if !manager.state.pendingUploadIds.contains(sessionId), !manager.trashRestore.isRestored(sessionId) {
             manager.state.markUploaded(sessionId)
         }
         return true
@@ -352,10 +354,12 @@ extension CloudPullCoordinator {
     /// build refuses to write it, and an error would keep sync failing on
     /// every pull until the app is updated.
     ///
-    /// A restore adopted from another device (`adoptingRestore`) drops the
-    /// local deletion only after the copy decoded, so a failed download or
-    /// decode leaves the session in this device's Trash. A Trash copy left
-    /// here is removed once the session is in the archive.
+    /// A restore made on another device (`adoptingRestore`) drops the local
+    /// deletion in the same step as the write
+    /// (`SessionArchive.archiveRestoredFromAnotherDevice`), so a failed
+    /// download, decode or write leaves the session deleted and in this
+    /// device's Trash. A Trash copy left here is removed once the session is
+    /// in the archive.
     private func importPulledSession(
         from fetched: (url: URL, record: CKRecord), sessionId: UUID, sessionIdString: String, adoptingRestore: Bool
     ) async -> RecordOutcome {
@@ -367,9 +371,12 @@ extension CloudPullCoordinator {
             // The stall watchdog fired, or the account changed, while it
             // decoded: the next sync imports it.
             guard !Task.isCancelled, CloudAccountIdentity.isConfirmed else { return RecordOutcome() }
-            guard !adoptingRestore || manager.trashRestore.adoptFromAnotherDevice(sessionId) else { return RecordOutcome() }
-            try manager.archive.archive(session, skipSameNightMerge: true)
-            manager.archive.store.discardTrashed(sessionId)
+            if adoptingRestore {
+                try manager.archive.archiveRestoredFromAnotherDevice(session)
+            } else {
+                try manager.archive.archive(session, skipSameNightMerge: true)
+                manager.archive.store.discardTrashed(sessionId)
+            }
             manager.state.markUploaded(sessionId)
             manager.state.noteRecordVersion(version, of: sessionId)
             return RecordOutcome(new: 1, backfillId: sessionId)

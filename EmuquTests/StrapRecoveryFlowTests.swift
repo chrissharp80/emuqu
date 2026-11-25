@@ -116,6 +116,30 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertFalse(radio.calls.contains(.stopRecording))
     }
 
+    /// A workout the app died during owns the strap's recording: Stop,
+    /// Recover and Discard leave it for workout recovery, which rebuilds the
+    /// workout with its route, instead of filing it as a night.
+    func testAnInterruptedWorkoutsRecordingIsLeftForWorkoutRecovery() async throws {
+        let radio = FakeStrapRadio()
+        let start = Date().addingTimeInterval(-3600)
+        radio.setRecording(ongoing: true, entryId: exerciseId(start))
+        let collector = makeCollector(radio)
+        collector.polarManager.isRecordingOnDevice = true
+        collector.persistRecordingState(sessionId: UUID(), startTime: start, sessionType: .workout)
+
+        XCTAssertTrue(collector.recovery.strapHeldByInterruptedWorkout)
+        let stopped = try await collector.deviceRecording.stopSession()
+        XCTAssertNil(stopped, "Stop filed a workout's recording")
+        do {
+            _ = try await collector.recovery.recoverFromDevice()
+            XCTFail("Recover took a workout's recording")
+        } catch {
+            XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
+        }
+        XCTAssertFalse(radio.calls.contains(.stopRecording))
+        XCTAssertFalse(fetched(radio))
+    }
+
     // MARK: - The same night is not offered on every connect
 
     /// The strap keeps a downloaded recording as a backup; it is neither

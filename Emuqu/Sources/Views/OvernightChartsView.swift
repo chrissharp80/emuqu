@@ -168,7 +168,7 @@ struct OvernightRecordingClock: Equatable {
 
     /// A session-clock offset outside the recording, on the beats' axis:
     /// before it takes the first beat's drift, after it the last's — the
-    /// rule `OvernightChartsView.tMs(forSessionOffset:series:sessionStart:)`
+    /// rule `OvernightPeakHRV.tMs(forSessionOffset:series:sessionStart:)`
     /// applies past either end.
     func onBeatClock(_ sessionMs: Int64) -> Int64 {
         sessionMs + (sessionMs < startMs ? startDriftMs : endDriftMs)

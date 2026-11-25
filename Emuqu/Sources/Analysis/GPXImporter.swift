@@ -35,6 +35,7 @@ enum GPXImporter {
         case invalidXML
         case noTrackpoints
         case noTimestamps
+        case tooLarge
 
         var errorDescription: String? {
             switch self {
@@ -44,8 +45,28 @@ enum GPXImporter {
                 return String(localized: "This file isn't valid GPX, so it couldn't be read.", bundle: LanguageManager.appBundle)
             case .noTrackpoints:
                 return String(localized: "This GPX file has no trackpoints.", bundle: LanguageManager.appBundle)
+            case .tooLarge:
+                return String(localized: "This GPX file is too large to import.", bundle: LanguageManager.appBundle)
             }
         }
+    }
+
+    /// The largest file read, about two days of 1 Hz trackpoints with heart
+    /// rate and cadence extensions, and the most points kept from one file.
+    /// A file is read whole and its points held twice (parsed, then as
+    /// locations), so an unbounded one could exhaust memory.
+    static let maxFileBytes = 64 * 1024 * 1024
+    static let maxPoints = 200_000
+
+    /// The contents of a picked GPX file, refused before reading when it is
+    /// larger than `maxFileBytes`.
+    nonisolated static func readFile(at url: URL) throws -> Data {
+        if let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > maxFileBytes {
+            throw ImportError.tooLarge
+        }
+        let data = try Data(contentsOf: url)
+        guard data.count <= maxFileBytes else { throw ImportError.tooLarge }
+        return data
     }
 
     /// Parse a GPX file for its track, e.g. a planned route. A file with no
@@ -115,7 +136,7 @@ enum GPXImporter {
         parser.delegate = delegate
         parser.shouldProcessNamespaces = false // GPX extensions use namespaces; we accept the raw element names
         parser.shouldResolveExternalEntities = false
-        guard parser.parse() else { throw ImportError.invalidXML }
+        guard parser.parse() else { throw delegate.exceededPointLimit ? ImportError.tooLarge : ImportError.invalidXML }
         guard !delegate.points.isEmpty else { throw ImportError.noTrackpoints }
         return delegate
     }
@@ -241,6 +262,8 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
     private(set) var routePoints: [Point] = []
     /// The track's points, or the route's when the file has no track.
     var points: [Point] { trackPoints.isEmpty ? routePoints : trackPoints }
+    /// More than `GPXImporter.maxPoints` points: the parse was stopped.
+    private(set) var exceededPointLimit = false
     /// The first `<type>` directly under `<trk>` or `<rte>`; a `<type>` of a
     /// `<link>` or a later track does not overwrite it.
     var trkType: String?
@@ -314,6 +337,10 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
         if tag == "trkpt" || tag == "rtept", let p = current {
             if tag == "trkpt" { trackPoints.append(p) } else { routePoints.append(p) }
             current = nil
+            if trackPoints.count + routePoints.count > GPXImporter.maxPoints {
+                exceededPointLimit = true
+                parser.abortParsing()
+            }
         }
         textBuffer = ""
     }

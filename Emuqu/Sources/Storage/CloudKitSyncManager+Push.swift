@@ -111,14 +111,20 @@ extension CloudKitSyncManager {
     /// save itself (which is async and yields anyway). Without this,
     /// each iteration burned 50–300 ms of main-thread time on a
     /// backlog of 100+ sessions.
+    /// Gone from the archive (merged away, deduped, deleted): there is
+    /// nothing to upload, so it leaves the queue instead of taking a batch
+    /// slot every cycle. A Trash restore still being rebuilt (from its raw
+    /// backup) is not in the archive yet: it stays queued for when it is.
+    private func dropIfGoneFromArchive(_ sessionId: UUID) {
+        guard !trashRestore.isRestored(sessionId) else { return }
+        debugLog("[CloudKit] Push: session \(sessionId.uuidString.prefix(8)) is no longer in the archive — dropped from the queue")
+        state.markDeleted(sessionId)
+    }
+
     private func prepareUpload(_ sessionId: UUID) async -> PreparedUpload? {
         do {
             guard let prepared = try await prepareUploadOffMain(sessionId: sessionId) else {
-                // Gone from the archive (merged away, deduped, deleted): there
-                // is nothing to upload, so it leaves the queue instead of
-                // taking a batch slot every cycle.
-                debugLog("[CloudKit] Push: session \(sessionId.uuidString.prefix(8)) is no longer in the archive — dropped from the queue")
-                state.markDeleted(sessionId)
+                dropIfGoneFromArchive(sessionId)
                 return nil
             }
             return prepared
@@ -287,15 +293,26 @@ extension CloudKitSyncManager {
             pull.applyDeletionMetDuringUpload(sessionId)
             return false
         }
-        if serverFlag == Self.keptOnDeviceMarker {
-            state.markUploaded(sessionId)
-            return false
-        }
-        let restoring = trashRestore.isRestored(sessionId)
-        guard CloudKitSessionFreshness.overwrite(serverRecord, with: prepared.record, restoring: restoring, yieldingIn: &state) else { return false }
+        guard overwrites(serverRecord, with: prepared, sessionId: sessionId) else { return false }
         trashRestore.markIfReplacingTombstone(serverRecord, sessionId: sessionId)
         await saveResolved(serverRecord, sessionId: sessionId)
         return false
+    }
+
+    /// Whether this device's copy goes over `serverRecord`. Kept on another
+    /// device, or yielding to a newer copy, ends the upload as done, so a
+    /// Trash restore's flag goes with it: left set, this device would ignore
+    /// every later deletion of the session.
+    private func overwrites(_ serverRecord: CKRecord, with prepared: PreparedUpload, sessionId: UUID) -> Bool {
+        let keptOnDevice = (serverRecord["isDeleted"] as? Int64) == Self.keptOnDeviceMarker
+        if keptOnDevice { state.markUploaded(sessionId) }
+        guard !keptOnDevice, CloudKitSessionFreshness.overwrite(
+            serverRecord, with: prepared.record, restoring: trashRestore.isRestored(sessionId), yieldingIn: &state
+        ) else {
+            trashRestore.clear(sessionId)
+            return false
+        }
+        return true
     }
 
     /// Save the server record with this device's fields on it. One that

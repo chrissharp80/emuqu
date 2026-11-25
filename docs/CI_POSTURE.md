@@ -194,8 +194,10 @@ added later, rather than to the pairs someone happened to think about.
 
 `verify_tests_fail.sh` needs a build and a simulator per mutation, so it is not
 in `make ci` or on pull requests. It is its own workflow, `mutations.yml`: every
-TestFlight deploy waits for it, and it can be dispatched by hand. Run it when
-the analysis or storage code changes.
+TestFlight deploy waits for it, and it can be dispatched by hand. At about seven
+minutes a mutation it runs as six parallel jobs, each one share
+(`MUTATION_SHARD=<index>/<count>`), and every share must pass. Run it when the
+analysis or storage code changes.
 
 ### Runs are scoped, because a full one is expensive
 

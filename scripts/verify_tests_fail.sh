@@ -49,6 +49,17 @@ source "$(dirname "$0")/lib/preflight.sh"
 source "$(dirname "$0")/lib/xcodebuild.sh"
 
 FILTER="${1:-}"
+# MUTATION_SHARD="<index>/<count>" runs one share of the mutations, so CI can
+# spread them over parallel jobs: a suite's mutations all fall in the share
+# of the suite's first appearance, by order, modulo the count.
+SHARD="${MUTATION_SHARD:-0/1}"
+SHARD_INDEX="${SHARD%/*}"; SHARD_COUNT="${SHARD#*/}"
+if ! [[ "$SHARD_INDEX" =~ ^[0-9]+$ && "$SHARD_COUNT" =~ ^[1-9][0-9]*$ ]] || (( SHARD_INDEX >= SHARD_COUNT )); then
+    echo "verify_tests_fail: MUTATION_SHARD must be <index>/<count> with index < count, got '$SHARD'." >&2
+    exit 64
+fi
+SUITE_ORDER=$'\n'
+GREEN_SUITES=$'\n'
 PROJECT="Emuqu.xcodeproj"
 SCHEME="Emuqu"
 DERIVED="${MUTATION_DERIVED_DATA:-build/MutationDerivedData}"
@@ -102,11 +113,14 @@ run_suite() {
 # line, counts it, and returns 1.
 baseline_green() {
     local name="$1" suite="$2" baseline
+    # The tree is restored after every mutation, so a suite seen green on the
+    # unmutated source this run is green on it still.
+    [[ "$GREEN_SUITES" == *$'\n'"$suite"$'\n'* ]] && return 0
     run_suite "$suite"; baseline=$?
     # One retry: these are usually transient, and a build failure must not be
     # recorded as evidence about the tests either way.
     if (( baseline == 2 )); then run_suite "$suite"; baseline=$?; fi
-    (( baseline == 0 )) && return 0
+    if (( baseline == 0 )); then GREEN_SUITES+="$suite"$'\n'; return 0; fi
     if (( baseline == 2 )); then
         printf "  \033[33mSKIP\033[0m  %-30s BUILD failed (not a test result)\n" "$name"
     else
@@ -151,10 +165,19 @@ report_mutation() {
     esac
 }
 
+# The share of the mutations `suite` belongs to (see MUTATION_SHARD).
+in_this_shard() {
+    local suite="$1" position
+    [[ "$SUITE_ORDER" == *$'\n'"$suite"$'\n'* ]] || SUITE_ORDER+="$suite"$'\n'
+    position="$(printf '%s' "$SUITE_ORDER" | grep -nxF "$suite" | cut -d: -f1)"
+    (( (position - 2) % SHARD_COUNT == SHARD_INDEX ))
+}
+
 # mutate <name> <suite> <file> <python mutation>
 mutate() {
     local name="$1" suite="$2" file="$3" script="$4" code
 
+    in_this_shard "$suite" || return
     if [[ -n "$FILTER" && "$name" != *"$FILTER"* ]]; then return; fi
     baseline_green "$name" "$suite" || return
 
@@ -1031,8 +1054,42 @@ mutate "purge_sweep_keeps_everything" "EmuquTests/DataPurgeServiceTests" \
     "Emuqu/Sources/Services/DataPurgeService.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/DataPurgeService.swift');s=p.read_text();o='        for entry in entries where !kept.contains(entry.lastPathComponent) {';assert s.count(o)==1;p.write_text(s.replace(o,'        for entry in entries where kept.contains(entry.lastPathComponent) {'))"
 
+# A restore from another device that cannot be written must leave the session
+# deleted and in the Trash, not undeleted with nothing behind it.
+mutate "restore_write_failure_drops_deletion" "EmuquTests/CloudPullRecordTests" \
+    "Emuqu/Sources/Storage/Archive+StoreAPI.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/Archive+StoreAPI.swift');s=p.read_text();o='            store.reinstateDeletion(session.id, deletedAt: deletedAt)\n';assert s.count(o)==1;p.write_text(s.replace(o,'            _ = deletedAt\n'))"
+
+# A picked GPX file is read whole; one past the limit must be refused unread.
+mutate "gpx_file_size_unbounded" "EmuquTests/GPXMalformedInputTests" \
+    "Emuqu/Sources/Analysis/GPXImporter.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/GPXImporter.swift');s=p.read_text();o='static let maxFileBytes = 64 * 1024 * 1024';assert s.count(o)==1;p.write_text(s.replace(o,'static let maxFileBytes = Int.max / 2'))"
+
+# A crashed workout's strap recording belongs to workout recovery; Stop and
+# Recover filing it as a night lose its route.
+mutate "interrupted_workout_strap_taken_as_night" "EmuquTests/StrapRecoveryFlowTests" \
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+Recovery.swift');s=p.read_text();o='guard let state = collector.getPersistedRecordingState(), state.sessionType == .workout else { return false }';assert s.count(o)==1;p.write_text(s.replace(o,'guard let state = collector.getPersistedRecordingState(), state.sessionType == .quick else { return false }'))"
+
+# A rewrite killed between the file and the index must be re-hashed at the
+# next launch, or the session fails every read.
+mutate "interrupted_rewrite_never_healed" "EmuquTests/ArchiveInterruptionTests" \
+    "Emuqu/Sources/Storage/Archive.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/Archive.swift');s=p.read_text();o='        healInterruptedRewrites()\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+# A delete killed before the Trash move must be finished at the next launch,
+# or a restore loses the session's edits.
+mutate "interrupted_delete_left_outside_trash" "EmuquTests/ArchiveInterruptionTests" \
+    "Emuqu/Sources/Storage/Archive.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/Archive.swift');s=p.read_text();o='        store.finishInterruptedDeletes()\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
 echo
 echo "  $PASS caught, $FAIL survived, $INVALID did not compile, $SKIP skipped"
+# A share that ran nothing measured nothing.
+if [[ -z "$FILTER" ]] && (( PASS + FAIL + SKIP + INVALID == 0 )); then
+    echo "  No mutation ran in share $SHARD: fewer suites than shares." >&2
+    exit 1
+fi
 # A SKIP means the mutation was never applied or the suite could not be run —
 # in either case that mutation was NOT verified. Treating skips as success is
 # the same "reports clean while measuring nothing" failure this whole script

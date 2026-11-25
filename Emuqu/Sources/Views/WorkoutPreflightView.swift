@@ -606,20 +606,30 @@ private struct RoutePicker: View {
         }
     }
 
+    /// The file is read and parsed off the main actor; a long track would
+    /// otherwise hold the screen.
+    private func readGPX(at url: URL) {
+        let sport = plan.selectedSport
+        Task {
+            let parsed = await Task.detached(priority: .userInitiated) { Self.parsedRoute(at: url, sport: sport) }.value
+            switch parsed {
+            case .success(let track):
+                plan.selectedRoute = Route.fromGPX(name: url.deletingPathExtension().lastPathComponent, track: track.track)
+            case .failure(let error):
+                debugLog("[Preflight] GPX import failed: \(error)")
+                gpxImportError = (error as? GPXImporter.ImportError) == .tooLarge
+                    ? error.localizedDescription
+                    : String(localized: "Couldn't read that GPX file. Check that it contains a track and try again.", bundle: LanguageManager.appBundle)
+            }
+        }
+    }
+
     /// GPX arrives as a security-scoped URL; the access has to be released on
     /// every path out, which is why the `defer` sits beside the open.
-    private func readGPX(at url: URL) {
+    nonisolated private static func parsedRoute(at url: URL, sport: Sport) -> Result<ImportedWorkoutTrack, Error> {
         let accessing = url.startAccessingSecurityScopedResource()
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-        do {
-            let data = try Data(contentsOf: url)
-            let parsed = try GPXImporter.parse(data: data, defaultSport: plan.selectedSport)
-            let name = url.deletingPathExtension().lastPathComponent
-            plan.selectedRoute = Route.fromGPX(name: name, track: parsed.track)
-        } catch {
-            debugLog("[Preflight] GPX import failed: \(error)")
-            gpxImportError = String(localized: "Couldn't read that GPX file. Check that it contains a track and try again.", bundle: LanguageManager.appBundle)
-        }
+        return Result { try GPXImporter.parse(data: try GPXImporter.readFile(at: url), defaultSport: sport) }
     }
 
     private var routeActionButtons: some View {

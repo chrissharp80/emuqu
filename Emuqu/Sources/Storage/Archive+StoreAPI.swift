@@ -14,6 +14,24 @@ extension SessionArchive {
         return removed
     }
 
+    /// A session another device restored after this one deleted it: the
+    /// local deletion is dropped and the session written as one step. A write
+    /// that fails puts the deletion back with its original time, so the
+    /// session stays in this device's Trash and the next pull tries again.
+    /// The Trash copy is removed once the session is in the archive.
+    func archiveRestoredFromAnotherDevice(_ session: HRVSession) throws {
+        let deletedAt = store.deletionTime(of: session.id)
+        try store.unmarkAsDeleted(session.id)
+        do {
+            try archive(session, skipSameNightMerge: true)
+        } catch {
+            store.reinstateDeletion(session.id, deletedAt: deletedAt)
+            throw error
+        }
+        store.discardTrashed(session.id)
+        debugLog("[Archive] \(session.id.uuidString.prefix(8)) was restored on another device — this device's deletion dropped", level: .info)
+    }
+
     /// A deletion made on another device; announced like `delete`.
     @discardableResult
     func deleteWithoutTrash(_ id: UUID) throws -> Bool {

@@ -155,6 +155,13 @@ struct CloudHealthScrubCoordinator {
     private func rewrite(_ record: CKRecord, sessionId: UUID) async throws -> Outcome {
         if (record["isDeleted"] as? Int64) == 1 { return try await clearTombstonePayload(record) }
         guard let session = await Self.storedSession(in: record, archiveKey: manager.archive.encryption) else { return .finished }
+        // A newer build's payload decodes without the fields this build does
+        // not know; writing it back would drop them on every device, as the
+        // archive's own write gate refuses to. That build scrubs it.
+        if let version = session.sourceSchemaVersion, version > HRVSession.currentSchemaVersion {
+            debugLog("[CloudKit] Scrub: \(sessionId.uuidString.prefix(8)) is from a newer app version (schema v\(version)) — left for that version", level: .info)
+            return .finished
+        }
         if CloudSessionPayload.isHealthKitSourced(session) {
             try await manager.markKeptOnDevice(record.recordID)
             manager.state.markLocalOnly(sessionId)

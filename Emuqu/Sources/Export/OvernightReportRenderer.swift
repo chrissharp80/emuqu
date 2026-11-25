@@ -6,10 +6,10 @@ import UIKit
 /// rate chart, the stats section, and the tags-and-notes block.
 ///
 /// It needs only three members of the generator — the report config and
-/// two drawing primitives. The four types it works with
-/// (`OvernightStatValues`, `OvernightSleepStats`, `PeakRMSSDResult`,
-/// `PeakScanWindow`) have no reader anywhere else in the codebase, so they
-/// live here with it.
+/// two drawing primitives. The two types it works with
+/// (`OvernightStatValues`, `OvernightSleepStats`) have no reader anywhere
+/// else in the codebase, so they live here with it. Its peak HRV is the
+/// Overnight screen's (`OvernightPeakHRV`).
 ///
 /// Holds its owner strongly and is built on demand by the generator — a
 /// value with no state of its own, so nothing here can outlive what it

@@ -52,6 +52,10 @@ final class CloudKitSyncManager {
     /// pull error, it ends the full sync as `.error` without advancing
     /// `lastSyncDate`, so nothing reads "Up to date" while no session backs up.
     var lastPushErrorMessage: String?
+    /// Set when a deletion could not be written to iCloud during this sync
+    /// (`CloudDeletionCoordinator.performUploadDeletion`); it is retried next
+    /// sync, and until then the sync is not shown as up to date.
+    var lastDeletionErrorMessage: String?
 
     /// Detect CloudKit errors that won't resolve without server-side action
     /// (schema promotion, container changes). Recognizing these stops the
@@ -765,7 +769,8 @@ final class CloudKitSyncManager {
     /// and the `performFullSyncIfNeeded` interval gate would then suppress
     /// retries as if the sync had worked. A push that could not
     /// prepare sessions for a reason the user can act on
-    /// (`lastPushErrorMessage`) ends the same way. A sync that stopped itself
+    /// (`lastPushErrorMessage`) ends the same way, as does one whose deletions
+    /// could not all be written to iCloud (`lastDeletionErrorMessage`). A sync that stopped itself
     /// partway (deleted iCloud data, another account) turned iCloud Sync off
     /// and left its own message; that is kept. One the user turned off while
     /// it ran stamps nothing either; `performFullSyncBody` then leaves
@@ -778,7 +783,7 @@ final class CloudKitSyncManager {
         // message stays) or by the user: nothing is stamped.
         guard settings.iCloudSyncEnabled else { return }
         if !schemaUnavailable {
-            if let syncError = lastPullErrorMessage ?? lastPushErrorMessage {
+            if let syncError = lastPullErrorMessage ?? lastPushErrorMessage ?? lastDeletionErrorMessage {
                 syncState = .error(syncError)
             } else if state.hasUnsavedBookkeeping {
                 debugLog("[CloudKit] Full sync ran, but its record of what was uploaded could not be saved — not stamped, so the next activation syncs again", level: .error)

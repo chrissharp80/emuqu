@@ -198,23 +198,70 @@ final class CloudPullRecordTests: XCTestCase {
 
     // MARK: - A restore made on another device
 
-    /// Adopting another device's restore drops the local deletion but keeps
-    /// this device's Trash copy; the copy goes only once the iCloud session
-    /// is in the archive, so a failed download leaves a copy on disk.
-    func testAnAdoptedRestoreKeepsTheTrashCopyUntilTheSessionIsImported() async throws {
-        let session = night()
+    /// `session` archived and then deleted here, by a build that recorded
+    /// no deletion time, so any restore made on another device is newer
+    /// (`TrashRestoreCoordinator.restoreIsNewer`): the pull's own restore
+    /// decision is what each test below drives.
+    private func deletedHereBeforeARestore(_ session: HRVSession) throws {
         try archive.archive(session)
         XCTAssertTrue(try archive.delete(session.id))
+        archive.store.reinstateDeletion(session.id, deletedAt: nil)
+        XCTAssertNil(archive.store.deletionTime(of: session.id))
         XCTAssertTrue(archive.store.trashedIds.contains(session.id))
+    }
 
-        XCTAssertTrue(manager.trashRestore.adoptFromAnotherDevice(session.id))
-        XCTAssertFalse(archive.store.wasIntentionallyDeleted(session.id))
-        XCTAssertTrue(archive.store.trashedIds.contains(session.id), "The Trash copy went before the restore was imported")
+    /// The record another device writes when it restores `session` from its Trash.
+    private func restoredRecord(of session: HRVSession) throws -> CKRecord {
+        let record = try liveRecord(of: session)
+        record["isDeleted"] = TrashRestoreCoordinator.restoredMarker as CKRecordValue
+        return record
+    }
 
-        let outcome = await manager.pull.processRemoteRecord(try liveRecord(of: session), forgotten: [])
+    /// The restore is imported, the deletion dropped and the Trash copy removed.
+    func testARestoreFromAnotherDeviceBringsTheSessionBack() async throws {
+        let session = night()
+        try deletedHereBeforeARestore(session)
+
+        let outcome = await manager.pull.processRemoteRecord(try restoredRecord(of: session), forgotten: [])
+
         XCTAssertEqual(outcome.new, 1)
         XCTAssertTrue(archive.store.exists(session.id))
+        XCTAssertFalse(archive.store.wasIntentionallyDeleted(session.id))
         XCTAssertFalse(archive.store.trashedIds.contains(session.id))
+    }
+
+    /// A restore whose copy cannot be read changes nothing here: the session
+    /// stays deleted and in the Trash, for the next pull to try again.
+    func testARestoreThatCannotBeReadLeavesTheSessionInTheTrash() async throws {
+        let session = night()
+        try deletedHereBeforeARestore(session)
+        let record = try restoredRecord(of: session)
+        let unreadable = directory.appendingPathComponent("unreadable.asset")
+        try Data("not a session".utf8).write(to: unreadable)
+        record["sessionData"] = CKAsset(fileURL: unreadable)
+
+        let outcome = await manager.pull.processRemoteRecord(record, forgotten: [])
+
+        XCTAssertEqual(outcome.new, 0)
+        XCTAssertFalse(archive.store.exists(session.id))
+        XCTAssertTrue(archive.store.wasIntentionallyDeleted(session.id))
+        XCTAssertTrue(archive.store.trashedIds.contains(session.id))
+    }
+
+    /// A restore the archive refuses to write puts the deletion back with
+    /// the time it had: the session stays in the Trash, and the next restore
+    /// still wins.
+    func testARestoreTheArchiveRefusesPutsTheDeletionBack() throws {
+        var session = night()
+        try deletedHereBeforeARestore(session)
+        session.sourceSchemaVersion = HRVSession.currentSchemaVersion + 1
+
+        XCTAssertThrowsError(try archive.archiveRestoredFromAnotherDevice(session))
+
+        XCTAssertFalse(archive.store.exists(session.id))
+        XCTAssertTrue(archive.store.wasIntentionallyDeleted(session.id))
+        XCTAssertNil(archive.store.deletionTime(of: session.id))
+        XCTAssertTrue(archive.store.trashedIds.contains(session.id))
     }
 
     // MARK: - Refreshing a session held here

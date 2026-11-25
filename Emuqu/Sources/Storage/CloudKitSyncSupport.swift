@@ -757,6 +757,10 @@ enum CloudSyncMessages {
     static var progressNotSaved: String {
         String(localized: "Sync progress could not be saved on this device — retrying", bundle: LanguageManager.appBundle)
     }
+    /// A deletion could not be written to iCloud; the next sync retries it.
+    static var deletionsPending: String {
+        String(localized: "Some deleted sessions are still in iCloud — retrying", bundle: LanguageManager.appBundle)
+    }
     static var previousSyncTimedOut: String {
         String(localized: "Previous sync timed out — retrying", bundle: LanguageManager.appBundle)
     }

@@ -57,8 +57,7 @@ extension OvernightReportRenderer {
     ) -> OvernightStatValues? {
         let points = series.points
         guard points.count > 100, let first = points.first, let last = points.last else { return nil }
-        let band = peakSearchBand(points: points, sleepData: sleepData, sessionStart: session.startDate)
-        let peak = calculatePeakRMSSD(points: points, flags: flags, band: band)
+        let peak = peakRMSSD(series: series, flags: flags, session: session, sleepData: sleepData)
         // HealthKit sleep when available, otherwise the recording-length estimate
         let sleepStats = computeOvernightSleepStats(sleepData: sleepData, durationMinutes: Int((last.t_ms - first.t_ms) / 60000))
         return OvernightStatValues(
@@ -501,105 +500,18 @@ extension OvernightReportRenderer {
         reportHoursMinutes(totalMinutes)
     }
 
-    /// Result of peak RMSSD calculation
-    struct PeakRMSSDResult {
-        let rmssd: Double
-        /// t_ms of the beat the peak window is centred on.
-        let timeMs: Int64
-    }
-
-    /// The 30-70% slice of the HealthKit sleep envelope, or of the whole
-    /// recording when there are no sleep boundaries, in the series' t_ms —
-    /// the band the Overnight screen searches (`OvernightChartsView.searchBand`).
-    /// An envelope that ends before it starts gives an empty band.
-    func peakSearchBand(points: [RRPoint], sleepData: PDFReportGenerator.SleepData?, sessionStart: Date) -> (start: Int64, end: Int64) {
-        let durationMs = (points.last?.t_ms ?? 0) - (points.first?.t_ms ?? 0)
-        var boundaryStart: Int64 = 0
-        var boundaryEnd = durationMs
-        if let sleepStart = sleepData?.sleepStart, let sleepEnd = sleepData?.sleepEnd {
-            boundaryStart = max(0, MillisecondOffset.between(sleepStart, and: sessionStart, fallback: 0))
-            boundaryEnd = min(durationMs, MillisecondOffset.between(sleepEnd, and: sessionStart, fallback: 0))
-        }
-        let span = Double(boundaryEnd - boundaryStart)
-        return (boundaryStart + Int64(span * 0.30), boundaryStart + Int64(span * 0.70))
-    }
-
-    /// Peak rolling RMSSD inside `band`, falling back to the whole recording.
-    /// Nil when no window anywhere held enough clean beats to measure.
-    func calculatePeakRMSSD(points: [RRPoint], flags: [ArtifactFlags], band: (start: Int64, end: Int64)) -> PeakRMSSDResult? {
-        guard !points.isEmpty else { return nil }
-        var peakRMSSD = 0.0
-        var peakHRVIndex = 0
-        // First pass: the sleep band, where a sleeper is most likely settled.
-        scanPeak(points: points, flags: flags, bandStart: band.start, bandEnd: band.end,
-                 peakRMSSD: &peakRMSSD, peakIndex: &peakHRVIndex)
-        if peakRMSSD == 0.0 {
-            // Fallback: scan the entire recording.
-            scanPeak(points: points, flags: flags, bandStart: nil, bandEnd: nil,
-                     peakRMSSD: &peakRMSSD, peakIndex: &peakHRVIndex)
-        }
-        guard peakRMSSD > 0 else { return nil }
-        return PeakRMSSDResult(rmssd: peakRMSSD, timeMs: points[min(peakHRVIndex, points.count - 1)].t_ms)
-    }
-
-    /// Window and step are fixed at ~5 min / 30 beats to match OvernightChartsView.
-    private func scanPeak(
-        points: [RRPoint],
-        flags: [ArtifactFlags],
-        bandStart: Int64?,
-        bandEnd: Int64?,
-        peakRMSSD: inout Double,
-        peakIndex: inout Int
-    ) {
-        scanForPeakRMSSD(
-            points: points, flags: flags,
-            window: PeakScanWindow(size: 300, step: 30, bandStart: bandStart, bandEnd: bandEnd),
-            peakRMSSD: &peakRMSSD, peakIndex: &peakIndex
+    /// The peak the Overnight screen shows for the same recording
+    /// (`OvernightPeakHRV`): the same sleep window, band, windows and fallback.
+    private func peakRMSSD(
+        series: RRSeries, flags: [ArtifactFlags], session: HRVSession, sleepData: PDFReportGenerator.SleepData?
+    ) -> OvernightPeakHRV.Sample? {
+        let window = OvernightPeakHRV.sleepWindowMs(
+            series: series, sessionStart: session.startDate,
+            healthKit: OvernightPeakHRV.envelope(start: sleepData?.sleepStart, end: sleepData?.sleepEnd),
+            stored: (session.sleepStartMs, session.sleepEndMs)
         )
-    }
-
-    /// Sliding-window geometry for the peak scan, plus the optional time band
-    /// it is restricted to.
-    struct PeakScanWindow {
-        let size: Int
-        let step: Int
-        let bandStart: Int64?
-        let bandEnd: Int64?
-    }
-
-    /// Scan points for peak RMSSD, optionally restricted to a time band
-    func scanForPeakRMSSD(
-        points: [RRPoint],
-        flags: [ArtifactFlags],
-        window: PeakScanWindow,
-        peakRMSSD: inout Double,
-        peakIndex: inout Int
-    ) {
-        var i = 0
-        while i <= points.count - 1 {
-            if inScanBand(points[i].t_ms, window: window),
-               let rmssd = windowRMSSD(points: points, flags: flags, from: max(0, i - window.size / 2),
-                                       to: min(points.count, i + window.size / 2)),
-               rmssd > peakRMSSD {
-                peakRMSSD = rmssd
-                peakIndex = i
-            }
-            i = advanceScanIndex(i, pointCount: points.count, stepSize: window.step)
-        }
-    }
-
-    /// Advance scan index, snapping to the last element if the next step would overshoot
-    func advanceScanIndex(_ i: Int, pointCount: Int, stepSize: Int) -> Int {
-        if i < pointCount - 1, i + stepSize > pointCount - 1 {
-            return pointCount - 1
-        }
-        return i + stepSize
-    }
-
-    /// RMSSD for a window; see `TimeDomainAnalyzer.peakScanRMSSD`, which the
-    /// in-app overnight chart uses too.
-    func windowRMSSD(points: [RRPoint], flags: [ArtifactFlags], from windowStart: Int, to windowEnd: Int) -> Double? {
-        TimeDomainAnalyzer.peakScanRMSSD(points: points, flags: flags, range: windowStart ..< max(windowStart, windowEnd))
+        let band = OvernightPeakHRV.searchBand(sleepStartMs: window.start, sleepEndMs: window.end)
+        return OvernightPeakHRV.peak(in: OvernightPeakHRV.rollingRMSSD(points: series.points, flags: flags), band: band)
     }
 }
 
@@ -749,10 +661,4 @@ private func rollingHRWindow(points: [RRPoint], from start: Int) -> (Double?, In
     let windowHR = (Double(windowBeats.count) / Double(windowDurationActual)) * 60000.0
     guard windowHR >= 30, windowHR <= 200 else { return (nil, j) }
     return (windowHR, j)
-}
-
-/// A window with no band scans everything; a banded one only its own hours.
-private func inScanBand(_ midTimeMs: Int64, window: OvernightReportRenderer.PeakScanWindow) -> Bool {
-    guard let start = window.bandStart, let end = window.bandEnd else { return true }
-    return midTimeMs >= start && midTimeMs <= end
 }

@@ -202,22 +202,29 @@ extension CloudDeletionCoordinator {
             debugLog("[CloudKit] Delete sync found the zone gone (\(error.code.rawValue)) for \(sessionId.uuidString.prefix(8))", level: .warning)
             _ = await manager.accountGuard.zoneWasDeleted()
         } catch {
-            if CloudKitSyncManager.isPermanentSchemaError(error) {
-                manager.flagSchemaUnavailable(reason: error.localizedDescription)
-                return
-            }
-            debugLog("[CloudKit] Delete sync failed for \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)")
+            noteDeletionFailed(error, sessionId: sessionId)
         }
     }
 
-    /// Another device restored the session after this one deleted it: the
-    /// restore wins (`TrashRestoreCoordinator.adoptFromAnotherDevice`), unless
-    /// the session was deleted forever here (`ForgottenSessions`). Then its
-    /// deletion mark stays, unconfirmed, and the pull leaves the restored copy
-    /// in iCloud alone rather than import it.
+    /// A schema error pauses sync; any other failure is retried next sync,
+    /// which until then is not shown as up to date (`lastDeletionErrorMessage`).
+    private func noteDeletionFailed(_ error: Error, sessionId: UUID) {
+        if CloudKitSyncManager.isPermanentSchemaError(error) {
+            manager.flagSchemaUnavailable(reason: error.localizedDescription)
+            return
+        }
+        manager.lastDeletionErrorMessage = CloudSyncMessages.deletionsPending
+        debugLog("[CloudKit] Delete sync failed for \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
+    }
+
+    /// Another device restored the session after this one deleted it: no
+    /// deletion is written over the restore. The local deletion stays until
+    /// the pull, which follows in the same sync, writes the restored copy
+    /// here (`SessionArchive.archiveRestoredFromAnotherDevice`), so a failed
+    /// download leaves the session in this device's Trash. A session deleted
+    /// forever here (`ForgottenSessions`) is never imported.
     private func yieldToRestore(_ sessionId: UUID) {
-        guard !ForgottenSessions.ids.contains(sessionId) else { return }
-        manager.trashRestore.adoptFromAnotherDevice(sessionId)
+        debugLog("[CloudKit] \(sessionId.uuidString.prefix(8)) was restored on another device — leaving it to the pull", level: .info)
     }
 
     /// iCloud holds the deletion: it is recorded as confirmed, and the sync
@@ -315,6 +322,7 @@ extension CloudDeletionCoordinator {
     /// (`cloudUploadsAllowed`): a tombstone is a write to iCloud like an
     /// upload. The deletions stay listed and go up once it is allowed.
     func reconcileLocalDeletions() async {
+        manager.lastDeletionErrorMessage = nil
         guard manager.cloudUploadsAllowed else { return }
         let deleted = manager.archive.store.deletedIds
         let archivedAndInCloud = manager.state.uploadedSessionIds.filter { manager.archive.store.exists($0) }

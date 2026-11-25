@@ -26,7 +26,12 @@
 #    to prevent.
 #
 #    The baseline must match both the current version and the current hash, so
-#    a version bump is refreshed into it in the same change. Accepting any
+#    a version bump is refreshed into it in the same change. Because that file
+#    is edited in the same change, it is also read as the base branch has it
+#    (SCORING_BASE_REF, default origin/main, at the merge base): a hash that
+#    differs from the base's under the base's version fails however the
+#    baseline was edited. CI checks out full history; elsewhere a missing base
+#    is reported and that comparison skipped. Accepting any
 #    version other than the recorded one let one bump that left the baseline
 #    alone switch the check off for good: every later constant change passed,
 #    bump or not. Each hashed file and enum must also yield at least one
@@ -38,7 +43,25 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-BASELINE=".ci/scoring_constants_hash.txt"
+# SCORING_BASELINE names another baseline file; verify_gates_fail.sh uses it
+# to edit the baseline in step with the constants without touching the tree.
+TRACKED_BASELINE=".ci/scoring_constants_hash.txt"
+BASELINE="${SCORING_BASELINE:-$TRACKED_BASELINE}"
+
+BASE_REF="${SCORING_BASE_REF:-origin/main}"
+BASE_BASELINE=""
+if MERGE_BASE="$(git merge-base HEAD "$BASE_REF" 2>/dev/null)"; then
+    if ! BASE_BASELINE="$(git show "$MERGE_BASE:$TRACKED_BASELINE" 2>/dev/null)"; then
+        echo "check_scoring_governance: $BASE_REF has no $TRACKED_BASELINE at $MERGE_BASE" >&2
+        exit 2
+    fi
+elif [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo "check_scoring_governance: cannot resolve $BASE_REF; CI must check out full history" >&2
+    exit 2
+else
+    echo "check_scoring_governance: note: $BASE_REF not found, so the version is not checked against the base branch" >&2
+fi
+export BASE_BASELINE
 
 python3 - "$BASELINE" <<'PY'
 import hashlib
@@ -143,6 +166,17 @@ elif (version, current_hash) != (recorded_version, recorded_hash):
         f"{version} {current_hash}. Write '{version} {current_hash}' to it in the same "
         "change as the version bump, or the next constant change goes unchecked."
     )
+
+import os
+base_fields = os.environ.get("BASE_BASELINE", "").split()
+if len(base_fields) == 2:
+    base_version, base_hash = base_fields
+    if current_hash != base_hash and version == base_version:
+        problems.append(
+            f"scoring constants differ from the base branch ({base_hash} -> {current_hash}) "
+            f"while ScoringVersion.current is still the base's {version!r}. Editing "
+            f"{baseline_path} does not stand in for a version bump."
+        )
 
 for problem in problems:
     print(f"  {problem}", file=sys.stderr)
