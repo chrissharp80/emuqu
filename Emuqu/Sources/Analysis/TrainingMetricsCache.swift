@@ -536,7 +536,7 @@ final class TrainingMetricsCache {
         historicalTask = Task.detached(priority: .utility) {
             let series = Self.buildDailySeries(
                 reference: reference, lookbackDays: replayDays, archive: archive,
-                healthKitWorkouts: workouts, anchors: key.anchors
+                healthKitWorkouts: workouts, anchors: key.anchors, ftp: key.settings.ftp
             )
             let kept = Self.lastDays(keptDays, of: series, reference: reference)
             await self.adoptHistoricalSeries(kept, key: key)
@@ -592,10 +592,11 @@ final class TrainingMetricsCache {
         lookbackDays: Int,
         archive: SessionArchive,
         healthKitWorkouts: [HealthKitManager.WorkoutSummary],
-        anchors: TrainingLoadSeries.HeartRateAnchors
+        anchors: TrainingLoadSeries.HeartRateAnchors,
+        ftp: TrainingLoadPrecedence.FTPAnchors
     ) -> [Date: DaySample] {
         let workouts = mergedWorkouts(
-            reference: reference, lookbackDays: lookbackDays, archive: archive, healthKitWorkouts: healthKitWorkouts
+            reference: reference, lookbackDays: lookbackDays, archive: archive, healthKitWorkouts: healthKitWorkouts, ftp: ftp
         )
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: reference)
@@ -621,10 +622,11 @@ final class TrainingMetricsCache {
         reference: Date,
         lookbackDays: Int,
         archive: SessionArchive,
-        healthKitWorkouts: [HealthKitManager.WorkoutSummary]
+        healthKitWorkouts: [HealthKitManager.WorkoutSummary],
+        ftp: TrainingLoadPrecedence.FTPAnchors
     ) -> [HealthKitManager.WorkoutSummary] {
         let archiveWorkouts = HealthKitManager.WorkoutSummary.fromAppArchive(
-            archive: archive, days: lookbackDays, relativeTo: reference
+            archive: archive, days: lookbackDays, relativeTo: reference, ftp: ftp
         )
         return TrainingHealthQueries.mergeArchiveAuthoritative(archive: archiveWorkouts, healthKit: healthKitWorkouts)
     }

@@ -128,12 +128,17 @@ final class RRDataImporter: Sendable {
         case invalidTimestamps(session: String)
         /// The RR intervals add up to more than `maximumRecordingSpanMs`.
         case recordingTooLong
+        /// The file is larger than `maxFileBytes`, so it is not read.
+        case tooLarge
 
         /// Shown to the user as the import error. The `details` payloads are
         /// localized where they are thrown.
         var errorDescription: String? {
-            let b = LanguageManager.appBundle
-            return switch self {
+            message(in: LanguageManager.appBundle)
+        }
+
+        private func message(in b: Bundle) -> String {
+            switch self {
             case .fileNotFound:
                 String(localized: "The selected file could not be found.", bundle: b)
             case .unreadableFile:
@@ -150,6 +155,8 @@ final class RRDataImporter: Sendable {
                 String(localized: "Session \(session) has timestamps that cannot belong to one recording. The file may be damaged.", bundle: b)
             case .recordingTooLong:
                 String(localized: "The RR intervals add up to more than a week, longer than one recording. The file may be damaged.", bundle: b)
+            case .tooLarge:
+                String(localized: "This file is too large to import.", bundle: b)
             }
         }
     }
@@ -172,10 +179,11 @@ final class RRDataImporter: Sendable {
 
     // MARK: - Public API
 
-    /// Import RR data from a file URL
-    func importFile(at url: URL) async throws -> ImportResult {
-        try importContent(try readFile(at: url), fileName: url.lastPathComponent)
-    }
+    /// The largest file an import reads. The whole file is held in memory as
+    /// data, then as text, then parsed, so a file past this is refused before
+    /// any of that: a multi-year Emuqu export of every night is well under
+    /// it, and a file several times larger would exhaust the app's memory.
+    static let maxFileBytes = 256 * 1024 * 1024
 
     /// The file's UTF-8 text, with its security scope held for the read. The
     /// one reader for an import: a caller that needs the text to pick a
@@ -214,6 +222,7 @@ final class RRDataImporter: Sendable {
     }
 
     private func readUTF8(at url: URL) throws -> String {
+        try Self.requireImportableSize(at: url)
         let data: Data
         do {
             data = try Data(contentsOf: url)
@@ -225,6 +234,22 @@ final class RRDataImporter: Sendable {
             throw ImportError.unreadableFile
         }
         return content
+    }
+
+    /// Throws `.tooLarge` for a file past `maxFileBytes`, read from its
+    /// attributes before any of it is loaded. A size that cannot be read
+    /// leaves the read to fail or succeed on its own.
+    static func requireImportableSize(at url: URL, maxBytes: Int = maxFileBytes) throws {
+        let size: Int?
+        do {
+            size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize
+        } catch {
+            // swallow-ok: without a size the read itself reports what is wrong.
+            size = nil
+        }
+        guard let size, size > maxBytes else { return }
+        debugLog("[Import] \(url.lastPathComponent) is \(size / 1_048_576) MB — over the import limit", level: .warning)
+        throw ImportError.tooLarge
     }
 
     private func parse(_ content: String, as format: ImportFormat) throws -> ParsedRRFile {

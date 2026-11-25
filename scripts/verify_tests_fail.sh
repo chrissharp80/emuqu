@@ -1161,6 +1161,41 @@ mutate "deleted_route_still_followed" "EmuquTests/SavedRouteDeletionTests" \
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/WorkoutRecorder+Context.swift');s=p.read_text();o='guard plannedSavedRouteId == id else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'guard plannedSavedRouteId != id else { return }'))"
 
+# A leading comment is never taken for the CSV header.
+mutate "csv_comment_taken_for_header" "EmuquTests/RRDataImporterTests" \
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='            .filter { !\$0.isEmpty && !Self.isComment(\$0) }\n        guard let headerLine';assert s.count(o)==1;p.write_text(s.replace(o,'            .filter { !\$0.isEmpty }\n        guard let headerLine'))"
+
+# Plain text and CSV keep the same beats.
+mutate "plain_text_drops_artifact_beats" "EmuquTests/RRDataImporterTests" \
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='Self.storableRRRange.contains(converted) ? converted : nil';assert s.count(o)==1;p.write_text(s.replace(o,'HRVConstants.RRInterval.isValid(converted) ? converted : nil'))"
+
+# A file past the import limit is refused before it is read.
+mutate "import_size_unbounded" "EmuquTests/RRDataImporterTests" \
+    "Emuqu/Sources/Import/RRDataImporter.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter.swift');s=p.read_text();o='        throw ImportError.tooLarge\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+
+# A memory save reports success only once it is on disk.
+mutate "memory_add_reports_unsaved" "EmuquTests/UserFactsStoreTests" \
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Assistant/Chat/UserFactsStore.swift');s=p.read_text();o='        guard writeKeepingSetAsideCopies(next) else { return .notSaved }\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = writeKeepingSetAsideCopies(next)\n'))"
+
+# A pull keeping folded beats must not undo an unlink made on another device.
+mutate "pull_undoes_unlink" "EmuquTests/CloudKitSessionFreshnessTests" \
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSessionFreshness.swift');s=p.read_text();o='              Set(local.linkedSessionIds ?? []).isSubset(of: Set(merged.linkedSessionIds ?? []))\n';assert s.count(o)==1;p.write_text(s.replace(o,'              true\n'))"
+
+# One stray quote must not join the rest of a CSV into one record.
+mutate "csv_stray_quote_swallows_file" "EmuquTests/RRDataImporterTests" \
+    "Emuqu/Sources/Import/RRDataImporter+CSV.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Import/RRDataImporter+CSV.swift');s=p.read_text();o='.isMultiple(of: 2) else {';assert s.count(o)==1;p.write_text(s.replace(o,'.isMultiple(of: 1) else {'))"
+
+# A Health copy of a workout wins over an index estimate of it.
+mutate "index_estimate_beats_health_copy" "EmuquTests/TrainingLoadPrecedenceTests" \
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift');s=p.read_text();o='!workout.isIndexEstimate || ';assert s.count(o)==1;p.write_text(s.replace(o,'true || '))"
+
 echo
 echo "  $PASS caught, $FAIL survived, $INVALID did not compile, $SKIP skipped"
 # A share that ran nothing measured nothing.

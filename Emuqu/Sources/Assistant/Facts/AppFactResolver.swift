@@ -201,7 +201,7 @@ enum AppFactResolverFactory {
     ) {
         registry.register(UserProfileNamespace(services: services, settings: settings))
         registry.register(SessionNamespace(archive: archive, settings: settings))
-        registry.register(WalksNamespace(archive: archive))
+        registry.register(WalksNamespace(archive: archive, settings: settings))
         registry.register(TrainingLoadNamespace(services: services, archive: archive, settings: settings))
         registry.register(HeatAcclimationNamespace(services: services))
         registry.register(SleepNamespace(services: services, archive: archive, settings: settings))

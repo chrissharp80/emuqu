@@ -466,13 +466,21 @@ extension AIAssistantSettingsPage {
         if removed.contains(false) { factChangeFailed = true }
     }
 
+    /// The draft is cleared only once the fact is saved.
+    func addDraftFact() {
+        guard facts.add(newFactText, origin: .user) != .notSaved else {
+            factChangeFailed = true
+            return
+        }
+        newFactText = ""
+    }
+
     var addFactRow: some View {
         HStack {
             TextField(String(localized: "Add a fact (e.g., \"I'm training for a marathon\")", bundle: LanguageManager.appBundle), text: $newFactText, axis: .vertical)
                 .lineLimit(1 ... 3)
             Button {
-                facts.add(newFactText, origin: .user)
-                newFactText = ""
+                addDraftFact()
             } label: {
                 Image(systemName: "plus.circle.fill")
                     .foregroundStyle(newFactText.trimmingCharacters(in: .whitespaces).isEmpty ? Color(.tertiaryLabel) : Color.accentColor)

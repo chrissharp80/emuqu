@@ -271,7 +271,7 @@ extension FitnessStrapSection {
             pace: heroPaceString(session: session, meta: meta),
             peakHR: meta?.samples?.compactMap { $0.heartRate }.max().map { String(localized: "\($0) bpm", bundle: LanguageManager.appBundle) },
             alpha1Avg: Self.heroAlpha1Average(meta: meta),
-            preferredLoad: meta?.preferredTrainingLoad,
+            preferredLoad: meta?.preferredTrainingLoad(ftp: .current(settings)),
             hrTSS: meta?.hrTSS,
             elevationGain: meta?.elevationGainMeters,
             polyline: meta?.gpsPolyline

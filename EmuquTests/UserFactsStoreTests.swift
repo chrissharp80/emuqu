@@ -269,6 +269,30 @@ final class UserFactsStoreTests: XCTestCase {
         XCTAssertEqual(store.facts.map(\.text), ["alpha"])
     }
 
+    /// An add the disk refuses reports `.notSaved` and leaves the facts as
+    /// they were, so neither the assistant nor Settings reports a save a
+    /// relaunch would lose; the memory tool says so to the model.
+    @MainActor
+    func testAnAddThatCannotBeWrittenIsReportedAndNotListed() throws {
+        let store = UserFactsStore(fileURL: fileURL)
+        XCTAssertEqual(store.add("alpha", origin: .user), .added(evicted: []))
+        _ = waitForStore(at: fileURL, toHold: 1)
+        try makeDirectoryReadOnly()
+
+        XCTAssertEqual(store.add("beta", origin: .user), .notSaved)
+        XCTAssertEqual(store.facts.map(\.text), ["alpha"])
+        guard case let .record(fields) = AssistantMemoryNamespace.storeFact("gamma", in: store),
+              case .boolean(false) = fields["added"] else {
+            return XCTFail("the memory tool reported a save that did not happen")
+        }
+    }
+
+    func testAnAddOfAFactAlreadySavedSaysSo() {
+        let store = UserFactsStore(fileURL: fileURL)
+        store.add("Vegetarian diet", origin: .user)
+        XCTAssertEqual(store.add("vegetarian diet.", origin: .user), .alreadySaved)
+    }
+
     // MARK: - Sealed at rest
 
     func testFactsAreSealedAtRestAndRoundTrip() throws {

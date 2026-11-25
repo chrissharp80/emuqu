@@ -426,9 +426,12 @@ extension FitnessPostSummaryView {
     /// training-load number when a power meter contributed, not a fallback for
     /// missing HR. The sub-line names the source so the user can tell at a
     /// glance which metric backs this number.
+    /// The FTPs this summary's load is scored with.
+    var loadAnchors: TrainingLoadPrecedence.FTPAnchors { .current(settingsManager.settings) }
+
     private func appendLoadTile(_ tiles: inout [WorkoutKeyStatsCard.Stat]) {
         let meta = session.workoutMetadata
-        if let load = meta?.preferredTrainingLoad {
+        if let load = meta?.preferredTrainingLoad(ftp: loadAnchors) {
             let sub = loadTileSubtitle(load, meta: meta)
             let label = loadTileLabel(load.source)
             let icon: String = load.source == .power ? "bolt.fill" : "waveform.path"
@@ -475,7 +478,7 @@ extension FitnessPostSummaryView {
         // as `preferredTrainingLoad` resolves it), so power-equipped users
         // still see the HR-side number for comparison without it competing
         // as the headline.
-        if meta?.preferredTrainingLoad?.source == .power, let tss = meta?.hrTSS {
+        if meta?.preferredTrainingLoad(ftp: loadAnchors)?.source == .power, let tss = meta?.hrTSS {
             tiles.append(.init(
                 label: "HRSS",
                 value: "\(Int(tss))",

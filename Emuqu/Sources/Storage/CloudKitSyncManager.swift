@@ -759,11 +759,13 @@ final class CloudKitSyncManager {
 
     /// Ends a sync the user switched off while it ran, before its next
     /// phase: "When OFF: nothing new goes up or comes down" holds for the
-    /// sync already under way, not only the next one.
+    /// sync already under way, not only the next one. It ends as a stop
+    /// (`Halt.stopped`), not a failure, so no error banner follows the user
+    /// switching sync off.
     private func requireSyncStillOn() async throws {
         guard await MainActor.run(body: { self.cloudUploadsAllowed }) else {
             debugLog("[CloudKit] iCloud sync was switched off during a sync — stopping it", level: .info)
-            throw CancellationError()
+            throw CloudAccountGuard.Halt.stopped
         }
     }
 

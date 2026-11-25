@@ -270,11 +270,11 @@ extension SessionNamespace {
     /// snapshot captures, plus the core identity / timing fields. This is
     /// what the AI sees for `workout.by_date(X)`, `workout.list(P)` or
     /// `walks.hardest(P)` without a tail.
-    static func fullRecord(for s: HRVSession?) -> FactValue {
+    static func fullRecord(for s: HRVSession?, ftp: TrainingLoadPrecedence.FTPAnchors) -> FactValue {
         guard let s else { return .missing(reason: .notRecorded, detail: "session not found") }
         let meta = s.workoutMetadata
         var record = identityFields(s, meta: meta)
-        record.merge(loadFields(meta)) { current, _ in current }
+        record.merge(loadFields(meta, ftp: ftp)) { current, _ in current }
         record.merge(analysisSnapshotFields(meta?.analysisSnapshot)) { current, _ in current }
         record.merge(hrrFields(meta?.hrrSamples)) { current, _ in current }
         return .record(record)
@@ -301,14 +301,12 @@ extension SessionNamespace {
     /// `load` is the preferred (power-first) number
     /// the AI should anchor on. `trimp` and `hr_tss` stay exposed
     /// for back-compat / debugging, but `load` + `load_source`
-    /// is the canonical pair. `preferredTrainingLoad` is
-    /// MainActor-isolated (touches Settings + auto-FTP cache),
-    /// so it's wrapped in `assumeIsolated` — the same pattern used
-    /// elsewhere in this resolver for MainActor-isolated reads.
-    private static func loadFields(_ meta: WorkoutMetadata?) -> [String: FactValue] {
-        [
-            "load": .from(MainActor.assumeIsolated { meta?.preferredTrainingLoad?.value }),
-            "load_source": .from(MainActor.assumeIsolated { meta?.preferredTrainingLoad?.source.rawValue }),
+    /// is the canonical pair, scored under the FTPs `ftp`.
+    private static func loadFields(_ meta: WorkoutMetadata?, ftp: TrainingLoadPrecedence.FTPAnchors) -> [String: FactValue] {
+        let load = meta?.preferredTrainingLoad(ftp: ftp)
+        return [
+            "load": .from(load?.value),
+            "load_source": .from(load?.source.rawValue),
             "trimp": .from(meta?.luciaTRIMP),
             "hr_tss": .from(meta?.hrTSS),
             "power_tss": .from(meta?.powerTSS),
@@ -358,9 +356,9 @@ extension SessionNamespace {
     /// Given an optional workout and a tail key like .alpha1.mean or
     /// .trimp, return that field's FactValue. When tail is nil, returns
     /// the full record (useful for small dumps).
-    static func resolveSessionField(_ session: HRVSession?, tail: FactKey?) -> FactValue {
+    static func resolveSessionField(_ session: HRVSession?, tail: FactKey?, ftp: TrainingLoadPrecedence.FTPAnchors) -> FactValue {
         guard let session else { return .missing(reason: .notRecorded, detail: "session not found") }
-        return field(of: fullRecord(for: session), tail: tail)
+        return field(of: fullRecord(for: session, ftp: ftp), tail: tail)
     }
 
     /// One step down the record: the field and how many tail tokens it used.
@@ -386,6 +384,10 @@ extension SessionNamespace {
 struct WalksNamespace: FactNamespaceResolver {
     let namespace = "walks"
     let archive: SessionArchive
+    let settings: @Sendable () -> UserSettings
+
+    /// The FTPs a walk's load is scored with.
+    private var loadAnchors: TrainingLoadPrecedence.FTPAnchors { .current(settings()) }
 
     private static let walkSports: Set<Sport> = [.walk, .hike]
 
@@ -474,16 +476,16 @@ struct WalksNamespace: FactNamespaceResolver {
             description: "Walk or hike with the highest heart-rate TRIMP in the period, as a full session record.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                self.withWalks(in: param) { Self.hardest(of: $0) }
+                self.withWalks(in: param) { Self.hardest(of: $0, ftp: self.loadAnchors) }
             }
         )
     }
 
-    private static func hardest(of walks: [HRVSession]) -> FactValue {
+    private static func hardest(of walks: [HRVSession], ftp: TrainingLoadPrecedence.FTPAnchors) -> FactValue {
         guard let hardest = walks.max(by: { ($0.workoutMetadata?.luciaTRIMP ?? 0) < ($1.workoutMetadata?.luciaTRIMP ?? 0) }) else {
             return .missing(reason: .notRecorded, detail: "no walks in period")
         }
-        return SessionNamespace.fullRecord(for: hardest)
+        return SessionNamespace.fullRecord(for: hardest, ftp: ftp)
     }
 
     private var walksListPeriodEntry: FactEntry {
@@ -493,13 +495,13 @@ struct WalksNamespace: FactNamespaceResolver {
             description: "List of walks and hikes in the period (every sport: workout.list). Each item is a session summary record.",
             availability: { self.walksAvailability() },
             resolve: { param, _ in
-                self.withWalks(in: param) { Self.walkList(of: $0) }
+                self.withWalks(in: param) { Self.walkList(of: $0, ftp: self.loadAnchors) }
             }
         )
     }
 
-    private static func walkList(of walks: [HRVSession]) -> FactValue {
-        .list(walks.map { SessionNamespace.fullRecord(for: $0) })
+    private static func walkList(of walks: [HRVSession], ftp: TrainingLoadPrecedence.FTPAnchors) -> FactValue {
+        .list(walks.map { SessionNamespace.fullRecord(for: $0, ftp: ftp) })
     }
 }
 // MARK: - training.load.* namespace

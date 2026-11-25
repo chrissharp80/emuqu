@@ -675,8 +675,9 @@ struct WorkoutMetadata: Codable, Equatable {
     }
 
     /// Preferred numeric load + the source it came from: exactly
-    /// `TrainingLoadPrecedence.stored`, the figure ATL/CTL count, with the
-    /// FTPs from the settings snapshot. Order is by published accuracy:
+    /// `TrainingLoadPrecedence.stored`, the figure ATL/CTL count, under the
+    /// FTPs `ftp` (`FTPAnchors.current(settings)` of the settings the
+    /// caller renders with). Order is by published accuracy:
     ///   1. powerTSS (Coggan, with Stryd / cycling power; either
     ///      the stored value over moving time OR derived at read time
     ///      from NP and the current effective FTP — incl. auto-estimate)
@@ -690,9 +691,8 @@ struct WorkoutMetadata: Codable, Equatable {
     ///
     /// Callers use the source tag to label the displayed number
     /// honestly ("Coggan · power", "METs · partial", etc.).
-    @MainActor
-    var preferredTrainingLoad: (value: Double, source: TrainingLoadSource)? {
-        TrainingLoadPrecedence.stored(self)
+    nonisolated func preferredTrainingLoad(ftp: TrainingLoadPrecedence.FTPAnchors) -> (value: Double, source: TrainingLoadSource)? {
+        TrainingLoadPrecedence.stored(self, ftp: ftp)
     }
 
     // MARK: Rowing-specific (from Concept2 PM5)

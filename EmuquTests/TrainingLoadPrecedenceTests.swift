@@ -255,4 +255,26 @@ final class TrainingLoadPrecedenceTests: XCTestCase {
         )
         XCTAssertNil(HealthKitManager.WorkoutSummary.summaryFromIndex(entry))
     }
+
+    /// Apple Health's copy of a workout wins over the rough estimate the app
+    /// counts from an unreadable file's index entry; with no Health copy the
+    /// estimate stays.
+    func testAHealthCopyWinsOverAnIndexEstimate() throws {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let entry = SessionArchiveEntry(
+            sessionId: UUID(), date: start, endDate: start.addingTimeInterval(45 * 60),
+            fileHash: "", filePath: "", meanHR: 142, sessionType: .workout
+        )
+        let estimate = try XCTUnwrap(HealthKitManager.WorkoutSummary.summaryFromIndex(entry))
+        let health = HealthKitManager.WorkoutSummary(
+            date: start, type: .running, durationMinutes: 45, caloriesBurned: 500, averageHR: 150, maxHR: 171
+        )
+
+        let merged = TrainingHealthQueries.mergeArchiveAuthoritative(archive: [estimate], healthKit: [health])
+        XCTAssertEqual(merged.map(\.averageHR), [150])
+
+        let alone = TrainingHealthQueries.mergeArchiveAuthoritative(archive: [estimate], healthKit: [])
+        XCTAssertEqual(alone.map(\.averageHR), [142])
+    }
 }
+

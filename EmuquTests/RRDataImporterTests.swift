@@ -171,6 +171,23 @@ final class RRDataImporterTests: XCTestCase {
         XCTAssertEqual(intervals, [800, 750, 810])
     }
 
+    /// A comment before the header is not taken for the header: the RR
+    /// column is still the one the header names, not a guess at the second
+    /// numeric column (here heart rate, then a plausible-looking column).
+    func testParseCSV_aLeadingCommentDoesNotHideTheHeader() throws {
+        let csv = "# exported 2026-11-20\ntimestamp,hr_bpm,rr_ms\n0,60,812\n812,61,830"
+        XCTAssertEqual(try importer.parseCSV(csv).0, [812, 830])
+        let decoy = "# exported 2026-11-20\ntimestamp,cadence_spm,rr_ms\n0,700,812\n812,710,830"
+        XCTAssertEqual(try importer.parseCSV(decoy).0, [812, 830])
+    }
+
+    /// One stray quote mark (here in a comment) does not join every line
+    /// after it into one record: the file still imports its beats.
+    func testParseCSV_aStrayQuoteDoesNotSwallowTheFile() throws {
+        let csv = "# Polar \"H10 export\nrr_ms\n812\n830\n845"
+        XCTAssertEqual(try importer.parseCSV(csv).0, [812, 830, 845])
+    }
+
     func testParseCSV_skipsCommentLines() throws {
         let csv = "# This is a comment\nrr\n800\n// Another comment\n750"
         let (intervals, _, _) = try importer.parseCSV(csv)
@@ -250,14 +267,22 @@ final class RRDataImporterTests: XCTestCase {
         XCTAssertEqual(intervals, [800, 750, 810])
     }
 
-    func testParsePlainText_filtersInvalidValues() throws {
-        // Values outside physiological range are filtered by isValid check
-        let text = "800\n50\n750\n5000\n810"
-        let intervals = try importer.parsePlainText(text)
-        // Only valid RR intervals should remain
-        XCTAssertTrue(intervals.contains(800))
-        XCTAssertTrue(intervals.contains(750))
-        XCTAssertTrue(intervals.contains(810))
+    /// Plain text drops what is not a beat at all, as CSV does.
+    func testParsePlainText_dropsWhatIsNotABeat() throws {
+        let text = "800\n0\n750\n-20\n1e30\n810"
+        XCTAssertEqual(try importer.parsePlainText(text), [800, 750, 810])
+    }
+
+    /// The same beats import the same from plain text and from a CSV
+    /// column: an artifact interval outside the physiological range is kept
+    /// by both, for validation and artifact detection to judge, so neither
+    /// format shortens the timeline the other keeps.
+    func testPlainTextAndCSVKeepTheSameBeats() throws {
+        let beats = [800, 2600, 750, 250, 810]
+        let text = beats.map(String.init).joined(separator: "\n")
+        let (fromCSV, _, _) = try importer.parseCSV("rr_ms\n" + text)
+        XCTAssertEqual(try importer.parsePlainText(text), beats)
+        XCTAssertEqual(fromCSV, beats)
     }
 
     // MARK: - parseEliteHRVSummary
@@ -597,6 +622,18 @@ final class RRDataImporterTests: XCTestCase {
         let groups = try RRDataImporter.groupBeatsBySession(dataLines: rows, columns: columns)
         XCTAssertEqual(groups["d1"]?.map(\.rr), [812, 830])
         XCTAssertEqual(RRDataImporter.sessionTypesBySession(dataLines: rows, columns: columns)["d1"], .overnight)
+    }
+
+    /// A file past the import limit is refused from its size, before any of
+    /// it is read into memory.
+    func testAFileOverTheLimitIsRefusedBeforeItIsRead() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("rr-\(UUID().uuidString).csv")
+        try Data(repeating: 0x31, count: 2048).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        XCTAssertNoThrow(try RRDataImporter.requireImportableSize(at: url, maxBytes: 4096))
+        XCTAssertThrowsError(try RRDataImporter.requireImportableSize(at: url, maxBytes: 1024)) { error in
+            guard case .tooLarge = error as? RRDataImporter.ImportError else { return XCTFail("threw \(error)") }
+        }
     }
 
     // MARK: - parseCSVLine (quoted values)
