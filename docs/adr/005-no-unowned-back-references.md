@@ -1,4 +1,4 @@
-# 005 — Helpers hold their owner strongly; `unowned` is banned
+# 005 — Helpers hold no back-reference, or hold their owner strongly; `unowned` is banned
 
 ## Context
 
@@ -23,14 +23,14 @@ with the same shape.
 
 ## Decision
 
-1. Every helper is a `struct` holding its owner **strongly**, built on demand
-   by the owner (`collector.control`, `manager.writes`, …).
-   The owner does not retain the helper, so there is no cycle; the helper
-   cannot outlive what it points at, so there is nothing to trap on.
-   A part that holds no owner at all — only the owned state objects and
-   services it uses, as the workout recorder's ticker, session lifecycle and
-   coach context do — is a class the owner builds once and keeps. It has no
-   back-pointer to trap on, and its timers and tasks capture it weakly.
+1. A part takes the owned state objects and services it uses, not its owner,
+   and the owner builds it once and keeps it: the collector's coordinators,
+   the workout recorder's ticker, session lifecycle and coach context, the
+   strap's link and recording coordinators, and the HealthKit query types. It
+   has no back-pointer to trap on, and its timers and tasks capture it weakly.
+   A helper that must reach its owner is a `struct` holding the owner
+   **strongly**, built on demand; the owner does not retain it, so there is no
+   cycle, and it cannot outlive what it points at.
 2. Callbacks the owner stores — Combine sinks in its `cancellables`, timers,
    notification tokens, HealthKit query handlers — capture the **owner
    weakly** and rebuild the helper when they fire. A strong capture there
@@ -46,8 +46,11 @@ with the same shape.
 
 - The class of bug is removed rather than its instances. No coordinator can
   read a freed owner, whatever the async path.
-- The helpers are values. They carry no state, and the compiler rejects
-  `[weak self]` inside them, so every capture has to be decided explicitly.
+- A helper that holds its owner is a value. It carries no state, and the
+  compiler rejects `[weak self]` inside it, so every capture has to be decided
+  explicitly. A part that holds no owner states its dependencies in its
+  initializer, and the coupling budget (`scripts/check_coupling_budget.sh`)
+  counts any part that holds a whole hub instead.
 - `weak` remains available for a genuinely optional back-reference, and a
   few owners use it (for example `WorkoutVoiceCoach`, `BeatConsistencyPriorsCache`,
   `TrainingMetricsCache`).

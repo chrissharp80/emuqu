@@ -103,8 +103,8 @@ final class RRCollector {
     @ObservationIgnored private(set) lazy var overnightStreaming: OvernightStreamingCoordinator = OvernightStreamingCoordinator(
         archive: archive, baselineTracker: baselineTracker, cloudSyncManager: cloudSyncManager, healthWrites: healthKit.writes, sleepQueries: healthKit.sleepQueries, vitalsQueries: healthKit.vitals,
         morningCoordination: morningCoordination, overnightRun: overnightRun,
-        strapLink: polarManager.linkState, strapLinkControl: polarManager.link, strapStream: polarManager.stream,
-        strapRecording: polarManager.deviceRecording, strapRecorder: polarManager.recording,
+        strapLinkControl: polarManager.link, strapStream: polarManager.stream,
+        strapRecorder: polarManager.recording,
         strapDiscovery: polarManager.discovery, strapBattery: polarManager.battery, rawBackup: rawBackup,
         recordingStore: recordingStore, services: services, sessionState: sessionState, settingsManager: settingsManager,
         streamingLifecycle: streamingLifecycle, morning: morning
@@ -327,17 +327,9 @@ final class RRCollector {
     /// and previews can swap dependencies without monkey-patching singletons.
     static func makeDefault(dependencies: AppDependencies) -> RRCollector {
         let collector = RRCollector(dependencies: dependencies)
-        // Register as the canonical "current" collector so read-only
-        // surfaces (the AI fact resolver, in particular) can reach live
-        // device state — Polar battery, connection, recording-hours,
-        // active workout — without us threading the collector through
-        // every layer that needs to peek at it. Weak so this never
-        // accidentally extends the lifetime of an old instance during
-        // tests / previews. Strictly read-only: callers MUST NOT use
-        // this to invoke behavior on the collector (start streaming,
-        // archive a session) — that path stays through environment
-        // injection so dependency wiring stays explicit.
-        Self.current = collector
+        // Bound for the parts that ask about the live recording without
+        // being handed the collector (`CollectorBox`).
+        dependencies.app.collectorBox.collector = collector
         return collector
     }
 
@@ -371,11 +363,6 @@ final class RRCollector {
 
     @ObservationIgnored private let didBootBaseline = OSAllocatedUnfairLock(initialState: false)
 
-    /// Weak reference to the production collector. Set by `makeDefault()`.
-    /// Nil in `#Preview` blocks and tests that instantiate via the
-    /// designated init. Read-only access only — see `makeDefault()` for
-    /// the contract.
-    static weak var current: RRCollector?
 
     /// A collector over the services of `dependencies`. `makeDefault` builds
     /// the app's with it; SwiftUI `#Preview` blocks and tests that don't care

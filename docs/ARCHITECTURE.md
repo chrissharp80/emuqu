@@ -49,7 +49,7 @@ When stopping an overnight session, preference order (`DataSourceSelector`):
 1. **Internal recording** (preferred) — no Bluetooth gaps
 2. **Composite** (internal + streaming gap-fill) — if internal has >5% fewer beats than streaming
 3. **Streaming only** — if internal fetch failed, or if the composite could not be built
-4. **RawRRBackup** — if both failed (a separate recovery path, `RRCollector+BackupRecovery`)
+4. **RawRRBackup** — if both failed (a separate recovery path, `SessionRecoveryCoordinator+Backup`)
 
 A source counts as usable only at `minimumValidBeats = 120` beats or more; below that it is
 treated as absent. Each data path can succeed or fail independently — an H10 fetch failure
@@ -346,7 +346,7 @@ Computed independently — highest sustained RMSSD regardless of organization. R
 
 Research-informed three-tier composite using ln(RMSSD) z-score normalization (Plews et al. 2013, Buchheit 2014).
 
-> **Scale note:** every tier computes on a **0–100** scale; the result is converted via `RecoveryScoreCalculator.toTenScale` (called from `RRCollector+Analysis.swift`) to a **1–10** scale before it is stored on `HRVSession.recoveryScore`. The "0–100" here and the "1–10" in [Storage & Sync](#storage--sync) are the same number pre- and post-storage, not a contradiction.
+> **Scale note:** every tier computes on a **0–100** scale; the result is converted via `RecoveryScoreCalculator.toTenScale` (called from `MorningSessionPipeline+Analysis.swift`) to a **1–10** scale before it is stored on `HRVSession.recoveryScore`. The "0–100" here and the "1–10" in [Storage & Sync](#storage--sync) are the same number pre- and post-storage, not a contradiction.
 
 **Architecture:** the score is `HRV + Sleep + Vitals`. Training load is **not** in the composite — it lives on the parallel Load & Trajectory page. Rationale: per Impellizzeri et al. (2020 IJSPP 15(6); 2021 Sports Med 51:581–592) ACWR's chronic denominator carries no real injury-prediction signal (random numbers in the chronic position produce nearly identical odds ratios). Per Doherty/Altini 2025 systematic review of 14 commercial composite scores and Marco Altini's HRV4Training methodology, training load already manifests downstream as suppressed HRV / elevated RHR — folding it back into the score double-counts the same physiological event. Rule restated in `ScoringWeights` doc-comment.
 
@@ -588,7 +588,7 @@ Based on Ohayon et al. (2004), Buysse et al. (2014), Phillips et al. (2017):
 When HealthKit returns **zero** sleep for a session, `MorningResultsViewModel.estimateSleepFallback`
 tries to recover a night from what the passive record does hold, in this order:
 
-1. **RR-derived estimate** from the session's own beats (`HealthKitManager.estimateSleepFromHR`),
+1. **RR-derived estimate** from the session's own beats (`HRSleepEstimator.estimateSleepFromHR`),
    when the recording captured any.
 2. **Apple Watch passive HR** (`estimateSleepFromHealthKitHR`), over the session window extended
    to the end of the user's sleep schedule.
@@ -1140,9 +1140,9 @@ the other layers reaches a web API only through one of those clients.
 
 `RRCollector` additionally exposes a designated initializer taking all of its dependencies as
 parameters (`BackgroundAudioManager`, `SettingsManager`, `SessionArchive`, plus the
-protocol-typed HealthKit service). `RRCollector.makeDefault()` is the production wiring and
-also publishes the weak `RRCollector.current` the fact resolvers read; a `convenience init()`
-wires in the shared singletons for tests and previews.
+protocol-typed HealthKit service). `RRCollector.makeDefault(dependencies:)` is the production wiring and
+binds the container's `CollectorBox`, which the assistant's context and device facts and Delete All
+My Data read; `init(dependencies:)` builds a collector over a given container for tests and previews.
 
 ### RRCollector decomposition (sub-objects + SwiftUI observation)
 

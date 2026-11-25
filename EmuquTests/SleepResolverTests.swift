@@ -473,7 +473,7 @@ final class SleepResolverTests: XCTestCase {
             rrPoints: rrPoints
         )
         let result = SleepResolver.resolve(ctx)
-        // The exporter gate (`HealthKitManager+Sleep`, the boundary-source check in
+        // The exporter gate (`HealthWriteAndObserve+Sleep`, the boundary-source check in
         // the sleep-stage export path) also accepts
         // `.healthKitHREstimated`; either qualifies as "we're the only source."
         let isInferred =

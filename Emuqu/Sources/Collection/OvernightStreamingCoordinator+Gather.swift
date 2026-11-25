@@ -6,7 +6,7 @@ import HealthKit
 // internal recording through the same gate as the morning
 // (`fetchNightFromStrap`), and pick the best source.
 // `stopOvernightStreaming`, the normal morning, lives in
-// `RRCollector+OvernightStreaming.swift` and shares `publishGatherSavingState`
+// `OvernightStreamingCoordinator+Streaming.swift` and shares `publishGatherSavingState`
 // from here.
 
 extension OvernightStreamingCoordinator {

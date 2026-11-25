@@ -452,7 +452,7 @@ extension WorkoutFinalizer {
     /// export), so neither the warm cache nor the cold archive + HealthKit
     /// merge has it yet. The stored ATL/CTL/TSB is the load the user
     /// brought into this workout. Mirrors the recovery-session attach in
-    /// RRCollector+DeviceRecording.swift, including the
+    /// DeviceRecordingSession+Capture.swift, including the
     /// user's VO2max override / opt-out handling.
     private func attachTrainingSnapshot(to session: inout HRVSession, stopDate: Date) async {
         let s = settings

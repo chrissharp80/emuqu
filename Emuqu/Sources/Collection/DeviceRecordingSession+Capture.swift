@@ -512,7 +512,7 @@ extension DeviceRecordingSession {
     /// the newest snapshot-bearing session and hijacks the
     /// dashboard sleep chip (`latestWithSleep`) away from the real
     /// overnight session. Same gate the streaming path has
-    /// (RRCollector+Streaming.swift).
+    /// (QuickReadingSession+Streaming.swift).
     private func applyRecoveryScore(to finalSession: inout HRVSession, analysisResult: HRVAnalysisResult?) async {
         guard let result = await morning.computeRecoveryScore(for: finalSession, from: analysisResult) else { return }
         finalSession.recoveryScore = result.score

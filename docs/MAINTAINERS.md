@@ -112,7 +112,7 @@ External systems, and where each is owned in code:
 |---|---|---|
 | Polar H10 / Verity Sense (BLE) | Raw RR/PPI capture | `Emuqu/Sources/Collection/PolarManager.swift` |
 | Stryd, FTMS trainers, Concept2 PM5 (BLE) | Workout power/cadence/rowing | `Emuqu/Sources/Collection/FootPodManager.swift`, `Concept2Manager.swift` |
-| Apple HealthKit | Sleep, vitals, workouts, HR (read + write-back) | `Emuqu/Sources/Collection/HealthKitManager.swift` (+extensions) |
+| Apple HealthKit | Sleep, vitals, workouts, HR (read + write-back) | `Emuqu/Sources/Collection/HealthKitManager.swift` and the query types it composes |
 | Apple CloudKit (private DB) | Cross-device session backup | `Emuqu/Sources/Storage/CloudKitSyncManager.swift` |
 | Apple Watch | Live workout mirror + optional strap | `Emuqu/Sources/Services/WatchConnectivityBridge.swift`, `EmuquWatch Watch App/` |
 | Apple Intelligence (Foundation Models) | Default on-device LLM | `Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift` |
@@ -246,7 +246,7 @@ This section is the short version; read the spec before any non-trivial change.
 
 | Convention | What it looks like | Why |
 |---|---|---|
-| **Extension file-splitting** | `Foo.swift` + `Foo+Bar.swift`, `Foo+Baz.swift` | Keep each file readable in one sitting; one concern per file. Big objects (RRCollector, HealthKitManager, PDFReportGenerator, Archive) are split this way. |
+| **Extension file-splitting** | `Foo.swift` + `Foo+Bar.swift`, `Foo+Baz.swift` | Keep each file readable in one sitting; one concern per file. A file is named for the type it extends. Splitting a file does not split a type: a part takes only what it uses (`scripts/check_coupling_budget.sh`). |
 | **Centralized constants** | `Constants.swift` namespaced enums (`RecoveryScoreConstants`, `ScoringWeights`, `FeatureFlags`, …) | No magic numbers in logic; scoring thresholds auditable in one place. |
 | **Centralized theme** | `Utilities`/`Views` `AppTheme` / `Theme.swift` | Colors, typography, accent themes in one surface. |
 | **Per-screen archive subscription** | each screen owns its own `recentSessionsAsync(...)` refresh `Task` | Load limits are per-screen, not tab-routing-dependent (see [`ARCHITECTURE.md` → UI Session Load Contract](ARCHITECTURE.md#ui-session-load-contract)). |
@@ -364,19 +364,21 @@ The signal-processing and scoring engine. Mostly pure transforms.
 
 The largest, most stateful layer. Owns hardware and the recording state machine.
 
-- **`RRCollector.swift` + `RRCollector+*` extensions** — the core object.
-  Extensions cover Lifecycle, Reanalysis, Streaming, morning processing,
-  migrations, etc. Decomposed into five sub-objects (§9.1), plus two
-  coordinators that own whole responsibilities rather than state slices:
-  `SessionRecoveryCoordinator` (everything that rescues a recording that did
-  not end cleanly) and `OvernightStreamingCoordinator` (bluetooth-central
-  overnight capture — start, keep-alive, reconnect, morning gather, strap
-  merge). Each is a value holding the collector strongly, built on demand
-  (`collector.recovery`, `collector.overnightStreaming`, `collector.morning`,
-  `collector.deviceRecording`), and callers name the one they ask. See ADR 005
-  for why they are not `unowned` back-pointers.
+- **`RRCollector.swift`** — the composition of the HRV recording. It owns the
+  observable state objects (§9.1) and builds each coordinator once over only
+  the parts it uses: `MorningSessionPipeline` (process, analyse, accept),
+  `DeviceRecordingSession` (capture to the strap's memory),
+  `OvernightStreamingCoordinator` (bluetooth-central overnight capture and the
+  gather that ends it), `SessionRecoveryCoordinator` (rescuing a recording that
+  did not end cleanly), `QuickReadingSession`, `CollectorSessionControl`
+  (pause, resume, finish, discard) and `CollectorBindings` (strap, Health and
+  iCloud state republished for the views). They call in one direction: session
+  control calls overnight streaming and the morning pipeline; overnight
+  streaming, recovery and device recording call the morning pipeline; the
+  morning pipeline calls none of them. None holds the collector. Each file is
+  named for the type it extends (`MorningSessionPipeline+Processing.swift`).
 - `PolarManager.swift` (+`+Streaming`, `+Recording`, `+Observers`) — Polar BLE.
-- `HealthKitManager.swift` (+`+HRV`, `+HeartRate`, `+SleepTrends`, `+Store`, `+Heat`) — HealthKit read/write. Three query classes hold the reads: `VitalsHealthQueries`, `TrainingHealthQueries` and `SleepHealthQueries`. Sleep export, trend analysis and the observers stay on `+SleepTrends` — those write and observe, which is a different job with different failure modes.
+- `HealthKitManager.swift` composes Apple Health by job: `HealthKitAccess` (the store, settings and bounded queries), `HealthObservation` (observer queries and data versions), `HealthKitAuthorization`, `HealthKitBackfill`, and the query types `HeartRateHealthQueries`, `SleepHealthQueries`, `VitalsHealthQueries`, `TrainingHealthQueries`, `ProfileHealthQueries` and `HealthWriteAndObserve` (exports, sleep trends and the observers, which write and observe, a different job with different failure modes). `HealthKitService` is the `HealthKitServiceProtocol` the analysis services take.
 - Apple Health write-back: `HealthExportIdentity` stamps every sample and workout the app exports with the session's sync identifier and a rising sync version, so a re-export replaces the earlier copy rather than adding one; `HealthKitWorkoutExport` (the workout, with its samples and route) and `HealthWriteAndObserve.swift` (`HealthSampleReplacer`, `removeExports` for a session deleted forever, and `HealthSampleWatch`, the anchored observer that hands the app other sources' new samples). A workout saved while the phone was locked, when its earlier exports could not be read, is noted in `PendingWorkoutReplacements` and its earlier copies are deleted on the next return to the app.
 - `WorkoutRecorder.swift` (+`+Lifecycle`, `+Ticker`, `+Start`, `+Stop`, `+Metrics`) — live workout; with `WorkoutLocationManager`, `WorkoutMotion`, `WorkoutPedometer`, `WorkoutHR`. `WorkoutAIContextBuilder` owns everything the assistant is told about a workout in progress (context snapshot, route topology, climbs ahead, live weather, interval progress, threshold breaches, split paces, grade) — the recorder's largest piece that is not the recording pipeline.
 - Extra devices: `Concept2Manager` (PM5 rower), `FootPodManager` (Stryd RSC + FTMS bike), `ZwiftPeripheralBroadcaster`.
@@ -553,7 +555,7 @@ The verbs. Each flow lists the sequence with file + symbol anchors.
 The spine of the product.
 
 1. **Start** — `RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)`
-   (`Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift`). Begins BLE streaming;
+   (`Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift`). Begins BLE streaming;
    on an **H10** it also arms device-internal recording as a backup (Verity Sense
    never uses internal recording). A streaming timer does time-based incremental
    raw-RR backup (~60 s) and force-backs-up on reconnect.
@@ -564,12 +566,12 @@ The spine of the product.
    [`ARCHITECTURE.md` → Strap Link and Reconnection](ARCHITECTURE.md#strap-link-and-reconnection).
 3. **Stop** — the Record tab's stop action calls `RRCollector.stopOvernightStreaming()`,
    which forwards to `OvernightStreamingCoordinator.stopOvernightStreaming()`
-   (`RRCollector+OvernightStreaming.swift`): ends device-recording arming, stops
+   (`OvernightStreamingCoordinator+Streaming.swift`): ends device-recording arming, stops
    the streaming infrastructure, backs up the streamed beats, then downloads the H10
    internal recording (reconnecting a dropped strap within a bounded window, polling
    HealthKit sleep in parallel), merges and scores the night; a too-short stream takes
    `fallbackToDeviceFetch`. The download is skipped when the night never armed the
-   strap and the strap reports no recording (`nightFetchAllowed`). (`gatherOvernightData()` in `RRCollector+OvernightGather.swift`
+   strap and the strap reports no recording (`nightFetchAllowed`). (`gatherOvernightData()` in `OvernightStreamingCoordinator+Gather.swift`
    is the pause and recovery gather, not the morning stop.)
 4. **Pick the best source** — `DataSourceSelector.selectBestSource(...)`
    (`Emuqu/Sources/Collection/DataSourceSelector.swift`): internal → composite (if internal
@@ -581,7 +583,7 @@ The spine of the product.
    30–70 % band of *actual sleep*, then `analyzeWithWindow`: artifact flags →
    time domain → nonlinear/DFA → frequency domain → ANS metrics.
 6. **Score** — `RRCollector.computeRecoveryScore(...)`
-   (`RRCollector+Analysis.swift`) → `RecoveryScoreCalculator.calculateWithBreakdown`
+   (`MorningSessionPipeline+Analysis.swift`) → `RecoveryScoreCalculator.calculateWithBreakdown`
    computes the composite **0–100** (HRV 60 / Sleep 25 / Vitals 15, with tier
    fallback and comeback-mode reweighting), then stores it **0–10** via
    `RecoveryScoreCalculator.toTenScale`. All thresholds live in `Constants+RecoveryScore.swift`.
@@ -753,7 +755,7 @@ doc. Use this to decide *where to read next*.
 - **Owns:** sleep-boundary resolution, HRV-based stage classification,
   sleep science scoring.
 - **Code:** `Analysis/SleepScienceAnalyzer`, `SleepResolver`; `Models/SleepData`,
-  `Collection/SleepMergingPipeline`; `Collection/HealthKitManager+Sleep` (`estimateSleepFromHealthKitHR` / `estimateSleepFromHR`).
+  `Collection/SleepMergingPipeline`; `Collection/SleepHealthQueries+Queries` (`estimateSleepFromHealthKitHR`) and `Collection/HRSleepEstimator` (`estimateSleepFromHR`).
 - **Deep doc:** [`ARCHITECTURE.md` → Sleep Pipeline](ARCHITECTURE.md#sleep-pipeline).
 
 ### 8.4 The AI assistant (Flo)

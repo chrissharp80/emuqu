@@ -87,6 +87,7 @@ struct AppDependencies: Sendable {
             var launchCoordinator: LaunchCoordinator?
             var organizedZonesCache: OrganizedZonesCache?
             var recorderBox: RecorderBox?
+            var collectorBox: CollectorBox?
             var settingsManager: SettingsManager?
             var systemDiagnosticsManager: SystemDiagnosticsManager?
             var beatConsistencyPriorsCache: BeatConsistencyPriorsCache?
@@ -191,6 +192,10 @@ struct AppDependencies: Sendable {
         var recorderBox: RecorderBox? {
             get { values.withLock { $0.recorderBox } }
             set { values.withLock { $0.recorderBox = newValue } }
+        }
+        var collectorBox: CollectorBox? {
+            get { values.withLock { $0.collectorBox } }
+            set { values.withLock { $0.collectorBox = newValue } }
         }
         var settingsManager: SettingsManager? {
             get { values.withLock { $0.settingsManager } }
@@ -487,6 +492,11 @@ struct UtilityServices: Sendable {
     var recorderBox: RecorderBox {
         if let substitute = overrides.recorderBox { return substitute }
         return RecorderBox.shared
+    }
+    /// Holds the app's recording collector once `RRCollector.makeDefault` binds it.
+    var collectorBox: CollectorBox {
+        if let substitute = overrides.collectorBox { return substitute }
+        return CollectorBox.shared
     }
     var settingsManager: SettingsManager {
         if let substitute = overrides.settingsManager { return substitute }
@@ -877,6 +887,7 @@ extension AppDependencies {
         let app = self.app
         return DataPurgeService.Stores(
             recorderBox: { app.recorderBox },
+            collectorBox: { app.collectorBox },
             assistant: purgeAssistantStores,
             location: purgeLocationStores,
             device: purgeDeviceStores

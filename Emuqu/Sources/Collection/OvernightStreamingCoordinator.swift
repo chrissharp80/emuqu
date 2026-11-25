@@ -20,10 +20,8 @@ final class OvernightStreamingCoordinator {
     let vitalsQueries: VitalsHealthQueries
     let morningCoordination: MorningCoordination
     let overnightRun: OvernightRunState
-    let strapLink: StrapLinkState
     let strapLinkControl: StrapLinkControl
     let strapStream: StrapStreamSession
-    let strapRecording: StrapRecordingState
     let strapRecorder: StrapRecordingCoordinator
     let strapDiscovery: StrapDiscoveryCoordinator
     let strapBattery: StrapBatteryUsageTracker
@@ -44,10 +42,8 @@ final class OvernightStreamingCoordinator {
         vitalsQueries: VitalsHealthQueries,
         morningCoordination: MorningCoordination,
         overnightRun: OvernightRunState,
-        strapLink: StrapLinkState,
         strapLinkControl: StrapLinkControl,
         strapStream: StrapStreamSession,
-        strapRecording: StrapRecordingState,
         strapRecorder: StrapRecordingCoordinator,
         strapDiscovery: StrapDiscoveryCoordinator,
         strapBattery: StrapBatteryUsageTracker,
@@ -67,10 +63,8 @@ final class OvernightStreamingCoordinator {
         self.vitalsQueries = vitalsQueries
         self.morningCoordination = morningCoordination
         self.overnightRun = overnightRun
-        self.strapLink = strapLink
         self.strapLinkControl = strapLinkControl
         self.strapStream = strapStream
-        self.strapRecording = strapRecording
         self.strapRecorder = strapRecorder
         self.strapDiscovery = strapDiscovery
         self.strapBattery = strapBattery

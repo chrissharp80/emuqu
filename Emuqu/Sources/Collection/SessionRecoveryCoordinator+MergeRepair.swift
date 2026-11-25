@@ -3,7 +3,7 @@ import Foundation
 // Merge data-loss repair: rebuilds, from the archive alone, resumed overnight
 // segments whose beat series lost the parent's beats in an earlier build's
 // merge. Backup, Trash and interrupted-workout recovery are in
-// `RRCollector+BackupRecovery.swift`.
+// `SessionRecoveryCoordinator+Backup.swift`.
 
 extension SessionRecoveryCoordinator {
     // MARK: - Merge Data Loss Repair

@@ -336,7 +336,7 @@ extension HeartRateHealthQueries {
     /// Writing individual `HKQuantitySample` objects (one per minute), the way
     /// the HRV series (`exportHRV`) does, makes every minute visible as its own sample
     /// in the list. Storage cost is negligible for ~480 samples/night.
-    /// `internal` so HealthKitManager+SleepTrends.swift's `exportSessionMetrics`
+    /// `internal` so HealthWriteAndObserve+Sleep.swift's `exportSessionMetrics`
     /// can call this across files.
     func exportHeartRateSeries(
         from rrPoints: [RRPoint],

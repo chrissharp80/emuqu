@@ -1107,18 +1107,18 @@ mutate "baseline_rebuild_drops_unread_nights" "EmuquTests/BaselineTrackerTests" 
 
 # A pause backs the strap's downloaded beats up before the analysis.
 mutate "pause_leaves_strap_night_in_memory" "EmuquTests/StrapRecoveryFlowTests" \
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+OvernightGather.swift');s=p.read_text();o='        await morning.backUpDownloadedNight(\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = (\n'))"
+    "Emuqu/Sources/Collection/OvernightStreamingCoordinator+Gather.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Gather.swift');s=p.read_text();o='        await morning.backUpDownloadedNight(\n';assert s.count(o)==1;p.write_text(s.replace(o,'        _ = (\n'))"
 
 # A Skip as the download finishes keeps the downloaded beats.
 mutate "late_skip_drops_download" "EmuquTests/StrapRecoveryFlowTests" \
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift');s=p.read_text();o='        morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/OvernightStreamingCoordinator+Streaming.swift');s=p.read_text();o='        morning.rescueDownloadedBeats(recording?.points(onClockOf: baseSession.startDate), baseSession: baseSession)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
 # Discard Night leaves nothing in the Trash.
 mutate "discard_leaves_night_in_trash" "EmuquTests/RecordingDiscardTests" \
-    "Emuqu/Sources/Collection/RRCollector+Discard.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/RRCollector+Discard.swift');s=p.read_text();o='        archive.store.discardTrashed(id)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
+    "Emuqu/Sources/Collection/CollectorSessionControl+Discard.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/CollectorSessionControl+Discard.swift');s=p.read_text();o='        archive.store.discardTrashed(id)\n';assert s.count(o)==1;p.write_text(s.replace(o,''))"
 
 # A file the archive could not read is reported to the tool call resolving.
 mutate "failed_read_reported_as_no_data" "EmuquTests/SessionReadWatchTests" \

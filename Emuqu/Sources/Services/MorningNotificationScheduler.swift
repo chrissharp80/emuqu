@@ -16,7 +16,7 @@ import UserNotifications
 ///   • Wake-triggered one-shot push (Smart delivery only) delivered the
 ///     moment Apple Watch reports a fresh sleep-end via `HKObserverQuery`. Wired through
 ///     `deliverWakeTriggeredPushIfAppropriate(sleepEnd:)`, called from the
-///     sleep observer's update handler in `HealthKitManager+SleepTrends`. Fires only
+///     sleep observer's update handler in `HealthWriteAndObserve+Sleep`. Fires only
 ///     once per day, only for a wake inside the schedule's morning window,
 ///     and skipped if the user has notifications disabled or hasn't
 ///     granted authorization. It carries this morning's score when one
@@ -160,7 +160,7 @@ final class MorningNotificationScheduler {
     /// may follow that day, replacing it, once the score exists.
     private static let wakeTriggeredSettledKey = "MorningNotificationScheduler.wakeSettled.v1"
 
-    /// Called from the sleep observer in `HealthKitManager+SleepTrends` when a fresh
+    /// Called from the sleep observer in `HealthWriteAndObserve+Sleep` when a fresh
     /// sleep-end sample arrives. Delivers a one-shot morning push within
     /// seconds of detected wake — far closer to the user's actual wake
     /// time than the fixed-time fallback. Idempotent: subsequent observer

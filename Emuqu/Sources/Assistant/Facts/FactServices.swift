@@ -32,6 +32,9 @@ struct FactServices: Sendable {
     @MainActor
     var footPodManager: FootPodManager { container.collection.footPodManager }
     var healthKitManager: HealthKitManager { container.collection.healthKitManager }
+    /// The app's recording collector, once launch has bound it.
+    @MainActor
+    var collectorBox: CollectorBox { container.app.collectorBox }
     @MainActor
     var heatAcclimationCache: HeatAcclimationCache { container.analysis.heatAcclimationCache }
     var liveHRVBroker: LiveHRVBroker { container.assistant.liveHRVBroker }

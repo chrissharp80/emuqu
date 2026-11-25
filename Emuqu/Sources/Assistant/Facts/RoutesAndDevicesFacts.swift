@@ -454,14 +454,14 @@ struct AppNowNamespace: FactNamespaceResolver {
 //
 // Sensor-and-device state visible to the AI any time, regardless of
 // whether a workout is active. Polar state comes from the canonical
-// `RRCollector.current` (set by `makeDefault()`); foot-pod / rower /
+// app's recording collector (`CollectorBox`, bound at launch); foot-pod / rower /
 // broadcaster come from their existing singletons.
 struct AppDevicesNamespace: FactNamespaceResolver {
     let namespace = "app"
     let services: FactServices
 
     private func polar() -> PolarManager? {
-        MainActor.assumeIsolated { RRCollector.current?.polarManager }
+        MainActor.assumeIsolated { services.collectorBox.collector?.polarManager }
     }
 
     /// The Polar manager only while a strap is linked. What it holds after a
@@ -469,7 +469,7 @@ struct AppDevicesNamespace: FactNamespaceResolver {
     /// mid-stream drop and the recording-hours counter survives every one.
     private func connectedPolar() -> PolarManager? {
         MainActor.assumeIsolated {
-            guard let p = RRCollector.current?.polarManager, p.linkState.connectionState == .connected else { return nil }
+            guard let p = services.collectorBox.collector?.polarManager, p.linkState.connectionState == .connected else { return nil }
             return p
         }
     }

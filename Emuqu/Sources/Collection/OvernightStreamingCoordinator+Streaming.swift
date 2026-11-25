@@ -60,14 +60,14 @@ extension OvernightStreamingCoordinator {
     @MainActor
     func startOvernightStreaming(sessionType: SessionType = .overnight, useDeviceInternalBackup: Bool = true) throws {
         try refuseWhileEndingInProgress()
-        guard strapLink.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }
+        guard strapLinkControl.state.connectionState == .connected else { throw RRCollector.CollectorError.notConnected }
         guard !strapStream.isStreaming else { throw RRCollector.CollectorError.alreadyRecording }
-        let session = HRVSession(sessionType: sessionType, deviceProvenance: .streaming(from: strapLink))
+        let session = HRVSession(sessionType: sessionType, deviceProvenance: .streaming(from: strapLinkControl.state))
         overnightRun.usesDeviceBackup = useDeviceInternalBackup
         try strapStream.startStreaming()  // primary data source
         // Only once streaming started: a failed start must not leave it sampling.
         services.systemDiagnosticsManager.startSamplingDuringRecording()
-        if useDeviceInternalBackup, strapLink.connectedDeviceType != .veritySense {
+        if useDeviceInternalBackup, strapLinkControl.state.connectedDeviceType != .veritySense {
             launchDeviceRecordingLoop()  // H10-only internal-recording backup
         }
         resetOvernightStreamingState(session: session)
@@ -137,7 +137,7 @@ extension OvernightStreamingCoordinator {
         debugLog("[RRCollector] ✅ Started overnight streaming (H10 internal recording, the primary source: \(overnightRun.usesDeviceBackup ? "will arm" : "OFF"))")
         debugLog("[RRCollector] Session ID: \(session.id)")
         debugLog("[RRCollector] Session type: \(sessionType.rawValue)")
-        debugLog("[RRCollector] Connected device: \(strapLink.connectedDeviceId ?? "unknown")")
+        debugLog("[RRCollector] Connected device: \(strapLinkControl.state.connectedDeviceId ?? "unknown")")
     }
 
     /// Timer for overnight streaming - tracks elapsed time and performs incremental backups.
@@ -181,7 +181,7 @@ extension OvernightStreamingCoordinator {
     @MainActor
     private func runOvernightIncrementalBackup(session: HRVSession, force: Bool) {
         let buffer = strapStream.streamedRRPoints
-        let deviceId = strapLink.connectedDeviceId
+        let deviceId = strapLinkControl.state.connectedDeviceId
         let didBackup = rawBackup.incrementalBackup(
             points: buffer,
             sessionId: session.id,
@@ -547,7 +547,7 @@ extension OvernightStreamingCoordinator {
             debugLog("[RRCollector] Skipping device fetch (capture mode: streaming only)")
         } else if isVeritySense {
             debugLog("[RRCollector] Skipping device fetch (Verity Sense uses streaming only)")
-        } else if !overnightRun.deviceBackupActive, !strapRecording.isRecordingOnDevice {
+        } else if !overnightRun.deviceBackupActive, !strapRecorder.device.isRecordingOnDevice {
             debugLog("[RRCollector] Skipping device fetch (the strap was never armed for this night)", level: .warning)
         } else {
             return true
@@ -662,7 +662,7 @@ extension OvernightStreamingCoordinator {
     func backupStreamingData(_ points: [RRPoint], sessionId: UUID) async {
         guard !points.isEmpty else { return }
         let backup = rawBackup
-        let did = strapLink.connectedDeviceId
+        let did = strapLinkControl.state.connectedDeviceId
         await Task.detached(priority: .utility) {
             do {
                 try backup.backup(points: points, sessionId: sessionId, deviceId: did)

@@ -3,7 +3,7 @@ import HealthKit
 
 // Sleep export, the per-session metric exports and the sleep observer:
 // writing nights back to HealthKit and watching for new ones. Querying and
-// estimating a single night lives in `HealthKitManager+Sleep.swift`.
+// estimating a single night lives in `SleepHealthQueries+Queries.swift`.
 
 extension HealthWriteAndObserve {
     // MARK: - Shared helpers

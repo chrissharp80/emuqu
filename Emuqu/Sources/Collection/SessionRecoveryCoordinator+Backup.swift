@@ -5,8 +5,8 @@ import os
 // Backup and corrupted-session recovery: restoring from the app's own
 // on-disk backups. These delegate to `SessionRecoveryService` rather than
 // touching the device at all; pulling RR back off the strap's internal memory
-// lives in `RRCollector+Recovery.swift`, and the merge data-loss repair in
-// `RRCollector+MergeRepair.swift`.
+// lives in `SessionRecoveryCoordinator+Device.swift`, and the merge data-loss repair in
+// `SessionRecoveryCoordinator+MergeRepair.swift`.
 
 extension SessionRecoveryCoordinator {
     // MARK: - Backup Recovery (delegates to SessionRecoveryService)

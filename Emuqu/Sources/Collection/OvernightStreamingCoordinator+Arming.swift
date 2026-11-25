@@ -74,7 +74,7 @@ extension OvernightStreamingCoordinator {
         var batteryRefusal: BatteryRefusal?
         while nightWantsArming {
             if let refusal = batteryRefusal, !StrapRecordingPolicy.mayRetryArming(
-                afterBatteryRefusalAt: refusal.level, batteryNow: strapLink.batteryLevel
+                afterBatteryRefusalAt: refusal.level, batteryNow: strapLinkControl.state.batteryLevel
             ) {
                 await waitBeforeRetrying()
                 continue
@@ -116,7 +116,7 @@ extension OvernightStreamingCoordinator {
             return nil
         case .batteryTooLow:
             surfaceArmingRefusal(error, refusal)
-            return BatteryRefusal(level: strapLink.batteryLevel)
+            return BatteryRefusal(level: strapLinkControl.state.batteryLevel)
         }
     }
 
@@ -146,7 +146,7 @@ extension OvernightStreamingCoordinator {
             await settleLateArmedRecording()
             return
         }
-        let deviceName = strapLink.connectedDeviceType?.displayName ?? "device"
+        let deviceName = strapLinkControl.state.connectedDeviceType?.displayName ?? "device"
         debugLog("[RRCollector] ✅ \(deviceName) internal recording started")
         // The strap is now capturing the full night to its own
         // flash memory — mark it so a mid-night BLE loss can't
@@ -168,7 +168,7 @@ extension OvernightStreamingCoordinator {
     /// night started since, owns the strap and is left to it.
     private func settleLateArmedRecording() async {
         debugLog("[RRCollector] H10 internal recording started after the night stopped wanting it — not marking the night strap-backed", level: .warning)
-        guard !streamingLifecycle.isOvernightStreaming, strapRecording.transfersInFlight == 0 else { return }
+        guard !streamingLifecycle.isOvernightStreaming, strapRecorder.device.transfersInFlight == 0 else { return }
         await strapRecorder.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
     }
 
@@ -177,8 +177,8 @@ extension OvernightStreamingCoordinator {
     /// Record screen shows the same warning before Start.
     func warnIfStrapBatteryMayRefuse() {
         guard overnightRun.usesDeviceBackup, StrapRecordingPolicy.strapMayRefuseToRecord(
-            batteryLevel: strapLink.batteryLevel, deviceType: strapLink.connectedDeviceType
+            batteryLevel: strapLinkControl.state.batteryLevel, deviceType: strapLinkControl.state.connectedDeviceType
         ) else { return }
-        debugLogExternal("Strap battery at \(strapLink.batteryLevel ?? 0)% — the H10 may refuse to record to its own memory tonight; the night still records from the live stream.", cause: .strap)
+        debugLogExternal("Strap battery at \(strapLinkControl.state.batteryLevel ?? 0)% — the H10 may refuse to record to its own memory tonight; the night still records from the live stream.", cause: .strap)
     }
 }

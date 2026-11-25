@@ -168,3 +168,8 @@ extension CapabilityClassifier {
     /// The app's classifier, matching with the app's router's embedder.
     static let shared = CapabilityClassifier { AppDependencies.current.providers.smartProviderRouter.embed($0) }
 }
+
+extension CollectorBox {
+    /// The app's one collector box, bound at launch.
+    nonisolated static let shared = CollectorBox()
+}

@@ -2,7 +2,7 @@
 import XCTest
 
 /// Lost Sessions and launch recovery of an interrupted workout
-/// (`SessionRecoveryCoordinator`, RRCollector+BackupRecovery.swift).
+/// (`SessionRecoveryCoordinator`, SessionRecoveryCoordinator+Backup.swift).
 ///
 /// Lost Sessions lists raw backups no archived session holds and lets the
 /// user delete them. The one thing that keeps a recording in progress out of
