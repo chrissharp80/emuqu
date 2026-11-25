@@ -149,18 +149,24 @@ final class FloSpotCompareTests: XCTestCase {
     /// A ten-minute walk north that passes the hill at minute five, with the
     /// heart rate and altitude it had there.
     private func walkUpTheHill(start: Date) -> HRVSession {
-        let fixes = (0...10).map { minute in
-            CLLocation(
-                coordinate: CLLocationCoordinate2D(latitude: hill.latitude + Double(minute - 5) * 0.0008, longitude: hill.longitude),
-                altitude: 150 + Double(minute) * 6, horizontalAccuracy: 5, verticalAccuracy: 5,
-                timestamp: start.addingTimeInterval(Double(minute) * 60)
-            )
+        var fixes: [CLLocation] = []
+        for minute in 0...10 {
+            let step = Double(minute)
+            let latitude: Double = hill.latitude + (step - 5) * 0.0008
+            let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: hill.longitude)
+            let altitude: Double = 150 + step * 6
+            let time: Date = start.addingTimeInterval(step * 60)
+            fixes.append(CLLocation(coordinate: coordinate, altitude: altitude, horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: time))
         }
-        let samples = (0...600).map { second in
-            WorkoutSample(
-                offsetSec: second, heartRate: second == 300 ? 140 : 120, distanceMeters: nil, paceSecPerKm: nil,
-                cadenceStepsPerMin: nil, altitudeMeters: second == 300 ? 180 : 150, alpha1: nil, mets: nil, powerWatts: nil
-            )
+        var samples: [WorkoutSample] = []
+        for second in 0...600 {
+            let onTheHill = second == 300
+            let heartRate: Int = onTheHill ? 140 : 120
+            let altitude: Double = onTheHill ? 180 : 150
+            samples.append(WorkoutSample(
+                offsetSec: second, heartRate: heartRate, distanceMeters: nil, paceSecPerKm: nil,
+                cadenceStepsPerMin: nil, altitudeMeters: altitude, alpha1: nil, mets: nil, powerWatts: nil
+            ))
         }
         var session = HRVSession(startDate: start, tags: [], sessionType: .workout)
         session.endDate = start.addingTimeInterval(600)
