@@ -1,0 +1,148 @@
+import CoreLocation
+@testable import Emuqu
+import XCTest
+
+/// "How am I doing on this hill compared to last time?" has an answer in the
+/// app: the pace, HR and altitude each past GPS workout had at that spot.
+/// Every provider sees only the compact tools and the system prompt, so the
+/// answer exists for the model only if those name it and route to it.
+@MainActor
+final class FloSpotCompareTests: XCTestCase {
+    private let hill = CLLocationCoordinate2D(latitude: 39.781, longitude: -89.652)
+
+    // MARK: - What the model is told
+
+    func testTheLiveToolNamesTheSpotLookback() throws {
+        let live = try XCTUnwrap(CompactToolRouter.readTools().first { $0.name == "get_workout_live" })
+        XCTAssertTrue(live.description.contains("'segment_lookback_at_current_position'"))
+        XCTAssertTrue(live.description.contains("this hill vs last time"))
+    }
+
+    func testTheWorkoutToolOffersTheSpotCompareWithAPoint() throws {
+        let workout = try XCTUnwrap(CompactToolRouter.readTools().first { $0.name == "get_workout" })
+        XCTAssertTrue(workout.description.contains("'segment_compare'"))
+        XCTAssertNotNil(workout.inputSchema.properties["point"], "segment_compare needs a place to compare")
+    }
+
+    func testTheCapabilityIndexMentionsSpotComparisons() {
+        XCTAssertTrue(CompactToolRouter.capabilityIndex().contains("this exact spot in past workouts"))
+    }
+
+    func testTheLocationGuidanceSaysSpotComparisonsAreSupported() {
+        let composed = AssistantSystemPrompt.compose(
+            services: PromptServices(.current), userFacts: "", priorSummary: nil, contextRendered: "", toolMode: true
+        )
+        XCTAssertTrue(composed.contains("field='segment_lookback_at_current_position'"))
+        XCTAssertTrue(composed.contains("which='segment_compare'"))
+        XCTAssertTrue(composed.contains("never tell the user it isn't"))
+    }
+
+    // MARK: - What the call returns
+
+    func testSegmentCompareWithoutAPointSaysWhatItNeeds() async {
+        let router = CompactToolRouter(registry: registry(with: []))
+        let value = await router.resolveTool(name: "get_workout", argsJSON: #"{"which":"segment_compare"}"#)
+        guard case let .missing(reason, detail) = value else { return XCTFail("expected a missing value, got \(value)") }
+        XCTAssertEqual(reason, .invalidParameter)
+        XCTAssertTrue(detail?.contains("'point'") == true, detail ?? "nil")
+    }
+
+    func testSegmentCompareReturnsThePastWorkoutAtThatSpot() async throws {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let router = CompactToolRouter(registry: registry(with: [walkUpTheHill(start: start)]))
+        let value = await router.resolveTool(
+            name: "get_workout", argsJSON: #"{"which":"segment_compare","point":"\#(hill.latitude),\#(hill.longitude)"}"#
+        )
+        guard case let .list(matches) = value else { return XCTFail("expected a list, got \(value)") }
+        XCTAssertEqual(matches.count, 1)
+        guard case let .record(record) = try XCTUnwrap(matches.first) else { return XCTFail("expected a record") }
+        guard case let .integer(heartRate) = record["hr_bpm_at_point"] else { return XCTFail("no heart rate at the spot: \(record)") }
+        guard case let .double(altitude) = record["altitude_m_at_point"] else { return XCTFail("no altitude at the spot: \(record)") }
+        XCTAssertEqual(heartRate, 140)
+        XCTAssertEqual(altitude, 180)
+    }
+
+    func testSegmentCompareSaysWhenNoWorkoutPassedThere() async {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let router = CompactToolRouter(registry: registry(with: [walkUpTheHill(start: start)]))
+        let value = await router.resolveTool(name: "get_workout", argsJSON: #"{"which":"segment_compare","point":"40.5,-88.0"}"#)
+        guard case let .missing(reason, _) = value else { return XCTFail("expected a missing value, got \(value)") }
+        XCTAssertEqual(reason, .notRecorded)
+    }
+
+    /// The other variants keep the arguments they always required.
+    func testTheOtherWorkoutVariantsStillNameWhatTheyNeed() async {
+        let router = CompactToolRouter(registry: registry(with: []))
+        let cases: [(String, String)] = [
+            (#"{}"#, "requires 'which'"),
+            (#"{"which":"by_ordinal"}"#, "requires 'n'"),
+            (#"{"which":"timeline"}"#, "requires 'date'"),
+            (#"{"which":"nonsense"}"#, "unknown which='nonsense'")
+        ]
+        for (args, expected) in cases {
+            let value = await router.resolveTool(name: "get_workout", argsJSON: args)
+            guard case let .missing(reason, detail) = value else { XCTFail("\(args): expected missing, got \(value)"); continue }
+            XCTAssertEqual(reason, .invalidParameter, args)
+            XCTAssertTrue(detail?.contains(expected) == true, "\(args): \(detail ?? "nil")")
+        }
+    }
+
+    func testAnOrdinalStillReachesTheWorkout() async {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let router = CompactToolRouter(registry: registry(with: [walkUpTheHill(start: start)]))
+        let value = await router.resolveTool(name: "get_workout", argsJSON: #"{"which":"by_ordinal","n":"0"}"#)
+        if case let .missing(reason, detail) = value {
+            XCTFail("the newest workout was not found: \(reason) \(detail ?? "")")
+        }
+    }
+
+    // MARK: - Fixtures
+
+    private func temporaryDirectory() -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("FloSpotCompareTests-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: a test that archived nothing leaves no directory to remove.
+            }
+        }
+        return directory
+    }
+
+    private func registry(with sessions: [HRVSession]) -> FactResolverRegistry {
+        let archive = SessionArchive(directory: temporaryDirectory())
+        for session in sessions {
+            XCTAssertNoThrow(try archive.archive(session, skipSameNightMerge: true))
+        }
+        return AppFactResolverFactory.build(archive: archive, settings: { UserSettings() }, services: FactServices(.current))
+    }
+
+    /// A ten-minute walk north that passes the hill at minute five, with the
+    /// heart rate and altitude it had there.
+    private func walkUpTheHill(start: Date) -> HRVSession {
+        let fixes = (0...10).map { minute in
+            CLLocation(
+                coordinate: CLLocationCoordinate2D(latitude: hill.latitude + Double(minute - 5) * 0.0008, longitude: hill.longitude),
+                altitude: 150 + Double(minute) * 6, horizontalAccuracy: 5, verticalAccuracy: 5,
+                timestamp: start.addingTimeInterval(Double(minute) * 60)
+            )
+        }
+        let samples = (0...600).map { second in
+            WorkoutSample(
+                offsetSec: second, heartRate: second == 300 ? 140 : 120, distanceMeters: nil, paceSecPerKm: nil,
+                cadenceStepsPerMin: nil, altitudeMeters: second == 300 ? 180 : 150, alpha1: nil, mets: nil, powerWatts: nil
+            )
+        }
+        var session = HRVSession(startDate: start, tags: [], sessionType: .workout)
+        session.endDate = start.addingTimeInterval(600)
+        session.state = .complete
+        var metadata = WorkoutMetadata(sport: .walk)
+        metadata.gpsPolyline = WorkoutAnalyzer.encodePolyline(track: fixes)
+        metadata.gpsFixTimes = WorkoutAnalyzer.encodeFixTimes(track: fixes)
+        metadata.samples = samples
+        session.workoutMetadata = metadata
+        return session
+    }
+}

@@ -241,11 +241,15 @@ struct CompactToolRouter {
                 Workout lookup. `which` selects what shape of data to return. Aggregates: 'by_date', 'by_ordinal', 'feeling', 'feeling_note', 'hrr_1min', 'hrr_2min', 'power_avg', 'power_peak', 'power_normalized', 'power_tss', 'power_intensity', 'power_variability'. \
                 **Per-second analysis primitive: 'timeline'** — returns a downsampled (~200 buckets) time-series of HR, pace, cadence, altitude, grade, α1, power per bucket. Use 'timeline' for ANY question that needs the time-series shape: 'did my HR \
                 spike when I was flat / going downhill', 'where did pace drop on the climb', 'was α1 still healthy late in the workout', 'where did cadence collapse', 'did power drop while HR held'. The timeline gives you the resolution to find spikes, \
-                correlations, and segments without needing pre-computed special cases. All variants take `date` (YYYY-MM-DD) except 'by_ordinal' which takes `n`.
+                correlations, and segments without needing pre-computed special cases. All variants take `date` (YYYY-MM-DD) except 'by_ordinal' which takes `n` \
+                and 'segment_compare' which takes `point`. **'segment_compare'** — every recent GPS workout that passed a place, with the user's pace, HR, power, \
+                cadence and altitude at that exact spot: 'how did I do on that hill compared to before'. `point` is 'lat,lon' or 'lat,lon,radius_m' (default 50 m); \
+                take the coordinate from a location or breadcrumb tool. During a workout, get_workout_live field='segment_lookback_at_current_position' does this for where the user is now.
                 """, [
                 ("which", "Variant — see description for full list"),
                 ("date", "YYYY-MM-DD"),
-                ("n", "Ordinal, 0 = most recent (for which='by_ordinal')")
+                ("n", "Ordinal, 0 = most recent (for which='by_ordinal')"),
+                ("point", "'lat,lon' or 'lat,lon,radius_m' (for which='segment_compare')")
             ], required: ["which"])
         ]
     }
@@ -358,9 +362,13 @@ struct CompactToolRouter {
         [
             // 18. get_workout_live
             spec("get_workout_live", """
-                Live workout state (only meaningful while a workout is recording). `field`: 'snapshot' (default — full bundle), or specific fields like 'hr', 'pace_sec_per_km', 'speed_m_per_s', 'power_watts', 'sport', 'location', 'weather', 'today_readiness', \
+                Live workout state, and how the user did at this exact spot in past workouts (only meaningful while a workout is recording). \
+                `field`: 'snapshot' (default — full bundle), or specific fields like 'hr', 'pace_sec_per_km', 'speed_m_per_s', 'power_watts', 'sport', 'location', 'weather', 'today_readiness', \
                 'thresholds.active', 'thresholds.any_breaching', 'thresholds.breach_state', 'interval.active', 'interval.current_step', 'interval.next_step', 'route_topology', 'recognized_route', 'hr_drift_percent', \
-                'reverse_split_delta_sec_per_km', 'hrr_capture_status', 'units_preference', 'training_pace_zones', 'route_history_baseline'.
+                'reverse_split_delta_sec_per_km', 'hrr_capture_status', 'units_preference', 'training_pace_zones', 'route_history_baseline', 'segment_lookback_at_current_position'. \
+                **Same spot, earlier workouts: 'segment_lookback_at_current_position'** — the user's pace, HR, power, cadence and altitude at the exact spot they are on now, \
+                from each of their recent GPS workouts that passed within 50 m. Use it for 'how am I doing on this hill vs last time', 'was I faster here before', \
+                'what was my heart rate at this corner last week'. Answer with the numbers; never say you can't compare a spot.
                 """, [
                 ("field", "Field name (default 'snapshot')")
             ])

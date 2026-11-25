@@ -141,23 +141,32 @@ extension CompactToolRouter {
         guard let which = args["which"] else {
             return .missing(reason: .invalidParameter, detail: "get_workout requires 'which'")
         }
-
-        let key: String?
-        if which == "by_ordinal" {
-            guard let n = args["n"] else {
-                return .missing(reason: .invalidParameter, detail: "which='by_ordinal' requires 'n'")
-            }
-            key = "workout.by_ordinal(\(n))"
-        } else if let suffix = Self.datedWorkoutKeySuffixes[which] {
-            key = args["date"].map { "workout.\(suffix)(\($0))" }
-        } else {
+        if which == "segment_compare" { return await resolveSegmentCompare(args: args) }
+        if which == "by_ordinal" { return await resolveWorkoutByOrdinal(args: args) }
+        guard let suffix = Self.datedWorkoutKeySuffixes[which] else {
             return .missing(reason: .invalidParameter, detail: "unknown which='\(which)' for get_workout")
         }
-
-        guard let resolvedKey = key else {
+        guard let date = args["date"] else {
             return .missing(reason: .invalidParameter, detail: "which='\(which)' requires 'date' (YYYY-MM-DD)")
         }
-        return await registry.resolveAsync(resolvedKey)
+        return await registry.resolveAsync("workout.\(suffix)(\(date))")
+    }
+
+    /// `get_workout` which='by_ordinal': the `n`th most recent workout.
+    private func resolveWorkoutByOrdinal(args: [String: String]) async -> FactValue {
+        guard let n = args["n"] else {
+            return .missing(reason: .invalidParameter, detail: "which='by_ordinal' requires 'n'")
+        }
+        return await registry.resolveAsync("workout.by_ordinal(\(n))")
+    }
+
+    /// `get_workout` which='segment_compare': every recent GPS workout that
+    /// passed `point`, with what the user's body was doing at that spot.
+    private func resolveSegmentCompare(args: [String: String]) async -> FactValue {
+        guard let point = args["point"] else {
+            return .missing(reason: .invalidParameter, detail: "which='segment_compare' requires 'point' ('lat,lon' or 'lat,lon,radius_m')")
+        }
+        return await registry.resolveAsync("workout.segment_compare(\(point))")
     }
 
     func resolveListWorkouts(args: [String: String]) async -> FactValue {

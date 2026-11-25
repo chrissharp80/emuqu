@@ -284,7 +284,8 @@ extension TrainingLoadNamespace {
 
     private static let trainingSportBaselineSportDescription = """
     SPORT-WIDE cross-workout averages (NOT route-specific). Returns averages from the user's recent (≤30) workouts of the given sport. Returns a record { data_source: 'sport_wide', sport, sample_count, avg_pace_sec_per_km, avg_hr, \
-    avg_alpha1 }. The data_source field tells you to phrase any comparison as 'compared to your typical run' rather than 'compared to this route' (route-specific data is a different tool: workout.live.route_history_baseline). \
+    avg_alpha1 }. These averages are sport-wide, so phrase a comparison from them as 'compared to your typical run'. Route and same-spot comparisons have their own tools: workout.live.route_history_baseline \
+    and workout.segment_compare. \
     Use for 'what's my typical run pace?' / 'is my usual heart rate high?'. Returns notRecorded when no matching workouts exist.
     """
 
