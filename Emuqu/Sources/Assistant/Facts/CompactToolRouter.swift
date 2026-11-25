@@ -97,7 +97,8 @@ struct CompactToolRouter {
     /// `allowedActionNames`, or a per-entry tool name, is refused even if a
     /// provider emits it, so the schema's allow-list is also the dispatch
     /// allow-list.
-    func resolveTool(name: String, argsJSON: String) async -> FactValue {
+    func resolveTool(name: String, argsJSON rawArgs: String) async -> FactValue {
+        let argsJSON = Self.normalizedArgs(rawArgs, tool: name)
         // 1. Try the read-tool router first.
         let startedAt = Date()
         if let value = await resolveReadTool(name: name, argsJSON: argsJSON) {
@@ -110,6 +111,30 @@ struct CompactToolRouter {
         }
         return await registry.resolveTool(name: name, argsJSON: argsJSON)
     }
+
+    /// Arguments as a JSON object. Apple's on-device model sometimes sends a
+    /// read tool's main value bare (`segment_lookback_at_current_position`
+    /// instead of `{"field":"segment_lookback_at_current_position"}`); read
+    /// as nothing, the tool would answer its default instead of the question.
+    /// A bare value becomes the tool's main option; anything else passes
+    /// through unchanged.
+    static func normalizedArgs(_ raw: String, tool: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.contains("{"), let key = bareValueOption[tool] else { return raw }
+        let value = trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+        guard let data = try? JSONSerialization.data(withJSONObject: [key: value]) else { return raw }
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    /// The option a bare value fills, per read tool.
+    static let bareValueOption: [String: String] = [
+        "get_session": "which", "get_recovery": "which", "get_hrv": "which", "get_sleep": "which",
+        "get_vitals": "date", "get_workout": "which", "list_workouts": "which", "get_walks": "which",
+        "get_baseline": "metric", "get_user": "field", "get_app_state": "aspect", "get_training_load": "which",
+        "get_score_meta": "field", "get_breadcrumbs": "field", "get_routes": "field", "get_tags": "which",
+        "get_workout_live": "field", "get_assistant_state": "field", "get_healthkit": "field",
+        "lookup_fact": "key", "find_data": "query"
+    ]
 
     // MARK: - Capability index (progressive-disclosure "menu")
 

@@ -537,12 +537,54 @@ final class FactResolverRegistry: Sendable {
     /// A JSON args object as `[String: String]`, the shape actions and the
     /// compact tools parse. Strings pass through; booleans become
     /// "true"/"false"; numbers their string form; other values are dropped.
-    /// Not JSON, or not an object: empty.
+    /// Text that is not a JSON object as a whole is read from its first
+    /// complete `{...}`: Apple's on-device model sometimes closes an object
+    /// twice or runs on after it (`{"kind":"note",...}}`), and dropping the
+    /// whole call over a stray brace loses arguments it got right. No
+    /// object at all: empty.
     static func stringArgs(fromJSON json: String) -> [String: String] {
-        guard let data = json.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return [:] }
+        guard let obj = jsonObject(json) ?? firstObject(in: json).flatMap(jsonObject) else { return [:] }
         return obj.compactMapValues(argumentString)
+    }
+
+    private static func jsonObject(_ text: String) -> [String: Any]? {
+        guard let data = text.data(using: .utf8) else { return nil }
+        return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+    }
+
+    /// The first balanced `{...}` in `text`, braces inside strings ignored.
+    static func firstObject(in text: String) -> String? {
+        guard let start = text.firstIndex(of: "{") else { return nil }
+        var scanner = BraceScanner()
+        var index = start
+        while index < text.endIndex {
+            if scanner.closesObject(text[index]) { return String(text[start...index]) }
+            index = text.index(after: index)
+        }
+        return nil
+    }
+
+    /// Tracks brace depth through JSON text, skipping string contents.
+    private struct BraceScanner {
+        private var depth = 0
+        private var inString = false
+        private var escaped = false
+
+        /// Feeds one character; true when it closes the outermost object.
+        mutating func closesObject(_ character: Character) -> Bool {
+            if escaped { escaped = false; return false }
+            if inString {
+                if character == "\\" { escaped = true } else if character == "\"" { inString = false }
+                return false
+            }
+            switch character {
+            case "\"": inString = true
+            case "{": depth += 1
+            case "}": depth -= 1; return depth == 0
+            default: break
+            }
+            return false
+        }
     }
 
     /// One JSON value as an argument string. The boolean check comes first:

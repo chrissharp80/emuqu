@@ -130,6 +130,36 @@ final class FloDiscoverabilityTests: XCTestCase {
         XCTAssertEqual(reason2, .notRecorded)
     }
 
+    // MARK: - Apple's malformed calls
+
+    /// Seen from Apple's on-device model in a simulated run: an object closed
+    /// twice, and one with text after it. The arguments it got right count.
+    func testArgumentsSurviveAStrayBraceOrTrailingText() {
+        let doubled = #"{"kind": "note", "body": "A chorus about the hill.", "user_quote": "Add another"}}"#
+        XCTAssertEqual(FactResolverRegistry.stringArgs(fromJSON: doubled)["kind"], "note")
+        let trailing = #"{"user_quote": "keep it slow", "id": "5a5895a1"}}}, {"#
+        XCTAssertEqual(FactResolverRegistry.stringArgs(fromJSON: trailing)["id"], "5a5895a1")
+        let braceInString = #"{"body": "a } inside", "kind": "note"} extra"#
+        XCTAssertEqual(FactResolverRegistry.stringArgs(fromJSON: braceInString)["body"], "a } inside")
+        XCTAssertTrue(FactResolverRegistry.stringArgs(fromJSON: "not json").isEmpty)
+    }
+
+    /// Also seen: a read tool's main value sent bare.
+    func testABareValueFillsTheToolsMainOption() {
+        XCTAssertEqual(
+            FactResolverRegistry.stringArgs(fromJSON: CompactToolRouter.normalizedArgs("segment_lookback_at_current_position", tool: "get_workout_live")),
+            ["field": "segment_lookback_at_current_position"]
+        )
+        XCTAssertEqual(FactResolverRegistry.stringArgs(fromJSON: CompactToolRouter.normalizedArgs(#""trend""#, tool: "get_recovery")), ["which": "trend"])
+        XCTAssertEqual(CompactToolRouter.normalizedArgs(#"{"which":"trend"}"#, tool: "get_recovery"), #"{"which":"trend"}"#)
+        XCTAssertEqual(CompactToolRouter.normalizedArgs("hello", tool: "assistant_memory_add"), "hello", "actions are left alone")
+    }
+
+    func testEveryReadToolHasABareValueOption() {
+        let reads = Set(CompactToolRouter.readTools().map(\.name)).subtracting(["get_today"])
+        XCTAssertEqual(reads, Set(CompactToolRouter.bareValueOption.keys))
+    }
+
     // MARK: - The typed tools name what a coach needs
 
     func testTheTypedToolsReachTheCoachingHistory() async {
