@@ -104,6 +104,8 @@ if (( canary_races == 0 || canary_status == 0 )); then
     echo "(race reports in the log: ${canary_races}; exit status of the run: ${canary_status})." >&2
     echo "A race has to print 'WARNING: ThreadSanitizer' to this log and fail the run;" >&2
     echo "while it does not, a clean suite run would be evidence of nothing." >&2
+    echo "--- every sanitizer line in the canary xcodebuild log ---" >&2
+    grep -iE 'sanitizer|tsan' "$canary_log" >&2 || echo "(none)" >&2
     echo "--- last 40 lines of the canary xcodebuild log ---" >&2
     tail -40 "$canary_log" >&2
     exit 1

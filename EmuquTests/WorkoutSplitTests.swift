@@ -164,8 +164,10 @@ final class WorkoutSplitTests: XCTestCase {
     /// Heart rate that climbs across the session must show as climbing across
     /// the splits, or the drift a runner is looking for is invisible.
     func testRisingHeartRateShowsAsRisingSplitAverages() throws {
-        let rising = (0 ... 1200).map { s in
-            RRPoint(t_ms: Int64(s) * 1000, rr_ms: Int((60_000.0 / (130.0 + Double(s) / 40.0)).rounded()))
+        let rising: [RRPoint] = (0 ... 1200).map { (second: Int) -> RRPoint in
+            let bpm: Double = 130.0 + Double(second) / 40.0
+            let rrMs: Double = 60_000.0 / bpm
+            return RRPoint(t_ms: Int64(second) * 1000, rr_ms: Int(rrMs.rounded()))
         }
         let splits = WorkoutAnalyzer.computeSplits(
             track: track(seconds: 1200), rrPoints: rising, startDate: start

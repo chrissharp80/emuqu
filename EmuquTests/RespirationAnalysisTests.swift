@@ -17,7 +17,7 @@ final class RespirationAnalysisTests: XCTestCase {
     /// Sixty beats, the minimum, are analysed: a 15 breaths/min modulation
     /// over exactly 60 beats (48 s) is found, where 59 beats return nil above.
     func testExactMinimumDataProcesses() throws {
-        let rr = (0 ..< 60).map { 800.0 + 30.0 * sin(2.0 * .pi * 0.25 * Double($0) * 0.8) }
+        let rr = (0 ..< 60).map { (index: Int) -> Double in 800.0 + 30.0 * sin(2.0 * Double.pi * 0.25 * Double(index) * 0.8) }
 
         let rate = try XCTUnwrap(RespirationAnalyzer.estimateRespirationRate(rr),
                                  "60 beats is the minimum the estimator analyses")
@@ -108,7 +108,7 @@ final class RespirationAnalysisTests: XCTestCase {
     /// (1.25 Hz) aliases to 0.45 Hz, inside the band, so a rate comes back,
     /// and it is the band's, never one above 40.
     func testRejectsImplausiblyHighRate() throws {
-        let rr = (0 ..< 300).map { 800.0 + 20.0 * sin(2.0 * .pi * 0.8 * Double($0) * 0.8) }
+        let rr = (0 ..< 300).map { (index: Int) -> Double in 800.0 + 20.0 * sin(2.0 * Double.pi * 0.8 * Double(index) * 0.8) }
 
         let rate = try XCTUnwrap(RespirationAnalyzer.estimateRespirationRate(rr))
         XCTAssertTrue((9.0 ... 30.0).contains(rate), "A rate outside the search band was reported: \(rate)")

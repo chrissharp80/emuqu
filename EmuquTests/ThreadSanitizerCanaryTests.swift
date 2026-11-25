@@ -18,6 +18,12 @@ final class ThreadSanitizerCanaryTests: XCTestCase {
         var value = 0
     }
 
+    /// Whether the test host links the Thread Sanitizer runtime, looked up by
+    /// its entry point (`RTLD_DEFAULT` is -2 on Darwin).
+    private static var sanitizerRuntimeIsLoaded: Bool {
+        dlsym(UnsafeMutableRawPointer(bitPattern: -2), "__tsan_init") != nil
+    }
+
     /// How many writer threads are running. Read and written with relaxed
     /// ordering only, which Thread Sanitizer does not count as ordering
     /// anything, so meeting here orders neither thread's writes.
@@ -42,6 +48,12 @@ final class ThreadSanitizerCanaryTests: XCTestCase {
         guard #available(iOS 18.0, *) else {
             return XCTFail("The canary needs Synchronization.Atomic, iOS 18 and later.")
         }
+        // A host built without the sanitizer cannot report anything; say so
+        // rather than leave a missed race unexplained.
+        let options = ProcessInfo.processInfo.environment["TSAN_OPTIONS"] ?? "unset"
+        guard Self.sanitizerRuntimeIsLoaded else {
+            return XCTFail("The Thread Sanitizer runtime is not loaded in the test host (TSAN_OPTIONS \(options)).")
+        }
         let counter = UnsynchronizedCounter()
         let arrivals = Arrivals()
         let finished = DispatchSemaphore(value: 0)
@@ -56,6 +68,6 @@ final class ThreadSanitizerCanaryTests: XCTestCase {
         finished.wait()
         finished.wait()
         // Reached only if Thread Sanitizer did not end the host on the race.
-        XCTFail("The unsynchronized writes ran to the end (count \(counter.value)); Thread Sanitizer did not stop them.")
+        XCTFail("The unsynchronized writes ran to the end (count \(counter.value)) with the sanitizer runtime loaded and TSAN_OPTIONS \(options); Thread Sanitizer did not stop them.")
     }
 }
