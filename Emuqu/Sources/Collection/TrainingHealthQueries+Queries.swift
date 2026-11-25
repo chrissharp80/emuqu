@@ -13,11 +13,11 @@ extension TrainingHealthQueries {
     /// oldestInWindow. nil tuple when the user has zero samples. A past
     /// `referenceDate` (a reanalysis) reads the trend as it stood then.
     func fetchVO2MaxTrend(days: Int = 30, relativeTo referenceDate: Date = Date()) async -> (latest: Double, oldestInWindow: Double, sampleCount: Int)? {
-        guard manager.isHealthKitAvailable, let vo2Type = HKTypes.quantity(.vo2Max) else { return nil }
+        guard access.isAvailable, let vo2Type = HKTypes.quantity(.vo2Max) else { return nil }
         let windowStart = Calendar.current.date(byAdding: .day, value: -days, to: referenceDate) ?? referenceDate
         let predicate = HKQuery.predicateForSamples(withStart: windowStart, end: referenceDate, options: [])
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: true)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: vo2Type,
                 predicate: predicate,
@@ -230,13 +230,13 @@ extension TrainingHealthQueries {
     /// never authorized (or were denied) is an answer: both are no workouts
     /// rather than a failure, so the load is still built from the archive.
     private func queryWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary]? {
-        guard manager.isHealthKitAvailable else { return [] }
+        guard access.isAvailable else { return [] }
         let calendar = Calendar.current
         let startOfReferenceDay = calendar.startOfDay(for: referenceDate)
         guard let startDate = calendar.date(byAdding: .day, value: -days, to: startOfReferenceDay) else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: referenceDate, options: .strictStartDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,
@@ -328,7 +328,7 @@ extension TrainingHealthQueries {
     /// holds the truncated phone track. Returns nil when there's no matching
     /// workout, no route series, or no locations (so the caller can fall back).
     func fetchWorkoutRoute(from start: Date, to end: Date) async -> [CLLocation]? {
-        guard manager.isHealthKitAvailable, end > start else { return nil }
+        guard access.isAvailable, end > start else { return nil }
         guard let workout = await bestOverlappingWorkout(from: start, to: end) else { return nil }
         guard let route = await routeSeries(for: workout) else { return nil }
         let locations = await routeLocations(route)
@@ -348,7 +348,7 @@ extension TrainingHealthQueries {
             end: end.addingTimeInterval(pad),
             options: []
         )
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,
@@ -379,7 +379,7 @@ extension TrainingHealthQueries {
     /// workouts and needs the same route, and a second copy of this query would
     /// be a second thing to keep correct.
     func routeSeries(for workout: HKWorkout) async -> HKWorkoutRoute? {
-        await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKSeriesType.workoutRoute(),
                 predicate: HKQuery.predicateForObjects(from: workout),
@@ -397,7 +397,7 @@ extension TrainingHealthQueries {
     /// route-series queries before it already have — so a route query that
     /// never reports done cannot hang the caller awaiting it.
     func routeLocations(_ route: HKWorkoutRoute) async -> [CLLocation] {
-        await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             Self.routeQuery(route, resolve: resolve)
         } ?? []
     }
@@ -443,7 +443,7 @@ extension TrainingHealthQueries {
     /// movement was still counted. Excludes our own written samples so we don't
     /// double-count the (short) distance the app already wrote for the workout.
     func fetchPassiveDistanceMeters(from start: Date, to end: Date) async -> Double {
-        guard manager.isHealthKitAvailable, end > start,
+        guard access.isAvailable, end > start,
               let distType = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)
         else { return 0 }
 
@@ -453,7 +453,7 @@ extension TrainingHealthQueries {
         )
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [timePredicate, notOwnSource])
 
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: distType,
                 quantitySamplePredicate: predicate,
@@ -468,9 +468,9 @@ extension TrainingHealthQueries {
     /// Used to detect if the user exercised between two sleep sessions —
     /// if so, the second sleep shouldn't be merged into the first.
     func hasWorkoutInRange(from start: Date, to end: Date) async -> Bool {
-        guard manager.isHealthKitAvailable, end > start else { return false }
+        guard access.isAvailable, end > start else { return false }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,
@@ -520,7 +520,7 @@ extension TrainingHealthQueries {
     /// resting HR the SAME way as `calculateTrainingMetrics` — see the note
     /// there. Both must use one source or their HR-backed TRIMP diverges.
     func fetchAppleRestingHR(relativeTo referenceDate: Date = Date()) async -> Double? {
-        guard manager.isHealthKitAvailable else { return nil }
+        guard access.isAvailable else { return nil }
         guard let rhrType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else {
             debugLog("[HealthKitManager] Resting heart rate type unavailable")
             return nil
@@ -535,7 +535,7 @@ extension TrainingHealthQueries {
 
     /// Fetch the latest VO2max from HealthKit as of `referenceDate`.
     func fetchVO2Max(relativeTo referenceDate: Date = Date()) async -> Double? {
-        guard manager.isHealthKitAvailable, let vo2Type = HKTypes.quantity(.vo2Max) else { return nil }
+        guard access.isAvailable, let vo2Type = HKTypes.quantity(.vo2Max) else { return nil }
         let vo2 = await latestQuantitySample(vo2Type, unit: HKUnit(from: "ml/kg*min"), since: nil, until: referenceDate)?.value
         if vo2 == nil { debugLog("[HealthKitManager] No VO2max data found") }
         return vo2
@@ -547,8 +547,8 @@ extension TrainingHealthQueries {
     private func latestQuantitySample(_ type: HKQuantityType, unit: HKUnit, since: Date?, until: Date) async -> (value: Double, date: Date)? {
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         let window = HKQuery.predicateForSamples(withStart: since, end: until, options: [.strictStartDate, .strictEndDate])
-        let predicate = manager.heartRate.hrReadExcludingOwnWrites(dateRange: window)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        let predicate = heartRate.hrReadExcludingOwnWrites(dateRange: window)
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
                 predicate: predicate,

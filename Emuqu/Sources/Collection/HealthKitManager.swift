@@ -27,40 +27,43 @@ final class HealthKitManager: HealthKitServiceProtocol {
 
     // MARK: - Properties
 
-    // Internal, not `private`, so extensions in HealthKitManager+*.swift
-    // files (e.g. +Sleep, +Vitals, +HeartRate, +Training, +HRV) can reach the
-    // shared HealthKit store and settings provider.
-    let healthStore = HKHealthStore()
+    /// The Health store, the user's settings and the bounded executors every
+    /// query runs through.
+    nonisolated let access: HealthKitAccess
 
-    // The queries by domain. Each is a value over this manager's store and
-    // settings, built on each access; callers name the domain they read.
+    /// The observer queries and the sleep and vitals data versions.
+    let observation = HealthObservation()
 
-    /// Heart-rate reads, stats and exports, and the bounded-query plumbing the
-    /// other domains run their queries through.
+    // The queries by domain. Each is a value over the parts it uses, built on
+    // each access; callers name the domain they read.
+
+    /// Heart-rate reads, stats and exports.
     var heartRate: HeartRateHealthQueries {
-        HeartRateHealthQueries(manager: self)
+        HeartRateHealthQueries(access: access, sampleReplacer: sampleReplacer)
     }
 
     /// Sleep reads, naps and the HR-estimated sleep fallback.
     var sleepQueries: SleepHealthQueries {
-        SleepHealthQueries(manager: self)
+        SleepHealthQueries(access: access, heartRate: heartRate)
     }
 
     /// Recovery vitals and daily activity.
     var vitals: VitalsHealthQueries {
-        VitalsHealthQueries(manager: self)
+        VitalsHealthQueries(access: access, heartRate: heartRate, observation: observation)
     }
 
     /// Workouts, routes and training load.
     var training: TrainingHealthQueries {
-        TrainingHealthQueries(manager: self)
+        TrainingHealthQueries(access: access, heartRate: heartRate)
     }
 
     /// Exports, deletes and observer queries.
     var writes: HealthWriteAndObserve {
-        HealthWriteAndObserve(manager: self)
+        HealthWriteAndObserve(
+            access: access, heartRate: heartRate, sleepQueries: sleepQueries,
+            sampleReplacer: sampleReplacer, observation: observation
+        )
     }
-    nonisolated let settingsProvider: @Sendable () -> UserSettings
 
     /// The store exports replace their samples through: the app's Health
     /// store unless one was given at init (tests give an in-memory store).
@@ -69,7 +72,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// Every export and removal of a session's samples goes through this one
     /// replacer, so those for the same session run one at a time.
     @ObservationIgnored lazy var sampleReplacer = HealthSampleReplacer(
-        store: givenSampleStore ?? HealthKitSampleStore(manager: self)
+        store: givenSampleStore ?? HealthKitSampleStore(access: access)
     )
 
     /// IMPORTANT: This flag only indicates authorization was REQUESTED, not that it was granted.
@@ -102,21 +105,13 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// The Workouts-write warning has been logged this launch.
     @ObservationIgnored private var hasReportedWorkoutWriteDenied = false
 
-    /// Current sleep schedule from user settings. Used to derive overnight windows,
-    /// morning cutoffs, and daytime HR query windows instead of hardcoded clock times.
-    /// Internal, not `private`, so extension files can derive overnight
-    /// windows when querying HealthKit (e.g. HealthKitManager+Sleep.swift).
-    var sleepSchedule: SleepSchedule {
-        settingsProvider().sleepSchedule
-    }
-
     // MARK: - Init
 
     nonisolated init(
         settingsProvider: @escaping @Sendable () -> UserSettings = { AppDependencies.current.app.settingsManager.settingsSnapshot },
         sampleStore: (any HealthSampleStore)? = nil
     ) {
-        self.settingsProvider = settingsProvider
+        self.access = HealthKitAccess(store: HKHealthStore(), settingsProvider: settingsProvider)
         self.givenSampleStore = sampleStore
     }
 
@@ -227,7 +222,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     private func sampleExists(type: HKSampleType?, since: Date) async -> Bool {
         guard let type else { return false }
         let predicate = Self.otherSourcesSamples(from: since, to: nil)
-        return await heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(sampleType: type, predicate: predicate, limit: 1, sortDescriptors: nil) { _, results, _ in
                 resolve(!(results?.isEmpty ?? true))
             }
@@ -259,7 +254,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     func ensureWriteAuthorizationFresh() async {
         guard isHealthKitAvailable, !isAccessSkipped else { return }
         let undecided = Self.probeableWriteTypes().filter {
-            healthStore.authorizationStatus(for: $0) == .notDetermined
+            access.store.authorizationStatus(for: $0) == .notDetermined
         }
         guard !undecided.isEmpty else { return }
         debugLog("[HealthKitManager] re-requesting auth — \(undecided.count) write types stale (.notDetermined)")
@@ -324,7 +319,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
         guard isHealthKitAvailable else { return [] }
         func status(_ type: HKObjectType?) -> HKAuthorizationStatus {
             guard let type else { return .notDetermined }
-            return healthStore.authorizationStatus(for: type)
+            return access.store.authorizationStatus(for: type)
         }
         let bundle = LanguageManager.appBundle
         return [
@@ -405,7 +400,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// is built only from HealthKit workouts, would be computed without them.
     /// Once per launch, because backfill checks on every foreground.
     private var workoutWriteAuthorized: Bool {
-        guard healthStore.authorizationStatus(for: HKObjectType.workoutType()) == .sharingAuthorized else {
+        guard access.store.authorizationStatus(for: HKObjectType.workoutType()) == .sharingAuthorized else {
             if !hasReportedWorkoutWriteDenied {
                 hasReportedWorkoutWriteDenied = true
                 debugLog(
@@ -422,7 +417,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// that has something to export.
     private func reportDeniedWorkoutSampleTypes() {
         let denied = Self.workoutExportSampleTypes.compactMap { type, name in
-            healthStore.authorizationStatus(for: type) == .sharingAuthorized ? nil : name
+            access.store.authorizationStatus(for: type) == .sharingAuthorized ? nil : name
         }
         guard !denied.isEmpty else { return }
         debugLog(
@@ -651,7 +646,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
             debugLog("[HealthKitManager] Required HealthKit type unavailable for authorization")
             throw HealthKitError.notAvailable
         }
-        try await healthStore.requestAuthorization(
+        try await access.store.requestAuthorization(
             toShare: Self.writeTypes(core: core),
             read: Self.readTypes(core: core)
         )
@@ -669,7 +664,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     func authorizationWasEverRequested() async -> Bool {
         guard isHealthKitAvailable, let core = Self.coreAuthorizationTypes() else { return false }
         do {
-            let status = try await healthStore.statusForAuthorizationRequest(
+            let status = try await access.store.statusForAuthorizationRequest(
                 toShare: Self.writeTypes(core: core),
                 read: Self.readTypes(core: core)
             )
@@ -830,7 +825,7 @@ final class HealthKitManager: HealthKitServiceProtocol {
     /// Takes dates rather than a built `NSPredicate` so nothing non-Sendable
     /// crosses into the child task; the predicate is built where it is used.
     private func sampleCount(for type: HKSampleType, from start: Date, to end: Date) async -> Int {
-        await heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
+        await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
                 predicate: Self.otherSourcesSamples(from: start, to: end),
@@ -850,30 +845,4 @@ final class HealthKitManager: HealthKitServiceProtocol {
             self.inferredAuthorizationDenied = false
         }
     }
-    /// Active observer query for sleep data arrival.
-    /// Internal, not `private`, so the start/stop methods in
-    /// HealthKitManager+SleepTrends.swift can manage it across files.
-    var sleepObserverQuery: HKQuery?
-    /// Incremented each time new sleep data arrives in HealthKit.
-    /// Views can observe this to trigger a re-fetch.
-    var sleepDataVersion: Int = 0
-    /// Pending cache-warm task. Apple Watch syncs sleep
-    /// samples in bursts of a dozen within a few seconds; without
-    /// debouncing, each burst kicked off its own `fetchLastNightSleep`
-    /// (full HKSampleQuery + full SleepMergingPipeline + classifier).
-    /// Holding the task lets the observer cancel the prior in-flight warm
-    /// when a fresh burst arrives, so only the last batch's value lands in
-    /// the cache.
-    @ObservationIgnored var sleepCacheWarmTask: Task<Void, Never>?
-    /// Active observer queries for the four overnight vitals (respiratory
-    /// rate, SpO2, wrist temperature, resting HR). Apple Watch writes these
-    /// MINUTES to HOURS after sleep ends — long after the user accepts the
-    /// session and the initial vitalsSnapshot is captured. Without this
-    /// observer, the SleepDetail card stays empty until the user manually
-    /// re-opens the app on the next launch.
-    var vitalsObserverQueries: [HKQuery] = []
-    /// Incremented each time new vitals samples arrive in HealthKit. Views
-    /// observe to trigger a re-fetch of `RecoveryVitals` and an in-place
-    /// re-archive of the session snapshot.
-    var vitalsDataVersion: Int = 0
 }

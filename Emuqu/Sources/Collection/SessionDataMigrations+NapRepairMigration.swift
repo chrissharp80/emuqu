@@ -127,7 +127,7 @@ extension SessionDataMigrations {
             markChecked(session.id)
             return .unchanged
         }
-        guard let napMinutes = await healthKit.sleepQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt: session.startDate) else {
+        guard let napMinutes = await sleepQueries.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt: session.startDate) else {
             return .unreadable
         }
         guard napMinutes > 0 else {

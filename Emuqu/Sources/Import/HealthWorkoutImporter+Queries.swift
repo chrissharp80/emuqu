@@ -20,7 +20,7 @@ extension HealthWorkoutImporter {
         archive: SessionArchive,
         now: Date = Date()
     ) async -> [Candidate] {
-        guard manager.isHealthKitAvailable else { return [] }
+        guard access.isAvailable else { return [] }
         let start = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
         let workouts = await externalWorkouts(from: start, to: now)
         let archived = archive.store.entries(from: start, to: now)
@@ -118,8 +118,8 @@ extension HealthWorkoutImporter {
         sortDescriptors: [NSSortDescriptor]?,
         reading what: String
     ) async -> [HKWorkout]? {
-        let found: [HKWorkout]? = await manager.heartRate.runBoundedQuery(
-            timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
+        let found: [HKWorkout]? = await access.runBoundedQuery(
+            timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec
         ) { resolve in
             HKSampleQuery(
                 sampleType: HKObjectType.workoutType(), predicate: predicate,
@@ -149,7 +149,6 @@ extension HealthWorkoutImporter {
 
     /// The workout's GPS track, or empty for an indoor or route-less workout.
     private func routeLocations(for workout: HKWorkout) async -> [CLLocation] {
-        let training = manager.training
         guard let route = await training.routeSeries(for: workout) else { return [] }
         return await training.routeLocations(route)
     }
@@ -166,7 +165,7 @@ extension HealthWorkoutImporter {
     /// logged rather than swallowed the way `try?` would swallow it.
     func heartRateSamples(from start: Date, to end: Date) async -> [(Date, Int)] {
         do {
-            return Self.usableHeartRates(try await manager.heartRate.fetchHeartRateSamples(from: start, to: end))
+            return Self.usableHeartRates(try await heartRate.fetchHeartRateSamples(from: start, to: end))
         } catch {
             debugLog("[HealthImport] heart rate read failed: \(error.localizedDescription)", level: .warning)
             return []
@@ -203,8 +202,8 @@ extension HealthWorkoutImporter {
     func stepWindows(from start: Date, to end: Date) async -> [HealthSampleWindow] {
         guard let stepType = HKTypes.quantity(.stepCount) else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
-        let windows: [HealthSampleWindow]? = await manager.heartRate.runBoundedQuery(
-            timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
+        let windows: [HealthSampleWindow]? = await access.runBoundedQuery(
+            timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec
         ) { resolve in
             HKSampleQuery(
                 sampleType: stepType,

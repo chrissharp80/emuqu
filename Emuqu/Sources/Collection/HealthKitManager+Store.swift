@@ -48,11 +48,11 @@ extension HealthKitManager {
 
     func fetchBiometricProfile() async -> BiometricProfile {
         async let bodyWeightKg = fetchLatestBodyMassKg()
-        let sex: HKBiologicalSex? = (try? healthStore.biologicalSex().biologicalSex)
+        let sex: HKBiologicalSex? = (try? access.store.biologicalSex().biologicalSex)
         // HealthKit's birth-date components are Gregorian; building them with
         // the user's calendar (Buddhist, Japanese) would give the wrong year.
         let dob: Date? = {
-            guard let components = try? healthStore.dateOfBirthComponents(),
+            guard let components = try? access.store.dateOfBirthComponents(),
                   let date = Calendar(identifier: .gregorian).date(from: components) else { return nil }
             return date
         }()
@@ -67,7 +67,7 @@ extension HealthKitManager {
     func fetchLatestBodyMassKg() async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .bodyMass) else { return nil }
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: type,
                 predicate: nil,

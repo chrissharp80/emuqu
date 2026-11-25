@@ -85,7 +85,7 @@ enum HealthKitWorkoutExport {
         guard let metadata = session.workoutMetadata, let endDate = session.endDate else {
             throw ExportError.missingRequiredFields
         }
-        let store = healthKit.healthStore
+        let store = healthKit.access.store
         guard isWritable(HKObjectType.workoutType(), in: store) else {
             throw ExportError.authorizationNotGranted
         }
@@ -125,9 +125,8 @@ enum HealthKitWorkoutExport {
     /// Without HealthKit there is nothing to delete. Errors propagate, so the
     /// caller can say the workout is still in Health.
     @MainActor
-    static func removeExports(sessionId: UUID, startDate: Date, healthKit: HealthKitManager) async throws {
-        guard healthKit.isHealthKitAvailable else { return }
-        let sampleStore = healthKit.sampleReplacer.store
+    static func removeExports(sessionId: UUID, startDate: Date, sampleStore: any HealthSampleStore) async throws {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
         let earlier = try await EarlierExport.find(sessionId: sessionId, startDate: startDate, in: sampleStore)
         try await earlier.delete(keeping: [], from: sampleStore)
         PendingWorkoutReplacements.clear(sessionId: sessionId)
@@ -189,7 +188,7 @@ enum HealthKitWorkoutExport {
         /// fail closed: a read that does not answer throws, rather than go on
         /// as if there were nothing to replace.
         static func find(sessionId: UUID, startDate: Date, in store: any HealthSampleStore) async throws -> EarlierExport {
-            let timeout = HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
+            let timeout = HealthKitAccess.backgroundAggregateQueryTimeoutSec
             let span = searchSpan(around: startDate)
             let workouts = try await store.ownSamples(
                 of: HKObjectType.workoutType(), in: span, timeout: timeout, label: "earlier workout export"
@@ -222,7 +221,7 @@ enum HealthKitWorkoutExport {
             for (type, _) in HealthKitManager.workoutExportSampleTypes {
                 let own = try await store.ownSamples(
                     of: type, in: searchSpan(around: startDate),
-                    timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec, label: "earlier workout series"
+                    timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec, label: "earlier workout series"
                 )
                 series += own.filter { isSeriesMember($0, of: sessionId) && seen.insert($0.uuid).inserted }
             }

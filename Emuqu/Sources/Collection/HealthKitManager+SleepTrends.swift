@@ -31,7 +31,7 @@ extension HealthWriteAndObserve {
     /// dates searched): the new copy is saved before the earlier one is
     /// removed, and nothing valid to write leaves the earlier export in place.
     func exportSleepToHealthKit(sleepData: SleepData, sessionId: UUID) async throws {
-        guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
+        guard access.isAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
         guard let sleepStart = sleepData.sleepStart, let sleepEnd = sleepData.sleepEnd else {
             debugLog("[HealthKitManager] No sleep boundaries to export")
             return
@@ -49,15 +49,15 @@ extension HealthWriteAndObserve {
             version: HealthExportIdentity.nextSyncVersion()
         )
         guard !samples.isEmpty else { return }
-        try await manager.sampleReplacer.replace(samples, Self.sleepReplacement(sleepType: sleepType, sessionId: sessionId))
+        try await sampleReplacer.replace(samples, Self.sleepReplacement(sleepType: sleepType, sessionId: sessionId))
     }
 
     /// Delete the sleep a session deleted forever exported: its sleep
     /// identity on any date, as an export replaces it, waiting for an export
     /// of the same session still running. Errors propagate.
     func removeExportedSleep(sessionId: UUID) async throws {
-        guard manager.isHealthKitAvailable, let sleepType = HKTypes.category(.sleepAnalysis) else { return }
-        try await manager.sampleReplacer.replace([], Self.sleepReplacement(sleepType: sleepType, sessionId: sessionId))
+        guard access.isAvailable, let sleepType = HKTypes.category(.sleepAnalysis) else { return }
+        try await sampleReplacer.replace([], Self.sleepReplacement(sleepType: sleepType, sessionId: sessionId))
     }
 
     /// One replacement of the session's sleep export: this app's sleep
@@ -65,10 +65,10 @@ extension HealthWriteAndObserve {
     /// session's key.
     private static func sleepReplacement(sleepType: HKCategoryType, sessionId: UUID) -> HealthSampleReplacement {
         HealthSampleReplacement(
-            type: sleepType, span: nil, timeout: HeartRateHealthQueries.sleepQueryTimeoutSec,
+            type: sleepType, span: nil, timeout: HealthKitAccess.sleepQueryTimeoutSec,
             label: "sleep export", serialKey: sessionId.uuidString,
             matches: { HealthExportIdentity.belongsToSession($0, sessionId: sessionId, metric: .sleep) },
-            writeTimeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
+            writeTimeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec
         )
     }
 
@@ -120,13 +120,13 @@ extension HealthWriteAndObserve {
     /// deleted so the UI can report it to the user.
     @discardableResult
     func deleteAllAppWrittenSleepSamples() async throws -> Int {
-        guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
+        guard access.isAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
         guard let sleepType = HKTypes.category(.sleepAnalysis) else {
             throw HealthKitManager.HealthKitError.typeUnavailable("sleepAnalysis")
         }
-        let store = manager.sampleReplacer.store
+        let store = sampleReplacer.store
         let existingSamples = try await store.ownSamples(
-            of: sleepType, in: nil, timeout: HeartRateHealthQueries.sleepQueryTimeoutSec, label: "deleteAllAppWrittenSleepSamples"
+            of: sleepType, in: nil, timeout: HealthKitAccess.sleepQueryTimeoutSec, label: "deleteAllAppWrittenSleepSamples"
         )
         guard !existingSamples.isEmpty else { return 0 }
         try await store.delete(existingSamples)
@@ -151,7 +151,7 @@ extension HealthWriteAndObserve {
     /// first failure is thrown, so the caller learns an export failed.
     func exportSessionMetrics(from session: HRVSession) async throws {
         guard let result = session.analysisResult, !CloudSessionPayload.isHealthKitSourced(session) else { return }
-        let settings = manager.settingsProvider()
+        let settings = access.settingsProvider()
         var failures: [Error] = []
         if settings.exportSDNN, let error = await exportHRVMetrics(session: session, result: result) { failures.append(error) }
         if settings.exportHeartRate, let error = await exportHRMetrics(session: session, result: result) { failures.append(error) }
@@ -178,10 +178,10 @@ extension HealthWriteAndObserve {
     private func exportHRMetrics(session: HRVSession, result: HRVAnalysisResult) async -> Error? {
         do {
             if let points = session.rrSeries?.points, points.count >= 30 {
-                try await manager.heartRate.exportHeartRateSeries(from: points, sessionStart: session.startDate, sessionId: session.id)
+                try await heartRate.exportHeartRateSeries(from: points, sessionStart: session.startDate, sessionId: session.id)
             } else {
                 let date = session.endDate ?? session.startDate
-                try await manager.heartRate.exportHeartRate(value: result.timeDomain.meanHR, at: date, sessionId: session.id)
+                try await heartRate.exportHeartRate(value: result.timeDomain.meanHR, at: date, sessionId: session.id)
             }
             return nil
         } catch {
@@ -207,10 +207,10 @@ extension HealthWriteAndObserve {
         let date = session.endDate ?? session.startDate
         do {
             guard let restingHR = Self.restingHeartRateToExport(session: session, result: result) else {
-                try await manager.heartRate.removeExportedRestingHeartRate(at: date, sessionId: session.id)
+                try await heartRate.removeExportedRestingHeartRate(at: date, sessionId: session.id)
                 return nil
             }
-            try await manager.heartRate.exportRestingHeartRate(value: restingHR, at: date, sessionId: session.id)
+            try await heartRate.exportRestingHeartRate(value: restingHR, at: date, sessionId: session.id)
             return nil
         } catch {
             debugLog("[HealthKit Export] RHR export failed: \(error)")
@@ -270,11 +270,11 @@ extension HealthWriteAndObserve {
     /// `start...end`. Bounded and FAIL CLOSED: a timeout throws, so the export
     /// is skipped rather than written beside a night the store didn't return.
     private func otherSourceWroteSleep(from start: Date, to end: Date, sleepType: HKCategoryType) async throws -> Bool {
-        let predicate = manager.sleepQueries.sleepReadExcludingOwnWrites(
+        let predicate = sleepQueries.sleepReadExcludingOwnWrites(
             dateRange: HKQuery.predicateForSamples(withStart: start, end: end, options: [])
         )
-        let samples = try await manager.heartRate.runBoundedThrowingQuery(
-            timeout: HeartRateHealthQueries.sleepQueryTimeoutSec,
+        let samples = try await access.runBoundedThrowingQuery(
+            timeout: HealthKitAccess.sleepQueryTimeoutSec,
             makeQuery: { resolve in
                 HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: 1, sortDescriptors: nil) { _, results, error in
                     resolve(Self.categoryResult(results, error))
@@ -296,15 +296,15 @@ extension HealthWriteAndObserve {
     /// replaces the running query and reads nothing twice: one read per
     /// anchor runs at a time, the next from the anchor it kept.
     func startObservingSleepData() {
-        guard manager.isHealthKitAvailable else { return }
+        guard access.isAvailable else { return }
         stopObservingSleepData()
         guard let sleepType = HKTypes.category(.sleepAnalysis) else { return }
         let query = makeSleepObserverQuery(for: sleepType, owner: self)
-        manager.sleepObserverQuery = query
-        manager.healthStore.execute(query)
+        observation.sleepObserverQuery = query
+        access.store.execute(query)
         // A failed registration (entitlement missing, access denied) means
         // the overnight cache warm and wake push only run while the app does.
-        manager.healthStore.enableBackgroundDelivery(for: sleepType, frequency: .immediate) { @Sendable success, error in
+        access.store.enableBackgroundDelivery(for: sleepType, frequency: .immediate) { @Sendable success, error in
             guard !success else { return }
             debugLog("[SleepObserver] Background delivery for sleep was not enabled: \(error?.localizedDescription ?? "no error given")", level: .warning)
         }
@@ -315,10 +315,12 @@ extension HealthWriteAndObserve {
     /// midnight resolved to the previous night. The app's own sleep exports
     /// never reach here (`HealthSampleWatch.othersSamples`) — they are not
     /// new data, and must not fire the wake push.
-    fileprivate func handleSleepSamplesArrived(_ samples: [HKSample]) {
+    fileprivate static func handleSleepSamplesArrived(
+        _ samples: [HKSample], observation: HealthObservation, sleepQueries: SleepHealthQueries
+    ) {
         let categorySamples = samples.compactMap { $0 as? HKCategorySample }
         guard let freshestEnd = categorySamples.map(\.endDate).max() else { return }
-        scheduleSleepCacheWarm(referenceDate: freshestEnd)
+        scheduleSleepCacheWarm(referenceDate: freshestEnd, observation: observation, sleepQueries: sleepQueries)
         // Wake-triggered morning push. If the freshest sleep sample we just
         // received has an endDate inside the wake-detection window (last 90
         // min) and the scheduler hasn't already fired today, deliver the
@@ -341,28 +343,23 @@ extension HealthWriteAndObserve {
     /// warm task is cancelled so only the trailing batch's fetch lands. The
     /// short sleep before the actual fetch gives a window for the next observer
     /// fire to cancel us first.
-    private func scheduleSleepCacheWarm(referenceDate: Date) {
-        Task { @MainActor [weak manager] in
-            manager?.writes.restartSleepCacheWarmTask(referenceDate: referenceDate)
-        }
-    }
-
-    @MainActor
-    private func restartSleepCacheWarmTask(referenceDate: Date) {
-        manager.sleepCacheWarmTask?.cancel()
-        manager.sleepCacheWarmTask = Task { @MainActor [weak manager] in
-            await sleepQuietly(1_500_000_000, context: "restartSleepCacheWarmTask") // 1.5 s coalesce
-            guard !Task.isCancelled, let manager else { return }
-            await manager.writes.warmSleepCache(referenceDate: referenceDate)
+    private static func scheduleSleepCacheWarm(
+        referenceDate: Date, observation: HealthObservation, sleepQueries: SleepHealthQueries
+    ) {
+        observation.sleepCacheWarmTask?.cancel()
+        observation.sleepCacheWarmTask = Task { @MainActor in
+            await sleepQuietly(1_500_000_000, context: "scheduleSleepCacheWarm") // 1.5 s coalesce
+            guard !Task.isCancelled else { return }
+            await warmSleepCache(referenceDate: referenceDate, from: sleepQueries)
         }
     }
 
     /// A locked phone (errorDatabaseInaccessible) or missing permissions leaves
     /// the cache as-is; the next observer fire after unlock will populate it.
     @MainActor
-    private func warmSleepCache(referenceDate: Date) async {
+    private static func warmSleepCache(referenceDate: Date, from sleepQueries: SleepHealthQueries) async {
         do {
-            let data = try await manager.sleepQueries.fetchLastNightSleep(relativeTo: referenceDate)
+            let data = try await sleepQueries.fetchLastNightSleep(relativeTo: referenceDate)
             if data.nightSleepMinutes > 0 {
                 SleepDataCache.write(data)
             }
@@ -373,9 +370,9 @@ extension HealthWriteAndObserve {
 
     /// Stop observing sleep data.
     func stopObservingSleepData() {
-        if let query = manager.sleepObserverQuery {
-            manager.healthStore.stop(query)
-            manager.sleepObserverQuery = nil
+        if let query = observation.sleepObserverQuery {
+            access.store.stop(query)
+            observation.sleepObserverQuery = nil
         }
     }
 }
@@ -394,15 +391,16 @@ private func makeSleepObserverQuery(
     for sleepType: HKCategoryType,
     owner: HealthWriteAndObserve
 ) -> HKObserverQuery {
-    // The manager owns this query, so the handler holds the manager weakly and
-    // rebuilds the (stateless) helper when it fires.
+    // `HealthObservation` holds this query, so the handler holds it weakly,
+    // and takes the sleep queries rather than `owner`, which holds it too:
+    // either strong hold would keep the query and its handler alive in a cycle.
     HealthSampleWatch.observerQuery(
-        for: sleepType, anchorKey: "HealthSampleWatch.sleepAnchor.v1", store: owner.manager.healthStore
-    ) { [weak manager = owner.manager] samples in
-        guard let manager else { return }
+        for: sleepType, anchorKey: "HealthSampleWatch.sleepAnchor.v1", store: owner.access.store
+    ) { [weak observation = owner.observation, sleepQueries = owner.sleepQueries] samples in
+        guard let observation else { return }
         Task { @MainActor in
-            manager.sleepDataVersion += 1
-            manager.writes.handleSleepSamplesArrived(samples)
+            observation.sleepDataVersion += 1
+            HealthWriteAndObserve.handleSleepSamplesArrived(samples, observation: observation, sleepQueries: sleepQueries)
         }
     }
 }

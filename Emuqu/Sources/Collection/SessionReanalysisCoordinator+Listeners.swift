@@ -165,12 +165,12 @@ extension SessionReanalysisCoordinator {
 
     // MARK: - HealthKit sleep arrival
 
-    /// Every `HealthKitManager.sleepDataVersion` bump checks today's morning
+    /// Every `HealthObservation.sleepDataVersion` bump checks today's morning
     /// session against the freshly-arrived HealthKit sleep
     /// (`autoRefreshTodaysSleepIfImproved`), which posts the rescore request
     /// when the new data materially improves on the frozen snapshot.
     func observeHealthKitSleep() {
-        ObservationLoop.observe(self, read: { $0.healthKit.sleepDataVersion }, onChange: { coordinator, _ in
+        ObservationLoop.observe(self, read: { $0.healthObservation.sleepDataVersion }, onChange: { coordinator, _ in
             Task { @MainActor in await coordinator.autoRefreshTodaysSleepIfImproved() }
         })
     }

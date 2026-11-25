@@ -73,7 +73,8 @@ extension FitnessTabView {
     }
 
     private var healthImporter: HealthWorkoutImporter {
-        HealthWorkoutImporter(manager: dependencies.collection.healthKitManager)
+        let healthKit = dependencies.collection.healthKitManager
+        return HealthWorkoutImporter(access: healthKit.access, training: healthKit.training, heartRate: healthKit.heartRate)
     }
 
     // MARK: - Interrupted recordings

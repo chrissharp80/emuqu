@@ -7,7 +7,7 @@ PROJECT ?= Emuqu.xcodeproj
 # Package.resolved. Defined once, in scripts/lib/xcodebuild.sh.
 include scripts/lib/xcodebuild.sh
 
-.PHONY: validation-ports release-build coremotion-isolation-guard hr-feed-link-guard science-register scoring-governance shared-root-guard explicit-deps-guard logger-self-reference-guard clean-build empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard xcodebuild-pinned-guard snapshot-refs-guard ci-local ci-local-unit verify-gates sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks privacy-gates claims-gates localization-gates source-rules dependency-gates concurrency-gates build-gates test-hygiene debt-gates
+.PHONY: coupling-budget validation-ports release-build coremotion-isolation-guard hr-feed-link-guard science-register scoring-governance shared-root-guard explicit-deps-guard logger-self-reference-guard clean-build empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard xcodebuild-pinned-guard snapshot-refs-guard ci-local ci-local-unit verify-gates sbom sbom-check no-phone-home strict-concurrency-enabled localization-orphan-guard perimeter-sync spec-conformance locale-format-guard lint lint-budget format test test-coverage debt-budget infoplist-guard sendable-guard sbom-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget budget-monotonicity orphan-swift-guard fixed-font-budget thread-sanitizer copy-perimeter doc-links ci setup-hooks privacy-gates claims-gates localization-gates source-rules dependency-gates concurrency-gates build-gates test-hygiene debt-gates
 
 lint:
 	@swiftlint lint --config .swiftlint.yml
@@ -28,6 +28,10 @@ test-coverage:
 
 debt-budget:
 	@./scripts/enforce_tech_debt_budgets.sh
+
+# Hub back-references, service-locator reads and pass-through forwarders only fall.
+coupling-budget:
+	@./scripts/check_coupling_budget.sh
 
 infoplist-guard:
 	@./scripts/check_no_health_data_in_cloudkit.sh
@@ -285,7 +289,7 @@ build-gates: xcodebuild-pinned-guard sbom-guard sbom-check orphan-swift-guard
 # a fresh install, skips and mutations are accounted for.
 test-hygiene: snapshot-refs-guard uitest-reset-guard skip-budget leaked-mutations-guard
 # Counted debt only falls.
-debt-gates: lint-budget debt-budget fixed-font-budget budget-monotonicity
+debt-gates: lint-budget debt-budget coupling-budget fixed-font-budget budget-monotonicity
 
 # Every gate a developer runs, and the same set ci.yml runs. A gate missing
 # from this list is one nobody sees fail locally, which has happened twice

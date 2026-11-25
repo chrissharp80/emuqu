@@ -9,11 +9,11 @@ import HealthKit
 /// `HealthKitManager+SleepTrends.swift`; they write and observe, which is a
 /// different job with different failure modes.
 ///
-/// Holds its owner strongly and is built on demand by the manager — a
-/// value with no state of its own, so nothing here can outlive what it
-/// points at.
+/// A value over the parts it uses: queries run through `access`, and the
+/// heart-rate-derived estimates read `heartRate`.
 @MainActor
 struct SleepHealthQueries {
-    let manager: HealthKitManager
+    let access: HealthKitAccess
+    let heartRate: HeartRateHealthQueries
 
 }

@@ -11,7 +11,7 @@ import Foundation
 @MainActor
 final class SessionScoringContext {
     let settingsManager: SettingsManager
-    let healthKit: HealthKitManager
+    let healthKit: any HealthKitServiceProtocol
     let baselineTracker: BaselineTracker
 
     /// The current load, stamped with the day it was cached.
@@ -22,7 +22,7 @@ final class SessionScoringContext {
     /// How many running reanalyses hold each past day's load.
     private var pastDayTrainingLoadHolders: [Date: Int] = [:]
 
-    init(settingsManager: SettingsManager, healthKit: HealthKitManager, baselineTracker: BaselineTracker) {
+    init(settingsManager: SettingsManager, healthKit: any HealthKitServiceProtocol, baselineTracker: BaselineTracker) {
         self.settingsManager = settingsManager
         self.healthKit = healthKit
         self.baselineTracker = baselineTracker

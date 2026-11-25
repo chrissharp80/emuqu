@@ -87,6 +87,7 @@ final class CollectorMigrationParityTests: XCTestCase {
     private lazy var migrations = SessionDataMigrations(
         archive: collector.archive,
         healthKit: collector.healthKit,
+        sleepQueries: collector.healthKit.sleepQueries,
         settingsManager: SettingsManager(settingsURL: tempDir.appendingPathComponent("user_settings.json")),
         baselineTracker: collector.baselineTracker,
         reanalysisService: makeReanalysisService()

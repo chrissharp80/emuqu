@@ -1421,6 +1421,11 @@ Numeric ceilings in `.ci/*.txt`, enforced by `scripts/enforce_tech_debt_budgets.
 (and friends): SwiftLint warnings, large-file count, coverage floor,
 silent-`try?` count, `.shared` usage, and **legacy `ObservableObject` count**
 (`legacy_observable_object_budget.txt` — ratchets new code onto `@Observable`).
+`scripts/check_coupling_budget.sh` holds three more: hub back-references,
+`AppDependencies.current` reads and pass-through forwarders
+(`hub_back_reference_budget.txt`, `locator_read_budget.txt`,
+`passthrough_forwarder_budget.txt`), which fall only when a part is given what
+it uses rather than the whole hub.
 The Watch target is counted the same ways against one combined ceiling,
 `watch_tech_debt_budget.txt` (its `try?` on write paths is shown but not added
 again, since the `try?` count already holds it). A debt ceiling must be a whole number: the gates

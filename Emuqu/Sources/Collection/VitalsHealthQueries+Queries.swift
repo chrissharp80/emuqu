@@ -32,10 +32,10 @@ extension VitalsHealthQueries {
     /// date (clamped to now), so a night with many samples is represented
     /// whole, not by its last few.
     private func fetchRespiratoryRate(relativeTo referenceDate: Date = Date()) async -> Double? {
-        guard manager.isHealthKitAvailable, let respType = HKTypes.quantity(.respiratoryRate) else { return nil }
+        guard access.isAvailable, let respType = HKTypes.quantity(.respiratoryRate) else { return nil }
         let predicate = Self.vitalsWindow(hours: 24, relativeTo: referenceDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: respType,
                 predicate: predicate,
@@ -107,11 +107,11 @@ extension VitalsHealthQueries {
     /// frozen "no data" label. A historical reading gets no cached stand-in
     /// (`cachedBaselineIfToday`).
     private func fetchRespiratoryRateBaseline(relativeTo referenceDate: Date = Date()) async -> Double? {
-        guard manager.isHealthKitAvailable, let respType = HKTypes.quantity(.respiratoryRate) else {
+        guard access.isAvailable, let respType = HKTypes.quantity(.respiratoryRate) else {
             return Self.cachedBaselineIfToday(RespiratoryBaselineCache.read()?.value, relativeTo: referenceDate)
         }
         let predicate = Self.priorNightsWindow(days: 7, relativeTo: referenceDate)
-        let liveValue: Double? = await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
+        let liveValue: Double? = await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: respType,
                 quantitySamplePredicate: predicate,
@@ -141,9 +141,9 @@ extension VitalsHealthQueries {
 
     /// Fetch oxygen saturation around a reference date
     private func fetchOxygenSaturation(relativeTo referenceDate: Date = Date()) async -> Double? {
-        guard manager.isHealthKitAvailable, let spo2Type = HKTypes.quantity(.oxygenSaturation) else { return nil }
+        guard access.isAvailable, let spo2Type = HKTypes.quantity(.oxygenSaturation) else { return nil }
         let predicate = Self.vitalsWindow(hours: 24, relativeTo: referenceDate)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: spo2Type,
                 quantitySamplePredicate: predicate,
@@ -156,9 +156,9 @@ extension VitalsHealthQueries {
 
     /// Fetch minimum SpO2 around a reference date
     private func fetchOxygenSaturationMin(relativeTo referenceDate: Date = Date()) async -> Double? {
-        guard manager.isHealthKitAvailable, let spo2Type = HKTypes.quantity(.oxygenSaturation) else { return nil }
+        guard access.isAvailable, let spo2Type = HKTypes.quantity(.oxygenSaturation) else { return nil }
         let predicate = Self.vitalsWindow(hours: 24, relativeTo: referenceDate)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: spo2Type,
                 quantitySamplePredicate: predicate,
@@ -196,12 +196,12 @@ extension VitalsHealthQueries {
 
     /// Fetch wrist temperature deviation around a reference date (iOS 16+)
     private func fetchWristTemperature(relativeTo referenceDate: Date = Date()) async -> Double? {
-        guard manager.isHealthKitAvailable, #available(iOS 16.0, *),
+        guard access.isAvailable, #available(iOS 16.0, *),
               let tempType = HKTypes.quantity(.appleSleepingWristTemperature)
         else { return nil }
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         let predicate = Self.vitalsWindow(hours: 24, relativeTo: referenceDate)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: tempType,
                 predicate: predicate,
@@ -255,12 +255,12 @@ extension VitalsHealthQueries {
     /// today and falls back to it when HK is unreachable, for today's reading
     /// only.
     private func fetchWristTemperatureBaseline(relativeTo referenceDate: Date = Date()) async -> Double? {
-        guard manager.isHealthKitAvailable, #available(iOS 16.0, *),
+        guard access.isAvailable, #available(iOS 16.0, *),
               let tempType = HKTypes.quantity(.appleSleepingWristTemperature)
         else { return Self.cachedBaselineIfToday(WristTemperatureBaselineCache.read()?.value, relativeTo: referenceDate) }
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
         let predicate = Self.priorNightsWindow(days: 7, relativeTo: referenceDate)
-        let liveValue: Double? = await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
+        let liveValue: Double? = await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: tempType,
                 predicate: predicate,
@@ -306,7 +306,7 @@ extension VitalsHealthQueries {
     /// Started at launch, so it runs whether or not the night was streamed;
     /// starting again replaces the running queries.
     func startObservingVitalsData() {
-        guard manager.isHealthKitAvailable else { return }
+        guard access.isAvailable else { return }
         stopObservingVitalsData()
         for type in Self.observedVitalsTypes() {
             observeVitalsType(type)
@@ -335,17 +335,17 @@ extension VitalsHealthQueries {
     /// samples that arrive meanwhile are read on the next launch.
     private func observeVitalsType(_ type: HKQuantityType) {
         let query = HealthSampleWatch.observerQuery(
-            for: type, anchorKey: "HealthSampleWatch.vitalsAnchor.\(type.identifier).v1", store: manager.healthStore
-        ) { [weak manager] _ in
-            guard let manager else { return }
+            for: type, anchorKey: "HealthSampleWatch.vitalsAnchor.\(type.identifier).v1", store: access.store
+        ) { [weak observation] _ in
+            guard let observation else { return }
             Task { @MainActor in
-                manager.vitalsDataVersion += 1
+                observation.vitalsDataVersion += 1
             }
         }
-        manager.vitalsObserverQueries.append(query)
-        manager.healthStore.execute(query)
+        observation.vitalsObserverQueries.append(query)
+        access.store.execute(query)
         let typeName = type.identifier
-        manager.healthStore.disableBackgroundDelivery(for: type) { @Sendable success, error in
+        access.store.disableBackgroundDelivery(for: type) { @Sendable success, error in
             guard !success else { return }
             debugLog("[HealthKitManager] Background delivery for \(typeName) not turned off: \(error?.localizedDescription ?? "no error given")")
         }
@@ -353,10 +353,10 @@ extension VitalsHealthQueries {
 
     /// Stop observing all vitals data queries.
     func stopObservingVitalsData() {
-        for query in manager.vitalsObserverQueries {
-            manager.healthStore.stop(query)
+        for query in observation.vitalsObserverQueries {
+            access.store.stop(query)
         }
-        manager.vitalsObserverQueries.removeAll()
+        observation.vitalsObserverQueries.removeAll()
     }
 
     /// Fetch resting heart rate around a reference date.
@@ -375,12 +375,12 @@ extension VitalsHealthQueries {
     /// min-HR fallback could pick up our own exported HR series — both circular
     /// contamination.
     private func fetchRestingHeartRate(relativeTo referenceDate: Date = Date()) async -> Double? {
-        guard manager.isHealthKitAvailable else { return nil }
+        guard access.isAvailable else { return nil }
         let calendar = Calendar.current
         let windowEnd = min(referenceDate, Date())
         let windowStart = calendar.date(byAdding: .hour, value: -36, to: windowEnd) ?? windowEnd  // no force-unwrap
         let datePredicate = HKQuery.predicateForSamples(withStart: windowStart, end: windowEnd, options: .strictStartDate)
-        let predicate = manager.heartRate.hrReadExcludingOwnWrites(dateRange: datePredicate)
+        let predicate = heartRate.hrReadExcludingOwnWrites(dateRange: datePredicate)
         if let rhr = await watchRestingHeartRate(predicate: predicate) { return rhr }
         debugLog("[HealthKitManager] No .restingHeartRate sample found — falling back to the 36h heart-rate minimum")
         return await minimumHeartRate(predicate: predicate)
@@ -393,7 +393,7 @@ extension VitalsHealthQueries {
         guard let rhrType = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else { return nil }
         let bpm = HKUnit.count().unitDivided(by: .minute())
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
             HKSampleQuery(
                 sampleType: rhrType,
                 predicate: predicate,
@@ -419,7 +419,7 @@ extension VitalsHealthQueries {
     private func minimumHeartRate(predicate: NSPredicate) async -> Double? {
         guard let hrType = HKTypes.quantity(.heartRate) else { return nil }
         let bpm = HKUnit.count().unitDivided(by: .minute())
-        return await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
+        return await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: hrType,
                 quantitySamplePredicate: predicate,
@@ -451,7 +451,7 @@ extension VitalsHealthQueries {
     /// Last `days` days of HealthKit-aggregated activity. Most-recent first.
     /// `days` includes today, so days=7 returns today + 6 previous.
     func fetchDailyActivity(days: Int = 7) async -> [HealthKitManager.DailyActivity] {
-        guard manager.isHealthKitAvailable else { return [] }
+        guard access.isAvailable else { return [] }
         let cal = Calendar.current
         let now = Date()
         var out: [HealthKitManager.DailyActivity] = []
@@ -478,14 +478,14 @@ extension VitalsHealthQueries {
     /// Steps taken between two timestamps, summed across all sources.
     /// Pass [workoutStart, workoutEnd] for "steps during this workout."
     func fetchSumSteps(from start: Date, to end: Date) async -> Int {
-        guard manager.isHealthKitAvailable, end > start else { return 0 }
+        guard access.isAvailable, end > start else { return 0 }
         guard let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount) else { return 0 }
         return await sumActivityQuantity(type: stepType, unit: .count(), from: start, to: end).map { Int($0) } ?? 0
     }
 
     /// Distance walked/run between two timestamps, in meters.
     func fetchSumDistance(from start: Date, to end: Date) async -> Double {
-        guard manager.isHealthKitAvailable, end > start else { return 0 }
+        guard access.isAvailable, end > start else { return 0 }
         guard let distType = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning) else { return 0 }
         return await sumActivityQuantity(type: distType, unit: .meter(), from: start, to: end) ?? 0
     }
@@ -493,7 +493,7 @@ extension VitalsHealthQueries {
     /// Flights climbed between two timestamps. CMPedometer staircase-burst
     /// detection — does NOT capture gradual outdoor elevation gain.
     func fetchSumFlights(from start: Date, to end: Date) async -> Int {
-        guard manager.isHealthKitAvailable, end > start else { return 0 }
+        guard access.isAvailable, end > start else { return 0 }
         guard let flightsType = HKQuantityType.quantityType(forIdentifier: .flightsClimbed) else { return 0 }
         return await sumActivityQuantity(type: flightsType, unit: .count(), from: start, to: end).map { Int($0) } ?? 0
     }
@@ -510,7 +510,7 @@ extension VitalsHealthQueries {
     ) async -> Double? {
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
         let typeName = type.identifier
-        let sum: Double? = await manager.heartRate.runBoundedQuery(timeout: HeartRateHealthQueries.vitalsQueryTimeoutSec) { resolve in
+        let sum: Double? = await access.runBoundedQuery(timeout: HealthKitAccess.vitalsQueryTimeoutSec) { resolve in
             HKStatisticsQuery(
                 quantityType: type,
                 quantitySamplePredicate: predicate,

@@ -381,8 +381,8 @@ extension HealthWorkoutImporter {
     ) async -> [HealthSampleWindow] {
         guard let type = HKTypes.quantity(identifier) else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
-        return await manager.heartRate.runBoundedQuery(
-            timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
+        return await access.runBoundedQuery(
+            timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec
         ) { resolve in
             HKSampleQuery(
                 sampleType: type, predicate: predicate,
@@ -443,8 +443,8 @@ extension HealthWorkoutImporter {
     ) async -> Double? {
         guard let type = HKTypes.quantity(identifier) else { return nil }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-        return await manager.heartRate.runBoundedQuery(
-            timeout: HeartRateHealthQueries.backgroundAggregateQueryTimeoutSec
+        return await access.runBoundedQuery(
+            timeout: HealthKitAccess.backgroundAggregateQueryTimeoutSec
         ) { resolve in
             HKStatisticsQuery(
                 quantityType: type,

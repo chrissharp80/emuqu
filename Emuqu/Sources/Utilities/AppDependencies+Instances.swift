@@ -54,7 +54,7 @@ extension CloudKitSettingsSync {
 
 extension HeatAcclimationCache {
     /// The app's heat-acclimation cache.
-    static let shared = HeatAcclimationCache(archive: .shared, settingsManager: .shared, healthKit: .shared)
+    static let shared = HeatAcclimationCache(archive: .shared, settingsManager: .shared, training: HealthKitManager.shared.training)
 }
 
 extension AssistantContextSource {
